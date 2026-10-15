@@ -49,6 +49,14 @@ const STATUS_VARIANT: Record<EnrollmentStatus, BadgeVariant> = {
   FROZEN: "muted",
 };
 
+// Mismo mapeo que people-table del CRM (segmentos compartidos).
+const SEGMENT_VARIANT: Record<string, BadgeVariant> = {
+  NEW: "neon",
+  AT_RISK: "live",
+  BRINGS_PEOPLE: "outline",
+  CORE: "muted",
+};
+
 /**
  * Alumnos (enrollments) - solo listado navegable: el card completo abre
  * la ficha /academia/alumnos/[personId] (la edición de estado y "pagado
@@ -62,6 +70,7 @@ export function StudentsSection({
   const t = useTranslations("academy");
   const tc = useTranslations("common");
   const tp = useTranslations("practices");
+  const tcrm = useTranslations("crm");
 
   const [students, setStudents] = useState<Student[]>([]);
   const [total, setTotal] = useState(0);
@@ -195,6 +204,19 @@ export function StudentsSection({
                     <Badge variant={STATUS_VARIANT[s.status]}>
                       {t(`status.${s.status}`)}
                     </Badge>
+                    {/* Score de relación (spec academy-score-refine):
+                        privado de la academia; "—" si aún no se computó. */}
+                    <span
+                      className="text-xs tabular-nums text-ink/60"
+                      title={t("studentProfile.score")}
+                    >
+                      {s.score !== null ? Math.round(s.score) : "—"}
+                    </span>
+                    {s.segment && (
+                      <Badge variant={SEGMENT_VARIANT[s.segment] ?? "muted"}>
+                        {tcrm(`segments.${s.segment}`)}
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-ink/50">
                     <span className="truncate">{s.plan?.name ?? "-"}</span>

@@ -7441,6 +7441,17 @@
         }
       }
     },
+    "/api/admin/academies/score-health": {
+      "get": {
+        "operationId": "UserIntelController_academyScoreHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/admin/users/{personId}/analytics": {
       "get": {
         "operationId": "UserIntelController_analytics",

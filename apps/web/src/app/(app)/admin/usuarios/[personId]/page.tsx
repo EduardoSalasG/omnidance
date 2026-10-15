@@ -94,9 +94,32 @@ type PersonDetail = {
   };
   roles: { id: string; role: string; status: string; createdAt: string }[];
   roleData: RoleData;
+  // Scores de relación por actor (spec academy-score-refine).
+  scores: {
+    actorType: string;
+    actorId: string;
+    actorName: string | null;
+    score: number;
+    segment: string | null;
+    breakdown: Record<string, unknown> | null;
+    computedAt: string;
+  }[];
 };
 
 type LoadState = "loading" | "ready" | "notFound" | "error";
+
+// Componentes del breakdown con etiqueta i18n (spec
+// academy-score-refine) - clave desconocida cae a renderizar el raw.
+const SCORE_COMPONENT_LABELS = [
+  "attendanceRecent",
+  "weeklyStreak",
+  "monthsContinuous",
+  "purchases",
+  "tenure",
+  "referrals",
+  "attendance",
+  "spend",
+];
 
 // Catálogo completo de estados de PersonRole (mismo set que valida la API).
 const ROLE_STATUSES = ["PENDING", "SANDBOX", "APPROVED", "REJECTED"] as const;
@@ -133,6 +156,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
   const t = useTranslations("admin");
   const tp = useTranslations("profile");
   const tc = useTranslations("common");
+  const tcrm = useTranslations("crm");
 
   const [detail, setDetail] = useState<PersonDetail | null>(null);
   const [catalog, setCatalog] = useState<RoleRow[]>([]);
@@ -471,6 +495,68 @@ function UserDetailPanel({ personId }: { personId: string }) {
           ))
         )}
       </section>
+
+      {/* Scores de relación por actor (spec academy-score-refine):
+          CRM privado por actor - el admin los ve transversal. */}
+      {detail.scores.length > 0 && (
+        <section
+          className="flex flex-col gap-3"
+          aria-labelledby="scores-h"
+        >
+          <h2
+            id="scores-h"
+            className="text-sm font-semibold uppercase tracking-wide text-ink/50"
+          >
+            {t("users.scores.title")}
+          </h2>
+          {detail.scores.map((s) => {
+            const pts = (s.breakdown?.points ?? null) as Record<
+              string,
+              number
+            > | null;
+            return (
+              <Card key={`${s.actorType}:${s.actorId}`} className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="min-w-0 flex-1 truncate font-medium">
+                    {s.actorName ?? s.actorId}
+                  </span>
+                  <Badge variant="outline">{s.actorType}</Badge>
+                  <span className="text-sm font-semibold tabular-nums">
+                    {Math.round(s.score)}
+                  </span>
+                  {s.segment && (
+                    <Badge variant="muted">
+                      {tcrm(`segments.${s.segment}`)}
+                    </Badge>
+                  )}
+                </div>
+                {pts && (
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+                    {Object.entries(pts).map(([k, v]) => (
+                      <div
+                        key={k}
+                        className="flex items-baseline justify-between gap-2"
+                      >
+                        <dt className="text-ink/50">
+                          {SCORE_COMPONENT_LABELS.includes(k)
+                            ? t(`users.scores.components.${k}`)
+                            : k}
+                        </dt>
+                        <dd className="tabular-nums text-ink/80">+{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+                <p className="text-xs text-ink/40">
+                  {t("users.scores.computedAt", {
+                    date: fmtDate(s.computedAt),
+                  })}
+                </p>
+              </Card>
+            );
+          })}
+        </section>
+      )}
 
       <Button
         href={`/analitica/usuarios/${personId}`}

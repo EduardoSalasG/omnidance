@@ -26,6 +26,20 @@
         "roleData": "Actividad por rol",
         "notFound": "Usuario no encontrado"
       },
+      "scores": {
+        "title": "Scores por actor",
+        "computedAt": "Actualizado {date}",
+        "components": {
+          "attendanceRecent": "Asistencias recientes",
+          "weeklyStreak": "Racha semanal",
+          "monthsContinuous": "Meses continuos",
+          "purchases": "Compras",
+          "tenure": "Antigüedad",
+          "referrals": "Referidos",
+          "attendance": "Asistencias",
+          "spend": "Gasto"
+        }
+      },
       "roleData": {
         "ticketsUpcoming": "Entradas próximas",
         "ticketsPast": "Entradas pasadas",
@@ -175,7 +189,19 @@
       "jobs": "Jobs programados",
       "jobsDesc": "Horario, pausa y corridas de las tareas agendadas",
       "campaigns": "Campañas de mail",
-      "campaignsDesc": "Envíos programados a usuarios por audiencia"
+      "campaignsDesc": "Envíos programados a usuarios por audiencia",
+      "academias": "Academias",
+      "academiasDesc": "Salud de alumnos por academia (scores y segmentos)"
+    },
+    "academies": {
+      "desc": "Salud de la base de alumnos por academia: distribución de segmentos, score medio y alumnos destacados o en riesgo.",
+      "error": "No se pudo cargar la salud de academias.",
+      "empty": "Aún no hay scores de academias (ejecuta el recompute o espera el job diario).",
+      "students": "{count, plural, one {# alumno} other {# alumnos}}",
+      "avg": "Score medio {score}",
+      "top": "Top alumnos",
+      "atRisk": "En riesgo",
+      "noneAtRisk": "Nadie en riesgo"
     },
     "jobs": {
       "title": "Jobs programados",

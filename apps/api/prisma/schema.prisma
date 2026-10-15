@@ -1537,6 +1537,10 @@ model RelationshipScore {
   personId  String
   score     Float // RFM + engagement - privado por actor
   segment   String? // CORE | AT_RISK | NEW | BRINGS_PEOPLE
+  // Componentes del score (spec academy-score-refine): conteos y puntos
+  // por señal - alimenta el desglose explicable en fichas. null en rows
+  // previas al cambio; las vistas degradan a número+segmento.
+  breakdown Json?
   computedAt DateTime @default(now())
 
   @@unique([actorType, actorId, personId])

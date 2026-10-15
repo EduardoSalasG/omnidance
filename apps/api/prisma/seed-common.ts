@@ -101,7 +101,24 @@ const PARAM_DEFAULTS: Array<{
   // default_gateway; si el provider elegido no implementa
   // SubscriptionProvider, los flujos de suscripción fallan explícito.
   { key: "payments.subscription_gateway", value: "FLOW", description: "Proveedor del motor de suscripciones (FLOW hoy; STUB en dev) - resuelto contra el GatewayRegistry; sin valor cae al default del env" },
-  { key: "crm.winback_days", value: 21, description: "Días sin actividad para que el trigger WINBACK dispare" },
+  { key: "crm.winback_days", value: 21, description: "Días sin actividad para que el trigger WINBACK dispare y para que el score ACADEMY marque AT_RISK" },
+  // Score de relación ACADEMY (spec academy-score-refine): pesos de cada
+  // señal del score 0-100 y umbrales de segmento.
+  { key: "crm.score.attendance_weeks", value: 8, description: "Semanas hacia atrás que cuenta la asistencia reciente del score de alumno" },
+  { key: "crm.score.attendance_pts", value: 4, description: "Puntos por asistencia reciente (score de alumno)" },
+  { key: "crm.score.streak_cap", value: 8, description: "Tope de semanas de racha que puntúan (score de alumno)" },
+  { key: "crm.score.streak_pts", value: 3, description: "Puntos por semana de racha actual (score de alumno)" },
+  { key: "crm.score.months_cap", value: 6, description: "Tope de meses continuos que puntúan (score de alumno)" },
+  { key: "crm.score.months_pts", value: 4, description: "Puntos por mes continuo con actividad/membresía (score de alumno)" },
+  { key: "crm.score.purchase_months", value: 6, description: "Meses hacia atrás que cuentan las compras (score de alumno)" },
+  { key: "crm.score.purchase_cap", value: 6, description: "Tope de compras que puntúan (score de alumno)" },
+  { key: "crm.score.purchase_pts", value: 3, description: "Puntos por compra PAID/claim aprobado (score de alumno)" },
+  { key: "crm.score.tenure_cap", value: 12, description: "Tope de meses de antigüedad que puntúan (score de alumno)" },
+  { key: "crm.score.tenure_pts", value: 1, description: "Puntos por mes de antigüedad (score de alumno)" },
+  { key: "crm.score.referral_pts", value: 5, description: "Puntos por referral (score de alumno)" },
+  { key: "crm.score.core_min", value: 60, description: "Score mínimo para segmento CORE" },
+  { key: "crm.new_days", value: 30, description: "Días desde la primera actividad para segmento NEW" },
+  { key: "crm.brings_people_referrals", value: 2, description: "Referrals mínimos para segmento BRINGS_PEOPLE" },
   { key: "classes.cancel_refund_minutes", value: 60, description: "Minutos antes del inicio de la clase hasta los que cancelar devuelve el crédito de la cuota - después la reserva se puede cancelar pero la clase se pierde" },
   // ─── SaaS billing (spec academy-saas-billing) ───
   // Tiers de academia: límite de alumnos activos por tier (ENTERPRISE = sin límite, contratación manual).

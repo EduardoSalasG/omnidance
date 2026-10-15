@@ -96,6 +96,14 @@
       "viewProfile": "Ver perfil de {name}",
       "score": "Score",
       "scoreNone": "Sin score",
+      "breakdown": {
+        "attendanceRecent": "Asistencias recientes",
+        "weeklyStreak": "Racha semanal",
+        "monthsContinuous": "Meses continuos",
+        "purchases": "Compras",
+        "tenure": "Antigüedad",
+        "referrals": "Referidos"
+      },
       "payments": "Pagos",
       "emptyPayments": "Sin pagos registrados.",
       "paymentSaved": "Inscripción actualizada.",

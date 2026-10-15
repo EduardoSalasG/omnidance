@@ -284,6 +284,25 @@ export type Student = {
   startsAt: string | null;
   /** "Pagado hasta" - vigencia del plan; null = sin fecha registrada. */
   endsAt: string | null;
+  // Score de relación academia↔alumno (spec academy-score-refine):
+  // null = aún no recomputado.
+  score: number | null;
+  segment: string | null;
+};
+
+/** Desglose persistido del RelationshipScore (spec academy-score-refine):
+    conteos por señal + puntos aportados. null en scores pre-cambio. */
+export type ScoreBreakdown = {
+  attendanceRecent?: number;
+  weeklyStreak?: number;
+  monthsContinuous?: number;
+  purchases?: number;
+  tenure?: number;
+  referrals?: number;
+  attendanceRecent4w?: number;
+  attendancePrev4w?: number;
+  spend?: number;
+  points?: Record<string, number>;
 };
 
 // GET /academies/:id/series - espejo del SERIES_INCLUDE del controller
@@ -422,6 +441,7 @@ export type StudentProfile = {
   // Score de relación academia↔alumno (CRM): privado por actor.
   score: number | null;
   segment: string | null;
+  scoreBreakdown: ScoreBreakdown | null;
   history: {
     classId: string;
     date: string;
