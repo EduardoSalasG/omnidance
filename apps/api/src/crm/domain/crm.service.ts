@@ -14,6 +14,7 @@ import {
   decodeClassRef,
   decodeMembershipRef,
   decodePrivateRef,
+  decodeSeriesPassRef,
 } from "../../payments/domain/order-ref";
 
 // CRM transversal (omni-dance.md - CRM por actor): scores de relación,
@@ -100,7 +101,12 @@ interface PersonActivity {
   weeklyStreak: number; // semanas consecutivas con ≥1 asistencia
   monthsContinuous: number; // meses calendario seguidos con actividad/membresía
   purchases: number; // compras PAID/claims APPROVED últimos purchase_months
-  tenureMonths: number; // meses desde la primera inscripción
+  tenureMonths: number; // meses desde la primera actividad del universo
+  // PRODUCER (spec producer-score-refine):
+  earlyPurchases: number; // compras TICKET ≥early_days antes del evento
+  // Caída calculada por el cómputo del actor (academy: 4w/4w; producer:
+  // últimos 2 eventos sin checkin tras ≥2 de los 5 anteriores).
+  dropping: boolean;
 }
 
 const DAY_MS = 86_400_000;
@@ -126,6 +132,9 @@ interface ScoreParams {
   newDays: number;
   bringsReferrals: number;
   winbackDays: number;
+  earlyPts: number;
+  earlyCap: number;
+  earlyDays: number;
 }
 
 /** "YYYY-MM-DD" del instante en America/Santiago (calendario civil local). */
@@ -534,7 +543,7 @@ export class CrmService {
     let updated = 0;
     for (const [personId, a] of activity) {
       const { score, breakdown } = this.computeScore(actorType, a, p);
-      const segment = this.computeSegment(actorType, a, score, p, now);
+      const segment = this.computeSegment(a, score, p, now);
       await this.prisma.relationshipScore.upsert({
         where: {
           actorType_actorId_personId: { actorType, actorId, personId },
@@ -614,6 +623,9 @@ export class CrmService {
       newDays: await g("crm.new_days", 30),
       bringsReferrals: await g("crm.brings_people_referrals", 2),
       winbackDays: await g("crm.winback_days", 21),
+      earlyPts: await g("crm.score.early_pts", 2),
+      earlyCap: await g("crm.score.early_cap", 3),
+      earlyDays: await g("crm.score.early_days", 3),
     };
   }
 
@@ -658,25 +670,37 @@ export class CrmService {
         },
       };
     }
+    // PRODUCER (spec producer-score-refine): mismas primitivas que
+    // ACADEMY con semántica de eventos + earlyPurchases (preventa).
     const points = {
-      attendance: a.attendance * 10,
-      spend: a.spend / 1000,
-      referrals: a.referrals * 15,
+      eventsRecent: a.attendanceRecent * p.attendancePts,
+      eventStreak: Math.min(a.weeklyStreak, p.streakCap) * p.streakPts,
+      monthsContinuous:
+        Math.min(a.monthsContinuous, p.monthsCap) * p.monthsPts,
+      purchases: Math.min(a.purchases, p.purchaseCap) * p.purchasePts,
+      earlyPurchases:
+        Math.min(a.earlyPurchases, p.earlyCap) * p.earlyPts,
+      tenure: Math.min(a.tenureMonths, p.tenureCap) * p.tenurePts,
+      referrals: a.referrals * p.referralPts,
     };
     const score = Math.min(100, Object.values(points).reduce((s, v) => s + v, 0));
     return {
       score,
       breakdown: {
-        attendance: a.attendance,
-        spend: a.spend,
+        eventsRecent: a.attendanceRecent,
+        eventStreak: a.weeklyStreak,
+        monthsContinuous: a.monthsContinuous,
+        purchases: a.purchases,
+        earlyPurchases: a.earlyPurchases,
+        tenure: a.tenureMonths,
         referrals: a.referrals,
+        spend: a.spend,
         points,
       },
     };
   }
 
   private computeSegment(
-    actorType: string,
     a: PersonActivity,
     score: number,
     p: ScoreParams,
@@ -687,22 +711,15 @@ export class CrmService {
     }
     const inactive =
       a.lastAt && now.getTime() - a.lastAt.getTime() > p.winbackDays * DAY_MS;
-    // "Cayendo" (solo ACADEMY): la ventana reciente perdió ≥50% vs la
-    // anterior (mínimo 2 asistencias previas para no marcar caída sobre
-    // base ~0).
-    const dropping =
-      actorType === "ACADEMY" &&
-      a.attendancePrev4w >= 2 &&
-      a.attendanceRecent4w < a.attendancePrev4w / 2;
-    if (inactive || dropping) {
+    // "Cayendo": lo fija el cómputo del actor (academy: ventana 4w perdió
+    // ≥50% vs la anterior; producer: no asistió a los últimos 2 eventos
+    // tras patrón en los 5 anteriores).
+    if (inactive || a.dropping) {
       return "AT_RISK";
     }
     if (a.referrals >= p.bringsReferrals) return "BRINGS_PEOPLE";
-    // CORE: ACADEMY por score (fórmula por componentes); PRODUCER conserva
-    // el umbral legado de asistencias (su fórmula no cambia).
-    if (actorType === "ACADEMY") {
-      if (score >= p.coreMin) return "CORE";
-    } else if (a.attendance >= CORE_ATTENDANCES) return "CORE";
+    // CORE por umbral de score (unificado desde producer-score-refine).
+    if (score >= p.coreMin) return "CORE";
     return null;
   }
 
@@ -734,6 +751,8 @@ export class CrmService {
         monthsContinuous: 0,
         purchases: 0,
         tenureMonths: 0,
+        earlyPurchases: 0,
+        dropping: false,
       };
       if (at) {
         if (!a.firstAt || at < a.firstAt) a.firstAt = at;
@@ -744,32 +763,7 @@ export class CrmService {
     };
 
     if (actorType === "PRODUCER") {
-      const events = await this.prisma.event.findMany({
-        where: { producerId: actorId },
-        select: { id: true },
-      });
-      const eventIds = events.map((e) => e.id);
-      if (!eventIds.length) return activity;
-
-      const [checkins, payments] = await Promise.all([
-        this.prisma.checkin.findMany({
-          where: { eventId: { in: eventIds }, voidedAt: null },
-          select: { personId: true, inAt: true },
-        }),
-        this.prisma.payment.findMany({
-          where: { eventId: { in: eventIds }, status: "PAID" },
-          select: { personId: true, amount: true, createdAt: true },
-        }),
-      ]);
-
-      for (const c of checkins) {
-        const a = touch(c.personId, c.inAt);
-        a.attendance++;
-      }
-      for (const pmt of payments) {
-        const a = touch(pmt.personId, pmt.createdAt);
-        a.spend += pmt.amount;
-      }
+      await this.computeProducerActivity(actorId, p, activity, touch);
     } else if (actorType === "ACADEMY") {
       await this.computeAcademyActivity(actorId, p, activity, touch);
     } else {
@@ -786,6 +780,157 @@ export class CrmService {
       for (const r of referrals) activity.get(r.referrerId)!.referrals++;
     }
     return activity;
+  }
+
+  /**
+   * Universo PRODUCER (spec producer-score-refine): checkins no anulados
+   * en eventos del productor + payments PAID atribuibles (TICKET por
+   * eventId; SERIES_PASS por seriesId→EventSeries.producerId).
+   * Señales: eventsRecent (ventana), eventStreak (eventos pasados
+   * consecutivos asistidos), monthsContinuous (checkin o compra),
+   * purchases (ventana), earlyPurchases (≥early_days antes del evento),
+   * dropping (0 de los últimos 2 eventos tras ≥2 de los 5 anteriores).
+   */
+  private async computeProducerActivity(
+    actorId: string,
+    p: ScoreParams,
+    activity: Map<string, PersonActivity>,
+    touch: (personId: string, at: Date | null) => PersonActivity,
+  ): Promise<void> {
+    const now = new Date();
+    // Ventana de score para eventos recientes (no confundir con el fetch
+    // completo de checkins - es histórico para tenure/meses).
+    const recentSince = new Date(
+      now.getTime() - p.attendanceWeeks * 7 * DAY_MS,
+    );
+    const purchaseSince = new Date(
+      now.getTime() - p.purchaseMonths * 31 * DAY_MS,
+    );
+    const earlyCutoff = p.earlyDays * DAY_MS;
+
+    // Solo eventos reales (publicados en adelante): DRAFT/CANCELLED no
+    // rompen rachas ni cuentan como evento perdido.
+    const events = await this.prisma.event.findMany({
+      where: {
+        producerId: actorId,
+        status: { in: ["PUBLISHED", "LIVE", "CLOSED"] },
+      },
+      select: { id: true, startsAt: true },
+      orderBy: { startsAt: "desc" },
+    });
+    const eventIds = events.map((e) => e.id);
+    if (!eventIds.length) return;
+    const eventStart = new Map(events.map((e) => [e.id, e.startsAt]));
+    // Eventos ya pasados, más reciente primero (para racha y caída).
+    const pastEvents = events.filter((e) => e.startsAt <= now);
+
+    const [checkins, ticketPayments, seriesPassPayments] = await Promise.all([
+      this.prisma.checkin.findMany({
+        where: { eventId: { in: eventIds }, voidedAt: null },
+        select: { personId: true, eventId: true, inAt: true },
+      }),
+      this.prisma.payment.findMany({
+        where: {
+          status: "PAID",
+          orderType: "TICKET",
+          eventId: { in: eventIds },
+        },
+        select: {
+          personId: true,
+          eventId: true,
+          amount: true,
+          createdAt: true,
+        },
+      }),
+      // SERIES_PASS no tiene columna - el refId codifica la serie.
+      this.prisma.payment.findMany({
+        where: { status: "PAID", orderType: "SERIES_PASS" },
+        select: { personId: true, amount: true, createdAt: true, refId: true },
+      }),
+    ]);
+
+    // Series del productor → ids válidos para atribuir passes.
+    const seriesRefIds = seriesPassPayments
+      .map((pmt) => decodeSeriesPassRef(pmt.refId)?.seriesId)
+      .filter((s): s is string => !!s);
+    const producerSeries = seriesRefIds.length
+      ? await this.prisma.eventSeries.findMany({
+          where: { id: { in: seriesRefIds }, producerId: actorId },
+          select: { id: true },
+        })
+      : [];
+    const ownedSeries = new Set(producerSeries.map((s) => s.id));
+
+    const monthsActivity = new Map<string, Set<number>>();
+    const attendedEvents = new Map<string, Set<string>>();
+    const bumpMonth = (pid: string, at: Date) => {
+      const set =
+        monthsActivity.get(pid) ??
+        monthsActivity.set(pid, new Set()).get(pid)!;
+      set.add(monthIndex(at));
+    };
+
+    for (const c of checkins) {
+      const a = touch(c.personId, c.inAt);
+      a.attendance++;
+      if (c.inAt >= recentSince) a.attendanceRecent++;
+      bumpMonth(c.personId, c.inAt);
+      (attendedEvents.get(c.personId) ??
+        attendedEvents.set(c.personId, new Set()).get(c.personId)!).add(
+        c.eventId,
+      );
+    }
+    for (const pmt of ticketPayments) {
+      const a = touch(pmt.personId, pmt.createdAt);
+      a.spend += pmt.amount;
+      bumpMonth(pmt.personId, pmt.createdAt);
+      if (pmt.createdAt >= purchaseSince) a.purchases++;
+      const start = pmt.eventId ? eventStart.get(pmt.eventId) : undefined;
+      if (start && pmt.createdAt.getTime() <= start.getTime() - earlyCutoff) {
+        a.earlyPurchases++;
+      }
+    }
+    for (const pmt of seriesPassPayments) {
+      const sid = decodeSeriesPassRef(pmt.refId)?.seriesId;
+      if (!sid || !ownedSeries.has(sid)) continue;
+      const a = touch(pmt.personId, pmt.createdAt);
+      a.spend += pmt.amount;
+      bumpMonth(pmt.personId, pmt.createdAt);
+      if (pmt.createdAt >= purchaseSince) a.purchases++;
+    }
+
+    const curMonth = monthIndex(now);
+    for (const [pid, a] of activity) {
+      a.tenureMonths = a.firstAt
+        ? Math.max(1, monthIndex(now) - monthIndex(a.firstAt) + 1)
+        : 0;
+      // Racha de eventos: consecutivos desde el más reciente hacia atrás.
+      const attended = attendedEvents.get(pid);
+      if (attended) {
+        let streak = 0;
+        for (const ev of pastEvents) {
+          if (attended.has(ev.id)) streak++;
+          else break;
+        }
+        a.weeklyStreak = streak; // semántica eventStreak para PRODUCER
+        // Caída: 0 de los últimos 2 eventos tras ≥2 de los 5 anteriores.
+        if (pastEvents.length >= 3) {
+          const last2 = pastEvents.slice(0, 2);
+          const prev5 = pastEvents.slice(2, 7);
+          const inLast2 = last2.filter((e) => attended.has(e.id)).length;
+          const inPrev5 = prev5.filter((e) => attended.has(e.id)).length;
+          a.dropping = inLast2 === 0 && inPrev5 >= 2;
+        }
+      }
+      const mset = monthsActivity.get(pid);
+      if (mset?.size) {
+        let m = mset.has(curMonth) ? curMonth : curMonth - 1;
+        while (mset.has(m)) {
+          a.monthsContinuous++;
+          m--;
+        }
+      }
+    }
   }
 
   /**
@@ -963,6 +1108,10 @@ export class CrmService {
           m--;
         }
       }
+      // Caída: ventana reciente perdió ≥50% vs la anterior (mínimo 2
+      // previas para no marcar sobre base ~0).
+      a.dropping =
+        a.attendancePrev4w >= 2 && a.attendanceRecent4w < a.attendancePrev4w / 2;
     }
 
     // ── Compras: resolución por refId (patrón de cobros/kpis) ──

@@ -45,6 +45,22 @@ const SEGMENT_VARIANT: Record<string, "neon" | "outline" | "muted" | "live"> = {
   CORE: "muted",
 };
 
+// Componentes del breakdown con etiqueta i18n (academy + producer) -
+// clave desconocida cae a renderizar el raw.
+const SCORE_COMPONENT_KEYS = [
+  "attendanceRecent",
+  "weeklyStreak",
+  "monthsContinuous",
+  "purchases",
+  "tenure",
+  "referrals",
+  "attendance",
+  "spend",
+  "eventsRecent",
+  "eventStreak",
+  "earlyPurchases",
+];
+
 // Ficha del contacto (spec crm-console-v1): score/segmento, tags
 // editables, resumen de actividad y línea de tiempo reciente - todo
 // dentro del universo del actor seleccionado.
@@ -226,6 +242,29 @@ function PersonDetail({
           </p>
           <p className="text-xs text-ink/50">{t("people.score")}</p>
         </div>
+        {/* Desglose del score (spec academy-score-refine): componentes
+            y puntos aportados. Scores previos al cambio traen null →
+            solo número+segmento. */}
+        {detail.breakdown?.points != null &&
+          typeof detail.breakdown.points === "object" && (
+            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 border-t border-line pt-3 text-xs sm:grid-cols-3">
+              {Object.entries(
+                detail.breakdown.points as Record<string, number>,
+              ).map(([k, v]) => (
+                <div
+                  key={k}
+                  className="flex items-baseline justify-between gap-2"
+                >
+                  <dt className="text-ink/50">
+                    {SCORE_COMPONENT_KEYS.includes(k)
+                      ? t(`personDetail.components.${k}`)
+                      : k}
+                  </dt>
+                  <dd className="tabular-nums text-ink/80">+{v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
       </Card>
 
       {/* Resumen de actividad */}
