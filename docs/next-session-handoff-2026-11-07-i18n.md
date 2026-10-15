@@ -41,7 +41,7 @@
 
 ## Notas / caveats
 
-- Warning cosmético x15 en build: `metadataBase not set` — viene de las rutas de metadata en root (`app/opengraph-image.tsx`, `twitter-image.tsx` fuera de `[locale]`); el HTML servido resuelve og:image absoluto correctamente. Si molesta, mover esos archivos bajo `[locale]`.
+- ~~Warning cosmético x15 en build: `metadataBase not set`~~ — resuelto: `opengraph-image.tsx`/`twitter-image.tsx` movidas a `src/app/[locale]/` (heredan `metadataBase` del layout, og:image sale por locale). Las 4 landings usan la convención, sin `images:` explícito.
 - `wallet.service.ts` hardcodea `language: "es-CL"` — es el campo del pase de Google Wallet, no del usuario; correcto que sea fijo.
 - Dev server corre con el árbol nuevo (Next 15.5.28 + locales). API Nest 11 en :4000.
 - pt-PT tiene ~15-30% de strings idénticos a es-CL — coincidencia legítima de vocabulario ("Guardar", "Copiar", "Check-ins"), no copia sin traducir (verificado: ninguna part es 100% idéntica).

@@ -4,7 +4,6 @@ import { cookies } from "next/headers";
 import { Landing } from "@/components/landing/Landing";
 import { JsonLd } from "@/components/landing/JsonLd";
 import { getMessages, getLocale } from "next-intl/server";
-import { SITE_URL } from "@/lib/site-url";
 import { localeAlternates } from "@/lib/seo";
 import { type Locale } from "@/i18n/routing";
 import { fetchPublicEvents } from "@/lib/public-events";
@@ -23,7 +22,6 @@ export async function generateMetadata(): Promise<Metadata> {
     title: m.landingAcademy.metaTitle,
     description: m.landingAcademy.metaDescription,
     url: "/para-academias",
-    images: [{ url: `${SITE_URL}/opengraph-image`, width: 1200, height: 630 }],
   },
 };
 }

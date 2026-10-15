@@ -4,7 +4,6 @@ import { cookies } from "next/headers";
 import { Landing } from "@/components/landing/Landing";
 import { JsonLd } from "@/components/landing/JsonLd";
 import { getMessages, getLocale } from "next-intl/server";
-import { SITE_URL } from "@/lib/site-url";
 import { localeAlternates } from "@/lib/seo";
 import { type Locale } from "@/i18n/routing";
 import { fetchPublicEvents, thisWeek } from "@/lib/public-events";
@@ -24,10 +23,8 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${m.landing.metaTitle} | Omnidance`,
     description: m.landing.metaDescription,
     url: "/",
-    // El openGraph propio de la página tapa la convención
-    // opengraph-image.tsx - la imagen se declara explícita (la spec
-    // OG exige URL absoluta: los crawlers no resuelven relativas).
-    images: [{ url: `${SITE_URL}/opengraph-image`, width: 1200, height: 630 }],
+    // og:image lo aporta la convención [locale]/opengraph-image.tsx
+    // (por locale, resuelta contra metadataBase del layout).
   },
 };
 }
