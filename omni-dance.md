@@ -989,6 +989,8 @@ El `academy_score` generalizado: **cada actor B2B tiene un score privado de rela
 |---|---|---|---|
 | **Academia** | Alumno | Clases compradas, asistencia, eventos de la academia, antigüedad, pago | Upsell (bootcamp/plan/clase privada), anti-churn, seguimiento de trial |
 | **Productor** | Asistente | Asistencia a SUS eventos, compra preventa temprana vs puerta, trae amigos (referrals), ratings de sus eventos | Upsell `series_pass`/pases VIP, win-back a regulares ausentes, convertir nuevos en regulares |
+
+**Implementado** (spec `producer-score-refine`, mismo esquema de params `crm.score.*`): eventos asistidos últimas 8 semanas ×4, racha de eventos consecutivos del productor ×3 (cap 8), meses continuos con checkin/compra ×4 (cap 6), compras últimos 6 meses ×3 (cap 6 — entradas y pases de serie), compras anticipadas (≥3 días antes del evento) ×2 (cap 3), antigüedad ×1/mes (cap 12), referrals ×5. La caída a AT_RISK se detecta a nivel evento: no asistir a los últimos 2 eventos tras haber ido a ≥2 de los 5 anteriores.
 | **Venue** | Cliente del local | Asistencia al local **independiente del productor**, mesas reservadas, carta vista | Lealtad al local (cortesías, mesa prioridad), detectar churn atribuible al LOCAL (piso/ruido/trato) no al evento |
 | **DJ** | Público | Quién evalúa bien su música + **permanencia durante su bloque** (se quedan o se van cuando toca) | Menos CRM, más reputación demostrable: "mantengo/traigo público" → argumento de negociación con productores |
 | **Instructor** | Alumno (privadas) | Clases privadas tomadas, continuidad | Upsell de packs de privadas, retención |

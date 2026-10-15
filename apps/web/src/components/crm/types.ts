@@ -65,6 +65,9 @@ export type CrmPersonDetail = {
   person: { id: string; name: string; photoUrl: string | null } | null;
   score: number | null;
   segment: string | null;
+  // Desglose del score (spec academy-score-refine) - null en scores
+  // previos al cambio.
+  breakdown: Record<string, unknown> | null;
   computedAt: string | null;
   tags: CrmTag[];
   activity: {

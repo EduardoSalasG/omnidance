@@ -152,6 +152,19 @@
         "PAYMENT": "Pago",
         "ENROLLMENT": "Inscripción",
         "ATTENDANCE": "Asistencia"
+      },
+      "components": {
+        "attendanceRecent": "Asistencias recientes",
+        "weeklyStreak": "Racha semanal",
+        "monthsContinuous": "Meses continuos",
+        "purchases": "Compras",
+        "tenure": "Antigüedad",
+        "referrals": "Referidos",
+        "attendance": "Asistencias",
+        "spend": "Gasto",
+        "eventsRecent": "Eventos recientes",
+        "eventStreak": "Racha de eventos",
+        "earlyPurchases": "Compras anticipadas"
       }
     }
   }

@@ -117,6 +117,11 @@ const PARAM_DEFAULTS: Array<{
   { key: "crm.score.tenure_pts", value: 1, description: "Puntos por mes de antigüedad (score de alumno)" },
   { key: "crm.score.referral_pts", value: 5, description: "Puntos por referral (score de alumno)" },
   { key: "crm.score.core_min", value: 60, description: "Score mínimo para segmento CORE" },
+  // Producer-score (spec producer-score-refine): compra "anticipada" =
+  // payment creado ≥early_days antes de event.startsAt.
+  { key: "crm.score.early_days", value: 3, description: "Días antes del evento para que una compra cuente como anticipada (score de asistente)" },
+  { key: "crm.score.early_cap", value: 3, description: "Tope de compras anticipadas que puntúan (score de asistente)" },
+  { key: "crm.score.early_pts", value: 2, description: "Puntos por compra anticipada (score de asistente)" },
   { key: "crm.new_days", value: 30, description: "Días desde la primera actividad para segmento NEW" },
   { key: "crm.brings_people_referrals", value: 2, description: "Referrals mínimos para segmento BRINGS_PEOPLE" },
   { key: "classes.cancel_refund_minutes", value: 60, description: "Minutos antes del inicio de la clase hasta los que cancelar devuelve el crédito de la cuota - después la reserva se puede cancelar pero la clase se pierde" },
