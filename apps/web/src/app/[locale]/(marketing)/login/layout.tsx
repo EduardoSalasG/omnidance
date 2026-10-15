@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
 
-import { getMessages } from "next-intl/server";
+import { getLocale, getMessages } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
+import { localeAlternates } from "@/lib/seo";
+import { type Locale } from "@/i18n/routing";
 
-export const metadata: Metadata = {
-  title: "Entrar con tu correo",
-  alternates: { canonical: "/login" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const m = (await getMessages()) as typeof import("@/i18n/catalogs/es-CL").default;
+  const locale = (await getLocale()) as Locale;
+  return {
+    title: m.login.metaTitle,
+    description: m.login.metaDescription,
+    alternates: localeAlternates(locale, "/login"),
+  };
+}
 
 // Barra superior del login: misma voz visual que el header de la landing
 // (Landing.tsx) - marca a la izquierda y salida a la derecha. Es la única

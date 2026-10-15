@@ -158,7 +158,9 @@
     "genericError": "Ocorreu um erro. Tenta de novo",
     "noAccount": "Sem conta? Regista-te",
     "hasAccount": "Já tens conta? Inicia sessão",
-    "sending": "A enviar…"
+    "sending": "A enviar…",
+    "metaTitle": "Entrar com o teu e-mail",
+    "metaDescription": "Acede ao Omnidance com o teu e-mail: link mágico ou código de uso único. Sem palavra-passe."
   },
   "events": {
     "title": "Próximos eventos",

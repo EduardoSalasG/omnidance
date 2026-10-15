@@ -1,4 +1,5 @@
 import type { useTranslations } from "next-intl";
+import { getNumFmt } from "@/lib/intl";
 import type { CrmCampaign } from "./types";
 
 type T = ReturnType<typeof useTranslations<"crm">>;
@@ -36,13 +37,13 @@ export function audienceLabel(t: T, c: CrmCampaign): string {
 }
 
 /** Etiqueta de la acción: tipo + magnitud del descuento si aplica. */
-export function actionLabel(t: T, c: CrmCampaign): string {
+export function actionLabel(t: T, c: CrmCampaign, locale: string): string {
   if (c.action?.type === "DISCOUNT_CODE") {
     const off =
       c.action.percentOff != null
         ? `−${c.action.percentOff}%`
         : c.action.amountOff != null
-          ? `−$${c.action.amountOff.toLocaleString("es-CL")}`
+          ? `−$${getNumFmt(locale).format(c.action.amountOff)}`
           : "";
     return `${t("campaigns.types.DISCOUNT_CODE")} ${off}`.trim();
   }

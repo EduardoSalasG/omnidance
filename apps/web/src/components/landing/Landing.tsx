@@ -175,10 +175,10 @@ export async function Landing({
               {t.heroLead}
             </p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Link href={primaryHref} className={primaryCtaClass}>
+              <Link href={primaryHref} prefetch={false} className={primaryCtaClass}>
                 {t.ctaCreateAccount}
               </Link>
-              <Link href={secondaryHref} className={secondaryCtaClass}>
+              <Link href={secondaryHref} prefetch={false} className={secondaryCtaClass}>
                 {t.ctaEvents}
               </Link>
             </div>
@@ -236,6 +236,7 @@ export async function Landing({
                   <li key={event.id}>
                     <Link
                       href={`/eventos/${event.id}`}
+                      prefetch={false}
                       className="inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm text-ink/60 transition-colors hover:text-ink"
                     >
                       <span className="font-medium capitalize text-neon">

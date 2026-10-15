@@ -158,7 +158,9 @@
     "genericError": "Something went wrong. Try again",
     "noAccount": "No account? Sign up",
     "hasAccount": "Have an account? Sign in",
-    "sending": "Sending…"
+    "sending": "Sending…",
+    "metaTitle": "Sign in with your email",
+    "metaDescription": "Access Omnidance with your email: magic link or one-time code. No password needed."
   },
   "events": {
     "title": "Upcoming events",

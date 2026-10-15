@@ -158,7 +158,9 @@
     "genericError": "Algo salió mal. Inténtalo de nuevo",
     "noAccount": "¿Sin cuenta? Regístrate",
     "hasAccount": "¿Ya tienes cuenta? Entra",
-    "sending": "Enviando…"
+    "sending": "Enviando…",
+    "metaTitle": "Entrar con tu correo",
+    "metaDescription": "Accede a Omnidance con tu correo: magic link o código de un solo uso. Sin contraseña."
   },
   "events": {
     "title": "Próximos eventos",
