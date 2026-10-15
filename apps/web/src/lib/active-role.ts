@@ -18,7 +18,7 @@ export type AppRole =
 
 // Evento de ventana emitido por setActiveRole: los hooks lo escuchan para
 // re-resolver la lente sin recargar la página.
-export const ACTIVE_ROLE_EVENT = "omnidance:active-role";
+const ACTIVE_ROLE_EVENT = "omnidance:active-role";
 
 const STORAGE_KEY = "omnidance:active-role";
 
@@ -49,7 +49,7 @@ export function getStoredActiveRole(): AppRole | null {
   }
 }
 
-export function resolveActiveRole(roles: string[]): AppRole {
+function resolveActiveRole(roles: string[]): AppRole {
   const stored = getStoredActiveRole();
   // DANCER es la lente consumidora: siempre válida aunque /me no liste el
   // rol explícito (toda persona puede mirar la app como bailarín).

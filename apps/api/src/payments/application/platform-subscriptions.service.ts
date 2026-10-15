@@ -83,7 +83,7 @@ export type PlatformSubscribeResult =
   | { kind: "needs_card"; paymentUrl: string; subscriptionId: string }
   | { kind: "subscribed"; subscriptionId: string };
 
-export type PlatformCustomerReturn =
+type PlatformCustomerReturn =
   | {
       ok: true;
       kind: PlatformSubKind;

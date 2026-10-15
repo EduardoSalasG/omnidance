@@ -1,7 +1,7 @@
 export const JOB_REGISTRY = "JOB_REGISTRY";
 
 /** Lo que retorna un handler: contadores opcionales → JobRun.meta. */
-export type JobHandler = () => Promise<Record<string, unknown> | void>;
+type JobHandler = () => Promise<Record<string, unknown> | void>;
 
 /**
  * Registro declarativo de trabajos programados (spec
@@ -10,7 +10,7 @@ export type JobHandler = () => Promise<Record<string, unknown> | void>;
  * - el código solo aporta handler + defaults. El admin controla
  * cronExpr/enabled/timezone desde /admin/jobs, nunca el handler.
  */
-export interface JobRegistration {
+interface JobRegistration {
   key: string;
   label: string;
   description?: string;

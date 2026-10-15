@@ -21,7 +21,7 @@ const STAFF_ENTITY: EntityDef = {
 
 export type Caps = Record<AcademyCap, boolean>;
 
-export type StaffRow = {
+type StaffRow = {
   person: { id: string; name: string | null; email: string | null };
   caps: Caps;
   createdAt: string;

@@ -32,23 +32,13 @@ export type AcademyCapability =
   | "team"
   | "billing";
 
-export const ACADEMY_CAPABILITIES: readonly AcademyCapability[] = [
-  "students",
-  "payments",
-  "plans",
-  "schedule",
-  "profile",
-  "team",
-  "billing",
-];
-
 export interface AcademyStaffContext {
   personId: string;
   caps: Record<AcademyCapability, boolean>;
 }
 
 /** Cupos por defecto cuando ningún nivel de la cadena declara quórum. */
-export const DEFAULT_CLASS_QUORUM = 20;
+const DEFAULT_CLASS_QUORUM = 20;
 
 /**
  * Inicio real de la clase: Class.date (medianoche UTC del día) +
@@ -171,13 +161,13 @@ export function assertEnrollmentTransition(
   }
 }
 
-export interface DashboardInput {
+interface DashboardInput {
   enrollments: { status: EnrollmentStatus }[];
   plansCount: number;
   attendanceLast30d: number;
 }
 
-export interface AcademyDashboard {
+interface AcademyDashboard {
   studentsByStatus: {
     active: number;
     trial: number;
@@ -229,7 +219,7 @@ export function computeDashboard(input: DashboardInput): AcademyDashboard {
   };
 }
 
-export interface ActiveStudentsKpis {
+interface ActiveStudentsKpis {
   // Personas únicas con plan vigente este mes (spec
   // academies/owner-insights: alumnos activos = personas, no
   // enrollments - quien paga 2 planes cuenta 1).

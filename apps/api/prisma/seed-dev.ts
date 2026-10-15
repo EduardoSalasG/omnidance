@@ -19,7 +19,7 @@ const DEV_DOMAIN = "omnidance.dev";
 
 // Password dev para todas las cuentas @omnidance.dev - permite probar el
 // login por contraseña además del magic link. Nunca en seed-prod-baseline.
-export const DEV_PASSWORD = "omnidance123";
+const DEV_PASSWORD = "omnidance123";
 
 const nextDay = (weekday: number, hour = 22, weeksAhead = 0) => {
   // próximo <weekday> (0=dom … 6=sáb) a las <hour>h (+N semanas).
@@ -2260,7 +2260,6 @@ export async function seedDev(prisma: PrismaClient) {
   await lesson(camila.id, vale.id, 7, "CONFIRMED");
   await lesson(josefa.id, rodrigo.id, -14, "DONE");
   await lesson(dancer.id, vale.id, -7, "DONE", 30000);
-
 
   // ─── Series + eventos ───
   step("series y eventos nightlife…");

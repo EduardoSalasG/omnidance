@@ -9,13 +9,13 @@ import { useEffect, useSyncExternalStore } from "react";
 // script inline del root layout antes del primer paint (sin FOUC);
 // este módulo la mantiene sincronizada después.
 export type ThemePref = "system" | "light" | "dark";
-export type ResolvedTheme = "light" | "dark";
+type ResolvedTheme = "light" | "dark";
 
-export const THEME_EVENT = "omnidance:theme";
+const THEME_EVENT = "omnidance:theme";
 const STORAGE_KEY = "omnidance:theme";
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
-export function getThemePref(): ThemePref {
+function getThemePref(): ThemePref {
   if (typeof window === "undefined") return "system";
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -25,13 +25,13 @@ export function getThemePref(): ThemePref {
   }
 }
 
-export function resolveTheme(pref: ThemePref): ResolvedTheme {
+function resolveTheme(pref: ThemePref): ResolvedTheme {
   if (pref !== "system") return pref;
   if (typeof window === "undefined") return "dark";
   return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
 }
 
-export function applyTheme(resolved: ResolvedTheme): void {
+function applyTheme(resolved: ResolvedTheme): void {
   if (typeof document === "undefined") return;
   const el = document.documentElement;
   el.classList.toggle("dark", resolved === "dark");
@@ -75,14 +75,3 @@ export function useThemePref(): ThemePref {
   return useSyncExternalStore<ThemePref>(subscribe, getThemePref, () => "system");
 }
 
-export function useResolvedTheme(): ResolvedTheme {
-  const pref = useThemePref();
-  // matchMedia solo existe en cliente; en SSR el script inline ya dejó
-  // la clase correcta, así que el valor de aquí solo alimenta íconos.
-  const resolved = useSyncExternalStore<ResolvedTheme>(
-    subscribe,
-    () => resolveTheme(getThemePref()),
-    () => "dark",
-  );
-  return pref === "system" ? resolved : pref;
-}

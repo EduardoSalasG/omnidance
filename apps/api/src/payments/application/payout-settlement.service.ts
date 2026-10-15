@@ -10,14 +10,14 @@ import {
 } from "../domain/order-ref";
 
 /** Línea de deducción calculada (antes de persistir en PayoutLine). */
-export interface SettlementLine {
+interface SettlementLine {
   paymentId: string | null;
   type: string;
   amount: number;
   meta?: Record<string, unknown>;
 }
 
-export interface Settlement {
+interface Settlement {
   gross: number;
   platformFee: number;
   gatewayFee: number;

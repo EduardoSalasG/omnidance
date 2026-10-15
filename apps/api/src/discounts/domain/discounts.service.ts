@@ -38,7 +38,7 @@ export class DiscountCodeNotFoundError extends Error {
   }
 }
 
-export interface CreateDiscountCodeInput {
+interface CreateDiscountCodeInput {
   code: string;
   /** Validado contra DISCOUNT_CODE_TYPES - string para no acoplar al enum. */
   type: string;
@@ -50,7 +50,7 @@ export interface CreateDiscountCodeInput {
   expiresAt?: Date;
 }
 
-export interface ValidatedDiscountCode {
+interface ValidatedDiscountCode {
   code: string;
   type: DiscountCodeType;
   eventId: string | null;
@@ -129,7 +129,7 @@ export function validateCreateCode(
   };
 }
 
-export type RedeemableCheck =
+type RedeemableCheck =
   | { ok: true }
   | { ok: false; reason: "EXPIRED" | "EXHAUSTED" | "SCOPE_MISMATCH" };
 

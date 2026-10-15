@@ -90,7 +90,7 @@ export class PresaleClosedError extends Error {
   }
 }
 
-export type InvalidDiscountReason =
+type InvalidDiscountReason =
   | "EXPIRED"
   | "EXHAUSTED"
   | "SCOPE_MISMATCH"
@@ -251,7 +251,7 @@ export class TableSoldOutError extends Error {
   }
 }
 
-export interface PurchaseTicketInput {
+interface PurchaseTicketInput {
   eventId: string;
   discountCode?: string;
   songSuggestion?: string;
@@ -275,7 +275,7 @@ export interface PurchaseTicketInput {
   academyId?: string;
 }
 
-export interface PurchaseSeriesPassInput {
+interface PurchaseSeriesPassInput {
   seriesId: string;
   /** Mes de vigencia "YYYY-MM" - validado por el DTO del controller. */
   month: string;
@@ -283,15 +283,15 @@ export interface PurchaseSeriesPassInput {
   methodId?: string;
 }
 
-export interface PurchaseMembershipInput {
+interface PurchaseMembershipInput {
   planId: string;
 }
 
-export interface PurchaseClassInput {
+interface PurchaseClassInput {
   classId: string;
 }
 
-export interface PurchasePrivateClassInput {
+interface PurchasePrivateClassInput {
   academyId: string;
 }
 

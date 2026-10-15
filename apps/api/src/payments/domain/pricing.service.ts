@@ -6,12 +6,12 @@
 // actor, descontada en su liquidación (ver src/common/fee-breakdown.ts).
 // amountOff queda capeado en la lista; el total nunca es negativo.
 
-export interface QuoteDiscount {
+interface QuoteDiscount {
   percentOff?: number | null;
   amountOff?: number | null;
 }
 
-export interface QuoteInput {
+interface QuoteInput {
   listPrice: number;
   discount?: QuoteDiscount | null;
 }

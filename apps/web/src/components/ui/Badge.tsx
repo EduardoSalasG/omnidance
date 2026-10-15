@@ -9,7 +9,7 @@ const variants: Record<BadgeVariant, string> = {
   live: "bg-red-500/15 text-red-400",
 };
 
-export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
+type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
   variant?: BadgeVariant;
 };
 

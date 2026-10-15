@@ -21,7 +21,7 @@ import { inputCls } from "@/components/academy/shared";
 
 export type QueryOption = { value: string; label: string };
 
-export type FilterBarProps = {
+type FilterBarProps = {
   /** Entidad activa del catálogo (filtros en orden de render). */
   entity: EntityDef;
   /** Valores actuales (controlled). Keys = FilterDef.key. */

@@ -12,7 +12,7 @@ import { Card } from "@/components/ui";
 
 const num = new Intl.NumberFormat("es-CL");
 
-export type QueryTableProps = {
+type QueryTableProps = {
   /** Entidad consultada - prefijo de las labels de columna. */
   entity: string;
   headers: string[];

@@ -4,7 +4,7 @@
 // el texto o el aria-label del elemento padre.
 import type { ReactNode } from "react";
 
-export type IconProps = {
+type IconProps = {
   className?: string;
   /** Grosor del trazo - 1.8–2.4 según el set (2 por defecto). */
   strokeWidth?: number;

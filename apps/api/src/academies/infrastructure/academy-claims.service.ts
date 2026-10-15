@@ -19,14 +19,14 @@ import {
   membershipEndsAt,
 } from "../../payments/domain/membership-vigency";
 
-export const CLAIM_FOLDER = "claims";
+const CLAIM_FOLDER = "claims";
 export const CLAIM_MAX_BYTES = 5 * 1024 * 1024; // 5MB
 export const CLAIM_METHOD_TYPES = [
   "TRANSFER",
   "PAYMENT_LINK",
   "CASH",
 ] as const;
-export type ClaimMethodType = (typeof CLAIM_METHOD_TYPES)[number];
+type ClaimMethodType = (typeof CLAIM_METHOD_TYPES)[number];
 
 /**
  * Claims de pago directo (spec academy-payment-claims): el alumno sube

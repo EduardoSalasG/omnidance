@@ -17,7 +17,7 @@ import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 // (suma de Payment.academyCommissionClp PAID) y el productor la regulariza
 // por fuera marcándola pagada (AcademySaleSettlement = marca de pago).
 
-export type AgreementStatus = "INVITED" | "ACTIVE" | "DECLINED" | "DISABLED";
+type AgreementStatus = "INVITED" | "ACTIVE" | "DECLINED" | "DISABLED";
 
 const COMMISSION_MIN = 1;
 const COMMISSION_MAX = 90;

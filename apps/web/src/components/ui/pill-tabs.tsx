@@ -1,11 +1,11 @@
 "use client";
 
-export type PillTabItem = {
+type PillTabItem = {
   key: string;
   label: string;
 };
 
-export type PillTabsProps = {
+type PillTabsProps = {
   items: PillTabItem[];
   /** Key de la pill activa (controlled - el padre guarda el estado). */
   active: string;

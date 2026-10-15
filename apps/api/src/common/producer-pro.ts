@@ -15,7 +15,7 @@ import { isProActive } from "../payments/domain/platform-tiers";
  * gate. Un productor sin Pro obtiene 403 `{error:"pro.required",
  * upgrade:true}` - el front muestra el CTA de upgrade (S6).
  */
-export const PRO_REQUIRED_BODY = {
+const PRO_REQUIRED_BODY = {
   error: "pro.required",
   upgrade: true,
   message:

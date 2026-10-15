@@ -1,7 +1,7 @@
 // Reglas de negocio del módulo social (RSVP, guest lists, waitlist, prácticas)
 // - servicio de dominio puro, sin Nest/Prisma.
 
-export type SocialErrorCode =
+type SocialErrorCode =
   | "INVALID_INPUT"
   | "ALREADY_WAITING"
   | "HAS_ACTIVE_PASS"
@@ -16,8 +16,6 @@ export class SocialDomainError extends Error {
     this.name = "SocialDomainError";
   }
 }
-
-export type WaitlistStatus = "WAITING" | "PROMOTED" | "EXPIRED";
 
 /** Posición de una entrada nueva en la waitlist: max(posiciones) + 1 (parte en 1). */
 export function nextWaitlistPosition(
@@ -71,7 +69,7 @@ export function pickNextWaiting<T extends { position: number; status: string }>(
   );
 }
 
-export interface PracticeInput {
+interface PracticeInput {
   name: string;
   startsAt: Date;
   endsAt: Date;

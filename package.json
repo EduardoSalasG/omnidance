@@ -24,8 +24,5 @@
     "db:seed": "pnpm --filter @omnidance/api prisma db seed",
     "db:studio": "pnpm --filter @omnidance/api prisma studio",
     "test": "pnpm -r run test"
-  },
-  "dependencies": {
-    "pg": "^8.23.0"
   }
 }

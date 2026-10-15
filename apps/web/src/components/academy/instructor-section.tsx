@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Card, Pager, SkeletonList } from "@/components/ui";
 
-export type InstructorRow = {
+type InstructorRow = {
   person: { id: string; name: string | null; email: string | null };
   payType: "PER_CLASS" | "MONTHLY" | "COMMISSION" | null;
   payAmount: number | null;

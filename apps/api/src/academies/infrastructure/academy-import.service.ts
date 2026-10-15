@@ -16,7 +16,7 @@ const INVITE_TOKEN_TTL = "7d";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Match case/accent-insensitive para nombres de plan/estilo/nivel. */
-export function normLabel(s: string): string {
+function normLabel(s: string): string {
   return s
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -35,7 +35,7 @@ const WEEKDAYS: Record<string, number> = {
   sabado: 6,
 };
 
-export type StudentRowStatus = "imported" | "updated" | "invited" | "error";
+type StudentRowStatus = "imported" | "updated" | "invited" | "error";
 export interface StudentRowResult {
   row: number;
   email: string;
@@ -43,7 +43,7 @@ export interface StudentRowResult {
   detail: string;
 }
 
-export type ScheduleRowStatus = "ok" | "warn" | "error";
+type ScheduleRowStatus = "ok" | "warn" | "error";
 export interface ScheduleRowResult {
   row: number;
   serie: string;

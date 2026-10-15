@@ -4,7 +4,7 @@
 // estilos mainstream de la escena. La comparación es por nombre porque
 // el catálogo viene de la DB (los seeds no borran filas existentes,
 // así que el filtro también cubre DBs ya pobladas).
-export const PROFILE_HIDDEN_STYLES: ReadonlySet<string> = new Set([
+const PROFILE_HIDDEN_STYLES: ReadonlySet<string> = new Set([
   "Salsa on2",
   "Bachata dominicana",
   "Afrocubano",

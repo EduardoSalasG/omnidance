@@ -126,18 +126,18 @@ export interface CheckinResult {
 }
 
 /** Actor autenticado (SessionGuard) - el id basta: roles se leen en DB. */
-export interface ActorRef {
+interface ActorRef {
   id: string;
 }
 
-export interface DoorSaleInput {
+interface DoorSaleInput {
   eventId: string;
   channel: DoorSaleChannel;
   name: string;
   phone: string;
 }
 
-export interface DoorSaleResult {
+interface DoorSaleResult {
   person: { id: string; name: string };
   ticket: Ticket;
   checkin: Checkin;

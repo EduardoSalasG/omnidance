@@ -5,7 +5,7 @@ import { effectiveCapacity } from "../academies/domain/academy.service";
 const DAY_MS = 86_400_000;
 const daysAgo = (n: number) => new Date(Date.now() - n * DAY_MS);
 
-export type AnalyticsRole =
+type AnalyticsRole =
   | "ADMIN"
   | "PRODUCER"
   | "ACADEMY_OWNER"

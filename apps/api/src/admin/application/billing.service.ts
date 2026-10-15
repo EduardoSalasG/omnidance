@@ -49,7 +49,7 @@ const NET_TYPES = [
 ];
 const VAT_TYPES = ["PLATFORM_FEE_VAT", "OWN_METHOD_FEE_VAT"];
 
-export interface BillingLine {
+interface BillingLine {
   label: string;
   amount: number;
 }

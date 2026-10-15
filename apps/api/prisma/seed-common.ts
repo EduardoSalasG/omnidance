@@ -6,7 +6,7 @@ import { PrismaClient, Genre, Gender } from "@prisma/client";
 // Catálogo RBAC vivo en DB. Los roles solo se asignan por admin
 // (POST /admin/users/:personId/roles) - no hay auto-solicitud.
 // isSuperuser: pasa todo check de permisos (solo ADMIN - no editable por API).
-export const ROLE_CATALOG = [
+const ROLE_CATALOG = [
   { key: "DANCER", label: "Bailarín" },
   { key: "DJ", label: "DJ" },
   { key: "PRODUCER", label: "Productor" },
@@ -19,7 +19,7 @@ export const ROLE_CATALOG = [
 ] as const;
 
 // Permisos que las rutas exigen con @RequirePermissions + matriz rol→permiso.
-export const PERMISSION_CATALOG = [
+const PERMISSION_CATALOG = [
   { key: "admin.access", description: "Panel de administración de plataforma" },
   { key: "checkins.write", description: "Operar check-in de puerta" },
   { key: "discounts.manage", description: "Crear y gestionar códigos de descuento" },
@@ -30,7 +30,7 @@ export const PERMISSION_CATALOG = [
   { key: "venues.manage", description: "Consola del local: dashboard operativo, arriendos y cartas" },
 ] as const;
 
-export const ROLE_GRANTS: Record<string, string[]> = {
+const ROLE_GRANTS: Record<string, string[]> = {
   STAFF: ["checkins.write", "social.manage"],
   PRODUCER: ["discounts.manage", "social.manage", "events.manage", "crm.manage"],
   ACADEMY_OWNER: ["academies.create", "crm.manage"],
@@ -39,7 +39,7 @@ export const ROLE_GRANTS: Record<string, string[]> = {
 };
 
 // Catálogo de estilos - data de producto, no demo (aplica a prod también).
-export const STYLE_CATALOG = [
+const STYLE_CATALOG = [
   { name: "Salsa cubana (casino)", genre: Genre.CUBANO },
   { name: "Salsa on1", genre: Genre.SALSA },
   { name: "Bachata sensual", genre: Genre.BACHATA },
@@ -54,21 +54,21 @@ export const STYLE_CATALOG = [
 ] as const;
 
 // Catálogos de clases de academia - mantenibles desde /admin/catalogos.
-export const CLASS_LEVEL_CATALOG = [
+const CLASS_LEVEL_CATALOG = [
   { name: "Iniciación", order: 0 },
   { name: "Básico", order: 1 },
   { name: "Intermedio", order: 2 },
   { name: "Avanzado", order: 3 },
 ] as const;
 
-export const CLASS_TYPE_CATALOG = [
+const CLASS_TYPE_CATALOG = [
   { name: "Pareja" },
   { name: "Shines" },
   { name: "Corporalidad" },
 ] as const;
 
 // Defaults operativos - update:{} no pisa valores editados desde /admin.
-export const PARAM_DEFAULTS: Array<{
+const PARAM_DEFAULTS: Array<{
   key: string;
   value: unknown;
   description: string;
@@ -137,7 +137,7 @@ export const PARAM_DEFAULTS: Array<{
 ];
 
 /** Catálogo de badges - las keys deben coincidir con BadgeAwarder (gamification/rules.ts). */
-export const BADGE_CATALOG = [
+const BADGE_CATALOG = [
   { key: "primera_bachata", name: "Primera bachata", category: "MILESTONE" },
   { key: "bailarin_constante", name: "Bailarín constante", category: "MILESTONE" },
   { key: "madrugador", name: "Madrugador", category: "CONDUCT" },

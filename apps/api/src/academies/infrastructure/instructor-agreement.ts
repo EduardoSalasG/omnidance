@@ -3,7 +3,7 @@ import { BadRequestException } from "@nestjs/common";
 /** Subtipos del acuerdo económico del instructor. */
 export const PAY_TYPES = ["PER_CLASS", "MONTHLY", "COMMISSION"] as const;
 
-export interface AgreementDto {
+interface AgreementDto {
   payType?: string | null;
   payAmount?: number | null;
   payClasses?: number | null;

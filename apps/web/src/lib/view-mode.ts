@@ -9,10 +9,10 @@ import { useEffect, useState } from "react";
 // evento para re-render sin recarga (mismo patrón que active-role).
 export type ViewMode = "social" | "academy";
 
-export const VIEW_MODE_EVENT = "omnidance:view-mode";
+const VIEW_MODE_EVENT = "omnidance:view-mode";
 const STORAGE_KEY = "omnidance:view-mode";
 
-export function getViewMode(): ViewMode {
+function getViewMode(): ViewMode {
   if (typeof window === "undefined") return "social";
   try {
     return window.localStorage.getItem(STORAGE_KEY) === "academy"

@@ -51,11 +51,11 @@ const ORPHAN_SWEEP_GRACE_MS = 2 * 60_000;
 // Exportada: PlatformSubscriptionsService aplica la misma política.
 export const REMINDER_WINDOW_MS = 24 * 60 * 60_000;
 
-export type SubscribeResult =
+type SubscribeResult =
   | { kind: "needs_card"; registerUrl: string; subscriptionId: string }
   | { kind: "subscribed"; subscriptionId: string };
 
-export type CustomerReturnResult =
+type CustomerReturnResult =
   | { ok: true; academyId: string }
   | { ok: false; academyId: string | null };
 

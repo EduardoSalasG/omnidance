@@ -4,7 +4,7 @@ const fmtCLP = new Intl.NumberFormat("es-CL", {
   maximumFractionDigits: 0,
 });
 
-export type PriceTagProps = {
+type PriceTagProps = {
   /** Monto en CLP; null renderiza un guion (el caller decide si es "Gratis"). */
   amount: number | null;
   className?: string;

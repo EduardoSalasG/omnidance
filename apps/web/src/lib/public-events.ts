@@ -26,6 +26,3 @@ export function thisWeek(events: JsonLdEvent[]): JsonLdEvent[] {
   });
 }
 
-export function countThisWeek(events: JsonLdEvent[]): number {
-  return thisWeek(events).length;
-}

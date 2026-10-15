@@ -7,12 +7,12 @@ import { useEffect, useState } from "react";
 // chrome móvil sigue con BottomNav/SideDrawer. Persiste por dispositivo
 // y emite un evento para re-render sin recarga (mismo patrón que
 // view-mode y active-role).
-export type SidebarState = "expanded" | "collapsed";
+type SidebarState = "expanded" | "collapsed";
 
-export const SIDEBAR_STATE_EVENT = "omnidance:sidebar";
+const SIDEBAR_STATE_EVENT = "omnidance:sidebar";
 const STORAGE_KEY = "omnidance:sidebar";
 
-export function getSidebarState(): SidebarState {
+function getSidebarState(): SidebarState {
   if (typeof window === "undefined") return "expanded";
   try {
     return window.localStorage.getItem(STORAGE_KEY) === "collapsed"

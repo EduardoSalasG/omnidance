@@ -6,7 +6,7 @@ const CL_TZ = "America/Santiago";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Rango UTC [desde, hasta) del día calendario CL que contiene `now`. */
-export function clDayBounds(now: Date): [Date, Date] {
+function clDayBounds(now: Date): [Date, Date] {
   const ymd = new Intl.DateTimeFormat("en-CA", {
     timeZone: CL_TZ,
     year: "numeric",

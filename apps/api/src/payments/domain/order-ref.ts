@@ -7,7 +7,7 @@
 
 import { randomUUID } from "node:crypto";
 
-export interface TicketOrderRef {
+interface TicketOrderRef {
   eventId: string;
   codeId: string | null;
   uid: string;
@@ -37,7 +37,7 @@ export function decodeTicketOrderRef(refId: string): TicketOrderRef | null {
 // Payment (eventId queda null): el contexto (seriesId, month) solo viaja en
 // el refId - el webhook y el cálculo de payouts lo decodifican como fuente
 // primaria.
-export interface SeriesPassRef {
+interface SeriesPassRef {
   seriesId: string;
   month: string; // "YYYY-MM"
   uid: string;
@@ -60,7 +60,7 @@ export function decodeSeriesPassRef(refId: string): SeriesPassRef | null {
 // Formato: mem_<planId>_<uuid>. Como SERIES_PASS, el contexto solo viaja
 // en el refId (Payment no tiene columna para el plan); el webhook lo
 // decodifica para materializar el Enrollment al PAID.
-export interface MembershipRef {
+interface MembershipRef {
   planId: string;
   uid: string;
 }
@@ -82,7 +82,7 @@ export function decodeMembershipRef(refId: string): MembershipRef | null {
 // Formato: wks_<classId>_<uuid>. Como MEMBERSHIP, el contexto solo viaja
 // en el refId - el settle decodifica la clase y crea el ClassBooking con
 // paymentId (asiento pagado: no consume cuota ni exige inscripción).
-export interface ClassDropinRef {
+interface ClassDropinRef {
   classId: string;
   uid: string;
 }
@@ -104,7 +104,7 @@ export function decodeClassRef(refId: string): ClassDropinRef | null {
 // Formato: pvt_<academyId>_<uuid>. El contexto solo viaja en el refId - el
 // settle crea la PrivateLesson "por asignar" (sin instructor ni fecha; el
 // owner de la academia los define post-compra).
-export interface PrivateLessonRef {
+interface PrivateLessonRef {
   academyId: string;
   uid: string;
 }
@@ -128,7 +128,7 @@ export function decodePrivateRef(refId: string): PrivateLessonRef | null {
 // academy-saas-billing): cada invoice Flow pagada genera un Payment con
 // este refId; el reconcile lo usa como dedup y el settle decodifica la
 // suscripción para aplicar los efectos (limpiar gracia/bloqueo, proTier).
-export interface PlatformSubRef {
+interface PlatformSubRef {
   subscriptionId: string;
   invoiceId: string;
 }

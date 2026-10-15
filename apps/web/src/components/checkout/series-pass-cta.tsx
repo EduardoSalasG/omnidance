@@ -30,7 +30,7 @@ type Notice = "loginRequired" | "alreadyOwned" | "unavailable" | "generic" | nul
 const POLL_INTERVAL_MS = 2_000;
 const POLL_MAX_ATTEMPTS = 15; // ~30s - mismo criterio que checkout-client
 
-export type SeriesPassCtaProps = {
+type SeriesPassCtaProps = {
   /** EventSeries.id - requerido por POST /checkout/series-pass. */
   seriesId: string;
   /** Event.id del evento que aloja el CTA - resuelve los métodos

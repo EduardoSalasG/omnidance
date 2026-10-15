@@ -1,4 +1,4 @@
-export type PartnerAvatarProps = {
+type PartnerAvatarProps = {
   name: string;
   photoUrl: string | null;
   size?: "sm" | "md" | "lg";

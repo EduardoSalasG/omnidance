@@ -9,7 +9,7 @@ import { FilterBar } from "@/components/query/FilterBar";
 import { CLAIM_STATUSES, filtersParams } from "./shared";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 
-export type ProducerQueueClaim = {
+type ProducerQueueClaim = {
   id: string;
   methodType: string;
   methodLabel: string;

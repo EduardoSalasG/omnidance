@@ -62,7 +62,7 @@ export function releasePageLoading() {
 }
 
 /** Para consumidores booleanos (nav overlay): acquire mientras `active`. */
-export function useLoadingBeacon(active: boolean) {
+function useLoadingBeacon(active: boolean) {
   useEffect(() => {
     if (!active) return;
     acquirePageLoading();

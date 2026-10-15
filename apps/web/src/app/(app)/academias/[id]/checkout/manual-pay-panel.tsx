@@ -12,7 +12,7 @@ type PaymentMethod = {
   details: Record<string, string>;
 };
 
-export type MyClaim = {
+type MyClaim = {
   id: string;
   amount: number;
   methodId: string | null;

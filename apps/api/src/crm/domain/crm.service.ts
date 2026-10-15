@@ -24,7 +24,7 @@ export const CRM_TRIGGER_KEYS = [
 ] as const;
 export type CrmTriggerKey = (typeof CRM_TRIGGER_KEYS)[number];
 
-export type CrmErrorCode = "NOT_FOUND" | "BAD_REQUEST" | "CONFLICT";
+type CrmErrorCode = "NOT_FOUND" | "BAD_REQUEST" | "CONFLICT";
 
 export class CrmDomainError extends Error {
   constructor(
@@ -38,7 +38,7 @@ export class CrmDomainError extends Error {
 
 /** Segmento de campaña - los criterios presentes se unen (OR lógico).
  *  allStudents/enrollmentStatus/planId/seriesId solo valen para ACADEMY. */
-export interface CampaignSegment {
+interface CampaignSegment {
   tags?: string[];
   segment?: string;
   personIds?: string[];
@@ -48,7 +48,7 @@ export interface CampaignSegment {
   seriesId?: string;
 }
 
-export type CampaignAction =
+type CampaignAction =
   | { type: "NOTIFY"; title: string; body?: string }
   | {
       type: "DISCOUNT_CODE";

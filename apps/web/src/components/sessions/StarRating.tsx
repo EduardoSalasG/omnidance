@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { StarIcon } from "@/components/ui";
 
-export type StarRatingProps = {
+type StarRatingProps = {
   /** Puntaje ya registrado. Si no hay onSelect, se muestra solo lectura. */
   value?: number | null;
   onSelect?: (score: number) => void;

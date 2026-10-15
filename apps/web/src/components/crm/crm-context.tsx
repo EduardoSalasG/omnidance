@@ -14,9 +14,9 @@ import { actorKey } from "./types";
 // isSuperuser. Espejo client-side del RolesGuard; el backend valida igual.
 const CRM_ROLES = new Set(["PRODUCER", "ACADEMY_OWNER", "ADMIN"]);
 
-export type CrmGate = "loading" | "unauth" | "forbidden" | "error" | "ready";
+type CrmGate = "loading" | "unauth" | "forbidden" | "error" | "ready";
 
-export type CrmContextValue = {
+type CrmContextValue = {
   gate: CrmGate;
   boot: () => Promise<void>;
   actors: CrmActor[];
@@ -299,7 +299,7 @@ export function ActorPicker({ ctx }: { ctx: CrmContextValue }) {
   );
 }
 
-export type CrmSection = "people" | "campaigns" | "triggers";
+type CrmSection = "people" | "campaigns" | "triggers";
 
 const SECTION_HREF: Record<CrmSection, string> = {
   people: "/crm",

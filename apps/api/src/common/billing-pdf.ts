@@ -10,7 +10,7 @@ import PDFDocument from "pdfkit";
  * No reutiliza buildTablePdf porque el formato es de documento (bloques
  * + tabla corta), no de reporte tabular multi-página.
  */
-export interface BillingPdfData {
+interface BillingPdfData {
   folio: number;
   issuedAt: Date;
   status: string;

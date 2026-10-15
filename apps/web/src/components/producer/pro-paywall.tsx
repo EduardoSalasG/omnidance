@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Badge, Button, Card } from "@/components/ui";
 
 /** Destino del CTA: la sección Pro vive en /productor/suscripcion. */
-export const PRO_SECTION_HREF = "/productor/suscripcion";
+const PRO_SECTION_HREF = "/productor/suscripcion";
 
 function LockIcon() {
   return (
