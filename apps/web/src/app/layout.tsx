@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { NextIntlClientProvider } from "next-intl";
 import { PageLoadingHost } from "@/components/ui/page-loading-host";
+import { commonMessages } from "@/i18n/messages";
 import { SITE_URL } from "@/lib/site-url";
 import "./globals.css";
 
@@ -87,14 +89,16 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body className="bg-canvas text-ink min-h-dvh antialiased">
-        {/* Sin provider de i18n acá: serializar el catálogo en root
-            lo pagaría CADA página. Los route groups (app)/(marketing)
-            montan el suyo con su subconjunto (src/i18n/messages.ts).
-            Nada en este nivel usa useTranslations. */}
-        {children}
-        {/* Host del beacon de carga: spinner único para navegación
-            (NavPendingOverlay) y cargas de página (PageLoading). */}
-        <PageLoadingHost />
+        {/* Provider raíz SOLO con `common` (~3KB): el catálogo completo
+            lo aporta cada route group ((app)/(marketing) hacen merge
+            sobre este). PageLoadingHost/Spinner usa useTranslations
+            ("common") a este nivel - sin provider raíz revienta. */}
+        <NextIntlClientProvider locale="es-CL" messages={commonMessages}>
+          {children}
+          {/* Host del beacon de carga: spinner único para navegación
+              (NavPendingOverlay) y cargas de página (PageLoading). */}
+          <PageLoadingHost />
+        </NextIntlClientProvider>
       </body>
     </html>
   );
