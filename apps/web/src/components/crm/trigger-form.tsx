@@ -15,6 +15,7 @@ import {
   CRM_TRIGGER_KEYS,
   EVENT_TRIGGER_KEYS,
   SEGMENT_TRIGGER_ACTIONS,
+  TRIGGER_ACTOR_TYPES,
   TRIGGER_KEYS_WITH_DAYS,
   actorBody,
   actorQuery,
@@ -56,8 +57,12 @@ export function TriggerForm({
   const t = useTranslations("crm");
   const tc = useTranslations("common");
 
+  // Keys aplicables al actor: las restringidas por alcance
+  // (TRIGGER_ACTOR_TYPES, spec crm-trigger-actor-scope) no se ofrecen.
   const availableKeys = CRM_TRIGGER_KEYS.filter(
-    (k) => !existingKeys.includes(k),
+    (k) =>
+      !existingKeys.includes(k) &&
+      (TRIGGER_ACTOR_TYPES[k]?.includes(actor.actorType) ?? true),
   );
   const [key, setKey] = useState<CrmTriggerKey>(
     (editing?.key as CrmTriggerKey | undefined) ??

@@ -179,6 +179,10 @@
       "notifyBody": "Cuerpo (opcional)",
       "tag": "Tag",
       "cooldownShort": "Cooldown {days} d",
+      "scope": {
+        "ACADEMY": "Solo academia",
+        "PRODUCER": "Solo productor"
+      },
       "notFound": "Trigger no encontrado."
     },
     "actorSegments": {

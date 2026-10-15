@@ -11,7 +11,7 @@ import {
 } from "@/components/crm/crm-context";
 import { TriggerList } from "@/components/crm/trigger-list";
 import { ProPaywall } from "@/components/producer/pro-paywall";
-import { CRM_TRIGGER_KEYS } from "@/components/crm/types";
+import { CRM_TRIGGER_KEYS, TRIGGER_ACTOR_TYPES } from "@/components/crm/types";
 
 // Listado de triggers del actor. El h1 lo provee el chrome; crear =
 // CTA → /crm/triggers/nuevo y editar → /crm/triggers/[id] (patrón de
@@ -27,7 +27,16 @@ export default function CrmTriggersPage() {
     setExistingKeys(keys);
   }, []);
 
-  const remaining = CRM_TRIGGER_KEYS.length - existingKeys.length;
+  // Keys creables para este actor: las de alcance restringido
+  // (TRIAL_EXPIRING academia, REGULAR_NO_PRESALE productor) no cuentan.
+  const applicableKeys = CRM_TRIGGER_KEYS.filter(
+    (k) =>
+      !ctx.actor ||
+      (TRIGGER_ACTOR_TYPES[k]?.includes(ctx.actor.actorType) ?? true),
+  );
+  const remaining =
+    applicableKeys.length -
+    existingKeys.filter((k) => applicableKeys.includes(k as never)).length;
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-5xl lg:px-8">
