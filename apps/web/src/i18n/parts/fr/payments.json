@@ -1,0 +1,79 @@
+{
+  "payments": {
+    "title": "Mes paiements",
+    "subtitle": "Historique de tes achats : billets, pass et abonnements d'académie.",
+    "empty": "Tu n'as pas encore de paiements enregistrés.",
+    "orderTypes": {
+      "TICKET": "Billet",
+      "SERIES_PASS": "Pass de série",
+      "MEMBERSHIP": "Abonnement d'académie",
+      "PRIVATE_LESSON": "Cours particulier",
+      "WORKSHOP": "Workshop"
+    },
+    "status": {
+      "PENDING": "En attente",
+      "PAID": "Payé",
+      "FAILED": "Échoué",
+      "REFUNDED": "Remboursé"
+    },
+    "channels": {
+      "PRESALE": "Prévente",
+      "DOOR": "Porte",
+      "MANUAL": "Manuel",
+      "FREE": "Gratuit"
+    },
+    "cols": {
+      "paidAt": "Débité",
+      "buyer": "Acheteur",
+      "medium": "Moyen",
+      "amount": "Montant",
+      "gatewayFee": "Coût passerelle",
+      "net": "Net",
+      "status": "Statut"
+    },
+    "methods": {
+      "app": "App",
+      "academyPresale": "Prévente académie"
+    },
+    "ledger": {
+      "toggle": "Audit ({count})",
+      "empty": "Pas d'événements enregistrés",
+      "type": {
+        "ORDER_CREATED": "Commande créée",
+        "GATEWAY_REQUEST": "Envoyé au moyen de paiement",
+        "WEBHOOK_RECEIVED": "Réponse du moyen de paiement",
+        "STATUS_CONFIRMED": "Statut confirmé",
+        "SETTLED": "Paiement confirmé",
+        "RENEWAL_SETTLED": "Renouvellement débité",
+        "FAILED": "Paiement échoué",
+        "SUBSCRIPTION_CREATED": "Abonnement créé",
+        "SUBSCRIPTION_CANCELED": "Abonnement annulé",
+        "RENEWAL_FAILED": "Renouvellement échoué",
+        "AMOUNT_MISMATCH": "Montant différent de l'attendu",
+        "FEE_ASSESSED": "Commission calculée",
+        "PAYOUT_LINE_ASSIGNED": "Assigné à un règlement",
+        "IMPORTED": "Registre importé"
+      }
+    },
+    "sub": {
+      "title": "Abonnements",
+      "nextCharge": "Prochain débit : {date}",
+      "status": {
+        "PENDING_CARD": "Carte en attente",
+        "ACTIVATING": "Activation en cours",
+        "ACTIVE": "Active",
+        "CANCEL_PENDING": "S'annule en fin de période",
+        "CANCELED": "Annulée",
+        "FAILED_CARD": "Carte refusée"
+      }
+    },
+    "byEvent": {
+      "empty": "Pas de ventes enregistrées pour cet événement."
+    },
+    "byAcademy": {
+      "desc": "Encaissements des abonnements des plans de l'académie (abonnements et paiements uniques).",
+      "empty": "Pas encore d'encaissements d'abonnements.",
+      "noAccess": "Seul le propriétaire de l'académie (ou un admin) peut voir les encaissements."
+    }
+  }
+}

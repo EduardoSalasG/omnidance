@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
+
 import { useTranslations } from "next-intl";
 import type { IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate, RefreshIcon } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
+import { Link } from "@/i18n/navigation";
 
 // Cámara solo en cliente - evita cualquier acceso a window en SSR.
 const QrScanner = dynamic(() => import("@/components/sessions/QrScanner"), {

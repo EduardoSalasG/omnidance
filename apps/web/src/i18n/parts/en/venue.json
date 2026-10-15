@@ -1,0 +1,55 @@
+{
+  "nav": {
+    "venue": "Venue"
+  },
+  "venue": {
+    "loginRequired": "Sign in to manage your venues.",
+    "forbidden": "You have no venues assigned to your account.",
+    "empty": "You have no venues assigned. If you manage a venue, ask the Omnidance team to link it to your account.",
+    "error": "Couldn’t load the venue section.",
+    "pickVenue": "Pick a venue",
+    "capacity": "Capacity: {count} people",
+    "kpi": {
+      "upcoming": "Upcoming",
+      "events30d": "Events 30d",
+      "checkins30d": "Check-ins 30d"
+    },
+    "sections": {
+      "upcoming": "Upcoming events",
+      "tables": "Table reservations",
+      "flow": "Audience flow",
+      "rentals": "Rentals",
+      "menus": "Menus"
+    },
+    "emptyUpcoming": "No upcoming events scheduled.",
+    "emptyTables": "No table reservations in upcoming events.",
+    "emptyFlow": "No check-ins in the last 30 days.",
+    "emptyRentals": "No rental requests.",
+    "emptyMenus": "No menus loaded.",
+    "tables": {
+      "anonymous": "Reservation",
+      "party": "{count, plural, one {# person} other {# people}}"
+    },
+    "flow": {
+      "peakHour": "peak arrival hour",
+      "avgStay": "average stay",
+      "stayValue": "{hours} h {minutes} min",
+      "chartLabel": "Arrivals by hour (last 30 days)"
+    },
+    "rentals": {
+      "confirm": "Confirm",
+      "confirmAsk": "Confirm this rental request?",
+      "cancelAsk": "Cancel this rental request?",
+      "yesConfirm": "Yes, confirm",
+      "yesCancel": "Yes, cancel",
+      "statuses": {
+        "REQUESTED": "Requested",
+        "CONFIRMED": "Confirmed",
+        "CANCELLED": "Cancelled"
+      }
+    },
+    "menus": {
+      "item": "Menu v{version}"
+    }
+  }
+}

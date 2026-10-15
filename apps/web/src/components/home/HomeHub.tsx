@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
@@ -27,6 +26,14 @@ import {
   OnboardingRunner,
   type TourStep,
 } from "@/components/onboarding/OnboardingRunner";
+import { Link } from "@/i18n/navigation";
+import { getNumFmt, useDateFmt, useNumFmt } from "@/lib/intl";
+
+const clp = (locale: string) => getNumFmt(locale, {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
 
 type Me = import("@/lib/me-context").MeContextData;
 
@@ -78,33 +85,13 @@ type HomeStats = {
   needsAcademy?: boolean;
 };
 
-const clp = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
-const timeFmt = new Intl.DateTimeFormat("es-CL", {
-  hour: "numeric",
-  minute: "2-digit",
-});
-const dayFmt = new Intl.DateTimeFormat("es-CL", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-});
-const fullDayFmt = new Intl.DateTimeFormat("es-CL", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-});
+;
+;
+;
+;
 // Class.date llega como ISO a medianoche UTC - el día calendario se
 // formatea en UTC (mismo criterio que /clases, no el dayFmt local).
-const classUtcDayFmt = new Intl.DateTimeFormat("es-CL", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  timeZone: "UTC",
-});
+;
 
 const genreLabel = (g: string, otherLabel: string) =>
   g === "OTHER" ? otherLabel : g.charAt(0) + g.slice(1).toLowerCase();
@@ -117,6 +104,16 @@ const genreLabel = (g: string, otherLabel: string) =>
  * de texto" y pasa a responder "¿salgo hoy?".
  */
 function TonightScene({ stats }: { stats: HomeStats | null }) {
+  const dayFmt = useDateFmt({
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
+  const timeFmt = useDateFmt({
+  hour: "numeric",
+  minute: "2-digit",
+});
+  const locale = useLocale();
   const t = useTranslations("home");
   const tq = useTranslations("qr");
   const tonightEvents = stats?.scene?.events ?? [];
@@ -212,7 +209,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
                 <>
                   <span className="text-ink/50">{t("presaleLabel")} </span>
                   <span className="font-semibold text-neon">
-                    {clp.format(heroEvent.presalePrice)}
+                    {clp(locale).format(heroEvent.presalePrice)}
                   </span>
                 </>
               )}
@@ -222,7 +219,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
                 )}
               {heroEvent.doorPrice != null && (
                 <span className="text-ink/50">
-                  {t("doorLabel")} {clp.format(heroEvent.doorPrice)}
+                  {t("doorLabel")} {clp(locale).format(heroEvent.doorPrice)}
                 </span>
               )}
             </p>
@@ -332,6 +329,23 @@ type Hero = {
 };
 
 export function HomeHub() {
+  const locale = useLocale();
+  const dayFmt = useDateFmt({
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
+  const fullDayFmt = useDateFmt({
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+  const classUtcDayFmt = useDateFmt({
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
   const t = useTranslations("home");
   const tc = useTranslations("common");
   const te = useTranslations("events");

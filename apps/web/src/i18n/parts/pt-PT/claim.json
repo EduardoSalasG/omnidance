@@ -1,0 +1,23 @@
+{
+  "claim": {
+    "title": "Um bilhete espera-te",
+    "giftLine": "{name} ofereceu-te um bilhete",
+    "for": "para",
+    "createCta": "Cria a tua conta e reclama o bilhete",
+    "loginCta": "Já tenho conta",
+    "claimCta": "Reclamar o meu bilhete",
+    "claiming": "A reclamar…",
+    "claimedTitle": "Bilhete reclamado!",
+    "claimedDesc": "Está em Os meus bilhetes. Mostra o teu QR à porta.",
+    "goToTickets": "Ir para Os meus bilhetes",
+    "ownTicket": "Este bilhete já é teu",
+    "goneTitle": "Este link já não é válido",
+    "goneDesc": "O bilhete já foi reclamado ou o link expirou.",
+    "errorTitle": "Não foi possível carregar o convite",
+    "claimError": "Não foi possível reclamar. Tenta de novo",
+    "selfError": "Não podes reclamar o teu próprio convite",
+    "exploreCta": "Explorar a cena",
+    "waShare": "Enviar por WhatsApp",
+    "waMessage": "Ofereci-te um bilhete para {event}! Reclama-o aqui: {url}"
+  }
+}

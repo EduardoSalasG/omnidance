@@ -1,10 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Card, Pager, SkeletonList } from "@/components/ui";
+import { Link } from "@/i18n/navigation";
+import { getNumFmt, useNumFmt } from "@/lib/intl";
+
+const clp = (locale: string) => getNumFmt(locale, {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
 
 type InstructorRow = {
   person: { id: string; name: string | null; email: string | null };
@@ -15,11 +22,7 @@ type InstructorRow = {
   createdAt: string;
 };
 
-const clp = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
+;
 
 /**
  * Listado de profesores (spec academy-console-v3) - cards navegables
@@ -30,6 +33,7 @@ const clp = new Intl.NumberFormat("es-CL", {
 const PAGE_SIZE = 20;
 
 export function InstructorSection({ academyId }: { academyId: string }) {
+  const locale = useLocale();
   const t = useTranslations("academyStaff");
 
   const [rows, setRows] = useState<InstructorRow[] | null>(null);
@@ -83,12 +87,12 @@ export function InstructorSection({ academyId }: { academyId: string }) {
                   <span className="text-xs text-ink/40">
                     {r.payType === "MONTHLY" && r.payAmount != null
                       ? t("payClassesOf", {
-                          amount: clp.format(r.payAmount),
+                          amount: clp(locale).format(r.payAmount),
                           classes: r.payClasses ?? 0,
                         })
                       : r.payType === "PER_CLASS" && r.payAmount != null
                         ? t("payPerClassOf", {
-                            amount: clp.format(r.payAmount),
+                            amount: clp(locale).format(r.payAmount),
                           })
                         : r.payType === "COMMISSION" && r.commissionPct != null
                           ? t("payCommissionOf", { pct: r.commissionPct })

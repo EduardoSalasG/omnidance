@@ -1,0 +1,32 @@
+{
+  "academyImport": {
+    "title": "Importar dados",
+    "desc": "Carga em massa para migrar de outra plataforma: a tua base de alunos e o horário semanal em CSV.",
+    "studentsTitle": "Alunos",
+    "studentsDesc": "Uma linha por aluno: email, nome, plano e até quando pagou. Se não tem conta enviamos-lhe um convite por e-mail.",
+    "studentsCols": "Colunas: email, nome, telefone (opcional), plano, pago_até (opcional, AAAA-MM-DD)",
+    "scheduleTitle": "Horário semanal",
+    "scheduleDesc": "Uma linha por bloco semanal. Linhas com o mesmo nome de série agrupam-se numa só série do mês.",
+    "scheduleCols": "Colunas: série, dia_semana, hora_início, hora_fim + opcionais: estilo, nível, lotação, email_instrutor, mês",
+    "downloadTemplate": "Descarregar modelo",
+    "chooseFile": "Escolher CSV…",
+    "noFile": "Nenhum ficheiro escolhido",
+    "upload": "Importar",
+    "uploading": "A importar…",
+    "resultsTitle": "Resultado por linha",
+    "colRow": "Linha",
+    "colItem": "Valor",
+    "colStatus": "Estado",
+    "colDetail": "Detalhe",
+    "status": {
+      "imported": "Importado",
+      "updated": "Atualizado",
+      "invited": "Convidado",
+      "error": "Erro",
+      "ok": "Feito",
+      "warn": "Com aviso"
+    },
+    "error": "Não foi possível importar o ficheiro. Verifica que é um CSV com as colunas do modelo.",
+    "forbidden": "Não tens acesso à importação desta academia."
+  }
+}

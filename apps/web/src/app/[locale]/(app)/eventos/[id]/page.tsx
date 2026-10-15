@@ -1,0 +1,692 @@
+
+import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
+import { getMessages } from "next-intl/server";
+import {
+  aggregateMix,
+  ArrowUpRightIcon,
+  Badge,
+  Button,
+  Card,
+  EventDate,
+  GenreMixBar,
+  PriceTag,
+  RefreshIcon,
+} from "@/components/ui";
+import type { GenreMixBlock } from "@/components/ui";
+import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
+import { SeriesPassCta } from "@/components/checkout/series-pass-cta";
+import { BuyTicketCta } from "@/components/checkout/buy-ticket-cta";
+import { AcademyAttribution } from "@/components/checkout/academy-attribution";
+import { PracticeBar } from "@/components/social/PracticeBar";
+import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
+import { GENRE_TEXT } from "@/lib/calendar";
+import type { GenreKey } from "@/lib/calendar";
+import { serverApiUrl } from "@/lib/server-api";
+import { Link } from "@/i18n/navigation";
+
+// El merge i18n devuelve Dict - las claves se declaran explícitas
+// (mismo patrón que locales/[id]).
+type EventsT = Record<string, string> & {
+  genre: Record<string, string>;
+  type: Record<string, string>;
+  showTeam: Record<string, string>;
+};
+
+export const dynamic = "force-dynamic";
+
+/** Fila del cronograma: t = "HH:MM" o "Hasta HH:MM", end cierra el rango. */
+type ProgramItem = { t: string; end?: string; label: string };
+
+type EventDetail = {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  startsAt: string;
+  endsAt: string;
+  capacity: number | null;
+  presalePrice: number | null;
+  doorPrice: number | null;
+  primeThreshold: number | null;
+  genres: string[];
+  genreMix: GenreMixBlock[] | null;
+  program: ProgramItem[] | null;
+  /** FK escalar - hoy GET /events/:id no la selecciona (ver nota en el render). */
+  seriesId?: string | null;
+  /** FK escalar del venue - sí viene en el select; se usa para linkear al perfil. */
+  venueId?: string | null;
+  series: {
+    id?: string;
+    name: string;
+    genres?: string[];
+    genreMix?: GenreMixBlock[] | null;
+    program?: ProgramItem[] | null;
+  } | null;
+  venue: { name: string; address: string | null; capacity: number | null } | null;
+  /** Práctica sin Venue del catálogo: nombre libre ("Parque Bustamante"). */
+  venueText: string | null;
+  /** Detalle del lugar: sala, piso, punto exacto ("Sala 1"). */
+  venueNotes: string | null;
+  /** Notas libres del host/productor - hoy lo escribe el form de práctica. */
+  description: string | null;
+  /** Host de práctica (resuelto desde hostId escalar) - null en sociales. */
+  host: { id: string; name: string | null; photoUrl: string | null } | null;
+  /** RSVP "voy" - cuenta pública (prácticas). */
+  rsvpCount: number;
+  djs: {
+    slotNote: string | null;
+    person: { name: string; photoUrl: string | null };
+  }[];
+  shows: {
+    academy: string;
+    teamType: string;
+    name: string;
+  }[];
+  scheduleBlocks: {
+    startsAt: string;
+    endsAt: string;
+    style: { name: string } | null;
+  }[];
+};
+
+/** GET /events/:id/friends-going (SessionGuard): amigos con ticket ACTIVE. */
+type FriendGoing = { id: string; name: string; photoUrl: string | null };
+
+/** MissionView del API (gamification.service.ts): misiones del evento + progreso propio. */
+type MissionView = {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  progress: number;
+  target: number;
+  completed: boolean;
+};
+
+async function getEvent(id: string): Promise<EventDetail | "error"> {
+  const API_URL = await serverApiUrl();
+  const res = await fetch(`${API_URL}/api/events/${id}`, {
+    cache: "no-store",
+  }).catch(() => null);
+  if (res?.status === 404) notFound();
+  if (!res || !res.ok) return "error";
+  return (await res.json()) as EventDetail;
+}
+
+/**
+ * GET /events/:id/missions (SessionGuard en el API): requiere la cookie de
+ * sesión del request - 401 = no autenticado → la sección se oculta (null).
+ * Shape real (GamificationService.missionsFor → MissionView): ver type abajo.
+ */
+async function getMissions(eventId: string): Promise<MissionView[] | null> {
+  const API_URL = await serverApiUrl();
+  const res = await fetch(`${API_URL}/api/events/${eventId}/missions`, {
+    cache: "no-store",
+    headers: { cookie: (await cookies()).toString() },
+  }).catch(() => null);
+  if (!res || !res.ok) return null;
+  return (await res.json()) as MissionView[];
+}
+
+/**
+ * GET /events/:id/friends-going (SessionGuard): amigos confirmados con
+ * entrada activa. Mismo patrón que getMissions - cookie del request,
+ * 401/fallo → null y la sección se omite (nunca error visible).
+ */
+async function getFriendsGoing(eventId: string): Promise<FriendGoing[] | null> {
+  const API_URL = await serverApiUrl();
+  const res = await fetch(`${API_URL}/api/events/${eventId}/friends-going`, {
+    cache: "no-store",
+    headers: { cookie: (await cookies()).toString() },
+  }).catch(() => null);
+  if (!res || !res.ok) return null;
+  return (await res.json()) as FriendGoing[];
+}
+
+/**
+ * GET /tickets/mine (SessionGuard): true si el usuario ya tiene una entrada
+ * ACTIVE para este evento - dispara el popup de confirmación en el CTA.
+ */
+async function hasActiveTicket(eventId: string): Promise<boolean> {
+  const API_URL = await serverApiUrl();
+  const res = await fetch(`${API_URL}/api/tickets/mine`, {
+    cache: "no-store",
+    headers: { cookie: (await cookies()).toString() },
+  }).catch(() => null);
+  if (!res?.ok) return false;
+  // event puede ser null (evento eliminado tras la compra) - el API
+  // devuelve `byId.get(t.eventId) ?? null` en /tickets/mine.
+  const rows = (await res.json()) as {
+    event: { id: string } | null;
+    status: string;
+  }[];
+  return rows.some((r) => r.event?.id === eventId && r.status === "ACTIVE");
+}
+
+export default async function EventoDetailPage(
+  props: {
+    params: Promise<{ id: string }>;
+    // ?a=<academyId> - link de preventa de una academia (spec
+    // academy-presale-commission): lo persiste AcademyAttribution.
+    searchParams?: Promise<{ a?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
+  const m = (await getMessages()) as typeof import("@/i18n/catalogs/es-CL").default;
+  const t = m.events;
+  const tc = m.common;
+  const tg = m.gamification;
+  const [event, missions, myTicket, friendsGoing] = await Promise.all([
+    getEvent(params.id),
+    getMissions(params.id),
+    hasActiveTicket(params.id),
+    getFriendsGoing(params.id),
+  ]);
+
+  if (event === "error") {
+    return (
+      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
+        <p role="alert" className="text-ink/60">{t.loadError}</p>
+        <div className="flex flex-wrap justify-center gap-3">
+          {/* Server page: el retry es recargar la misma ruta. */}
+          <Button href={`/eventos/${params.id}`}>
+            <RefreshIcon /> {tc.retry}
+          </Button>
+          <Button href="/eventos" variant="secondary">
+            {t.backToList}
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  const typeLabel =
+    event.type in t.type
+      ? t.type[event.type as keyof typeof t.type]
+      : event.type;
+  const blocks = [...event.scheduleBlocks].sort(
+    (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+  );
+  const ctaPrice = event.presalePrice ?? event.doorPrice;
+  const ctaLabel =
+    event.presalePrice != null
+      ? t.presale
+      : event.doorPrice != null
+        ? t.door
+        : t.free;
+  const capacity = event.capacity ?? event.venue?.capacity ?? null;
+
+  // Géneros/mix resueltos igual que el listado: el evento manda, si no hereda la serie.
+  const genres = event.genres.length
+    ? event.genres
+    : (event.series?.genres ?? []);
+  const genreMix = event.genreMix ?? event.series?.genreMix ?? null;
+  // Cronograma: misma herencia - el evento manda, si no el de la serie.
+  const program = event.program ?? event.series?.program ?? null;
+  const mixSegs = genreMix?.length ? aggregateMix(genreMix) : null;
+  const orderedGenres = mixSegs
+    ? [...mixSegs].sort((a, b) => b.pct - a.pct).map((s) => s.genre)
+    : genres;
+
+  // "Cómo llegar": URL universal de Google Maps - sin API key, el SO la
+  // abre en la app de mapas que el usuario tenga.
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    [event.venue?.name ?? event.venueText, event.venue?.address]
+      .filter(Boolean)
+      .join(" "),
+  )}`;
+
+  // Pase de serie: el endpoint hoy devuelve solo series.name - el CTA se
+  // muestra cuando el id llega (seriesId escalar o series.id). POST
+  // /checkout/series-pass exige month "YYYY-MM" = mes del evento (mismo
+  // criterio local que currentMonth() en checkins).
+  const seriesId = event.seriesId ?? event.series?.id ?? null;
+  const eventMonth = (() => {
+    const d = new Date(event.startsAt);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  })();
+
+  // Evento terminado/cancelado: la página sigue visible (datos, descripción,
+  // lineup) pero no vende. Cubre además el caso de un evento que quedó
+  // LIVE pasado su endsAt porque el staff no lo cerró.
+  const isCancelled = event.status === "CANCELLED";
+  const isPast =
+    isCancelled ||
+    event.status === "CLOSED" ||
+    Date.now() >= new Date(event.endsAt).getTime();
+
+  // Práctica (spec §8): gratis, first-come, RSVP - no es una "noche": sin
+  // precios, programa, lineup, shows, misiones ni Prime Time. La ficha es
+  // quién organiza + dónde + notas del host; la acción es "Me apunto" → QR.
+  const isPractice = event.type === "PRACTICA";
+  const practiceStyle = blocks[0]?.style?.name ?? null;
+
+  return (
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-28 pt-6 sm:px-6 lg:max-w-4xl lg:px-8">
+      {/* Atribución de academia (?a=) - invisible, solo persiste para el
+          checkout de este evento. */}
+      <AcademyAttribution
+        eventId={event.id}
+        academyId={typeof searchParams?.a === "string" ? searchParams.a : null}
+      />
+      {/* Hero */}
+      <header className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {event.series && <Badge variant="neon">{event.series.name}</Badge>}
+          <Badge variant="outline">{typeLabel}</Badge>
+          {event.status === "LIVE" && !isPast && (
+            <Badge variant="live">{t.live}</Badge>
+          )}
+          {isCancelled ? (
+            <Badge variant="outline">{t.cancelled}</Badge>
+          ) : (
+            isPast && <Badge variant="outline">{t.past}</Badge>
+          )}
+          {/* Práctica: el estilo foco es un badge, no un timeline de DJ */}
+          {isPractice && practiceStyle && (
+            <Badge variant="neon">{practiceStyle}</Badge>
+          )}
+        </div>
+        <h1 className="text-3xl font-bold leading-tight">{event.name}</h1>
+        <EventDate
+          variant="full"
+          start={event.startsAt}
+          end={event.endsAt}
+          className="text-ink/70"
+        />
+        {/* Host de la práctica - "quién organiza" es dato clave de la ficha */}
+        {isPractice && event.host?.name && (
+          <p className="text-sm text-ink/60">
+            <Link
+              href={`/amigos/${event.host.id}`}
+              className="font-medium text-ink underline-offset-4 transition-colors hover:text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              {t.organizedBy.replace("{name}", event.host.name)}
+            </Link>
+          </p>
+        )}
+        {/* Estilos: texto coloreado + barra del ciclo del DJ (solo sociales) */}
+        {!isPractice && orderedGenres.length > 0 && (
+          <p className="text-sm">
+            {orderedGenres.map((g, i) => (
+              <span key={g}>
+                {i > 0 && <span className="text-ink/30"> · </span>}
+                <span className={GENRE_TEXT[g as GenreKey] ?? "text-ink/50"}>
+                  {(t.genre as Record<string, string>)[g] ?? g}
+                </span>
+              </span>
+            ))}
+          </p>
+        )}
+        {!isPractice && mixSegs && (
+          <GenreMixBar
+            mix={genreMix!}
+            labels={t.genre as Record<string, string>}
+            className="max-w-xs"
+          />
+        )}
+        {/* Local: nombre → perfil público; Cómo llegar → app de mapas.
+            Práctica en parque: venue=null → se muestra venueText. */}
+        {(event.venue || event.venueText) && (
+          <div className="flex items-center gap-2 text-sm">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4 shrink-0 text-ink/50"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <div className="min-w-0">
+              <p className="font-medium">
+                {event.venueId && event.venue ? (
+                  <Link
+                    href={`/locales/${event.venueId}`}
+                    className="underline-offset-4 hover:text-neon hover:underline"
+                  >
+                    {event.venue.name}
+                  </Link>
+                ) : (
+                  (event.venue?.name ?? event.venueText)
+                )}
+              </p>
+              <p className="text-ink/50">
+                {[
+                  event.venue?.address ?? event.venueNotes,
+                  capacity != null
+                    ? t.capacity.replace(
+                        "{count}",
+                        capacity.toLocaleString("es-CL"),
+                      )
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-0.5 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-neon hover:underline"
+              >
+                {t.howToGet}
+                <ArrowUpRightIcon className="h-3.5 w-3.5" />
+              </a>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Prueba social: amigos confirmados con entrada - avatares + nombres.
+          Solo si hay ≥1 (el endpoint devuelve [] o 401 → null → oculta).
+          No aplica a prácticas: no hay tickets que confirmar. */}
+      {!isPractice && friendsGoing && friendsGoing.length > 0 && (
+        <div className="flex items-center gap-3">
+          <ul
+            aria-label={t.friendsGoingLabel}
+            className="flex shrink-0 -space-x-2"
+          >
+            {friendsGoing.slice(0, 4).map((f) => (
+              <li key={f.id} className="rounded-full ring-2 ring-line">
+                <PartnerAvatar
+                  name={f.name}
+                  photoUrl={f.photoUrl}
+                  size="sm"
+                />
+              </li>
+            ))}
+            {friendsGoing.length > 4 && (
+              <li className="flex h-8 w-8 items-center justify-center rounded-full bg-raised text-[10px] font-semibold text-ink/70 ring-2 ring-line">
+                +{friendsGoing.length - 4}
+              </li>
+            )}
+          </ul>
+          <p className="text-sm text-ink/70">
+            {(() => {
+              const first = friendsGoing[0].name.split(" ")[0];
+              if (friendsGoing.length === 1) {
+                return t.friendsGoingOne.replace("{name}", first);
+              }
+              const second = friendsGoing[1].name.split(" ")[0];
+              if (friendsGoing.length === 2) {
+                return t.friendsGoingTwo
+                  .replace("{a}", first)
+                  .replace("{b}", second);
+              }
+              return t.friendsGoingMany
+                .replace("{a}", first)
+                .replace("{b}", second)
+                .replace("{count}", String(friendsGoing.length - 2));
+            })()}
+          </p>
+        </div>
+      )}
+
+      {/* Descripción - notas del host (prácticas) o del productor cuando
+          exista. En prácticas es el contenido principal de la ficha. */}
+      {event.description && (
+        <Card>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-ink/80">
+            {event.description}
+          </p>
+        </Card>
+      )}
+
+      {/* Prime Time - solo cuando el evento está en vivo (nunca en prácticas:
+          no cuentan para la racha competitiva, spec §8) */}
+      {!isPractice && event.status === "LIVE" && (
+        <PrimeTimeWidget eventId={event.id} />
+      )}
+
+      {/* Precios - las prácticas son gratis/first-come: el precio lo
+          comunica el PracticeBar ("Entrada liberada"), no una tabla */}
+      {!isPractice && (
+        <Card>
+          {event.presalePrice == null && event.doorPrice == null ? (
+            <p className="text-lg font-semibold text-neon">{t.free}</p>
+          ) : (
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-ink/50">
+                  {t.presale}
+                </dt>
+                <dd className="mt-1">
+                  <PriceTag amount={event.presalePrice} className="text-xl" />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-ink/50">
+                  {t.door}
+                </dt>
+                <dd className="mt-1">
+                  <PriceTag amount={event.doorPrice} className="text-xl" />
+                </dd>
+              </div>
+            </dl>
+          )}
+        </Card>
+      )}
+
+      {/* Planificación de la noche - qué pasa y a qué hora (no aplica a
+          prácticas: son un solo bloque de baile) */}
+      {!isPractice && program != null && program.length > 0 && (
+        <Card>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink/50">
+            {t.program}
+          </h2>
+          <ol className="relative ml-2 flex flex-col gap-3.5 border-l border-line pl-5">
+            {program.map((p, i) => (
+              <li key={i} className="relative flex items-baseline gap-3">
+                <span
+                  aria-hidden="true"
+                  className="absolute -left-[1.6875rem] top-1.5 h-2.5 w-2.5 rounded-full bg-neon"
+                />
+                <span className="w-24 shrink-0 text-sm tabular-nums text-ink/50">
+                  {p.t}
+                  {p.end ? `–${p.end}` : ""}
+                </span>
+                <p className="font-medium">{p.label}</p>
+              </li>
+            ))}
+          </ol>
+        </Card>
+      )}
+
+      {/* Pase de serie - solo si el evento pertenece a una serie con id
+          y no terminó (un pase anclado a un evento pasado no se vende) */}
+      {seriesId && !isPast && !isPractice && (
+        <SeriesPassCta
+          seriesId={seriesId}
+          eventId={event.id}
+          month={eventMonth}
+          seriesName={event.series?.name ?? ""}
+        />
+      )}
+
+      {/* Misiones - solo con sesión (401 → getMissions devuelve null y se
+          oculta). No aplica a prácticas: no tienen misiones de productor. */}
+      {!isPractice && missions !== null && missions.length > 0 && (
+        <section aria-labelledby="missions-heading">
+          <Card>
+            <h2
+              id="missions-heading"
+              className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink/50"
+            >
+              {tg.missions}
+            </h2>
+            <ul className="flex flex-col gap-4">
+              {missions.map((m) => {
+                const pct =
+                  m.target > 0
+                    ? Math.min(100, Math.round((m.progress / m.target) * 100))
+                    : 0;
+                return (
+                  <li key={m.id} className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium">{m.name}</p>
+                      {m.completed ? (
+                        <Badge variant="neon">{tg.completed}</Badge>
+                      ) : (
+                        <span className="shrink-0 text-sm text-ink/50">
+                          {tg.primeProgress
+                            .replace("{current}", String(m.progress))
+                            .replace("{threshold}", String(m.target))}
+                        </span>
+                      )}
+                    </div>
+                    {m.description && (
+                      <p className="text-sm text-ink/60">{m.description}</p>
+                    )}
+                    <div
+                      role="progressbar"
+                      aria-valuenow={m.progress}
+                      aria-valuemin={0}
+                      aria-valuemax={m.target}
+                      aria-label={m.name}
+                      className="h-2 w-full overflow-hidden rounded-full bg-elevated"
+                    >
+                      <div
+                        className={`h-full rounded-full transition-[width] duration-500 ${
+                          m.completed ? "bg-neon" : "bg-neon/60"
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
+        </section>
+      )}
+
+      {/* Lineup - no aplica a prácticas (no hay DJs en cartel) */}
+      {!isPractice && event.djs.length > 0 && (
+        <Card>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink/50">
+            {t.lineup}
+          </h2>
+          <ul className="flex flex-col gap-4">
+            {event.djs.map((dj, i) => (
+              <li key={`${dj.person.name}-${i}`} className="flex items-center gap-3">
+                {dj.person.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- URLs externas, dominios no configurados
+                  <img loading="lazy" decoding="async"
+                    src={dj.person.photoUrl}
+                    alt=""
+                    className="h-11 w-11 shrink-0 rounded-full border border-line object-cover"
+                  />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-elevated text-sm font-bold text-neon"
+                  >
+                    {dj.person.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <div>
+                  <p className="font-medium">{dj.person.name}</p>
+                  {dj.slotNote && (
+                    <p className="text-xs text-ink/50">{dj.slotNote}</p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {/* Shows de la noche - academias invitadas con sus teams.
+          0..n (típico 3–5); vacío → sección oculta. No aplica a prácticas. */}
+      {!isPractice && event.shows.length > 0 && (
+        <Card>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink/50">
+            {t.shows}
+          </h2>
+          <ul className="flex flex-col gap-4">
+            {event.shows.map((show, i) => (
+              <li key={`${show.academy}-${show.name}-${i}`}>
+                <p className="font-medium">{show.academy}</p>
+                <p className="text-sm text-ink/60">
+                  {(t.showTeam as Record<string, string>)[show.teamType] ??
+                    show.teamType}
+                  {" · "}
+                  <span className="text-ink/80">{show.name}</span>
+                </p>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {/* Timeline por estilo - no aplica a prácticas: su estilo foco ya
+          está como badge en el hero */}
+      {!isPractice && blocks.length > 0 && (
+        <Card>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink/50">
+            {t.schedule}
+          </h2>
+          <ol className="relative ml-2 flex flex-col gap-5 border-l border-line pl-5">
+            {blocks.map((b, i) => (
+              <li key={i} className="relative">
+                <span
+                  aria-hidden="true"
+                  className="absolute -left-[1.6875rem] top-1.5 h-2.5 w-2.5 rounded-full bg-neon"
+                />
+                <EventDate
+                  variant="time"
+                  start={b.startsAt}
+                  end={b.endsAt}
+                  className="block text-sm text-ink/50"
+                />
+                <p className="font-medium">{b.style?.name ?? t.openFloor}</p>
+              </li>
+            ))}
+          </ol>
+        </Card>
+      )}
+
+      {/* CTA sticky (mobile-first) - flota sobre la BottomNav. Evento
+          pasado/cancelado: aviso en vez de compra; la ficha completa
+          (descripción, lineup, programa) sigue visible arriba. */}
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-line bg-canvas/90 backdrop-blur lg:bottom-0">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:max-w-4xl lg:px-8">
+          {isPast ? (
+            <p className="w-full text-center text-sm font-medium text-ink/60">
+              {isCancelled ? t.cancelled : t.past}
+            </p>
+          ) : event.type === "PRACTICA" ? (
+            /* Práctica: gratis, first-come, sin ticket (spec §8). La
+               acción es RSVP "voy"; cuando vas, el CTA pasa a tu QR. */
+            <PracticeBar eventId={event.id} initialCount={event.rsvpCount} />
+          ) : (
+            <>
+              <div className="min-w-0">
+                <span className="block text-xs text-ink/50">{ctaLabel}</span>
+                {ctaPrice != null ? (
+                  <PriceTag amount={ctaPrice} className="text-lg" />
+                ) : (
+                  <span className="text-lg font-semibold text-neon">
+                    {t.free}
+                  </span>
+                )}
+              </div>
+              <BuyTicketCta
+                href={`/eventos/${event.id}/checkout`}
+                hasTicket={myTicket}
+                label={t.getTicket}
+              />
+            </>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}

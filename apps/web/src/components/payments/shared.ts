@@ -1,3 +1,4 @@
+import { getDateFmt } from "@/lib/intl";
 // Tipos y helpers compartidos de las vistas de auditoría de pagos.
 // Contrato: GET /payments/mine | /payments/by-event/:id |
 // /payments/by-academy/:id - filas proyectadas por withContextNames en
@@ -109,7 +110,7 @@ export function paymentProducerNet(p: PaymentAuditRow): number {
   return p.producerNetClp ?? p.net;
 }
 
-export const paymentDateTimeFmt = new Intl.DateTimeFormat("es-CL", {
+export const paymentDateTimeFmt = (locale: string) => getDateFmt(locale, {
   dateStyle: "medium",
   timeStyle: "short",
 });

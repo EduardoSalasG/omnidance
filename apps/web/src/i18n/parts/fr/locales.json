@@ -1,0 +1,14 @@
+{
+  "venuePublic": {
+    "metaTitle": "{name} | Lieux",
+    "metaTitleFallback": "Lieux",
+    "address": "Adresse",
+    "directions": "Comment s'y rendre",
+    "hours": "Horaires",
+    "capacity": "Jauge {count}",
+    "upcoming": "Prochains événements",
+    "noUpcoming": "Pas d'événements publiés dans les prochaines semaines.",
+    "free": "Gratuit",
+    "presale": "Prévente"
+  }
+}

@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+
+
 import { useTranslations } from "next-intl";
 import { useMe } from "@/lib/me-context";
 import type { Academy } from "./shared";
+import { Link, usePathname } from "@/i18n/navigation";
 
 const DAY_MS = 86_400_000;
 

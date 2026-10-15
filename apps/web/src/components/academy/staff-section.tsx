@@ -1,14 +1,16 @@
 "use client";
 
-import Link from "next/link";
+
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { Badge, Card, Pager, SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { filterQuery } from "./shared";
 import type { AcademyCap } from "./use-academy-access";
+import { Link } from "@/i18n/navigation";
+import { useDateFmt } from "@/lib/intl";
 
 // El equipo no es entidad del catálogo ACADEMY_OWNER: EntityDef local
 // con la clave del contrato (spec analytics/query-console) - q sobre
@@ -47,11 +49,7 @@ export const EMPTY_CAPS: Caps = {
   billing: false,
 };
 
-const dayFmt = new Intl.DateTimeFormat("es-CL", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
+;
 
 export function CapCheckbox({
   cap,
@@ -91,6 +89,12 @@ export function CapCheckbox({
 const PAGE_SIZE = 20;
 
 export function StaffSection({ academyId }: { academyId: string }) {
+  const dayFmt = useDateFmt({
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+  const locale = useLocale();
   const t = useTranslations("academyStaff");
 
   const [rows, setRows] = useState<StaffRow[] | null>(null);

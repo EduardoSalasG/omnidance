@@ -1,14 +1,16 @@
-import Link from "next/link";
+
 import type { CSSProperties } from "react";
 import { ChevronRightIcon } from "@/components/ui";
 // Las claves de la landing viven en este fragmento, que se fusiona con
 // messages/es-CL.json bajo los namespaces "landing" y "landingPro"
 // (ver src/i18n/parts/). landingPro solo declara overrides: las claves
 // compartidas (nav, CTAs de header, footerTagline) vienen de `landing`.
-import landingParts from "@/i18n/parts/landing.json";
+import { getLocale, getMessages } from "next-intl/server";
 import { ProLeadForm } from "./ProLeadForm";
 import type { JsonLdEvent } from "./JsonLd";
 import type { PublicAcademy } from "@/lib/public-academies";
+import { Link } from "@/i18n/navigation";
+import { getDateFmt } from "@/lib/intl";
 
 // Acento de marca via token `neon` (#a78bfa violeta en :root) - icon.svg,
 // og-image e íconos PWA comparten el mismo valor. La atmósfera del hero es
@@ -24,11 +26,6 @@ type LandingVariant = "dancer" | "academy" | "producer";
 
 // Copy por audiencia: `landing` es la base, `landingPro` aporta los
 // defaults pro (CTAs, strip semanal, form) y la variante sobrescribe.
-const VARIANT_COPY = {
-  dancer: {},
-  academy: landingParts.landingAcademy,
-  producer: landingParts.landingProducer,
-} as const;
 
 // La landing de academias hereda el acento del modo Academy (esmeralda)
 // - el mismo que verá el dueño dentro de su consola. Productor queda en
@@ -47,7 +44,7 @@ const ACADEMY_ACCENT = {
  * En la variante academy el strip muestra `academies` (las academias
  * no producen eventos - su prueba social es quién ya opera acá).
  */
-export function Landing({
+export async function Landing({
   variant = "dancer",
   weeklyEvents = 0,
   weekEvents = [],
@@ -62,11 +59,13 @@ export function Landing({
   // de academias (spec academies/owner-insights).
   academies?: PublicAcademy[];
 }) {
+  const locale = await getLocale();
+  const m = (await getMessages()) as typeof import("@/i18n/catalogs/es-CL").default;
   const isPro = variant !== "dancer";
   const t = {
-    ...landingParts.landing,
-    ...(isPro ? landingParts.landingPro : {}),
-    ...VARIANT_COPY[variant],
+    ...m.landing,
+    ...(isPro ? m.landingPro : {}),
+    ...(variant === "academy" ? m.landingAcademy : variant === "producer" ? m.landingProducer : {}),
   };
 
   // Enlace cruzado entre landings pro - el visitante multi-rol (academia
@@ -75,11 +74,11 @@ export function Landing({
     variant === "academy"
       ? {
           href: "/para-productores",
-          label: landingParts.landingAcademy.crossLink,
+          label: m.landingAcademy.crossLink,
         }
       : {
           href: "/para-academias",
-          label: landingParts.landingProducer.crossLink,
+          label: m.landingProducer.crossLink,
         };
 
   const features = [
@@ -91,11 +90,11 @@ export function Landing({
   const weekLabel =
     variant === "academy"
       ? academies.length > 0
-        ? landingParts.landingAcademy.academyCount.replace(
+        ? m.landingAcademy.academyCount.replace(
             "{count}",
             String(academies.length),
           )
-        : landingParts.landingAcademy.academyEmpty
+        : m.landingAcademy.academyEmpty
       : weeklyEvents > 0
         ? t.weekCount.replace("{count}", String(weeklyEvents))
         : t.weekEmpty;
@@ -106,7 +105,7 @@ export function Landing({
   const primaryHref = isPro ? "#contacto" : "/login?mode=register";
   const secondaryHref = isPro ? "#contacto" : "/eventos";
 
-  const eventDayFmt = new Intl.DateTimeFormat("es-CL", {
+  const eventDayFmt = (locale: string) => getDateFmt(locale, {
     weekday: "short",
     day: "numeric",
   });
@@ -240,7 +239,7 @@ export function Landing({
                       className="inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm text-ink/60 transition-colors hover:text-ink"
                     >
                       <span className="font-medium capitalize text-neon">
-                        {eventDayFmt.format(new Date(event.startsAt))}
+                        {eventDayFmt(locale).format(new Date(event.startsAt))}
                       </span>
                       <span className="text-ink/80">{event.name}</span>
                       {event.venue?.name && (

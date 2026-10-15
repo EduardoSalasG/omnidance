@@ -1,0 +1,21 @@
+{
+  "nav": {
+    "notifications": "Notifications",
+    "notificationsFull": "Notifications",
+    "notificationsUnread": "Notifications ({count} unread)"
+  },
+  "realtime": {
+    "toast": {
+      "open": "View notification",
+      "close": "Dismiss"
+    },
+    "push": {
+      "title": "Enable notifications",
+      "description": "We let you know right away when someone invites you to dance, a ticket confirms or there’s news from the scene.",
+      "enable": "Enable notifications",
+      "later": "Not now",
+      "enabled": "Done, notifications on",
+      "error": "Couldn’t enable them. Try again."
+    }
+  }
+}

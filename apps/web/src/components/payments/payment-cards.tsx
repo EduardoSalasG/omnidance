@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
   Badge,
@@ -20,7 +20,8 @@ import {
   type PaymentAuditRow,
   type PaymentLedgerEvent,
 } from "./shared";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+
 
 type Props = {
   payments: PaymentAuditRow[];
@@ -53,6 +54,7 @@ function PaymentCard({
   payment: PaymentAuditRow;
   withLedger: boolean;
 }) {
+  const locale = useLocale();
   const t = useTranslations("payments");
   const tc = useTranslations("common");
 
@@ -110,7 +112,7 @@ function PaymentCard({
           {[
             orderTypeLabel(t, p.orderType),
             p.gatewayMedia,
-            paymentDateTimeFmt.format(new Date(paymentPaidAt(p))),
+            paymentDateTimeFmt(locale).format(new Date(paymentPaidAt(p))),
           ]
             .filter(Boolean)
             .join(" · ")}
@@ -182,7 +184,7 @@ function PaymentCard({
                         </span>
                         <span className="shrink-0 text-ink/50">
                           {e.actor} ·{" "}
-                          {paymentDateTimeFmt.format(new Date(e.createdAt))}
+                          {paymentDateTimeFmt(locale).format(new Date(e.createdAt))}
                         </span>
                       </li>
                     ))}

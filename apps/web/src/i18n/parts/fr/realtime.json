@@ -1,0 +1,21 @@
+{
+  "nav": {
+    "notifications": "Notifications",
+    "notificationsFull": "Notifications",
+    "notificationsUnread": "Notifications ({count} non lues)"
+  },
+  "realtime": {
+    "toast": {
+      "open": "Voir la notification",
+      "close": "Écarter"
+    },
+    "push": {
+      "title": "Active les notifications",
+      "description": "On te prévient aussitôt quand on t'invite à danser, qu'un billet se confirme ou qu'il y a des nouveautés de la scène.",
+      "enable": "Activer les notifications",
+      "later": "Pas maintenant",
+      "enabled": "C'est bon, notifications activées",
+      "error": "Impossible de les activer. Réessaie."
+    }
+  }
+}

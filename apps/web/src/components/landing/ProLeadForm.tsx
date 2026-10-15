@@ -4,17 +4,13 @@ import { useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { Spinner } from "@/components/ui/spinner";
 import { ChevronRightIcon } from "@/components/ui";
-import landingParts from "@/i18n/parts/landing.json";
+import { useMessages } from "next-intl";
+import type landingParts from "@/i18n/parts/landing.json";
 
-const t = landingParts.landingPro.form;
+type LandingProForm = (typeof landingParts)["landingPro"]["form"];
 
-// Orden fijo del multiselect - los valores son los role keys del backend.
-const ROLE_OPTIONS = [
-  { value: "PRODUCER", label: t.roleProducer },
-  { value: "DJ", label: t.roleDj },
-  { value: "ACADEMY_OWNER", label: t.roleAcademy },
-  { value: "VENUE_MANAGER", label: t.roleVenue },
-] as const;
+
+
 
 type Intent = "CONTACT" | "DEMO";
 // Campos obligatorios validados en cliente antes de pegarle al API -
@@ -43,12 +39,23 @@ export function ProLeadForm({
   fixedRole?: string;
   roleOptions?: readonly string[];
 }) {
+  const t = (useMessages() as {
+    landingPro: { form: LandingProForm };
+  }).landingPro.form;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [roles, setRoles] = useState<string[]>(
     fixedRole ? [fixedRole] : [],
   );
+  // Orden fijo del multiselect - los valores son los role keys del
+  // backend; labels del catálogo del locale activo.
+  const ROLE_OPTIONS = [
+    { value: "PRODUCER", label: t.roleProducer },
+    { value: "DJ", label: t.roleDj },
+    { value: "ACADEMY_OWNER", label: t.roleAcademy },
+    { value: "VENUE_MANAGER", label: t.roleVenue },
+  ] as const;
   const options = roleOptions
     ? ROLE_OPTIONS.filter((o) => roleOptions.includes(o.value))
     : ROLE_OPTIONS;

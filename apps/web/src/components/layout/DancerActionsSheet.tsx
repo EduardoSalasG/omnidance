@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
+
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { MyQr } from "@/components/qr/MyQr";
+import { Link } from "@/i18n/navigation";
 
 export type SheetItem = {
   href: string;

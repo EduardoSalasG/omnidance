@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
+
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import type { RealtimeNotification } from "@/lib/realtime";
 import { useRealtime } from "./RealtimeProvider";
+import { Link } from "@/i18n/navigation";
 
 const VISIBLE_MS = 5000;
 const EXIT_MS = 200;

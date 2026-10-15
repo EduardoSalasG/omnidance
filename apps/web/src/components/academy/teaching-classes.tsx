@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
+
+import { useLocale, useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, RefreshIcon } from "@/components/ui";
@@ -17,6 +17,7 @@ import {
   type FilterOption,
   type TeachingClass,
 } from "./shared";
+import { Link } from "@/i18n/navigation";
 
 type LoadState = "loading" | "ready" | "unauth" | "forbidden" | "error";
 
@@ -42,6 +43,7 @@ const TEACHING_ENTITY: EntityDef = {
  * al roster /academia/clases/[id].
  */
 export function TeachingClasses() {
+  const locale = useLocale();
   const t = useTranslations("instructor");
   const tc = useTranslations("common");
 
@@ -150,7 +152,7 @@ export function TeachingClasses() {
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <p className="text-sm font-semibold capitalize">
-                  {classDayFmt.format(new Date(c.date))}
+                  {classDayFmt(locale).format(new Date(c.date))}
                 </p>
                 <p className="text-sm tabular-nums text-ink/70">
                   {c.startTime}–{c.endTime}

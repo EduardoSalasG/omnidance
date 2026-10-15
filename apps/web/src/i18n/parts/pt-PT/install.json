@@ -1,0 +1,10 @@
+{
+  "install": {
+    "title": "Guarda o Omnidance no bolso",
+    "body": "Instala a app para entrar diretamente do teu ecrã inicial - sem navegador e mais rápido.",
+    "iosBody": "No Safari, toca no botão Partilhar e escolhe « Adicionar ao ecrã principal ». Assim entras diretamente, como uma app.",
+    "androidBody": "No Chrome, toca no menu ⋮ e escolhe « Instalar app » ou « Adicionar ao ecrã principal ». Assim entras diretamente, como uma app.",
+    "cta": "Instalar",
+    "dismiss": "Agora não"
+  }
+}

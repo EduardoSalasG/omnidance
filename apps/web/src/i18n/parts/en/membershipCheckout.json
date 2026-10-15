@@ -1,0 +1,26 @@
+{
+  "membershipCheckout": {
+    "title": "Confirm plan",
+    "orderTitle": "Your order",
+    "plan": "Plan",
+    "vigenciaUntil": "Active until {date}",
+    "vigenciaClasses": "{count, plural, one {# class} other {# classes}} · no expiry date",
+    "vigenciaSingle": "Valid for one class on the day of purchase",
+    "vigenciaPeriod": "{days} days of validity from purchase",
+    "vigenciaExtends": "Your current plan expires on {date}: the new period starts the next day.",
+    "modeTitle": "How do you want to pay?",
+    "modeOnce": "One-off payment",
+    "modeOnceHint": "Pay once for the period. When it expires, you renew manually.",
+    "modeSub": "Subscription",
+    "modeSubHint": "Charged automatically every {period}. Cancel anytime from the academy page.",
+    "payTotal": "Pay {total}",
+    "trustFlow": "Secure payment processed by Flow",
+    "cardNext": "Next, Flow will ask you to register your card on their secure page and we’ll bring you back automatically.",
+    "cardRedirectTitle": "One step left: your card",
+    "cardRedirectDesc": "To activate the subscription, register your card on Flow’s official page. We don’t charge anything until the registration is done and you’re back here.",
+    "cardRedirectCta": "Continue to Flow",
+    "planUnavailable": "This plan is unavailable right now",
+    "alreadySubscribed": "You already have a subscription to this plan",
+    "backToAcademy": "Back to academy"
+  }
+}

@@ -45,6 +45,7 @@ model Person {
   pendingProfileAt DateTime? // admin convirtió el lead: debe completar perfil para ser usuario real
   verifiedAt    DateTime?
   onboarding    Json?   // {tourKey: ISO timestamp} - tours de primera visita ya vistos
+  language      String  @default("es-CL") // locale preferido (spec i18n-multi-locale): es-CL|en|fr|pt-PT
   flowCustomerId String? // customerId en Flow - se crea on-demand al suscribirse
   // Tier Producer Pro (spec academy-saas-billing) - solo aplica a personas
   // con rol PRODUCER; no hay tabla Producer, el productor es esta Person.

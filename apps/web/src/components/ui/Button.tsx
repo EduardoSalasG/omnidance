@@ -1,5 +1,6 @@
-import Link from "next/link";
+
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { Link } from "@/i18n/navigation";
 
 type ButtonVariant = "primary" | "secondary" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";

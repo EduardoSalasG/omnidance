@@ -1,0 +1,32 @@
+{
+  "academyImport": {
+    "title": "Importer des données",
+    "desc": "Upload en masse pour migrer depuis une autre plateforme : ta liste d'élèves et ton planning hebdomadaire en CSV.",
+    "studentsTitle": "Élèves",
+    "studentsDesc": "Une ligne par élève : e-mail, nom, plan et jusqu'à quand il a payé. S'il n'a pas de compte, on lui envoie une invitation par e-mail.",
+    "studentsCols": "Colonnes : email, name, phone (optionnel), plan, paid_until (optionnel, AAAA-MM-JJ)",
+    "scheduleTitle": "Planning hebdomadaire",
+    "scheduleDesc": "Une ligne par bloc hebdomadaire. Les lignes avec le même nom de série se regroupent en une seule série du mois.",
+    "scheduleCols": "Colonnes : series, weekday, start_time, end_time + optionnels : style, level, capacity, instructor_email, month",
+    "downloadTemplate": "Télécharger le modèle",
+    "chooseFile": "Choisir un CSV…",
+    "noFile": "Aucun fichier choisi",
+    "upload": "Importer",
+    "uploading": "Importation…",
+    "resultsTitle": "Résultat par ligne",
+    "colRow": "Ligne",
+    "colItem": "Valeur",
+    "colStatus": "Statut",
+    "colDetail": "Détail",
+    "status": {
+      "imported": "Importé",
+      "updated": "Mis à jour",
+      "invited": "Invité",
+      "error": "Erreur",
+      "ok": "Fait",
+      "warn": "Avec avertissement"
+    },
+    "error": "Impossible d'importer le fichier. Vérifie que c'est un CSV avec les colonnes du modèle.",
+    "forbidden": "Tu n'as pas accès à l'import de cette académie."
+  }
+}

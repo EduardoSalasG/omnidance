@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Card } from "@/components/ui";
+import { useDateFmt } from "@/lib/intl";
 
 /**
  * Resultados de las encuestas mensuales de curso (spec
@@ -24,16 +25,8 @@ type SurveyGroup = {
   comments: string[];
 };
 
-const monthFmt = new Intl.DateTimeFormat("es-CL", {
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
-const monthLabel = (m: string) => {
-  const [y, mo] = m.split("-").map(Number);
-  if (!y || !mo) return m;
-  return monthFmt.format(new Date(Date.UTC(y, mo - 1, 1)));
-};
+;
+
 
 export function CourseSurveyResults({
   academyId,
@@ -44,6 +37,16 @@ export function CourseSurveyResults({
   seriesId?: string;
   instructorId?: string;
 }) {
+  const monthFmt = useDateFmt({
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+  const monthLabel = (m: string) => {
+  const [y, mo] = m.split("-").map(Number);
+  if (!y || !mo) return m;
+  return monthFmt.format(new Date(Date.UTC(y, mo - 1, 1)));
+};;
   const t = useTranslations("courseSurvey");
   const [groups, setGroups] = useState<SurveyGroup[] | null>(null);
   const [failed, setFailed] = useState(false);

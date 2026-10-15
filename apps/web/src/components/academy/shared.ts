@@ -1,3 +1,4 @@
+import { getDateFmt, getNumFmt } from "@/lib/intl";
 // Tipos y helpers compartidos de la consola /academia.
 // Contratos verificados contra:
 //   apps/api/src/academies/infrastructure/academies.controller.ts
@@ -459,7 +460,7 @@ export type StudentProfile = {
 
 // Día calendario de una Class (date llega a medianoche UTC - formatear en
 // UTC para que el día no se corra en zonas negativas; mismo fmt que /clases).
-export const classDayFmt = new Intl.DateTimeFormat("es-CL", {
+export const classDayFmt = (locale: string) => getDateFmt(locale, {
   weekday: "short",
   day: "numeric",
   month: "short",
@@ -468,7 +469,7 @@ export const classDayFmt = new Intl.DateTimeFormat("es-CL", {
 
 // Vigencia del enrollment (startedAt/endsAt llegan como ISO real, no
 // medianoche UTC - formatear en zona local, distinto de classDayFmt).
-export const planDateFmt = new Intl.DateTimeFormat("es-CL", {
+export const planDateFmt = (locale: string) => getDateFmt(locale, {
   day: "numeric",
   month: "short",
   year: "numeric",
@@ -476,7 +477,7 @@ export const planDateFmt = new Intl.DateTimeFormat("es-CL", {
 
 // Cumpleaños (date llega a medianoche UTC - formatear en UTC para que
 // el día no se corra; solo día/mes, el año nunca se muestra).
-export const birthdayFmt = new Intl.DateTimeFormat("es-CL", {
+export const birthdayFmt = (locale: string) => getDateFmt(locale, {
   day: "numeric",
   month: "short",
   timeZone: "UTC",

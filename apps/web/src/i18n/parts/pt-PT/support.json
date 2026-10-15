@@ -1,0 +1,47 @@
+{
+  "nav": {
+    "support": "Suporte"
+  },
+  "support": {
+    "search": "Procurar utilizadores",
+    "searchPlaceholder": "Nome ou e-mail",
+    "minChars": "Escreve pelo menos 2 letras",
+    "initialHint": "Procura um utilizador por nome ou e-mail",
+    "noResults": "Sem resultados",
+    "searchError": "Não foi possível pesquisar",
+    "forbidden": "Esta secção requer papel de suporte",
+    "backToResults": "Voltar aos resultados",
+    "memberSince": "Membro desde",
+    "sections": {
+      "person": "Dados",
+      "roles": "Papéis",
+      "tickets": "Últimos bilhetes",
+      "payments": "Últimos pagamentos",
+      "activity": "Atividade"
+    },
+    "noRoles": "Sem papéis",
+    "noTickets": "Sem bilhetes",
+    "noPayments": "Sem pagamentos",
+    "roleSince": "desde {date}",
+    "checkins": "Check-ins",
+    "friends": "Amigos",
+    "roleStatus": {
+      "PENDING": "Pendente",
+      "SANDBOX": "Sandbox",
+      "APPROVED": "Aprovado",
+      "REJECTED": "Rejeitado"
+    },
+    "ticketStatus": {
+      "ACTIVE": "Ativo",
+      "USED": "Usado",
+      "TRANSFERRED": "Transferido",
+      "CANCELLED": "Cancelado"
+    },
+    "paymentStatus": {
+      "PENDING": "Pendente",
+      "PAID": "Pago",
+      "FAILED": "Falhado",
+      "REFUNDED": "Reembolsado"
+    }
+  }
+}

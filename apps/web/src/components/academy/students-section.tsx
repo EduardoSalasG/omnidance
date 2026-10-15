@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
+
+import { useLocale, useTranslations } from "next-intl";
 import type { QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate, Pager, type BadgeVariant, RefreshIcon } from "@/components/ui";
@@ -19,6 +19,7 @@ import {
   type MembershipPlan,
   type Student,
 } from "./shared";
+import { Link } from "@/i18n/navigation";
 
 type Props = {
   academyId: string;
@@ -67,6 +68,7 @@ export function StudentsSection({
   academyId,
   readOnly = false,
 }: Props) {
+  const locale = useLocale();
   const t = useTranslations("academy");
   const tc = useTranslations("common");
   const tp = useTranslations("practices");
@@ -224,7 +226,7 @@ export function StudentsSection({
                     {s.endsAt && (
                       <span>
                         {tp("endsAt")}:{" "}
-                        {planDateFmt.format(new Date(s.endsAt))}
+                        {planDateFmt(locale).format(new Date(s.endsAt))}
                       </span>
                     )}
                   </div>

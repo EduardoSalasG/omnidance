@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, SkeletonList, Spinner } from "@/components/ui";
 import type { PaymentAuditRow } from "@/components/payments/shared";
@@ -12,13 +11,16 @@ import {
   paymentPaidAt,
 } from "@/components/payments/shared";
 import type { QueueClaim } from "./claims-queue";
-import { claimDateFmt } from "./claims-queue";
+import { Link } from "@/i18n/navigation";
+import { getNumFmt, useDateFmt, useNumFmt } from "@/lib/intl";
 
-const clp = new Intl.NumberFormat("es-CL", {
+const clp = (locale: string) => getNumFmt(locale, {
   style: "currency",
   currency: "CLP",
   maximumFractionDigits: 0,
 });
+
+;
 
 type Row = {
   key: string;
@@ -40,6 +42,8 @@ type Row = {
 const WINDOW = 20;
 
 export function CobrosHistory({ academyId }: { academyId: string }) {
+  const locale = useLocale();
+  const claimDateFmt = useDateFmt({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const t = useTranslations("academyPay");
   const tp = useTranslations("payments");
   const tc = useTranslations("common");
@@ -87,7 +91,7 @@ export function CobrosHistory({ academyId }: { academyId: string }) {
       key: `claim-${c.id}`,
       href: `/academia/cobros/claim/${c.id}`,
       title: c.person.name,
-      subtitle: `${c.plan?.name ?? c.methodLabel} · ${clp.format(c.amount)}`,
+      subtitle: `${c.plan?.name ?? c.methodLabel} · ${clp(locale).format(c.amount)}`,
       status: c.status,
       statusLabel:
         c.status === "APPROVED" ? t("statusApproved") : t("statusRejected"),
@@ -102,7 +106,7 @@ export function CobrosHistory({ academyId }: { academyId: string }) {
         (tp.has(`orderTypes.${p.orderType}`)
           ? tp(`orderTypes.${p.orderType}`)
           : p.orderType),
-      subtitle: `${p.gatewayMedia ?? t("methodGateway")} · ${clp.format(p.amount)}`,
+      subtitle: `${p.gatewayMedia ?? t("methodGateway")} · ${clp(locale).format(p.amount)}`,
       status: p.status,
       statusLabel: tp.has(`status.${p.status}`) ? tp(`status.${p.status}`) : p.status,
       variant: PAYMENT_STATUS_VARIANT[p.status] ?? "muted",

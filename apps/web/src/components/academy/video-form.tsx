@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+
+import { useMessages, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { Button, Card, SkeletonList } from "@/components/ui";
-import academyExtras from "@/i18n/parts/academyExtras.json";
-import { inputCls, readError, type Academy } from "./shared";
 
-const t = academyExtras.academyExtras.videos;
+import { inputCls, readError, type Academy } from "./shared";
+import { useRouter } from "@/i18n/navigation";
+
+
 
 /**
  * Formulario de alta de video (link externo, nunca self-host) - vive en
@@ -18,7 +19,10 @@ const t = academyExtras.academyExtras.videos;
  * canAdminister (misma regla que canAdministerAcademy del dominio:
  * ADMIN u ownerId === me.id).
  */
+type AcademyExtras = (typeof import("@/i18n/parts/academyExtras.json"))["academyExtras"];
+
 export function VideoForm({ academy }: { academy: Academy }) {
+  const t = (useMessages() as { academyExtras: { videos: Record<string,string> } }).academyExtras.videos;
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
   const router = useRouter();

@@ -88,6 +88,13 @@ export class UpdateMeDto {
   @IsOptional()
   @IsString()
   birthDate?: string | null;
+
+  // Idioma de la app - whitelist de locales soportados (spec
+  // i18n-multi-locale). Persistido en Person.language: viaja entre
+  // dispositivos; el front además setea la cookie NEXT_LOCALE.
+  @IsOptional()
+  @IsIn(["es-CL", "en", "fr", "pt-PT"])
+  language?: string;
 }
 
 // Nivel autodeclarado del bailarín - valores sembrados por el seed y
@@ -218,6 +225,7 @@ export class PeopleController {
       photoUrl: person.photoUrl,
       instagram: person.instagram,
       gender: person.gender,
+      language: person.language,
       birthDate: person.birthDate,
       createdAt: person.createdAt,
       verifiedAt: person.verifiedAt,
@@ -264,6 +272,7 @@ export class PeopleController {
       phone?: string | null;
       gender?: Gender | null;
       birthDate?: Date | null;
+      language?: string;
     } = {};
     if (dto.instagram !== undefined) {
       const handle = (dto.instagram ?? "").trim().replace(/^@+/, "");
@@ -302,6 +311,9 @@ export class PeopleController {
         }
         data.phone = digits;
       }
+    }
+    if (dto.language !== undefined) {
+      data.language = dto.language;
     }
     if (dto.gender !== undefined) {
       data.gender = dto.gender; // null = prefiere no declarar

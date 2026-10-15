@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useMessages, useTranslations } from "next-intl";
 import type { QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
@@ -9,7 +9,7 @@ import { Badge, Button, Card, ConfirmSheet, Pager, PriceTag, RefreshIcon } from 
 import type { BadgeVariant } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
-import academyExtras from "@/i18n/parts/academyExtras.json";
+
 import {
   academyEntity,
   filterQuery,
@@ -18,17 +18,26 @@ import {
   type Academy,
   type FilterOption,
 } from "./shared";
+import { getDateFmt, useDateFmt } from "@/lib/intl";
 
-const t = academyExtras.academyExtras.lessons;
+const df = (locale: string) => getDateFmt(locale, {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
 // Entidad `private_lessons` del catálogo sin el scope (la página fija la
 // academia) - status, instructorId y from/to con la misma semántica del
 // query engine (spec analytics/query-console). La relación económica del
 // profesor (acuerdo: por clase, mensual o comisión) se gestiona en equipo.
+type AcademyExtras = (typeof import("@/i18n/parts/academyExtras.json"))["academyExtras"];
+
 const LESSONS_ENTITY = academyEntity("private_lessons");
 
-function statusLabel(status: string): string {
-  return (t.status as Record<string, string>)[status] ?? status;
+function statusLabel(
+  t: { status: Record<string, string> },
+  status: string,
+): string {
+  return t.status[status] ?? status;
 }
 
 type LoadState = "loading" | "ready" | "error";
@@ -75,10 +84,7 @@ type Props = {
   academies?: Academy[];
 };
 
-const df = new Intl.DateTimeFormat("es-CL", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+;
 
 function statusVariant(status: string): BadgeVariant {
   switch (status) {
@@ -108,6 +114,8 @@ function shortId(id: string) {
  * de /clases (particulares-en-reservadas).
  */
 export function PrivateLessons({ academy }: Props) {
+  const locale = useLocale();
+  const t = (useMessages() as { academyExtras: AcademyExtras }).academyExtras.lessons;
   const tc = useTranslations("common");
 
   // /me compartido (MeProvider) - sin fetch propio.
@@ -316,7 +324,7 @@ export function PrivateLessons({ academy }: Props) {
   }
 
   const lessonWhen = (l: PrivateLesson) =>
-    l.scheduledAt ? df.format(new Date(l.scheduledAt)) : t.toSchedule;
+    l.scheduledAt ? df(locale).format(new Date(l.scheduledAt)) : t.toSchedule;
 
   const lessonInstructor = (l: PrivateLesson) =>
     l.instructorId
@@ -395,7 +403,7 @@ export function PrivateLessons({ academy }: Props) {
                       <Card className="flex h-full flex-col gap-3 p-4">
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                           <Badge variant={statusVariant(l.status)}>
-                            {statusLabel(l.status)}
+                            {statusLabel(t, l.status)}
                           </Badge>
                           <span className="font-medium tabular-nums">
                             {lessonWhen(l)}

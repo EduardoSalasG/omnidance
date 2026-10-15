@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Button, Card } from "@/components/ui";
 import { readError } from "@/components/academy/shared";
+import { useRouter } from "@/i18n/navigation";
 
 /**
  * Zona destructiva de la ficha de una clase particular - el mismo

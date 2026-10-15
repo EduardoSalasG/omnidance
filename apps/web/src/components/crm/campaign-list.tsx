@@ -1,19 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
+
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { actionLabel, audienceLabel } from "./campaign-labels";
 import type { CrmActor, CrmCampaign } from "./types";
 import { actorQuery } from "./types";
+import { Link } from "@/i18n/navigation";
+import { getDateFmt, useDateFmt } from "@/lib/intl";
 
-const fmtDay = new Intl.DateTimeFormat("es-CL", {
+const fmtDay = (locale: string) => getDateFmt(locale, {
   dateStyle: "medium",
   timeStyle: "short",
 });
+
+;
 
 const PAGE_SIZE = 20;
 
@@ -37,6 +41,7 @@ export function CampaignList({
   /** Incrementar para forzar refetch (tras crear una campaña). */
   reloadSignal: number;
 }) {
+  const locale = useLocale();
   const t = useTranslations("crm");
   const tc = useTranslations("common");
 
@@ -117,7 +122,7 @@ export function CampaignList({
                       {t("campaigns.audience")}: {audienceLabel(t, c)}
                     </span>
                     <span className="text-ink/50">
-                      {fmtDay.format(new Date(c.createdAt))}
+                      {fmtDay(locale).format(new Date(c.createdAt))}
                     </span>
                   </div>
                   {c.status === "SENT" && c.result && (

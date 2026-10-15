@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+
 import { useTranslations } from "next-intl";
 import QRCode from "qrcode";
 import { apiFetch } from "@/lib/api";
 import { Button, RefreshIcon } from "@/components/ui";
+import { Link } from "@/i18n/navigation";
 
 /**
  * QR personal rotativo (TOTP ~30s server-side; se re-emite cada 50s).

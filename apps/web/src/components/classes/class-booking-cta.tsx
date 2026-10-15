@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+
+
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Button, Card, PriceTag, Spinner } from "@/components/ui";
 import { readError } from "@/components/academy/shared";
+import { Link, useRouter } from "@/i18n/navigation";
 
 type Booking = "BOOKED" | "WAITLIST" | null;
 

@@ -1,0 +1,14 @@
+{
+  "venuePublic": {
+    "metaTitle": "{name} | Venues",
+    "metaTitleFallback": "Venues",
+    "address": "Address",
+    "directions": "Get directions to this address",
+    "hours": "Hours",
+    "capacity": "Capacity {count}",
+    "upcoming": "Upcoming events",
+    "noUpcoming": "No events published in the coming weeks.",
+    "free": "Free",
+    "presale": "Presale"
+  }
+}

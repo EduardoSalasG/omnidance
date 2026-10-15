@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import Link from "next/link";
+
 import { Badge, Button, Card, SkeletonList } from "@/components/ui";
+import { Link } from "@/i18n/navigation";
 
 export type Method = {
   id: string;

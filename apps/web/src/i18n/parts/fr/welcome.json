@@ -1,0 +1,19 @@
+{
+  "welcome": {
+    "title": "Complète ton profil",
+    "subtitle": "Quelques infos rapides pour que tes amis te trouvent et que l'app te connaisse. Tout est optionnel : tu pourras compléter plus tard dans Profil.",
+    "name": "Nom",
+    "phone": "Téléphone",
+    "phonePlaceholder": "+56 9 1234 5678",
+    "phoneTaken": "Ce téléphone est déjà enregistré sur un autre compte",
+    "instagram": "Instagram",
+    "instagramPlaceholder": "ton.pseudo",
+    "danceTitle": "Ta danse",
+    "danceHint": "Choisis tes styles et ton rôle sur la piste",
+    "danceEmpty": "Impossible de charger les styles. Tu pourras les choisir plus tard dans Profil.",
+    "levelLabel": "Niveau",
+    "submit": "C'est bon, allons-y",
+    "skip": "Pas maintenant",
+    "saveError": "Impossible d'enregistrer. Réessaie ou continue avec « Pas maintenant »."
+  }
+}

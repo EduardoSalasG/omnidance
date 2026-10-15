@@ -1,104 +1,27 @@
-import base from "../../messages/es-CL.json";
-import academyBilling from "./parts/academyBilling.json";
-import academyExtras from "./parts/academyExtras.json";
-import academyImport from "./parts/academyImport.json";
-import academyPay from "./parts/academyPay.json";
-import academySales from "./parts/academySales.json";
-import academyStaff from "./parts/academyStaff.json";
-import admin from "./parts/admin.json";
-import analytics from "./parts/analytics.json";
-import claim from "./parts/claim.json";
-import checkout from "./parts/checkout.json";
-import classes from "./parts/classes.json";
-import common from "./parts/common.json";
-import consumer from "./parts/consumer.json";
-import crm from "./parts/crm.json";
-import dj from "./parts/dj.json";
-import events from "./parts/events.json";
-import install from "./parts/install.json";
-import landing from "./parts/landing.json";
-import legal from "./parts/legal.json";
-import locales from "./parts/locales.json";
-import membershipCheckout from "./parts/membershipCheckout.json";
-import navExtra from "./parts/navExtra.json";
-import payments from "./parts/payments.json";
-import producer from "./parts/producer.json";
-import profile from "./parts/profile.json";
-import query from "./parts/query.json";
-import realtime from "./parts/realtime.json";
-import subscriptions from "./parts/subscriptions.json";
-import support from "./parts/support.json";
-import survey from "./parts/survey.json";
-import tours from "./parts/tours.json";
-import venue from "./parts/venue.json";
-import wallet from "./parts/wallet.json";
-import welcome from "./parts/welcome.json";
+import es from "./catalogs/es-CL";
+import en from "./catalogs/en";
+import fr from "./catalogs/fr";
+import pt from "./catalogs/pt-PT";
+import { mergeDict, type Dict } from "./merge";
+import type { Locale } from "./routing";
 
-type Dict = Record<string, unknown>;
+// Catálogo por locale. es-CL es la fuente completa; los demás locales
+// se mezclan ENCIMA de es-CL → una key sin traducir cae en español en
+// vez de romper la página (fallback explícito del spec).
+const byLocale: Record<Locale, Dict> = {
+  "es-CL": es,
+  en: mergeDict(es, en),
+  fr: mergeDict(es, fr),
+  "pt-PT": mergeDict(es, pt),
+};
 
-// messages/es-CL.json es la base; los namespaces nuevos viven en parts/*.json
-// y se mezclan aquí para no inflar el archivo monolítico. El merge es por
-// nivel para que un part que toque un namespace existente (p.ej. landing)
-// no pise las claves de la base.
-function merge(a: Dict, b: Dict): Dict {
-  const out: Dict = { ...a };
-  for (const [k, v] of Object.entries(b)) {
-    const prev = out[k];
-    out[k] =
-      v !== null &&
-      typeof v === "object" &&
-      !Array.isArray(v) &&
-      prev !== null &&
-      typeof prev === "object" &&
-      !Array.isArray(prev)
-        ? merge(prev as Dict, v as Dict)
-        : v;
-  }
-  return out;
+/** Compat con imports existentes (catálogo default). */
+export const messages = es;
+
+/** Diccionario completo del locale. Compartido por request.ts y layout. */
+export function getMessages(locale: Locale): Dict {
+  return byLocale[locale] ?? es;
 }
-
-const parts = [
-  academyBilling,
-  academyExtras,
-  academyImport,
-  academyPay,
-  academySales,
-  academyStaff,
-  admin,
-  analytics,
-  claim,
-  checkout,
-  classes,
-  common,
-  consumer,
-  crm,
-  dj,
-  events,
-  install,
-  landing,
-  legal,
-  locales,
-  membershipCheckout,
-  navExtra,
-  payments,
-  producer,
-  profile,
-  query,
-  realtime,
-  subscriptions,
-  support,
-  survey,
-  tours,
-  venue,
-  wallet,
-  welcome,
-] as Dict[];
-
-/** Diccionario completo: base + parts. Compartido por request.ts y layout. */
-export const messages = parts.reduce<Dict>(
-  (acc, p) => merge(acc, p),
-  { ...base },
-);
 
 /**
  * Scoping de mensajes por route group - el provider de root layout NO
@@ -109,17 +32,30 @@ export const messages = parts.reduce<Dict>(
  * - (app): todo menos los namespaces puramente marketing (landings y
  *   textos legales, que solo viven en las públicas).
  */
-/** Solo `common`: el provider del ROOT layout. PageLoadingHost/Spinner
-    viven a ese nivel y traducen con ese namespace; el resto del
-    catálogo lo aporta cada route group (nested providers hacen merge). */
-export const commonMessages = { common: messages.common } as Dict;
+export function commonMessages(locale: Locale): Dict {
+  return { common: getMessages(locale).common };
+}
 
-const MARKETING_NS = ["common", "login", "claim", "consent"] as const;
-export const marketingMessages = Object.fromEntries(
-  MARKETING_NS.flatMap((ns) =>
-    ns in messages ? [[ns, messages[ns]]] : [],
-  ),
-) as Dict;
+// landing*/legal también van: ProLeadForm y LegalPage son client
+// components y leen esos árboles vía useMessages() del provider.
+const MARKETING_NS = [
+  "common",
+  "login",
+  "claim",
+  "consent",
+  "landing",
+  "landingPro",
+  "landingAcademy",
+  "landingProducer",
+  "landingProHub",
+  "legal",
+] as const;
+export function marketingMessages(locale: Locale): Dict {
+  const m = getMessages(locale);
+  return Object.fromEntries(
+    MARKETING_NS.flatMap((ns) => (ns in m ? [[ns, m[ns]]] : [])),
+  );
+}
 
 const APP_EXCLUDE = new Set([
   "landing",
@@ -129,6 +65,8 @@ const APP_EXCLUDE = new Set([
   "landingProHub",
   "legal",
 ]);
-export const appMessages = Object.fromEntries(
-  Object.entries(messages).filter(([k]) => !APP_EXCLUDE.has(k)),
-) as Dict;
+export function appMessages(locale: Locale): Dict {
+  return Object.fromEntries(
+    Object.entries(getMessages(locale)).filter(([k]) => !APP_EXCLUDE.has(k)),
+  );
+}

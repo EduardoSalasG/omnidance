@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
-import consumer from "@/i18n/parts/consumer.json";
+import { useMessages } from "next-intl";
 import {
   OwnMethodPicker,
   type OwnMethod,
 } from "@/components/checkout/own-method-picker";
 import { OwnMethodClaim } from "@/components/checkout/own-method-claim";
 
-const sp = consumer.seriesPass;
+
 
 type Phase =
   | { kind: "idle" }
@@ -55,6 +55,7 @@ export function SeriesPassCta({
   month,
   seriesName,
 }: SeriesPassCtaProps) {
+  const sp = (useMessages() as { seriesPass: Record<string,string> }).seriesPass;
   const tc = useTranslations("common");
   const tco = useTranslations("checkout");
   const tw = useTranslations("wallet");

@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+
+
 import { useTranslations } from "next-intl";
 import { CONSENT_VERSION } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { CHROME_HIDDEN_PREFIXES } from "@/components/layout/BottomNav";
 import { XIcon } from "@/components/ui";
+import { Link, usePathname } from "@/i18n/navigation";
 
 /**
  * Aviso de consentimiento legal (spec legal-consent): si GET /me trae

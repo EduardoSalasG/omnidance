@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
   Badge,
@@ -14,6 +14,13 @@ import {
 } from "@/components/ui";
 import { PAYMENT_STATUS_VARIANT } from "@/components/payments/shared";
 import { planDateFmt, type Academy } from "./shared";
+import { getNumFmt, useNumFmt } from "@/lib/intl";
+
+const clp = (locale: string) => getNumFmt(locale, {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
 
 type BillingCycle = "MONTHLY" | "SEMIANNUAL" | "ANNUAL";
 
@@ -79,11 +86,7 @@ type SubscribeResult = {
 
 const dayMs = 86_400_000;
 
-const clp = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
+;
 
 /**
  * /academia/suscripcion - billing SaaS de la academia (S6,
@@ -98,6 +101,7 @@ const clp = new Intl.NumberFormat("es-CL", {
  * nunca se hardcodea.
  */
 export function AcademyBilling({ academy }: { academy: Academy }) {
+  const locale = useLocale();
   const t = useTranslations("academyBilling");
   const ts = useTranslations("subscriptions");
   const tc = useTranslations("common");
@@ -382,7 +386,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
   );
 
   const nextDate = view.nextInvoiceAt
-    ? planDateFmt.format(new Date(view.nextInvoiceAt))
+    ? planDateFmt(locale).format(new Date(view.nextInvoiceAt))
     : null;
 
   const usagePct =
@@ -441,7 +445,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
               </span>
               {price != null && (
                 <span className="text-sm font-semibold text-neon tabular-nums">
-                  {t("perMonth", { amount: clp.format(price) })}
+                  {t("perMonth", { amount: clp(locale).format(price) })}
                 </span>
               )}
             </button>
@@ -486,7 +490,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                 <span className="font-medium">{t(`cycles.${c}`)}</span>
                 {price != null ? (
                   <span className="text-xs tabular-nums opacity-80">
-                    {t("perMonth", { amount: clp.format(price) })}
+                    {t("perMonth", { amount: clp(locale).format(price) })}
                     {pct != null && pct > 0
                       ? ` · ${t("cycleDiscount", { pct })}`
                       : ""}
@@ -722,7 +726,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
             <>
               <p className="text-xs leading-relaxed text-ink/50">
                 {t("consent", {
-                  amount: clp.format(chargeTotal),
+                  amount: clp(locale).format(chargeTotal),
                   period: t(`period.${selCycle}`),
                 })}
               </p>
@@ -745,7 +749,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                 {busy && <Spinner size="sm" />}
                 {t("subscribeCharge", {
                   tier: t(`tiers.${selTier}`),
-                  amount: clp.format(chargeTotal),
+                  amount: clp(locale).format(chargeTotal),
                   period: t(`period.${selCycle}`),
                 })}
               </Button>
@@ -769,7 +773,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                 className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
               >
                 <span className="text-sm text-ink/60 tabular-nums">
-                  {planDateFmt.format(new Date(inv.createdAt))}
+                  {planDateFmt(locale).format(new Date(inv.createdAt))}
                 </span>
                 <span className="flex items-center gap-3">
                   <PriceTag amount={inv.amount} />

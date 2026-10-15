@@ -1,7 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+
 import { BottomNav, CHROME_HIDDEN_PREFIXES } from "./BottomNav";
+import { usePathname } from "@/i18n/navigation";
 
 // Wrapper client del chrome de app: el appbar (hamburguesa + título +
 // campana) es sticky en el flujo - ocupa su propio espacio, no se

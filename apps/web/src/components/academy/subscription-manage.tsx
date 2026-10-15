@@ -1,11 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Spinner } from "@/components/ui";
 import { planDateFmt } from "./shared";
+import { useRouter } from "@/i18n/navigation";
+import { getNumFmt, useNumFmt } from "@/lib/intl";
+
+const clp = (locale: string) => getNumFmt(locale, {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
 
 // Shape público de la suscripción del viewer - GET
 // /academies/:id/profile (`mySubscription`: id, planId, status,
@@ -30,11 +38,7 @@ type SubscriptionManageProps = {
   nextAmount?: number;
 };
 
-const clp = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
+;
 
 /**
  * Gestión de la suscripción del viewer en la ficha de la academia:
@@ -52,6 +56,7 @@ export function SubscriptionManage({
   accessUntil,
   nextAmount,
 }: SubscriptionManageProps) {
+  const locale = useLocale();
   const ts = useTranslations("subscriptions");
   const tc = useTranslations("common");
   const router = useRouter();
@@ -164,7 +169,7 @@ export function SubscriptionManage({
         <Badge variant="outline" className="normal-case tracking-normal">
           {end
             ? ts("cancelPending", {
-                date: planDateFmt.format(new Date(end)),
+                date: planDateFmt(locale).format(new Date(end)),
               })
             : ts("cancelPendingNoDate")}
         </Badge>
@@ -175,7 +180,7 @@ export function SubscriptionManage({
   if (subscription.status !== "ACTIVE") return null;
 
   const nextCharge = subscription.nextInvoiceAt
-    ? planDateFmt.format(new Date(subscription.nextInvoiceAt))
+    ? planDateFmt(locale).format(new Date(subscription.nextInvoiceAt))
     : null;
 
   return (
@@ -189,7 +194,7 @@ export function SubscriptionManage({
             {nextAmount != null
               ? ts("nextChargeAmount", {
                   date: nextCharge,
-                  amount: clp.format(nextAmount),
+                  amount: clp(locale).format(nextAmount),
                 })
               : ts("nextCharge", { date: nextCharge })}
           </p>

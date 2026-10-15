@@ -1,7 +1,10 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Card } from "@/components/ui";
+import { getNumFmt, useNumFmt } from "@/lib/intl";
+
+const num = (locale: string) => getNumFmt(locale);
 
 // Tabla de preview del query engine (spec analytics/query-console):
 // headers = keys de columna de la entidad (labels via
@@ -10,7 +13,7 @@ import { Card } from "@/components/ui";
 // Tabla real en ≥lg; en móvil cards de una columna con label: valor
 // (mismo criterio que las listas de /admin/datos).
 
-const num = new Intl.NumberFormat("es-CL");
+;
 
 type QueryTableProps = {
   /** Entidad consultada - prefijo de las labels de columna. */
@@ -22,6 +25,7 @@ type QueryTableProps = {
 };
 
 export function QueryTable({ entity, headers, rows, total }: QueryTableProps) {
+  const locale = useLocale();
   const t = useTranslations("query");
 
   const colLabel = (col: string) =>
@@ -33,7 +37,7 @@ export function QueryTable({ entity, headers, rows, total }: QueryTableProps) {
 
   const cellText = (v: unknown): string => {
     if (v === null || v === undefined || v === "") return "·";
-    if (typeof v === "number") return num.format(v);
+    if (typeof v === "number") return num(locale).format(v);
     if (typeof v === "boolean")
       return t(v ? "optionLabels.true" : "optionLabels.false");
     if (typeof v === "string") return v;

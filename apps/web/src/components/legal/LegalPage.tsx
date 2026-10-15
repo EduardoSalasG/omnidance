@@ -1,9 +1,17 @@
-import Link from "next/link";
+
 // Texto legal completo vive en el part legal.json (mismo patrón que la
 // landing: el JSON se importa directo, no vía useTranslations - son
 // documentos, no copy de UI). Los placeholders [PENDIENTE] marcan datos
 // societarios que faltan por confirmar antes de producción.
-import legalParts from "@/i18n/parts/legal.json";
+import { getMessages } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
+
+type LegalDoc = {
+  title: string;
+  updated: string;
+  intro?: string;
+  sections: LegalSection[];
+};
 
 type LegalSection = {
   title: string;
@@ -19,8 +27,10 @@ const linkClass =
  * Documento legal público (/terminos, /privacidad) sobre el layout de
  * marketing - sin chrome de app, dark-first como el resto del sitio.
  */
-export function LegalPage({ doc }: { doc: "terms" | "privacy" }) {
-  const data = legalParts.legal[doc];
+export async function LegalPage({ doc }: { doc: "terms" | "privacy" }) {
+  const legal = ((await getMessages()) as typeof import("@/i18n/catalogs/es-CL").default)
+    .legal;
+  const data = legal[doc];
   const other = doc === "terms" ? "privacy" : "terms";
   const otherHref = doc === "terms" ? "/privacidad" : "/terminos";
   const sections = data.sections as LegalSection[];
@@ -31,14 +41,14 @@ export function LegalPage({ doc }: { doc: "terms" | "privacy" }) {
         href="/"
         className="inline-flex min-h-11 items-center text-sm text-ink/60 transition-colors hover:text-ink"
       >
-        {legalParts.legal.backHome}
+        {legal.backHome}
       </Link>
 
       <h1 className="text-display mt-4 text-3xl font-extrabold sm:text-4xl">
         {data.title}
       </h1>
       <p className="mt-2 text-xs uppercase tracking-[0.2em] text-ink/40">
-        {legalParts.legal.versionNote}
+        {legal.versionNote}
       </p>
       <p className="mt-6 leading-relaxed text-ink/70">{data.intro}</p>
 
@@ -77,7 +87,7 @@ export function LegalPage({ doc }: { doc: "terms" | "privacy" }) {
 
       <p className="mt-12 border-t border-ink/10 pt-6 text-sm text-ink/50">
         <Link href={otherHref} className={linkClass}>
-          {legalParts.legal[other].title}
+          {legal[other].title}
         </Link>
       </p>
     </main>

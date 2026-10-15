@@ -1,0 +1,232 @@
+{
+  "consent": {
+    "checkboxLabel": "I have read and accept the <terms>Terms and Conditions</terms> and the <privacy>Privacy Policy</privacy>.",
+    "checkboxRequired": "You must accept the Terms and Privacy Policy to continue",
+    "bannerTitle": "We updated our Terms and Privacy Policy",
+    "bannerBody": "To keep using Omnidance we need you to accept the current version.",
+    "bannerAccept": "I accept",
+    "bannerChanges": "See changes",
+    "bannerDismiss": "Dismiss for now",
+    "bannerError": "We couldn't record your acceptance. Try again"
+  },
+  "legal": {
+    "backHome": "Back to home",
+    "versionNote": "Version 1.0. Last updated: October 2026.",
+    "privacy": {
+      "metaTitle": "Privacy Policy",
+      "metaDescription": "Omnidance personal data processing policy, aligned with Law 19,628 as amended by Law 21,719 (Chile).",
+      "title": "Privacy Policy",
+      "intro": "At Omnidance we process your personal data to operate the dance community platform: QR identity, tickets, check-ins, academies and payments. This policy explains what data we process, for what purposes, who accesses it and how to exercise your rights.",
+      "sections": [
+        {
+          "title": "1. Data controller",
+          "paragraphs": [
+            "The controller of your personal data is Omni Dance SpA. [PENDING: tax ID, legal address].",
+            "You can contact us at privacidad@omnidance.cl [PENDING: confirm contact email]."
+          ]
+        },
+        {
+          "title": "2. Legal framework",
+          "paragraphs": [
+            "This policy is governed by Law No. 19,628 on the Protection of Private Life, as amended by Law No. 21,719 on Personal Data Protection (in force since December 2026), and its regulations."
+          ]
+        },
+        {
+          "title": "3. Data we process",
+          "list": [
+            "Account: name, email and phone (optional).",
+            "Dance profile: gender (optional), styles, roles and self-declared level.",
+            "Activity: QR check-ins at events, dance sessions and ratings, always private and aggregated, never exposed individually (minimum k≥3).",
+            "Payments: processed by Flow. We do not store card data.",
+            "Push tokens from your device for notifications.",
+            "Technical data: logs with request-id and IP address, for security and diagnostic purposes."
+          ],
+          "paragraphs": [
+            "Important statement: we do NOT collect your device's geolocation or sensitive data (health, biometrics, ideology, ethnic origin, sexual life, political or religious opinions). If a feature requiring them were added in the future, we will ask for your specific consent."
+          ]
+        },
+        {
+          "title": "4. Purposes of processing",
+          "list": [
+            "Operate the platform: QR identity, dance logging, ticket sales and academy management.",
+            "Transactional notifications by push and email (tickets, check-ins, platform notices).",
+            "Security, fraud and abuse prevention.",
+            "Aggregated and anonymized scene statistics.",
+            "Compliance with tax and accounting obligations."
+          ]
+        },
+        {
+          "title": "5. Legal basis",
+          "paragraphs": [
+            "We process your data on the basis of your consent as data subject and the performance of the platform use agreement (the Terms and Conditions you accepted when creating your account)."
+          ]
+        },
+        {
+          "title": "6. Processors and recipients",
+          "paragraphs": [
+            "To operate the service we share data with processors acting on our behalf:"
+          ],
+          "list": [
+            "Flow: payment processing.",
+            "Resend: transactional email delivery.",
+            "The platform's hosting/infrastructure provider.",
+            "Apple and Google: push notification delivery to your device."
+          ],
+          "listAfter": [
+            "Some of these providers process data outside Chile (international transfers), under contracts requiring an adequate level of protection."
+          ]
+        },
+        {
+          "title": "7. Data subject rights",
+          "paragraphs": [
+            "Under Law 21,719 you have the following rights, which are personal, non-transferable, non-waivable and free of charge:"
+          ],
+          "list": [
+            "Access: know what data of yours we process (free at least once every three months).",
+            "Rectification: correct inaccurate or incomplete data.",
+            "Erasure: request we delete your data when applicable.",
+            "Objection: object to a specific processing.",
+            "Blocking: suspend the use of your data in certain cases.",
+            "Portability: receive your data in a structured, commonly used format."
+          ],
+          "listAfter": [
+            "To exercise them, send a written request to privacidad@omnidance.cl [PENDING: confirm email] with your name, account email and the right you are exercising. We maintain an expedited channel and will respond within legal deadlines."
+          ]
+        },
+        {
+          "title": "8. Retention",
+          "paragraphs": [
+            "We keep your data while your account is active. After closure, we keep only what is necessary for the applicable legal periods (for example, tax records for approximately 6 years), after which it is deleted or anonymized."
+          ]
+        },
+        {
+          "title": "9. Minors",
+          "paragraphs": [
+            "The platform is aimed at people over 18, given its focus on the nightlife scene. Under Law 21,719, data of minors under 16 is never processed without the consent of their legal representative."
+          ]
+        },
+        {
+          "title": "10. Security",
+          "paragraphs": [
+            "We apply reasonable technical and organizational measures to protect your data (access control, signed sessions, logs with request-id). If a security breach affecting your data occurs, we will notify the Data Protection Agency and affected people as required."
+          ]
+        },
+        {
+          "title": "11. Complaints",
+          "paragraphs": [
+            "If you believe our processing of your data infringes the law, you can file a complaint with the Agencia de Protección de Datos Personales, Chile's data protection oversight body."
+          ]
+        },
+        {
+          "title": "12. Cookies and similar technologies",
+          "paragraphs": [
+            "We use a session cookie (needed to keep you signed in) and browser local storage for app preferences. We do NOT use third-party cookies for advertising."
+          ]
+        },
+        {
+          "title": "13. Changes to this policy",
+          "paragraphs": [
+            "If this policy changes, we will let you know inside the app. If the change is material, we will ask for your consent again before you continue using the platform."
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "metaTitle": "Terms and Conditions",
+      "metaDescription": "Omnidance terms and conditions of use: accounts, tickets, roles, subscriptions and responsibilities.",
+      "title": "Terms and Conditions of Use",
+      "intro": "These terms govern the use of Omnidance, the platform of the dance community (salsa, bachata, timba) in Chile. By creating an account or using the app you accept these conditions.",
+      "sections": [
+        {
+          "title": "1. Purpose and acceptance",
+          "paragraphs": [
+            "Omnidance is a platform connecting dancers, producers, academies, DJs and venues: QR-based activity validation, ticket sales, academy management and analytics. By registering you declare you have read and accepted these Terms and the Privacy Policy."
+          ]
+        },
+        {
+          "title": "2. Accounts",
+          "list": [
+            "One account per person, with truthful data.",
+            "You must be over 18 to create an account.",
+            "You are responsible for activity performed from your account and for keeping your access secure (magic link or password)."
+          ]
+        },
+        {
+          "title": "3. Conduct",
+          "paragraphs": [
+            "The platform is part of a real community: respect is required on and off the floor. Harassment, discrimination and any use of the app to target or harm others are prohibited. Violations may end in suspension or account closure."
+          ]
+        },
+        {
+          "title": "4. Ratings",
+          "paragraphs": [
+            "Ratings of dances, events, DJs, producers and venues are private and shown only in aggregate form. They must be honest and based on real experiences. Individual ratings and the identity of raters are never exposed."
+          ]
+        },
+        {
+          "title": "5. Tickets and purchases",
+          "list": [
+            "Payments are processed through Flow; Omnidance acts as an intermediary between buyers and producers and manages the corresponding settlements.",
+            "Tickets are transferable per the app's rules, unless the producer states otherwise.",
+            "Tickets are non-refundable except for event cancellation or as the law provides; admission is subject to the venue's and producer's door policy.",
+            "The published price is the final price: Omnidance adds no charges to the buyer. The platform fee is deducted from the producer's settlement."
+          ]
+        },
+        {
+          "title": "6. Roles: dancers, producers and academies",
+          "paragraphs": [
+            "Certain features require additional roles (producer, academy, staff, DJ) requested from the app and which may require approval. Those who sell tickets or run events are responsible for their event, its capacity and their tax obligations; Omnidance provides the tool, it is not the event organizer."
+          ]
+        },
+        {
+          "title": "7. SaaS subscriptions",
+          "paragraphs": [
+            "Academy and producer subscriptions are billed on a recurring basis. If a payment fails there is a 5-day grace period; after that the subscription is suspended for non-payment and reactivates automatically on payment. You can cancel at any time; the subscription stays active until the end of the paid period."
+          ]
+        },
+        {
+          "title": "8. User content",
+          "paragraphs": [
+            "Event photos and videos are not hosted on Omnidance: they are only linked from external services (Drive, YouTube, Vimeo). You are responsible for the content you link and for having the rights to share it."
+          ]
+        },
+        {
+          "title": "9. Intellectual property",
+          "paragraphs": [
+            "The platform, its brand, design and code are the property of Omni Dance SpA. You may not copy, resell or extract data from the platform by automated means."
+          ]
+        },
+        {
+          "title": "10. Service availability",
+          "paragraphs": [
+            "We work to keep the app available, but we don't guarantee uninterrupted continuity: there may be maintenance, third-party failures (payments, email, push) or outages outside our control."
+          ]
+        },
+        {
+          "title": "11. Limitation of liability",
+          "paragraphs": [
+            "Omnidance is not liable for what happens inside events (they are run by independent producers and venues), nor for indirect damages arising from use of the platform, to the extent permitted by Chilean law. None of this limits non-waivable consumer rights."
+          ]
+        },
+        {
+          "title": "12. Termination",
+          "paragraphs": [
+            "You can close your account at any time from your profile or by requesting it at contacto@omnidance.cl [PENDING: confirm contact email]. We may suspend or close accounts that breach these terms, with notice when applicable."
+          ]
+        },
+        {
+          "title": "13. Governing law and courts",
+          "paragraphs": [
+            "These terms are governed by Chilean law. Any dispute is submitted to the ordinary courts of Santiago de Chile."
+          ]
+        },
+        {
+          "title": "14. Contact",
+          "paragraphs": [
+            "Questions about these terms: contacto@omnidance.cl [PENDING: confirm contact email]."
+          ]
+        }
+      ]
+    }
+  }
+}

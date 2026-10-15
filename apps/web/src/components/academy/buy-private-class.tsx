@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Spinner } from "@/components/ui";
 import { readError } from "./shared";
+import { useRouter } from "@/i18n/navigation";
 
 const POLL_INTERVAL_MS = 2_000;
 const POLL_MAX_ATTEMPTS = 15; // ~30s - mismo criterio que checkout-client

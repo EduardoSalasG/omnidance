@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import createMiddleware from "next-intl/middleware";
+import { routing } from "./i18n/routing";
+
+// Middleware de next-intl: resuelve el locale por prefijo / cookie /
+// Accept-Language y rewritea el árbol [locale]. El gate de sesión se
+// compone ANTES, sobre el path sin prefijo de locale.
+const intlMiddleware = createMiddleware(routing);
+
+// Prefijo de locale no-default en el path externo (/en/…, /fr/…).
+// es-CL no lleva prefijo (localePrefix "as-needed").
+const NON_DEFAULT_LOCALES = routing.locales.filter(
+  (l) => l !== routing.defaultLocale,
+);
+const LOCALE_RE = new RegExp(`^\\/(${NON_DEFAULT_LOCALES.join("|")})(?=\\/|$)`);
 
 // Frontera anónima: sin cookie de sesión solo se ven las landings
 // (/, /pro) y el login. TODO lo demás de la app redirige a
 // /login?next=<ruta original> - la cartelera y los perfiles de local
-// también requieren sesión.
+// también requieren sesión. Los paths se comparan SIN prefijo de
+// locale: /en/login es tan público como /login.
 const PUBLIC_PATHS = new Set([
   "/",
   "/pro",
@@ -54,22 +69,26 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const csp = cspHeader();
 
-  const next = () => {
-    const res = NextResponse.next();
+  // Path sin prefijo de locale para el gate de sesión y el next=.
+  const prefix = pathname.match(LOCALE_RE)?.[0] ?? "";
+  const bare = pathname.slice(prefix.length) || "/";
+
+  const isPublic =
+    PUBLIC_PATHS.has(bare) ||
+    PUBLIC_PREFIXES.some((p) => bare.startsWith(p));
+
+  if (!isPublic && !req.cookies.has("omnidance_session")) {
+    const login = req.nextUrl.clone();
+    login.pathname = `${prefix}/login`;
+    // next= guarda el path SIN prefijo: la navegación post-login pasa
+    // por el adapter de i18n que re-agrega el locale activo.
+    login.search = `?next=${encodeURIComponent(bare + req.nextUrl.search)}`;
+    const res = NextResponse.redirect(login);
     res.headers.set("Content-Security-Policy", csp);
     return res;
-  };
-
-  if (PUBLIC_PATHS.has(pathname)) return next();
-  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
-    return next();
   }
-  if (req.cookies.has("omnidance_session")) return next();
 
-  const login = req.nextUrl.clone();
-  login.pathname = "/login";
-  login.search = `?next=${encodeURIComponent(pathname + req.nextUrl.search)}`;
-  const res = NextResponse.redirect(login);
+  const res = intlMiddleware(req);
   res.headers.set("Content-Security-Policy", csp);
   return res;
 }

@@ -1,0 +1,31 @@
+{
+  "subscriptions": {
+    "subscribe": "Subscribe",
+    "error": "We couldn’t start the subscription. Try again.",
+    "activated": "Subscription activated!",
+    "period": {
+      "MONTHLY": "month",
+      "QUARTERLY": "quarter",
+      "SEMIANNUAL": "half-year"
+    },
+    "consent": "Subscription: {amount} will be charged automatically every {period} until you cancel. We’ll notify you a day before each charge.",
+    "consentCheck": "I understand and accept the recurring automatic charge",
+    "activating": "Activating your subscription…",
+    "activeBadge": "Active subscription",
+    "badge": "Subscription",
+    "nextCharge": "Next charge: {date}",
+    "cancel": "Cancel subscription",
+    "cancelConfirm": "Cancel the subscription? You keep access until the end of the paid period.",
+    "cancelYes": "Yes, cancel",
+    "cancelKeep": "Keep subscription",
+    "cancelPending": "Cancels on {date}",
+    "cancelPendingNoDate": "Cancels at end of period",
+    "subOk": "Subscription activated. The first charge is processing.",
+    "subError": "We couldn’t complete the subscription. Try again.",
+    "returnToAcademies": "Go to My academies",
+    "pendingCard": "You need to register your card to activate the subscription",
+    "failedCard": "We couldn’t register your card",
+    "resumeCard": "Register card",
+    "nextChargeAmount": "Next charge: {date} · {amount}"
+  }
+}

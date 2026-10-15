@@ -1,0 +1,26 @@
+{
+  "membershipCheckout": {
+    "title": "Confirmar plano",
+    "orderTitle": "A tua encomenda",
+    "plan": "Plano",
+    "vigenciaUntil": "Válido até {date}",
+    "vigenciaClasses": "{count, plural, one {# aula} other {# aulas}} · sem data de validade",
+    "vigenciaSingle": "Válido para uma aula no dia da compra",
+    "vigenciaPeriod": "{days} dias de validade desde a compra",
+    "vigenciaExtends": "O teu plano atual expira a {date}: a nova validade começa no dia seguinte.",
+    "modeTitle": "Como queres pagar?",
+    "modeOnce": "Pagamento único",
+    "modeOnceHint": "Pagas uma vez pelo período. Quando expirar, renovas manualmente.",
+    "modeSub": "Assinatura",
+    "modeSubHint": "É cobrado automaticamente cada {period}. Cancelas quando quiseres na ficha da academia.",
+    "payTotal": "Pagar {total}",
+    "trustFlow": "Pagamento seguro processado pela Flow",
+    "cardNext": "A seguir, a Flow vai pedir-te para registar o teu cartão na sua página segura e traz-te de volta automaticamente.",
+    "cardRedirectTitle": "Falta um passo: o teu cartão",
+    "cardRedirectDesc": "Para ativar a assinatura, regista o teu cartão na página oficial da Flow. Não cobramos nada até o registo ficar pronto e voltares aqui.",
+    "cardRedirectCta": "Continuar para a Flow",
+    "planUnavailable": "Este plano não está disponível agora",
+    "alreadySubscribed": "Já tens uma assinatura deste plano",
+    "backToAcademy": "Voltar à academia"
+  }
+}

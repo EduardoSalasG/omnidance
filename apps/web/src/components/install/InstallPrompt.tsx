@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+
 import { useTranslations } from "next-intl";
 import { CONSENT_VERSION } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { CHROME_HIDDEN_PREFIXES } from "@/components/layout/BottomNav";
 import { XIcon } from "@/components/ui";
+import { usePathname } from "@/i18n/navigation";
 
 // Evento diferido de instalación (Chromium). TS no lo trae en lib.dom.
 type BipEvent = Event & {

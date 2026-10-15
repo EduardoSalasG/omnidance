@@ -1,0 +1,23 @@
+{
+  "dj": {
+    "upcoming": "Upcoming gigs",
+    "emptyUpcoming": "You have no upcoming gigs.",
+    "forbidden": "Your account has no gigs assigned as DJ.",
+    "loadError": "We couldn’t load your gigs.",
+    "history": "History",
+    "suggestions": {
+      "title": "Audience suggestions",
+      "show": "Show audience suggestions",
+      "hide": "Hide suggestions",
+      "empty": "No suggestions yet.",
+      "error": "We couldn’t load the suggestions.",
+      "forbidden": "You don’t have access to this event’s suggestions.",
+      "total": "{count, plural, one {# audience suggestion} other {# audience suggestions}}"
+    },
+    "rating": {
+      "title": "{count, plural, one {Music rating: # rating} other {Music rating: # ratings}}",
+      "few": "{count, plural, one {# rating} other {# ratings}}",
+      "fewHint": "The average shows from 3 ratings"
+    }
+  }
+}

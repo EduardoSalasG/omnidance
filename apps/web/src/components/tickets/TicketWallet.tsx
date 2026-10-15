@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+
 import { useTranslations } from "next-intl";
 import type { TicketStatus } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { sortWalletTickets } from "./wallet-sort";
+import { Link } from "@/i18n/navigation";
 
 type WalletTicket = {
   id: string;

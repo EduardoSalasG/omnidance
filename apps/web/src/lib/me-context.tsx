@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import { apiFetch } from "@/lib/api";
+import { useLocale } from "next-intl";
+import { usePathname, useRouter } from "@/i18n/navigation";
 
 // Respuesta de GET /me - contrato completo compartido por las
 // superficies de (app). Los campos que solo usan páginas puntuales
@@ -52,6 +54,9 @@ export type MeContextData = {
   effectivePro?: boolean;
   // Tours de primera visita ya vistos (POST /me/onboarding los marca).
   onboarding?: Record<string, string>;
+  // Idioma preferido persistido (spec i18n-multi-locale) - si difiere
+  // del locale activo el provider navega al path localizado.
+  language?: string;
 };
 
 type MeContextValue = {
@@ -117,6 +122,22 @@ export function MeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Idioma persistido vs locale activo: al primer /me resuelto con
+  // language distinto, navega al path localizado (la preferencia viaja
+  // entre dispositivos vía Person.language). Una sola vez por carga de
+  // me - el ref evita loop si el usuario cambia de idioma después.
+  const locale = useLocale();
+  const pathname = usePathname();
+  const router = useRouter();
+  const langSynced = useRef(false);
+  useEffect(() => {
+    if (langSynced.current || !me?.language) return;
+    langSynced.current = true;
+    if (me.language !== locale) {
+      router.replace(pathname, { locale: me.language });
+    }
+  }, [me?.language, locale, pathname, router]);
 
   return (
     <MeContext.Provider value={{ me, loading, error, refresh }}>

@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
 import { inputCls, readError } from "./shared";
 import { CAPS, EMPTY_CAPS, CapCheckbox, type Caps } from "./staff-section";
+import { useRouter } from "@/i18n/navigation";
 
 /**
  * Alta de miembro del equipo - vive en /academia/equipo/nuevo.
