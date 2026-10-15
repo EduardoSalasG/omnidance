@@ -204,3 +204,15 @@ restringidas SHALL indicar su alcance en su etiqueta/descripción.
 
 - **WHEN** una academia intenta crear `REGULAR_NO_PRESALE`
 - **THEN** el API responde 400 y el select no la ofrece
+
+### Requirement: Sección CRM en la navegación lateral
+
+El drawer/sidebar de los roles con acceso al CRM SHALL listar el módulo
+como sección propia "CRM" con un destino por superficie: Personas,
+Segmentos, Campañas y Triggers.
+
+#### Scenario: navegación directa
+
+- **WHEN** el actor abre el drawer o mira la sidebar desktop
+- **THEN** ve la sección CRM con sus 4 destinos y el activo refleja la
+  sub-sección actual

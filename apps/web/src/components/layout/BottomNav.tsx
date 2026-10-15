@@ -131,6 +131,11 @@ const ICONS = {
     "M4 13a8 8 0 0 1 16 0M4 13v4a2 2 0 0 0 2 2h1a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H4zM20 13v4a2 2 0 0 1-2 2h-1a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h3z",
   // Luna - página de apariencia (tema) de las consolas.
   moon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z",
+  // Íconos de la sección CRM del drawer (spec crm-sidebar-section).
+  // Megáfono - campañas; embudo - segmentos; rayo - triggers.
+  megaphone: "m3 11 18-5v12L3 13v-2zM11.6 16.8a3 3 0 1 1-5.8-1.6",
+  funnel: "M22 3H2l8 9.46V19l4 2v-8.54L22 3z",
+  zap: "M13 2 3 14h9l-1 8 10-12h-9l1-8z",
 };
 
 const HOME_TAB: Tab = { href: "/inicio", key: "home", icon: icon(ICONS.home) };
@@ -278,7 +283,8 @@ type DrawerSpec = {
     | "adminCatalogs"
     | "producerParams"
     | "analytics"
-    | "query";
+    | "query"
+    | "crm";
   key: string;
   icon: string;
   // true = active solo con match exacto (raíces de módulo cuyo prefijo
@@ -327,6 +333,30 @@ const ANALYTICS_DRAWER_GROUP = (items: DrawerSpec[]): DrawerGroupSpec => ({
   labelKey: "title",
   items,
 });
+
+// Sección CRM del drawer (spec crm-sidebar-section): las 4 superficies
+// del módulo como destinos propios - personas, segmentos guardados,
+// campañas y triggers. /crm va exact porque /crm/* comparte prefijo.
+const CRM_DRAWER_GROUP: DrawerGroupSpec = {
+  labelNs: "nav",
+  labelKey: "crm",
+  items: [
+    { href: "/crm", ns: "crm", key: "nav.people", icon: ICONS.crm, exact: true },
+    {
+      href: "/crm/segmentos",
+      ns: "crm",
+      key: "nav.segments",
+      icon: ICONS.funnel,
+    },
+    {
+      href: "/crm/campanas",
+      ns: "crm",
+      key: "nav.campaigns",
+      icon: ICONS.megaphone,
+    },
+    { href: "/crm/triggers", ns: "crm", key: "nav.triggers", icon: ICONS.zap },
+  ],
+};
 // /analitica es la única superficie de analítica: consola de consultas
 // por lente activa (el dashboard por lente se eliminó - los KPIs clave
 // viven en cada módulo).
@@ -402,9 +432,9 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.collaborators",
           icon: ICONS.users,
         },
-        { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
     },
+    CRM_DRAWER_GROUP,
     ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM]),
     // Configuración: una página por sección (defaults operativos,
     // medios de pago, suscripción Pro, liquidaciones, apariencia) -
@@ -524,9 +554,10 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.team",
           icon: ICONS.users,
         },
-        { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
     },
+    // El CRM del owner es sección propia (igual que en productor).
+    CRM_DRAWER_GROUP,
     // Configuración: una página por sección (general, cobro, perfil
     // público, apariencia). La raíz /academia/configuracion redirige a
     // general - los items apuntan directo a cada página.
@@ -637,6 +668,9 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
         },
       ],
     },
+    // CRM como sección propia - el tab /crm del admin se deduplica de
+    // la sidebar ≥lg porque su href ya renderiza este grupo.
+    CRM_DRAWER_GROUP,
     ANALYTICS_DRAWER_GROUP([
       ANALYTICS_ITEM,
       {
