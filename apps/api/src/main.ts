@@ -20,6 +20,16 @@ async function bootstrap() {
   // No interfiere con CORS (CORP solo aplica a fetches no-cors).
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(requestLoggerMiddleware(winston));
+  // req.ip real tras el reverse proxy: en producción el tráfico entra por
+  // el nginx de la VM (loopback/docker) o por el rewrite de Netlify; sin
+  // esto el throttler y el lockout de login compartirían UN bucket de IP
+  // (la del proxy) para todos los usuarios. Solo se confía en headers de
+  // proxies locales/privados - X-Forwarded-For externo no se acepta, así
+  // no hay spoofeo del cliente. TRUST_PROXY permite override explícito.
+  app.getHttpAdapter().getInstance().set(
+    "trust proxy",
+    process.env.TRUST_PROXY ?? "loopback, linklocal, uniquelocal",
+  );
   app.setGlobalPrefix("api");
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   // Whitelist de orígenes: auth por cookie no puede reflejar cualquier origen.

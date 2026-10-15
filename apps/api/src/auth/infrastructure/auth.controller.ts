@@ -275,6 +275,7 @@ export class AuthController {
   }
 
   @Get("verify")
+  @Throttle(AUTH_THROTTLE)
   async verify(@Query("token") token: string, @Res() res: Response) {
     try {
       const { email, consent } = await this.auth.verifyMagicToken(token);

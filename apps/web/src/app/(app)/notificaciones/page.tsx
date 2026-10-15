@@ -8,6 +8,7 @@ import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { notificationLens } from "@/lib/notification-lens";
+import { safeInternalPath } from "@/lib/safe-next";
 import { Badge, Button, Card, ChevronRightIcon } from "@/components/ui";
 import { RefreshIcon, SkeletonList } from "@/components/ui";
 
@@ -93,7 +94,7 @@ function hrefFor(n: NotificationItem): string | null {
       // Fallback genérico: la API puede mandar el destino resuelto en
       // data.path (p.ej. account.complete_profile → /perfil/completar).
       const path = typeof n.data?.path === "string" ? n.data.path : null;
-      return path !== null && path.startsWith("/") ? path : null;
+      return safeInternalPath(path);
     }
   }
 }
