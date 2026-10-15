@@ -1,0 +1,14 @@
+{
+  "venuePublic": {
+    "metaTitle": "{name} | Locais",
+    "metaTitleFallback": "Locais",
+    "address": "Morada",
+    "directions": "Como chegar",
+    "hours": "Horários",
+    "capacity": "Lotação {count}",
+    "upcoming": "Próximos eventos",
+    "noUpcoming": "Sem eventos publicados nas próximas semanas.",
+    "free": "Grátis",
+    "presale": "Pré-venda"
+  }
+}

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+
+
 import { ChevronLeftIcon } from "@/components/ui/icons";
 import { isSidebarRoute } from "@/components/layout/BottomNav";
 import { reportConsoleHeader } from "@/lib/console-header-state";
+import { Link, usePathname } from "@/i18n/navigation";
 
 // Header de módulo de consola: back link al padre + slot de acciones.
 // El back es un <a> real (iOS back) - no usa router.back() para que el

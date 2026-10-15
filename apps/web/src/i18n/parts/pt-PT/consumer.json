@@ -1,0 +1,68 @@
+{
+  "tripMatches": {
+    "title": "Coincidências",
+    "empty": "Quando outra pessoa publicar uma viagem que coincida com as tuas, vai aparecer aqui.",
+    "overlapDay": "1 dia em comum",
+    "overlapDays": "{days} dias em comum",
+    "traveler": "Dançarino da cena",
+    "connect": "Ligar",
+    "requestSent": "Pedido enviado"
+  },
+  "seriesPass": {
+    "title": "Passe de série",
+    "desc": "Entrada para todos os eventos de {series} durante o mês.",
+    "cta": "Comprar passe",
+    "alreadyOwned": "Já tens o passe deste mês.",
+    "unavailable": "O passe desta série não está disponível por agora."
+  },
+  "checkout": {
+    "returnVerifying": "A confirmar o teu pagamento…",
+    "returnPaidTitle": "Feito! A tua compra ficou confirmada",
+    "returnToEvents": "Voltar aos eventos",
+    "returnFailedTitle": "O pagamento não foi concluído",
+    "returnFailedDesc": "Não te cobrámos nada. Podes tentar de novo.",
+    "returnPendingTitle": "O teu pagamento está em processo",
+    "returnPendingDesc": "O banco está a confirmar. Avisamos-te quando ficar pronto.",
+    "returnErrorTitle": "Não foi possível verificar o pagamento"
+  },
+  "sessions": {
+    "refresh": "Atualizar",
+    "rating": "Pontuação: {value} de 5"
+  },
+  "notifications": {
+    "unread": "Por ler"
+  },
+  "qr": {
+    "loadError": "Não foi possível gerar o teu QR.",
+    "addToWallet": "Adicionar ao Google Wallet"
+  },
+  "practices": {
+    "venuePlaceholder": "Escolhe ou escreve o local",
+    "emptyFiltered": "Nenhuma prática corresponde a este estilo.",
+    "endsNextDay": "Termina no dia seguinte",
+    "stylesLoadError": "Não foi possível carregar os estilos. Podes publicar na mesma sem escolher um."
+  },
+  "friends": {
+    "emptyCta": "Procurar amigos",
+    "inviteError": "Não foi possível copiar o link. Tenta de novo.",
+    "notFound": "Não encontrámos esta pessoa."
+  },
+  "gamification": {
+    "badgeCategory": {
+      "MILESTONE": "Marco",
+      "CONDUCT": "Conduta",
+      "TEMPORARY_STATUS": "Temporário"
+    }
+  },
+  "home": {
+    "genre": {
+      "other": "Outro"
+    }
+  },
+  "profile": {
+    "roleSandbox": "em teste"
+  },
+  "login": {
+    "sending": "A enviar…"
+  }
+}

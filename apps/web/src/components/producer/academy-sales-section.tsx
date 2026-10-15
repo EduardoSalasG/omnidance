@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
@@ -12,6 +12,7 @@ import {
   RefreshIcon,
   SkeletonList,
 } from "@/components/ui";
+import { Link } from "@/i18n/navigation";
 
 // GET /events/:id/academy-deals (spec academy-presale-commission):
 // vista del acuerdo con stats computadas por el API.

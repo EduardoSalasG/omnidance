@@ -1,0 +1,21 @@
+{
+  "common": {
+    "newTab": "(s'ouvre dans un nouvel onglet)",
+    "yes": "Oui",
+    "no": "Non",
+    "pager": {
+      "prev": "Précédent",
+      "next": "Suivant",
+      "pageOf": "Page {page} sur {pages}",
+      "results": "{count, plural, one {# résultat} other {# résultats}}",
+      "loadMore": "Charger plus",
+      "perPage": "Voir",
+      "all": "Tous"
+    },
+    "filter": {
+      "status": "Statut",
+      "all": "Tous",
+      "noResults": "Aucun résultat"
+    }
+  }
+}

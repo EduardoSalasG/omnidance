@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Card } from "@/components/ui";
 import { AcademyKpiCards } from "./academy-kpi-strip";
@@ -13,30 +12,33 @@ import {
   type Academy,
   type AcademyDashboard as AcademyDashboardData,
 } from "./shared";
+import { Link } from "@/i18n/navigation";
+import { getDateFmt, getNumFmt, useDateFmt, useNumFmt } from "@/lib/intl";
 
-// Tope de filas por lista de insight - más allá, footer "Ver todos".
-const LIST_CAP = 6;
-
-const clpFmt = new Intl.NumberFormat("es-CL", {
+const clpFmt = (locale: string) => getNumFmt(locale, {
   style: "currency",
   currency: "CLP",
   maximumFractionDigits: 0,
 });
-const fullDayFmt = new Intl.DateTimeFormat("es-CL", {
+const fullDayFmt = (locale: string) => getDateFmt(locale, {
   weekday: "long",
   day: "numeric",
   month: "long",
 });
-const dayFmt = new Intl.DateTimeFormat("es-CL", {
-  day: "numeric",
-  month: "short",
-});
-const lessonWhenFmt = new Intl.DateTimeFormat("es-CL", {
+const lessonWhenFmt = (locale: string) => getDateFmt(locale, {
   day: "numeric",
   month: "short",
   hour: "2-digit",
   minute: "2-digit",
 });
+
+// Tope de filas por lista de insight - más allá, footer "Ver todos".
+const LIST_CAP = 6;
+
+;
+;
+;
+;
 
 const listCls = "flex flex-col divide-y divide-line";
 const rowLinkCls =
@@ -64,6 +66,11 @@ export function AcademyDashboard({
   expiringHref?: string;
   setupChecklist?: boolean;
 }) {
+  const dayFmt = useDateFmt({
+  day: "numeric",
+  month: "short",
+});
+  const locale = useLocale();
   const t = useTranslations("academy");
 
   const [dashboard, setDashboard] = useState<AcademyDashboardData | null>(
@@ -151,7 +158,7 @@ export function AcademyDashboard({
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 className="text-lg font-semibold">{academy.name}</h2>
         <p className="text-xs capitalize text-ink/50">
-          {fullDayFmt.format(new Date())}
+          {fullDayFmt(locale).format(new Date())}
         </p>
       </header>
 
@@ -312,7 +319,7 @@ export function AcademyDashboard({
                 <p className="text-xs tabular-nums text-ink/50">
                   {t("insights.pendingClaimsSummary", {
                     count: pendingClaims.count,
-                    amount: clpFmt.format(pendingClaims.amount),
+                    amount: clpFmt(locale).format(pendingClaims.amount),
                   })}
                 </p>
               </div>
@@ -330,7 +337,7 @@ export function AcademyDashboard({
                           </span>
                         </span>
                         <span className="shrink-0 text-sm font-semibold tabular-nums text-warn">
-                          {clpFmt.format(c.amount)}
+                          {clpFmt(locale).format(c.amount)}
                         </span>
                       </Link>
                     </li>
@@ -386,7 +393,7 @@ export function AcademyDashboard({
                           }`}
                         >
                           {l.scheduledAt
-                            ? lessonWhenFmt.format(
+                            ? lessonWhenFmt(locale).format(
                                 new Date(l.scheduledAt),
                               )
                             : t("insights.lessonToSchedule")}
@@ -454,7 +461,7 @@ export function AcademyDashboard({
                           {b.name}
                         </span>
                         <span className="shrink-0 text-xs tabular-nums text-neon">
-                          {birthdayFmt.format(new Date(b.date))}
+                          {birthdayFmt(locale).format(new Date(b.date))}
                         </span>
                       </Link>
                     </li>
@@ -503,6 +510,7 @@ export function ExpiringList({
   dataTour?: string;
   t: ReturnType<typeof useTranslations>;
 }) {
+  const locale = useLocale();
   const hidden = Math.max(0, items.length - LIST_CAP) + extraCount;
   return (
     <section aria-label={title} data-tour={dataTour}>
@@ -535,7 +543,7 @@ export function ExpiringList({
                 </span>
                 <span className="shrink-0 text-xs tabular-nums text-warn">
                   {t("insights.expiringUntil", {
-                    date: planDateFmt.format(new Date(e.endsAt)),
+                    date: planDateFmt(locale).format(new Date(e.endsAt)),
                   })}
                 </span>
               </Link>

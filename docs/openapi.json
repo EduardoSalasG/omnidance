@@ -9,7 +9,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/api/auth/magic-link": {
@@ -30,7 +33,10 @@
           "202": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/auth/login": {
@@ -51,7 +57,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/auth/register": {
@@ -72,7 +81,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/auth/password": {
@@ -93,7 +105,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/auth/verify": {
@@ -113,7 +128,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/auth/otp/verify": {
@@ -134,7 +152,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/auth/logout": {
@@ -145,7 +166,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/me": {
@@ -156,7 +180,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "People"
+        ]
       },
       "patch": {
         "operationId": "PeopleController_updateMe",
@@ -175,7 +202,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "People"
+        ]
       }
     },
     "/api/me/pending-surveys": {
@@ -186,7 +216,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "People"
+        ]
       }
     },
     "/api/me/pending-course-surveys": {
@@ -197,7 +230,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "People"
+        ]
       }
     },
     "/api/me/course-surveys": {
@@ -218,7 +254,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "People"
+        ]
       }
     },
     "/api/me/style-roles": {
@@ -239,7 +278,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "People"
+        ]
       }
     },
     "/api/me/consent": {
@@ -260,7 +302,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "People"
+        ]
       }
     },
     "/api/me/onboarding": {
@@ -281,7 +326,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "People"
+        ]
       }
     },
     "/api/me/complete-profile": {
@@ -302,7 +350,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "People"
+        ]
       }
     },
     "/api/notifications": {
@@ -338,7 +389,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Notifications"
+        ]
       }
     },
     "/api/notifications/read-all": {
@@ -349,7 +403,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Notifications"
+        ]
       }
     },
     "/api/notifications/{id}/read": {
@@ -369,7 +426,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Notifications"
+        ]
       }
     },
     "/api/push-tokens": {
@@ -390,7 +450,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "PushTokens"
+        ]
       }
     },
     "/api/push-tokens/{token}": {
@@ -410,7 +473,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "PushTokens"
+        ]
       }
     },
     "/api/qr/mine": {
@@ -421,7 +487,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Qr"
+        ]
       }
     },
     "/api/params/public": {
@@ -432,7 +501,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "PublicParams"
+        ]
       }
     },
     "/api/admin/params": {
@@ -443,7 +515,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminParams"
+        ]
       }
     },
     "/api/admin/params/{key}": {
@@ -463,7 +538,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminParams"
+        ]
       }
     },
     "/api/gamification/me/streak": {
@@ -483,7 +561,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Gamification"
+        ]
       }
     },
     "/api/gamification/me/badges": {
@@ -494,7 +575,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Gamification"
+        ]
       }
     },
     "/api/gamification/me/points": {
@@ -505,7 +589,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Gamification"
+        ]
       }
     },
     "/api/gamification/progress": {
@@ -526,7 +613,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Gamification"
+        ]
       }
     },
     "/api/events/{eventId}/leaderboard": {
@@ -546,7 +636,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "EventGamification"
+        ]
       }
     },
     "/api/events/{eventId}/prime-time": {
@@ -566,7 +659,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "EventGamification"
+        ]
       }
     },
     "/api/events/{eventId}/prime-time/reveal": {
@@ -586,7 +682,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "EventGamification"
+        ]
       }
     },
     "/api/events/{eventId}/missions": {
@@ -606,7 +705,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "EventGamification"
+        ]
       }
     },
     "/api/events/mine": {
@@ -674,7 +776,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events/{id}/live": {
@@ -694,7 +799,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events/{id}/export.csv": {
@@ -778,7 +886,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events/{id}/export.pdf": {
@@ -862,7 +973,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events/series/{seriesId}/export.csv": {
@@ -946,7 +1060,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events/series/{seriesId}/export.pdf": {
@@ -1030,7 +1147,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events": {
@@ -1066,7 +1186,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       },
       "post": {
         "operationId": "EventsController_create",
@@ -1085,7 +1208,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events/{id}": {
@@ -1105,7 +1231,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       },
       "patch": {
         "operationId": "EventsController_update",
@@ -1133,7 +1262,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events/{id}/friends-going": {
@@ -1153,7 +1285,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events/{id}/publish": {
@@ -1173,7 +1308,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events/{id}/cancel": {
@@ -1193,7 +1331,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events/{id}/staff": {
@@ -1223,7 +1364,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       },
       "get": {
         "operationId": "EventsController_listStaff",
@@ -1241,7 +1385,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events/{id}/staff/candidates": {
@@ -1261,7 +1408,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Events"
+        ]
       }
     },
     "/api/events/{id}/ratings": {
@@ -1291,7 +1441,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "EventRatings"
+        ]
       }
     },
     "/api/events/{id}/ratings/summary": {
@@ -1311,7 +1464,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "EventRatings"
+        ]
       }
     },
     "/api/events/{id}/analytics": {
@@ -1331,7 +1487,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "EventAnalytics"
+        ]
       }
     },
     "/api/producer/dashboard": {
@@ -1342,7 +1501,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Producer"
+        ]
       }
     },
     "/api/producer/fee-params": {
@@ -1353,7 +1515,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Producer"
+        ]
       }
     },
     "/api/producer/table-params": {
@@ -1364,7 +1529,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Producer"
+        ]
       },
       "put": {
         "operationId": "ProducerController_setTableParams",
@@ -1383,7 +1551,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Producer"
+        ]
       }
     },
     "/api/producer/staff": {
@@ -1394,7 +1565,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Producer"
+        ]
       },
       "post": {
         "operationId": "ProducerController_addStaff",
@@ -1413,7 +1587,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Producer"
+        ]
       }
     },
     "/api/producer/staff/{personId}": {
@@ -1433,7 +1610,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Producer"
+        ]
       }
     },
     "/api/events/{id}/table-reservations": {
@@ -1463,7 +1643,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "TableReservations"
+        ]
       },
       "get": {
         "operationId": "TableReservationsController_listForEvent",
@@ -1481,7 +1664,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "TableReservations"
+        ]
       }
     },
     "/api/events/{id}/table-reservations/manage": {
@@ -1501,7 +1687,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "TableReservations"
+        ]
       }
     },
     "/api/table-reservations/{id}": {
@@ -1531,7 +1720,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "TableReservations"
+        ]
       },
       "delete": {
         "operationId": "TableReservationsController_cancel",
@@ -1549,7 +1741,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "TableReservations"
+        ]
       }
     },
     "/api/table-reservations/mine": {
@@ -1560,7 +1755,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "TableReservations"
+        ]
       }
     },
     "/api/events/{id}/song-suggestions": {
@@ -1580,7 +1778,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "SongSuggestions"
+        ]
       }
     },
     "/api/dj/gigs": {
@@ -1591,7 +1792,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Dj"
+        ]
       }
     },
     "/api/dj/gigs/{eventId}/suggestions": {
@@ -1611,7 +1815,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Dj"
+        ]
       }
     },
     "/api/dj/gigs/{eventId}/rating": {
@@ -1631,7 +1838,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Dj"
+        ]
       }
     },
     "/api/sessions/scan": {
@@ -1652,7 +1862,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Sessions"
+        ]
       }
     },
     "/api/sessions/{id}/discard": {
@@ -1672,7 +1885,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Sessions"
+        ]
       }
     },
     "/api/sessions/mine": {
@@ -1692,7 +1908,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Sessions"
+        ]
       }
     },
     "/api/sessions/{id}/rate": {
@@ -1722,7 +1941,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Sessions"
+        ]
       }
     },
     "/api/checkins": {
@@ -1743,7 +1965,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkins"
+        ]
       }
     },
     "/api/checkins/sync": {
@@ -1764,7 +1989,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkins"
+        ]
       }
     },
     "/api/checkins/manual": {
@@ -1785,7 +2013,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkins"
+        ]
       }
     },
     "/api/checkins/{id}/out": {
@@ -1805,7 +2036,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkins"
+        ]
       }
     },
     "/api/checkins/{id}/void": {
@@ -1835,7 +2069,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkins"
+        ]
       }
     },
     "/api/checkins/door-sale": {
@@ -1856,7 +2093,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkins"
+        ]
       }
     },
     "/api/events/{eventId}/checkins": {
@@ -1876,7 +2116,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "EventCheckins"
+        ]
       }
     },
     "/api/events/{eventId}/door-manifest": {
@@ -1896,7 +2139,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "EventCheckins"
+        ]
       }
     },
     "/api/checkout/ticket": {
@@ -1917,7 +2163,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkout"
+        ]
       }
     },
     "/api/checkout/discount-quote": {
@@ -1945,7 +2194,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkout"
+        ]
       }
     },
     "/api/checkout/series-pass": {
@@ -1966,7 +2218,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkout"
+        ]
       }
     },
     "/api/checkout/membership-quote": {
@@ -1986,7 +2241,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkout"
+        ]
       }
     },
     "/api/checkout/membership": {
@@ -2007,7 +2265,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkout"
+        ]
       }
     },
     "/api/checkout/class-quote": {
@@ -2027,7 +2288,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkout"
+        ]
       }
     },
     "/api/checkout/class": {
@@ -2048,7 +2312,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkout"
+        ]
       }
     },
     "/api/checkout/private-class-quote": {
@@ -2068,7 +2335,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkout"
+        ]
       }
     },
     "/api/checkout/private-class": {
@@ -2089,7 +2359,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkout"
+        ]
       }
     },
     "/api/checkout/membership-subscription": {
@@ -2110,7 +2383,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Checkout"
+        ]
       }
     },
     "/api/tickets/claim/{token}": {
@@ -2130,7 +2406,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Tickets"
+        ]
       },
       "post": {
         "operationId": "TicketsController_claim",
@@ -2148,7 +2427,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Tickets"
+        ]
       }
     },
     "/api/tickets/mine": {
@@ -2159,7 +2441,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Tickets"
+        ]
       }
     },
     "/api/tickets/{id}/transfer": {
@@ -2189,7 +2474,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Tickets"
+        ]
       }
     },
     "/api/payments/webhook": {
@@ -2210,7 +2498,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/api/payments/webhook/{provider}": {
@@ -2236,7 +2527,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/api/payments/flow/customer-return": {
@@ -2257,7 +2551,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/api/payments/flow/platform-customer-return": {
@@ -2278,7 +2575,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/api/payments/subscription-webhook": {
@@ -2299,7 +2599,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/api/payments/mine": {
@@ -2310,7 +2613,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/api/payments/by-event/{eventId}": {
@@ -2330,7 +2636,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/api/payments/by-academy/{academyId}": {
@@ -2366,7 +2675,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/api/payments/{id}/events": {
@@ -2386,7 +2698,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/api/payments/{id}": {
@@ -2406,7 +2721,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/api/payments/{id}/tickets": {
@@ -2426,7 +2744,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/api/admin/payouts/generate": {
@@ -2447,7 +2768,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminPayouts"
+        ]
       }
     },
     "/api/admin/payouts": {
@@ -2475,7 +2799,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminPayouts"
+        ]
       }
     },
     "/api/admin/payouts/{id}/approve": {
@@ -2495,7 +2822,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminPayouts"
+        ]
       }
     },
     "/api/admin/payouts/{id}/pay": {
@@ -2525,7 +2855,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminPayouts"
+        ]
       }
     },
     "/api/me/payouts": {
@@ -2593,7 +2926,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MePayouts"
+        ]
       }
     },
     "/api/me/payouts/{id}": {
@@ -2613,7 +2949,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MePayouts"
+        ]
       }
     },
     "/api/subscriptions/mine": {
@@ -2624,7 +2963,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Subscriptions"
+        ]
       }
     },
     "/api/subscriptions/{id}": {
@@ -2644,7 +2986,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Subscriptions"
+        ]
       }
     },
     "/api/subscriptions/{id}/cancel": {
@@ -2664,7 +3009,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Subscriptions"
+        ]
       }
     },
     "/api/producer/gateway-account": {
@@ -2675,7 +3023,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerGatewayAccounts"
+        ]
       },
       "put": {
         "operationId": "ProducerGatewayAccountsController_upsert",
@@ -2694,7 +3045,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerGatewayAccounts"
+        ]
       },
       "delete": {
         "operationId": "ProducerGatewayAccountsController_disable",
@@ -2703,7 +3057,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerGatewayAccounts"
+        ]
       }
     },
     "/api/producer/payment-methods": {
@@ -2714,7 +3071,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
       },
       "post": {
         "operationId": "ProducerClaimsController_createMethod",
@@ -2733,7 +3093,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
       }
     },
     "/api/producer/payment-methods/{methodId}": {
@@ -2763,7 +3126,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
       },
       "delete": {
         "operationId": "ProducerClaimsController_deleteMethod",
@@ -2781,7 +3147,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
       }
     },
     "/api/events/{id}/payment-methods": {
@@ -2801,7 +3170,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
       }
     },
     "/api/payments/{id}/claims": {
@@ -2821,7 +3193,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
       },
       "get": {
         "operationId": "ProducerClaimsController_myClaims",
@@ -2839,7 +3214,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
       }
     },
     "/api/producer/claims": {
@@ -2891,7 +3269,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
       }
     },
     "/api/producer/claims/{claimId}": {
@@ -2911,7 +3292,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
       }
     },
     "/api/producer/claims/{claimId}/receipt": {
@@ -2931,7 +3315,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
       }
     },
     "/api/producer/claims/{claimId}/approve": {
@@ -2951,7 +3338,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
       }
     },
     "/api/producer/claims/{claimId}/reject": {
@@ -2981,7 +3371,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
       }
     },
     "/api/producers/{id}/pro/subscribe": {
@@ -3011,7 +3404,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerPro"
+        ]
       }
     },
     "/api/producers/{id}/pro/cancel": {
@@ -3031,7 +3427,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerPro"
+        ]
       }
     },
     "/api/producers/{id}/pro": {
@@ -3051,7 +3450,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ProducerPro"
+        ]
       }
     },
     "/api/events/{id}/academy-deals": {
@@ -3081,7 +3483,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademySales"
+        ]
       },
       "get": {
         "operationId": "AcademySalesController_listForEvent",
@@ -3099,7 +3504,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademySales"
+        ]
       }
     },
     "/api/academy-deals/{id}": {
@@ -3129,7 +3537,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademySales"
+        ]
       }
     },
     "/api/academies/{id}/sale-deals": {
@@ -3149,7 +3560,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademySales"
+        ]
       }
     },
     "/api/academy-deals/{id}/mark-paid": {
@@ -3179,7 +3593,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademySales"
+        ]
       }
     },
     "/api/academy-deals/{id}/codes": {
@@ -3199,7 +3616,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademySales"
+        ]
       },
       "get": {
         "operationId": "AcademySalesController_listCodes",
@@ -3217,7 +3637,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademySales"
+        ]
       }
     },
     "/api/wallet/google": {
@@ -3228,7 +3651,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Wallet"
+        ]
       }
     },
     "/api/discount-codes": {
@@ -3249,7 +3675,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Discounts"
+        ]
       },
       "get": {
         "operationId": "DiscountsController_list",
@@ -3323,7 +3752,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Discounts"
+        ]
       }
     },
     "/api/discount-codes/{id}": {
@@ -3343,7 +3775,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Discounts"
+        ]
       }
     },
     "/api/discount-codes/{id}/redemptions": {
@@ -3363,7 +3798,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Discounts"
+        ]
       }
     },
     "/api/events/{eventId}/guest-lists": {
@@ -3393,7 +3831,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "EventGuestLists"
+        ]
       },
       "get": {
         "operationId": "EventGuestListsController_list",
@@ -3443,7 +3884,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "EventGuestLists"
+        ]
       }
     },
     "/api/guest-lists/{id}": {
@@ -3463,7 +3907,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "GuestLists"
+        ]
       }
     },
     "/api/guest-lists/{id}/entries": {
@@ -3493,7 +3940,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "GuestLists"
+        ]
       }
     },
     "/api/guest-lists/{listId}/entries/{entryId}/pass": {
@@ -3521,7 +3971,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "GuestLists"
+        ]
       }
     },
     "/api/events/{eventId}/waitlist": {
@@ -3541,7 +3994,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Waitlist"
+        ]
       }
     },
     "/api/events/{eventId}/waitlist/me": {
@@ -3561,7 +4017,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Waitlist"
+        ]
       }
     },
     "/api/events/{eventId}/waitlist/promote": {
@@ -3581,7 +4040,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Waitlist"
+        ]
       }
     },
     "/api/practices": {
@@ -3602,7 +4064,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Practices"
+        ]
       },
       "get": {
         "operationId": "PracticesController_list",
@@ -3611,7 +4076,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Practices"
+        ]
       }
     },
     "/api/practices/mine": {
@@ -3622,7 +4090,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Practices"
+        ]
       }
     },
     "/api/practices/{id}/rsvp": {
@@ -3642,7 +4113,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Practices"
+        ]
       },
       "post": {
         "operationId": "PracticesController_rsvp",
@@ -3660,7 +4134,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Practices"
+        ]
       }
     },
     "/api/styles": {
@@ -3671,7 +4148,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Styles"
+        ]
       }
     },
     "/api/styles/{id}/landing": {
@@ -3691,7 +4171,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Styles"
+        ]
       }
     },
     "/api/venues/mine": {
@@ -3702,7 +4185,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "VenueConsole"
+        ]
       }
     },
     "/api/venues/{id}/dashboard": {
@@ -3722,7 +4208,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "VenueConsole"
+        ]
       }
     },
     "/api/venues/{id}/rentals/{rentalId}": {
@@ -3760,7 +4249,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "VenueConsole"
+        ]
       }
     },
     "/api/venues": {
@@ -3771,7 +4263,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Venues"
+        ]
       }
     },
     "/api/venues/{id}": {
@@ -3799,7 +4294,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Venues"
+        ]
       }
     },
     "/api/friends": {
@@ -3820,7 +4318,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Friends"
+        ]
       },
       "get": {
         "operationId": "FriendsController_mine",
@@ -3829,7 +4330,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Friends"
+        ]
       }
     },
     "/api/friends/{id}/accept": {
@@ -3849,7 +4353,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Friends"
+        ]
       }
     },
     "/api/friends/{id}/decline": {
@@ -3869,7 +4376,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Friends"
+        ]
       }
     },
     "/api/friends/{id}": {
@@ -3889,7 +4399,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Friends"
+        ]
       }
     },
     "/api/friends/upcoming-events": {
@@ -3900,7 +4413,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Friends"
+        ]
       }
     },
     "/api/people/search": {
@@ -3911,7 +4427,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "People"
+        ]
       }
     },
     "/api/people/{id}": {
@@ -3931,7 +4450,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "People"
+        ]
       }
     },
     "/api/events/{id}/passes": {
@@ -3951,7 +4473,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "EventEntryPasses"
+        ]
       }
     },
     "/api/academies": {
@@ -3962,7 +4487,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       },
       "post": {
         "operationId": "AcademiesController_create",
@@ -3981,7 +4509,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/public": {
@@ -3992,7 +4523,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/mine": {
@@ -4003,7 +4537,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/enrolled": {
@@ -4014,7 +4551,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}": {
@@ -4034,7 +4574,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/profile": {
@@ -4054,7 +4597,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/settings": {
@@ -4084,7 +4630,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/instructors/{personId}": {
@@ -4122,7 +4671,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       },
       "get": {
         "operationId": "AcademyStaffController_instructorDetail",
@@ -4148,7 +4700,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyStaff"
+        ]
       },
       "delete": {
         "operationId": "AcademyStaffController_removeInstructor",
@@ -4174,7 +4729,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyStaff"
+        ]
       }
     },
     "/api/academies/{id}/plans": {
@@ -4204,7 +4762,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       },
       "get": {
         "operationId": "AcademiesController_listPlans",
@@ -4262,7 +4823,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/plans/kpis": {
@@ -4282,7 +4846,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/plans/{planId}": {
@@ -4310,7 +4877,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       },
       "patch": {
         "operationId": "AcademiesController_updatePlan",
@@ -4346,7 +4916,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/surveys": {
@@ -4382,7 +4955,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/instructors/{personId}/surveys": {
@@ -4410,7 +4986,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/cobros/kpis": {
@@ -4430,7 +5009,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/payments/{paymentId}": {
@@ -4458,7 +5040,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/enrollments": {
@@ -4488,7 +5073,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/students": {
@@ -4564,7 +5152,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/students/insights": {
@@ -4584,7 +5175,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/students/{personId}": {
@@ -4612,7 +5206,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/slots": {
@@ -4640,7 +5237,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/dashboard": {
@@ -4660,7 +5260,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Academies"
+        ]
       }
     },
     "/api/academies/{id}/subscribe": {
@@ -4690,7 +5293,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyBilling"
+        ]
       }
     },
     "/api/academies/{id}/subscription": {
@@ -4720,7 +5326,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyBilling"
+        ]
       }
     },
     "/api/academies/{id}/subscription/cancel": {
@@ -4740,7 +5349,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyBilling"
+        ]
       }
     },
     "/api/academies/{id}/billing": {
@@ -4760,7 +5372,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyBilling"
+        ]
       }
     },
     "/api/academies/{id}/payment-methods": {
@@ -4780,7 +5395,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       },
       "post": {
         "operationId": "AcademyClaimsController_createMethod",
@@ -4808,7 +5426,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       }
     },
     "/api/academies/{id}/payment-methods/admin": {
@@ -4828,7 +5449,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       }
     },
     "/api/academies/{id}/payment-methods/{methodId}": {
@@ -4866,7 +5490,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       },
       "delete": {
         "operationId": "AcademyClaimsController_deleteMethod",
@@ -4892,7 +5519,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       }
     },
     "/api/academies/{id}/claims": {
@@ -4912,7 +5542,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       },
       "get": {
         "operationId": "AcademyClaimsController_listClaims",
@@ -4960,7 +5593,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       }
     },
     "/api/academies/{id}/claims/intent": {
@@ -4990,7 +5626,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       }
     },
     "/api/academies/{id}/claims/{claimId}/receipt": {
@@ -5018,7 +5657,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       },
       "get": {
         "operationId": "AcademyClaimsController_receipt",
@@ -5044,7 +5686,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       }
     },
     "/api/academies/{id}/claims/{claimId}/cancel": {
@@ -5072,7 +5717,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       }
     },
     "/api/academies/{id}/claims/mine": {
@@ -5092,7 +5740,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       }
     },
     "/api/academies/{id}/claims/{claimId}": {
@@ -5120,7 +5771,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       }
     },
     "/api/academies/{id}/claims/{claimId}/approve": {
@@ -5148,7 +5802,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       }
     },
     "/api/academies/{id}/claims/{claimId}/reject": {
@@ -5186,7 +5843,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
       }
     },
     "/api/academies/{id}/import/template/students": {
@@ -5206,7 +5866,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyImport"
+        ]
       }
     },
     "/api/academies/{id}/import/template/schedule": {
@@ -5226,7 +5889,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyImport"
+        ]
       }
     },
     "/api/academies/{id}/import/students": {
@@ -5246,7 +5912,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyImport"
+        ]
       }
     },
     "/api/academies/{id}/import/schedule": {
@@ -5266,7 +5935,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyImport"
+        ]
       }
     },
     "/api/academies/{id}/access": {
@@ -5286,7 +5958,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyStaff"
+        ]
       }
     },
     "/api/academies/{id}/staff": {
@@ -5330,7 +6005,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyStaff"
+        ]
       },
       "post": {
         "operationId": "AcademyStaffController_add",
@@ -5358,7 +6036,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyStaff"
+        ]
       }
     },
     "/api/academies/{id}/staff/{personId}": {
@@ -5386,7 +6067,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyStaff"
+        ]
       },
       "patch": {
         "operationId": "AcademyStaffController_update",
@@ -5422,7 +6106,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyStaff"
+        ]
       },
       "delete": {
         "operationId": "AcademyStaffController_remove",
@@ -5448,7 +6135,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyStaff"
+        ]
       }
     },
     "/api/academies/{id}/instructors": {
@@ -5484,7 +6174,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyStaff"
+        ]
       },
       "post": {
         "operationId": "AcademyStaffController_addInstructor",
@@ -5512,7 +6205,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AcademyStaff"
+        ]
       }
     },
     "/api/enrollments/{id}": {
@@ -5542,7 +6238,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Enrollments"
+        ]
       }
     },
     "/api/academies/{id}/attendance": {
@@ -5572,7 +6271,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Attendance"
+        ]
       },
       "get": {
         "operationId": "AttendanceController_list",
@@ -5622,7 +6324,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Attendance"
+        ]
       }
     },
     "/api/classes/catalogs": {
@@ -5633,7 +6338,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Classes"
+        ]
       }
     },
     "/api/classes/browse": {
@@ -5693,7 +6401,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Classes"
+        ]
       }
     },
     "/api/classes/mine": {
@@ -5713,7 +6424,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Classes"
+        ]
       }
     },
     "/api/classes/teaching": {
@@ -5757,7 +6471,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Classes"
+        ]
       }
     },
     "/api/classes/{id}": {
@@ -5777,7 +6494,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Classes"
+        ]
       }
     },
     "/api/classes/{id}/roster": {
@@ -5797,7 +6517,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Classes"
+        ]
       }
     },
     "/api/classes/{id}/attendance": {
@@ -5817,7 +6540,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Classes"
+        ]
       }
     },
     "/api/classes/{id}/book": {
@@ -5837,7 +6563,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Classes"
+        ]
       },
       "delete": {
         "operationId": "ClassesController_cancel",
@@ -5855,7 +6584,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Classes"
+        ]
       }
     },
     "/api/academies/{id}/series": {
@@ -5932,7 +6664,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
       },
       "post": {
         "operationId": "ClassSeriesController_create",
@@ -5960,7 +6695,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
       }
     },
     "/api/academies/{id}/series/insights": {
@@ -5980,7 +6718,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
       }
     },
     "/api/academies/{id}/series/{seriesId}": {
@@ -6008,7 +6749,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
       },
       "patch": {
         "operationId": "ClassSeriesController_update",
@@ -6044,7 +6788,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
       },
       "delete": {
         "operationId": "ClassSeriesController_deactivate",
@@ -6070,7 +6817,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
       }
     },
     "/api/academies/{id}/series/{seriesId}/classes": {
@@ -6106,7 +6856,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
       }
     },
     "/api/academies/{id}/slots/{slotId}": {
@@ -6134,7 +6887,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
       }
     },
     "/api/academies/{id}/private-lessons": {
@@ -6164,7 +6920,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "PrivateLessons"
+        ]
       },
       "get": {
         "operationId": "PrivateLessonsController_list",
@@ -6238,7 +6997,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "PrivateLessons"
+        ]
       }
     },
     "/api/private-lessons/mine": {
@@ -6256,7 +7018,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "PrivateLessons"
+        ]
       }
     },
     "/api/private-lessons/{id}": {
@@ -6276,7 +7041,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "PrivateLessons"
+        ]
       },
       "patch": {
         "operationId": "PrivateLessonsController_act",
@@ -6304,7 +7072,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "PrivateLessons"
+        ]
       }
     },
     "/api/academies/{id}/videos": {
@@ -6334,7 +7105,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Videos"
+        ]
       },
       "get": {
         "operationId": "VideosController_list",
@@ -6376,7 +7150,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Videos"
+        ]
       }
     },
     "/api/academies/{id}/videos/{videoId}": {
@@ -6404,7 +7181,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Videos"
+        ]
       }
     },
     "/api/admin/users": {
@@ -6432,7 +7212,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/api/admin/users/{personId}/roles": {
@@ -6462,7 +7245,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/api/admin/users/{personId}/roles/{role}": {
@@ -6490,7 +7276,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/api/admin/users/{personId}": {
@@ -6510,7 +7299,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/api/admin/roles": {
@@ -6521,7 +7313,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "post": {
         "operationId": "AdminController_createRole",
@@ -6540,7 +7335,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/api/admin/permissions": {
@@ -6551,7 +7349,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "post": {
         "operationId": "AdminController_createPermission",
@@ -6560,7 +7361,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/api/admin/roles/{key}/permissions": {
@@ -6590,7 +7394,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/api/admin/leads/{id}/convert": {
@@ -6610,7 +7417,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/api/admin/audit": {
@@ -6670,7 +7480,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/api/admin/billing/generate": {
@@ -6691,7 +7504,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminBilling"
+        ]
       }
     },
     "/api/admin/billing/candidates": {
@@ -6702,7 +7518,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminBilling"
+        ]
       }
     },
     "/api/admin/billing": {
@@ -6746,7 +7565,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminBilling"
+        ]
       }
     },
     "/api/admin/billing/{id}/pdf": {
@@ -6766,7 +7588,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminBilling"
+        ]
       }
     },
     "/api/admin/billing/{id}/void": {
@@ -6796,7 +7621,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminBilling"
+        ]
       }
     },
     "/api/me/billing": {
@@ -6807,7 +7635,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MeBilling"
+        ]
       }
     },
     "/api/me/billing/{id}/pdf": {
@@ -6827,7 +7658,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MeBilling"
+        ]
       }
     },
     "/api/admin/finance/summary": {
@@ -6855,7 +7689,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminFinance"
+        ]
       }
     },
     "/api/admin/finance/accrual": {
@@ -6866,7 +7703,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminFinance"
+        ]
       }
     },
     "/api/admin/finance/mrr": {
@@ -6877,7 +7717,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminFinance"
+        ]
       }
     },
     "/api/admin/browse/{entity}": {
@@ -7065,7 +7908,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Browse"
+        ]
       }
     },
     "/api/admin/payments/{id}/verify-chain": {
@@ -7085,7 +7931,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Browse"
+        ]
       }
     },
     "/api/admin/catalogs/styles": {
@@ -7096,7 +7945,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Catalogs"
+        ]
       },
       "post": {
         "operationId": "CatalogsController_createStyle",
@@ -7115,7 +7967,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Catalogs"
+        ]
       }
     },
     "/api/admin/catalogs/styles/{id}": {
@@ -7145,7 +8000,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Catalogs"
+        ]
       },
       "delete": {
         "operationId": "CatalogsController_deleteStyle",
@@ -7163,7 +8021,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Catalogs"
+        ]
       }
     },
     "/api/admin/catalogs/class-levels": {
@@ -7174,7 +8035,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Catalogs"
+        ]
       },
       "post": {
         "operationId": "CatalogsController_createLevel",
@@ -7193,7 +8057,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Catalogs"
+        ]
       }
     },
     "/api/admin/catalogs/class-levels/{id}": {
@@ -7223,7 +8090,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Catalogs"
+        ]
       },
       "delete": {
         "operationId": "CatalogsController_deleteLevel",
@@ -7241,7 +8111,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Catalogs"
+        ]
       }
     },
     "/api/admin/catalogs/class-types": {
@@ -7252,7 +8125,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Catalogs"
+        ]
       },
       "post": {
         "operationId": "CatalogsController_createType",
@@ -7271,7 +8147,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Catalogs"
+        ]
       }
     },
     "/api/admin/catalogs/class-types/{id}": {
@@ -7301,7 +8180,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Catalogs"
+        ]
       },
       "delete": {
         "operationId": "CatalogsController_deleteType",
@@ -7319,7 +8201,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Catalogs"
+        ]
       }
     },
     "/api/admin/producers": {
@@ -7330,7 +8215,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminProducerParams"
+        ]
       }
     },
     "/api/admin/producers/{id}/fee-params": {
@@ -7350,7 +8238,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminProducerParams"
+        ]
       },
       "put": {
         "operationId": "AdminProducerParamsController_set",
@@ -7378,7 +8269,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminProducerParams"
+        ]
       }
     },
     "/api/support/users": {
@@ -7398,7 +8292,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/api/support/users/{id}": {
@@ -7418,7 +8315,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/api/admin/users/{personId}/detail": {
@@ -7438,7 +8338,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "UserIntel"
+        ]
       }
     },
     "/api/admin/academies/score-health": {
@@ -7449,7 +8352,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "UserIntel"
+        ]
       }
     },
     "/api/admin/users/{personId}/analytics": {
@@ -7477,7 +8383,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "UserIntel"
+        ]
       }
     },
     "/api/admin/jobs": {
@@ -7488,7 +8397,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminJobs"
+        ]
       }
     },
     "/api/admin/jobs/{key}": {
@@ -7518,7 +8430,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminJobs"
+        ]
       }
     },
     "/api/admin/jobs/{key}/run": {
@@ -7538,7 +8453,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminJobs"
+        ]
       }
     },
     "/api/admin/jobs/{key}/runs": {
@@ -7566,7 +8484,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "AdminJobs"
+        ]
       }
     },
     "/api/crm/people": {
@@ -7626,12 +8547,12 @@
             "required": false,
             "in": "query",
             "schema": {
+              "type": "string",
               "enum": [
                 "score_desc",
                 "score_asc",
                 "name_asc"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -7655,7 +8576,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/people/{personId}": {
@@ -7723,12 +8647,12 @@
             "required": false,
             "in": "query",
             "schema": {
+              "type": "string",
               "enum": [
                 "score_desc",
                 "score_asc",
                 "name_asc"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -7752,7 +8676,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/people/tags": {
@@ -7773,7 +8700,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/people/tags/bulk": {
@@ -7794,7 +8724,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/tags/{id}": {
@@ -7814,7 +8747,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/scores/recompute": {
@@ -7835,7 +8771,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/segments": {
@@ -7895,12 +8834,12 @@
             "required": false,
             "in": "query",
             "schema": {
+              "type": "string",
               "enum": [
                 "score_desc",
                 "score_asc",
                 "name_asc"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -7924,7 +8863,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       },
       "post": {
         "operationId": "CrmController_createSegment",
@@ -7943,7 +8885,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/segments/{id}": {
@@ -7963,7 +8908,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       },
       "patch": {
         "operationId": "CrmController_patchSegment",
@@ -7991,7 +8939,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       },
       "delete": {
         "operationId": "CrmController_deleteSegment",
@@ -8009,7 +8960,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/segments/{id}/people": {
@@ -8029,7 +8983,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/segments/preview": {
@@ -8050,7 +9007,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/campaigns": {
@@ -8071,7 +9031,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       },
       "get": {
         "operationId": "CrmController_listCampaigns",
@@ -8129,12 +9092,12 @@
             "required": false,
             "in": "query",
             "schema": {
+              "type": "string",
               "enum": [
                 "score_desc",
                 "score_asc",
                 "name_asc"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -8158,7 +9121,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/campaigns/preview": {
@@ -8179,7 +9145,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/campaigns/{id}/send": {
@@ -8199,7 +9168,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/campaigns/{id}": {
@@ -8219,7 +9191,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/campaigns/{id}/whatsapp": {
@@ -8247,7 +9222,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/campaigns/{id}/cancel": {
@@ -8267,7 +9245,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/triggers": {
@@ -8327,12 +9308,12 @@
             "required": false,
             "in": "query",
             "schema": {
+              "type": "string",
               "enum": [
                 "score_desc",
                 "score_asc",
                 "name_asc"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -8356,7 +9337,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       },
       "post": {
         "operationId": "CrmController_createTrigger",
@@ -8375,7 +9359,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/triggers/{id}": {
@@ -8405,7 +9392,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/triggers/evaluate": {
@@ -8426,7 +9416,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/crm/triggers/evaluate-all": {
@@ -8437,7 +9430,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Crm"
+        ]
       }
     },
     "/api/home/stats": {
@@ -8448,7 +9444,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Home"
+        ]
       }
     },
     "/api/analytics/roles": {
@@ -8459,7 +9458,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Analytics"
+        ]
       }
     },
     "/api/analytics/summary": {
@@ -8479,7 +9481,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Analytics"
+        ]
       }
     },
     "/api/query/catalog": {
@@ -8490,7 +9495,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Query"
+        ]
       }
     },
     "/api/query/options": {
@@ -8510,7 +9518,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Query"
+        ]
       }
     },
     "/api/query/run": {
@@ -8531,7 +9542,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Query"
+        ]
       }
     },
     "/api/query/export.csv": {
@@ -8542,7 +9556,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Query"
+        ]
       }
     },
     "/api/query/export.pdf": {
@@ -8553,7 +9570,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Query"
+        ]
       }
     },
     "/api/query/saved": {
@@ -8564,7 +9584,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Query"
+        ]
       },
       "post": {
         "operationId": "QueryController_createSaved",
@@ -8583,7 +9606,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Query"
+        ]
       }
     },
     "/api/query/saved/{id}": {
@@ -8613,7 +9639,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Query"
+        ]
       },
       "delete": {
         "operationId": "QueryController_deleteSaved",
@@ -8631,7 +9660,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Query"
+        ]
       }
     },
     "/api/leads": {
@@ -8642,7 +9674,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Leads"
+        ]
       }
     },
     "/api/leads/{id}/demo": {
@@ -8662,7 +9697,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Leads"
+        ]
       }
     },
     "/api/admin/mail-campaigns": {
@@ -8673,7 +9711,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MailCampaigns"
+        ]
       },
       "post": {
         "operationId": "MailCampaignsController_create",
@@ -8692,7 +9733,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MailCampaigns"
+        ]
       }
     },
     "/api/admin/mail-campaigns/audience-count": {
@@ -8704,6 +9748,7 @@
             "required": true,
             "in": "query",
             "schema": {
+              "type": "string",
               "enum": [
                 "ALL",
                 "ROLE",
@@ -8712,8 +9757,7 @@
                 "ENROLLMENTS_EXPIRED",
                 "PLATFORM_SUB_EXPIRING",
                 "CLAIMS_PENDING"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -8745,7 +9789,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MailCampaigns"
+        ]
       }
     },
     "/api/admin/mail-campaigns/{id}": {
@@ -8765,7 +9812,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MailCampaigns"
+        ]
       },
       "patch": {
         "operationId": "MailCampaignsController_update",
@@ -8793,7 +9843,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MailCampaigns"
+        ]
       }
     },
     "/api/admin/mail-campaigns/{id}/runs": {
@@ -8813,7 +9866,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MailCampaigns"
+        ]
       }
     },
     "/api/admin/mail-campaigns/{id}/test": {
@@ -8833,7 +9889,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MailCampaigns"
+        ]
       }
     },
     "/api/admin/mail-campaigns/{id}/run": {
@@ -8853,7 +9912,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MailCampaigns"
+        ]
       }
     },
     "/api/admin/mail-campaigns/{id}/cancel": {
@@ -8873,7 +9935,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MailCampaigns"
+        ]
       }
     },
     "/api/mail/unsubscribe": {
@@ -8901,7 +9966,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "MailUnsubscribe"
+        ]
       }
     }
   },

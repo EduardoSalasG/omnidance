@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+
 import {
   useLayoutEffect,
   useRef,
@@ -8,6 +8,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { Link } from "@/i18n/navigation";
 
 type SegmentedItem = {
   key: string;

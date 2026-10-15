@@ -1,0 +1,31 @@
+{
+  "subscriptions": {
+    "subscribe": "Assinar",
+    "error": "Não foi possível iniciar a assinatura. Tenta de novo.",
+    "activated": "Assinatura ativada!",
+    "period": {
+      "MONTHLY": "mês",
+      "QUARTERLY": "trimestre",
+      "SEMIANNUAL": "semestre"
+    },
+    "consent": "Assinatura: ser-te-á cobrado automaticamente {amount} cada {period} até que canceles. Avisamos-te um dia antes de cada cobrança.",
+    "consentCheck": "Compreendo e aceito a cobrança automática recorrente",
+    "activating": "A ativar a tua assinatura…",
+    "activeBadge": "Assinatura ativa",
+    "badge": "Assinatura",
+    "nextCharge": "Próxima cobrança: {date}",
+    "cancel": "Cancelar assinatura",
+    "cancelConfirm": "Cancelar a assinatura? Manténs o acesso até ao fim do período já pago.",
+    "cancelYes": "Sim, cancelar",
+    "cancelKeep": "Manter assinatura",
+    "cancelPending": "Cancela a {date}",
+    "cancelPendingNoDate": "Cancela no fim do período",
+    "subOk": "Assinatura ativada. A primeira cobrança está a ser processada.",
+    "subError": "Não foi possível concluir a assinatura. Tenta de novo.",
+    "returnToAcademies": "Ir para As minhas academias",
+    "pendingCard": "Falta registar o teu cartão para ativar a assinatura",
+    "failedCard": "Não foi possível registar o teu cartão",
+    "resumeCard": "Registar cartão",
+    "nextChargeAmount": "Próxima cobrança: {date} · {amount}"
+  }
+}

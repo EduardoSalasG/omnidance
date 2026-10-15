@@ -54,7 +54,11 @@
       "plan": "Plan {name}",
       "since": "Desde {date}",
       "phonePlaceholder": "+56 9 1234 5678",
-      "nameRequired": "El nombre no puede quedar vacío"
+      "nameRequired": "El nombre no puede quedar vacío",
+      "language": {
+        "title": "Idioma",
+        "hint": "Se guarda en tu perfil y se aplica en todos tus dispositivos."
+      }
     },
     "reminder": {
       "title": "Completa tu perfil",

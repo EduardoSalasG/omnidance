@@ -1,0 +1,9 @@
+{
+  "wallet": {
+    "eventRemoved": "Événement supprimé",
+    "pendingTitle": "Paiements en validation",
+    "pendingOrder": "Commande de billet",
+    "pendingValidating": "Le producteur vérifie ton justificatif. Ce n'est pas encore un billet valide.",
+    "pendingBadge": "En validation"
+  }
+}

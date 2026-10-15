@@ -1,10 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PriceTag, RefreshIcon, Skeleton, SkeletonList, Spinner } from "@/components/ui";
 import { planDateFmt, readError } from "@/components/academy/shared";
+import { getNumFmt, useNumFmt } from "@/lib/intl";
+
+const clp = (locale: string) => getNumFmt(locale, {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
 
 type BillingCycle = "MONTHLY" | "SEMIANNUAL" | "ANNUAL";
 
@@ -61,11 +68,7 @@ function tierKeyOf(tierCode: string | null): TierKey | null {
 
 const dayMs = 86_400_000;
 
-const clp = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
+;
 
 /**
  * Sección "Producer Pro" de /productor/parametros (S6 academy-saas-
@@ -76,6 +79,7 @@ const clp = new Intl.NumberFormat("es-CL", {
  * Gestión: cancelar a fin de período pagado.
  */
 export function ProducerProSection({ producerId }: { producerId: string }) {
+  const locale = useLocale();
   const t = useTranslations("producer.pro");
   const ts = useTranslations("subscriptions");
   const tc = useTranslations("common");
@@ -281,7 +285,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
           <p className="text-sm text-ink/60">
             {view.nextInvoiceAt
               ? t("activeUntil", {
-                  date: planDateFmt.format(new Date(view.nextInvoiceAt)),
+                  date: planDateFmt(locale).format(new Date(view.nextInvoiceAt)),
                 })
               : t("cancelPendingNoDate")}
           </p>
@@ -289,7 +293,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
         {view.status === "ACTIVE" && view.nextInvoiceAt && (
           <p className="text-sm text-ink/60">
             {t("nextCharge", {
-              date: planDateFmt.format(new Date(view.nextInvoiceAt)),
+              date: planDateFmt(locale).format(new Date(view.nextInvoiceAt)),
             })}
           </p>
         )}
@@ -419,7 +423,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                         <span className="font-medium">{t(`cycle.${c}`)}</span>
                         {price != null && price > 0 && (
                           <span className="text-xs tabular-nums opacity-80">
-                            {t("perMonth", { amount: clp.format(price) })}
+                            {t("perMonth", { amount: clp(locale).format(price) })}
                           </span>
                         )}
                       </button>
@@ -437,7 +441,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                   <p className="text-xs leading-relaxed text-ink/50">
                     {chargeTotal != null &&
                       t("consent", {
-                        amount: clp.format(chargeTotal),
+                        amount: clp(locale).format(chargeTotal),
                         period: t(`period.${cycle}`),
                       })}
                   </p>
@@ -460,7 +464,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                     {busy && <Spinner size="sm" />}
                     {chargeTotal != null
                       ? t("subscribe", {
-                          amount: clp.format(chargeTotal),
+                          amount: clp(locale).format(chargeTotal),
                           period: t(`period.${cycle}`),
                         })
                       : t("subscribeNoPrice")}

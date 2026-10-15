@@ -1,0 +1,31 @@
+{
+  "subscriptions": {
+    "subscribe": "M'abonner",
+    "error": "Impossible de lancer l'abonnement. Réessaie.",
+    "activated": "Abonnement activé !",
+    "period": {
+      "MONTHLY": "mois",
+      "QUARTERLY": "trimestre",
+      "SEMIANNUAL": "semestre"
+    },
+    "consent": "Abonnement : {amount} seront débités automatiquement chaque {period} jusqu'à annulation. On te prévient la veille de chaque débit.",
+    "consentCheck": "Je comprends et j'accepte le débit automatique récurrent",
+    "activating": "Activation de ton abonnement…",
+    "activeBadge": "Abonnement actif",
+    "badge": "Abonnement",
+    "nextCharge": "Prochain débit : {date}",
+    "cancel": "Annuler l'abonnement",
+    "cancelConfirm": "Annuler l'abonnement ? Tu gardes l'accès jusqu'à la fin de la période payée.",
+    "cancelYes": "Oui, annuler",
+    "cancelKeep": "Garder l'abonnement",
+    "cancelPending": "S'annule le {date}",
+    "cancelPendingNoDate": "S'annule en fin de période",
+    "subOk": "Abonnement activé. Le premier débit est en cours de traitement.",
+    "subError": "Impossible de finaliser l'abonnement. Réessaie.",
+    "returnToAcademies": "Aller à Mes académies",
+    "pendingCard": "Il te manque d'enregistrer ta carte pour activer l'abonnement",
+    "failedCard": "Impossible d'enregistrer ta carte",
+    "resumeCard": "Enregistrer la carte",
+    "nextChargeAmount": "Prochain débit : {date} · {amount}"
+  }
+}

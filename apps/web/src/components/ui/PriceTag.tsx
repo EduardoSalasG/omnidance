@@ -1,4 +1,8 @@
-const fmtCLP = new Intl.NumberFormat("es-CL", {
+"use client";
+
+import { useLocale } from "next-intl";
+import { getNumFmt } from "@/lib/intl";
+const fmtCLP = (locale: string) => getNumFmt(locale, {
   style: "currency",
   currency: "CLP",
   maximumFractionDigits: 0,
@@ -11,12 +15,13 @@ type PriceTagProps = {
 };
 
 export function PriceTag({ amount, className = "" }: PriceTagProps) {
+  const locale = useLocale();
   if (amount == null) {
     return <span className={`text-ink/50 ${className}`}>-</span>;
   }
   return (
     <span className={`font-semibold text-neon ${className}`}>
-      {fmtCLP.format(amount)}
+      {fmtCLP(locale).format(amount)}
     </span>
   );
 }

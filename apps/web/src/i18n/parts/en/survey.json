@@ -1,0 +1,79 @@
+{
+  "survey": {
+    "prompt": "How was {name}?",
+    "cardCta": "Rate",
+    "sectionLabel": "Pending surveys",
+    "title": "How was {name}?",
+    "fallbackTitle": "Tell us how it went",
+    "subtitle": "Your rating is private. The producer only sees averages.",
+    "overall": "Overall",
+    "overallRequired": "Rate the overall experience to submit",
+    "more": "Rate more",
+    "less": "Rate less",
+    "submit": "Submit rating",
+    "thanks": "Thanks! Your rating was recorded",
+    "expired": "The window to rate this event has closed",
+    "forbidden": "Only those who checked in can rate the event",
+    "error": "We couldn’t submit your rating. Try again",
+    "loginRequired": "Sign in to rate the event",
+    "backToEvent": "View event",
+    "dims": {
+      "music": "Music",
+      "occupation": "Occupancy",
+      "organization": "Organization",
+      "floorComfort": "Floor comfort",
+      "temperature": "Temperature",
+      "lightingSound": "Lights and sound"
+    },
+    "scale": {
+      "music": {
+        "low": "Bad",
+        "high": "Amazing"
+      },
+      "occupation": {
+        "low": "Empty",
+        "high": "Packed"
+      },
+      "organization": {
+        "low": "Messy",
+        "high": "Flawless"
+      },
+      "floorComfort": {
+        "low": "Uncomfortable",
+        "high": "Very comfortable"
+      },
+      "temperature": {
+        "low": "Freezing",
+        "high": "Hot"
+      },
+      "lightingSound": {
+        "low": "Bad",
+        "high": "Excellent"
+      }
+    }
+  },
+  "courseSurvey": {
+    "prompt": "How was {name}?",
+    "cardCta": "Rate",
+    "title": "How was your {name} course?",
+    "subtitle": "Your rating is private. The academy only sees averages and anonymous comments.",
+    "course": "How much did you like the course?",
+    "instructor": "How much did you like the instructor?",
+    "comment": "Comments (optional)",
+    "commentPlaceholder": "What you liked, what you’d improve…",
+    "courseRequired": "Rate the course to submit",
+    "submit": "Submit rating",
+    "thanks": "Thanks! Your rating was recorded",
+    "forbidden": "Only those who attended that course that month can rate it",
+    "error": "We couldn’t submit your rating. Try again",
+    "loginRequired": "Sign in to rate the course",
+    "invalid": "This survey is unavailable",
+    "backToAcademy": "View academy",
+    "resultsTitle": "Surveys of the month",
+    "responses": "{count, plural, one {# response} other {# responses}}",
+    "avgCourse": "Course",
+    "avgInstructor": "Instructor",
+    "commentsTitle": "Comments",
+    "empty": "No surveys recorded yet."
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "academy": {
+    "modules": {
+      "subscription": "Assinatura",
+      "subscriptionDesc": "Plano da plataforma, faturação e faturas"
+    }
+  },
+  "academyBilling": {
+    "title": "Assinatura",
+    "desc": "O plano que mantém a tua academia na plataforma: o diretório e as reservas dos teus alunos.",
+    "noAccess": "Só o dono da academia pode ver e gerir a assinatura.",
+    "loadError": "Não foi possível carregar o estado da assinatura.",
+    "bannerGrace": "A tua assinatura está em período de carência: {days, plural, one {falta # dia} other {faltam # dias}} para regularizar o pagamento.",
+    "bannerBlocked": "Academia bloqueada por assinatura em falta. A tua academia ficou só de leitura.",
+    "bannerCta": "Rever a assinatura",
+    "statusActive": "Assinatura ativa",
+    "statusTrial": "Período de teste",
+    "statusNone": "Sem assinatura",
+    "statusPendingCard": "Falta o registo do cartão",
+    "statusFailedCard": "Não foi possível registar o cartão",
+    "statusActivating": "A ativar a assinatura…",
+    "cancelPending": "Cancela a {date}",
+    "cancelPendingNoDate": "Cancela no fim do ciclo",
+    "tiers": {
+      "STARTER": "Starter",
+      "PRO": "Pro",
+      "STUDIO": "Studio",
+      "ENTERPRISE": "Enterprise"
+    },
+    "tierUpTo": "Até {max} alunos ativos",
+    "tierUnlimited": "Alunos ilimitados",
+    "tierCurrent": "Atual",
+    "tierExceeded": "A tua academia tem {active} alunos ativos e este plano permite até {max}",
+    "enterpriseNote": "Enterprise: alunos ilimitados, contratação manual.",
+    "enterpriseCta": "Escreve-nos pelo suporte",
+    "cycleLabel": "Ciclo de faturação",
+    "cycles": {
+      "MONTHLY": "Mensal",
+      "SEMIANNUAL": "Semestral",
+      "ANNUAL": "Anual"
+    },
+    "period": {
+      "MONTHLY": "mês",
+      "SEMIANNUAL": "semestre",
+      "ANNUAL": "ano"
+    },
+    "perMonth": "{amount}/mês",
+    "cycleDiscount": "−{pct}%",
+    "studentsUsage": "{count} de {max} alunos ativos",
+    "studentsUsageUnlimited": "{count} alunos ativos",
+    "nextInvoice": "Próxima faturação: {date}",
+    "trialDaysLeft": "{days, plural, one {Falta # dia de teste} other {Faltam # dias de teste}}. Depois disso precisas de um plano para continuar a operar.",
+    "pendingChange": "Mudança agendada: passa para {tier} ({cycle}) na renovação de {date}.",
+    "pendingChangeNoDate": "Mudança agendada: passa para {tier} ({cycle}) no início do próximo ciclo.",
+    "grace": "Período de carência: {days, plural, one {falta # dia} other {faltam # dias}}",
+    "graceHint": "A Flow tenta a cobrança automaticamente; mantém saldo no cartão registado.",
+    "blocked": "Academia bloqueada por assinatura em falta",
+    "blockedHint": "Regulariza o pagamento para reativar a tua academia, o diretório e as reservas dos teus alunos.",
+    "changePlan": "Mudar de plano",
+    "changeNow": "A subida aplica-se já: é cobrado o ciclo completo do novo plano.",
+    "changeScheduled": "A mudança aplica-se na renovação de {date}. Sem cobrança agora.",
+    "changeScheduledNoDate": "A mudança aplica-se no início do próximo ciclo. Sem cobrança agora.",
+    "changeRevert": "Anula a mudança agendada: o teu plano fica em {tier} ({cycle}).",
+    "apply": "Guardar mudança",
+    "applyOk": "Plano atualizado.",
+    "subscribeCharge": "Assinar {tier}: {amount} cada {period}",
+    "subscribeOk": "Assinatura ativada.",
+    "subscribeError": "Não foi possível iniciar a assinatura. Tenta de novo.",
+    "consent": "Assinatura: {amount} serão cobrados automaticamente cada {period} até ao cancelamento. Avisamos-te antes de cada cobrança.",
+    "cardRedirectTitle": "Último passo: o teu cartão na Flow",
+    "cardRedirectDesc": "Vais para a página segura da Flow para registar o cartão da cobrança recorrente. Quando terminares, voltas ao Omnidance e a assinatura fica ativa.",
+    "cardRedirectCta": "Ir para a Flow registar o cartão",
+    "pendingCardHint": "A tua assinatura está em espera. Completa o registo do cartão para a ativar.",
+    "cancel": "Cancelar assinatura",
+    "cancelConfirm": "Cancelar a assinatura? A academia continua a operar até ao fim do ciclo pago; depois fica bloqueada.",
+    "cancelOk": "Assinatura cancelada. Fica ativa até ao fim do ciclo.",
+    "invoices": "Histórico de cobranças",
+    "invoicesEmpty": "Ainda não há cobranças.",
+    "invoiceStatus": {
+      "PAID": "Paga",
+      "PENDING": "Pendente",
+      "FAILED": "Falhada",
+      "REFUNDED": "Reembolsada"
+    }
+  }
+}

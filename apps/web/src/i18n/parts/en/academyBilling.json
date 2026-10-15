@@ -1,0 +1,86 @@
+{
+  "academy": {
+    "modules": {
+      "subscription": "Subscription",
+      "subscriptionDesc": "Platform plan, billing and invoices"
+    }
+  },
+  "academyBilling": {
+    "title": "Subscription",
+    "desc": "The plan that keeps your academy on the platform: the directory and your students' bookings.",
+    "noAccess": "Only the academy owner can view and manage the subscription.",
+    "loadError": "We couldn't load the subscription status.",
+    "bannerGrace": "Your subscription is in grace period: {days, plural, one {# day} other {# days}} left to settle the payment.",
+    "bannerBlocked": "Academy blocked for unpaid subscription. Your academy is now read-only.",
+    "bannerCta": "Review subscription",
+    "statusActive": "Active subscription",
+    "statusTrial": "Trial period",
+    "statusNone": "No subscription",
+    "statusPendingCard": "Card registration missing",
+    "statusFailedCard": "We couldn't register the card",
+    "statusActivating": "Activating the subscription…",
+    "cancelPending": "Cancels on {date}",
+    "cancelPendingNoDate": "Cancels at end of cycle",
+    "tiers": {
+      "STARTER": "Starter",
+      "PRO": "Pro",
+      "STUDIO": "Studio",
+      "ENTERPRISE": "Enterprise"
+    },
+    "tierUpTo": "Up to {max} active students",
+    "tierUnlimited": "Unlimited students",
+    "tierCurrent": "Current",
+    "tierExceeded": "Your academy has {active} active students and this plan allows up to {max}",
+    "enterpriseNote": "Enterprise: unlimited students, manual contracting.",
+    "enterpriseCta": "Write to us via support",
+    "cycleLabel": "Billing cycle",
+    "cycles": {
+      "MONTHLY": "Monthly",
+      "SEMIANNUAL": "Semi-annual",
+      "ANNUAL": "Annual"
+    },
+    "period": {
+      "MONTHLY": "month",
+      "SEMIANNUAL": "half-year",
+      "ANNUAL": "year"
+    },
+    "perMonth": "{amount}/month",
+    "cycleDiscount": "−{pct}%",
+    "studentsUsage": "{count} of {max} active students",
+    "studentsUsageUnlimited": "{count} active students",
+    "nextInvoice": "Next billing: {date}",
+    "trialDaysLeft": "{days, plural, one {# day} other {# days}} of trial left. After that you need a plan to keep operating.",
+    "pendingChange": "Scheduled change: switches to {tier} ({cycle}) on renewal on {date}.",
+    "pendingChangeNoDate": "Scheduled change: switches to {tier} ({cycle}) at the start of the next cycle.",
+    "grace": "Grace period: {days, plural, one {# day} other {# days}} left",
+    "graceHint": "Flow retries the charge automatically; keep balance on the registered card.",
+    "blocked": "Academy blocked for unpaid subscription",
+    "blockedHint": "Settle the payment to reactivate your academy, the directory and your students' bookings.",
+    "changePlan": "Change plan",
+    "changeNow": "Upgrading applies immediately: the new plan's full cycle is charged.",
+    "changeScheduled": "The change applies on renewal on {date}. No charge now.",
+    "changeScheduledNoDate": "The change applies at the start of the next cycle. No charge now.",
+    "changeRevert": "Undoes the scheduled change: your plan stays on {tier} ({cycle}).",
+    "apply": "Save change",
+    "applyOk": "Plan updated.",
+    "subscribeCharge": "Subscribe to {tier}: {amount} every {period}",
+    "subscribeOk": "Subscription activated.",
+    "subscribeError": "We couldn't start the subscription. Try again.",
+    "consent": "Subscription: {amount} will be charged automatically every {period} until you cancel. We notify you before each charge.",
+    "cardRedirectTitle": "Last step: your card on Flow",
+    "cardRedirectDesc": "You're going to Flow's secure page to register the card for the recurring charge. When done, you come back to OmniDance and the subscription is active.",
+    "cardRedirectCta": "Go to Flow to register the card",
+    "pendingCardHint": "Your subscription is on hold. Complete the card registration to activate it.",
+    "cancel": "Cancel subscription",
+    "cancelConfirm": "Cancel the subscription? The academy keeps operating until the end of the paid cycle; then it gets blocked.",
+    "cancelOk": "Subscription cancelled. It stays active until the end of the cycle.",
+    "invoices": "Charge history",
+    "invoicesEmpty": "No charges yet.",
+    "invoiceStatus": {
+      "PAID": "Paid",
+      "PENDING": "Pending",
+      "FAILED": "Failed",
+      "REFUNDED": "Refunded"
+    }
+  }
+}

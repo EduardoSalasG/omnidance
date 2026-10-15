@@ -1,0 +1,10 @@
+{
+  "install": {
+    "title": "Garde Omnidance dans ta poche",
+    "body": "Installe l'app pour entrer directement depuis ton écran d'accueil - sans navigateur et plus rapide.",
+    "iosBody": "Dans Safari, touche le bouton Partager et choisis « Ajouter à l'écran d'accueil ». Comme ça tu entres directement, comme une app.",
+    "androidBody": "Dans Chrome, touche le menu ⋮ et choisis « Installer l'app » ou « Ajouter à l'écran d'accueil ». Comme ça tu entres directement, comme une app.",
+    "cta": "Installer",
+    "dismiss": "Pas maintenant"
+  }
+}

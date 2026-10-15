@@ -1,3 +1,4 @@
+import { getDateFmt } from "./intl";
 // Helpers del calendario mensual compartido por /eventos, /clases y
 // /locales/[id]: grid Lun–Dom que cubre el mes completo con dots por
 // género, navegación por mes y selección de día. Las claves de día son
@@ -28,7 +29,7 @@ export const GENRE_TEXT: Record<GenreKey, string> = {
 
 // Label del mes en el header del calendario ("septiembre de 2026" -
 // el `capitalize` del h2 la presenta).
-export const monthFmt = new Intl.DateTimeFormat("es-CL", {
+export const monthFmt = (locale: string) => getDateFmt(locale, {
   month: "long",
   year: "numeric",
 });

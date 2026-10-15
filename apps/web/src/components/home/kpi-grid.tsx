@@ -1,23 +1,27 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { getNumFmt, useNumFmt } from "@/lib/intl";
+
+const clp = (locale: string) => getNumFmt(locale, {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
 
 // KPI agregado de /home/stats - "Tu actividad" del bailarín y el
 // "Resumen" de los roles de gestión. Home muestra un subset; /perfil
 // muestra la grilla completa de la lente activa.
 export type Kpi = { key: string; value: number; format?: "clp" };
 
-const clp = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
+;
 
 // KPIs que representan trabajo pendiente - se destacan con borde de
 // acento para que el dashboard "grite" lo accionable.
 const ATTENTION_KEYS = new Set(["pendingRoles", "pendingPayouts"]);
 
 export function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
+  const locale = useLocale();
   const t = useTranslations("home");
   if (kpis.length === 0) return null;
   return (
@@ -40,7 +44,7 @@ export function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
               }`}
             >
               <span className="block text-2xl font-bold tabular-nums">
-                {k.format === "clp" ? clp.format(k.value) : k.value}
+                {k.format === "clp" ? clp(locale).format(k.value) : k.value}
               </span>
               <span className="text-xs text-ink/50">
                 {t.has(key) ? t(key) : k.key}

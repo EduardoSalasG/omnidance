@@ -1,0 +1,79 @@
+{
+  "payments": {
+    "title": "Os meus pagamentos",
+    "subtitle": "Histórico das tuas compras: bilhetes, passes e planos de academia.",
+    "empty": "Ainda não tens pagamentos registados.",
+    "orderTypes": {
+      "TICKET": "Bilhete",
+      "SERIES_PASS": "Passe de série",
+      "MEMBERSHIP": "Plano de academia",
+      "PRIVATE_LESSON": "Aula particular",
+      "WORKSHOP": "Workshop"
+    },
+    "status": {
+      "PENDING": "Pendente",
+      "PAID": "Pago",
+      "FAILED": "Falhado",
+      "REFUNDED": "Reembolsado"
+    },
+    "channels": {
+      "PRESALE": "Pré-venda",
+      "DOOR": "Porta",
+      "MANUAL": "Manual",
+      "FREE": "Grátis"
+    },
+    "cols": {
+      "paidAt": "Cobrado",
+      "buyer": "Comprador",
+      "medium": "Meio",
+      "amount": "Montante",
+      "gatewayFee": "Custo gateway",
+      "net": "Líquido",
+      "status": "Estado"
+    },
+    "methods": {
+      "app": "App",
+      "academyPresale": "Pré-venda academia"
+    },
+    "ledger": {
+      "toggle": "Auditoria ({count})",
+      "empty": "Sem eventos registados",
+      "type": {
+        "ORDER_CREATED": "Encomenda criada",
+        "GATEWAY_REQUEST": "Enviado ao meio de pagamento",
+        "WEBHOOK_RECEIVED": "Resposta do meio de pagamento",
+        "STATUS_CONFIRMED": "Estado confirmado",
+        "SETTLED": "Pagamento confirmado",
+        "RENEWAL_SETTLED": "Renovação cobrada",
+        "FAILED": "Pagamento falhado",
+        "SUBSCRIPTION_CREATED": "Assinatura criada",
+        "SUBSCRIPTION_CANCELED": "Assinatura cancelada",
+        "RENEWAL_FAILED": "Renovação falhada",
+        "AMOUNT_MISMATCH": "Montante diferente do esperado",
+        "FEE_ASSESSED": "Comissão calculada",
+        "PAYOUT_LINE_ASSIGNED": "Atribuído a liquidação",
+        "IMPORTED": "Registo importado"
+      }
+    },
+    "sub": {
+      "title": "Assinaturas",
+      "nextCharge": "Próxima cobrança: {date}",
+      "status": {
+        "PENDING_CARD": "Pendente de cartão",
+        "ACTIVATING": "A ativar",
+        "ACTIVE": "Ativa",
+        "CANCEL_PENDING": "Cancela no fim do período",
+        "CANCELED": "Cancelada",
+        "FAILED_CARD": "Cartão recusado"
+      }
+    },
+    "byEvent": {
+      "empty": "Sem vendas registadas para este evento."
+    },
+    "byAcademy": {
+      "desc": "Cobranças de assinaturas dos planos da academia (assinaturas e pagamentos únicos).",
+      "empty": "Ainda não há cobranças de assinaturas.",
+      "noAccess": "Só o dono da academia (ou um admin) pode ver as cobranças."
+    }
+  }
+}

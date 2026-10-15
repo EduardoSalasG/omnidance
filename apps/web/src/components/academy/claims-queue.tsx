@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
@@ -8,6 +8,8 @@ import { apiFetch } from "@/lib/api";
 import { Card, Pager, SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { filterQuery } from "./shared";
+import { Link } from "@/i18n/navigation";
+import { useDateFmt, useNumFmt } from "@/lib/intl";
 
 // Los claims no son una entidad del catálogo ACADEMY_OWNER: EntityDef
 // local con las mismas claves del contrato (spec analytics/query-console)
@@ -41,17 +43,6 @@ export type QueueClaim = {
   plan: { id: string; name: string; type: string } | null;
 };
 
-const clp = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
-export const claimDateFmt = new Intl.DateTimeFormat("es-CL", {
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-});
 
 const PAGE_SIZE = 20;
 
@@ -65,6 +56,12 @@ const PAGE_SIZE = 20;
  * acotada); con un status elegido se pagina ese listado.
  */
 export function ClaimsQueue({ academyId }: { academyId: string }) {
+  const clp = useNumFmt({
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  });
+  const claimDateFmt = useDateFmt({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const t = useTranslations("academyPay");
 
   const [claims, setClaims] = useState<QueueClaim[] | null>(null);

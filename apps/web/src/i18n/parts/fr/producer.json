@@ -1,0 +1,413 @@
+{
+  "producer": {
+    "myEvents": "Mes événements",
+    "payouts": "Mes règlements",
+    "crm": "CRM",
+    "navEventsDesc": "Crée et gère tes événements",
+    "navPayoutsDesc": "Règlements et virements",
+    "navCrmDesc": "Relation avec tes danseurs",
+    "createEvent": "Créer un événement",
+    "navGroups": {
+      "config": "Paramètres"
+    },
+    "configPages": {
+      "defaults": "Valeurs par défaut",
+      "payMethods": "Moyens de paiement",
+      "subscription": "Abonnement",
+      "appearance": "Apparence",
+      "producerOnly": "Cette section est réservée aux comptes producteur."
+    },
+    "dash": {
+      "title": "Aperçu",
+      "error": "Impossible de charger ton aperçu.",
+      "retry": "Réessayer",
+      "empty": "Tu n'as pas encore d'événements. Crée le premier pour voir ton aperçu.",
+      "seeAll": "Tout voir ({count})",
+      "checkins": "{count} check-ins",
+      "pendingClaimsTitle": "Encaissements à vérifier",
+      "pendingClaimsSummary": "{count} · {amount}",
+      "topRevenue": "Top événements par chiffre",
+      "topAttendance": "Top par affluence",
+      "kpi": {
+        "upcoming": "Événements programmés",
+        "sold": "Billets vendus",
+        "grossMonth": "Chiffre du mois",
+        "pendingClaims": "Encaissements à vérifier"
+      }
+    },
+    "editEvent": "Modifier l'événement",
+    "event": "Événement",
+    "pickEvent": "Choisis un événement pour voir ses listes.",
+    "eventNotFound": "Impossible de trouver cet événement.",
+    "notEditable": "Cet événement ne peut plus être modifié.",
+    "codeCreated": "Code créé.",
+    "listCreated": "Liste créée.",
+    "listsEmpty": "Cet événement n'a pas de listes d'invités.",
+    "staffAdded": "Staff ajouté.",
+    "emptyEvents": "Tu n'as pas encore d'événements.",
+    "emptyEventsCta": "Crée ton premier événement",
+    "created": "Événement créé en brouillon.",
+    "updated": "Événement mis à jour.",
+    "published": "Événement publié.",
+    "cancelled": "Événement annulé.",
+    "publish": "Publier",
+    "cancelEvent": "Annuler l'événement",
+    "cancelConfirmTitle": "Annuler l'événement ?",
+    "cancelConfirmDesc": "Cette action est irréversible.",
+    "confirmCancel": "Oui, annuler",
+    "negotiatedFee": "Commission négociée",
+    "status": {
+      "DRAFT": "Brouillon",
+      "PUBLISHED": "Publié",
+      "LIVE": "En direct",
+      "CLOSED": "Fermé",
+      "CANCELLED": "Annulé"
+    },
+    "form": {
+      "name": "Nom",
+      "startsAt": "Début",
+      "endsAt": "Fin",
+      "venue": "Lieu",
+      "noVenue": "Pas de lieu (parc/place)",
+      "series": "Série",
+      "noSeries": "Pas de série",
+      "type": "Type d'événement",
+      "capacity": "Jauge",
+      "presalePrice": "Prix prévente (CLP)",
+      "doorPrice": "Prix à la porte (CLP)",
+      "presaleCap": "Plafond prévente",
+      "doorCap": "Plafond porte",
+      "presaleCutoff": "Prévente jusqu'à",
+      "presaleCutoffHint": "Vide utilise la valeur par défaut. Ensuite on vend au prix de la porte.",
+      "tablesTotal": "Tables réservables",
+      "primeThreshold": "Seuil Prime Time",
+      "happyHourMinutes": "Minutes happy hour",
+      "schedule": "Blocs horaires",
+      "addBlock": "Ajouter un bloc horaire",
+      "removeBlock": "Retirer le bloc",
+      "blockStart": "Début du bloc",
+      "blockEnd": "Fin du bloc",
+      "blockStyle": "Style",
+      "blockDj": "DJ (ID de personne)",
+      "djs": "DJs (IDs de personne)",
+      "djsHelp": "IDs séparés par virgule ou espace. À l'édition, la nouvelle liste remplace l'actuelle.",
+      "currentDjs": "DJs actuels",
+      "optional": "optionnel",
+      "datesInvalid": "Vérifie les dates : la fin doit être après le début.",
+      "tableSeatMax": "Personnes max par table",
+      "tableSeatsTotal": "Personnes assises aux tables",
+      "inheritsDefault": "Valeur par défaut du producteur",
+      "tablesHint": "La capacité assise est la capacité réelle des tables : différente de la jauge générale, en général plus petite. Vide hérite de ta valeur par défaut de Paramètres."
+    },
+    "sections": {
+      "staff": "Staff de porte",
+      "passes": "Pass d'entrée",
+      "suggestions": "Suggestions pour le DJ",
+      "reservations": "Réservations de table",
+      "lists": "Listes d'invités",
+      "ratings": "Évaluation de l'événement",
+      "analytics": "Analytique de l'événement",
+      "payments": "Paiements"
+    },
+    "stats": {
+      "sold": "{count, plural, one {# vendu} other {# vendus}}",
+      "checkins": "{count, plural, one {# check-in} other {# check-ins}}"
+    },
+    "kpi": {
+      "title": "Ton pouls",
+      "upcoming": "Événements à venir",
+      "sold": "Billets vendus",
+      "gross": "Recette brute",
+      "checkins": "Check-ins",
+      "events": "Événements",
+      "periodLast30d": "30 derniers jours"
+    },
+    "live": {
+      "title": "En direct",
+      "titlePast": "Opération de l'événement",
+      "presale": "Prévente",
+      "door": "Porte",
+      "doorManual": "{count} à la porte manuelle",
+      "totalSold": "Vendus",
+      "checkins": "check-ins",
+      "lastHour": "dernière heure",
+      "occupancy": "sur {capacity} de jauge",
+      "passes": "{count, plural, one {# pass émis} other {# pass émis}}",
+      "chartLabel": "Arrivées par heure"
+    },
+    "staffSection": {
+      "add": "Ajouter du staff",
+      "role": "Rôle",
+      "empty": "Pas de staff assigné.",
+      "roles": {
+        "DOOR": "Porte",
+        "DOOR_SALES": "Porte + ventes"
+      },
+      "personName": "Nom",
+      "personPlaceholder": "Écris le nom…",
+      "noResults": "Aucun résultat dans ta liste",
+      "change": "Changer"
+    },
+    "passes": {
+      "person": "Personne",
+      "type": "Type",
+      "price": "Prix",
+      "status": "Statut",
+      "validUntil": "Valable jusqu'au",
+      "empty": "Pas de pass émis.",
+      "types": {
+        "PAID": "Payé",
+        "ARTIST": "Artiste",
+        "STAFF": "Staff",
+        "COMP": "Invitation",
+        "LIST": "Liste",
+        "FREE_WINDOW": "Fenêtre gratuite"
+      },
+      "statuses": {
+        "ACTIVE": "Actif",
+        "USED": "Utilisé",
+        "CANCELLED": "Annulé"
+      }
+    },
+    "suggestions": {
+      "empty": "Pas encore de suggestions."
+    },
+    "reservations": {
+      "empty": "Pas de réservations.",
+      "partySize": "{count} personnes",
+      "partySizeField": "Personnes",
+      "table": "Table",
+      "occupancy": "{used} tables sur {total} occupées",
+      "noTables": "Cet événement n'offre pas de réservations de table.",
+      "assignTable": "N° de table",
+      "confirm": "Confirmer",
+      "saveChanges": "Enregistrer les modifications",
+      "cancel": "Annuler",
+      "statuses": {
+        "REQUESTED": "À confirmer",
+        "CONFIRMED": "Confirmée",
+        "CANCELLED": "Annulée"
+      },
+      "seatsOccupancy": "{used} places sur {total} occupées"
+    },
+    "ratings": {
+      "notEnough": "Pas encore assez d'évaluations à afficher ({count}/3).",
+      "ratingsCount": "{count} évaluations",
+      "actors": {
+        "dj": "DJ",
+        "producer": "Production",
+        "venue": "Lieu"
+      },
+      "dims": {
+        "overall": "En général",
+        "music": "Musique",
+        "occupation": "Occupation",
+        "organization": "Organisation",
+        "floorComfort": "Confort de la piste",
+        "temperature": "Température",
+        "lightingSound": "Lumières et son"
+      }
+    },
+    "eventAnalytics": {
+      "attendees": "{count, plural, one {# participant} other {# participants}}",
+      "insufficient": "Données insuffisantes : il faut au moins 3 participants pour afficher la composition et les évaluations.",
+      "genderSplit": "Par genre",
+      "roleSplit": "Par rôle de danse",
+      "ratingsTitle": "Évaluation moyenne",
+      "ratingsCount": "{count, plural, one {# évaluation} other {# évaluations}}",
+      "gender": {
+        "M": "Hommes",
+        "F": "Femmes",
+        "OTHER": "Autre",
+        "unknown": "Non déclaré"
+      },
+      "roles": {
+        "leader": "Leaders",
+        "follower": "Followers",
+        "both": "Les deux rôles"
+      }
+    },
+    "payoutsPage": {
+      "title": "Mes règlements",
+      "empty": "Tu n'as pas encore de règlements.",
+      "period": "Période",
+      "gross": "Brut",
+      "net": "Net",
+      "deductions": "Déductions",
+      "lineTypes": {
+        "GATEWAY_FEE_PASSTHROUGH": "Passerelle de paiement (au coût)",
+        "PLATFORM_FEE_NET": "Commission plateforme",
+        "PLATFORM_FEE_VAT": "TVA de la commission",
+        "OWN_METHOD_FEE_NET": "Commission sur tes encaissements directs",
+        "OWN_METHOD_FEE_VAT": "TVA commission encaissements directs",
+        "MANUAL_ADJUSTMENT": "Ajustement manuel"
+      },
+      "paidAt": "Payé",
+      "evidence": "Voir le justificatif",
+      "status": {
+        "PENDING": "En attente",
+        "APPROVED": "Approuvé",
+        "PAID": "Payé"
+      }
+    },
+    "pro": {
+      "title": "Cette fonction fait partie de Producer Pro",
+      "featureTitle": "{feature} fait partie de Producer Pro",
+      "cta": "Voir les plans",
+      "benefits": {
+        "analytics": "Analytique des événements et participants",
+        "exports": "Exports CSV et PDF",
+        "crm": "CRM de tes danseurs"
+      },
+      "sectionTitle": "Producer Pro",
+      "loadError": "Impossible de charger ton abonnement.",
+      "status": {
+        "free": "Plan gratuit",
+        "trial": "Période d'essai",
+        "active": "Actif",
+        "cancelPending": "S'annule",
+        "activating": "Activation en cours"
+      },
+      "tiers": {
+        "FREE": "Plan gratuit",
+        "PRO_STARTER": "Producer Pro",
+        "PRO_GROWTH": "Producer Pro Growth",
+        "PRO_BIG": "Producer Pro sur mesure"
+      },
+      "trialDaysLeft": "{count, plural, one {Il reste # jour d'essai} other {Il reste # jours d'essai}}",
+      "activeUntil": "Pro reste actif jusqu'au {date}",
+      "cancelPendingNoDate": "Pro reste actif jusqu'à la fin de la période payée",
+      "nextCharge": "Prochain débit : {date}",
+      "activatingHint": "Ton abonnement est en cours d'activation. Il se confirme au premier débit.",
+      "gross": "Chiffre mensuel moyen (90 derniers jours)",
+      "grossMax": "Plafond du plan",
+      "cancel": "Annuler Producer Pro",
+      "cancelConfirm": "Annuler Producer Pro ? Tu gardes l'accès jusqu'à la fin de la période payée.",
+      "cancelYes": "Oui, annuler",
+      "cancelKeep": "Garder Producer Pro",
+      "cancelOk": "Abonnement annulé. Pro reste actif jusqu'à la fin de la période.",
+      "pitch": "Producer Pro débloque l'analytique avancée, les exports et le CRM de tes danseurs.",
+      "cardRedirectTitle": "Enregistre ta carte",
+      "cardRedirectDesc": "On t'emmène sur Flow (passerelle sécurisée) pour enregistrer ta carte. Le débit ne se fait qu'à la confirmation du plan.",
+      "cardRedirectCta": "Continuer vers Flow",
+      "cycle": {
+        "label": "Cycle de facturation",
+        "MONTHLY": "Mensuel",
+        "SEMIANNUAL": "Semestriel",
+        "ANNUAL": "Annuel"
+      },
+      "period": {
+        "MONTHLY": "mois",
+        "SEMIANNUAL": "semestre",
+        "ANNUAL": "an"
+      },
+      "perMonth": "{amount}/mois",
+      "consent": "{amount} seront débités automatiquement chaque {period} jusqu'à annulation.",
+      "subscribe": "M'abonner pour {amount}/{period}",
+      "subscribeNoPrice": "Prix indisponible",
+      "subscribeOk": "Producer Pro activé !",
+      "subscribeError": "Impossible de lancer l'abonnement. Réessaie.",
+      "tierLimit": "Ton chiffre dépasse le plafond des plans en libre-service. Écris-nous pour un Pro sur mesure."
+    },
+    "gateway": {
+      "title": "Ma passerelle de paiement",
+      "provider": "Passerelle",
+      "credential": "Identifiant",
+      "webhookLabel": "URL de confirmation (à configurer dans le panneau de ta passerelle)",
+      "lastError": "Dernière erreur de la passerelle",
+      "active": "Active",
+      "inactive": "Inactive",
+      "empty": "Pas de compte propre : tes ventes sont encaissées via la passerelle d'Omnidance.",
+      "apiKey": "Clé API",
+      "accessToken": "Access token",
+      "secretKey": "Secret key",
+      "webhookSecret": "Webhook secret (whsec_)",
+      "replacePlaceholder": "Nouvel identifiant (remplace l'actuel)",
+      "save": "Connecter la passerelle",
+      "rotate": "Remplacer les identifiants",
+      "saved": "Passerelle connectée. Configure l'URL de confirmation dans son panneau.",
+      "disable": "Désactiver",
+      "disabled": "Passerelle désactivée : l'encaissement est revenu à la plateforme.",
+      "confirmOff": "Désactiver ta passerelle ? Les nouvelles ventes repassent par Omnidance.",
+      "confirmYes": "Oui, désactiver",
+      "hint": "Avec ta propre passerelle l'argent de tes ventes arrive directement sur ton compte ; la commission Omnidance est déduite de ton règlement."
+    },
+    "ownMethods": {
+      "title": "Moyens d'encaissement directs",
+      "desc": "Virement, lien de paiement ou espèces : l'acheteur choisit le moyen au checkout et envoie le justificatif ; tu valides et le billet s'émet tout seul.",
+      "queueTitle": "Justificatifs à valider",
+      "queueDesc": "Approuve pour émettre le billet à l'instant ; refuse avec un motif que l'acheteur verra.",
+      "queueEmpty": "Pas de justificatifs en attente.",
+      "queueEmptyDesc": "Quand quelqu'un paie par virement, lien ou espèces et envoie son justificatif, il apparaîtra ici pour validation.",
+      "orderTicket": "Billet",
+      "orderSeriesPass": "Pass de série"
+    },
+    "billingDocs": {
+      "title": "Notes de débit",
+      "desc": "Documents internes pour les déductions de tes règlements.",
+      "folio": "Note n° {n}",
+      "openPdf": "Voir le PDF"
+    },
+    "codeDetail": {
+      "redemptions": "Utilisations du code",
+      "redemptionsDesc": "Chaque utilisation est enregistrée avec la personne et la commande qui l'a utilisée.",
+      "emptyRedemptions": "Personne n'a encore utilisé ce code.",
+      "person": "Personne",
+      "orderRef": "Commande",
+      "redeemedAt": "Utilisé",
+      "expired": "Expiré",
+      "createdAt": "Créé",
+      "notFound": "Impossible de trouver ce code."
+    },
+    "listDetail": {
+      "entries": "Invités",
+      "entriesCount": "{count, plural, one {# invité} other {# invités}}",
+      "emptyEntries": "Pas encore d'invités sur la liste.",
+      "owner": "Propriétaire",
+      "specialPrice": "Prix spécial",
+      "issuePass": "Émettre un pass",
+      "passIssued": "Pass émis.",
+      "addError": "Impossible de l'ajouter. Vérifie l'ID ou s'il est déjà sur la liste.",
+      "notFound": "Impossible de trouver cette liste."
+    },
+    "payoutDetail": {
+      "orderRef": "Commande",
+      "orderType": "Type",
+      "orderChannel": "Canal",
+      "orderAmount": "Montant commande",
+      "notFound": "Impossible de trouver ce règlement."
+    },
+    "claimDetail": {
+      "title": "Justificatif",
+      "buyer": "Acheteur",
+      "order": "Commande",
+      "amount": "Montant",
+      "method": "Moyen",
+      "channel": "Canal",
+      "sentAt": "Envoyé",
+      "orderStatus": "Statut commande",
+      "paidAt": "Payée",
+      "reviewedAt": "Examiné",
+      "reviewNote": "Motif",
+      "orderRef": "N° de commande",
+      "openReceipt": "Voir le justificatif",
+      "notFound": "Impossible de trouver ce justificatif."
+    },
+    "collaborators": {
+      "title": "Collaborateurs",
+      "desc": "Ta liste : les personnes qui apparaissent comme candidates quand tu ajoutes du staff à tes événements.",
+      "add": "Ajouter un collaborateur",
+      "remove": "Retirer",
+      "empty": "Tu n'as pas encore de collaborateurs. Ajoute-les pour les réutiliser comme staff dans tes événements.",
+      "personName": "Nom",
+      "personPlaceholder": "Écris le nom…",
+      "inviteByEmail": "Ou invite par e-mail",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "personne@email.com",
+      "nameLabel": "Nom (optionnel)",
+      "inviteSubmit": "Envoyer l'invitation",
+      "invited": "Invitation envoyée — il a reçu un e-mail avec accès",
+      "added": "Collaborateur ajouté"
+    }
+  }
+}

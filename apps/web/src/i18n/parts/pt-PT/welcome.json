@@ -1,0 +1,19 @@
+{
+  "welcome": {
+    "title": "Completa o teu perfil",
+    "subtitle": "Alguns dados rápidos para que os teus amigos te encontrem e a app te conheça. Tudo opcional: podes completar depois no Perfil.",
+    "name": "Nome",
+    "phone": "Telefone",
+    "phonePlaceholder": "+56 9 1234 5678",
+    "phoneTaken": "Este telefone já está registado noutra conta",
+    "instagram": "Instagram",
+    "instagramPlaceholder": "o.teu.handle",
+    "danceTitle": "A tua dança",
+    "danceHint": "Escolhe os teus estilos e o teu papel na pista",
+    "danceEmpty": "Não foi possível carregar os estilos. Podes escolhê-los depois no Perfil.",
+    "levelLabel": "Nível",
+    "submit": "Está feito, vamos",
+    "skip": "Agora não",
+    "saveError": "Não foi possível guardar. Tenta de novo ou continua com « Agora não »."
+  }
+}

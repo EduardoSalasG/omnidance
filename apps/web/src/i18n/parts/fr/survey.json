@@ -1,0 +1,61 @@
+{
+  "survey": {
+    "prompt": "Comment était {name} ?",
+    "cardCta": "Évaluer",
+    "sectionLabel": "Sondages en attente",
+    "title": "Comment était {name} ?",
+    "fallbackTitle": "Raconte-nous comment c'était",
+    "subtitle": "Ton évaluation est privée. Le producteur ne voit que des moyennes.",
+    "overall": "En général",
+    "overallRequired": "Note l'expérience générale pour envoyer",
+    "more": "Évaluer plus",
+    "less": "Évaluer moins",
+    "submit": "Envoyer l'évaluation",
+    "thanks": "Merci ! Ton évaluation est enregistrée",
+    "expired": "La fenêtre pour évaluer cet événement est fermée",
+    "forbidden": "Seules les personnes qui ont fait un check-in peuvent évaluer l'événement",
+    "error": "Impossible d'envoyer ton évaluation. Réessaie",
+    "loginRequired": "Connecte-toi pour évaluer l'événement",
+    "backToEvent": "Voir l'événement",
+    "dims": {
+      "music": "Musique",
+      "occupation": "Occupation",
+      "organization": "Organisation",
+      "floorComfort": "Confort de la piste",
+      "temperature": "Température",
+      "lightingSound": "Lumières et son"
+    },
+    "scale": {
+      "music": { "low": "Mauvaise", "high": "Incroyable" },
+      "occupation": { "low": "Vide", "high": "Bondé" },
+      "organization": { "low": "Désordonnée", "high": "Impeccable" },
+      "floorComfort": { "low": "Inconfortable", "high": "Très confortable" },
+      "temperature": { "low": "Glaciale", "high": "Chaude" },
+      "lightingSound": { "low": "Mauvais", "high": "Excellent" }
+    }
+  },
+  "courseSurvey": {
+    "prompt": "Comment était {name} ?",
+    "cardCta": "Évaluer",
+    "title": "Comment était ton cours de {name} ?",
+    "subtitle": "Ton évaluation est privée. L'académie ne voit que des moyennes et des commentaires anonymes.",
+    "course": "Comment as-tu trouvé le cours ?",
+    "instructor": "Comment as-tu trouvé le prof ?",
+    "comment": "Observations (optionnel)",
+    "commentPlaceholder": "Ce que tu as aimé, ce que tu améliorerais…",
+    "courseRequired": "Note le cours pour envoyer",
+    "submit": "Envoyer l'évaluation",
+    "thanks": "Merci ! Ton évaluation est enregistrée",
+    "forbidden": "Seules les personnes qui ont assisté à ce cours ce mois-là peuvent l'évaluer",
+    "error": "Impossible d'envoyer ton évaluation. Réessaie",
+    "loginRequired": "Connecte-toi pour évaluer le cours",
+    "invalid": "Ce sondage n'est pas disponible",
+    "backToAcademy": "Voir l'académie",
+    "resultsTitle": "Sondages du mois",
+    "responses": "{count, plural, one {# réponse} other {# réponses}}",
+    "avgCourse": "Cours",
+    "avgInstructor": "Prof",
+    "commentsTitle": "Commentaires",
+    "empty": "Pas encore de sondages enregistrés."
+  }
+}

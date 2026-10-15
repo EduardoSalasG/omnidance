@@ -1,0 +1,10 @@
+{
+  "install": {
+    "title": "Carry Omnidance in your pocket",
+    "body": "Install the app to enter straight from your home screen - no browser and faster.",
+    "iosBody": "In Safari tap the Share button and choose «Add to Home Screen». That way you enter directly, like an app.",
+    "androidBody": "In Chrome tap the ⋮ menu and choose «Install app» or «Add to Home Screen». That way you enter directly, like an app.",
+    "cta": "Install",
+    "dismiss": "Not now"
+  }
+}

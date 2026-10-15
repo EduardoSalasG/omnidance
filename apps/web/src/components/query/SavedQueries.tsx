@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   SYSTEM_QUERIES,
   type QueryRole,
@@ -9,6 +9,9 @@ import {
 } from "@omnidance/shared";
 import { Card, CheckIcon, ChevronDownIcon, XIcon } from "@/components/ui";
 import { inputCls } from "@/components/academy/shared";
+import { getDateFmt, useDateFmt } from "@/lib/intl";
+
+const dateFmt = (locale: string) => getDateFmt(locale, { dateStyle: "medium" });
 
 // Consultas guardadas + plantillas de sistema (spec analytics/query-console):
 // las del sistema viven en shared (SYSTEM_QUERIES por lente, sin scope fijo -
@@ -37,7 +40,7 @@ type SavedQueriesProps = {
   defaultOpen?: boolean;
 };
 
-const dateFmt = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium" });
+;
 
 export function SavedQueries({
   role,
@@ -48,6 +51,7 @@ export function SavedQueries({
   onDelete,
   defaultOpen = false,
 }: SavedQueriesProps) {
+  const locale = useLocale();
   const t = useTranslations("query");
   const tc = useTranslations("common");
   const [open, setOpen] = useState(defaultOpen);
@@ -169,7 +173,7 @@ export function SavedQueries({
                         {q.name}
                       </span>
                       <span className="block text-xs text-ink/40">
-                        {dateFmt.format(new Date(q.createdAt))}
+                        {dateFmt(locale).format(new Date(q.createdAt))}
                       </span>
                     </button>
                     <button

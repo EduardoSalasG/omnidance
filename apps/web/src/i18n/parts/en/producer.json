@@ -1,0 +1,413 @@
+{
+  "producer": {
+    "myEvents": "My events",
+    "payouts": "My payouts",
+    "crm": "CRM",
+    "navEventsDesc": "Create and manage your events",
+    "navPayoutsDesc": "Settlements and transfers",
+    "navCrmDesc": "Relationship with your dancers",
+    "createEvent": "Create event",
+    "navGroups": {
+      "config": "Settings"
+    },
+    "configPages": {
+      "defaults": "Default values",
+      "payMethods": "Payment methods",
+      "subscription": "Subscription",
+      "appearance": "Appearance",
+      "producerOnly": "This section is only available for producer accounts."
+    },
+    "dash": {
+      "title": "Overview",
+      "error": "We couldn't load your overview.",
+      "retry": "Retry",
+      "empty": "You have no events yet. Create the first one to see your overview.",
+      "seeAll": "See all ({count})",
+      "checkins": "{count} check-ins",
+      "pendingClaimsTitle": "Payments to review",
+      "pendingClaimsSummary": "{count} · {amount}",
+      "topRevenue": "Top events by revenue",
+      "topAttendance": "Top by attendance",
+      "kpi": {
+        "upcoming": "Scheduled events",
+        "sold": "Tickets sold",
+        "grossMonth": "Month's revenue",
+        "pendingClaims": "Payments to review"
+      }
+    },
+    "editEvent": "Edit event",
+    "event": "Event",
+    "pickEvent": "Pick an event to see its lists.",
+    "eventNotFound": "We couldn't find this event.",
+    "notEditable": "This event can no longer be edited.",
+    "codeCreated": "Code created.",
+    "listCreated": "List created.",
+    "listsEmpty": "This event has no guest lists.",
+    "staffAdded": "Staff added.",
+    "emptyEvents": "You have no events yet.",
+    "emptyEventsCta": "Create your first event",
+    "created": "Event created as draft.",
+    "updated": "Event updated.",
+    "published": "Event published.",
+    "cancelled": "Event cancelled.",
+    "publish": "Publish",
+    "cancelEvent": "Cancel event",
+    "cancelConfirmTitle": "Cancel the event?",
+    "cancelConfirmDesc": "This action can't be undone.",
+    "confirmCancel": "Yes, cancel",
+    "negotiatedFee": "Negotiated fee",
+    "status": {
+      "DRAFT": "Draft",
+      "PUBLISHED": "Published",
+      "LIVE": "Live",
+      "CLOSED": "Closed",
+      "CANCELLED": "Cancelled"
+    },
+    "form": {
+      "name": "Name",
+      "startsAt": "Start",
+      "endsAt": "End",
+      "venue": "Venue",
+      "noVenue": "No venue (park/square)",
+      "series": "Series",
+      "noSeries": "No series",
+      "type": "Event type",
+      "capacity": "Capacity",
+      "presalePrice": "Presale price (CLP)",
+      "doorPrice": "Door price (CLP)",
+      "presaleCap": "Presale cap",
+      "doorCap": "Door cap",
+      "presaleCutoff": "Presale until",
+      "presaleCutoffHint": "Empty uses the default. After that time tickets sell at door price.",
+      "tablesTotal": "Reservable tables",
+      "primeThreshold": "Prime Time threshold",
+      "happyHourMinutes": "Happy hour minutes",
+      "schedule": "Time blocks",
+      "addBlock": "Add time block",
+      "removeBlock": "Remove block",
+      "blockStart": "Block start",
+      "blockEnd": "Block end",
+      "blockStyle": "Style",
+      "blockDj": "DJ (person ID)",
+      "djs": "DJs (person IDs)",
+      "djsHelp": "IDs separated by comma or space. When editing, the new list replaces the current one.",
+      "currentDjs": "Current DJs",
+      "optional": "optional",
+      "datesInvalid": "Check the dates: the end must be after the start.",
+      "tableSeatMax": "Max people per table",
+      "tableSeatsTotal": "People seatable at tables",
+      "inheritsDefault": "Producer default",
+      "tablesHint": "Seatable capacity is the real capacity of tables: different from general capacity, usually smaller. Empty inherits your Parameters default."
+    },
+    "sections": {
+      "staff": "Door staff",
+      "passes": "Entry passes",
+      "suggestions": "Suggestions for the DJ",
+      "reservations": "Table reservations",
+      "lists": "Guest lists",
+      "ratings": "Event rating",
+      "analytics": "Event analytics",
+      "payments": "Payments"
+    },
+    "stats": {
+      "sold": "{count, plural, one {# sold} other {# sold}}",
+      "checkins": "{count, plural, one {# check-in} other {# check-ins}}"
+    },
+    "kpi": {
+      "title": "Your pulse",
+      "upcoming": "Upcoming events",
+      "sold": "Tickets sold",
+      "gross": "Gross revenue",
+      "checkins": "Check-ins",
+      "events": "Events",
+      "periodLast30d": "Last 30 days"
+    },
+    "live": {
+      "title": "Live",
+      "titlePast": "Event operation",
+      "presale": "Presale",
+      "door": "Door",
+      "doorManual": "{count} at manual door",
+      "totalSold": "Sold",
+      "checkins": "check-ins",
+      "lastHour": "last hour",
+      "occupancy": "of {capacity} capacity",
+      "passes": "{count, plural, one {# pass issued} other {# passes issued}}",
+      "chartLabel": "Arrivals by hour"
+    },
+    "staffSection": {
+      "add": "Add staff",
+      "role": "Role",
+      "empty": "No staff assigned.",
+      "roles": {
+        "DOOR": "Door",
+        "DOOR_SALES": "Door + sales"
+      },
+      "personName": "Name",
+      "personPlaceholder": "Type the name…",
+      "noResults": "No results in your roster",
+      "change": "Change"
+    },
+    "passes": {
+      "person": "Person",
+      "type": "Type",
+      "price": "Price",
+      "status": "Status",
+      "validUntil": "Valid until",
+      "empty": "No passes issued.",
+      "types": {
+        "PAID": "Paid",
+        "ARTIST": "Artist",
+        "STAFF": "Staff",
+        "COMP": "Comp",
+        "LIST": "List",
+        "FREE_WINDOW": "Free window"
+      },
+      "statuses": {
+        "ACTIVE": "Active",
+        "USED": "Used",
+        "CANCELLED": "Cancelled"
+      }
+    },
+    "suggestions": {
+      "empty": "No suggestions yet."
+    },
+    "reservations": {
+      "empty": "No reservations.",
+      "partySize": "{count} people",
+      "partySizeField": "People",
+      "table": "Table",
+      "occupancy": "{used} of {total} tables occupied",
+      "noTables": "This event doesn't offer table reservations.",
+      "assignTable": "Table no.",
+      "confirm": "Confirm",
+      "saveChanges": "Save changes",
+      "cancel": "Cancel",
+      "statuses": {
+        "REQUESTED": "To confirm",
+        "CONFIRMED": "Confirmed",
+        "CANCELLED": "Cancelled"
+      },
+      "seatsOccupancy": "{used} of {total} seats occupied"
+    },
+    "ratings": {
+      "notEnough": "Not enough ratings to show yet ({count}/3).",
+      "ratingsCount": "{count} ratings",
+      "actors": {
+        "dj": "DJ",
+        "producer": "Production",
+        "venue": "Venue"
+      },
+      "dims": {
+        "overall": "Overall",
+        "music": "Music",
+        "occupation": "Occupancy",
+        "organization": "Organization",
+        "floorComfort": "Floor comfort",
+        "temperature": "Temperature",
+        "lightingSound": "Lights and sound"
+      }
+    },
+    "eventAnalytics": {
+      "attendees": "{count, plural, one {# attendee} other {# attendees}}",
+      "insufficient": "Insufficient data: at least 3 attendees are needed to show composition and ratings.",
+      "genderSplit": "By gender",
+      "roleSplit": "By dance role",
+      "ratingsTitle": "Average rating",
+      "ratingsCount": "{count, plural, one {# rating} other {# ratings}}",
+      "gender": {
+        "M": "Men",
+        "F": "Women",
+        "OTHER": "Other",
+        "unknown": "Not declared"
+      },
+      "roles": {
+        "leader": "Leaders",
+        "follower": "Followers",
+        "both": "Both roles"
+      }
+    },
+    "payoutsPage": {
+      "title": "My payouts",
+      "empty": "You have no settlements yet.",
+      "period": "Period",
+      "gross": "Gross",
+      "net": "Net",
+      "deductions": "Deductions",
+      "lineTypes": {
+        "GATEWAY_FEE_PASSTHROUGH": "Payment gateway (at cost)",
+        "PLATFORM_FEE_NET": "Platform fee",
+        "PLATFORM_FEE_VAT": "VAT on fee",
+        "OWN_METHOD_FEE_NET": "Fee on your own-method collections",
+        "OWN_METHOD_FEE_VAT": "VAT on own-method fee",
+        "MANUAL_ADJUSTMENT": "Manual adjustment"
+      },
+      "paidAt": "Paid",
+      "evidence": "View receipt",
+      "status": {
+        "PENDING": "Pending",
+        "APPROVED": "Approved",
+        "PAID": "Paid"
+      }
+    },
+    "pro": {
+      "title": "This feature is part of Producer Pro",
+      "featureTitle": "{feature} is part of Producer Pro",
+      "cta": "View plans",
+      "benefits": {
+        "analytics": "Event and attendee analytics",
+        "exports": "CSV and PDF exports",
+        "crm": "CRM of your dancers"
+      },
+      "sectionTitle": "Producer Pro",
+      "loadError": "We couldn't load your subscription.",
+      "status": {
+        "free": "Free plan",
+        "trial": "Trial period",
+        "active": "Active",
+        "cancelPending": "Cancels",
+        "activating": "Activating"
+      },
+      "tiers": {
+        "FREE": "Free plan",
+        "PRO_STARTER": "Producer Pro",
+        "PRO_GROWTH": "Producer Pro Growth",
+        "PRO_BIG": "Producer Pro custom"
+      },
+      "trialDaysLeft": "{count, plural, one {# trial day left} other {# trial days left}}",
+      "activeUntil": "Pro stays active until {date}",
+      "cancelPendingNoDate": "Pro stays active until the end of the paid period",
+      "nextCharge": "Next charge: {date}",
+      "activatingHint": "Your subscription is activating. It confirms with the first charge.",
+      "gross": "Average monthly revenue (last 90 days)",
+      "grossMax": "Plan cap",
+      "cancel": "Cancel Producer Pro",
+      "cancelConfirm": "Cancel Producer Pro? You keep access until the end of the paid period.",
+      "cancelYes": "Yes, cancel",
+      "cancelKeep": "Keep Producer Pro",
+      "cancelOk": "Subscription cancelled. Pro stays active until the end of the period.",
+      "pitch": "Producer Pro enables advanced analytics, exports and the CRM of your dancers.",
+      "cardRedirectTitle": "Register your card",
+      "cardRedirectDesc": "We'll take you to Flow (secure gateway) to register your card. You're charged only once the plan confirms.",
+      "cardRedirectCta": "Continue to Flow",
+      "cycle": {
+        "label": "Billing cycle",
+        "MONTHLY": "Monthly",
+        "SEMIANNUAL": "Semi-annual",
+        "ANNUAL": "Annual"
+      },
+      "period": {
+        "MONTHLY": "month",
+        "SEMIANNUAL": "half-year",
+        "ANNUAL": "year"
+      },
+      "perMonth": "{amount}/month",
+      "consent": "{amount} will be charged automatically every {period} until you cancel.",
+      "subscribe": "Subscribe for {amount}/{period}",
+      "subscribeNoPrice": "Price unavailable",
+      "subscribeOk": "Producer Pro activated!",
+      "subscribeError": "We couldn't start the subscription. Try again.",
+      "tierLimit": "Your revenue exceeds the self-serve plans' cap. Write to us for a custom Pro plan."
+    },
+    "gateway": {
+      "title": "My payment gateway",
+      "provider": "Gateway",
+      "credential": "Credential",
+      "webhookLabel": "Confirmation URL (configure it in your gateway's panel)",
+      "lastError": "Last gateway error",
+      "active": "Active",
+      "inactive": "Inactive",
+      "empty": "No own account: your sales are charged through the Omnidance gateway.",
+      "apiKey": "API key",
+      "accessToken": "Access token",
+      "secretKey": "Secret key",
+      "webhookSecret": "Webhook secret (whsec_)",
+      "replacePlaceholder": "New credential (replaces the current one)",
+      "save": "Connect gateway",
+      "rotate": "Replace credentials",
+      "saved": "Gateway connected. Configure the confirmation URL in its panel.",
+      "disable": "Deactivate",
+      "disabled": "Gateway deactivated: charging went back to the platform.",
+      "confirmOff": "Deactivate your gateway? New sales go back to Omnidance.",
+      "confirmYes": "Yes, deactivate",
+      "hint": "With your own gateway the money from your sales lands straight in your account; the Omnidance fee is deducted in your settlement."
+    },
+    "ownMethods": {
+      "title": "Direct payment methods",
+      "desc": "Transfer, payment link or cash: the buyer picks the method at checkout and uploads the receipt; you validate and the ticket issues itself.",
+      "queueTitle": "Receipts to validate",
+      "queueDesc": "Approve to issue the ticket instantly; reject with a reason the buyer can see.",
+      "queueEmpty": "No pending receipts.",
+      "queueEmptyDesc": "When someone pays by transfer, link or cash and uploads their receipt, it'll appear here for validation.",
+      "orderTicket": "Ticket",
+      "orderSeriesPass": "Series pass"
+    },
+    "billingDocs": {
+      "title": "Charge notes",
+      "desc": "Internal documents for the deductions of your settlements.",
+      "folio": "Note No. {n}",
+      "openPdf": "View PDF"
+    },
+    "codeDetail": {
+      "redemptions": "Code redemptions",
+      "redemptionsDesc": "Each redemption is recorded with the person and the order that used it.",
+      "emptyRedemptions": "Nobody has used this code yet.",
+      "person": "Person",
+      "orderRef": "Order",
+      "redeemedAt": "Redeemed",
+      "expired": "Expired",
+      "createdAt": "Created",
+      "notFound": "We couldn't find this code."
+    },
+    "listDetail": {
+      "entries": "Guests",
+      "entriesCount": "{count, plural, one {# guest} other {# guests}}",
+      "emptyEntries": "No guests on the list yet.",
+      "owner": "Owner",
+      "specialPrice": "Special price",
+      "issuePass": "Issue pass",
+      "passIssued": "Pass issued.",
+      "addError": "We couldn't add them. Check the ID or if they're already on the list.",
+      "notFound": "We couldn't find this list."
+    },
+    "payoutDetail": {
+      "orderRef": "Order",
+      "orderType": "Type",
+      "orderChannel": "Channel",
+      "orderAmount": "Order amount",
+      "notFound": "We couldn't find this settlement."
+    },
+    "claimDetail": {
+      "title": "Receipt",
+      "buyer": "Buyer",
+      "order": "Order",
+      "amount": "Amount",
+      "method": "Method",
+      "channel": "Channel",
+      "sentAt": "Sent",
+      "orderStatus": "Order status",
+      "paidAt": "Paid",
+      "reviewedAt": "Reviewed",
+      "reviewNote": "Reason",
+      "orderRef": "Order no.",
+      "openReceipt": "View receipt",
+      "notFound": "We couldn't find this receipt."
+    },
+    "collaborators": {
+      "title": "Collaborators",
+      "desc": "Your roster: the people who appear as candidates when adding staff to your events.",
+      "add": "Add collaborator",
+      "remove": "Remove",
+      "empty": "You have no collaborators yet. Add them to reuse them as staff in your events.",
+      "personName": "Name",
+      "personPlaceholder": "Type the name…",
+      "inviteByEmail": "Or invite by email",
+      "emailLabel": "Email",
+      "emailPlaceholder": "person@email.com",
+      "nameLabel": "Name (optional)",
+      "inviteSubmit": "Send invite",
+      "invited": "Invite sent — they got an email with access",
+      "added": "Collaborator added"
+    }
+  }
+}

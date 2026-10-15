@@ -1,0 +1,32 @@
+{
+  "academyImport": {
+    "title": "Import data",
+    "desc": "Bulk upload to migrate from another platform: your student roster and weekly schedule as CSV.",
+    "studentsTitle": "Students",
+    "studentsDesc": "One row per student: email, name, plan and until when they paid. If they don't have an account we send them an invite by email.",
+    "studentsCols": "Columns: email, name, phone (optional), plan, paid_until (optional, YYYY-MM-DD)",
+    "scheduleTitle": "Weekly schedule",
+    "scheduleDesc": "One row per weekly block. Rows with the same series name group into a single series of the month.",
+    "scheduleCols": "Columns: series, weekday, start_time, end_time + optional: style, level, capacity, instructor_email, month",
+    "downloadTemplate": "Download template",
+    "chooseFile": "Choose CSV…",
+    "noFile": "No file chosen",
+    "upload": "Import",
+    "uploading": "Importing…",
+    "resultsTitle": "Result per row",
+    "colRow": "Row",
+    "colItem": "Value",
+    "colStatus": "Status",
+    "colDetail": "Detail",
+    "status": {
+      "imported": "Imported",
+      "updated": "Updated",
+      "invited": "Invited",
+      "error": "Error",
+      "ok": "Done",
+      "warn": "With warning"
+    },
+    "error": "Couldn't import the file. Check it's a CSV with the template's columns.",
+    "forbidden": "You don't have access to this academy's import."
+  }
+}

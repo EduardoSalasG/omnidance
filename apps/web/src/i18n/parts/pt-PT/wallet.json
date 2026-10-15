@@ -1,0 +1,9 @@
+{
+  "wallet": {
+    "eventRemoved": "Evento removido",
+    "pendingTitle": "Pagamentos em validação",
+    "pendingOrder": "Encomenda de bilhete",
+    "pendingValidating": "O produtor está a verificar o teu comprovativo. Ainda não é um bilhete válido.",
+    "pendingBadge": "Em validação"
+  }
+}

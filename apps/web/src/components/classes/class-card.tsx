@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
+
 import { useTranslations } from "next-intl";
 import { Badge, Button, LevelBars, PriceTag } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/spinner";
+import { Link } from "@/i18n/navigation";
 
 // Shape único del card de clase - lo devuelven /classes/browse,
 // /classes/mine (reservadas) y /home/stats (nextClass + myClasses).

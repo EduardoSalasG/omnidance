@@ -1,17 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
+
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Card } from "@/components/ui";
 import { shortId } from "./shared";
+import { Link } from "@/i18n/navigation";
+import { getNumFmt, useNumFmt } from "@/lib/intl";
 
-const clpFmt = new Intl.NumberFormat("es-CL", {
+const clpFmt = (locale: string) => getNumFmt(locale, {
   style: "currency",
   currency: "CLP",
   maximumFractionDigits: 0,
 });
+
+;
 
 type StudentsInsightsData = {
   topAttendance: { personId: string; name: string | null; count: number }[];
@@ -25,6 +29,7 @@ type StudentsInsightsData = {
  * en el inicio. Cada fila navega a la ficha del alumno.
  */
 export function StudentsInsights({ academyId }: { academyId: string }) {
+  const locale = useLocale();
   const t = useTranslations("academy");
   const [data, setData] = useState<StudentsInsightsData | null>(null);
   const [hidden, setHidden] = useState(false);
@@ -97,7 +102,7 @@ export function StudentsInsights({ academyId }: { academyId: string }) {
                       {s.name ?? shortId(s.personId)}
                     </span>
                     <span className="shrink-0 text-sm font-semibold tabular-nums text-ink/70">
-                      {clpFmt.format(s.amount)}
+                      {clpFmt(locale).format(s.amount)}
                     </span>
                   </Link>
                 </li>

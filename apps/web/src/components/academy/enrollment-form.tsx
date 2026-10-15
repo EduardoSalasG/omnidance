@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
@@ -13,6 +13,7 @@ import {
   type EnrollmentStatus,
   type MembershipPlan,
 } from "./shared";
+import { useRouter } from "@/i18n/navigation";
 
 /**
  * Alta de enrollment - vive en la página dedicada /academia/alumnos/nuevo.

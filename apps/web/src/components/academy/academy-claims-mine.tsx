@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Card } from "@/components/ui";
+import { getNumFmt, useDateFmt, useNumFmt } from "@/lib/intl";
+
+const clp = (locale: string) => getNumFmt(locale, {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
 
 type MyClaim = {
   id: string;
@@ -29,15 +36,8 @@ const statusStyle: Record<
   },
 };
 
-const clp = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
-const dayFmt = new Intl.DateTimeFormat("es-CL", {
-  day: "numeric",
-  month: "short",
-});
+;
+;
 
 /**
  * "Mis comprobantes" en la ficha (spec academy-checkout-manual-pay):
@@ -45,6 +45,11 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
  * como tal vive en el checkout de cada plan.
  */
 export function AcademyClaimsMine({ academyId }: { academyId: string }) {
+  const dayFmt = useDateFmt({
+  day: "numeric",
+  month: "short",
+});
+  const locale = useLocale();
   const t = useTranslations("academyPay");
   const [claims, setClaims] = useState<MyClaim[] | null>(null);
 
@@ -71,7 +76,7 @@ export function AcademyClaimsMine({ academyId }: { academyId: string }) {
               {c.plan?.name ?? c.methodLabel}
             </span>
             <span className="text-ink/50">
-              {clp.format(c.amount)} · {dayFmt.format(new Date(c.createdAt))}
+              {clp(locale).format(c.amount)} · {dayFmt.format(new Date(c.createdAt))}
             </span>
             <Badge
               variant={statusStyle[c.status].variant}

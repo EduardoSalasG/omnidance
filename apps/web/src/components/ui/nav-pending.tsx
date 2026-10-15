@@ -2,11 +2,12 @@
 
 import { Suspense, useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   acquirePageLoading,
   releasePageLoading,
 } from "./loading-beacon";
+import { usePathname } from "@/i18n/navigation";
 
 // La navegación por filtros es SSR con transición client-side: React
 // mantiene la UI anterior hasta que llega el nuevo payload y el swap

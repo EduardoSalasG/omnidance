@@ -1,0 +1,61 @@
+{
+  "survey": {
+    "prompt": "Como foi {name}?",
+    "cardCta": "Avaliar",
+    "sectionLabel": "Questionários pendentes",
+    "title": "Como foi {name}?",
+    "fallbackTitle": "Conta-nos como foi",
+    "subtitle": "A tua avaliação é privada. O produtor só vê médias.",
+    "overall": "Em geral",
+    "overallRequired": "Avalia a experiência geral para enviar",
+    "more": "Avaliar mais",
+    "less": "Avaliar menos",
+    "submit": "Enviar avaliação",
+    "thanks": "Obrigado! A tua avaliação ficou registada",
+    "expired": "A janela para avaliar este evento já fechou",
+    "forbidden": "Só quem fez check-in pode avaliar o evento",
+    "error": "Não foi possível enviar a tua avaliação. Tenta de novo",
+    "loginRequired": "Inicia sessão para avaliar o evento",
+    "backToEvent": "Ver evento",
+    "dims": {
+      "music": "Música",
+      "occupation": "Ocupação",
+      "organization": "Organização",
+      "floorComfort": "Conforto da pista",
+      "temperature": "Temperatura",
+      "lightingSound": "Luzes e som"
+    },
+    "scale": {
+      "music": { "low": "Má", "high": "Incrível" },
+      "occupation": { "low": "Vazio", "high": "Cheíssimo" },
+      "organization": { "low": "Desorganizada", "high": "Impecável" },
+      "floorComfort": { "low": "Desconfortável", "high": "Muito confortável" },
+      "temperature": { "low": "Gelado", "high": "Quente" },
+      "lightingSound": { "low": "Más", "high": "Excelentes" }
+    }
+  },
+  "courseSurvey": {
+    "prompt": "Como foi {name}?",
+    "cardCta": "Avaliar",
+    "title": "Como foi a tua aula de {name}?",
+    "subtitle": "A tua avaliação é privada. A academia só vê médias e comentários anónimos.",
+    "course": "Quanto gostaste da aula?",
+    "instructor": "Quanto gostaste do professor?",
+    "comment": "Observações (opcional)",
+    "commentPlaceholder": "O que gostaste, o que melhorarias…",
+    "courseRequired": "Avalia a aula para enviar",
+    "submit": "Enviar avaliação",
+    "thanks": "Obrigado! A tua avaliação ficou registada",
+    "forbidden": "Só quem assistiu a essa aula nesse mês pode avaliá-la",
+    "error": "Não foi possível enviar a tua avaliação. Tenta de novo",
+    "loginRequired": "Inicia sessão para avaliar a aula",
+    "invalid": "Este questionário não está disponível",
+    "backToAcademy": "Ver academia",
+    "resultsTitle": "Questionários do mês",
+    "responses": "{count, plural, one {# resposta} other {# respostas}}",
+    "avgCourse": "Aula",
+    "avgInstructor": "Professor",
+    "commentsTitle": "Comentários",
+    "empty": "Ainda não há questionários registados."
+  }
+}

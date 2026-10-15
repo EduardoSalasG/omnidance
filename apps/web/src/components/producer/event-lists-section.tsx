@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
@@ -19,6 +19,7 @@ import {
   filtersParams,
 } from "./shared";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
+import { Link } from "@/i18n/navigation";
 
 type GuestListEntry = {
   id: string;

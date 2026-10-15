@@ -1,0 +1,61 @@
+import { cookies } from "next/headers";
+import { getMessages } from "next-intl/server";
+import { Button } from "@/components/ui";
+import { ClaimClient } from "./claim-client";
+import { serverApiUrl } from "@/lib/server-api";
+
+export const dynamic = "force-dynamic";
+
+export type ClaimInfo = {
+  buyerName: string;
+  event: {
+    name: string;
+    startsAt: string;
+    venue: { name: string } | null;
+  } | null;
+};
+
+async function getClaimInfo(token: string): Promise<ClaimInfo | "gone" | "error"> {
+  const API_URL = await serverApiUrl();
+  const res = await fetch(`${API_URL}/api/tickets/claim/${token}`, {
+    cache: "no-store",
+  }).catch(() => null);
+  if (res?.status === 404) return "gone";
+  if (!res || !res.ok) return "error";
+  return (await res.json()) as ClaimInfo;
+}
+
+export default async function ClaimPage(
+  props: {
+    params: Promise<{ token: string }>;
+  }
+) {
+  const params = await props.params;
+  const t = ((await getMessages()) as typeof import("@/i18n/catalogs/es-CL").default).claim as Record<string, string>;
+  const info = await getClaimInfo(params.token);
+  const hasSession = (await cookies()).has("omnidance_session");
+
+  if (info === "gone" || info === "error") {
+    return (
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
+        <h1 className="text-2xl font-bold">
+          {info === "gone" ? t.goneTitle : t.errorTitle}
+        </h1>
+        {info === "gone" && (
+          <p className="max-w-sm text-sm text-ink/60">{t.goneDesc}</p>
+        )}
+        <Button href="/" variant="secondary">
+          {t.exploreCta}
+        </Button>
+      </main>
+    );
+  }
+
+  return (
+    <ClaimClient
+      token={params.token}
+      info={info}
+      hasSession={hasSession}
+    />
+  );
+}

@@ -1,0 +1,23 @@
+{
+  "dj": {
+    "upcoming": "Prochains gigs",
+    "emptyUpcoming": "Tu n'as pas de gigs à venir.",
+    "forbidden": "Ton compte n'a pas de gigs assignés comme DJ.",
+    "loadError": "Impossible de charger tes gigs.",
+    "history": "Historique",
+    "suggestions": {
+      "title": "Suggestions du public",
+      "show": "Voir les suggestions du public",
+      "hide": "Masquer les suggestions",
+      "empty": "Pas encore de suggestions.",
+      "error": "Impossible de charger les suggestions.",
+      "forbidden": "Tu n'as pas accès aux suggestions de cet événement.",
+      "total": "{count, plural, one {# suggestion du public} other {# suggestions du public}}"
+    },
+    "rating": {
+      "title": "{count, plural, one {Évaluation de la musique : # évaluation} other {Évaluation de la musique : # évaluations}}",
+      "few": "{count, plural, one {# évaluation} other {# évaluations}}",
+      "fewHint": "La moyenne s'affiche à partir de 3 évaluations"
+    }
+  }
+}

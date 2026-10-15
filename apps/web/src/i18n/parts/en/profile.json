@@ -1,0 +1,84 @@
+{
+  "profile": {
+    "appearance": "Appearance",
+    "pendingBanner": "Complete your details to activate your account",
+    "pendingBannerCta": "Complete",
+    "datos": {
+      "title": "My details",
+      "personal": "Personal details",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "memberSince": "Member since",
+      "verified": "Verified account",
+      "noPhone": "No phone registered",
+      "instagramEmpty": "No handle",
+      "socialSection": "Your dance",
+      "socialEmpty": "You haven’t declared your dance styles yet",
+      "gender": "Gender",
+      "genderEmpty": "Not declared",
+      "birthDate": "Birthday",
+      "birthDateEmpty": "Not declared",
+      "genderOptions": {
+        "M": "Male",
+        "F": "Female",
+        "OTHER": "Other"
+      },
+      "edit": "Edit",
+      "addStyle": "Add style",
+      "remove": "Remove",
+      "chooseStyle": "Pick a style",
+      "chooseRole": "Role",
+      "level": {
+        "none": "No level",
+        "principiante": "Beginner",
+        "intermedio": "Intermediate",
+        "avanzado": "Advanced"
+      },
+      "saved": "Saved",
+      "saveError": "Couldn’t save. Try again",
+      "academySection": "Your academies",
+      "academyEmpty": "No active enrollments",
+      "danceRole": {
+        "LEADER": "Leader",
+        "FOLLOWER": "Follower",
+        "SWITCH": "Switch"
+      },
+      "enrollmentStatus": {
+        "ACTIVE": "Active",
+        "TRIAL": "Trial",
+        "ONLINE": "Online",
+        "PAUSED": "Paused",
+        "FROZEN": "Frozen"
+      },
+      "plan": "Plan {name}",
+      "since": "Since {date}",
+      "phonePlaceholder": "+56 9 1234 5678",
+      "nameRequired": "Name can’t be empty",
+      "language": {
+        "title": "Language",
+        "hint": "Saved to your profile and applied on all your devices."
+      }
+    },
+    "reminder": {
+      "title": "Complete your profile",
+      "body": "You’re missing details like your phone, gender or dance styles.",
+      "cta": "Complete details",
+      "dismiss": "Don’t show again"
+    },
+    "complete": {
+      "title": "Complete your profile",
+      "subtitle": "Confirm your details to activate your account and start using the app.",
+      "name": "Name",
+      "phone": "Phone",
+      "password": "Password (optional)",
+      "passwordHint": "minimum 8 characters. You can also always sign in via your email link",
+      "submit": "Activate my account",
+      "success": "Done, your account is active",
+      "error": "We couldn’t save. Try again",
+      "phoneTaken": "This phone is already registered to another account.",
+      "passwordShort": "Password must be at least 8 characters.",
+      "loadError": "We couldn’t load your details."
+    }
+  }
+}

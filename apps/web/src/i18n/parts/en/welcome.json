@@ -1,0 +1,19 @@
+{
+  "welcome": {
+    "title": "Complete your profile",
+    "subtitle": "A few quick details so your friends can find you and the app gets to know you. Everything is optional: you can fill it in later under Profile.",
+    "name": "Name",
+    "phone": "Phone",
+    "phonePlaceholder": "+56 9 1234 5678",
+    "phoneTaken": "That phone is already registered to another account",
+    "instagram": "Instagram",
+    "instagramPlaceholder": "your.handle",
+    "danceTitle": "Your dance",
+    "danceHint": "Pick your styles and your role on the floor",
+    "danceEmpty": "We couldn’t load the styles. You can pick them later in Profile.",
+    "levelLabel": "Level",
+    "submit": "Done, let’s go",
+    "skip": "Not now",
+    "saveError": "We couldn’t save. Try again or continue with “Not now”."
+  }
+}

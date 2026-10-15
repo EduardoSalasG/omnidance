@@ -1,0 +1,265 @@
+{
+  "tours": {
+    "next": "Next",
+    "prev": "Previous",
+    "done": "Got it",
+    "home": {
+      "s1": {
+        "title": "Your pulse in the scene",
+        "desc": "Week streak, points, badges and dances: your real activity at a glance."
+      },
+      "s2": {
+        "title": "Social ↔ Academy",
+        "desc": "Two worlds in one app: Social for events, dances and friends; Academy for classes and your learning. Switch it here."
+      },
+      "s3": {
+        "title": "The bell",
+        "desc": "Everything lands here: gifted tickets, confirmed table reservations, friend requests and notices from your events."
+      },
+      "s4": {
+        "title": "The lineup",
+        "desc": "All of Santiago's socials: filter by style or venue, buy your presale and book a table for your group."
+      },
+      "s5": {
+        "title": "The + button",
+        "desc": "Your QR (your ticket at the door and how you log dances on the floor), your Dances history and the community's informal Practices."
+      },
+      "s6": {
+        "title": "Your friends",
+        "desc": "Build your crew: see who's going to each event, check their upcoming outings and gift them tickets from checkout."
+      },
+      "s7": {
+        "title": "Your profile",
+        "desc": "Photo, styles you dance and your lenses: if you're also an instructor, DJ, producer or run an academy, switch view here."
+      },
+      "academy": {
+        "s1": {
+          "title": "Your learning",
+          "desc": "Attendance, classes taken and your progress as a student, at a glance."
+        },
+        "s2": {
+          "title": "Social ↔ Academy",
+          "desc": "You're in Academy mode. Go back to Social for the events lineup, your dances and your crew."
+        },
+        "s3": {
+          "title": "The bell",
+          "desc": "Notices land here: class bookings, confirmations and news from your academies."
+        },
+        "s4": {
+          "title": "Classes",
+          "desc": "Explore classes and private lessons from all academies, book your spot and check your history."
+        },
+        "s5": {
+          "title": "The + button",
+          "desc": "Your personal QR. It's also your credential in classes and socials."
+        },
+        "s6": {
+          "title": "Academies",
+          "desc": "The scene's directory: discover academies, see their classes and enroll. If you're already in one, My Learning lives here."
+        },
+        "s7": {
+          "title": "Your profile",
+          "desc": "Photo, styles and your lenses. Switch back to Social view whenever you want to go dancing."
+        }
+      }
+    },
+    "eventos": {
+      "s1": {
+        "title": "Filter by style",
+        "desc": "Salsa, bachata or timba? Tap a chip to see only those nights. You can combine several."
+      },
+      "s2": {
+        "title": "By venue",
+        "desc": "Fan of a place? See only its lineup, and open its profile for the address and directions."
+      },
+      "s3": {
+        "title": "Three ways to see",
+        "desc": "List, weekly calendar or venue map: choose how to explore the scene."
+      },
+      "s4": {
+        "title": "My tickets",
+        "desc": "The ticket icon takes you to your wallet: your tickets with QR, the ones you bought and the ones you were gifted."
+      },
+      "s5": {
+        "title": "Tap an event",
+        "desc": "Each card opens the detail: lineup, plan of the night and prices. In checkout you can gift tickets to friends or book a table."
+      }
+    },
+    "clases": {
+      "s1": {
+        "title": "List or calendar",
+        "desc": "List grouped by day or weekly calendar; also inside Explore, to see the scene's full week."
+      },
+      "s2": {
+        "title": "Explore academies",
+        "desc": "All the scene's classes, not just your academies'. Booking requires an active enrollment."
+      },
+      "s3": {
+        "title": "Explore and book",
+        "desc": "Filter by day, style and level. Each card shows the remaining spots and books with one tap."
+      }
+    },
+    "qr": {
+      "s1": {
+        "title": "Your personal QR",
+        "desc": "It renews itself so nobody can copy it. At the door it's your ticket; on the floor, it logs dances with your partner."
+      },
+      "s2": {
+        "title": "Scanner mode",
+        "desc": "Switch to Scan to log a dance with your partner's QR. It lands in your Dances history."
+      }
+    },
+    "amigos": {
+      "s1": {
+        "title": "Build your crew",
+        "desc": "Search them by name or share your invite link. Whoever opens it lands straight on adding you."
+      },
+      "s2": {
+        "title": "Your friends are going to",
+        "desc": "The events where someone from your crew already has a ticket, so you don't hit the floor alone."
+      },
+      "s3": {
+        "title": "Your list",
+        "desc": "Pending requests and your friends. Open their profile to see their styles and which events they're going to."
+      }
+    },
+    "bailes": {
+      "s1": {
+        "title": "To confirm",
+        "desc": "The night's live dance invites: accept them or let them pass, without anyone knowing."
+      },
+      "s2": {
+        "title": "Your last social",
+        "desc": "How many dances, how many different partners, your average and the best dance of the night: your retrospective."
+      },
+      "s3": {
+        "title": "Your history",
+        "desc": "All your nights grouped by event: who took you out to dance, who you rated and how much you danced."
+      }
+    },
+    "practicas": {
+      "s1": {
+        "title": "All or yours",
+        "desc": "Filter between all the community's practices and only the ones you organize or attend, and by style."
+      },
+      "s2": {
+        "title": "Create yours",
+        "desc": "Getting together to train, reviewing a class or a warm-up before the social? Create your practice with spots and a place."
+      },
+      "s3": {
+        "title": "The practices",
+        "desc": "Grouped by day: time, place, who's hosting and how many are going. Tap one to confirm your attendance."
+      }
+    },
+    "perfil": {
+      "s1": {
+        "title": "Your identity",
+        "desc": "Photo, name and Instagram: what your friends and your dance partners see."
+      },
+      "s2": {
+        "title": "Act as",
+        "desc": "Switch the whole app's lens: dancer, staff, producer, academy… the nav and home transform."
+      },
+      "s3": {
+        "title": "Streak and badges",
+        "desc": "Earned by dancing: consecutive weeks on the floor and achievements for real behaviors. There's no public ranking."
+      }
+    },
+    "productor": {
+      "s1": {
+        "title": "Your month at a glance",
+        "desc": "Scheduled events, tickets sold, monthly billing and pending collections: the pulse of your production."
+      },
+      "s2": {
+        "title": "Payments to review",
+        "desc": "Transfers and manual payments waiting for your validation. Approve or reject them from the detail — the full queue lives in Receipts."
+      },
+      "s3": {
+        "title": "Your best nights",
+        "desc": "Top 5 by billing and by attendance: which date worked and which is worth repeating."
+      },
+      "s4": {
+        "title": "Your events",
+        "desc": "Create and manage every event: prices, lineup, reservable tables, guest lists, discount codes and door staff."
+      },
+      "s5": {
+        "title": "All the modules",
+        "desc": "Receipts, codes, CRM, analytics and your settings — defaults, payment methods, Pro subscription and appearance — from the menu."
+      },
+      "s6": {
+        "title": "The bell",
+        "desc": "Every ticket sale and every new receipt lands here. Nothing slips by."
+      }
+    },
+    "instructor": {
+      "s1": {
+        "title": "Your week",
+        "desc": "The classes you teach, your next-7-days schedule and marked attendance — your operation at a glance."
+      },
+      "s2": {
+        "title": "Upcoming classes",
+        "desc": "The classes ahead with their fill. Tap one to see the roster and mark attendance."
+      },
+      "s3": {
+        "title": "My classes",
+        "desc": "Your class console: full roster for each one. You can mark present from 30 minutes before to 30 after the start."
+      },
+      "s4": {
+        "title": "Students",
+        "desc": "Search them by name and check their attendance history — quick read, no editing."
+      },
+      "s5": {
+        "title": "The bell",
+        "desc": "We let you know when a class is assigned to you and 30 and 10 minutes before each one."
+      },
+      "s6": {
+        "title": "Your profile",
+        "desc": "Photo, details and your lenses: if you also dance or have another role, switch view here."
+      }
+    },
+    "academia": {
+      "s1": {
+        "title": "Your academy",
+        "desc": "The operating hub: classes, students, plans and videos in one place."
+      },
+      "s2": {
+        "title": "Attendance",
+        "desc": "The month's average in sight, and from here you enter to mark students present in each class."
+      },
+      "s3": {
+        "title": "All the modules",
+        "desc": "Schedules, private lessons, series and videos also from the side menu."
+      }
+    },
+    "academiaOwner": {
+      "s1": {
+        "title": "Your month at a glance",
+        "desc": "Active students, sellable plans, weekly classes, attendance and billed, with the comparison against last month."
+      },
+      "s2": {
+        "title": "Getting started",
+        "desc": "The activation checklist: schedule, plan, payment method, team and first student. It disappears on its own once the academy is ready."
+      },
+      "s3": {
+        "title": "Today's operation",
+        "desc": "Today's classes with their bookings and marked attendance. Tap a class to see its roster."
+      },
+      "s4": {
+        "title": "The urgent",
+        "desc": "Receipts to validate and private lessons to confirm: the queue worth bringing to zero each day."
+      },
+      "s5": {
+        "title": "What's coming",
+        "desc": "Plans expiring and your students' birthdays: retaining and celebrating is also operation."
+      },
+      "s6": {
+        "title": "All the modules",
+        "desc": "Payments, plans, team, settings and analytics live in the side menu: you reach the whole console from here."
+      },
+      "s7": {
+        "title": "The bell",
+        "desc": "Notices land here: new receipts, requests and news from your academy."
+      }
+    }
+  }
+}

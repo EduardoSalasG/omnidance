@@ -1,17 +1,15 @@
 "use client";
 
-import Link from "next/link";
+
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon, Skeleton } from "@/components/ui";
 import type { Academy, AcademyDashboard } from "./shared";
+import { Link } from "@/i18n/navigation";
+import { useNumFmt } from "@/lib/intl";
 
-const clpFmt = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
+;
 
 // Academia seleccionada persiste en localStorage (misma key que
 // AcademyGate) - el strip autocontenido la respeta al auto-resolver.
@@ -36,6 +34,11 @@ export function AcademyKpiCards({
    *  `keys` se muestran todas en el orden del dashboard. */
   keys?: string[];
 }) {
+  const clpFmt = useNumFmt({
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
   const t = useTranslations("academy");
   const tc = useTranslations("common");
 
@@ -238,6 +241,11 @@ function formatDelta(
   kind: "count" | "money" | "avg" | "pts",
   t: ReturnType<typeof useTranslations>,
 ): string {
+  const clpFmt = useNumFmt({
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
   switch (kind) {
     case "money":
       return clpFmt.format(Math.round(n));

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Badge, Button, Card, EventDate, Spinner } from "@/components/ui";
@@ -9,6 +9,7 @@ import { PartnerAvatar } from "./PartnerAvatar";
 import { StarRating } from "./StarRating";
 import { isInvitee } from "./types";
 import type { DanceSession, SessionAction } from "./types";
+import { Link } from "@/i18n/navigation";
 
 const STATUS_META: Record<
   string,

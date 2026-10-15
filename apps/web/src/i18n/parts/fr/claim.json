@@ -1,0 +1,23 @@
+{
+  "claim": {
+    "title": "Un billet t'attend",
+    "giftLine": "{name} t'a offert un billet",
+    "for": "pour",
+    "createCta": "Crée ton compte et réclame ton billet",
+    "loginCta": "J'ai déjà un compte",
+    "claimCta": "Réclamer mon billet",
+    "claiming": "Réclamation…",
+    "claimedTitle": "Billet réclamé !",
+    "claimedDesc": "Il est dans Mes billets. Montre ton QR à la porte.",
+    "goToTickets": "Aller à Mes billets",
+    "ownTicket": "Ce billet est déjà à toi",
+    "goneTitle": "Ce lien n'est plus valide",
+    "goneDesc": "Le billet a déjà été réclamé ou le lien a expiré.",
+    "errorTitle": "Impossible de charger l'invitation",
+    "claimError": "Impossible de la réclamer. Réessaie",
+    "selfError": "Tu ne peux pas réclamer ta propre invitation",
+    "exploreCta": "Explorer la scène",
+    "waShare": "Envoyer via WhatsApp",
+    "waMessage": "Je t'ai offert un billet pour {event} ! Réclame-le ici : {url}"
+  }
+}

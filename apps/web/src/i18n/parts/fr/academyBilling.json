@@ -1,0 +1,86 @@
+{
+  "academy": {
+    "modules": {
+      "subscription": "Abonnement",
+      "subscriptionDesc": "Plan de la plateforme, facturation et factures"
+    }
+  },
+  "academyBilling": {
+    "title": "Abonnement",
+    "desc": "Le plan qui maintient ton académie sur la plateforme : l'annuaire et les réservations de tes élèves.",
+    "noAccess": "Seul le propriétaire de l'académie peut voir et gérer l'abonnement.",
+    "loadError": "Impossible de charger le statut de l'abonnement.",
+    "bannerGrace": "Ton abonnement est en période de grâce : {days, plural, one {il reste # jour} other {il reste # jours}} pour régler le paiement.",
+    "bannerBlocked": "Académie bloquée pour abonnement impayé. Ton académie est désormais en lecture seule.",
+    "bannerCta": "Voir l'abonnement",
+    "statusActive": "Abonnement actif",
+    "statusTrial": "Période d'essai",
+    "statusNone": "Pas d'abonnement",
+    "statusPendingCard": "Enregistrement de carte manquant",
+    "statusFailedCard": "Impossible d'enregistrer la carte",
+    "statusActivating": "Activation de l'abonnement…",
+    "cancelPending": "S'annule le {date}",
+    "cancelPendingNoDate": "S'annule en fin de cycle",
+    "tiers": {
+      "STARTER": "Starter",
+      "PRO": "Pro",
+      "STUDIO": "Studio",
+      "ENTERPRISE": "Enterprise"
+    },
+    "tierUpTo": "Jusqu'à {max} élèves actifs",
+    "tierUnlimited": "Élèves illimités",
+    "tierCurrent": "Actuel",
+    "tierExceeded": "Ton académie a {active} élèves actifs et ce plan en permet jusqu'à {max}",
+    "enterpriseNote": "Enterprise : élèves illimités, contrat sur mesure.",
+    "enterpriseCta": "Écris-nous via le support",
+    "cycleLabel": "Cycle de facturation",
+    "cycles": {
+      "MONTHLY": "Mensuel",
+      "SEMIANNUAL": "Semestriel",
+      "ANNUAL": "Annuel"
+    },
+    "period": {
+      "MONTHLY": "mois",
+      "SEMIANNUAL": "semestre",
+      "ANNUAL": "an"
+    },
+    "perMonth": "{amount}/mois",
+    "cycleDiscount": "−{pct}%",
+    "studentsUsage": "{count} élèves actifs sur {max}",
+    "studentsUsageUnlimited": "{count} élèves actifs",
+    "nextInvoice": "Prochaine facturation : {date}",
+    "trialDaysLeft": "{days, plural, one {Il reste # jour} other {Il reste # jours}} d'essai. Ensuite il faut un plan pour continuer à fonctionner.",
+    "pendingChange": "Changement programmé : passage à {tier} ({cycle}) au renouvellement le {date}.",
+    "pendingChangeNoDate": "Changement programmé : passage à {tier} ({cycle}) au début du prochain cycle.",
+    "grace": "Période de grâce : {days, plural, one {il reste # jour} other {il reste # jours}}",
+    "graceHint": "Flow retente le débit automatiquement ; garde du solde sur la carte enregistrée.",
+    "blocked": "Académie bloquée pour abonnement impayé",
+    "blockedHint": "Règle le paiement pour réactiver ton académie, l'annuaire et les réservations de tes élèves.",
+    "changePlan": "Changer de plan",
+    "changeNow": "La mise à niveau s'applique immédiatement : le cycle complet du nouveau plan est débité.",
+    "changeScheduled": "Le changement s'applique au renouvellement le {date}. Aucun débit maintenant.",
+    "changeScheduledNoDate": "Le changement s'applique au début du prochain cycle. Aucun débit maintenant.",
+    "changeRevert": "Annule le changement programmé : ton plan reste sur {tier} ({cycle}).",
+    "apply": "Enregistrer le changement",
+    "applyOk": "Plan mis à jour.",
+    "subscribeCharge": "S'abonner à {tier} : {amount} chaque {period}",
+    "subscribeOk": "Abonnement activé.",
+    "subscribeError": "Impossible de lancer l'abonnement. Réessaie.",
+    "consent": "Abonnement : {amount} seront débités automatiquement chaque {period} jusqu'à annulation. On te prévient avant chaque débit.",
+    "cardRedirectTitle": "Dernière étape : ta carte sur Flow",
+    "cardRedirectDesc": "Tu vas sur la page sécurisée de Flow pour enregistrer la carte du débit récurrent. Ensuite tu reviens sur Omnidance et l'abonnement est actif.",
+    "cardRedirectCta": "Aller sur Flow pour enregistrer la carte",
+    "pendingCardHint": "Ton abonnement est en attente. Termine l'enregistrement de la carte pour l'activer.",
+    "cancel": "Annuler l'abonnement",
+    "cancelConfirm": "Annuler l'abonnement ? L'académie continue à fonctionner jusqu'à la fin du cycle payé, puis elle est bloquée.",
+    "cancelOk": "Abonnement annulé. Il reste actif jusqu'à la fin du cycle.",
+    "invoices": "Historique des débits",
+    "invoicesEmpty": "Pas encore de débits.",
+    "invoiceStatus": {
+      "PAID": "Payé",
+      "PENDING": "En attente",
+      "FAILED": "Échoué",
+      "REFUNDED": "Remboursé"
+    }
+  }
+}

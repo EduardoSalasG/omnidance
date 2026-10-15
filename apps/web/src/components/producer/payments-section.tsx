@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
   Badge,
@@ -31,6 +31,7 @@ type Props = { eventId: string };
  * que PassesSection).
  */
 export function PaymentsSection({ eventId }: Props) {
+  const locale = useLocale();
   const t = useTranslations("producer");
   const tp = useTranslations("payments");
   const tc = useTranslations("common");
@@ -225,7 +226,7 @@ export function PaymentsSection({ eventId }: Props) {
                   >
                     <td className="px-4 py-3 text-ink/70">
                       <span className="block whitespace-nowrap">
-                        {paymentDateTimeFmt.format(new Date(paymentPaidAt(p)))}
+                        {paymentDateTimeFmt(locale).format(new Date(paymentPaidAt(p)))}
                       </span>
                       <span className="block text-xs text-ink/40">
                         {`Nº ${p.refId.slice(0, 12)}`}

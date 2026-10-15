@@ -1,0 +1,23 @@
+{
+  "claim": {
+    "title": "You have a ticket waiting for you",
+    "giftLine": "{name} gifted you a ticket",
+    "for": "for",
+    "createCta": "Create your account and claim your ticket",
+    "loginCta": "I already have an account",
+    "claimCta": "Claim my ticket",
+    "claiming": "Claiming…",
+    "claimedTitle": "Ticket claimed!",
+    "claimedDesc": "It’s in My tickets now. Show your QR at the door.",
+    "goToTickets": "Go to My tickets",
+    "ownTicket": "This ticket is already yours",
+    "goneTitle": "This link is no longer valid",
+    "goneDesc": "The ticket was already claimed or the link expired.",
+    "errorTitle": "We couldn’t load the invite",
+    "claimError": "We couldn’t claim it. Try again",
+    "selfError": "You can’t claim your own invite",
+    "exploreCta": "Explore the scene",
+    "waShare": "Send via WhatsApp",
+    "waMessage": "I gifted you a ticket for {event}! Claim it here: {url}"
+  }
+}

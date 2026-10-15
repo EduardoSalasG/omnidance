@@ -2,9 +2,10 @@
 
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { CircleMarker, MapContainer, TileLayer, Tooltip } from "react-leaflet";
 import type { MapVenue } from "./EventsMap";
+import { useRouter } from "@/i18n/navigation";
 
 // Basemap estándar: CARTO Voyager con key (NEXT_PUBLIC_CARTO_BASEMAP_KEY -
 // gratis hasta ~5M tiles/mes, pedir en carto.com/basemaps/apikey). Sin key

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useMessages, useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
@@ -16,14 +16,16 @@ import {
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
-import academyExtras from "@/i18n/parts/academyExtras.json";
+
 import { filterQuery, readError, type Academy } from "./shared";
 
-const t = academyExtras.academyExtras.videos;
+
 
 // Los videos no son entidad del catálogo ACADEMY_OWNER: EntityDef local
 // con la clave del contrato (spec analytics/query-console) - q sobre el
 // título del video.
+type AcademyExtras = (typeof import("@/i18n/parts/academyExtras.json"))["academyExtras"];
+
 const VIDEOS_ENTITY: EntityDef = {
   entity: "academy_videos",
   filters: [{ key: "q", type: "text" }],
@@ -67,6 +69,7 @@ const linkBtnCls =
  *   ADMIN u ownerId === me.id).
  */
 export function Videos({ academy }: { academy: Academy }) {
+  const t = (useMessages() as { academyExtras: { videos: Record<string,string> } }).academyExtras.videos;
   const tc = useTranslations("common");
 
   const { me } = useMe();

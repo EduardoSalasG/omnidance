@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, Spinner } from "@/components/ui";
 import { StarRating } from "@/components/sessions/StarRating";
+import { useRouter } from "@/i18n/navigation";
 
 type Dim =
   | "music"

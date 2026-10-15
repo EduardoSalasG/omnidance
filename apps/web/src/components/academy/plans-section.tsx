@@ -1,9 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import Link from "next/link";
+
 import { Badge, Button, Card, PriceTag } from "@/components/ui";
 import type { MembershipPlan } from "./shared";
+import { Link } from "@/i18n/navigation";
 
 type Props = {
   plans: MembershipPlan[];

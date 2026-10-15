@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
+
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
   Badge,
@@ -15,9 +15,12 @@ import { SkeletonList } from "@/components/ui";
 import { TagBadges } from "./tag-badges";
 import type { CrmActor, CrmPeoplePage, CrmSegment, PeopleSort } from "./types";
 import { PEOPLE_SORTS, SEGMENTS, actorBody, actorQuery } from "./types";
+import { Link } from "@/i18n/navigation";
+import { getDateFmt, useDateFmt } from "@/lib/intl";
+const fmtDay = (locale: string) => getDateFmt(locale, { dateStyle: "medium" });
 
 const PAGE_SIZE = 20;
-const fmtDay = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium" });
+;
 
 const inputCls =
   "min-h-11 w-full rounded-lg border border-line bg-canvas px-3 text-sm " +
@@ -37,6 +40,7 @@ const SEGMENT_VARIANT: Record<string, "neon" | "outline" | "muted" | "live"> = {
  * El input de búsqueda se debouncea 300ms.
  */
 export function PeopleTable({ actor }: { actor: CrmActor }) {
+  const locale = useLocale();
   const t = useTranslations("crm");
   const tc = useTranslations("common");
 
@@ -459,7 +463,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
                         <p className="text-xs text-ink/50">
                           {r.computedAt
                             ? t("people.updatedAt", {
-                                date: fmtDay.format(new Date(r.computedAt)),
+                                date: fmtDay(locale).format(new Date(r.computedAt)),
                               })
                             : t("people.noScore")}
                         </p>

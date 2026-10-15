@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+
 import { useTranslations } from "next-intl";
 import type { DrawerGroup, DrawerItem } from "./SideDrawer";
+import { Link } from "@/i18n/navigation";
 
 const NAV_ID = "app-sidebar-nav";
 

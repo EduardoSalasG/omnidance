@@ -1,0 +1,9 @@
+{
+  "wallet": {
+    "eventRemoved": "Event removed",
+    "pendingTitle": "Payments under review",
+    "pendingOrder": "Ticket order",
+    "pendingValidating": "The producer is reviewing your receipt. It’s not a valid ticket yet.",
+    "pendingBadge": "Under review"
+  }
+}

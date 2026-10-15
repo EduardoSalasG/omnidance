@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, Skeleton, XIcon } from "@/components/ui";
@@ -14,6 +14,7 @@ import {
   type SeriesLevel,
   type SeriesStyle,
 } from "./shared";
+import { useRouter } from "@/i18n/navigation";
 
 type SlotDraft = {
   // El horario solo fija día/horas - cupos (quórum) y modalidad son

@@ -1,0 +1,321 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { apiFetch } from "@/lib/api";
+import { readError } from "@/components/academy/shared";
+import { Badge, Button, Card, SkeletonList } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
+import { AdminGate } from "@/components/admin/admin-gate";
+import { ConsoleHeader } from "@/components/console/console-header";
+import { inputCls } from "@/components/academy/shared";
+import { FilterBar } from "@/components/query/FilterBar";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
+import { useDateFmt, useNumFmt } from "@/lib/intl";
+
+// Consola de facturación (spec admin-billing-documents): emisión de la
+// nota de cobro interna por liquidación (idempotente - candidates sin
+// documento), listado con folio, descarga del PDF y anulación con
+// motivo. El PDF se abre inline en otra pestaña (auth por cookie).
+
+type Candidate = {
+  id: string;
+  actorType: string;
+  actorId: string;
+  periodStart: string;
+  periodEnd: string;
+  gross: number;
+  net: number;
+  status: string;
+  chargeTotal: number;
+  document: { id: string; folio: number; status: string } | null;
+};
+
+type BillingDoc = {
+  id: string;
+  folio: number;
+  status: "ISSUED" | "VOID";
+  actorType: string;
+  receiverName: string;
+  receiverRut: string | null;
+  periodStart: string;
+  periodEnd: string;
+  totalClp: number;
+  currency: string;
+  issuedAt: string;
+  voidReason: string | null;
+  receiver: { id: string; name: string; email: string | null };
+};
+
+// Los documentos emitidos son consultables - misma barra compartida y
+// mismos params que acepta GET /admin/billing (status whitelisted,
+// personId → receiverId, from/to sobre issuedAt).
+const BILLING_DOCS_DEF: EntityDef = {
+  entity: "billing-documents",
+  filters: [
+    { key: "status", type: "enum", options: ["ISSUED", "VOID"] },
+    { key: "personId", type: "text" },
+    { key: "from", type: "date" },
+    { key: "to", type: "date" },
+  ],
+  columns: [],
+};
+
+;
+;
+
+
+export default function AdminFacturacionPage() {
+  const t = useTranslations("admin");
+  return (
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
+      <ConsoleHeader backHref="/admin" backLabel={t("title")} />
+      <AdminGate>
+        <BillingPanel />
+      </AdminGate>
+    </main>
+  );
+}
+
+function BillingPanel() {
+  const dateFmt = useDateFmt({ dateStyle: "medium" });
+  const dmy = (iso: string) => dateFmt.format(new Date(iso));;
+  const clp = useNumFmt({
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
+  const t = useTranslations("admin.billing");
+  const [candidates, setCandidates] = useState<Candidate[] | null>(null);
+  const [docs, setDocs] = useState<BillingDoc[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState<string | null>(null);
+  const [voidingId, setVoidingId] = useState<string | null>(null);
+  const [voidReason, setVoidReason] = useState("");
+  const [voidBusy, setVoidBusy] = useState(false);
+  const [filters, setFilters] = useState<QueryFilters>({});
+
+  // Auto-aplicada: cambiar un filtro recrea el loader → refetch del
+  // listado (los candidatos a emitir siempre van completos).
+  const load = useCallback(async () => {
+    setError(null);
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) {
+      if (v) params.set(k, v);
+    }
+    const qs = params.toString();
+    const [rc, rd] = await Promise.all([
+      apiFetch("/admin/billing/candidates"),
+      apiFetch(`/admin/billing${qs ? `?${qs}` : ""}`),
+    ]);
+    if (!rc.ok || !rd.ok) {
+      setError(await readError(rc.ok ? rd : rc));
+      setCandidates([]);
+      setDocs([]);
+      return;
+    }
+    setCandidates(await rc.json());
+    setDocs(await rd.json());
+  }, [filters]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function generate(payoutId: string) {
+    setGenerating(payoutId);
+    setError(null);
+    try {
+      const res = await apiFetch("/admin/billing/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payoutId }),
+      });
+      if (!res.ok) setError(await readError(res));
+      else await load();
+    } finally {
+      setGenerating(null);
+    }
+  }
+
+  async function submitVoid(id: string) {
+    if (!voidReason.trim()) return;
+    setVoidBusy(true);
+    setError(null);
+    try {
+      const res = await apiFetch(`/admin/billing/${id}/void`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: voidReason.trim() }),
+      });
+      if (!res.ok) setError(await readError(res));
+      else {
+        setVoidingId(null);
+        setVoidReason("");
+        await load();
+      }
+    } finally {
+      setVoidBusy(false);
+    }
+  }
+
+  const pending = candidates?.filter((c) => !c.document) ?? [];
+
+  return (
+    <>
+      <section className="flex flex-col gap-3">
+        <h1 className="text-lg font-semibold">{t("title")}</h1>
+        <p className="text-sm text-ink/60">{t("desc")}</p>
+        {error && (
+          <Card className="border-red-500/40 p-3 text-sm text-red-300">
+            {error}
+          </Card>
+        )}
+      </section>
+
+      {/* ── Emitir desde liquidaciones ─────────────────────────── */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold text-ink/80">
+          {t("candidatesTitle")}
+        </h2>
+        {candidates === null ? (
+          <SkeletonList items={3} />
+        ) : pending.length === 0 ? (
+          <Card className="p-4 text-sm text-ink/60">
+            {t("candidatesEmpty")}
+          </Card>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {pending.map((c) => (
+              <Card key={c.id} className="flex flex-col gap-2 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {t(`actor.${c.actorType}`)} ·{" "}
+                      <span className="text-ink/50">
+                        {c.actorId.slice(0, 8)}
+                      </span>
+                    </p>
+                    <p className="text-xs text-ink/50">
+                      {dmy(c.periodStart)} – {dmy(c.periodEnd)} ·{" "}
+                      {t("charges", { amount: clp.format(c.chargeTotal) })}
+                    </p>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => generate(c.id)}
+                    disabled={generating === c.id}
+                  >
+                    {generating === c.id ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      t("generate")
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* ── Documentos emitidos ────────────────────────────────── */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold text-ink/80">
+          {t("docsTitle")}
+        </h2>
+        <FilterBar
+          entity={BILLING_DOCS_DEF}
+          filters={filters}
+          onChange={setFilters}
+          options={{}}
+        />
+        {docs === null ? (
+          <SkeletonList items={3} />
+        ) : docs.length === 0 ? (
+          <Card className="p-4 text-sm text-ink/60">{t("docsEmpty")}</Card>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {docs.map((d) => (
+              <Card key={d.id} className="flex flex-col gap-2 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 text-sm font-medium">
+                      {t("folio", { n: d.folio })}
+                      <Badge
+                        variant={d.status === "ISSUED" ? "neon" : "outline"}
+                      >
+                        {t(`status.${d.status}`)}
+                      </Badge>
+                    </p>
+                    <p className="truncate text-xs text-ink/60">
+                      {d.receiverName}
+                      {d.receiverRut ? ` · ${d.receiverRut}` : ""}
+                    </p>
+                    <p className="text-xs text-ink/50">
+                      {dmy(d.periodStart)} – {dmy(d.periodEnd)} ·{" "}
+                      {clp.format(d.totalClp)}
+                    </p>
+                    {d.status === "VOID" && d.voidReason && (
+                      <p className="text-xs text-red-300/80">
+                        {t("voidedReason", { reason: d.voidReason })}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <a
+                      href={`/api/admin/billing/${d.id}/pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-cyan-300 underline"
+                    >
+                      {t("openPdf")}
+                    </a>
+                    {d.status === "ISSUED" && (
+                      <button
+                        type="button"
+                        className="text-xs text-red-300 underline"
+                        onClick={() => {
+                          setVoidingId(voidingId === d.id ? null : d.id);
+                          setVoidReason("");
+                        }}
+                      >
+                        {t("void")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {voidingId === d.id && (
+                  <form
+                    className="flex items-center gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void submitVoid(d.id);
+                    }}
+                  >
+                    <input
+                      className={`${inputCls} flex-1 text-xs`}
+                      placeholder={t("voidReasonPlaceholder")}
+                      value={voidReason}
+                      onChange={(e) => setVoidReason(e.target.value)}
+                      required
+                    />
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      type="submit"
+                      disabled={voidBusy || !voidReason.trim()}
+                    >
+                      {voidBusy ? <Spinner size="sm" /> : t("voidConfirm")}
+                    </Button>
+                  </form>
+                )}
+              </Card>
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
+  );
+}

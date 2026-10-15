@@ -1,0 +1,265 @@
+{
+  "tours": {
+    "next": "Suivant",
+    "prev": "Précédent",
+    "done": "Compris",
+    "home": {
+      "s1": {
+        "title": "Ton pouls dans la scène",
+        "desc": "Série de semaines, points, badges et danses : ton activité réelle en un coup d'œil."
+      },
+      "s2": {
+        "title": "Social ↔ Académie",
+        "desc": "Deux mondes dans une app : Social pour les événements, danses et amis ; Académie pour les cours et ton apprentissage. Bascule ici."
+      },
+      "s3": {
+        "title": "La cloche",
+        "desc": "Tout arrive ici : billets offerts, réservations de table confirmées, demandes d'amis et avis de tes événements."
+      },
+      "s4": {
+        "title": "Le lineup",
+        "desc": "Tous les socials de Santiago : filtre par style ou lieu, achète ta prévente et réserve une table pour ton groupe."
+      },
+      "s5": {
+        "title": "Le bouton +",
+        "desc": "Ton QR (ton billet à la porte et ta façon de logger des danses sur la piste), ton historique de Danses et les Pratiques informelles de la communauté."
+      },
+      "s6": {
+        "title": "Tes amis",
+        "desc": "Constitue ta troupe : vois qui va à chaque événement, regarde leurs prochaines sorties et offre-leur des billets au checkout."
+      },
+      "s7": {
+        "title": "Ton profil",
+        "desc": "Photo, styles que tu danses et tes lunettes : si tu es aussi instructeur, DJ, producteur ou gères une académie, change de vue ici."
+      },
+      "academy": {
+        "s1": {
+          "title": "Ton apprentissage",
+          "desc": "Présence, cours suivis et ta progression d'élève, en un coup d'œil."
+        },
+        "s2": {
+          "title": "Social ↔ Académie",
+          "desc": "Tu es en mode Académie. Retourne à Social pour le lineup d'événements, tes danses et ta troupe."
+        },
+        "s3": {
+          "title": "La cloche",
+          "desc": "Les avis arrivent ici : réservations de cours, confirmations et nouveautés de tes académies."
+        },
+        "s4": {
+          "title": "Cours",
+          "desc": "Explore les cours et cours particuliers de toutes les académies, réserve ta place et consulte ton historique."
+        },
+        "s5": {
+          "title": "Le bouton +",
+          "desc": "Ton QR personnel. C'est aussi ta carte d'élève en cours et aux socials."
+        },
+        "s6": {
+          "title": "Académies",
+          "desc": "L'annuaire de la scène : découvre des académies, vois leurs cours et inscris-toi. Si tu es déjà dans l'une, Mon apprentissage vit ici."
+        },
+        "s7": {
+          "title": "Ton profil",
+          "desc": "Photo, styles et tes lunettes. Repasse en vue Social quand tu veux aller danser."
+        }
+      }
+    },
+    "eventos": {
+      "s1": {
+        "title": "Filtre par style",
+        "desc": "Salsa, bachata ou timba ? Touche une puce pour ne voir que ces soirées. Tu peux en combiner plusieurs."
+      },
+      "s2": {
+        "title": "Par lieu",
+        "desc": "Fan d'un endroit ? Vois juste son programme, et ouvre son profil pour l'adresse et l'itinéraire."
+      },
+      "s3": {
+        "title": "Trois façons de voir",
+        "desc": "Liste, calendrier hebdo ou carte des lieux : choisis comment explorer la scène."
+      },
+      "s4": {
+        "title": "Mes billets",
+        "desc": "L'icône billet t'emmène à ton portefeuille : tes billets avec QR, ceux achetés et ceux offerts."
+      },
+      "s5": {
+        "title": "Touche un événement",
+        "desc": "Chaque carte ouvre le détail : lineup, programme de la soirée et prix. Au checkout tu peux offrir des billets ou réserver une table."
+      }
+    },
+    "clases": {
+      "s1": {
+        "title": "Liste ou calendrier",
+        "desc": "Liste groupée par jour ou calendrier hebdomadaire ; aussi dans Explorer, pour voir toute la semaine de la scène."
+      },
+      "s2": {
+        "title": "Explorer les académies",
+        "desc": "Tous les cours de la scène, pas seulement ceux de tes académies. La réservation demande une inscription active."
+      },
+      "s3": {
+        "title": "Explore et réserve",
+        "desc": "Filtre par jour, style et niveau. Chaque carte montre les places restantes et réserve en un tap."
+      }
+    },
+    "qr": {
+      "s1": {
+        "title": "Ton QR personnel",
+        "desc": "Il se renouvelle tout seul pour que personne ne puisse le copier. À la porte c'est ton billet ; sur la piste, il enregistre des danses avec ton partenaire."
+      },
+      "s2": {
+        "title": "Mode scanner",
+        "desc": "Passe à Scanner pour enregistrer une danse avec le QR de ton partenaire. Elle arrive dans ton historique de Danses."
+      }
+    },
+    "amigos": {
+      "s1": {
+        "title": "Constitue ta troupe",
+        "desc": "Cherche-les par nom ou partage ton lien d'invitation. Celui qui l'ouvre atterrit directement sur l'ajout."
+      },
+      "s2": {
+        "title": "Tes amis vont à",
+        "desc": "Les événements où quelqu'un de ta troupe a déjà un billet, pour ne pas arriver seul sur la piste."
+      },
+      "s3": {
+        "title": "Ta liste",
+        "desc": "Demandes en attente et tes amis. Ouvre leur profil pour voir leurs styles et les événements où ils vont."
+      }
+    },
+    "bailes": {
+      "s1": {
+        "title": "À confirmer",
+        "desc": "Les invitations à danser en direct de la soirée : accepte-les ou laisse-les passer, sans que personne ne le sache."
+      },
+      "s2": {
+        "title": "Ton dernier social",
+        "desc": "Combien de danses, combien de partenaires différents, ta moyenne et la meilleure danse de la soirée : ta rétrospective."
+      },
+      "s3": {
+        "title": "Ton historique",
+        "desc": "Toutes tes soirées groupées par événement : qui t'a fait danser, qui tu as noté et combien tu as dansé."
+      }
+    },
+    "practicas": {
+      "s1": {
+        "title": "Toutes ou les tiennes",
+        "desc": "Filtre entre toutes les pratiques de la communauté et celles que tu organises ou fréquentes, et par style."
+      },
+      "s2": {
+        "title": "Crée la tienne",
+        "desc": "S'entraîner ensemble, réviser un cours ou un échauffement avant le social ? Crée ta pratique avec places et lieu."
+      },
+      "s3": {
+        "title": "Les pratiques",
+        "desc": "Groupées par jour : heure, lieu, qui organise et combien y vont. Touche-en une pour confirmer ta venue."
+      }
+    },
+    "perfil": {
+      "s1": {
+        "title": "Ton identité",
+        "desc": "Photo, nom et Instagram : ce que voient tes amis et tes partenaires de danse."
+      },
+      "s2": {
+        "title": "Agir en tant que",
+        "desc": "Change la lunette de toute l'app : danseur, staff, producteur, académie… la nav et l'accueil se transforment."
+      },
+      "s3": {
+        "title": "Série et badges",
+        "desc": "Gagnés en dansant : semaines consécutives sur la piste et récompenses pour comportements réels. Pas de classement public."
+      }
+    },
+    "productor": {
+      "s1": {
+        "title": "Ton mois en un coup d'œil",
+        "desc": "Événements programmés, billets vendus, chiffre du mois et encaissements en attente : le pouls de ta production."
+      },
+      "s2": {
+        "title": "Paiements à vérifier",
+        "desc": "Virements et paiements manuels en attente de ta validation. Approuve ou refuse depuis le détail — la file complète vit dans Justificatifs."
+      },
+      "s3": {
+        "title": "Tes meilleures soirées",
+        "desc": "Top 5 par chiffre et par affluence : quelle date a marché et laquelle mérite d'être répétée."
+      },
+      "s4": {
+        "title": "Tes événements",
+        "desc": "Crée et gère chaque événement : prix, lineup, tables réservables, listes d'invités, codes de réduction et staff de porte."
+      },
+      "s5": {
+        "title": "Tous les modules",
+        "desc": "Justificatifs, codes, CRM, analytique et tes paramètres — valeurs par défaut, moyens de paiement, abonnement Pro et apparence — depuis le menu."
+      },
+      "s6": {
+        "title": "La cloche",
+        "desc": "Chaque billet vendu et chaque nouveau justificatif arrive ici. Rien ne t'échappe."
+      }
+    },
+    "instructor": {
+      "s1": {
+        "title": "Ta semaine",
+        "desc": "Les cours que tu donnes, ton planning des 7 prochains jours et les présences marquées — ton activité en un coup d'œil."
+      },
+      "s2": {
+        "title": "Cours à venir",
+        "desc": "Les cours à venir avec leur remplissage. Touche-en un pour voir la liste et marquer les présences."
+      },
+      "s3": {
+        "title": "Mes cours",
+        "desc": "Ta console de cours : liste complète pour chacun. Tu peux marquer présent de 30 minutes avant à 30 après le début."
+      },
+      "s4": {
+        "title": "Élèves",
+        "desc": "Cherche-les par nom et consulte leur historique de présence — lecture rapide, sans édition."
+      },
+      "s5": {
+        "title": "La cloche",
+        "desc": "On te prévient quand un cours t'est assigné et 30 puis 10 minutes avant chacun."
+      },
+      "s6": {
+        "title": "Ton profil",
+        "desc": "Photo, infos et tes lunettes : si tu danses aussi ou as un autre rôle, change de vue ici."
+      }
+    },
+    "academia": {
+      "s1": {
+        "title": "Ton académie",
+        "desc": "Le hub d'opération : cours, élèves, plans et vidéos au même endroit."
+      },
+      "s2": {
+        "title": "Présence",
+        "desc": "La moyenne du mois visible, et d'ici tu entres pour marquer les élèves présents à chaque cours."
+      },
+      "s3": {
+        "title": "Tous les modules",
+        "desc": "Horaires, cours particuliers, séries et vidéos aussi depuis le menu latéral."
+      }
+    },
+    "academiaOwner": {
+      "s1": {
+        "title": "Ton mois en un coup d'œil",
+        "desc": "Élèves actifs, plans vendables, cours hebdo, présence et encaissé, avec la comparaison au mois dernier."
+      },
+      "s2": {
+        "title": "Premiers pas",
+        "desc": "La checklist d'activation : horaires, plan, moyen de paiement, équipe et premier élève. Elle disparaît toute seule quand l'académie est prête."
+      },
+      "s3": {
+        "title": "L'opération du jour",
+        "desc": "Les cours d'aujourd'hui avec leurs réservations et présences marquées. Touche un cours pour voir sa liste."
+      },
+      "s4": {
+        "title": "L'urgent",
+        "desc": "Justificatifs à valider et cours particuliers à confirmer : la file à ramener à zéro chaque jour."
+      },
+      "s5": {
+        "title": "Ce qui arrive",
+        "desc": "Abonnements qui expirent et anniversaires de tes élèves : retenir et célébrer, c'est aussi de l'opération."
+      },
+      "s6": {
+        "title": "Tous les modules",
+        "desc": "Paiements, plans, équipe, paramètres et analytique vivent dans le menu latéral : toute la console est accessible d'ici."
+      },
+      "s7": {
+        "title": "La cloche",
+        "desc": "Les avis arrivent ici : nouveaux justificatifs, demandes et nouveautés de ton académie."
+      }
+    }
+  }
+}

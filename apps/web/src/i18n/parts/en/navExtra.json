@@ -1,0 +1,11 @@
+{
+  "nav": {
+    "account": "Account",
+    "collapseMenu": "Collapse menu",
+    "expandMenu": "Expand menu",
+    "theme": "Theme",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark"
+  }
+}

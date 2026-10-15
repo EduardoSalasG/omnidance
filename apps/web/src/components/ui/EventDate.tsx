@@ -1,4 +1,8 @@
-const compactFmt = new Intl.DateTimeFormat("es-CL", {
+"use client";
+
+import { useLocale } from "next-intl";
+import { getDateFmt } from "@/lib/intl";
+const compactFmt = (locale: string) => getDateFmt(locale, {
   weekday: "short",
   day: "numeric",
   month: "short",
@@ -6,7 +10,7 @@ const compactFmt = new Intl.DateTimeFormat("es-CL", {
   minute: "2-digit",
 });
 
-const fullFmt = new Intl.DateTimeFormat("es-CL", {
+const fullFmt = (locale: string) => getDateFmt(locale, {
   weekday: "long",
   day: "numeric",
   month: "long",
@@ -14,7 +18,7 @@ const fullFmt = new Intl.DateTimeFormat("es-CL", {
   minute: "2-digit",
 });
 
-const timeFmt = new Intl.DateTimeFormat("es-CL", {
+const timeFmt = (locale: string) => getDateFmt(locale, {
   hour: "2-digit",
   minute: "2-digit",
   hourCycle: "h23", // "22:00" - compacto para columnas de hora
@@ -36,12 +40,13 @@ export function EventDate({
   variant = "compact",
   className = "",
 }: EventDateProps) {
+  const locale = useLocale();
   const s = new Date(start);
   const fmt =
     variant === "full" ? fullFmt : variant === "time" ? timeFmt : compactFmt;
   const text = end
-    ? `${fmt.format(s)} – ${timeFmt.format(new Date(end))}`
-    : fmt.format(s);
+    ? `${fmt(locale).format(s)} – ${timeFmt(locale).format(new Date(end))}`
+    : fmt(locale).format(s);
 
   return (
     <time dateTime={s.toISOString()} className={className}>

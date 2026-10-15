@@ -1,0 +1,55 @@
+{
+  "nav": {
+    "venue": "Lieu"
+  },
+  "venue": {
+    "loginRequired": "Connecte-toi pour gérer tes lieux.",
+    "forbidden": "Tu n'as pas de lieux assignés à ton compte.",
+    "empty": "Tu n'as pas de lieux assignés. Si tu gères un lieu, demande à l'équipe Omnidance de le lier à ton compte.",
+    "error": "Impossible de charger la section du lieu.",
+    "pickVenue": "Choisis un lieu",
+    "capacity": "Jauge : {count} personnes",
+    "kpi": {
+      "upcoming": "À venir",
+      "events30d": "Événements 30j",
+      "checkins30d": "Check-ins 30j"
+    },
+    "sections": {
+      "upcoming": "Prochains événements",
+      "tables": "Réservations de table",
+      "flow": "Flux du public",
+      "rentals": "Locations",
+      "menus": "Cartes et menus"
+    },
+    "emptyUpcoming": "Pas d'événements à venir programmés.",
+    "emptyTables": "Pas de réservations de table sur les événements à venir.",
+    "emptyFlow": "Pas de check-ins sur les 30 derniers jours.",
+    "emptyRentals": "Pas de demandes de location.",
+    "emptyMenus": "Pas de cartes chargées.",
+    "tables": {
+      "anonymous": "Réservation",
+      "party": "{count, plural, one {# personne} other {# personnes}}"
+    },
+    "flow": {
+      "peakHour": "heure de pointe des arrivées",
+      "avgStay": "durée moyenne",
+      "stayValue": "{hours} h {minutes} min",
+      "chartLabel": "Arrivées par heure (30 derniers jours)"
+    },
+    "rentals": {
+      "confirm": "Confirmer",
+      "confirmAsk": "Confirmer cette demande de location ?",
+      "cancelAsk": "Annuler cette demande de location ?",
+      "yesConfirm": "Oui, confirmer",
+      "yesCancel": "Oui, annuler",
+      "statuses": {
+        "REQUESTED": "Demandée",
+        "CONFIRMED": "Confirmée",
+        "CANCELLED": "Annulée"
+      }
+    },
+    "menus": {
+      "item": "Carte v{version}"
+    }
+  }
+}

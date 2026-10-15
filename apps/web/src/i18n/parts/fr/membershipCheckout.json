@@ -1,0 +1,26 @@
+{
+  "membershipCheckout": {
+    "title": "Confirmer l'abonnement",
+    "orderTitle": "Ta commande",
+    "plan": "Abonnement",
+    "vigenciaUntil": "Valable jusqu'au {date}",
+    "vigenciaClasses": "{count, plural, one {# cours} other {# cours}} · sans date d'expiration",
+    "vigenciaSingle": "Valable pour un cours le jour de l'achat",
+    "vigenciaPeriod": "{days} jours de validité à partir de l'achat",
+    "vigenciaExtends": "Ton abonnement actuel expire le {date} : la nouvelle validité démarre le lendemain.",
+    "modeTitle": "Comment veux-tu payer ?",
+    "modeOnce": "Paiement unique",
+    "modeOnceHint": "Tu paies une fois pour la période. À l'échéance, tu renouvelles manuellement.",
+    "modeSub": "Abonnement",
+    "modeSubHint": "Débité automatiquement chaque {period}. Annulable à tout moment depuis la fiche de l'académie.",
+    "payTotal": "Payer {total}",
+    "trustFlow": "Paiement sécurisé traité par Flow",
+    "cardNext": "Ensuite, Flow te demandera d'enregistrer ta carte sur sa page sécurisée et on te ramène automatiquement.",
+    "cardRedirectTitle": "Une dernière étape : ta carte",
+    "cardRedirectDesc": "Pour activer l'abonnement, enregistre ta carte sur la page officielle de Flow. Aucun débit avant que l'enregistrement soit terminé et que tu reviennes ici.",
+    "cardRedirectCta": "Continuer vers Flow",
+    "planUnavailable": "Cet abonnement n'est pas disponible pour l'instant",
+    "alreadySubscribed": "Tu as déjà un abonnement à ce plan",
+    "backToAcademy": "Retour à l'académie"
+  }
+}

@@ -1,4 +1,4 @@
-import Link from "next/link";
+
 import { useTranslations } from "next-intl";
 import {
   Badge,
@@ -11,6 +11,7 @@ import {
 import type { GenreMixBlock } from "@/components/ui";
 import { GENRE_TEXT } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
+import { Link } from "@/i18n/navigation";
 
 // GET /events - evento publicado con venue y mix de géneros.
 // Shape único del card (símil de ClassCardData en /clases).

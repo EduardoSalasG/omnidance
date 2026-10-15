@@ -1,0 +1,21 @@
+{
+  "nav": {
+    "notifications": "Notificações",
+    "notificationsFull": "Notificações",
+    "notificationsUnread": "Notificações ({count} por ler)"
+  },
+  "realtime": {
+    "toast": {
+      "open": "Ver a notificação",
+      "close": "Dispensar"
+    },
+    "push": {
+      "title": "Ativa as notificações",
+      "description": "Avisamos-te na hora quando te convidam a dançar, quando um bilhete se confirma ou quando há novidades da cena.",
+      "enable": "Ativar notificações",
+      "later": "Agora não",
+      "enabled": "Feito, notificações ativadas",
+      "error": "Não foi possível ativá-las. Tenta de novo."
+    }
+  }
+}

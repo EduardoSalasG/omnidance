@@ -1,0 +1,79 @@
+{
+  "payments": {
+    "title": "My payments",
+    "subtitle": "History of your purchases: tickets, passes and academy plans.",
+    "empty": "You have no payments registered yet.",
+    "orderTypes": {
+      "TICKET": "Ticket",
+      "SERIES_PASS": "Series pass",
+      "MEMBERSHIP": "Academy plan",
+      "PRIVATE_LESSON": "Private lesson",
+      "WORKSHOP": "Workshop"
+    },
+    "status": {
+      "PENDING": "Pending",
+      "PAID": "Paid",
+      "FAILED": "Failed",
+      "REFUNDED": "Refunded"
+    },
+    "channels": {
+      "PRESALE": "Presale",
+      "DOOR": "Door",
+      "MANUAL": "Manual",
+      "FREE": "Free"
+    },
+    "cols": {
+      "paidAt": "Charged",
+      "buyer": "Buyer",
+      "medium": "Method",
+      "amount": "Amount",
+      "gatewayFee": "Gateway cost",
+      "net": "Net",
+      "status": "Status"
+    },
+    "methods": {
+      "app": "App",
+      "academyPresale": "Academy presale"
+    },
+    "ledger": {
+      "toggle": "Audit ({count})",
+      "empty": "No events recorded",
+      "type": {
+        "ORDER_CREATED": "Order created",
+        "GATEWAY_REQUEST": "Sent to payment method",
+        "WEBHOOK_RECEIVED": "Payment method response",
+        "STATUS_CONFIRMED": "Status confirmed",
+        "SETTLED": "Payment confirmed",
+        "RENEWAL_SETTLED": "Renewal charged",
+        "FAILED": "Payment failed",
+        "SUBSCRIPTION_CREATED": "Subscription created",
+        "SUBSCRIPTION_CANCELED": "Subscription cancelled",
+        "RENEWAL_FAILED": "Renewal failed",
+        "AMOUNT_MISMATCH": "Amount differs from expected",
+        "FEE_ASSESSED": "Fee calculated",
+        "PAYOUT_LINE_ASSIGNED": "Assigned to settlement",
+        "IMPORTED": "Imported record"
+      }
+    },
+    "sub": {
+      "title": "Subscriptions",
+      "nextCharge": "Next charge: {date}",
+      "status": {
+        "PENDING_CARD": "Pending card",
+        "ACTIVATING": "Activating",
+        "ACTIVE": "Active",
+        "CANCEL_PENDING": "Cancels at end of period",
+        "CANCELED": "Cancelled",
+        "FAILED_CARD": "Card declined"
+      }
+    },
+    "byEvent": {
+      "empty": "No sales registered for this event."
+    },
+    "byAcademy": {
+      "desc": "Membership charges for the academy’s plans (subscriptions and one-off payments).",
+      "empty": "No membership charges yet.",
+      "noAccess": "Only the academy owner (or an admin) can see the charges."
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "tripMatches": {
+    "title": "Matches",
+    "empty": "When someone publishes a trip that matches yours, it’ll appear here.",
+    "overlapDay": "1 day in common",
+    "overlapDays": "{days} days in common",
+    "traveler": "Dancer from the scene",
+    "connect": "Connect",
+    "requestSent": "Request sent"
+  },
+  "seriesPass": {
+    "title": "Series pass",
+    "desc": "Entry to all {series} events during the month.",
+    "cta": "Buy pass",
+    "alreadyOwned": "You already have this month’s pass.",
+    "unavailable": "This series’ pass isn’t available right now."
+  },
+  "checkout": {
+    "returnVerifying": "Confirming your payment…",
+    "returnPaidTitle": "Done! Your purchase is confirmed",
+    "returnToEvents": "Back to events",
+    "returnFailedTitle": "The payment didn’t complete",
+    "returnFailedDesc": "You weren’t charged. You can try again.",
+    "returnPendingTitle": "Your payment is processing",
+    "returnPendingDesc": "The bank is confirming. We’ll let you know when it’s ready.",
+    "returnErrorTitle": "We couldn’t verify the payment"
+  },
+  "sessions": {
+    "refresh": "Refresh",
+    "rating": "Rating: {value} out of 5"
+  },
+  "notifications": {
+    "unread": "Unread"
+  },
+  "qr": {
+    "loadError": "We couldn’t generate your QR.",
+    "addToWallet": "Add to Google Wallet"
+  },
+  "practices": {
+    "venuePlaceholder": "Choose or type the place",
+    "emptyFiltered": "No practice matches this style.",
+    "endsNextDay": "Ends the next day",
+    "stylesLoadError": "We couldn’t load the styles. You can still publish without picking one."
+  },
+  "friends": {
+    "emptyCta": "Find friends",
+    "inviteError": "We couldn’t copy the link. Try again.",
+    "notFound": "We couldn’t find this person."
+  },
+  "gamification": {
+    "badgeCategory": {
+      "MILESTONE": "Milestone",
+      "CONDUCT": "Conduct",
+      "TEMPORARY_STATUS": "Temporary"
+    }
+  },
+  "home": {
+    "genre": {
+      "other": "Other"
+    }
+  },
+  "profile": {
+    "roleSandbox": "on trial"
+  },
+  "login": {
+    "sending": "Sending…"
+  }
+}

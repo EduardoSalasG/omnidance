@@ -1,0 +1,55 @@
+{
+  "nav": {
+    "venue": "Local"
+  },
+  "venue": {
+    "loginRequired": "Inicia sessão para gerir os teus locais.",
+    "forbidden": "Não tens locais atribuídos à tua conta.",
+    "empty": "Não tens locais atribuídos. Se geres um local, pede à equipa Omnidance que o ligue à tua conta.",
+    "error": "Não foi possível carregar a secção do local.",
+    "pickVenue": "Escolhe um local",
+    "capacity": "Lotação: {count} pessoas",
+    "kpi": {
+      "upcoming": "Próximos",
+      "events30d": "Eventos 30d",
+      "checkins30d": "Check-ins 30d"
+    },
+    "sections": {
+      "upcoming": "Próximos eventos",
+      "tables": "Reservas de mesa",
+      "flow": "Fluxo do público",
+      "rentals": "Alugueres",
+      "menus": "Cartas e menus"
+    },
+    "emptyUpcoming": "Sem eventos próximos agendados.",
+    "emptyTables": "Sem reservas de mesa nos eventos próximos.",
+    "emptyFlow": "Sem check-ins nos últimos 30 dias.",
+    "emptyRentals": "Sem pedidos de aluguer.",
+    "emptyMenus": "Sem cartas carregadas.",
+    "tables": {
+      "anonymous": "Reserva",
+      "party": "{count, plural, one {# pessoa} other {# pessoas}}"
+    },
+    "flow": {
+      "peakHour": "hora pico de chegadas",
+      "avgStay": "permanência média",
+      "stayValue": "{hours} h {minutes} min",
+      "chartLabel": "Chegadas por hora (últimos 30 dias)"
+    },
+    "rentals": {
+      "confirm": "Confirmar",
+      "confirmAsk": "Confirmar este pedido de aluguer?",
+      "cancelAsk": "Cancelar este pedido de aluguer?",
+      "yesConfirm": "Sim, confirmar",
+      "yesCancel": "Sim, cancelar",
+      "statuses": {
+        "REQUESTED": "Pedido",
+        "CONFIRMED": "Confirmado",
+        "CANCELLED": "Cancelado"
+      }
+    },
+    "menus": {
+      "item": "Carta v{version}"
+    }
+  }
+}

@@ -1,15 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Card, Skeleton } from "@/components/ui";
+import { getNumFmt, useNumFmt } from "@/lib/intl";
 
-const clp = new Intl.NumberFormat("es-CL", {
+const clp = (locale: string) => getNumFmt(locale, {
   style: "currency",
   currency: "CLP",
   maximumFractionDigits: 0,
 });
+
+;
 
 type CobrosKpis = {
   billedMonth: number;
@@ -25,6 +28,7 @@ type CobrosKpis = {
  * el tramo equivalente del mes anterior.
  */
 export function CobrosKpiStrip({ academyId }: { academyId: string }) {
+  const locale = useLocale();
   const t = useTranslations("academyPay");
   const [data, setData] = useState<CobrosKpis | null>(null);
   const [hidden, setHidden] = useState(false);
@@ -49,7 +53,7 @@ export function CobrosKpiStrip({ academyId }: { academyId: string }) {
   const delta = (cur: number | null, prev: number | null) => {
     if (cur === null || prev === null) return null;
     const d = cur - prev;
-    return d === 0 ? "=" : `${d > 0 ? "+" : "−"}${clp.format(Math.abs(d))}`;
+    return d === 0 ? "=" : `${d > 0 ? "+" : "−"}${clp(locale).format(Math.abs(d))}`;
   };
   const deltaCls = (cur: number | null, prev: number | null) =>
     cur === null || prev === null || cur - prev === 0
@@ -82,7 +86,7 @@ export function CobrosKpiStrip({ academyId }: { academyId: string }) {
                 {t("kpiBilled")}
               </span>
               <span className="text-3xl font-bold leading-none text-neon">
-                {clp.format(data.billedMonth)}
+                {clp(locale).format(data.billedMonth)}
               </span>
               <span
                 className={`mt-0.5 text-xs font-medium tabular-nums ${deltaCls(data.billedMonth, data.billedMonthPrev)}`}
@@ -100,7 +104,7 @@ export function CobrosKpiStrip({ academyId }: { academyId: string }) {
               <span className="text-3xl font-bold leading-none text-neon">
                 {data.avgTicketMonth === null
                   ? "—"
-                  : clp.format(data.avgTicketMonth)}
+                  : clp(locale).format(data.avgTicketMonth)}
               </span>
               {data.avgTicketMonth !== null && (
                 <span
@@ -134,7 +138,7 @@ export function CobrosKpiStrip({ academyId }: { academyId: string }) {
                           {m.label}
                         </span>
                         <span className="shrink-0 tabular-nums text-ink/60">
-                          {clp.format(m.amount)}
+                          {clp(locale).format(m.amount)}
                           {d !== null && (
                             <span
                               className={

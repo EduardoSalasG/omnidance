@@ -1,26 +1,17 @@
 "use client";
 
-import Link from "next/link";
+
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon } from "@/components/ui";
+import { Link } from "@/i18n/navigation";
+import { useDateFmt, useNumFmt } from "@/lib/intl";
 
-const clp = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
-const num = new Intl.NumberFormat("es-CL");
-const fullDayFmt = new Intl.DateTimeFormat("es-CL", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-});
-const dayFmt = new Intl.DateTimeFormat("es-CL", {
-  day: "numeric",
-  month: "short",
-});
+;
+;
+;
+;
 
 const listCls = "flex flex-col divide-y divide-line";
 const rowLinkCls =
@@ -61,6 +52,22 @@ type Dash = {
  * validar) y tops de eventos. GET /producer/dashboard.
  */
 export function ProducerDashboard() {
+  const locale = useLocale();
+  const clp = useNumFmt({
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
+  const num = useNumFmt();
+  const fullDayFmt = useDateFmt({
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+  const dayFmt = useDateFmt({
+  day: "numeric",
+  month: "short",
+});
   const t = useTranslations("producer");
   const [dash, setDash] = useState<Dash | null>(null);
   const [error, setError] = useState(false);

@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
+
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Card, Pager, SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { CLAIM_STATUSES, filtersParams } from "./shared";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
+import { Link } from "@/i18n/navigation";
+import { useDateFmt, useNumFmt } from "@/lib/intl";
 
 type ProducerQueueClaim = {
   id: string;
@@ -23,17 +25,8 @@ type ProducerQueueClaim = {
   payment: { id: string; amount: number; orderType: string; refId: string };
 };
 
-const clp = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
-const dayFmt = new Intl.DateTimeFormat("es-CL", {
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+;
+;
 
 /**
  * Filtros de /productor/comprobantes - contrato compartido (spec
@@ -73,6 +66,18 @@ const claimCardInnerCls =
  * inline.
  */
 export function ProducerClaimsQueue() {
+  const locale = useLocale();
+  const clp = useNumFmt({
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
+  const dayFmt = useDateFmt({
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
   const t = useTranslations("academyPay");
   const tp = useTranslations("producer.ownMethods");
   const tq = useTranslations("query");

@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+
+
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button, Card } from "@/components/ui";
 import { useDialogFocus } from "@/lib/useDialogFocus";
+import { Link, useRouter } from "@/i18n/navigation";
 
 /**
  * CTA "Conseguir entrada" del detalle de evento.

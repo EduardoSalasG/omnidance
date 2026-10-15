@@ -1,8 +1,8 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe, type MeContextData } from "@/lib/me-context";
@@ -19,6 +19,7 @@ import {
 } from "./DancerActionsSheet";
 import { ModeToggle } from "./ModeToggle";
 import { ChevronRightIcon } from "@/components/ui/icons";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 
 // Chrome de app: appbar sticky (hamburguesa → drawer lateral con los
 // módulos del rol agrupados por dominio | título de sección estilo nav

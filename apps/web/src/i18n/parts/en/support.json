@@ -1,0 +1,47 @@
+{
+  "nav": {
+    "support": "Support"
+  },
+  "support": {
+    "search": "Search users",
+    "searchPlaceholder": "Name or email",
+    "minChars": "Type at least 2 letters",
+    "initialHint": "Search a user by name or email",
+    "noResults": "No results",
+    "searchError": "Couldn’t search",
+    "forbidden": "This section requires a support role",
+    "backToResults": "Back to results",
+    "memberSince": "Member since",
+    "sections": {
+      "person": "Details",
+      "roles": "Roles",
+      "tickets": "Latest tickets",
+      "payments": "Latest payments",
+      "activity": "Activity"
+    },
+    "noRoles": "No roles",
+    "noTickets": "No tickets",
+    "noPayments": "No payments",
+    "roleSince": "since {date}",
+    "checkins": "Check-ins",
+    "friends": "Friends",
+    "roleStatus": {
+      "PENDING": "Pending",
+      "SANDBOX": "Sandbox",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    },
+    "ticketStatus": {
+      "ACTIVE": "Active",
+      "USED": "Used",
+      "TRANSFERRED": "Transferred",
+      "CANCELLED": "Cancelled"
+    },
+    "paymentStatus": {
+      "PENDING": "Pending",
+      "PAID": "Paid",
+      "FAILED": "Failed",
+      "REFUNDED": "Refunded"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
@@ -9,6 +9,7 @@ import { SkeletonList } from "@/components/ui";
 import { rulesLabel } from "./segment-labels";
 import type { CrmActor, CrmSegment } from "./types";
 import { actorQuery } from "./types";
+import { Link } from "@/i18n/navigation";
 
 /**
  * Segmentos guardados del actor (GET /crm/segments) - cards clickeables

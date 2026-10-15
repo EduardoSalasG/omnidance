@@ -1,10 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import { getNumFmt, useNumFmt } from "@/lib/intl";
+
+const clp = (locale: string) => getNumFmt(locale, {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
+const num = (locale: string) => getNumFmt(locale);
 
 type Props = { eventId: string; status: string };
 
@@ -29,14 +37,11 @@ const LIVE_STATUSES = new Set(["PUBLISHED", "LIVE", "CLOSED"]);
 // Ventana nocturna del histograma: 19:00 → 05:00.
 const FLOW_HOURS = [19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5];
 
-const clp = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
-const num = new Intl.NumberFormat("es-CL");
+;
+;
 
 export function LiveSection({ eventId, status }: Props) {
+  const locale = useLocale();
   const t = useTranslations("producer");
   const tc = useTranslations("common");
 
@@ -97,37 +102,37 @@ export function LiveSection({ eventId, status }: Props) {
           <ul className="grid grid-cols-3 gap-3">
             <li>
               <span className="block text-xl font-bold tabular-nums text-neon">
-                {num.format(data.sales.presale.count)}
+                {num(locale).format(data.sales.presale.count)}
               </span>
               <span className="block text-xs text-ink/50">
                 {t("live.presale")}
               </span>
               <span className="block text-xs tabular-nums text-ink/40">
-                {clp.format(data.sales.presale.amount)}
+                {clp(locale).format(data.sales.presale.amount)}
               </span>
             </li>
             <li>
               <span className="block text-xl font-bold tabular-nums text-neon">
-                {num.format(data.sales.door.count + data.sales.door.manual)}
+                {num(locale).format(data.sales.door.count + data.sales.door.manual)}
               </span>
               <span className="block text-xs text-ink/50">
                 {t("live.door")}
               </span>
               <span className="block text-xs tabular-nums text-ink/40">
-                {clp.format(data.sales.door.amount)}
+                {clp(locale).format(data.sales.door.amount)}
                 {data.sales.door.manual > 0 &&
                   ` · ${t("live.doorManual", { count: data.sales.door.manual })}`}
               </span>
             </li>
             <li>
               <span className="block text-xl font-bold tabular-nums text-neon">
-                {num.format(data.sales.total.count)}
+                {num(locale).format(data.sales.total.count)}
               </span>
               <span className="block text-xs text-ink/50">
                 {t("live.totalSold")}
               </span>
               <span className="block text-xs tabular-nums text-ink/40">
-                {clp.format(data.sales.total.amount)}
+                {clp(locale).format(data.sales.total.amount)}
               </span>
             </li>
           </ul>
@@ -136,14 +141,14 @@ export function LiveSection({ eventId, status }: Props) {
           <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-line pt-3 text-sm">
             <p>
               <span className="text-xl font-bold tabular-nums text-neon">
-                {num.format(data.checkins.total)}
+                {num(locale).format(data.checkins.total)}
               </span>{" "}
               <span className="text-ink/50">{t("live.checkins")}</span>
             </p>
             {status === "LIVE" && (
               <p>
                 <span className="font-semibold tabular-nums">
-                  +{num.format(data.checkins.lastHour)}
+                  +{num(locale).format(data.checkins.lastHour)}
                 </span>{" "}
                 <span className="text-ink/50">{t("live.lastHour")}</span>
               </p>
@@ -178,7 +183,7 @@ export function LiveSection({ eventId, status }: Props) {
                   return (
                     <span
                       key={h}
-                      title={`${h}:00 - ${num.format(v)}`}
+                      title={`${h}:00 - ${num(locale).format(v)}`}
                       className="flex-1 rounded-sm bg-neon/60"
                       style={{
                         height: `${Math.max(4, (v / max) * 100)}%`,

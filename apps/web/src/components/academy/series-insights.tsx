@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Card } from "@/components/ui";
+import { Link } from "@/i18n/navigation";
 
 type SeriesInsightsData = {
   avgAttendancePerClass: number | null;
