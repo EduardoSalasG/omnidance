@@ -106,6 +106,8 @@ class FakePrisma {
       this.referralRows.filter((r) => matchWhere(r, where)),
   };
   relationshipScore = {
+    findMany: async ({ where }: { where: Row }) =>
+      this.scores.filter((s) => matchWhere(s, where)),
     upsert: async ({ where, create, update }: { where: Row; create: Row; update: Row }) => {
       const k = where.actorType_actorId_personId as Row;
       const existing = this.scores.find(
@@ -123,6 +125,22 @@ class FakePrisma {
       return row;
     },
   };
+  // syncSegments corre al final de cada recomputeScores — stubs vacíos
+  // por defecto; el describe de segmentos los pisa con estado real.
+  actorSegment = { findMany: async () => [] };
+  actorSegmentMembership = {
+    findMany: async () => [],
+    createMany: async () => ({ count: 0 }),
+    deleteMany: async () => ({ count: 0 }),
+  };
+  actorTag = { findMany: async () => [] };
+  crmTrigger = { findMany: async () => [] };
+  academy = {
+    findUnique: async () => null,
+    findFirst: async () => null,
+    findMany: async () => [],
+  };
+  notification = { findFirst: async () => null };
 }
 
 const ACADEMY = "acad-1";
@@ -400,7 +418,10 @@ describe("CrmService.recomputeScores (PRODUCER)", () => {
     expect(pts.earlyPurchases).toBe(2);
     expect(bd.referrals).toBe(1);
     expect(s.score).toBe(
-      Math.min(100, Object.values(pts).reduce((a, v) => a + (v as number), 0)),
+      Math.min(
+        100,
+        (Object.values(pts) as number[]).reduce((a, v) => a + v, 0),
+      ),
     );
   });
 
@@ -449,5 +470,328 @@ describe("CrmService.recomputeScores (PRODUCER)", () => {
     await svc.recomputeScores("PRODUCER", PRODUCER);
     const s = scoreOf(fp.scores, "p1")!;
     expect(s.segment).not.toBe("AT_RISK");
+  });
+});
+
+describe("CrmService segmentos dinámicos (crm-dynamic-segments)", () => {
+  const ACAD = "acad-1";
+  let prisma: FakePrisma;
+  let svc: CrmService;
+
+  // Fake completo para el sync de membresías + triggers + listPeople.
+  type FullPrisma = FakePrisma & {
+    actorTagRows: Row[];
+    segmentRows: Row[];
+    membershipRows: Row[];
+    triggerRows: Row[];
+    notifRows: Row[];
+    academyRows: Row[];
+    personRows: Row[];
+  };
+
+  function full(p: FakePrisma): FullPrisma {
+    const fp = p as FullPrisma;
+    fp.actorTagRows = [];
+    fp.segmentRows = [];
+    fp.membershipRows = [];
+    fp.triggerRows = [];
+    fp.notifRows = [];
+    fp.academyRows = [{ id: ACAD, ownerId: "owner-1" }];
+    fp.personRows = [];
+    let seq = 0;
+
+    (fp as unknown as Row).actorTag = {
+      findMany: async ({ where }: { where: Row }) =>
+        fp.actorTagRows.filter((t) => matchWhere(t, where)),
+      findFirst: async ({ where }: { where: Row }) =>
+        fp.actorTagRows.find((t) => matchWhere(t, where)) ?? null,
+      create: async ({ data }: { data: Row }) => {
+        const r = { id: `tag-${++seq}`, createdAt: new Date(), ...data };
+        fp.actorTagRows.push(r);
+        return r;
+      },
+      deleteMany: async ({ where }: { where: Row }) => {
+        const before = fp.actorTagRows.length;
+        fp.actorTagRows = fp.actorTagRows.filter((t) => !matchWhere(t, where));
+        return { count: before - fp.actorTagRows.length };
+      },
+    };
+    (fp as unknown as Row).actorSegment = {
+      findMany: async ({ where }: { where: Row }) =>
+        fp.segmentRows
+          .filter((s) => matchWhere(s, where))
+          .map((s) => ({
+            ...s,
+            _count: {
+              members: fp.membershipRows.filter((m) => m.segmentId === s.id)
+                .length,
+            },
+          })),
+      findFirst: async ({ where }: { where: Row }) =>
+        fp.segmentRows.find((s) => matchWhere(s, where)) ?? null,
+      findUnique: async ({ where }: { where: Row }) =>
+        fp.segmentRows.find((s) => s.id === where.id) ?? null,
+      create: async ({ data }: { data: Row }) => {
+        const r = {
+          id: `seg-${++seq}`,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          ...data,
+        };
+        fp.segmentRows.push(r);
+        return r;
+      },
+      update: async ({ where, data }: { where: Row; data: Row }) => {
+        const r = fp.segmentRows.find((s) => s.id === where.id)!;
+        Object.assign(r, data, { updatedAt: new Date() });
+        return r;
+      },
+      delete: async ({ where }: { where: Row }) => {
+        fp.segmentRows = fp.segmentRows.filter((s) => s.id !== where.id);
+        fp.membershipRows = fp.membershipRows.filter(
+          (m) => m.segmentId !== where.id,
+        );
+        return {};
+      },
+    };
+    (fp as unknown as Row).actorSegmentMembership = {
+      findMany: async ({ where }: { where: Row }) =>
+        fp.membershipRows.filter((m) => matchWhere(m, where)),
+      createMany: async ({ data }: { data: Row[] }) => {
+        for (const d of data) {
+          fp.membershipRows.push({
+            id: `mem-${++seq}`,
+            since: new Date(),
+            ...d,
+          });
+        }
+        return { count: data.length };
+      },
+      deleteMany: async ({ where }: { where: Row }) => {
+        const before = fp.membershipRows.length;
+        fp.membershipRows = fp.membershipRows.filter(
+          (m) => !matchWhere(m, where),
+        );
+        return { count: before - fp.membershipRows.length };
+      },
+    };
+    (fp as unknown as Row).crmTrigger = {
+      findMany: async ({ where }: { where: Row }) =>
+        fp.triggerRows.filter((t) => matchWhere(t, where)),
+    };
+    (fp as unknown as Row).notification = {
+      findFirst: async ({ where }: { where: Row }) => {
+        const w = where as {
+          personId?: string;
+          type?: string;
+          createdAt?: { gte?: Date };
+          data?: { path?: string[]; equals?: unknown };
+        };
+        return (
+          fp.notifRows.find((n) => {
+            if (n.personId !== w.personId) return false;
+            if (w.type && n.type !== w.type) return false;
+            if (w.createdAt?.gte && (n.createdAt as Date) < w.createdAt.gte)
+              return false;
+            if (w.data?.path && w.data.equals !== undefined) {
+              let v: unknown = n.data;
+              for (const k of w.data.path) {
+                v = (v as Row | undefined)?.[k];
+              }
+              if (v !== w.data.equals) return false;
+            }
+            return true;
+          }) ?? null
+        );
+      },
+    };
+    (fp as unknown as Row).academy = {
+      findUnique: async ({ where }: { where: Row }) =>
+        fp.academyRows.find((a) => a.id === where.id) ?? null,
+      findFirst: async ({ where }: { where: Row }) =>
+        fp.academyRows.find((a) => matchWhere(a, where)) ?? null,
+      findMany: async () => fp.academyRows,
+    };
+    (fp as unknown as Row).person = {
+      findMany: async ({ where }: { where: Row }) =>
+        fp.personRows.filter((p) => {
+          const ids = (where?.id as Row | undefined)?.in as string[] | undefined;
+          return !ids || ids.includes(p.id as string);
+        }),
+    };
+    return fp;
+  }
+
+  let fp: FullPrisma;
+  const enroll = (personId: string, daysAgoN: number) =>
+    fp.enrollments.push({
+      personId,
+      academyId: ACAD,
+      status: "ACTIVE",
+      startedAt: daysAgo(daysAgoN),
+    });
+  const attend = (personId: string, daysAgoN: number) =>
+    fp.attendanceRows.push({
+      personId,
+      checkedAt: daysAgo(daysAgoN),
+      class: { slot: { academyId: ACAD } },
+    });
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    fp = full(prisma);
+    svc = new CrmService(
+      fp as unknown as PrismaService,
+      {
+        notifySafe: vi.fn(async (personId: string, input: Row) => {
+          fp.notifRows.push({ personId, createdAt: new Date(), ...input });
+        }),
+      } as unknown as NotificationsService,
+      { getNumber: async (_k: string, d: number) => d } as unknown as ParamsService,
+    );
+  });
+
+  const mkSegment = async (name: string, rules: Row) =>
+    svc.createSegment("ACADEMY", ACAD, name, rules);
+
+  it("CRUD + validación de reglas", async () => {
+    const seg = await mkSegment("altos", {
+      conditions: [{ field: "score", op: "gte", value: 50 }],
+    });
+    expect(seg.name).toBe("altos");
+    await expect(
+      mkSegment("altos", { conditions: [{ field: "score", op: "gte", value: 1 }] }),
+    ).rejects.toThrow("ya existe");
+    await expect(
+      mkSegment("x", { conditions: [{ field: "campo_raro", op: "eq", value: 1 }] }),
+    ).rejects.toThrow("field desconocido");
+    await expect(
+      mkSegment("x", { conditions: [{ field: "segment", op: "gte", value: 1 }] }),
+    ).rejects.toThrow("op inválida");
+    const patched = await svc.patchSegment(seg.id, {
+      rules: { match: "any", conditions: [{ field: "score", op: "gte", value: 10 }] },
+    });
+    expect((patched.rules as Row).match).toBe("any");
+  });
+
+  it("membresía materializa + enter/exit dispara trigger una sola vez", async () => {
+    // p1 con actividad alta → score alto; p2 con una asistencia vieja → bajo
+    enroll("p1", 100);
+    for (let i = 0; i < 8; i++) attend("p1", i * 3 + 1);
+    enroll("p2", 100);
+    attend("p2", 40);
+
+    const seg = await mkSegment("altos", {
+      conditions: [{ field: "score", op: "gte", value: 30 }],
+    });
+    fp.triggerRows.push({
+      id: "t-1",
+      actorType: "ACADEMY",
+      actorId: ACAD,
+      key: "SEGMENT_ENTER",
+      active: true,
+      config: {
+        segmentId: seg.id,
+        action: { type: "NOTIFY", title: "Bienvenido al club" },
+      },
+    });
+    fp.triggerRows.push({
+      id: "t-2",
+      actorType: "ACADEMY",
+      actorId: ACAD,
+      key: "SEGMENT_EXIT",
+      active: true,
+      config: {
+        segmentId: seg.id,
+        action: { type: "TAG_REMOVE", tag: "alto" },
+      },
+    });
+
+    await svc.recomputeScores("ACADEMY", ACAD);
+    const mem1 = fp.membershipRows.filter((m) => m.segmentId === seg.id);
+    const scoreP1 = scoreOf(fp.scores, "p1")!.score as number;
+    const scoreP2 = scoreOf(fp.scores, "p2")!.score as number;
+    expect(scoreP1).toBeGreaterThanOrEqual(30);
+    expect(scoreP2).toBeLessThan(30);
+    expect(mem1.map((m) => m.personId)).toEqual(["p1"]);
+    // SEGMENT_ENTER notificó a p1
+    const n1 = fp.notifRows.filter((n) => n.personId === "p1");
+    expect(n1).toHaveLength(1);
+    expect(n1[0].title).toBe("Bienvenido al club");
+
+    // segundo recompute el mismo día: sin re-notify (dedup), sin duplicar
+    await svc.recomputeScores("ACADEMY", ACAD);
+    expect(fp.notifRows.filter((n) => n.personId === "p1")).toHaveLength(1);
+    expect(
+      fp.membershipRows.filter((m) => m.segmentId === seg.id),
+    ).toHaveLength(1);
+
+    // p1 sale del segmento → membresía se va + trigger EXIT (TAG_REMOVE)
+    fp.actorTagRows.push({
+      id: "tg-1",
+      actorType: "ACADEMY",
+      actorId: ACAD,
+      personId: "p1",
+      tag: "alto",
+    });
+    await svc.patchSegment(seg.id, {
+      rules: { conditions: [{ field: "score", op: "gte", value: 200 }] },
+    });
+    await svc.recomputeScores("ACADEMY", ACAD);
+    expect(
+      fp.membershipRows.filter((m) => m.segmentId === seg.id),
+    ).toHaveLength(0);
+    expect(fp.actorTagRows.filter((t) => t.tag === "alto")).toHaveLength(0);
+  });
+
+  it("NOTIFY_OWNER notifica al owner de la academia una vez", async () => {
+    enroll("p1", 100);
+    attend("p1", 1);
+    enroll("p2", 100);
+    attend("p2", 2);
+    const seg = await mkSegment("nuevos", {
+      conditions: [{ field: "attendanceRecent", op: "gte", value: 1 }],
+    });
+    fp.triggerRows.push({
+      id: "t-3",
+      actorType: "ACADEMY",
+      actorId: ACAD,
+      key: "SEGMENT_ENTER",
+      active: true,
+      config: { segmentId: seg.id, action: { type: "NOTIFY_OWNER" } },
+    });
+    await svc.recomputeScores("ACADEMY", ACAD);
+    const ownerNotifs = fp.notifRows.filter((n) => n.personId === "owner-1");
+    expect(ownerNotifs).toHaveLength(1);
+    expect((ownerNotifs[0].data as Row).count).toBe(2);
+    // personas NO reciben notify con NOTIFY_OWNER
+    expect(fp.notifRows.filter((n) => n.personId === "p1")).toHaveLength(0);
+  });
+
+  it("listPeople?segmentId filtra por membresía y preview evalúa sin persistir", async () => {
+    enroll("p1", 100);
+    for (let i = 0; i < 6; i++) attend("p1", i * 2 + 1);
+    enroll("p2", 100);
+    attend("p2", 45);
+    fp.personRows.push({ id: "p1", name: "Ana" }, { id: "p2", name: "Bruno" });
+    await svc.recomputeScores("ACADEMY", ACAD);
+
+    const rules = {
+      conditions: [{ field: "attendanceRecent", op: "gte", value: 4 }],
+    };
+    const prev = await svc.previewSegmentRules("ACADEMY", ACAD, rules);
+    expect(prev.count).toBe(1);
+    expect(prev.sample).toEqual(["p1"]);
+
+    const seg = await mkSegment("activos", rules);
+    await svc.recomputeScores("ACADEMY", ACAD);
+    const page = await svc.listPeople("ACADEMY", ACAD, { segmentId: seg.id });
+    expect(page.total).toBe(1);
+    expect(page.items[0].personId).toBe("p1");
+
+    // segmento ajeno → 404
+    await expect(
+      svc.listPeople("ACADEMY", ACAD, { segmentId: "no-existe" }),
+    ).rejects.toThrow("segmento no encontrado");
   });
 });

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { TagBadges } from "./tag-badges";
-import type { CrmActor, CrmPeoplePage, PeopleSort } from "./types";
+import type { CrmActor, CrmPeoplePage, CrmSegment, PeopleSort } from "./types";
 import { PEOPLE_SORTS, SEGMENTS, actorBody, actorQuery } from "./types";
 
 const PAGE_SIZE = 20;
@@ -52,6 +52,15 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
   const [recomputing, setRecomputing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
+  // Selección masiva (spec crm-campaign-ops): checkbox por fila + barra
+  // de acciones en lote (tag add/remove, campaña a seleccionados).
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkTag, setBulkTag] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
+  // Segmentos guardados del actor (spec crm-dynamic-segments) - llenan
+  // el optgroup "guardados" del filtro de segmento (valor `seg:<id>`).
+  const [savedSegments, setSavedSegments] = useState<CrmSegment[]>([]);
+
   // Debounce del input de búsqueda - no golpear la API por tecla.
   useEffect(() => {
     const h = setTimeout(() => {
@@ -66,7 +75,8 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
     try {
       const params = new URLSearchParams(actorQuery(actor));
       if (qApplied) params.set("q", qApplied);
-      if (seg !== "ALL") params.set("segment", seg);
+      if (seg.startsWith("seg:")) params.set("segmentId", seg.slice(4));
+      else if (seg !== "ALL") params.set("segment", seg);
       if (tag !== "ALL") params.set("tag", tag);
       params.set("sort", sort);
       params.set("page", String(page));
@@ -93,6 +103,14 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
     setSort("score_desc");
     setPage(1);
     setNotice(null);
+    setSelected(new Set());
+    setBulkTag("");
+    setSavedSegments([]);
+    apiFetch(`/crm/segments?${actorQuery(actor)}`)
+      .then(async (res) => {
+        if (res.ok) setSavedSegments((await res.json()) as CrmSegment[]);
+      })
+      .catch(() => {});
   }, [actor]);
 
   useEffect(() => {
@@ -122,6 +140,42 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       setError(true);
     } finally {
       setRecomputing(false);
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function applyBulkTag(op: "add" | "remove") {
+    const tag = bulkTag.trim();
+    if (!tag || !selected.size || bulkBusy) return;
+    setBulkBusy(true);
+    setNotice(null);
+    try {
+      const res = await apiFetch("/crm/people/tags/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...actorBody(actor),
+          personIds: [...selected],
+          tag,
+          op,
+        }),
+      });
+      if (!res.ok) return setError(true);
+      const { affected } = (await res.json()) as { affected: number };
+      setNotice(t("people.bulkTagResult", { count: affected }));
+      await load();
+    } catch {
+      setError(true);
+    } finally {
+      setBulkBusy(false);
     }
   }
 
@@ -209,6 +263,15 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
               </option>
             ))}
             <option value="NONE">{t("segments.NONE")}</option>
+            {savedSegments.length > 0 && (
+              <optgroup label={t("actorSegments.title")}>
+                {savedSegments.map((s) => (
+                  <option key={s.id} value={`seg:${s.id}`}>
+                    {s.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </label>
         <label className="flex flex-col gap-2">
@@ -248,6 +311,55 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
         </label>
       </div>
 
+      {/* Barra de acciones masivas - aparece con selección activa */}
+      {selected.size > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl border border-neon/40 bg-neon/5 p-3 sm:flex-row sm:items-center">
+          <p className="text-sm font-semibold">
+            {t("people.selectedCount", { count: selected.size })}
+          </p>
+          <div className="flex flex-1 flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={bulkTag}
+              onChange={(e) => setBulkTag(e.target.value)}
+              placeholder={t("people.bulkTagPlaceholder")}
+              aria-label={t("people.bulkTagPlaceholder")}
+              className={`${inputCls} max-w-48`}
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={bulkBusy || bulkTag.trim() === ""}
+              onClick={() => void applyBulkTag("add")}
+            >
+              {t("people.bulkTagAdd")}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={bulkBusy || bulkTag.trim() === ""}
+              onClick={() => void applyBulkTag("remove")}
+            >
+              {t("people.bulkTagRemove")}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              href={`/crm/campanas/nueva?personIds=${[...selected].join(",")}`}
+            >
+              {t("people.bulkCampaign")}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelected(new Set())}
+            >
+              {t("people.clearSelection")}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Lista - cards apiladas (mobile-first, estilo admin) */}
       {rows === null && !error && <SkeletonList items={4} lines={1} />}
       {rows !== null && rows.length === 0 && !hasFilters && (
@@ -272,12 +384,23 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
           {rows.map((r) => {
             const segKey = r.segment ?? "NONE";
             return (
-              <li key={r.personId}>
+              <li key={r.personId} className="flex items-start gap-2">
+                {/* Checkbox de selección masiva - fuera del Link (patrón
+                    de consola: sin interactivos anidados). */}
+                <input
+                  type="checkbox"
+                  checked={selected.has(r.personId)}
+                  onChange={() => toggleSelect(r.personId)}
+                  aria-label={t("people.selectRow", {
+                    name: r.person?.name ?? r.personId,
+                  })}
+                  className="mt-4 size-5 shrink-0 accent-neon"
+                />
                 {/* Card completo clickeable → ficha; la edición de tags
                     vive en /crm/personas/[id], no inline. */}
                 <Link
                   href={`/crm/personas/${r.personId}`}
-                  className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                  className="block min-w-0 flex-1 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                 >
                   <Card className="flex flex-col gap-3 transition-colors hover:border-neon/60">
                     <div className="flex items-center gap-3">

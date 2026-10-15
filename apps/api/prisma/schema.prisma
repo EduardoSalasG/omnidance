@@ -1553,9 +1553,38 @@ model Campaign {
   name      String
   segment   Json // definición del segmento target
   action    Json // push / discount_code
-  status    String   @default("DRAFT") // DRAFT | SENT | DONE
-  result    Json?
+  status    String   @default("DRAFT") // DRAFT | SCHEDULED | SENT | DONE
+  scheduledAt DateTime? // spec crm-campaign-ops: envío programado (job crm.campaigns)
+  result    Json?    // {sent, code?, audienceIds?, at}
   createdAt DateTime @default(now())
+}
+
+// Segmento dinâmico do actor (spec crm-dynamic-segments): regra
+// nomeada sobre as señales do RelationshipScore (+tags). Membership
+// materializada em cada recompute — o diff vira evento enter/exit
+// que dispara os triggers SEGMENT_ENTER/SEGMENT_EXIT.
+model ActorSegment {
+  id        String   @id @default(cuid())
+  actorType String
+  actorId   String
+  name      String
+  rules     Json // {match: all|any, conditions: [{field, op, value}]}
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members ActorSegmentMembership[]
+
+  @@unique([actorType, actorId, name])
+}
+
+model ActorSegmentMembership {
+  id        String       @id @default(cuid())
+  segment   ActorSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  segmentId String
+  personId  String
+  since     DateTime     @default(now())
+
+  @@unique([segmentId, personId])
 }
 
 model ActorTag {

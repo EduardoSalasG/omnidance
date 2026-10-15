@@ -86,6 +86,13 @@ class ListPeopleQueryDto {
   @ApiPropertyOptional()
   tag?: string;
 
+  /** Filtro por segmento guardado (ActorSegment id) - spec
+   *  crm-dynamic-segments. */
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  segmentId?: string;
+
   /** Orden del listado: score_desc (default) | score_asc | name_asc. */
   @IsOptional()
   @IsIn(["score_desc", "score_asc", "name_asc"])
@@ -122,18 +129,61 @@ class CreateCampaignDto extends ActorRefDto {
   @IsNotEmpty()
   name!: string;
 
-  /** {tags?, segment?, personIds?} + solo ACADEMY: {allStudents?, enrollmentStatus?, planId?, seriesId?} */
+  /** {tags?, segment?, personIds?, segmentRef?} + solo ACADEMY: {allStudents?, enrollmentStatus?, planId?, seriesId?} */
   @IsObject()
   segment!: Record<string, unknown>;
 
   /** {type:"NOTIFY",title,body?} | {type:"DISCOUNT_CODE",percentOff?|amountOff?,maxUses?,expiresAt?} */
   @IsObject()
   action!: Record<string, unknown>;
+
+  /** ISO datetime futuro → status SCHEDULED (job crm.campaigns). */
+  @IsOptional()
+  @IsString()
+  scheduledAt?: string;
+}
+
+class BulkTagDto extends ActorRefDto {
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  personIds!: string[];
+
+  @IsString()
+  @IsNotEmpty()
+  tag!: string;
+
+  @IsIn(["add", "remove"])
+  op!: "add" | "remove";
 }
 
 class PreviewCampaignDto extends ActorRefDto {
   @IsObject()
   segment!: Record<string, unknown>;
+}
+
+class CreateSegmentDto extends ActorRefDto {
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  /** {match?: "all"|"any", conditions: [{field, op, value}]} */
+  @IsObject()
+  rules!: Record<string, unknown>;
+}
+
+class PatchSegmentDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsObject()
+  rules?: Record<string, unknown>;
+}
+
+class PreviewSegmentDto extends ActorRefDto {
+  @IsObject()
+  rules!: Record<string, unknown>;
 }
 
 class CreateTriggerDto extends ActorRefDto {
@@ -181,7 +231,7 @@ export class CrmController {
     return this.crm.listPeople(
       q.actorType,
       q.actorId,
-      { q: q.q, segment: q.segment, tag: q.tag, sort: q.sort },
+      { q: q.q, segment: q.segment, tag: q.tag, segmentId: q.segmentId, sort: q.sort },
       pageParams(q.page, q.pageSize),
     );
   }
@@ -221,6 +271,24 @@ export class CrmController {
     return result.tag;
   }
 
+  /** Tags en lote (spec crm-campaign-ops): aplica/quita un tag sobre
+   *  personIds[]. Idempotente en add (dedup actor+persona+tag). */
+  @Post("people/tags/bulk")
+  async bulkTag(@Body() dto: BulkTagDto, @Req() req: Request) {
+    await this.assertActorAccess(req, dto.actorType, dto.actorId);
+    try {
+      return await this.crm.bulkTag(
+        dto.actorType,
+        dto.actorId,
+        dto.personIds,
+        dto.tag,
+        dto.op,
+      );
+    } catch (e) {
+      mapCrmError(e);
+    }
+  }
+
   @Delete("tags/:id")
   async deleteTag(@Param("id") id: string, @Req() req: Request) {
     const tag = await this.crm.findTag(id);
@@ -239,6 +307,93 @@ export class CrmController {
     return this.crm.recomputeScores(dto.actorType, dto.actorId);
   }
 
+  // ─── Segments (spec crm-dynamic-segments) ───
+
+  @Get("segments")
+  async listSegments(@Query() q: ListPeopleQueryDto, @Req() req: Request) {
+    await this.assertActorAccess(req, q.actorType, q.actorId);
+    return this.crm.listSegments(q.actorType, q.actorId);
+  }
+
+  /** Detalle de un segmento guardado (con conteo de miembros). */
+  @Get("segments/:id")
+  async getSegment(@Param("id") id: string, @Req() req: Request) {
+    const seg = await this.crm.getSegment(id);
+    if (!seg) throw new NotFoundException("segmento no encontrado");
+    await this.assertActorAccess(req, seg.actorType, seg.actorId);
+    const members = await this.crm.segmentMembersCount(id);
+    return { ...seg, members };
+  }
+
+  @Post("segments")
+  async createSegment(@Body() dto: CreateSegmentDto, @Req() req: Request) {
+    await this.assertActorAccess(req, dto.actorType, dto.actorId);
+    try {
+      return await this.crm.createSegment(
+        dto.actorType,
+        dto.actorId,
+        dto.name,
+        dto.rules,
+      );
+    } catch (e) {
+      mapCrmError(e);
+    }
+  }
+
+  @Patch("segments/:id")
+  async patchSegment(
+    @Param("id") id: string,
+    @Body() dto: PatchSegmentDto,
+    @Req() req: Request,
+  ) {
+    const seg = await this.crm.getSegment(id);
+    if (!seg) throw new NotFoundException("segmento no encontrado");
+    await this.assertActorAccess(req, seg.actorType, seg.actorId);
+    try {
+      return await this.crm.patchSegment(id, {
+        name: dto.name,
+        rules: dto.rules,
+      });
+    } catch (e) {
+      mapCrmError(e);
+    }
+  }
+
+  @Delete("segments/:id")
+  async deleteSegment(@Param("id") id: string, @Req() req: Request) {
+    const seg = await this.crm.getSegment(id);
+    if (!seg) throw new NotFoundException("segmento no encontrado");
+    await this.assertActorAccess(req, seg.actorType, seg.actorId);
+    await this.crm.deleteSegment(id);
+    return { deleted: true, id };
+  }
+
+  /** Miembros materializados del segmento (último recompute). */
+  @Get("segments/:id/people")
+  async segmentPeople(@Param("id") id: string, @Req() req: Request) {
+    const seg = await this.crm.getSegment(id);
+    if (!seg) throw new NotFoundException("segmento no encontrado");
+    await this.assertActorAccess(req, seg.actorType, seg.actorId);
+    return this.crm.segmentPeople(id);
+  }
+
+  /** Preview de reglas sin guardar: {count, sample} sobre los scores
+   *  persistidos del actor. */
+  @Post("segments/preview")
+  @HttpCode(200)
+  async previewSegment(@Body() dto: PreviewSegmentDto, @Req() req: Request) {
+    await this.assertActorAccess(req, dto.actorType, dto.actorId);
+    try {
+      return await this.crm.previewSegmentRules(
+        dto.actorType,
+        dto.actorId,
+        dto.rules,
+      );
+    } catch (e) {
+      mapCrmError(e);
+    }
+  }
+
   // ─── Campaigns ───
 
   @Post("campaigns")
@@ -251,6 +406,7 @@ export class CrmController {
         dto.name,
         dto.segment,
         dto.action,
+        dto.scheduledAt,
       );
     } catch (e) {
       mapCrmError(e);
@@ -299,13 +455,51 @@ export class CrmController {
     );
   }
 
-  /** Detalle de campaña - el caller debe tener acceso al actor dueño. */
+  /** Detalle de campaña (con metrics de atribución si ya fue enviada) -
+   *  el caller debe tener acceso al actor dueño. */
   @Get("campaigns/:id")
   async campaignDetail(@Param("id") id: string, @Req() req: Request) {
     const campaign = await this.crm.getCampaign(id);
     if (!campaign) throw new NotFoundException("campaña no encontrada");
     await this.assertActorAccess(req, campaign.actorType, campaign.actorId);
+    if (campaign.status === "SENT") {
+      const metrics = await this.crm.campaignMetrics(id);
+      return { ...campaign, metrics };
+    }
     return campaign;
+  }
+
+  /** Links wa.me de la audiencia de la campaña (spec
+   *  crm-channels-digest): canal semi-manual - el actor abre cada
+   *  chat desde la ficha. ?text= precarga el mensaje. */
+  @Get("campaigns/:id/whatsapp")
+  async campaignWhatsapp(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Query("text") text?: string,
+  ) {
+    const campaign = await this.crm.getCampaign(id);
+    if (!campaign) throw new NotFoundException("campaña no encontrada");
+    await this.assertActorAccess(req, campaign.actorType, campaign.actorId);
+    try {
+      return await this.crm.whatsappLinks(id, text);
+    } catch (e) {
+      mapCrmError(e);
+    }
+  }
+
+  /** Desprograma una campaña SCHEDULED → DRAFT. */
+  @Post("campaigns/:id/cancel")
+  @HttpCode(200)
+  async cancelCampaign(@Param("id") id: string, @Req() req: Request) {
+    const campaign = await this.crm.getCampaign(id);
+    if (!campaign) throw new NotFoundException("campaña no encontrada");
+    await this.assertActorAccess(req, campaign.actorType, campaign.actorId);
+    try {
+      return await this.crm.cancelCampaign(id);
+    } catch (e) {
+      mapCrmError(e);
+    }
   }
 
   // ─── Triggers ───

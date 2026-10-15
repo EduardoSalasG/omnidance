@@ -10,6 +10,7 @@ import type {
   CrmActor,
   CrmPeoplePage,
   CrmPersonRow,
+  CrmSegment,
 } from "./types";
 import { SEGMENTS, actorBody, actorQuery } from "./types";
 
@@ -25,10 +26,13 @@ const inputCls =
  */
 export function CampaignForm({
   actor,
+  initialPersonIds,
   onCreated,
   onCancel,
 }: {
   actor: CrmActor;
+  /** personIds pre-marcados (bulk action → nueva campaña). */
+  initialPersonIds?: string[];
   onCreated: () => void;
   onCancel: () => void;
 }) {
@@ -48,8 +52,13 @@ export function CampaignForm({
   const [segment, setSegment] = useState("");
   const [pickedTags, setPickedTags] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
-  const [pickedPeople, setPickedPeople] = useState<string[]>([]);
+  const [pickedPeople, setPickedPeople] = useState<string[]>(
+    initialPersonIds ?? [],
+  );
   const [people, setPeople] = useState<CrmPersonRow[]>([]);
+  const [segmentRef, setSegmentRef] = useState("");
+  const [savedSegments, setSavedSegments] = useState<CrmSegment[]>([]);
+  const [scheduledAt, setScheduledAt] = useState("");
   const [allStudents, setAllStudents] = useState(false);
   const [pickedStatuses, setPickedStatuses] = useState<string[]>([]);
   const [planId, setPlanId] = useState("");
@@ -77,6 +86,12 @@ export function CampaignForm({
         const page = data as CrmPeoplePage;
         setPeople(page.items);
         setAvailableTags(page.allTags);
+      })
+      .catch(() => {});
+    void apiFetch(`/crm/segments?${actorQuery(actor)}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        if (!cancelled) setSavedSegments(data as CrmSegment[]);
       })
       .catch(() => {});
     return () => {
@@ -125,6 +140,7 @@ export function CampaignForm({
   // que parseSegment del service.
   const audience: CampaignSegment = {
     ...(segment ? { segment } : {}),
+    ...(segmentRef ? { segmentRef } : {}),
     ...(pickedTags.length ? { tags: pickedTags } : {}),
     ...(pickedPeople.length ? { personIds: pickedPeople } : {}),
     ...(allStudents ? { allStudents: true } : {}),
@@ -174,6 +190,9 @@ export function CampaignForm({
           ...actorBody(actor),
           name: name.trim(),
           segment: audience,
+          ...(scheduledAt
+            ? { scheduledAt: new Date(scheduledAt).toISOString() }
+            : {}),
           action:
             actionType === "NOTIFY"
               ? {
@@ -371,6 +390,25 @@ export function CampaignForm({
               ))}
             </select>
           </label>
+          {savedSegments.length > 0 && (
+            <label className="flex flex-col gap-2">
+              <span className="text-xs text-ink/50">
+                {t("campaigns.audienceSavedSegment")}
+              </span>
+              <select
+                value={segmentRef}
+                onChange={(e) => setSegmentRef(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">-</option>
+                {savedSegments.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.members})
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {availableTags.length > 0 ? (
             <div className="flex flex-col gap-2">
               <span className="text-xs text-ink/50">
@@ -396,6 +434,12 @@ export function CampaignForm({
             </div>
           ) : (
             <p className="text-xs text-ink/50">{t("campaigns.noTags")}</p>
+          )}
+
+          {pickedPeople.length > 0 && (
+            <p className="text-xs text-neon">
+              {t("campaigns.pickedCount", { count: pickedPeople.length })}
+            </p>
           )}
 
           {isAcademy && (
@@ -507,6 +551,22 @@ export function CampaignForm({
             </p>
           ) : null}
         </fieldset>
+
+        <label className="flex flex-col gap-2">
+          <span className="text-sm text-ink/70">
+            {t("campaigns.scheduleAt")}
+          </span>
+          <input
+            type="datetime-local"
+            value={scheduledAt}
+            min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+            onChange={(e) => setScheduledAt(e.target.value)}
+            className={inputCls}
+          />
+          <span className="text-xs text-ink/50">
+            {t("campaigns.scheduleHint")}
+          </span>
+        </label>
 
         {formError && (
           <p role="alert" className="text-sm text-red-400">

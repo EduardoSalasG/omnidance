@@ -34,6 +34,7 @@ const fmtDay = new Intl.DateTimeFormat("es-CL", {
 
 const STATUS_VARIANT: Record<string, "neon" | "muted" | "outline"> = {
   DRAFT: "outline",
+  SCHEDULED: "outline",
   SENT: "neon",
   DONE: "muted",
   CANCELLED: "muted",
@@ -53,9 +54,20 @@ export default function CrmCampanaPage() {
   const [error, setError] = useState(false);
 
   const [confirmSend, setConfirmSend] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  // Canal WhatsApp (spec crm-channels-digest): texto + links wa.me.
+  const [waText, setWaText] = useState("");
+  const [waLinks, setWaLinks] = useState<{
+    items: { personId: string; name: string; phone: string; url: string }[];
+    total: number;
+    withoutPhone: number;
+  } | null>(null);
+  const [waBusy, setWaBusy] = useState(false);
   const [sending, setSending] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const sendDialogRef = useDialogFocus<HTMLDivElement>(confirmSend);
+  const cancelDialogRef = useDialogFocus<HTMLDivElement>(confirmCancel);
 
   const load = useCallback(async () => {
     setError(false);
@@ -104,6 +116,46 @@ export default function CrmCampanaPage() {
       setError(true);
     } finally {
       setSending(false);
+    }
+  }
+
+  async function doCancel() {
+    if (cancelling || !campaign) return;
+    setCancelling(true);
+    try {
+      const res = await apiFetch(`/crm/campaigns/${campaign.id}/cancel`, {
+        method: "POST",
+      });
+      if (!res.ok) return setError(true);
+      setConfirmCancel(false);
+      setCampaign((await res.json()) as CrmCampaign);
+    } catch {
+      setError(true);
+    } finally {
+      setCancelling(false);
+    }
+  }
+
+  async function loadWaLinks() {
+    if (waBusy || !campaign) return;
+    setWaBusy(true);
+    try {
+      const params = waText.trim()
+        ? `?text=${encodeURIComponent(waText.trim())}`
+        : "";
+      const res = await apiFetch(`/crm/campaigns/${campaign.id}/whatsapp${params}`);
+      if (!res.ok) return setError(true);
+      setWaLinks(
+        (await res.json()) as {
+          items: { personId: string; name: string; phone: string; url: string }[];
+          total: number;
+          withoutPhone: number;
+        },
+      );
+    } catch {
+      setError(true);
+    } finally {
+      setWaBusy(false);
     }
   }
 
@@ -213,6 +265,13 @@ export default function CrmCampanaPage() {
                     </>
                   )}
                 </dl>
+                {c.scheduledAt && c.status === "SCHEDULED" && (
+                  <p className="text-sm text-ink/60">
+                    {t("campaigns.scheduledFor", {
+                      date: fmtDay.format(new Date(c.scheduledAt)),
+                    })}
+                  </p>
+                )}
                 {c.status === "SENT" && c.result && (
                   <p className="text-sm text-neon">
                     {t("campaigns.sentResult", {
@@ -225,12 +284,127 @@ export default function CrmCampanaPage() {
                 )}
               </Card>
 
+              {/* Atribución (spec crm-campaign-ops): respondieron = volvieron
+                  a la actividad del actor tras el envío; canjearon = pagos
+                  PAID con el código creado por la campaña. */}
+              {c.status === "SENT" && c.metrics && (
+                <Card className="flex flex-col gap-3">
+                  <h3 className="text-sm font-semibold">
+                    {t("campaigns.metricsTitle")}
+                  </h3>
+                  <dl className="grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <dt className="text-xs text-ink/50">
+                        {t("campaigns.metricSent")}
+                      </dt>
+                      <dd className="font-mono text-xl font-bold tabular-nums">
+                        {c.metrics.sent}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-ink/50">
+                        {t("campaigns.metricEngaged")}
+                      </dt>
+                      <dd className="font-mono text-xl font-bold tabular-nums text-neon">
+                        {c.metrics.engaged ?? "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-ink/50">
+                        {t("campaigns.metricRedemptions")}
+                      </dt>
+                      <dd className="font-mono text-xl font-bold tabular-nums text-neon">
+                        {c.metrics.redemptions ?? "—"}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="text-xs text-ink/50">
+                    {t("campaigns.metricsHint")}
+                  </p>
+                </Card>
+              )}
+
+              {/* Canal WhatsApp (spec crm-channels-digest): el actor
+                  compone el texto y abre cada chat wa.me - semi-manual
+                  honesto hasta la API oficial de WhatsApp. */}
+              {c.status === "SENT" && (
+                <Card className="flex flex-col gap-3">
+                  <h3 className="text-sm font-semibold">
+                    {t("campaigns.whatsappTitle")}
+                  </h3>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-xs text-ink/50">
+                      {t("campaigns.whatsappText")}
+                    </span>
+                    <textarea
+                      rows={2}
+                      value={waText}
+                      onChange={(e) => setWaText(e.target.value)}
+                      className="min-h-16 w-full rounded-lg border border-line bg-canvas px-3 py-3 text-sm text-ink focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50"
+                    />
+                  </label>
+                  <div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={waBusy}
+                      onClick={() => void loadWaLinks()}
+                    >
+                      {waBusy ? tc("loading") : t("campaigns.whatsappLoad")}
+                    </Button>
+                  </div>
+                  {waLinks !== null && (
+                    <>
+                      {waLinks.items.length === 0 ? (
+                        <p className="text-sm text-ink/60">
+                          {t("campaigns.whatsappEmpty")}
+                        </p>
+                      ) : (
+                        <ul className="flex flex-col gap-2">
+                          {waLinks.items.map((w) => (
+                            <li key={w.personId}>
+                              <a
+                                href={w.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-line px-3 py-2 text-sm transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                              >
+                                <span className="font-medium">{w.name}</span>
+                                <span className="text-xs tabular-nums text-ink/50">
+                                  {w.phone}
+                                </span>
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {waLinks.withoutPhone > 0 && (
+                        <p className="text-xs text-ink/50">
+                          {t("campaigns.whatsappNoPhone", {
+                            count: waLinks.withoutPhone,
+                          })}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </Card>
+              )}
+
               <div aria-live="polite">
                 {notice && <p className="text-sm text-neon">{notice}</p>}
               </div>
 
-              {c.status === "DRAFT" && (
-                <section className="flex justify-center border-t border-line pt-6">
+              {(c.status === "DRAFT" || c.status === "SCHEDULED") && (
+                <section className="flex justify-center gap-3 border-t border-line pt-6">
+                  {c.status === "SCHEDULED" && (
+                    <Button
+                      variant="ghost"
+                      className="text-red-400 hover:text-red-300"
+                      onClick={() => setConfirmCancel(true)}
+                    >
+                      {t("campaigns.cancelSchedule")}
+                    </Button>
+                  )}
                   <Button onClick={() => setConfirmSend(true)}>
                     {t("campaigns.send")}
                   </Button>
@@ -277,6 +451,49 @@ export default function CrmCampanaPage() {
                 type="button"
                 variant="ghost"
                 onClick={() => setConfirmSend(false)}
+              >
+                {tc("cancel")}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Confirmación de desprogramar - bottom sheet. */}
+      {confirmCancel && c && (
+        <div
+          ref={cancelDialogRef}
+          role="presentation"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
+          onClick={() => setConfirmCancel(false)}
+        >
+          <Card
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancel-campaign-title"
+            className="w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="cancel-campaign-title" className="text-lg font-semibold">
+              {t("campaigns.cancelTitle")}
+            </h2>
+            <p className="mt-1 text-sm text-ink/60">
+              {t("campaigns.cancelDesc")}
+            </p>
+            <p className="mt-3 text-sm font-medium">{c.name}</p>
+            <div className="mt-4 flex gap-3">
+              <Button
+                type="button"
+                className="flex-1 bg-red-500 hover:bg-red-400"
+                disabled={cancelling}
+                onClick={() => void doCancel()}
+              >
+                {cancelling ? tc("loading") : t("campaigns.cancelSchedule")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setConfirmCancel(false)}
               >
                 {tc("cancel")}
               </Button>
