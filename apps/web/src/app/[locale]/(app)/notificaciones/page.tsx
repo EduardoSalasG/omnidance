@@ -92,11 +92,7 @@ function hrefFor(n: NotificationItem): string | null {
   }
 }
 
-function relativeTime(iso: string): string {
-  const dateFmt = useDateFmt({
-  day: "numeric",
-  month: "short",
-});
+function relativeTime(iso: string, dateFmt: Intl.DateTimeFormat): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return "";
   const seconds = Math.round((then - Date.now()) / 1000);
@@ -118,6 +114,10 @@ export default function NotificacionesPage() {
   month: "short",
   hour: "numeric",
   minute: "2-digit",
+});
+  const dayFmt = useDateFmt({
+  day: "numeric",
+  month: "short",
 });
   const t = useTranslations("notifications");
   const tc = useTranslations("common");
@@ -315,7 +315,7 @@ export default function NotificacionesPage() {
                         </span>
                       )}
                       <span className="mt-1 block text-xs text-ink/50">
-                        {relativeTime(n.createdAt)}
+                        {relativeTime(n.createdAt, dayFmt)}
                       </span>
                     </span>
                     {href && (

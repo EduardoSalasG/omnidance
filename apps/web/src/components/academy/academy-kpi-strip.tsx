@@ -190,8 +190,8 @@ export function AcademyKpiCards({
                 : delta === 0
                   ? "="
                   : delta > 0
-                    ? `+${formatDelta(delta, k.deltaKind, t)}`
-                    : `-${formatDelta(-delta, k.deltaKind, t)}`;
+                    ? `+${formatDelta(delta, k.deltaKind, t, clpFmt)}`
+                    : `-${formatDelta(-delta, k.deltaKind, t, clpFmt)}`;
             return (
               <li key={k.key}>
                 <Link
@@ -235,17 +235,16 @@ export function AcademyKpiCards({
   );
 }
 
-/** Formatea la magnitud del delta absoluto según el tipo de KPI. */
+/** Formatea la magnitud del delta absoluto según el tipo de KPI.
+    Recibe el formatter - no puede llamar hooks: corre dentro del map
+    del render y solo cuando hay delta (hook condicional → crash #310
+    en prod con data real; detectado en AcademyKpiCards). */
 function formatDelta(
   n: number,
   kind: "count" | "money" | "avg" | "pts",
   t: ReturnType<typeof useTranslations>,
+  clpFmt: Intl.NumberFormat,
 ): string {
-  const clpFmt = useNumFmt({
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
   switch (kind) {
     case "money":
       return clpFmt.format(Math.round(n));
