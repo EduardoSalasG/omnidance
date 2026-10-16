@@ -3,6 +3,20 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.0.1] - 2026-10-16
+
+### Fixed
+
+- **Crash "Application error" en `/inicio` (lente academia)**:
+  `formatDelta` (KPIs del dashboard) llamaba `useNumFmt` dentro de un
+  helper condicional → violación de reglas de hooks (React #310).
+  Reproducido en prod con la cuenta muvet.
+- Hidratación: `useViewMode`/`useActiveRole`/`useSidebarState` leían
+  `localStorage` en render → mismatch SSR/cliente (React #418); ahora
+  `useSyncExternalStore` con server snapshot (patrón de `theme.ts`).
+- Misma clase de bug corregida en `relativeTime` (/notificaciones) y en
+  el skeleton de `/perfil`.
+
 ## [1.0.0] - 2026-10-16
 
 Primer release mayor: plataforma multi-locale, CRM completo para
