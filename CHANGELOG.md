@@ -3,6 +3,64 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.0.0] - 2026-10-16
+
+Primer release mayor: plataforma multi-locale, CRM completo para
+productores y academias, y stack actualizado con auditoría de
+seguridad en cero.
+
+### Added
+
+- **i18n multi-locale completo**: `es-CL` default + `en` + `fr` +
+  `pt-PT`. Todo el árbol bajo `app/[locale]/`, middleware next-intl
+  (prefijo → cookie → Accept-Language), catálogos con paridad exacta
+  (3414 keys por locale), formatters de fecha/número por locale.
+- **Preferencia de idioma persistida**: `Person.language` + `PATCH
+  /me`, selector en `/perfil/datos`; la preferencia viaja entre
+  dispositivos.
+- **SEO internacional**: canonical auto-referencial + `hreflang` por
+  locale con `x-default`, `og:image` por locale, sitemap con
+  alternates.
+- **CRM avanzado**: sección propia en drawer/sidebar con personas,
+  segmentos dinámicos, operación de campañas con canales, y triggers
+  con alcance por actor.
+- **Scores por componentes**: score de alumno (academy) y de asistente
+  (producer) descompuestos, con consola admin.
+- **Tours de onboarding** para los 7 roles, con cobertura de las
+  consolas nuevas.
+- Versión de la app visible al pie del perfil.
+
+### Changed
+
+- **Stack**: Next 15.5 + React 19 + NestJS 11 — `pnpm audit` en cero.
+- Landings estáticas; gate anónimo resuelto en middleware; locales
+  inválidos responden 404.
+- Item de analítica renombrado a "Consultas" en la navegación.
+- Vocabulario propio: "crew" → "tu gente" (es-CL) / "your people" (en)
+  en tours y spec.
+- CRM sin tabs internas: la navegación de secciones vive en el sidebar;
+  auditoría UX/a11y de layout, estados y touch targets.
+
+### Fixed
+
+- Hardening tras auditoría OWASP.
+- Confirmaciones destructivas unificadas con `ConfirmSheet` en todo el
+  repo.
+- `opengraph-image`/`twitter-image` bajo `[locale]` con `metadataBase`
+  heredado — warnings de metadata a cero.
+- Hallazgos de auditoría Lighthouse (a11y + SEO + i18n).
+- Provider raíz con `commonMessages` (Spinner/PageLoadingHost).
+- Selector de actor del CRM oculto cuando hay uno solo.
+
+### Removed
+
+- Código muerto y dependencias sin uso.
+
+### Datos
+
+- Migraciones: `relationship_score_breakdown`, `crm_dynamic_segments`,
+  `campaign_scheduled_at`, `person_language`.
+
 ## [0.8.5] - 2026-10-14
 
 ### Added
