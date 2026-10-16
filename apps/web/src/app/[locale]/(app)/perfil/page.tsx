@@ -522,7 +522,11 @@ export default function PerfilPage() {
           </section>
         ) : (
           kpis !== null &&
-          kpis.length > 0 && <KpiGrid kpis={kpis} label={th("insights")} />
+          kpis.length > 0 && (
+            <div data-tour="perfil-insights">
+              <KpiGrid kpis={kpis} label={th("insights")} />
+            </div>
+          )
         ))}
 
       {/* Interactuar como - cambia el lente de toda la app (nav + home).
@@ -600,7 +604,7 @@ export default function PerfilPage() {
           constancia/exploración; social las de sesiones/check-ins. Las
           del otro modo se filtran - academy_score sigue privado (spec). */}
       {!GAMIFLESS.has(currentActAs) && (
-        <Card>
+        <Card data-tour="perfil-badges">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {tg("badges")}
           </h2>
@@ -667,6 +671,7 @@ export default function PerfilPage() {
       ) && (
         <Link
           href="/perfil/pagos"
+          data-tour="perfil-pagos"
           className="block rounded-2xl transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
         >
           <Card className="flex items-center justify-between gap-4 transition-colors hover:border-neon/40">
@@ -710,14 +715,29 @@ export default function PerfilPage() {
               description: tt("s1.desc"),
             },
             {
-              element: "[data-tour='perfil-actas']",
+              element: "[data-tour='perfil-insights']",
               title: tt("s2.title"),
               description: tt("s2.desc"),
             },
             {
-              element: "[data-tour='perfil-gamif']",
+              element: "[data-tour='perfil-actas']",
               title: tt("s3.title"),
               description: tt("s3.desc"),
+            },
+            {
+              element: "[data-tour='perfil-gamif']",
+              title: tt("s4.title"),
+              description: tt("s4.desc"),
+            },
+            {
+              element: "[data-tour='perfil-badges']",
+              title: tt("s5.title"),
+              description: tt("s5.desc"),
+            },
+            {
+              element: "[data-tour='perfil-pagos']",
+              title: tt("s6.title"),
+              description: tt("s6.desc"),
             },
           ] satisfies TourStep[]
         }

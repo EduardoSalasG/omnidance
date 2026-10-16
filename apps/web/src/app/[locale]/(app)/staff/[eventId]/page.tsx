@@ -16,6 +16,10 @@ import type { IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, EventDate, SkeletonList } from "@/components/ui";
 import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
+import {
   decodeJwtPayload,
   doorDb,
   type DoorManifest,
@@ -146,6 +150,7 @@ export default function DoorConsolePage(
   const { eventId } = params;
   const t = useTranslations("staff");
   const tc = useTranslations("common");
+  const tt = useTranslations("tours.staffPuerta");
 
   const [gate, setGate] = useState<Gate>("loading");
   const [view, setView] = useState<View>("scan");
@@ -735,7 +740,10 @@ export default function DoorConsolePage(
               />
             ))}
         </h1>
-        <div className="flex min-h-11 items-baseline gap-1.5">
+        <div
+          data-tour="staff-counter"
+          className="flex min-h-11 items-baseline gap-1.5"
+        >
           <span className="text-2xl font-black text-neon">{count}</span>
           <span className="text-xs text-ink/50">{t("list")}</span>
         </div>
@@ -826,7 +834,10 @@ export default function DoorConsolePage(
           }
         >
           {/* Cámara grande - el teléfono se sostiene a la altura del pecho */}
-          <div className="relative min-h-0 flex-1 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line">
+          <div
+            data-tour="staff-scanner"
+            className="relative min-h-0 flex-1 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line"
+          >
             {cameraError ? (
               <div className="flex h-full items-center justify-center p-6">
                 <p className="text-center text-ink/70">{t("cameraError")}</p>
@@ -854,7 +865,10 @@ export default function DoorConsolePage(
 
           {/* Check-in manual colapsable - v1 por personId.
               TODO(ux): selector por nombre cuando exista búsqueda de personas. */}
-          <section className="border-t border-line px-4 lg:rounded-2xl lg:border lg:bg-surface lg:p-4">
+          <section
+            data-tour="staff-manual"
+            className="border-t border-line px-4 lg:rounded-2xl lg:border lg:bg-surface lg:p-4"
+          >
             <button
               type="button"
               aria-expanded={manualOpen}
@@ -926,6 +940,7 @@ export default function DoorConsolePage(
       {showList && (
         <section
           aria-label={t("list")}
+          data-tour="staff-checkins"
           className={
             view === "list"
               ? "flex min-h-0 flex-1 flex-col"
@@ -971,7 +986,10 @@ export default function DoorConsolePage(
       {/* Tabs inferiores - al alcance del pulgar con una mano.
           En ≥lg no aplican: las dos columnas ya están visibles. */}
       {gate === "ok" && (
-        <nav className="grid grid-cols-2 border-t border-line bg-surface lg:hidden">
+        <nav
+          data-tour="staff-tabs"
+          className="grid grid-cols-2 border-t border-line bg-surface lg:hidden"
+        >
           <button
             type="button"
             onClick={() => setView("scan")}
@@ -1062,6 +1080,50 @@ export default function DoorConsolePage(
             </>
           )}
         </div>
+      )}
+
+      {/* Tour de puerta (primera visita): sin chrome de app acá -
+          todos los anchors son in-page. En <lg la lista y los tabs se
+          excluyen solos según el panel visible (el runner filtra por
+          getClientRects); en ≥lg staff-tabs está oculto y queda fuera.
+          Solo con gate ok: el contador del header siempre existe y un
+          no-staff quemaría la clave con un tour de un solo paso. */}
+      {gate === "ok" && (
+      <OnboardingRunner
+        tour="staff-puerta"
+        steps={[
+          {
+            element: "[data-tour='staff-scanner']",
+            title: tt("s1.title"),
+            description: tt("s1.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='staff-manual']",
+            title: tt("s2.title"),
+            description: tt("s2.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='staff-counter']",
+            title: tt("s3.title"),
+            description: tt("s3.desc"),
+            side: "bottom",
+          },
+          {
+            element: "[data-tour='staff-checkins']",
+            title: tt("s4.title"),
+            description: tt("s4.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='staff-tabs']",
+            title: tt("s5.title"),
+            description: tt("s5.desc"),
+            side: "top",
+          },
+        ] satisfies TourStep[]}
+      />
       )}
     </main>
   );

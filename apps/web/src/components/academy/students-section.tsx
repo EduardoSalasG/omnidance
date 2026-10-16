@@ -145,24 +145,24 @@ export function StudentsSection({
   return (
     <div className="flex flex-col gap-4">
       {!readOnly && (
-        <Button
-          href="/academia/alumnos/nuevo"
-          size="sm"
-          className="self-start"
-        >
-          + {t("newEnrollment")}
-        </Button>
+        <div data-tour="academy-alumnos-new">
+          <Button href="/academia/alumnos/nuevo" size="sm">
+            + {t("newEnrollment")}
+          </Button>
+        </div>
       )}
 
-      <FilterBar
-        entity={STUDENTS_ENTITY}
-        filters={filters}
-        onChange={(f) => {
-          setFilters(f);
-          setPage(1);
-        }}
-        options={{ academyPlans: dedupeOptions(planOptions) }}
-      />
+      <div data-tour="academy-alumnos-filters">
+        <FilterBar
+          entity={STUDENTS_ENTITY}
+          filters={filters}
+          onChange={(f) => {
+            setFilters(f);
+            setPage(1);
+          }}
+          options={{ academyPlans: dedupeOptions(planOptions) }}
+        />
+      </div>
 
       {loading ? (
         <SkeletonList items={3} lines={1} />
@@ -187,7 +187,10 @@ export function StudentsSection({
           )}
         </div>
       ) : (
-        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <ul
+          data-tour="academy-alumnos-list"
+          className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           {students.map((s) => (
             <li key={s.id}>
               {/* Card completo navegable - la edición vive en la ficha. */}

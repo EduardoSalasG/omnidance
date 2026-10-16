@@ -6,31 +6,31 @@
     "home": {
       "s1": {
         "title": "Tu pulso en la escena",
-        "desc": "Racha de semanas, puntos, insignias y bailes: tu actividad real de un vistazo."
+        "desc": "Semanas seguidas saliendo y bailes recientes: tu actividad real, sin ranking. El detalle completo vive en tu Perfil."
       },
       "s2": {
+        "title": "¿Sales hoy?",
+        "desc": "La noche de un vistazo: precio honesto, amigos que van y preventas restantes. Si ya tienes entrada, tu QR queda a un toque."
+      },
+      "s3": {
         "title": "Social ↔ Academia",
         "desc": "Dos mundos en una app: Social para eventos, bailes y amigos; Academia para clases y tu aprendizaje. Cámbialo acá."
       },
-      "s3": {
+      "s4": {
         "title": "La campana",
         "desc": "Acá llega todo: entradas que te regalaron, reservas de mesa confirmadas, solicitudes de amistad y avisos de tus eventos."
       },
-      "s4": {
-        "title": "La cartelera",
-        "desc": "Todos los sociales de Santiago: filtra por estilo o local, compra tu preventa y pide mesa para tu grupo."
-      },
       "s5": {
-        "title": "El botón +",
-        "desc": "Tu QR (tu entrada en la puerta y cómo sumas bailes en la pista), tu historial de Bailes y las Prácticas informales de la comunidad."
+        "title": "La cartelera",
+        "desc": "Todos los sociales de Santiago: filtra por estilo o local, mira el mapa, compra tu preventa y pide mesa para tu grupo."
       },
       "s6": {
-        "title": "Tus amigos",
-        "desc": "Suma a tu crew: ve quién va a cada evento, mira sus próximas salidas y regálales entradas desde el checkout."
+        "title": "El botón +",
+        "desc": "Tu QR - la entrada en la puerta y cómo sumas bailes en la pista - más tu historial de Bailes y las Prácticas de la comunidad."
       },
       "s7": {
         "title": "Tu perfil",
-        "desc": "Foto, estilos que bailas y tus lentes: si también eres profe, DJ, productor o de una academia, cambia de vista acá."
+        "desc": "Foto, estilos que bailas, tus datos, pagos e idioma. Si también eres profe, DJ, productor o de una academia, cambia de lente acá."
       },
       "academy": {
         "s1": {
@@ -38,28 +38,28 @@
           "desc": "Asistencias, clases tomadas y tu progreso como alumno, de un vistazo."
         },
         "s2": {
+          "title": "Tus próximas clases",
+          "desc": "Lo que ya tienes reservado: entra a la ficha para ver horario, profe y cancelar si no llegas."
+        },
+        "s3": {
           "title": "Social ↔ Academia",
           "desc": "Estás en modo Academia. Vuelve a Social para la cartelera de eventos, tus bailes y tu crew."
         },
-        "s3": {
+        "s4": {
           "title": "La campana",
           "desc": "Acá llegan los avisos: reservas de clase, confirmaciones y novedades de tus academias."
         },
-        "s4": {
-          "title": "Clases",
-          "desc": "Explora clases y particulares de todas las academias, reserva tu cupo y revisa tu historial."
-        },
         "s5": {
-          "title": "El botón +",
-          "desc": "Tu QR personal. También es tu credencial en clases y sociales."
+          "title": "Clases",
+          "desc": "Tus academias y toda la escena en Explorar: reserva tu cupo, revisa tu historial y tus particulares."
         },
         "s6": {
-          "title": "Academias",
-          "desc": "El directorio de la escena: descubre academias, mira sus clases e inscríbete. Si ya estás en una, acá vive Mi Aprendizaje."
+          "title": "El botón +",
+          "desc": "Tu QR personal: también es tu credencial para marcar asistencia en clases."
         },
         "s7": {
-          "title": "Tu perfil",
-          "desc": "Foto, estilos y tus lentes. Vuelve a la vista Social cuando quieras salir a bailar."
+          "title": "Academias",
+          "desc": "El directorio de la escena: descubre academias, mira sus clases e inscríbete. Si ya estás en una, acá vive Mi Aprendizaje."
         }
       }
     },
@@ -70,33 +70,41 @@
       },
       "s2": {
         "title": "Por local",
-        "desc": "¿Hinchas de un lugar? Mira solo su cartelera, y entra a su perfil para ver dirección y cómo llegar."
+        "desc": "¿Hincha de un lugar? Mira solo su cartelera y entra a su perfil para ver dirección y cómo llegar."
       },
       "s3": {
         "title": "Tres formas de ver",
-        "desc": "Lista, calendario semanal o mapa de locales: elige cómo explorar la escena."
+        "desc": "Lista por día, calendario mensual o mapa de locales: elige cómo explorar la escena."
       },
       "s4": {
-        "title": "Mis entradas",
-        "desc": "El ícono de ticket lleva a tu billetera: tus entradas con QR, las que compraste y las que te regalaron."
+        "title": "Mis eventos",
+        "desc": "Tu agenda y tu billetera: las noches donde ya tienes entrada, con su QR, regalos y pagos en validación."
       },
       "s5": {
         "title": "Toca un evento",
-        "desc": "Cada card lleva al detalle: lineup, planificación de la noche y precios. En el checkout puedes regalar entradas a tus amigos o pedir mesa."
+        "desc": "Cada card lleva al detalle: lineup, planificación de la noche y precios. En el checkout puedes regalar entradas a tu crew o pedir mesa."
       }
     },
     "clases": {
       "s1": {
         "title": "Lista o calendario",
-        "desc": "Lista agrupada por día o calendario semanal; también dentro de Explorar, para ver la semana completa de la escena."
+        "desc": "Las clases agrupadas por día o el mes completo en calendario - elige cómo mirar la semana."
       },
       "s2": {
+        "title": "Qué mirar",
+        "desc": "Mis clases son las de tus academias; Explorar muestra toda la escena; Historial guarda lo que ya cursaste."
+      },
+      "s3": {
         "title": "Explorar academias",
         "desc": "Todas las clases de la escena, no solo las de tus academias. Para reservar necesitas inscripción vigente."
       },
-      "s3": {
-        "title": "Explora y reserva",
-        "desc": "Filtra por día, estilo y nivel. Cada card muestra el cupo y reservas con un toque."
+      "s4": {
+        "title": "Filtra a tu medida",
+        "desc": "Estilo, nivel y academia - y dentro de Mis clases puedes alternar entre Todas y solo tus Reservadas."
+      },
+      "s5": {
+        "title": "Reserva con un toque",
+        "desc": "Cada card muestra el horario y el cupo que queda. Si se llena, entras a lista de espera."
       }
     },
     "qr": {
@@ -107,20 +115,28 @@
       "s2": {
         "title": "Modo escáner",
         "desc": "Cambia a Escanear para sumar un baile con el QR de tu pareja. Queda en tu historial de Bailes."
+      },
+      "s3": {
+        "title": "Guárdalo en tu wallet",
+        "desc": "Agrega el pase a Google Wallet y abre tu QR directo en la puerta, sin buscar la app."
       }
     },
     "amigos": {
       "s1": {
         "title": "Suma a tu crew",
-        "desc": "Búscalos por nombre o comparte tu link de invitación. Quien lo abre cae directo a agregarte."
+        "desc": "Búscalos por nombre o comparte tu link de invitación: quien lo abre cae directo a agregarte."
       },
       "s2": {
         "title": "Tus amigos van a",
         "desc": "Los eventos donde alguien de tu crew ya tiene entrada, para no caer solo a la pista."
       },
       "s3": {
+        "title": "Solicitudes",
+        "desc": "Las solicitudes que te llegan se aceptan o se dejan pasar acá; las que enviaste se ven más abajo."
+      },
+      "s4": {
         "title": "Tu lista",
-        "desc": "Solicitudes pendientes y tus amigos. Entra a su perfil para ver sus estilos y a qué eventos va."
+        "desc": "Entra al perfil de cada amigo para ver sus estilos y a qué eventos va. En el checkout puedes regalarle entradas."
       }
     },
     "bailes": {
@@ -140,13 +156,17 @@
     "practicas": {
       "s1": {
         "title": "Todas o las tuyas",
-        "desc": "Filtra entre todas las prácticas de la comunidad y solo las que organizas o a las que vas, y por estilo."
+        "desc": "Alterna entre todas las prácticas de la comunidad y solo las que organizas o a las que vas."
       },
       "s2": {
+        "title": "Por estilo",
+        "desc": "¿Solo timba hoy? Toca un chip para filtrar; vuelve a tocarlo para quitar el filtro."
+      },
+      "s3": {
         "title": "Arma la tuya",
         "desc": "¿Juntarse a entrenar, repasar una clase o previa antes del social? Crea tu práctica con cupo y lugar."
       },
-      "s3": {
+      "s4": {
         "title": "Las prácticas",
         "desc": "Agrupadas por día: hora, lugar, quién organiza y cuántos van. Toca una para confirmar tu asistencia."
       }
@@ -154,15 +174,27 @@
     "perfil": {
       "s1": {
         "title": "Tu identidad",
-        "desc": "Foto, nombre e Instagram: lo que ven tus amigos y quienes bailan contigo."
+        "desc": "Foto, nombre e Instagram: lo que ven tus amigos y quienes bailan contigo. Tus datos y el idioma de la app se editan acá dentro."
       },
       "s2": {
+        "title": "Tu actividad",
+        "desc": "Todos los insights de tu lente: racha, puntos, bailes o asistencias, según estés en Social o Academia."
+      },
+      "s3": {
         "title": "Interactuar como",
         "desc": "Cambia el lente de toda la app: bailarín, staff, productor, academia… el nav y el inicio se transforman."
       },
-      "s3": {
-        "title": "Racha e insignias",
-        "desc": "Se ganan bailando: semanas seguidas en la pista y logros por conductas reales. No hay ranking público."
+      "s4": {
+        "title": "Tu racha",
+        "desc": "Semanas seguidas en la pista - o en clases si estás en modo Academia. Se gana yendo, no hay atajos."
+      },
+      "s5": {
+        "title": "Insignias",
+        "desc": "Logros por conductas reales, siempre privados: no hay ranking público ni comparación con nadie."
+      },
+      "s6": {
+        "title": "Tus pagos",
+        "desc": "El historial de lo que compraste por la app: entradas, reservas de clases y cobros."
       }
     },
     "productor": {
@@ -171,8 +203,8 @@
         "desc": "Eventos agendados, entradas vendidas, facturación del mes y cobros pendientes: el pulso de tu productora."
       },
       "s2": {
-        "title": "Cobros por revisar",
-        "desc": "Transferencias y pagos manuales que esperan tu validación. Apruébalos o recházalos desde la ficha - la cola completa vive en Comprobantes."
+        "title": "Comprobantes por revisar",
+        "desc": "Transferencias, links de pago y efectivo esperando tu visto bueno: al aprobar, la entrada queda emitida. La cola completa vive en Comprobantes."
       },
       "s3": {
         "title": "Tus mejores noches",
@@ -180,11 +212,11 @@
       },
       "s4": {
         "title": "Tus eventos",
-        "desc": "Crea y administra cada evento: precios, lineup, mesas reservables, listas de invitados, códigos de descuento y staff de puerta."
+        "desc": "Crea y administra cada evento: precios, lineup, mesas reservables, listas de invitados, pases y cortesías, staff de puerta y academias que venden tu preventa a comisión."
       },
       "s5": {
         "title": "Todos los módulos",
-        "desc": "Comprobantes, códigos, CRM, analítica y tu configuración - defaults, medios de pago, suscripción Pro y apariencia - desde el menú."
+        "desc": "Comprobantes, códigos de descuento, colaboradores de puerta, CRM y analítica; y tu configuración - defaults, medios de pago, liquidaciones, suscripción Pro y apariencia - todo desde el menú."
       },
       "s6": {
         "title": "La campana",
@@ -194,19 +226,19 @@
     "instructor": {
       "s1": {
         "title": "Tu semana",
-        "desc": "Las clases que dictas, tu agenda de los próximos 7 días y la asistencia marcada - tu operación de un vistazo."
+        "desc": "Las clases que dictas, tu agenda de los próximos 7 días y la asistencia marcada: tu operación de un vistazo."
       },
       "s2": {
         "title": "Próximas clases",
-        "desc": "Las clases que vienen con su ocupación. Toca una para ver el roster y marcar asistencia."
+        "desc": "Las que vienen con su quórum: reservas contra cupo. Toca una para abrir el roster y marcar asistencia."
       },
       "s3": {
         "title": "Mis clases",
-        "desc": "Tu consola de clases: roster completo de cada una. Puedes marcar presente desde 30 minutos antes hasta 30 después del inicio."
+        "desc": "Tu consola: el roster completo de cada clase. Puedes marcar presente desde 30 minutos antes hasta 30 después del inicio."
       },
       "s4": {
         "title": "Alumnos",
-        "desc": "Búscalos por nombre y revisa su historial de asistencia - lectura rápida, sin edición."
+        "desc": "Búscalos por nombre y revisa su historial de asistencia: lectura rápida, sin edición."
       },
       "s5": {
         "title": "La campana",
@@ -219,16 +251,32 @@
     },
     "academia": {
       "s1": {
-        "title": "Tu academia",
-        "desc": "El hub operativo: clases, alumnos, planes y videos en un solo lugar."
+        "title": "Tu academia en números",
+        "desc": "Alumnos activos, planes a la venta, clases de la semana, asistencia y facturado del mes, con su variación contra el mes anterior. Cada número abre su módulo."
       },
       "s2": {
-        "title": "Asistencia",
-        "desc": "El promedio del mes a la vista, y desde acá entras a marcar presente a tus alumnos en cada clase."
+        "title": "La operación del día",
+        "desc": "Las clases de hoy con sus reservas y la asistencia marcada. Toca una para abrir su roster."
       },
       "s3": {
+        "title": "Por revisar",
+        "desc": "Comprobantes de pago por validar y clases particulares por agendar: la cola que conviene dejar en cero cada día."
+      },
+      "s4": {
+        "title": "Lo que viene",
+        "desc": "Planes por vencer y cumpleaños de tus alumnos: retener y celebrar también es operación."
+      },
+      "s5": {
         "title": "Todos los módulos",
-        "desc": "Horarios, particulares, series y videos también desde el menú lateral."
+        "desc": "Alumnos, clases, particulares, planes, cobros, equipo y configuración: cada tarjeta abre su sección según tu acceso."
+      },
+      "s6": {
+        "title": "También desde el menú",
+        "desc": "Los mismos módulos viven en el menú lateral y, según tu rol, el CRM y la Analítica de la academia."
+      },
+      "s7": {
+        "title": "La campana",
+        "desc": "Acá llegan los avisos: comprobantes nuevos, solicitudes y novedades de tu academia."
       }
     },
     "academiaOwner": {
@@ -254,11 +302,291 @@
       },
       "s6": {
         "title": "Todos los módulos",
-        "desc": "Cobros, planes, equipo, configuración y analítica viven en el menú lateral: desde acá llegas a toda la consola."
+        "desc": "Series, particulares, alumnos, cobros, CRM y Consultas de analítica: todo agrupado por sección en el menú lateral."
       },
       "s7": {
         "title": "La campana",
         "desc": "Acá llegan los avisos: comprobantes nuevos, solicitudes y novedades de tu academia."
+      }
+    },
+    "staff": {
+      "s1": {
+        "title": "Elige tu noche",
+        "desc": "Los eventos publicados y en vivo de la escena. Toca el tuyo y entras directo a la consola de puerta."
+      },
+      "s2": {
+        "title": "El menú",
+        "desc": "Desde acá llegas a la cartelera y a tu perfil: staff en la puerta, bailarín en la pista."
+      },
+      "s3": {
+        "title": "La campana",
+        "desc": "Los avisos de la escena llegan acá: entradas, amigos y novedades de tus eventos."
+      }
+    },
+    "staffPuerta": {
+      "s1": {
+        "title": "Apunta y listo",
+        "desc": "La cámara lee el QR sola: verde es entrada válida, ámbar es sin pase (entra, pero revisa) y rojo es duplicado. El teléfono también vibra."
+      },
+      "s2": {
+        "title": "¿Sin QR? Por nombre",
+        "desc": "Búscalo en el padrón del evento y márcalo a mano. Funciona aunque se caiga la señal."
+      },
+      "s3": {
+        "title": "El contador de la noche",
+        "desc": "Cuánta gente lleva adentro, incluidos los check-ins hechos offline: se sincronizan solos al volver la señal."
+      },
+      "s4": {
+        "title": "Quién ya entró",
+        "desc": "La lista de la noche con hora y método; los pendientes por sincronizar y los conflictos quedan marcados."
+      },
+      "s5": {
+        "title": "Escáner ↔ lista",
+        "desc": "Alterna entre la cámara y los asistentes con los tabs de abajo, al alcance del pulgar."
+      }
+    },
+    "productorCobros": {
+      "s1": {
+        "title": "La cola primero",
+        "desc": "Todos los comprobantes pendientes de un vistazo: toca uno para ver la evidencia y aprobar o rechazar - al aprobar, la entrada queda emitida."
+      },
+      "s2": {
+        "title": "El historial",
+        "desc": "Lo ya resuelto: quién aprobó o rechazó cada cobro y cuándo. Trazabilidad completa."
+      },
+      "s3": {
+        "title": "Filtra la vista",
+        "desc": "Por estado y por fecha, para cruzar un cobro puntual o revisar un período."
+      }
+    },
+    "productorColaboradores": {
+      "s1": {
+        "title": "Suma a tu equipo",
+        "desc": "Busca por nombre o invita por correo: quien se suma queda disponible como staff de puerta en todos tus eventos."
+      },
+      "s2": {
+        "title": "Tu nómina",
+        "desc": "Estas personas son las candidatas al armar el staff de cada evento. Acá solo se quita de la lista."
+      }
+    },
+    "academia-alumnos": {
+      "s1": {
+        "title": "Tu base en números",
+        "desc": "Alumnos activos y cómo se mueve la matrícula, con comparativa contra el mes anterior."
+      },
+      "s2": {
+        "title": "Quiénes destacan",
+        "desc": "Top por asistencia histórica y por monto pagado del mes: cada fila abre la ficha del alumno."
+      },
+      "s3": {
+        "title": "Encuentra a quien buscas",
+        "desc": "Filtra por nombre, estado de la inscripción o plan."
+      },
+      "s4": {
+        "title": "La nómina",
+        "desc": "Cada card abre la ficha: plan, vigencia, asistencias y el score de relación, privado de tu academia."
+      },
+      "s5": {
+        "title": "Nueva inscripción",
+        "desc": "Matricula a un alumno con su plan y su vigencia desde acá."
+      },
+      "s6": {
+        "title": "Carga masiva",
+        "desc": "¿Traes la lista de otro sistema? Súbela en CSV con la plantilla descargable."
+      }
+    },
+    "academia-cobros": {
+      "s1": {
+        "title": "El mes en plata",
+        "desc": "Facturado del mes, ticket promedio y los medios de pago que más usan tus alumnos, con su variación."
+      },
+      "s2": {
+        "title": "Planes por vencer",
+        "desc": "Las inscripciones que vencen hoy o esta semana: cada fila abre la ficha para renovar."
+      },
+      "s3": {
+        "title": "Pagos por validar",
+        "desc": "Los comprobantes que declararon tus alumnos: toca uno para revisarlo y aprobarlo o rechazarlo en su detalle."
+      },
+      "s4": {
+        "title": "El historial",
+        "desc": "Todas las validaciones y los pagos por pasarela en orden: la trazabilidad completa de cada cobro."
+      }
+    },
+    "academia-clases": {
+      "s1": {
+        "title": "Encuentra la clase",
+        "desc": "Filtra por academia, serie o fecha: útil si dictas en más de un lugar."
+      },
+      "s2": {
+        "title": "Tus clases con quórum",
+        "desc": "Cada card muestra reservas contra quórum y la lista de espera. Tócala para abrir el roster y marcar asistencia."
+      }
+    },
+    "academia-clase": {
+      "s1": {
+        "title": "La clase",
+        "desc": "Serie, estilo, nivel, fecha y quién la dicta: la ficha operativa de la sesión."
+      },
+      "s2": {
+        "title": "El quórum",
+        "desc": "Reservas contra el cupo mínimo: la barra se llena cuando la clase queda confirmada."
+      },
+      "s3": {
+        "title": "Reservados",
+        "desc": "Quienes tienen cupo. El instructor marca presente en la ventana de la clase: de 30 minutos antes a 30 después del inicio."
+      },
+      "s4": {
+        "title": "Lista de espera",
+        "desc": "En orden de llegada: si se libera un cupo, el primero de la lista entra."
+      }
+    },
+    "academias": {
+      "s1": {
+        "title": "Tuyas o por descubrir",
+        "desc": "Mis academias muestra tus inscripciones con plan y asistencias; Explorar abre el directorio completo de la escena."
+      },
+      "s2": {
+        "title": "Lista o mapa",
+        "desc": "Cambia a mapa para ver las academias por ubicación y pillar la que te quede cerca."
+      },
+      "s3": {
+        "title": "Filtra por estilo",
+        "desc": "Salsa, bachata o lo que busques: el filtro aplica a la lista y al mapa; en Explorar también por nombre."
+      },
+      "s4": {
+        "title": "Cada card abre la ficha",
+        "desc": "Estilos, dirección y profesores; en la ficha ves sus clases, planes y videos."
+      }
+    },
+    "crm": {
+      "s1": {
+        "title": "Tu público, con score",
+        "desc": "Cada persona tiene un score de relación calculado de su actividad real - asistencias, compras, llegadas. Es privado: solo tú lo ves. Toca una card para abrir su ficha."
+      },
+      "s2": {
+        "title": "Segmentos que se mueven solos",
+        "desc": "Nuevo, En riesgo, Trae gente, Núcleo: la membresía se recalcula sola en cada recálculo de scores. Acá ves cuántos tienes en cada uno."
+      },
+      "s3": {
+        "title": "Busca y filtra",
+        "desc": "Por nombre o tag, por segmento - incluidos los que tú guardes - y ordena por score o por nombre."
+      },
+      "s4": {
+        "title": "Acciones en lote",
+        "desc": "Selecciona la página entera o varias personas para ponerles o quitarles un tag, o mandarles una campaña juntas."
+      },
+      "s5": {
+        "title": "¿Más de un actor?",
+        "desc": "Si produces y además tienes academia, cada uno tiene su público propio: scores, segmentos y campañas se calculan por separado. Cámbialo acá."
+      },
+      "s6": {
+        "title": "Campañas y triggers",
+        "desc": "Desde el menú: campañas con notificación o código de descuento - programables y con atribución de quién volvió y quién canjeó - y triggers que avisan solos por conducta."
+      },
+      "s7": {
+        "title": "La campana",
+        "desc": "Acá llegan los resúmenes de tus triggers y los avisos de envío de campañas."
+      }
+    },
+    "analitica": {
+      "s1": {
+        "title": "Consultas listas",
+        "desc": "Las consultas rápidas del sistema y las que tú guardes: un toque precarga entidad y filtros."
+      },
+      "s2": {
+        "title": "Elige qué consultar",
+        "desc": "Ventas, check-ins, asistencia, alumnos, eventos… las entidades dependen de tu lente activa - se cambia desde tu perfil."
+      },
+      "s3": {
+        "title": "Acota con filtros",
+        "desc": "Fechas, evento, canal, academia: cada entidad trae sus propios filtros, con rangos rápidos (hoy, 7 días, 30 días)."
+      },
+      "s4": {
+        "title": "Consultar y exportar",
+        "desc": "Aplica para ver el resultado paginado; expórtalo a CSV o PDF con los mismos filtros."
+      },
+      "s5": {
+        "title": "Guárdala para reusarla",
+        "desc": "Ponle nombre y queda en Mis consultas: la próxima vez la precargas de un toque."
+      },
+      "s6": {
+        "title": "Analítica por persona",
+        "desc": "Como admin puedes ver la actividad de cualquier usuario por lente: está en el menú, bajo Analítica."
+      }
+    },
+    "admin": {
+      "s1": {
+        "title": "Personas y roles",
+        "desc": "Busca cualquier usuario por nombre, email, teléfono o rol. En su ficha apruebas roles pendientes, los cambias de estado o los revocas."
+      },
+      "s2": {
+        "title": "El catálogo RBAC",
+        "desc": "Qué puede hacer cada rol: el catálogo de permisos y qué roles puede solicitar la gente."
+      },
+      "s3": {
+        "title": "Parámetros de plataforma",
+        "desc": "Comisiones, cooldowns y límites globales: los cambios aplican en segundos."
+      },
+      "s4": {
+        "title": "Jobs programados",
+        "desc": "Las tareas agendadas - recálculo de scores, digests, cobros - con su horario, corridas y pausa. Puedes correrlas a mano."
+      },
+      "s5": {
+        "title": "Catálogos",
+        "desc": "Estilos de baile, niveles y tipos de clase: la materia prima de clases y eventos de toda la app."
+      },
+      "s6": {
+        "title": "El resto del panel",
+        "desc": "Datos de la operación, auditoría, finanzas, facturación, campañas de mail y salud de academias - además del CRM y la analítica por usuario desde el menú."
+      }
+    },
+    "locales": {
+      "s1": {
+        "title": "¿Más de un local?",
+        "desc": "Si administras varios, este selector cambia de local: todo el tablero se refresca con sus datos."
+      },
+      "s2": {
+        "title": "La cartelera de tu local",
+        "desc": "Los shows agendados acá, con su estado. Es lo mismo que el público ve en tu perfil de local."
+      },
+      "s3": {
+        "title": "El mes en números",
+        "desc": "Próximos eventos, eventos y check-ins de los últimos 30 días - y arriba, tu dirección y aforo."
+      },
+      "s4": {
+        "title": "Reservas de mesa",
+        "desc": "Quién reservó, cuántos son y para qué noche. Es solo registro: la venta corre por tu POS."
+      },
+      "s5": {
+        "title": "Cuándo se llena",
+        "desc": "Llegadas por hora, hora peak y permanencia media de los últimos 30 días."
+      },
+      "s6": {
+        "title": "Arriendos",
+        "desc": "Las academias piden tu local por fecha: confirma o cancela cada solicitud desde acá."
+      },
+      "s7": {
+        "title": "Tus cartas",
+        "desc": "Los PDF de la carta se abren en pestaña nueva - siempre links externos, nada se sube acá."
+      }
+    },
+    "soporte": {
+      "s1": {
+        "title": "Encuentra al usuario",
+        "desc": "Nombre o correo: desde 2 letras la búsqueda corre sola. Sin listados masivos - cada consulta es puntual."
+      },
+      "s2": {
+        "title": "La ficha lo resume todo",
+        "desc": "Al elegir un resultado: datos, roles con su estado, últimas entradas y últimos pagos - todo de solo lectura."
+      },
+      "s3": {
+        "title": "¿Te escriben por un evento?",
+        "desc": "La cartelera completa está a un toque para revisar fechas, locales y precios mientras respondes."
+      },
+      "s4": {
+        "title": "La campana",
+        "desc": "Los avisos de la plataforma y de usuarios llegan acá - revísala al empezar el turno."
       }
     }
   }

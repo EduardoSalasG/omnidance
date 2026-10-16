@@ -131,7 +131,10 @@ export function CobrosHistory({ academyId }: { academyId: string }) {
   if (rows.length === 0) return null;
 
   return (
-    <Card className="flex flex-col gap-4">
+    <Card
+      className="flex flex-col gap-4"
+      data-tour="academy-cobros-history"
+    >
       <div>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("historyUnifiedTitle")}

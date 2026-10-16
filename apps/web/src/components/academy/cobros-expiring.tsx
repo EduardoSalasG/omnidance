@@ -53,7 +53,10 @@ export function CobrosExpiring({ academyId }: { academyId: string }) {
     items.length - expiringToday.length - expiringWeek.length;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div
+      className="grid gap-6 lg:grid-cols-2"
+      data-tour="academy-cobros-expiring"
+    >
       {expiringToday.length > 0 && (
         <ExpiringList
           title={t("insights.expiringTodayTitle")}

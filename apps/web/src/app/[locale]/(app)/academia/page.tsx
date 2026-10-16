@@ -146,53 +146,86 @@ function AcademyHub({
       {/* key por id: cambiar de academia remonta el resumen. */}
       <AcademyDashboard key={academy.id} academy={academy} />
       {showModuleGrid && (
-        <ModuleGrid>
-          {visible.map((m) => (
-            <ModuleCard
-              key={m.href}
-              href={m.href}
-              title={t(`modules.${m.key}`)}
-              desc={t(`modules.${m.key}Desc`)}
-            />
-          ))}
-        </ModuleGrid>
+        <div data-tour="academy-modules">
+          <ModuleGrid>
+            {visible.map((m) => (
+              <ModuleCard
+                key={m.href}
+                href={m.href}
+                title={t(`modules.${m.key}`)}
+                desc={t(`modules.${m.key}Desc`)}
+              />
+            ))}
+          </ModuleGrid>
+        </div>
       )}
 
-      {/* Tour de primera visita - targets del chrome (tabs +
-          menú lateral), presentes una vez pasa el gate. */}
-      <OnboardingRunner
-        tour="academia"
-        steps={
-          [
-            {
-              element: "[data-tour='nav-academy']",
-              title: tt("s1.title"),
-              description: tt("s1.desc"),
-              side: "top",
-            },
-            {
-              element: "[data-tour='nav-classes']",
-              title: tt("s2.title"),
-              description: tt("s2.desc"),
-              side: "top",
-            },
-            {
-              element: "[data-tour='appbar-menu']",
-              title: tt("s3.title"),
-              description: tt("s3.desc"),
-              side: "bottom",
-            },
-            {
-              // En ≥lg la hamburguesa no existe - el paso de navegación
-              // apunta a la sidebar (mismo texto, anchor por viewport).
-              element: "[data-tour='app-sidebar']",
-              title: tt("s3.title"),
-              description: tt("s3.desc"),
-              side: "right",
-            },
-          ] satisfies TourStep[]
-        }
-      />
+      {/* Tour de primera visita - anchors del dashboard + grilla de
+          módulos + chrome. Los condicionales (pending/alerts) se omiten
+          solos cuando la cola viene vacía. Se monta solo con /access
+          resuelto y sin owner: antes el owner alcanzaba a gatillar el
+          tour en la ventana previa al redirect a /inicio. */}
+      {access !== null && !access.isOwner && (
+        <OnboardingRunner
+          tour="academia"
+          steps={
+            [
+              {
+                element: "[data-tour='academy-kpis']",
+                title: tt("s1.title"),
+                description: tt("s1.desc"),
+                side: "top",
+              },
+              {
+                element: "[data-tour='academy-today']",
+                title: tt("s2.title"),
+                description: tt("s2.desc"),
+                side: "top",
+              },
+              {
+                element: "[data-tour='academy-pending']",
+                title: tt("s3.title"),
+                description: tt("s3.desc"),
+                side: "top",
+              },
+              {
+                element: "[data-tour='academy-alerts']",
+                title: tt("s4.title"),
+                description: tt("s4.desc"),
+                side: "top",
+              },
+              {
+                element: "[data-tour='academy-modules']",
+                title: tt("s5.title"),
+                description: tt("s5.desc"),
+                side: "top",
+              },
+              {
+                // En ≥lg la hamburguesa no existe - el paso del menú
+                // apunta a la sidebar (mismo texto, anchor por viewport).
+                // Sin drawer ni sidebar (lente instructor) el runner lo
+                // omite solo.
+                element: "[data-tour='appbar-menu']",
+                title: tt("s6.title"),
+                description: tt("s6.desc"),
+                side: "bottom",
+              },
+              {
+                element: "[data-tour='app-sidebar']",
+                title: tt("s6.title"),
+                description: tt("s6.desc"),
+                side: "right",
+              },
+              {
+                element: "[data-tour='appbar-bell']",
+                title: tt("s7.title"),
+                description: tt("s7.desc"),
+                side: "bottom",
+              },
+            ] satisfies TourStep[]
+          }
+        />
+      )}
     </>
   );
 }

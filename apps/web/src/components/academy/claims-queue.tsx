@@ -117,7 +117,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
   const awaiting = filtered ? [] : claims.filter((c) => c.status === "AWAITING");
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" data-tour="academy-cobros-queue">
       {/* La cola accionable va primero; los filtros (búsqueda en el
           historial de claims) quedan debajo de "Pagos por validar". */}
       {pending.length > 0 && !filtered && (

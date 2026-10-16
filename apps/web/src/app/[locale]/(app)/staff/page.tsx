@@ -13,6 +13,10 @@ import {
   RefreshIcon,
   SkeletonList,
 } from "@/components/ui";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 import { Link } from "@/i18n/navigation";
 
 // Roles que habilitan la consola de puerta (espejo de StaffGuard en la API).
@@ -44,6 +48,7 @@ export default function StaffPage() {
   const t = useTranslations("staff");
   const tc = useTranslations("common");
   const te = useTranslations("events");
+  const tt = useTranslations("tours.staff");
 
   // /me compartido (MeProvider) - sin fetch propio de sesión: la lista
   // se pide en paralelo desde el mount y el gate se deriva del contexto.
@@ -143,7 +148,10 @@ export default function StaffPage() {
         (events.length === 0 ? (
           <p className="text-ink/60">{te("empty")}</p>
         ) : (
-          <ul className="flex flex-col gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3">
+          <ul
+            data-tour="staff-events"
+            className="flex flex-col gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3"
+          >
             {events.map((e) => (
               <li key={e.id}>
                 <Link href={`/staff/${e.id}`} className="block">
@@ -174,6 +182,44 @@ export default function StaffPage() {
             ))}
           </ul>
         ))}
+
+      {/* Tour del staff (primera visita): la grilla es el anchor
+          principal; los pasos de navegación cubren ambos chromes
+          (hamburguesa <lg, sidebar ≥lg) y el runner conserva el
+          visible. Solo con gate ready: un no-staff vería el tour
+          reducido al chrome y la clave quedaría quemada. La consola
+          de puerta tiene tour propio (staff-puerta) en /staff/[id]. */}
+      {gate === "ready" && (
+      <OnboardingRunner
+        tour="staff"
+        steps={[
+          {
+            element: "[data-tour='staff-events']",
+            title: tt("s1.title"),
+            description: tt("s1.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='appbar-menu']",
+            title: tt("s2.title"),
+            description: tt("s2.desc"),
+            side: "bottom",
+          },
+          {
+            element: "[data-tour='app-sidebar']",
+            title: tt("s2.title"),
+            description: tt("s2.desc"),
+            side: "right",
+          },
+          {
+            element: "[data-tour='appbar-bell']",
+            title: tt("s3.title"),
+            description: tt("s3.desc"),
+            side: "bottom",
+          },
+        ] satisfies TourStep[]}
+      />
+      )}
     </main>
   );
 }

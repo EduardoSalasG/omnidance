@@ -65,6 +65,7 @@ function WalletLauncher() {
       href={saveUrl}
       target="_blank"
       rel="noopener noreferrer"
+      data-tour="qr-wallet"
       className="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-elevated px-4 text-sm text-ink/80 transition-colors hover:border-neon/60 hover:text-neon"
     >
       {tQr("addToWallet")}
@@ -192,6 +193,12 @@ function QrHub() {
                 title: tt("s2.title"),
                 description: tt("s2.desc"),
                 side: "bottom",
+              },
+              {
+                element: "[data-tour='qr-wallet']",
+                title: tt("s3.title"),
+                description: tt("s3.desc"),
+                side: "top",
               },
             ] satisfies TourStep[]
           }

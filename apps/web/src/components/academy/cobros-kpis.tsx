@@ -63,7 +63,7 @@ export function CobrosKpiStrip({ academyId }: { academyId: string }) {
         : "text-warn";
 
   return (
-    <section aria-label={t("kpiBilled")}>
+    <section aria-label={t("kpiBilled")} data-tour="academy-cobros-kpis">
       {data === null ? (
         <ul
           aria-hidden="true"

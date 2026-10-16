@@ -15,6 +15,10 @@ import {
   Spinner,
 } from "@/components/ui";
 import { ProPaywall } from "@/components/producer/pro-paywall";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 import { FilterBar, type QueryOption } from "@/components/query/FilterBar";
 import { QueryTable } from "@/components/query/QueryTable";
 import {
@@ -61,10 +65,14 @@ export default function AnaliticaPage() {
   const t = useTranslations("query");
   const ta = useTranslations("analytics");
   const tc = useTranslations("common");
+  const tt = useTranslations("tours.analitica");
 
   const { me } = useMe();
   const effectivePro = me?.effectivePro ?? null;
   const activeRole = useActiveRole(me?.roles);
+  // El drill por usuario (/analitica/usuarios) es solo ADMIN - el paso
+  // del tour que lo explica se incluye solo cuando el rol está.
+  const isAdmin = me?.roles.includes("ADMIN") ?? false;
 
   const [phase, setPhase] = useState<BootPhase>("loading");
   const [role, setRole] = useState<Role | null>(null);
@@ -383,39 +391,48 @@ export default function AnaliticaPage() {
               {/* Consultas rápidas primero (expandible, cerrado por
                   defecto) - encima de las entidades/filtros. */}
               {role && isQueryRole(role) && (
-                <SavedQueries
-                  role={role}
-                  saved={saved}
-                  busyId={savedBusy}
-                  onSelect={applyParams}
-                  onRename={(id, name) => void renameSaved(id, name)}
-                  onDelete={(id) => void deleteSaved(id)}
-                />
+                <div data-tour="an-saved">
+                  <SavedQueries
+                    role={role}
+                    saved={saved}
+                    busyId={savedBusy}
+                    onSelect={applyParams}
+                    onRename={(id, name) => void renameSaved(id, name)}
+                    onDelete={(id) => void deleteSaved(id)}
+                  />
+                </div>
               )}
 
-              <PillTabs
-                ariaLabel={t("entitiesLabel")}
-                active={entity ?? ""}
-                onSelect={selectEntity}
-                items={entities.map((e) => ({
-                  key: e.entity,
-                  label: t.has(`entities.${e.entity}`)
-                    ? t(`entities.${e.entity}`)
-                    : e.entity,
-                }))}
-              />
+              <div data-tour="an-entities">
+                <PillTabs
+                  ariaLabel={t("entitiesLabel")}
+                  active={entity ?? ""}
+                  onSelect={selectEntity}
+                  items={entities.map((e) => ({
+                    key: e.entity,
+                    label: t.has(`entities.${e.entity}`)
+                      ? t(`entities.${e.entity}`)
+                      : e.entity,
+                  }))}
+                />
+              </div>
 
               {entityDef && (
-                <FilterBar
-                  entity={entityDef}
-                  filters={filters}
-                  onChange={setFilters}
-                  options={options}
-                  loadScopeOptions={loadScopeOptions}
-                />
+                <div data-tour="an-filters">
+                  <FilterBar
+                    entity={entityDef}
+                    filters={filters}
+                    onChange={setFilters}
+                    options={options}
+                    loadScopeOptions={loadScopeOptions}
+                  />
+                </div>
               )}
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div
+                className="flex flex-wrap items-center gap-2"
+                data-tour="an-run"
+              >
                 <Button
                   size="sm"
                   onClick={() => void run(1)}
@@ -504,7 +521,7 @@ export default function AnaliticaPage() {
 
               {/* Guardar la consulta actual (las rápidas/propias van
                   arriba de los filtros, en el bloque expandible). */}
-              <div className="flex gap-2">
+              <div className="flex gap-2" data-tour="an-save">
                 <input
                   type="text"
                   value={saveName}
@@ -524,6 +541,65 @@ export default function AnaliticaPage() {
                   {t("save")}
                 </Button>
               </div>
+
+              {/* Tour de primera visita - montado solo con el catálogo
+                  listo (los targets an-* existen recién acá); el paso
+                  admin del drill por usuario se agrega solo con rol. */}
+              <OnboardingRunner
+                tour="analitica"
+                steps={
+                  [
+                    {
+                      element: "[data-tour='an-saved']",
+                      title: tt("s1.title"),
+                      description: tt("s1.desc"),
+                      side: "bottom",
+                    },
+                    {
+                      element: "[data-tour='an-entities']",
+                      title: tt("s2.title"),
+                      description: tt("s2.desc"),
+                      side: "bottom",
+                    },
+                    {
+                      element: "[data-tour='an-filters']",
+                      title: tt("s3.title"),
+                      description: tt("s3.desc"),
+                      side: "bottom",
+                    },
+                    {
+                      element: "[data-tour='an-run']",
+                      title: tt("s4.title"),
+                      description: tt("s4.desc"),
+                      side: "top",
+                    },
+                    {
+                      element: "[data-tour='an-save']",
+                      title: tt("s5.title"),
+                      description: tt("s5.desc"),
+                      side: "top",
+                    },
+                    ...(isAdmin
+                      ? ([
+                          {
+                            // En ≥lg la hamburguesa no existe - el
+                            // anchor cae a la sidebar (mismo texto).
+                            element: "[data-tour='appbar-menu']",
+                            title: tt("s6.title"),
+                            description: tt("s6.desc"),
+                            side: "bottom",
+                          },
+                          {
+                            element: "[data-tour='app-sidebar']",
+                            title: tt("s6.title"),
+                            description: tt("s6.desc"),
+                            side: "right",
+                          },
+                        ] satisfies TourStep[])
+                      : []),
+                  ] satisfies TourStep[]
+                }
+              />
             </>
           )}
         </>
