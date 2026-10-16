@@ -167,7 +167,7 @@ export function ProducerClaimsQueue() {
       {/* Cola accionable primero (mismo orden que cobros del owner):
           todos los pendientes, masivos. */}
       {pending.length > 0 && !filtered && (
-        <Card className="flex flex-col gap-4">
+        <Card data-tour="claims-pending" className="flex flex-col gap-4">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
               {tp("queueTitle")}
@@ -201,7 +201,7 @@ export function ProducerClaimsQueue() {
       )}
 
       {resolved.length > 0 && !filtered && (
-        <Card className="flex flex-col gap-4">
+        <Card data-tour="claims-history" className="flex flex-col gap-4">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
               {t("historyTitle")}
@@ -247,15 +247,17 @@ export function ProducerClaimsQueue() {
         </Card>
       )}
 
-      <FilterBar
-        entity={CLAIMS_ENTITY}
-        filters={filters}
-        onChange={(f) => {
-          setFilters(f);
-          setPage(1);
-        }}
-        options={{}}
-      />
+      <div data-tour="claims-filters">
+        <FilterBar
+          entity={CLAIMS_ENTITY}
+          filters={filters}
+          onChange={(f) => {
+            setFilters(f);
+            setPage(1);
+          }}
+          options={{}}
+        />
+      </div>
 
       {filtered && claims.length === 0 && (
         <p role="status" className="text-sm text-ink/50">

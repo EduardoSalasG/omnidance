@@ -646,6 +646,7 @@ function ClasesInner() {
         {/* Scope: qué se muestra - pills con texto (3 opciones: los
             íconos se vuelven crípticos; mismo patrón que /academias). */}
         <Segmented
+          tour="cl-scopes"
           ariaLabel={t("scopesLabel")}
           active={scope}
           className="w-full"
@@ -678,7 +679,10 @@ function ClasesInner() {
             {/* Todas|Reservadas (patrón de /practicas) + dropdowns
                 estilo/nivel - en browse van al servidor; en reservadas
                 filtran client-side sobre /classes/mine. */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div
+              data-tour="cl-filters"
+              className="flex flex-wrap items-center gap-2"
+            >
               {scope === "mias" && (
                 <Segmented
                   ariaLabel={`${t("scopeAll")} / ${t("scopeBooked")}`}
@@ -1168,15 +1172,27 @@ function ClasesInner() {
                 side: "bottom",
               },
               {
-                element: "[data-tour='cl-explore']",
+                element: "[data-tour='cl-scopes']",
                 title: tt("s2.title"),
                 description: tt("s2.desc"),
                 side: "bottom",
               },
               {
-                element: "[data-tour='cl-list']",
+                element: "[data-tour='cl-explore']",
                 title: tt("s3.title"),
                 description: tt("s3.desc"),
+                side: "bottom",
+              },
+              {
+                element: "[data-tour='cl-filters']",
+                title: tt("s4.title"),
+                description: tt("s4.desc"),
+                side: "bottom",
+              },
+              {
+                element: "[data-tour='cl-list']",
+                title: tt("s5.title"),
+                description: tt("s5.desc"),
               },
             ] satisfies TourStep[]
           }

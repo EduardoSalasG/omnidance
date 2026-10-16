@@ -13,6 +13,10 @@ import {
 } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { inputCls } from "@/components/academy/shared";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 import { EVENT_STATUS_VARIANT, readError } from "@/components/producer/shared";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
 
@@ -158,6 +162,7 @@ export default function VenuePage() {
   const tc = useTranslations("common");
   const te = useTranslations("events");
   const tp = useTranslations("producer");
+  const tt = useTranslations("tours.locales");
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [venues, setVenues] = useState<VenueMine[]>([]);
@@ -321,7 +326,7 @@ export default function VenuePage() {
           {/* Selector de venue - mismo patrón <select> del AcademyGate;
               con un solo venue se va directo al dashboard. */}
           {venues.length > 1 && (
-            <label className="flex flex-col gap-1 pt-4">
+            <label className="flex flex-col gap-1 pt-4" data-tour="venue-picker">
               <span className="sr-only">{t("pickVenue")}</span>
               <select
                 className={inputCls}
@@ -377,7 +382,7 @@ export default function VenuePage() {
               </header>
 
               {/* KPIs - tiles neon del HomeHub/analitica. */}
-              <ul className="grid grid-cols-3 gap-3">
+              <ul className="grid grid-cols-3 gap-3" data-tour="venue-kpis">
                 {(
                   [
                     [
@@ -401,7 +406,10 @@ export default function VenuePage() {
               </ul>
 
               {/* Próximos eventos */}
-              <section aria-label={t("sections.upcoming")}>
+              <section
+                aria-label={t("sections.upcoming")}
+                data-tour="venue-upcoming"
+              >
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.upcoming")}
                 </h2>
@@ -444,7 +452,10 @@ export default function VenuePage() {
               </section>
 
               {/* Reservas de mesa - qué mesas esperar cada noche. */}
-              <section aria-label={t("sections.tables")}>
+              <section
+                aria-label={t("sections.tables")}
+                data-tour="venue-tables"
+              >
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.tables")}
                 </h2>
@@ -490,7 +501,10 @@ export default function VenuePage() {
               {/* Flujo del público - hora peak, permanencia y llegadas
                   por hora (30d). La ventana nocturna 19→05 ordena las
                   barras como vive la noche. */}
-              <section aria-label={t("sections.flow")}>
+              <section
+                aria-label={t("sections.flow")}
+                data-tour="venue-flow"
+              >
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.flow")}
                 </h2>
@@ -555,7 +569,10 @@ export default function VenuePage() {
 
               {/* Arriendos - Confirmar/Cancelar solo en REQUESTED, con
                   mini-confirmación inline antes del PATCH. */}
-              <section aria-label={t("sections.rentals")}>
+              <section
+                aria-label={t("sections.rentals")}
+                data-tour="venue-rentals"
+              >
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.rentals")}
                 </h2>
@@ -670,7 +687,10 @@ export default function VenuePage() {
               </section>
 
               {/* Cartas/menús - PDFs externos en pestaña nueva. */}
-              <section aria-label={t("sections.menus")}>
+              <section
+                aria-label={t("sections.menus")}
+                data-tour="venue-menus"
+              >
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.menus")}
                 </h2>
@@ -697,6 +717,59 @@ export default function VenuePage() {
               </section>
             </>
           )}
+
+          {/* Tour de primera visita - los targets venue-* existen
+              cuando el dashboard monta; el picker solo existe con más
+              de un local (el runner lo filtra solo). */}
+          <OnboardingRunner
+            tour="locales"
+            steps={
+              [
+                {
+                  element: "[data-tour='venue-picker']",
+                  title: tt("s1.title"),
+                  description: tt("s1.desc"),
+                  side: "bottom",
+                },
+                {
+                  element: "[data-tour='venue-upcoming']",
+                  title: tt("s2.title"),
+                  description: tt("s2.desc"),
+                  side: "bottom",
+                },
+                {
+                  element: "[data-tour='venue-kpis']",
+                  title: tt("s3.title"),
+                  description: tt("s3.desc"),
+                  side: "bottom",
+                },
+                {
+                  element: "[data-tour='venue-tables']",
+                  title: tt("s4.title"),
+                  description: tt("s4.desc"),
+                  side: "top",
+                },
+                {
+                  element: "[data-tour='venue-flow']",
+                  title: tt("s5.title"),
+                  description: tt("s5.desc"),
+                  side: "top",
+                },
+                {
+                  element: "[data-tour='venue-rentals']",
+                  title: tt("s6.title"),
+                  description: tt("s6.desc"),
+                  side: "top",
+                },
+                {
+                  element: "[data-tour='venue-menus']",
+                  title: tt("s7.title"),
+                  description: tt("s7.desc"),
+                  side: "top",
+                },
+              ] satisfies TourStep[]
+            }
+          />
         </>
       )}
     </main>

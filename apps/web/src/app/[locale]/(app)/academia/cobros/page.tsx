@@ -7,6 +7,10 @@ import { CobrosExpiring } from "@/components/academy/cobros-expiring";
 import { CobrosHistory } from "@/components/academy/cobros-history";
 import { CobrosKpiStrip } from "@/components/academy/cobros-kpis";
 import { ConsoleHeader } from "@/components/console/console-header";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 
 /**
  * /academia/cobros - cobros de la academia: KPIs del mes (facturado,
@@ -31,9 +35,49 @@ export default function AcademiaCobrosPage() {
             />
             <ClaimsQueue key={`q-${academy.id}`} academyId={academy.id} />
             <CobrosHistory key={`h-${academy.id}`} academyId={academy.id} />
+            {/* Tour de primera visita del módulo - las colas vacías se
+                omiten solas (sus anchors no existen en el DOM). */}
+            <CobrosTour />
           </>
         )}
       </AcademyGate>
     </main>
+  );
+}
+
+function CobrosTour() {
+  const tt = useTranslations("tours.academia-cobros");
+  return (
+    <OnboardingRunner
+      tour="academia-cobros"
+      steps={
+        [
+          {
+            element: "[data-tour='academy-cobros-kpis']",
+            title: tt("s1.title"),
+            description: tt("s1.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='academy-cobros-expiring']",
+            title: tt("s2.title"),
+            description: tt("s2.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='academy-cobros-queue']",
+            title: tt("s3.title"),
+            description: tt("s3.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='academy-cobros-history']",
+            title: tt("s4.title"),
+            description: tt("s4.desc"),
+            side: "top",
+          },
+        ] satisfies TourStep[]
+      }
+    />
   );
 }

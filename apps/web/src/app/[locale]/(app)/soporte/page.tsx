@@ -13,6 +13,10 @@ import type {
   TicketStatus,
 } from "@omnidance/shared";
 import { Link } from "@/i18n/navigation";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
 
 /**
@@ -123,6 +127,7 @@ export default function SoportePage() {
   const t = useTranslations("support");
   const tc = useTranslations("common");
   const tp = useTranslations("profile");
+  const tt = useTranslations("tours.soporte");
 
   const [gate, setGate] = useState<Gate>("ok");
   const [query, setQuery] = useState("");
@@ -240,7 +245,11 @@ export default function SoportePage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-3xl lg:px-8">
       {/* Buscador */}
-      <section aria-label={t("search")} className="flex flex-col gap-3">
+      <section
+        aria-label={t("search")}
+        className="flex flex-col gap-3"
+        data-tour="soporte-search"
+      >
         <input
           type="search"
           value={query}
@@ -444,7 +453,7 @@ export default function SoportePage() {
         <>
           {/* Estado inicial / resultados */}
           {results === null && !searching && (
-            <Card className="py-10 text-center">
+            <Card className="py-10 text-center" data-tour="soporte-hint">
               <p className="text-ink/60">{t("initialHint")}</p>
             </Card>
           )}
@@ -483,6 +492,41 @@ export default function SoportePage() {
           )}
         </>
       )}
+
+      {/* Tour de primera visita - el detalle de usuario solo existe
+          tras buscar, así que el tour explica el flujo sobre el
+          buscador y el hint inicial (siempre visibles). */}
+      <OnboardingRunner
+        tour="soporte"
+        steps={
+          [
+            {
+              element: "[data-tour='soporte-search']",
+              title: tt("s1.title"),
+              description: tt("s1.desc"),
+              side: "bottom",
+            },
+            {
+              element: "[data-tour='soporte-hint']",
+              title: tt("s2.title"),
+              description: tt("s2.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-events']",
+              title: tt("s3.title"),
+              description: tt("s3.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='appbar-bell']",
+              title: tt("s4.title"),
+              description: tt("s4.desc"),
+              side: "bottom",
+            },
+          ] satisfies TourStep[]
+        }
+      />
     </main>
   );
 }

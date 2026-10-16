@@ -255,7 +255,11 @@ export function ActorPicker({ ctx }: { ctx: CrmContextValue }) {
   }
 
   return (
-    <section className="flex flex-col gap-3" aria-label={t("actor.label")}>
+    <section
+      className="flex flex-col gap-3"
+      aria-label={t("actor.label")}
+      data-tour="crm-actor"
+    >
       <label className="flex flex-col gap-2">
         <span className="text-sm text-ink/70">{t("actor.label")}</span>
         <select

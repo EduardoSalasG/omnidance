@@ -1009,6 +1009,17 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     // El tab Eventos del productor apunta a /productor/eventos - la
     // sidebar replica el anchor para que su tour lo resuelva en ≥lg.
     "/productor/eventos": "nav-events",
+    // Replicas de anchors de tabs por rol para que los steps que
+    // apuntan a nav-* resuelvan también en la sidebar de desktop.
+    "/clases": "nav-classes",
+    "/academias": "nav-academies",
+    "/amigos": "nav-friends",
+    "/qr": "nav-qr",
+    "/staff": "nav-staff",
+    // Destinos de drawer mencionados en tours de consola (sin tab
+    // equivalente - el anchor deja constancia para steps futuros).
+    "/crm": "nav-crm",
+    "/analitica": "nav-analitica",
   };
 
   // Sección "Cuenta": siempre al final del drawer/sidebar. Perfil para

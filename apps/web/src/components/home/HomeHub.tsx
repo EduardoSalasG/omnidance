@@ -157,7 +157,10 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
 
   return (
     <section aria-label={heroEvent.name} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2.5 rounded-2xl border border-neon/40 bg-elevated/70 p-5">
+      <div
+        data-tour="home-tonight"
+        className="flex flex-col gap-2.5 rounded-2xl border border-neon/40 bg-elevated/70 p-5"
+      >
         <Link
           href={`/eventos/${heroEvent.id}`}
           className="flex flex-col gap-2.5 rounded-lg transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
@@ -938,31 +941,31 @@ export function HomeHub() {
               description: tt("s1.desc"),
             },
             {
-              element: "[data-tour='appbar-mode']",
+              element: "[data-tour='home-tonight']",
               title: tt("s2.title"),
               description: tt("s2.desc"),
-              side: "bottom",
+              side: "top",
             },
             {
-              element: "[data-tour='appbar-bell']",
+              element: "[data-tour='appbar-mode']",
               title: tt("s3.title"),
               description: tt("s3.desc"),
               side: "bottom",
             },
             {
-              element: "[data-tour='nav-events']",
+              element: "[data-tour='appbar-bell']",
               title: tt("s4.title"),
               description: tt("s4.desc"),
-              side: "top",
+              side: "bottom",
             },
             {
-              element: "[data-tour='nav-more']",
+              element: "[data-tour='nav-events']",
               title: tt("s5.title"),
               description: tt("s5.desc"),
               side: "top",
             },
             {
-              element: "[data-tour='nav-friends']",
+              element: "[data-tour='nav-more']",
               title: tt("s6.title"),
               description: tt("s6.desc"),
               side: "top",
@@ -989,37 +992,36 @@ export function HomeHub() {
               description: tt("academy.s1.desc"),
             },
             {
-              element: "[data-tour='appbar-mode']",
+              element: "[data-tour='home-classes']",
               title: tt("academy.s2.title"),
               description: tt("academy.s2.desc"),
-              side: "bottom",
             },
             {
-              element: "[data-tour='appbar-bell']",
+              element: "[data-tour='appbar-mode']",
               title: tt("academy.s3.title"),
               description: tt("academy.s3.desc"),
               side: "bottom",
             },
             {
-              element: "[data-tour='nav-classes']",
+              element: "[data-tour='appbar-bell']",
               title: tt("academy.s4.title"),
               description: tt("academy.s4.desc"),
-              side: "top",
+              side: "bottom",
             },
             {
-              element: "[data-tour='nav-more']",
+              element: "[data-tour='nav-classes']",
               title: tt("academy.s5.title"),
               description: tt("academy.s5.desc"),
               side: "top",
             },
             {
-              element: "[data-tour='nav-academies']",
+              element: "[data-tour='nav-more']",
               title: tt("academy.s6.title"),
               description: tt("academy.s6.desc"),
               side: "top",
             },
             {
-              element: "[data-tour='nav-profile']",
+              element: "[data-tour='nav-academies']",
               title: tt("academy.s7.title"),
               description: tt("academy.s7.desc"),
               side: "top",

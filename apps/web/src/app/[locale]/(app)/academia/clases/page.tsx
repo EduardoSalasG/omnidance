@@ -8,6 +8,10 @@ import { useActiveRole } from "@/lib/active-role";
 import { PageLoading } from "@/components/ui";
 import { TeachingClasses } from "@/components/academy/teaching-classes";
 import { ConsoleHeader } from "@/components/console/console-header";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 import { useRouter } from "@/i18n/navigation";
 
 /**
@@ -24,6 +28,7 @@ import { useRouter } from "@/i18n/navigation";
 export default function AcademiaClasesPage() {
   const t = useTranslations("academy");
   const ti = useTranslations("instructor");
+  const tt = useTranslations("tours.academia-clases");
   const router = useRouter();
   const { me, loading } = useMe();
   const activeRole = useActiveRole(me?.roles);
@@ -52,6 +57,28 @@ export default function AcademiaClasesPage() {
         <h2 className="text-lg font-semibold">{ti("title")}</h2>
         <TeachingClasses />
       </section>
+      {/* Tour de primera visita - consola del instructor (spec
+          staff-roles): filtros + cards con quórum. La lista vacía omite
+          el segundo paso sola. */}
+      <OnboardingRunner
+        tour="academia-clases"
+        steps={
+          [
+            {
+              element: "[data-tour='academy-clases-filters']",
+              title: tt("s1.title"),
+              description: tt("s1.desc"),
+              side: "bottom",
+            },
+            {
+              element: "[data-tour='academy-clases-list']",
+              title: tt("s2.title"),
+              description: tt("s2.desc"),
+              side: "top",
+            },
+          ] satisfies TourStep[]
+        }
+      />
     </main>
   );
 }

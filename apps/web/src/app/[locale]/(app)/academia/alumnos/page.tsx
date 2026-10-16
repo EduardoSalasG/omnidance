@@ -11,6 +11,10 @@ import { StudentsSection } from "@/components/academy/students-section";
 import { ImportCard } from "@/components/academy/import-section";
 import { useAcademyAccess } from "@/components/academy/use-academy-access";
 import { ConsoleHeader } from "@/components/console/console-header";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 
 /**
  * /academia/alumnos - enrollments de la academia seleccionada.
@@ -92,8 +96,64 @@ function StudentsModule({
         readOnly={canAdminister !== true}
       />
       {!instructorLens && access?.caps.students === true && (
-        <ImportCard academyId={academyId} kind="students" />
+        <div data-tour="academy-alumnos-import">
+          <ImportCard academyId={academyId} kind="students" />
+        </div>
       )}
+      {/* Tour de primera visita del módulo: los anchors de gestión
+          (KPIs, insights, alta, importación) solo existen para quien
+          administra - el runner filtra los ausentes y el instructor
+          recibe solo los pasos de filtros/lista. */}
+      <AlumnosTour />
     </div>
+  );
+}
+
+function AlumnosTour() {
+  const tt = useTranslations("tours.academia-alumnos");
+  return (
+    <OnboardingRunner
+      tour="academia-alumnos"
+      steps={
+        [
+          {
+            element: "[data-tour='academy-kpis']",
+            title: tt("s1.title"),
+            description: tt("s1.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='academy-alumnos-insights']",
+            title: tt("s2.title"),
+            description: tt("s2.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='academy-alumnos-filters']",
+            title: tt("s3.title"),
+            description: tt("s3.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='academy-alumnos-list']",
+            title: tt("s4.title"),
+            description: tt("s4.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='academy-alumnos-new']",
+            title: tt("s5.title"),
+            description: tt("s5.desc"),
+            side: "bottom",
+          },
+          {
+            element: "[data-tour='academy-alumnos-import']",
+            title: tt("s6.title"),
+            description: tt("s6.desc"),
+            side: "top",
+          },
+        ] satisfies TourStep[]
+      }
+    />
   );
 }

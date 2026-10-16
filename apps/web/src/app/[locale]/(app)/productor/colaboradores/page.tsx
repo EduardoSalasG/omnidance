@@ -6,6 +6,10 @@ import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon, SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 import { readError } from "@/components/producer/shared";
 
 type Collaborator = {
@@ -29,6 +33,7 @@ type State = "loading" | "ok" | "error";
 function CollaboratorsList() {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
+  const tt = useTranslations("tours.productorColaboradores");
 
   const [state, setState] = useState<State>("loading");
   const [items, setItems] = useState<Collaborator[]>([]);
@@ -80,13 +85,17 @@ function CollaboratorsList() {
         backHref="/inicio"
         backLabel={tc("appName")}
         actions={
-          <Button
-            size="sm"
-            variant="secondary"
-            href="/productor/colaboradores/nuevo"
-          >
-            {`＋ ${t("collaborators.add")}`}
-          </Button>
+          // El Button con href renderiza Link y no propaga data-tour -
+          // el anchor del tour va en el wrapper.
+          <span data-tour="collab-add" className="inline-flex">
+            <Button
+              size="sm"
+              variant="secondary"
+              href="/productor/colaboradores/nuevo"
+            >
+              {`＋ ${t("collaborators.add")}`}
+            </Button>
+          </span>
         }
       />
 
@@ -120,7 +129,7 @@ function CollaboratorsList() {
         )}
 
         {state === "ok" && items.length > 0 && (
-          <ul className="flex flex-col gap-2">
+          <ul data-tour="collab-list" className="flex flex-col gap-2">
             {items.map((c) => (
               <li key={c.id}>
                 <Card className="flex items-center justify-between gap-3 p-4">
@@ -154,6 +163,27 @@ function CollaboratorsList() {
           </p>
         )}
       </section>
+
+      {/* Tour de la nómina (primera visita): con lista vacía el
+          anchor collab-list no existe y el tour queda solo en el
+          alta - el runner lo filtra solo. */}
+      <OnboardingRunner
+        tour="productor-colaboradores"
+        steps={[
+          {
+            element: "[data-tour='collab-add']",
+            title: tt("s1.title"),
+            description: tt("s1.desc"),
+            side: "bottom",
+          },
+          {
+            element: "[data-tour='collab-list']",
+            title: tt("s2.title"),
+            description: tt("s2.desc"),
+            side: "top",
+          },
+        ] satisfies TourStep[]}
+      />
     </>
   );
 }

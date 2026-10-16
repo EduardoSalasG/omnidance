@@ -6,6 +6,10 @@ import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 import { QuorumBar } from "@/components/academy/quorum-bar";
 import {
   classDayFmt,
@@ -100,13 +104,55 @@ export default function AcademiaClaseRosterPage(
       )}
 
       {state === "ready" && roster && (
-        <RosterDetail
-          roster={roster}
-          classId={classId}
-          onChanged={() => void load()}
-        />
+        <>
+          <RosterDetail
+            roster={roster}
+            classId={classId}
+            onChanged={() => void load()}
+          />
+          {/* Tour de primera visita del roster - los anchors montan
+              con el detalle (state ready). */}
+          <ClaseTour />
+        </>
       )}
     </main>
+  );
+}
+
+function ClaseTour() {
+  const tt = useTranslations("tours.academia-clase");
+  return (
+    <OnboardingRunner
+      tour="academia-clase"
+      steps={
+        [
+          {
+            element: "[data-tour='academy-clase-meta']",
+            title: tt("s1.title"),
+            description: tt("s1.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='academy-clase-quorum']",
+            title: tt("s2.title"),
+            description: tt("s2.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='academy-clase-booked']",
+            title: tt("s3.title"),
+            description: tt("s3.desc"),
+            side: "top",
+          },
+          {
+            element: "[data-tour='academy-clase-waitlist']",
+            title: tt("s4.title"),
+            description: tt("s4.desc"),
+            side: "top",
+          },
+        ] satisfies TourStep[]
+      }
+    />
   );
 }
 
@@ -163,7 +209,7 @@ function RosterDetail({
       {/* Meta de la clase + quórum: en desktop quórum actúa de panel
           lateral (display:contents en móvil - el DOM no cambia bajo lg). */}
       <div className="contents lg:grid lg:grid-cols-[1fr_320px] lg:items-start lg:gap-6">
-      <Card className="flex flex-col gap-3 p-4">
+      <Card className="flex flex-col gap-3 p-4" data-tour="academy-clase-meta">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <p className="text-sm font-semibold capitalize">
             {classDayFmt(locale).format(new Date(c.date))}
@@ -199,7 +245,7 @@ function RosterDetail({
       </Card>
 
       {/* Quórum destacado */}
-      <Card className="flex flex-col gap-2 p-4">
+      <Card className="flex flex-col gap-2 p-4" data-tour="academy-clase-quorum">
         <p className="text-xs font-medium uppercase tracking-wide text-ink/50">
           {t("quorum")}
         </p>
@@ -212,7 +258,11 @@ function RosterDetail({
       </div>
 
       {/* Reservados */}
-      <section aria-label={t("booked")} className="flex flex-col gap-2">
+      <section
+        aria-label={t("booked")}
+        className="flex flex-col gap-2"
+        data-tour="academy-clase-booked"
+      >
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("booked")} ({booked})
         </h3>
@@ -275,7 +325,11 @@ function RosterDetail({
       </section>
 
       {/* Lista de espera */}
-      <section aria-label={t("waitlistTitle")} className="flex flex-col gap-2">
+      <section
+        aria-label={t("waitlistTitle")}
+        className="flex flex-col gap-2"
+        data-tour="academy-clase-waitlist"
+      >
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("waitlistTitle")} ({roster.waitlist.length})
         </h3>

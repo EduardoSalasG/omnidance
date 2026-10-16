@@ -533,7 +533,10 @@ export default function AmigosPage() {
           )}
 
           {/* Solicitudes recibidas */}
-          <section className="flex flex-col gap-3">
+          <section
+            data-tour="amigos-requests"
+            className="flex flex-col gap-3"
+          >
             <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
               {t("requests")}
             </h2>
@@ -637,9 +640,14 @@ export default function AmigosPage() {
                 description: tt("s2.desc"),
               },
               {
-                element: "[data-tour='amigos-list']",
+                element: "[data-tour='amigos-requests']",
                 title: tt("s3.title"),
                 description: tt("s3.desc"),
+              },
+              {
+                element: "[data-tour='amigos-list']",
+                title: tt("s4.title"),
+                description: tt("s4.desc"),
               },
             ] satisfies TourStep[]
           }

@@ -211,7 +211,12 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
         </p>
         <div className="flex items-center gap-2">
           {rows !== null && rows.length > 0 && (
-            <Button size="sm" variant="ghost" onClick={selectPage}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={selectPage}
+              data-tour="crm-bulk"
+            >
               {allPageSelected
                 ? t("people.deselectPage")
                 : t("people.selectPage")}
@@ -236,7 +241,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
 
       {/* Stats por segmento del universo completo (vienen en la respuesta) */}
       {rows !== null && Object.values(segmentCounts).some((c) => c > 0) && (
-        <ul className="flex flex-wrap gap-2">
+        <ul className="flex flex-wrap gap-2" data-tour="crm-segments">
           {[...SEGMENTS, "NONE"].map((s) =>
             (segmentCounts[s] ?? 0) > 0 ? (
               <li key={s}>
@@ -264,7 +269,10 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       )}
 
       {/* Filtros */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        data-tour="crm-filters"
+      >
         <label className="flex flex-col gap-2">
           <span className="text-sm text-ink/70">{t("people.search")}</span>
           <input
@@ -413,7 +421,10 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       )}
 
       {rows !== null && rows.length > 0 && (
-        <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
+        <ul
+          className="flex flex-col gap-3 lg:grid lg:grid-cols-2"
+          data-tour="crm-people"
+        >
           {rows.map((r) => {
             const segKey = r.segment ?? "NONE";
             return (

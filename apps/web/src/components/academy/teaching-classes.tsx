@@ -116,17 +116,19 @@ export function TeachingClasses() {
 
   return (
     <div className="flex flex-col gap-4">
-      <FilterBar
-        entity={TEACHING_ENTITY}
-        filters={filters}
-        onChange={setFilters}
-        options={{
-          // Dedup por label: data duplicada en el origen (misma
-          // academia/serie con otro id) no debe repetir la opción.
-          myAcademies: dedupeOptions(academyOptions),
-          academyClassSeries: dedupeOptions(seriesOptions),
-        }}
-      />
+      <div data-tour="academy-clases-filters">
+        <FilterBar
+          entity={TEACHING_ENTITY}
+          filters={filters}
+          onChange={setFilters}
+          options={{
+            // Dedup por label: data duplicada en el origen (misma
+            // academia/serie con otro id) no debe repetir la opción.
+            myAcademies: dedupeOptions(academyOptions),
+            academyClassSeries: dedupeOptions(seriesOptions),
+          }}
+        />
+      </div>
       {state === "loading" ? (
         <SkeletonList />
       ) : state === "error" ? (
@@ -141,7 +143,10 @@ export function TeachingClasses() {
       ) : !classes || classes.length === 0 ? (
         <p className="text-sm text-ink/50">{t("empty")}</p>
       ) : (
-    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <ul
+      data-tour="academy-clases-list"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+    >
       {classes.map((c) => {
         const reached = c.quorum > 0 && c.bookedCount >= c.quorum;
         return (

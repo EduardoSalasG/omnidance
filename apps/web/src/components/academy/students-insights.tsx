@@ -60,7 +60,10 @@ export function StudentsInsights({ academyId }: { academyId: string }) {
     "mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50";
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div
+      className="grid gap-6 lg:grid-cols-2"
+      data-tour="academy-alumnos-insights"
+    >
       {data.topAttendance.length > 0 && (
         <section aria-label={t("studentsTopAttendanceTitle")}>
           <h3 className={sectionTitleCls}>

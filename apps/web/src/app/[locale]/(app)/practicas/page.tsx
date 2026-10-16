@@ -277,10 +277,10 @@ function PracticasInner() {
             deslizante, mismo control que /clases y /academias */}
         <nav
           aria-label={t("viewLabel")}
-          data-tour="practicas-views"
           className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6"
         >
           <Segmented
+            tour="practicas-views"
             ariaLabel={t("viewLabel")}
             active={view}
             className="shrink-0"
@@ -297,17 +297,25 @@ function PracticasInner() {
               },
             ]}
           />
-          {/* Estilos - chips en la misma fila; solo los presentes en el pool */}
-          {styleOptions.map(([id, name]) => (
-            <Link
-              key={id}
-              href={hrefFor({ style: styleFilter === id ? undefined : id })}
-              aria-current={styleFilter === id ? "true" : undefined}
-              className={chipClass(styleFilter === id)}
-            >
-              {name}
-            </Link>
-          ))}
+          {/* Estilos - chips en la misma fila; solo los presentes en el pool.
+              El wrapper agrupa el anchor del tour sin cambiar el layout:
+              misma gap-2 que el nav padre. */}
+          {styleOptions.length > 0 && (
+            <div data-tour="practicas-styles" className="flex gap-2">
+              {styleOptions.map(([id, name]) => (
+                <Link
+                  key={id}
+                  href={hrefFor({
+                    style: styleFilter === id ? undefined : id,
+                  })}
+                  aria-current={styleFilter === id ? "true" : undefined}
+                  className={chipClass(styleFilter === id)}
+                >
+                  {name}
+                </Link>
+              ))}
+            </div>
+          )}
         </nav>
 
         {view === "mias" && meChecked && me === null ? (
@@ -402,16 +410,24 @@ function PracticasInner() {
                 element: "[data-tour='practicas-views']",
                 title: tt("s1.title"),
                 description: tt("s1.desc"),
+                side: "bottom",
+              },
+              {
+                element: "[data-tour='practicas-styles']",
+                title: tt("s2.title"),
+                description: tt("s2.desc"),
+                side: "bottom",
               },
               {
                 element: "[data-tour='practicas-create']",
-                title: tt("s2.title"),
-                description: tt("s2.desc"),
+                title: tt("s3.title"),
+                description: tt("s3.desc"),
+                side: "bottom",
               },
               {
                 element: "[data-tour='practicas-list']",
-                title: tt("s3.title"),
-                description: tt("s3.desc"),
+                title: tt("s4.title"),
+                description: tt("s4.desc"),
               },
             ] satisfies TourStep[]
           }

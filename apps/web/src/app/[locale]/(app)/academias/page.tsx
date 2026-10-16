@@ -17,6 +17,10 @@ import {
 } from "@/components/ui";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { planDateFmt } from "@/components/academy/shared";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 import { Link, useRouter } from "@/i18n/navigation";
 
 // /academias - "Mi Aprendizaje" del modo Academia (spec §9). Misma
@@ -489,6 +493,7 @@ function AcademiasInner() {
             ariaLabel={t("viewsLabel")}
             active={view}
             tone="solid"
+            tour="academias-views"
             items={[
               {
                 key: "list",
@@ -528,6 +533,7 @@ function AcademiasInner() {
             active={scope}
             className="w-full"
             innerClassName="grid w-full grid-cols-2"
+            tour="academias-scope"
             items={[
               {
                 key: "mias",
@@ -552,7 +558,10 @@ function AcademiasInner() {
             ambos scopes (y a los pins del mapa); el buscador es solo
             explorar y se escribe en la URL con router.replace para no
             ensuciar history al teclear. */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div
+          className="flex flex-wrap items-center gap-2"
+          data-tour="academias-filters"
+        >
           <div className="relative shrink-0">
             <select
               aria-label={t("filterStyle")}
@@ -653,6 +662,7 @@ function AcademiasInner() {
           <section
             aria-label={t("learner.myAcademies")}
             className="flex flex-col gap-3"
+            data-tour="academias-list"
           >
             {enrollments && enrollments.length > 0 ? (
               <ul className="grid gap-3 sm:grid-cols-2">
@@ -688,6 +698,7 @@ function AcademiasInner() {
           <section
             aria-label={t("viewExplore")}
             className="flex flex-col gap-3"
+            data-tour="academias-list"
           >
             {filtered.length === 0 ? (
               <p className="text-sm text-ink/60">
@@ -706,6 +717,48 @@ function AcademiasInner() {
             )}
           </section>
         ))}
+
+      {/* Tour de primera visita del directorio - scope pills, toggle
+          lista/mapa, filtros y cards. El anchor de la lista existe en
+          ambos scopes (mias y explorar comparten `academias-list`). */}
+      <AcademiasTour />
     </main>
+  );
+}
+
+function AcademiasTour() {
+  const tt = useTranslations("tours.academias");
+  return (
+    <OnboardingRunner
+      tour="academias"
+      steps={
+        [
+          {
+            element: "[data-tour='academias-scope']",
+            title: tt("s1.title"),
+            description: tt("s1.desc"),
+            side: "bottom",
+          },
+          {
+            element: "[data-tour='academias-views']",
+            title: tt("s2.title"),
+            description: tt("s2.desc"),
+            side: "bottom",
+          },
+          {
+            element: "[data-tour='academias-filters']",
+            title: tt("s3.title"),
+            description: tt("s3.desc"),
+            side: "bottom",
+          },
+          {
+            element: "[data-tour='academias-list']",
+            title: tt("s4.title"),
+            description: tt("s4.desc"),
+            side: "top",
+          },
+        ] satisfies TourStep[]
+      }
+    />
   );
 }
