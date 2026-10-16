@@ -43,7 +43,7 @@
         },
         "s3": {
           "title": "Social ↔ Academia",
-          "desc": "Estás en modo Academia. Vuelve a Social para la cartelera de eventos, tus bailes y tu crew."
+          "desc": "Estás en modo Academia. Vuelve a Social para la cartelera de eventos, tus bailes y tu gente."
         },
         "s4": {
           "title": "La campana",
@@ -82,7 +82,7 @@
       },
       "s5": {
         "title": "Toca un evento",
-        "desc": "Cada card lleva al detalle: lineup, planificación de la noche y precios. En el checkout puedes regalar entradas a tu crew o pedir mesa."
+        "desc": "Cada card lleva al detalle: lineup, planificación de la noche y precios. En el checkout puedes regalar entradas a tu gente o pedir mesa."
       }
     },
     "clases": {
@@ -123,12 +123,12 @@
     },
     "amigos": {
       "s1": {
-        "title": "Suma a tu crew",
+        "title": "Suma a tu gente",
         "desc": "Búscalos por nombre o comparte tu link de invitación: quien lo abre cae directo a agregarte."
       },
       "s2": {
         "title": "Tus amigos van a",
-        "desc": "Los eventos donde alguien de tu crew ya tiene entrada, para no caer solo a la pista."
+        "desc": "Los eventos donde alguien de tu gente ya tiene entrada, para no caer solo a la pista."
       },
       "s3": {
         "title": "Solicitudes",
