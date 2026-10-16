@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 // Estado de la sidebar desktop (AppSidebar): "expanded" (ícono + label)
 // vs "collapsed" (solo íconos, ancho mínimo). Solo aplica a ≥lg - el
@@ -33,12 +33,18 @@ export function setSidebarState(state: SidebarState): void {
   window.dispatchEvent(new Event(SIDEBAR_STATE_EVENT));
 }
 
+// useSyncExternalStore: snapshot de servidor "expanded" - si el cliente
+// tiene "collapsed" guardado re-renderiza post-mount sin error de
+// hidratación (ver view-mode.ts / active-role.ts).
+function subscribeSidebar(onChange: () => void): () => void {
+  window.addEventListener(SIDEBAR_STATE_EVENT, onChange);
+  return () => window.removeEventListener(SIDEBAR_STATE_EVENT, onChange);
+}
+
 export function useSidebarState(): SidebarState {
-  const [, setVersion] = useState(0);
-  useEffect(() => {
-    const onChange = () => setVersion((v) => v + 1);
-    window.addEventListener(SIDEBAR_STATE_EVENT, onChange);
-    return () => window.removeEventListener(SIDEBAR_STATE_EVENT, onChange);
-  }, []);
-  return getSidebarState();
+  return useSyncExternalStore(
+    subscribeSidebar,
+    getSidebarState,
+    () => "expanded",
+  );
 }

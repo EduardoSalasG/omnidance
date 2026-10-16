@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 // Modo de vista consumer: "social" (nightlife: eventos, QR, bailes) vs
 // "academy" (Mi Aprendizaje: clases, prácticas, particulares). Es
@@ -33,12 +33,15 @@ export function setViewMode(mode: ViewMode): void {
   window.dispatchEvent(new Event(VIEW_MODE_EVENT));
 }
 
+// useSyncExternalStore: el snapshot de servidor es "social" - si el
+// cliente tiene "academy" guardado, React re-renderiza post-mount sin
+// error de hidratación (mismo patrón que theme.ts). Leer localStorage
+// directo en render desviaba el HTML del SSR → crash #418/#310 en prod.
+function subscribeViewMode(onChange: () => void): () => void {
+  window.addEventListener(VIEW_MODE_EVENT, onChange);
+  return () => window.removeEventListener(VIEW_MODE_EVENT, onChange);
+}
+
 export function useViewMode(): ViewMode {
-  const [, setVersion] = useState(0);
-  useEffect(() => {
-    const onChange = () => setVersion((v) => v + 1);
-    window.addEventListener(VIEW_MODE_EVENT, onChange);
-    return () => window.removeEventListener(VIEW_MODE_EVENT, onChange);
-  }, []);
-  return getViewMode();
+  return useSyncExternalStore(subscribeViewMode, getViewMode, () => "social");
 }
