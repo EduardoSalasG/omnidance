@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 // Rol activo = la "lente" con que la persona usa la app en este dispositivo.
 // Quien tiene varios roles (p.ej. PRODUCER + DANCER) elige la lente desde
@@ -49,8 +49,10 @@ export function getStoredActiveRole(): AppRole | null {
   }
 }
 
-function resolveActiveRole(roles: string[]): AppRole {
-  const stored = getStoredActiveRole();
+function resolveActiveRole(
+  roles: string[],
+  stored: AppRole | null = getStoredActiveRole(),
+): AppRole {
   // DANCER es la lente consumidora: siempre válida aunque /me no liste el
   // rol explícito (toda persona puede mirar la app como bailarín).
   if (stored === "DANCER") return "DANCER";
@@ -76,14 +78,20 @@ export function setActiveRole(role: AppRole): void {
  * Antes de conocer los roles (fetch /me pendiente o sin sesión) devuelve
  * resolveActiveRole(roles ?? []).
  */
+// useSyncExternalStore: el snapshot de servidor ignora localStorage
+// (resuelve por prioridad) - si el cliente tenía otra lente guardada,
+// React re-renderiza post-mount sin error de hidratación. Leer el
+// storage directo en render desviaba el HTML del SSR → crash #418/#310.
+function subscribeActiveRole(onChange: () => void): () => void {
+  window.addEventListener(ACTIVE_ROLE_EVENT, onChange);
+  return () => window.removeEventListener(ACTIVE_ROLE_EVENT, onChange);
+}
+
 export function useActiveRole(roles: string[] | undefined | null): AppRole {
-  // El estado solo fuerza un nuevo resolve cuando otro componente cambia
-  // la lente vía setActiveRole (el valor real se lee en cada render).
-  const [, setVersion] = useState(0);
-  useEffect(() => {
-    const onRoleChange = () => setVersion((v) => v + 1);
-    window.addEventListener(ACTIVE_ROLE_EVENT, onRoleChange);
-    return () => window.removeEventListener(ACTIVE_ROLE_EVENT, onRoleChange);
-  }, []);
-  return resolveActiveRole(roles ?? []);
+  const list = roles ?? [];
+  return useSyncExternalStore(
+    subscribeActiveRole,
+    () => resolveActiveRole(list),
+    () => resolveActiveRole(list, null),
+  );
 }
