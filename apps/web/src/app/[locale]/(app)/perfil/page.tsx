@@ -5,7 +5,6 @@ import { Suspense, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
-  getStoredActiveRole,
   setActiveRole,
   useActiveRole,
   type AppRole,
@@ -342,13 +341,13 @@ export default function PerfilPage() {
 
   if (state === "loading" || !me || !pageSettled) {
     // Shell skeleton con la forma real de la página - nunca pantalla en
-    // blanco con spinner. La lente guardada (localStorage) ya decide qué
-    // secciones esbozar: sin roles resueltos aún, resolveActiveRole cae
-    // a DANCER y un productor vería skeletons de secciones que nunca le
-    // aparecen → leer el storage directo. `pageSettled` además retiene
+    // blanco con spinner. La lente la da el hook (hydration-safe: en SSR
+    // cae a prioridad/DANCER y reconcilia post-mount - leer el storage
+    // directo en render desviaba el HTML del SSR, crash #418/#310).
+    // `pageSettled` además retiene
     // el shell hasta que KPIs/racha/insignias resuelven: sin el gate la
     // grilla se insertaba empujando la racha hacia abajo.
-    const shellLens = picked ?? getStoredActiveRole() ?? "DANCER";
+    const shellLens = picked ?? activeRole;
     return (
       <main
         aria-busy="true"
