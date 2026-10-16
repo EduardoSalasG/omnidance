@@ -43,7 +43,7 @@
         },
         "s3": {
           "title": "Social ↔ Academy",
-          "desc": "You're in Academy mode. Go back to Social for the events lineup, your dances and your crew."
+          "desc": "You're in Academy mode. Go back to Social for the events lineup, your dances and your people."
         },
         "s4": {
           "title": "The bell",
@@ -82,7 +82,7 @@
       },
       "s5": {
         "title": "Tap an event",
-        "desc": "Each card opens the detail: lineup, plan of the night and prices. In checkout you can gift tickets to your crew or book a table."
+        "desc": "Each card opens the detail: lineup, plan of the night and prices. In checkout you can gift tickets to your people or book a table."
       }
     },
     "clases": {
@@ -123,12 +123,12 @@
     },
     "amigos": {
       "s1": {
-        "title": "Build your crew",
+        "title": "Build your people",
         "desc": "Search them by name or share your invite link — whoever opens it lands straight on adding you."
       },
       "s2": {
         "title": "Your friends are going to",
-        "desc": "The events where someone from your crew already has a ticket, so you don't hit the floor alone."
+        "desc": "The events where someone from your people already has a ticket, so you don't hit the floor alone."
       },
       "s3": {
         "title": "Requests",

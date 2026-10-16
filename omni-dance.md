@@ -321,7 +321,7 @@ Misión = **condición verificable por data + recompensa**. El productor elige d
 ### Competencia social segura
 
 - **Retos entre amigos**: los usuarios crean misiones para sus amigos ("te reto a bailar 10 bachatas esta noche") - misiones user-generated = contenido infinito sin crearlo nosotros
-- **Leaderboard privado con amigos**: "quién bailó más esta semana de tu crew" - competencia sin exposición pública
+- **Leaderboard privado con amigos**: "quién bailó más esta semana de tu gente" - competencia sin exposición pública
 - **Devuelve el baile**: X te invitó y no le has devuelto → ping de reciprocidad (el ritual social real funciona así)
 
 ### Novatos y padrinos
