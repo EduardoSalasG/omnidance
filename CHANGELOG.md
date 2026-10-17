@@ -3,6 +3,16 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.0.2] - 2026-10-17
+
+### Fixed
+
+- Selects/inputs de fecha (pares "desde/hasta", "inicio/termino") se
+  solapaban en grillas y flex: `input[type=date|datetime-local]`
+  tiene min-content intrinseco (~160-190px). Regla global
+  `min-width: 0` en `globals.css` cubre FilterBar, form de evento del
+  productor, enrollment, finanzas admin y toda la app.
+
 ## [1.0.1] - 2026-10-16
 
 ### Fixed

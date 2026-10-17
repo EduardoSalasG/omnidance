@@ -370,3 +370,15 @@ details.venue-filter[open] > summary::before {
     animation: none !important;
   }
 }
+
+/* input[type=date|datetime-local|time] traen min-content intrinseco
+   (~160-190px) que rompe celdas grid/flex y solapa el campo con su
+   vecino (pares desde/hasta, inicio/termino). min-width:0 baja su
+   contribucion a ~0 y deja que w-full mande. */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"],
+input[type="week"] {
+  min-width: 0;
+}
