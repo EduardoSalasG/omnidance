@@ -20,3 +20,5 @@ e2e/.auth/
 test-results/
 playwright-report/
 brag-output-*/
+.devin/skills/brag/
+docs/next-session-handoff-*brag*.md
