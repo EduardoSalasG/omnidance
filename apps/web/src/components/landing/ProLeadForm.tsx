@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/api";
 import { Spinner } from "@/components/ui/spinner";
 import { ChevronRightIcon } from "@/components/ui";
 import { useMessages } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import type landingParts from "@/i18n/parts/landing.json";
 
 type LandingProForm = (typeof landingParts)["landingPro"]["form"];
@@ -172,12 +173,12 @@ export function ProLeadForm({
         </p>
 
         {demoPhase === "exists" ? (
-          <a
+          <Link
             href="/login"
             className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full border border-ink/15 px-6 text-sm font-semibold text-ink/80 transition-colors hover:border-ink/30 hover:text-ink"
           >
             {t.demoExists} <ChevronRightIcon />
-          </a>
+          </Link>
         ) : (
           <button
             type="button"
