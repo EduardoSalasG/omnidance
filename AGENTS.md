@@ -37,12 +37,15 @@ Ejecutar desde la raíz del repo:
 - Frontend dev: `pnpm dev:web` → http://localhost:3000
 - Ambos: `pnpm dev`
 - Build completo: `pnpm build`
-- Tests: `pnpm test` (Vitest unit + Playwright smoke e2e)
+- Tests: `pnpm test` (Vitest unit + componente) · `pnpm test:e2e` (Playwright smoke, chromium + mobile/WebKit — requiere stack vivo + `pnpm exec playwright install` la 1ª vez). Los 6 logins del setup golpean `/auth/login` (throttle 8/min por IP): en dev conviene `THROTTLE_AUTH_LIMIT=120` en `apps/api/.env`; el setup igual reintenta una vez tras ~65s si aparece el genericError.
+- Lint: `pnpm lint` · Typecheck: `pnpm typecheck`
 - Prisma Studio: `pnpm db:studio`
 
 Para una modificación acotada, verifica primero la superficie afectada (`pnpm --filter @omnidance/api build`, etc.) y amplía según riesgo.
 
 **CSS stale en dev**: si tras cambiar `tailwind.config.ts` o los tokens de `globals.css` el browser no refleja el cambio, el `.next` cache sirve el CSS viejo y HMR no lo invalida. Fix: matar el dev server, `rm -rf apps/web/.next`, reiniciar. Verificación rápida: `curl -s localhost:3000/_next/static/css/app/layout.css | grep -c '<token>'` debe dar >0.
+
+**Dev server zombie / `.next` corrupto** (visto 2026-10-18): síntomas — páginas (app) devuelven 500 con `SyntaxError: JSON.parse at position N` fijo, gotos que nunca responden, o `ECONNREFUSED` al proxy /api. Causa: procesos `nest`/`next` huérfanos de sesiones anteriores comen RAM → OOM del dev server → cache corrupto. Diagnóstico: `Get-CimInstance Win32_Process -Filter "Name='node.exe'"` (PowerShell) y mata los `start --watch`/`next dev` viejos; fix: matar el dev server, `rm -rf apps/web/.next`, reiniciar.
 
 ## Flujo de trabajo
 
@@ -98,6 +101,7 @@ Estos pasos se incumplieron en sesiones reales - son gates, no sugerencias:
 ### Documentación
 
 - `omni-dance.md` es la spec viva - actualízala cuando cambien reglas de producto.
+- **`docs/qa-flows-inventory.md` es el inventario vivo de flujos QA** - cualquier cambio que agregue, modifique o elimine un flujo de usuario (features, fixes que toquen comportamiento, nuevas pages, cambios en endpoints/validaciones/estados terminales) debe actualizar la sección correspondiente del inventario **en el mismo commit/change**. Sin excepciones: el QA automatizado depende de que el inventario esté al día.
 - README/docs cuando cambien setup, flujos o arquitectura.
 - **Docs de API siempre sincronizadas** - al agregar/cambiar/quitar endpoints:
   - Swagger: ya es automático (`@nestjs/swagger` en `main.ts`) - UI en `/api/docs`, JSON en `/api/docs-json`. Mantener DTOs con `class-validator` para que el schema quede útil.
