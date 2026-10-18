@@ -45,6 +45,8 @@ Para una modificación acotada, verifica primero la superficie afectada (`pnpm -
 
 **CSS stale en dev**: si tras cambiar `tailwind.config.ts` o los tokens de `globals.css` el browser no refleja el cambio, el `.next` cache sirve el CSS viejo y HMR no lo invalida. Fix: matar el dev server, `rm -rf apps/web/.next`, reiniciar. Verificación rápida: `curl -s localhost:3000/_next/static/css/app/layout.css | grep -c '<token>'` debe dar >0.
 
+**Dev server zombie / `.next` corrupto** (visto 2026-10-18): síntomas — páginas (app) devuelven 500 con `SyntaxError: JSON.parse at position N` fijo, gotos que nunca responden, o `ECONNREFUSED` al proxy /api. Causa: procesos `nest`/`next` huérfanos de sesiones anteriores comen RAM → OOM del dev server → cache corrupto. Diagnóstico: `Get-CimInstance Win32_Process -Filter "Name='node.exe'"` (PowerShell) y mata los `start --watch`/`next dev` viejos; fix: matar el dev server, `rm -rf apps/web/.next`, reiniciar.
+
 ## Flujo de trabajo
 
 ### Gates obligatorios (no saltarse)
