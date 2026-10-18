@@ -1,0 +1,31 @@
+name: QA
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+# Capa estática + unit del monorepo: corre en todo push/PR a dev y main.
+# El e2e de browser (Playwright) va aparte por costo - ver test:e2e.
+jobs:
+  static-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build shared package
+        run: pnpm --filter @omnidance/shared build
+      - name: Typecheck (all workspaces)
+        run: pnpm -r run typecheck
+      - name: Lint (web)
+        run: pnpm --filter @omnidance/web lint
+      - name: Unit tests (all workspaces)
+        run: pnpm -r run test

@@ -71,7 +71,7 @@ type Tab = {
 };
 
 function icon(path: string) {
-  return (active: boolean) => (
+  const Icon = (active: boolean) => (
     <svg
       aria-hidden
       viewBox="0 0 24 24"
@@ -85,6 +85,8 @@ function icon(path: string) {
       <path d={path} />
     </svg>
   );
+  Icon.displayName = "NavIcon";
+  return Icon;
 }
 
 const ICONS = {
@@ -969,6 +971,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     return () => mo.disconnect();
   }, [pathname]);
 
+  // Hook incondicional: detecta si la página trae su propio back
+  // (ConsoleHeader) para omitir el chevron del appbar. Debe llamarse
+  // antes de los early returns de abajo (rules-of-hooks).
+  const consoleHeader = useConsoleHeaderPresent();
+
   // Contexto fullscreen (consola staff): solo el contenido, sin chrome.
   if (CHROME_HIDDEN_PREFIXES.some((p) => pathname.startsWith(p)))
     return <>{children}</>;
@@ -1240,7 +1247,6 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // Páginas con ConsoleHeader ya muestran su back al padre in-content
   // (link real, nombrado) - el chevron ‹ del appbar se omite ahí para
   // no duplicar el "volver"; en el resto de rutas empujadas sigue.
-  const consoleHeader = useConsoleHeaderPresent();
   const backFallback = (() => {
     if (consoleHeader || rootHrefs.has(pathname)) return null;
     const parent = pathname.replace(/\/[^/]*$/, "");

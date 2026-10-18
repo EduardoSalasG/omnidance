@@ -224,7 +224,14 @@ function DatosPanel() {
   const [entity, setEntity] = useState<string>("");
   const [filters, setFilters] = useState<QueryFilters>({});
 
-  const [rows, setRows] = useState<unknown[] | null>(null);
+  // Resultado etiquetado con la entidad que lo produjo: al cambiar de
+  // entidad hay un render intermedio con rows viejas + entity nueva
+  // (el effect de carga corre post-paint) - sin la etiqueta, renderRow
+  // formatea campos que la otra entidad no tiene (RangeError fechas).
+  const [result, setResult] = useState<{
+    entity: string;
+    rows: unknown[];
+  } | null>(null);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   // Lead en conversión - deshabilita su botón mientras el POST corre.
   const [convertingLead, setConvertingLead] = useState<string | null>(null);
@@ -288,7 +295,7 @@ function DatosPanel() {
         `/admin/browse/${entity}?${params.toString()}`,
       );
       if (!res.ok) return setPhase("error");
-      setRows((await res.json()) as unknown[]);
+      setResult({ entity, rows: (await res.json()) as unknown[] });
       setPhase("ready");
     } catch {
       setPhase("error");
@@ -761,6 +768,9 @@ function DatosPanel() {
 
   const entityDef =
     entities.find((e) => e.entity === entity) ?? undefined;
+
+  // Solo se renderizan filas si pertenecen a la entidad activa.
+  const rows = result && result.entity === entity ? result.rows : null;
 
   return (
     <div className="flex flex-col gap-4">

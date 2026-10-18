@@ -1,13 +1,14 @@
 {
   "name": "@omnidance/api",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
     "prisma": "prisma",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
