@@ -11,7 +11,11 @@ const withBundleAnalyzer = bundleAnalyzer({
 // Origen del API para el proxy same-origin: el browser pide /api/* al front
 // y Next lo reenvía acá. Así PWA+túnel quedan same-origin (cookies Lax, sin
 // cross-site - iOS Safari bloquea cookies third-party aun con SameSite=None).
-const API_PROXY_TARGET = process.env.API_PROXY_TARGET ?? "http://localhost:4000";
+// Default 127.0.0.1 (no "localhost"): en Windows "localhost" resuelve a
+// veces ::1 y el API (Nest) solo escucha IPv4 → ECONNREFUSED intermitente
+// en el proxy (login que falla 1 de N veces en dev, visto en e2e).
+const API_PROXY_TARGET =
+  process.env.API_PROXY_TARGET ?? "http://127.0.0.1:4000";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
