@@ -11,6 +11,34 @@ on:
 jobs:
   static-unit:
     runs-on: ubuntu-latest
+    # Los e2e de API (test/*.e2e.spec.ts) levantan AppModule completo:
+    # necesitan Postgres+Redis reales, schema pusheado y el baseline del
+    # seed (catálogo de roles es FK de PersonRole).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: omnidance
+          POSTGRES_PASSWORD: omnidance
+          POSTGRES_DB: omnidance
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U omnidance"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://omnidance:omnidance@localhost:5432/omnidance
+      REDIS_URL: redis://localhost:6379
+      NODE_ENV: test
+      JWT_SECRET: ci-secret
+      QR_SECRET: ci-qr-secret
+      SEED_ENV: prod
+      SEED_ADMIN_EMAIL: admin@ci.local
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,6 +55,10 @@ jobs:
       # resuelve al stub sin tipos y el typecheck estalla en implicit-any.
       - name: Generate Prisma client
         run: pnpm --filter @omnidance/api exec prisma generate
+      - name: Push schema + baseline seed
+        run: |
+          pnpm --filter @omnidance/api exec prisma db push
+          pnpm db:seed
       - name: Typecheck (all workspaces)
         run: pnpm -r run typecheck
       - name: Lint (web)
