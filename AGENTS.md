@@ -141,6 +141,7 @@ Roles de colaboración dentro del pipeline: Diseño (orquestador + usuario) → 
 
 - SemVer `MAJOR.MINOR.PATCH`: MAJOR = incompatible (API/datos/auth); MINOR = feature compatible; PATCH = fix/docs/mantenimiento.
 - Release gate (`dev → main`): definir incremento → actualizar versión + `CHANGELOG.md` (Keep a Changelog) + notas de release → tests/build/QA → tag anotado `vX.Y.Z` en el commit exacto de `main` → push → supervisar CI/deploy/health checks → sincronizar `main` de vuelta a `dev`.
+- **QA completo local antes de promover cuando la release toca frontend** (`apps/web/**`): obligatorio correr y citar evidencia de `pnpm lint` (0 errores), `pnpm typecheck`, `pnpm test` y `pnpm test:e2e` (stack vivo). Si la release es solo backend/docs, basta typecheck + tests del área afectada — declararlo explícitamente.
 - **Rollback**: nunca re-desplegar SHA informal ni mover tags. Re-desplegar el artefacto del último tag sano + health checks + documentar motivo/impacto.
 
 ## Definition of Done
