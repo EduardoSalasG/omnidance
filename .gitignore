@@ -19,3 +19,4 @@ uploads/
 e2e/.auth/
 test-results/
 playwright-report/
+brag-output-*/
