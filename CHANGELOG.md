@@ -3,6 +3,29 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.0.3] - 2026-10-18
+
+### Fixed
+
+- **`/admin/datos` RangeError "Invalid time value"**: al cambiar de
+  entidad el render intermedio formateaba rows de la entidad anterior
+  con el `renderRow` de la nueva. El resultado ahora viaja etiquetado
+  con su entidad y solo renderiza si coincide.
+- **Proxy /api en dev**: `API_PROXY_TARGET` por defecto `localhost:4000`
+  resolvía a veces `::1` en Windows mientras el API escucha solo IPv4 →
+  `ECONNREFUSED` intermitente (~1 de N requests, incluido login).
+  Default ahora `127.0.0.1`.
+- Orden de hooks en `BottomNav` (reglas de hooks violadas).
+
+### Added
+
+- **Pirámide QA**: eslint flat config web (0 errores), Vitest +
+  testing-library para componentes, Playwright e2e (chromium + mobile
+  WebKit) con setup de sesión por rol y 4 specs smoke (descubrimiento,
+  checkout stub, entity-switch admin, lifecycle productor). Workflow
+  `qa.yml` (typecheck + lint + unit en push/PR). Inventario vivo de
+  flujos en `docs/qa-flows-inventory.md`.
+
 ## [1.0.2] - 2026-10-17
 
 ### Fixed
