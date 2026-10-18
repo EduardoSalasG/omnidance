@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import { PAYMENT_STATUS_VARIANT } from "@/components/payments/shared";
 import { planDateFmt, type Academy } from "./shared";
+import { Link } from "@/i18n/navigation";
 import { getNumFmt, useNumFmt } from "@/lib/intl";
 
 const clp = (locale: string) => getNumFmt(locale, {
@@ -454,9 +455,9 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
       </div>
       <p className="text-xs text-ink/50">
         {t("enterpriseNote")}{" "}
-        <a href="/soporte" className="underline underline-offset-4 hover:text-ink">
+        <Link href="/soporte" className="underline underline-offset-4 hover:text-ink">
           {t("enterpriseCta")}
-        </a>
+        </Link>
       </p>
 
       {/* Ciclo de facturación - 3 botones como el selector de Producer

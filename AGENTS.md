@@ -37,7 +37,8 @@ Ejecutar desde la raíz del repo:
 - Frontend dev: `pnpm dev:web` → http://localhost:3000
 - Ambos: `pnpm dev`
 - Build completo: `pnpm build`
-- Tests: `pnpm test` (Vitest unit + Playwright smoke e2e)
+- Tests: `pnpm test` (Vitest unit + componente) · `pnpm test:e2e` (Playwright smoke, chromium + mobile/WebKit — requiere stack vivo + `pnpm exec playwright install` la 1ª vez). Los 6 logins del setup golpean `/auth/login` (throttle 8/min por IP): en dev conviene `THROTTLE_AUTH_LIMIT=120` en `apps/api/.env`; el setup igual reintenta una vez tras ~65s si aparece el genericError.
+- Lint: `pnpm lint` · Typecheck: `pnpm typecheck`
 - Prisma Studio: `pnpm db:studio`
 
 Para una modificación acotada, verifica primero la superficie afectada (`pnpm --filter @omnidance/api build`, etc.) y amplía según riesgo.
@@ -98,6 +99,7 @@ Estos pasos se incumplieron en sesiones reales - son gates, no sugerencias:
 ### Documentación
 
 - `omni-dance.md` es la spec viva - actualízala cuando cambien reglas de producto.
+- **`docs/qa-flows-inventory.md` es el inventario vivo de flujos QA** - cualquier cambio que agregue, modifique o elimine un flujo de usuario (features, fixes que toquen comportamiento, nuevas pages, cambios en endpoints/validaciones/estados terminales) debe actualizar la sección correspondiente del inventario **en el mismo commit/change**. Sin excepciones: el QA automatizado depende de que el inventario esté al día.
 - README/docs cuando cambien setup, flujos o arquitectura.
 - **Docs de API siempre sincronizadas** - al agregar/cambiar/quitar endpoints:
   - Swagger: ya es automático (`@nestjs/swagger` en `main.ts`) - UI en `/api/docs`, JSON en `/api/docs-json`. Mantener DTOs con `class-validator` para que el schema quede útil.
