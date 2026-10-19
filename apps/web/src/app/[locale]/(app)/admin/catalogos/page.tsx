@@ -33,12 +33,12 @@ type Field = "genre" | "order" | null;
 
 /**
  * /admin/catalogos - mantenedor de los catálogos que usan las academias
- * para sus series de clases (estilos, niveles, tipos). Tres secciones
- * apiladas con alta, edición inline y baja; el backend rechaza con 409
- * borrar valores en uso (se muestra el message del servidor).
+ * para sus series de clases (estilos, niveles, tipos). Tres secciones de
+ * filas de lectura con edición inline y baja; el ALTA vive en la página
+ * dedicada /admin/catalogos/nuevo?cat= (patrón consolas: crear = página).
+ * El backend rechaza con 409 borrar valores en uso.
  */
 export default function AdminCatalogosPage() {
-  const t = useTranslations("admin");
   const tn = useTranslations("nav");
 
   return (
@@ -60,16 +60,19 @@ function CatalogsPanel() {
         title={t("styles")}
         endpoint="/admin/catalogs/styles"
         field="genre"
+        cat="styles"
       />
       <CatalogSection
         title={t("levels")}
         endpoint="/admin/catalogs/class-levels"
         field="order"
+        cat="levels"
       />
       <CatalogSection
         title={t("types")}
         endpoint="/admin/catalogs/class-types"
         field={null}
+        cat="types"
       />
     </div>
   );
@@ -79,10 +82,12 @@ function CatalogSection({
   title,
   endpoint,
   field,
+  cat,
 }: {
   title: string;
   endpoint: string;
   field: Field;
+  cat: string;
 }) {
   const t = useTranslations("adminCatalogs");
   const tc = useTranslations("common");
@@ -92,11 +97,6 @@ function CatalogSection({
 
   const [items, setItems] = useState<Item[] | null>(null);
   const [loadError, setLoadError] = useState(false);
-
-  // ─── formulario de alta ───
-  const [name, setName] = useState("");
-  const [genre, setGenre] = useState<Genre>("OTHER");
-  const [order, setOrder] = useState("");
 
   // ─── edición inline ───
   const [editId, setEditId] = useState<string | null>(null);
@@ -131,38 +131,6 @@ function CatalogSection({
   function flashSaved(): void {
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2000);
-  }
-
-  async function create(e: React.FormEvent): Promise<void> {
-    e.preventDefault();
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const body: Record<string, unknown> = { name: trimmed };
-      if (field === "genre") body.genre = genre;
-      if (field === "order" && order.trim()) {
-        body.order = Number.parseInt(order, 10) || 0;
-      }
-      const res = await apiFetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        setError((await readError(res)) ?? t("error"));
-        return;
-      }
-      setName("");
-      setOrder("");
-      flashSaved();
-      await load();
-    } catch {
-      setError(t("error"));
-    } finally {
-      setBusy(false);
-    }
   }
 
   function startEdit(item: Item): void {
@@ -230,7 +198,17 @@ function CatalogSection({
 
   return (
     <section aria-label={title} className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">{title}</h2>
+      {/* Header de sección: título + CTA de alta (crear = página dedicada) */}
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <Button
+          href={`/admin/catalogos/nuevo?cat=${cat}`}
+          variant="secondary"
+          size="sm"
+        >
+          + {t("new")}
+        </Button>
+      </div>
 
       {loadError && (
         <div className="flex items-center gap-3">
@@ -246,155 +224,102 @@ function CatalogSection({
       {items === null && !loadError && <SkeletonList />}
 
       {items !== null && (
-        <>
-          <ul className="flex flex-col gap-2">
-            {items.map((item) => (
-              <li key={item.id}>
-                <Card className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3">
-                  {editId === item.id ? (
-                    <form
-                      onSubmit={(e) => void saveEdit(e, item.id)}
-                      className="flex w-full flex-wrap items-end gap-2"
-                    >
-                      <input
-                        className={`${inputCls} min-w-0 flex-1`}
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        aria-label={t("name")}
-                        required
-                      />
-                      {field === "genre" && (
-                        <select
-                          className={inputCls}
-                          value={editGenre}
-                          onChange={(e) =>
-                            setEditGenre(e.target.value as Genre)
-                          }
-                          aria-label={t("genre")}
-                        >
-                          {GENRES.map((g) => (
-                            <option key={g} value={g}>
-                              {t(`genres.${g}`)}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                      {field === "order" && (
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          step={1}
-                          className={`${inputCls} w-24`}
-                          value={editOrder}
-                          onChange={(e) => setEditOrder(e.target.value)}
-                          aria-label={t("order")}
-                        />
-                      )}
-                      <Button type="submit" size="sm" disabled={busy}>
-                        {tc("save")}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditId(null)}
-                      >
-                        {tc("cancel")}
-                      </Button>
-                    </form>
-                  ) : (
-                    <>
-                      <span className="min-w-0 flex-1 truncate font-medium">
-                        {item.name}
-                      </span>
-                      {field === "genre" && item.genre && (
-                        <Badge variant="muted">{t(`genres.${item.genre}`)}</Badge>
-                      )}
-                      {field === "order" && (
-                        <span className="text-xs tabular-nums text-ink/50">
-                          {t("order")}: {item.order ?? 0}
-                        </span>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={busy}
-                        onClick={() => startEdit(item)}
-                      >
-                        {ts("edit")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busy}
-                        onClick={() => setPendingItem(item)}
-                      >
-                        {t("delete")}
-                      </Button>
-                    </>
-                  )}
-                </Card>
-              </li>
-            ))}
-          </ul>
-
-          <Card>
-            <form
-              onSubmit={create}
-              className="flex flex-wrap items-end gap-2"
-            >
-              <label className="flex min-w-0 flex-1 flex-col gap-1">
-                <span className="text-xs text-ink/50">
-                  {t("name")}
-                  <span aria-hidden="true" className="text-neon">
-                    {" "}
-                    *
-                  </span>
-                </span>
-                <input
-                  className={inputCls}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </label>
-              {field === "genre" && (
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-ink/50">{t("genre")}</span>
-                  <select
-                    className={inputCls}
-                    value={genre}
-                    onChange={(e) => setGenre(e.target.value as Genre)}
-                  >
-                    {GENRES.map((g) => (
-                      <option key={g} value={g}>
-                        {t(`genres.${g}`)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              {field === "order" && (
-                <label className="flex w-24 flex-col gap-1">
-                  <span className="text-xs text-ink/50">{t("order")}</span>
+        <Card className="divide-y divide-line p-0">
+          {items.map((item) => (
+            <div key={item.id}>
+              {editId === item.id ? (
+                <form
+                  onSubmit={(e) => void saveEdit(e, item.id)}
+                  className="flex flex-col gap-2 px-4 py-3"
+                >
                   <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    step={1}
                     className={inputCls}
-                    value={order}
-                    onChange={(e) => setOrder(e.target.value)}
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    aria-label={t("name")}
+                    required
                   />
-                </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {field === "genre" && (
+                      <select
+                        className={`${inputCls} w-auto`}
+                        value={editGenre}
+                        onChange={(e) =>
+                          setEditGenre(e.target.value as Genre)
+                        }
+                        aria-label={t("genre")}
+                      >
+                        {GENRES.map((g) => (
+                          <option key={g} value={g}>
+                            {t(`genres.${g}`)}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {field === "order" && (
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        step={1}
+                        className={`${inputCls} w-24`}
+                        value={editOrder}
+                        onChange={(e) => setEditOrder(e.target.value)}
+                        aria-label={t("order")}
+                      />
+                    )}
+                    <Button type="submit" size="sm" disabled={busy}>
+                      {tc("save")}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditId(null)}
+                    >
+                      {tc("cancel")}
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="flex min-h-11 items-center gap-3 px-4 py-1.5">
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                    {item.name}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {field === "genre" && item.genre && (
+                      <Badge variant="muted">
+                        {t(`genres.${item.genre}`)}
+                      </Badge>
+                    )}
+                    {field === "order" && (
+                      <span className="text-xs tabular-nums text-ink/50">
+                        {item.order ?? 0}
+                      </span>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() => startEdit(item)}
+                    >
+                      {ts("edit")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-400 hover:text-red-300"
+                      disabled={busy}
+                      onClick={() => setPendingItem(item)}
+                    >
+                      {t("delete")}
+                    </Button>
+                  </span>
+                </div>
               )}
-              <Button type="submit" size="sm" disabled={busy}>
-                + {t("add")}
-              </Button>
-            </form>
-          </Card>
-        </>
+            </div>
+          ))}
+        </Card>
       )}
 
       {error && (

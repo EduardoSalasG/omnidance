@@ -1054,6 +1054,8 @@
     "order": "Orden",
     "delete": "Eliminar",
     "deleteConfirm": "¿Eliminar «{name}»?",
+    "new": "Nuevo",
+    "newTitle": "Nuevo valor · {catalog}",
     "inUse": "Está en uso y no se puede eliminar",
     "saved": "Guardado",
     "error": "No se pudo guardar",
