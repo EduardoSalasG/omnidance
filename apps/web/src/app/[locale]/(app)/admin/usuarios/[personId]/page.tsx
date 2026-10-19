@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, use } from "react";
+import { Children, useCallback, useEffect, useState, use } from "react";
 
 import {useTranslations, useLocale } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -760,6 +760,10 @@ function StatRow({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Expand tras 5 filas por lista - mismo patrón que las fichas de
+// /admin/academias/[id] (toggle centrado con el total).
+const COLLAPSED_ROWS = 5;
+
 function DataList({
   title,
   empty,
@@ -769,13 +773,33 @@ function DataList({
   empty: boolean;
   children: React.ReactNode;
 }) {
+  const t = useTranslations("admin");
+  const [expanded, setExpanded] = useState(false);
+  const rows = Children.toArray(children);
+  const capped = rows.length > COLLAPSED_ROWS;
   return (
     <div className="flex flex-col gap-1">
       <SubTitle>{title}</SubTitle>
       {empty ? (
         <EmptyNote />
       ) : (
-        <ul className="flex flex-col divide-y divide-ink/5">{children}</ul>
+        <>
+          <ul className="flex flex-col divide-y divide-ink/5">
+            {expanded ? rows : rows.slice(0, COLLAPSED_ROWS)}
+          </ul>
+          {capped && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="self-center"
+              onClick={() => setExpanded((v) => !v)}
+            >
+              {expanded
+                ? t("users.roleData.showLess")
+                : t("users.roleData.showAll", { count: rows.length })}
+            </Button>
+          )}
+        </>
       )}
     </div>
   );

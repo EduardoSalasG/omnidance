@@ -7,6 +7,8 @@
       "noResults": "Sin resultados",
       "viewAnalytics": "Ver analítica",
       "pickRole": "Elige un rol…",
+      "academiesCount": "{count, plural, one {# academia} other {# academias}}",
+      "eventsCount": "{count, plural, one {# evento} other {# eventos}}",
       "revokeConfirm": "¿Revocar el rol {role}? Queda registrado en auditoría.",
       "delete": {
         "title": "Zona de peligro",
@@ -63,6 +65,8 @@
         "gigsPast": "Gigs pasados",
         "worksFor": "Trabaja para",
         "empty": "Sin actividad registrada en este rol",
+        "showAll": "Ver las {count}",
+        "showLess": "Ver menos",
         "status": {
           "ticket": {
             "ACTIVE": "Activa",

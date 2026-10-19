@@ -75,23 +75,41 @@ describe("admin user intel e2e", () => {
   });
 
   describe("GET /api/admin/users?q=", () => {
-    it("q ausente → []", async () => {
+    it("q ausente → envelope vacío", async () => {
       const res = await get("/api/admin/users", adminSession);
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual([]);
+      const body = await res.json();
+      expect(body.items).toEqual([]);
+      expect(body.total).toBe(0);
+      expect(body.page).toBe(1);
+      expect(body.pageSize).toBe(25);
     });
 
-    it("q de 1 char → []", async () => {
+    it("q de 1 char → envelope vacío", async () => {
       const res = await get("/api/admin/users?q=a", adminSession);
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual([]);
+      expect((await res.json()).items).toEqual([]);
     });
 
     it("q ≥2 encuentra por email parcial", async () => {
       const res = await get("/api/admin/users?q=dancer@", adminSession);
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.some((p: { id: string }) => p.id === dancerId)).toBe(true);
+      expect(
+        body.items.some((p: { id: string }) => p.id === dancerId),
+      ).toBe(true);
+    });
+
+    it("page/pageSize paginan y total refleja el filtro", async () => {
+      const res = await get(
+        "/api/admin/users?q=dancer&page=1&pageSize=1",
+        adminSession,
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.pageSize).toBe(1);
+      expect(body.items).toHaveLength(Math.min(1, body.total));
+      expect(body.total).toBeGreaterThanOrEqual(body.items.length);
     });
   });
 
