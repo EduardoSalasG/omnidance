@@ -294,6 +294,7 @@ describe("comisión del instructor en clases particulares", () => {
       access,
       {} as never, // SubscriptionsService - no se usa en estos endpoints
       {} as never, // ParamsService - idem
+      {} as never, // FileStorage - idem
     );
     prisma.academies.push({ id: "ac-1", ownerId: "owner", name: "Academia Uno", active: true });
     prisma.instructors.push({
@@ -491,6 +492,7 @@ describe("private-lesson-product", () => {
       access,
       {} as never,
       {} as never,
+      {} as never, // FileStorage
     );
     prisma.academies.push({ id: "ac-1", ownerId: "owner", name: "Academia Uno", active: true });
     prisma.instructors.push(

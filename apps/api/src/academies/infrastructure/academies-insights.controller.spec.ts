@@ -64,6 +64,7 @@ const makeCtrl = (prisma: unknown, access: unknown) =>
     access as never,
     {} as never,
     {} as never,
+    {} as never, // FileStorage - no se usa en estos endpoints
   );
 
 describe("AcademiesController.studentsInsights", () => {

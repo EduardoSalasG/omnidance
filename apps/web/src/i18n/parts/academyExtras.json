@@ -78,7 +78,14 @@
       "invalidCoords": "Coordenadas inválidas",
       "forbidden": "No tienes acceso a esta sección.",
       "photo": "Foto principal",
-      "photoPlaceholder": "https://… (imagen de tu academia)"
+      "photoPlaceholder": "https://… (imagen de tu academia)",
+      "addressExtra": "Información adicional",
+      "addressExtraPlaceholder": "Piso 4, oficina 405",
+      "locate": "Ubicar en el mapa",
+      "mapHint": "Arrastra el pin si la ubicación quedó corrida.",
+      "geocodeError": "No encontramos esa dirección. Revisa calle, numeración y comuna.",
+      "photoUpload": "Subir foto",
+      "photoUploading": "Subiendo…"
     },
     "studentProfile": {
       "plan": "Plan",

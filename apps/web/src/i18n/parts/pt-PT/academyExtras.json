@@ -78,7 +78,14 @@
       "invalidCoords": "Coordenadas inválidas",
       "forbidden": "Não tens acesso a esta secção.",
       "photo": "Foto principal",
-      "photoPlaceholder": "https://… (imagem da tua academia)"
+      "photoPlaceholder": "https://… (imagem da tua academia)",
+      "addressExtra": "Informação adicional",
+      "addressExtraPlaceholder": "Piso 4, escritório 405",
+      "locate": "Localizar no mapa",
+      "mapHint": "Arrasta o marcador se a localização estiver desviada.",
+      "geocodeError": "Não encontrámos essa morada. Verifica rua, número e concelho.",
+      "photoUpload": "Carregar foto",
+      "photoUploading": "A carregar…"
     },
     "studentProfile": {
       "plan": "Plano",
