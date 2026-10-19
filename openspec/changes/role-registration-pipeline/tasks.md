@@ -27,3 +27,7 @@
 ## 4. Docs + verificación
 - [ ] qa-flows-inventory, openapi/postman, architecture.md RBAC.
 - [ ] typecheck, tests (guard, queue), i18n-audit, e2e smoke.
+
+## 5. Pro
+- [ ] `effectivePro` (o donde se derive) += `status === APPROVED` en el
+      role del actor; 403 pro.required para PENDING.
