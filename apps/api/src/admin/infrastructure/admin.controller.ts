@@ -36,6 +36,7 @@ import {
   RolesGuard,
 } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
+import { pageParams } from "../../academies/infrastructure/list-filters";
 import { dateRange } from "../../query/entities/helpers";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 
@@ -99,6 +100,16 @@ class UsersQueryDto {
   @Matches(ROLE_KEY, { message: "rol inválido" })
   @ApiPropertyOptional()
   role?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  page?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  pageSize?: string;
 }
 
 /**
@@ -161,15 +172,19 @@ export class AdminController {
   // ── Usuarios ──────────────────────────────────────────────────────────
 
   /**
-   * Buscador de personas - nunca lista masiva: sin `q` de ≥2 chars ni
-   * filtro `role` responde []. Busca por nombre, email o teléfono;
-   * `role` (key del catálogo RBAC, existe o 400) lista sus titulares -
-   * misma regla que la entidad `people` del query engine.
+   * Buscador de personas paginado - nunca lista masiva: sin `q` de ≥2
+   * chars ni filtro `role` responde envelope vacío. Busca por nombre,
+   * email o teléfono; `role` (key del catálogo RBAC, existe o 400) lista
+   * sus titulares - misma regla que la entidad `people` del query
+   * engine. Responde `{items,total,page,pageSize}` (pageParams: page≥1,
+   * size default 25 cap 100).
    */
   @Get("users")
   async users(@Query() q: UsersQueryDto) {
     const term = q.q?.trim() ?? "";
     const role = q.role;
+    const pg = pageParams(q.page, q.pageSize);
+    const empty = { items: [], total: 0, page: pg.page, pageSize: pg.pageSize };
     if (role) {
       const exists = await this.prisma.role.findUnique({
         where: { key: role },
@@ -181,34 +196,39 @@ export class AdminController {
         );
       }
     }
-    if (!role && term.length < 2) return [];
-    const people = await this.prisma.person.findMany({
-      where: {
-        ...(term.length >= 2
-          ? {
-              OR: [
-                { name: { contains: term, mode: "insensitive" as const } },
-                { email: { contains: term, mode: "insensitive" as const } },
-                { phone: { contains: term, mode: "insensitive" as const } },
-              ],
-            }
-          : {}),
-        ...(role ? { roles: { some: { role } } } : {}),
-      },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        createdAt: true,
-        roles: {
-          select: { id: true, role: true, status: true, createdAt: true },
-          orderBy: { createdAt: "asc" },
+    if (!role && term.length < 2) return empty;
+    const where: Prisma.PersonWhereInput = {
+      ...(term.length >= 2
+        ? {
+            OR: [
+              { name: { contains: term, mode: "insensitive" as const } },
+              { email: { contains: term, mode: "insensitive" as const } },
+              { phone: { contains: term, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+      ...(role ? { roles: { some: { role } } } : {}),
+    };
+    const [items, total] = await Promise.all([
+      this.prisma.person.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: pg.skip,
+        take: pg.take,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          roles: {
+            select: { id: true, role: true, status: true, createdAt: true },
+            orderBy: { createdAt: "asc" },
+          },
         },
-      },
-    });
-    return people;
+      }),
+      this.prisma.person.count({ where }),
+    ]);
+    return { items, total, page: pg.page, pageSize: pg.pageSize };
   }
 
   /**

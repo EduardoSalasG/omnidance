@@ -9,7 +9,9 @@ import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { Link } from "@/i18n/navigation";
 
-// Respuesta de GET /admin/users?q= - liviana, sin analítica por rol.
+// Envelope de GET /admin/users?q= - liviano, sin analítica por rol.
+// La paginación vive en /admin/usuarios; aquí basta la primera página
+// (buscador por nombre, nunca listado masivo).
 type SearchUser = {
   id: string;
   name: string;
@@ -68,7 +70,8 @@ function SearchPanel() {
       apiFetch(`/admin/users?q=${encodeURIComponent(q)}`)
         .then(async (res) => {
           if (!res.ok) throw new Error("fetch failed");
-          setUsers((await res.json()) as SearchUser[]);
+          const data = (await res.json()) as { items: SearchUser[] };
+          setUsers(data.items);
           setSearched(true);
         })
         .catch(() => setActionError(true))

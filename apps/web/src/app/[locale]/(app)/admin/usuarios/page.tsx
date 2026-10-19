@@ -4,14 +4,15 @@ import { useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card } from "@/components/ui";
+import { Badge, Card, Pager, SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { FilterBar, type QueryOption } from "@/components/query/FilterBar";
 import { entityDef, type QueryFilters } from "@omnidance/shared";
 import { Link } from "@/i18n/navigation";
 
-// Respuesta de GET /admin/users?q=&role= - liviana, sin detalle por rol.
+// Envelope de GET /admin/users?q=&role=&page=&pageSize= - liviano, sin
+// detalle por rol.
 type SearchUser = {
   id: string;
   name: string;
@@ -19,12 +20,19 @@ type SearchUser = {
   createdAt: string;
   roles: { role: string; status: string }[];
 };
+type UsersResponse = {
+  items: SearchUser[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
 
 // Filtros = los de la entidad `people` del catálogo (q + role fk) - mismo
 // componente y mismos params que /admin/datos (spec analytics/query-console).
 const PEOPLE_DEF = entityDef("ADMIN", "people");
 
 const MIN_QUERY = 2;
+const PAGE_SIZE = 25;
 
 export default function UsuariosPage() {
   const t = useTranslations("admin");
@@ -46,13 +54,19 @@ function UsersPanel() {
 
   const [filters, setFilters] = useState<QueryFilters>({});
   const [roleOptions, setRoleOptions] = useState<QueryOption[]>([]);
-  const [users, setUsers] = useState<SearchUser[]>([]);
+  const [result, setResult] = useState<UsersResponse | null>(null);
+  const [page, setPage] = useState(1);
   const [searching, setSearching] = useState(false);
-  const [searched, setSearched] = useState(false);
   const [actionError, setActionError] = useState(false);
 
   const q = (filters.q ?? "").trim();
   const role = filters.role ?? "";
+
+  // Cambio de filtro → siempre página 1 (el total puede colapsar).
+  const onFilters = (f: QueryFilters) => {
+    setPage(1);
+    setFilters(f);
+  };
 
   // Opciones del filtro de rol - catálogo RBAC (mismas keys que acepta
   // /admin/users?role=).
@@ -66,12 +80,11 @@ function UsersPanel() {
       .catch(() => {});
   }, []);
 
-  // Búsqueda auto-aplicada: el endpoint nunca lista masiva - exige q de
-  // ≥2 chars o un rol (FilterBar ya mete debounce al texto).
+  // Búsqueda auto-aplicada y paginada: el endpoint nunca lista masiva -
+  // exige q de ≥2 chars o un rol (FilterBar ya mete debounce al texto).
   useEffect(() => {
     if (!role && q.length < MIN_QUERY) {
-      setUsers([]);
-      setSearched(false);
+      setResult(null);
       setSearching(false);
       return;
     }
@@ -80,19 +93,22 @@ function UsersPanel() {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (role) params.set("role", role);
+    params.set("page", String(page));
+    params.set("pageSize", String(PAGE_SIZE));
     apiFetch(`/admin/users?${params.toString()}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("fetch failed");
         if (cancelled) return;
-        setUsers((await res.json()) as SearchUser[]);
-        setSearched(true);
+        setResult((await res.json()) as UsersResponse);
       })
       .catch(() => !cancelled && setActionError(true))
       .finally(() => !cancelled && setSearching(false));
     return () => {
       cancelled = true;
     };
-  }, [q, role]);
+  }, [q, role, page]);
+
+  const users = result?.items ?? [];
 
   const roleLabel = (r: string) =>
     tp.has(`roleLabels.${r}`) ? tp(`roleLabels.${r}`) : r;
@@ -111,7 +127,7 @@ function UsersPanel() {
         <FilterBar
           entity={PEOPLE_DEF}
           filters={filters}
-          onChange={setFilters}
+          onChange={onFilters}
           options={{ roles: roleOptions }}
         />
       )}
@@ -122,15 +138,12 @@ function UsersPanel() {
       {!role && q.length === 1 && (
         <p className="text-sm text-ink/50">{t("users.minChars")}</p>
       )}
-      {searching && (role || q.length >= MIN_QUERY) && (
-        <p role="status" className="page-loading text-sm text-ink/50">
-          {tc("loading")}
-        </p>
-      )}
-      {!searching && searched && users.length === 0 && (
+      {searching && <SkeletonList items={3} />}
+      {!searching && result && users.length === 0 && (
         <p className="text-sm text-ink/50">{t("users.noResults")}</p>
       )}
 
+      {!searching && (
       <ul className="flex flex-col gap-3">
         {users.map((u) => (
           <li key={u.id}>
@@ -169,6 +182,16 @@ function UsersPanel() {
           </li>
         ))}
       </ul>
+      )}
+
+      {!searching && result && result.total > 0 && (
+        <Pager
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={result.total}
+          onPage={setPage}
+        />
+      )}
     </section>
   );
 }
