@@ -25,6 +25,7 @@ export const CLASS_CARD_SELECT = {
           id: true,
           name: true,
           defaultQuorum: true,
+          reviewStatus: true,
           // Mora SaaS (S3): el card viaja con el flag para que la UI
           // marque "no disponible" en reservas/historial del alumno.
           billingBlockedAt: true,

@@ -76,7 +76,9 @@
       "saved": "Profile saved.",
       "saveError": "Couldn't save the profile",
       "invalidCoords": "Invalid coordinates",
-      "forbidden": "You don't have access to this section."
+      "forbidden": "You don't have access to this section.",
+      "photo": "Main photo",
+      "photoPlaceholder": "https://… (image of your academy)"
     },
     "studentProfile": {
       "plan": "Plan",

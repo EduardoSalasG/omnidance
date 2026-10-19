@@ -76,7 +76,9 @@
       "saved": "Profil enregistré.",
       "saveError": "Impossible d'enregistrer le profil",
       "invalidCoords": "Coordonnées invalides",
-      "forbidden": "Tu n'as pas accès à cette section."
+      "forbidden": "Tu n'as pas accès à cette section.",
+      "photo": "Photo principale",
+      "photoPlaceholder": "https://… (image de ton académie)"
     },
     "studentProfile": {
       "plan": "Plan",

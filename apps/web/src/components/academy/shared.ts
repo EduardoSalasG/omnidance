@@ -103,6 +103,12 @@ export type Academy = {
   instagram?: string | null;
   whatsapp?: string | null;
   website?: string | null;
+  photoUrl?: string | null;
+  // Control de calidad por entidad (spec academy-approval-gate):
+  // GET /academies/mine y /:id devuelven el estado y el checklist
+  // evaluado server-side para la card de visibilidad del owner.
+  reviewStatus?: "PENDING" | "APPROVED" | "REJECTED";
+  reviewChecks?: Record<string, boolean> | null;
   // Precio de la clase particular vendida como producto (PATCH settings;
   // null = no se vende). El owner asigna instructor+fecha post-compra.
   privateLessonPrice?: number | null;

@@ -37,6 +37,7 @@ import {
 } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { pageParams } from "../../academies/infrastructure/list-filters";
+import { evaluateAcademyChecks } from "../../academies/infrastructure/academy-review";
 import { dateRange } from "../../query/entities/helpers";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 
@@ -440,6 +441,97 @@ export class AdminController {
     await this.audit(req, "ROLE_REJECT", "PersonRole", id, {
       personId: row.personId,
       role: row.role,
+    });
+    return { ok: true };
+  }
+
+  /**
+   * Cola de academias (spec academy-approval-gate): PENDING/REJECTED con
+   * el checklist ya evaluado server-side — el admin ve de un vistazo
+   * qué falta; la mayoría se auto-aprueba sola al completar datos.
+   */
+  @Get("academy-review-queue")
+  async academyReviewQueue() {
+    const academies = await this.prisma.academy.findMany({
+      where: { reviewStatus: { in: ["PENDING", "REJECTED"] } },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        name: true,
+        reviewStatus: true,
+        createdAt: true,
+        ownerId: true,
+      },
+    });
+    const checks = await evaluateAcademyChecks(
+      this.prisma,
+      academies.map((a) => a.id),
+    );
+    const owners = await this.prisma.person.findMany({
+      where: { id: { in: [...new Set(academies.map((a) => a.ownerId))] } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        roles: {
+          where: { role: "ACADEMY_OWNER" },
+          select: { status: true },
+        },
+      },
+    });
+    const ownerById = new Map(owners.map((o) => [o.id, o]));
+    return academies.map((a) => {
+      const c = checks.get(a.id);
+      return {
+        id: a.id,
+        name: a.name,
+        reviewStatus: a.reviewStatus,
+        createdAt: a.createdAt,
+        owner: ownerById.get(a.ownerId) ?? null,
+        checks: c ?? null,
+        complete: c ? Object.values(c).every(Boolean) : false,
+      };
+    });
+  }
+
+  /** Override: fuerza APPROVED aunque el checklist esté incompleto. */
+  @Post("academy-review-queue/:academyId/approve")
+  @HttpCode(200)
+  async approveAcademy(@Param("academyId") id: string, @Req() req: Request) {
+    const row = await this.prisma.academy.findUnique({
+      where: { id },
+      select: { id: true, name: true, reviewStatus: true, ownerId: true },
+    });
+    if (!row) throw new NotFoundException("academia no encontrada");
+    if (row.reviewStatus === "APPROVED") return { ok: true };
+    await this.prisma.academy.update({
+      where: { id },
+      data: { reviewStatus: "APPROVED" },
+    });
+    await this.audit(req, "ACADEMY_APPROVE", "Academy", id, {
+      prev: row.reviewStatus,
+      ownerId: row.ownerId,
+    });
+    return { ok: true };
+  }
+
+  /** Rechaza: REJECTED la oculta aunque el checklist esté completo. */
+  @Post("academy-review-queue/:academyId/reject")
+  @HttpCode(200)
+  async rejectAcademy(@Param("academyId") id: string, @Req() req: Request) {
+    const row = await this.prisma.academy.findUnique({
+      where: { id },
+      select: { id: true, reviewStatus: true, ownerId: true },
+    });
+    if (!row) throw new NotFoundException("academia no encontrada");
+    if (row.reviewStatus === "REJECTED") return { ok: true };
+    await this.prisma.academy.update({
+      where: { id },
+      data: { reviewStatus: "REJECTED" },
+    });
+    await this.audit(req, "ACADEMY_REJECT", "Academy", id, {
+      prev: row.reviewStatus,
+      ownerId: row.ownerId,
     });
     return { ok: true };
   }

@@ -76,7 +76,9 @@
       "saved": "Perfil guardado.",
       "saveError": "No se pudo guardar el perfil",
       "invalidCoords": "Coordenadas inválidas",
-      "forbidden": "No tienes acceso a esta sección."
+      "forbidden": "No tienes acceso a esta sección.",
+      "photo": "Foto principal",
+      "photoPlaceholder": "https://… (imagen de tu academia)"
     },
     "studentProfile": {
       "plan": "Plan",
