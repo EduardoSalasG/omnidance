@@ -1064,7 +1064,9 @@
       "BACHATA": "Bachata",
       "CUBANO": "Cubano",
       "OTHER": "Otro"
-    }
+    },
+    "editTitle": "Editar valor · {catalog}",
+    "valueNotFound": "Valor no encontrado"
   },
   "producerParams": {
     "title": "Valores por defecto",
