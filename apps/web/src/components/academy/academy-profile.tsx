@@ -282,15 +282,17 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
               void uploadPhoto(f);
             }}
           />
-          {photoUrl.startsWith("/api/") && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={photoUrl}
-              alt=""
-              className="h-10 w-10 rounded-lg object-cover"
-            />
-          )}
         </div>
+        {photoUrl && (
+          // Preview a tamaño real de la foto que se verá en la ficha -
+          // object-cover recorta sin deformar como la card pública.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photoUrl}
+            alt=""
+            className="h-40 w-full rounded-xl border border-line object-cover lg:max-w-xl"
+          />
+        )}
         {error && (
           <p role="alert" className="text-sm text-red-400">
             {error}
