@@ -83,6 +83,18 @@ type HomeStats = {
   nextShift?: NextItem | null;
   myClasses?: ClassCardData[];
   needsAcademy?: boolean;
+  /** Cola de leads NEW - solo lente ADMIN (spec admin-console-billing-nav). */
+  pendingLeads?: {
+    count: number;
+    items: {
+      id: string;
+      name: string;
+      email: string;
+      intent: string;
+      roles: string[];
+      createdAt: string;
+    }[];
+  };
 };
 
 ;
@@ -354,7 +366,6 @@ export function HomeHub() {
   const te = useTranslations("events");
   const tst = useTranslations("staff");
   const tins = useTranslations("instructor");
-  const tad = useTranslations("admin");
   const tt = useTranslations("tours.home");
   const ttao = useTranslations("tours.academiaOwner");
   const ttp = useTranslations("tours.productor");
@@ -545,12 +556,10 @@ export function HomeHub() {
     }
     switch (activeRole) {
       case "ADMIN":
-        return {
-          href: "/admin",
-          title: tad("title"),
-          desc: t("adminHeroDesc"),
-          cta: t("adminHeroCta"),
-        };
+        // Sin hero: el home del admin ya es su consola (KPIs + cola de
+        // leads) y todo el módulo está en el drawer/sidebar - el card
+        // "Abrir administración" era ruido.
+        return null;
       // PRODUCER y ACADEMY_OWNER no tienen hero: su home ES la consola
       // (ver los branches del render abajo).
       case "INSTRUCTOR":
@@ -845,7 +854,87 @@ export function HomeHub() {
       ) : (
         <>
           {stats && stats.kpis.length > 0 && (
-            <KpiGrid kpis={stats.kpis} label={kpiLabel} />
+            activeRole === "ADMIN" ? (
+              <>
+                {/* KPIs del admin agrupados por categoría (skill
+                    ui-ux-principles §1 - proximidad Gestalt) */}
+                {[
+                  ["ops", ["pendingRoles", "leadsNew", "pendingPayouts"]],
+                  ["billing", ["txRevenueMonth", "subRevenueMonth"]],
+                  ["subs", ["subsAcademy", "subsProducer"]],
+                  ["platform", ["users", "activeEvents"]],
+                ].map(([cat, keys]) => {
+                  const items = (keys as string[])
+                    .map((k) => stats.kpis.find((x) => x.key === k))
+                    .filter((x): x is NonNullable<typeof x> => x != null);
+                  return items.length > 0 ? (
+                    <KpiGrid
+                      key={cat as string}
+                      kpis={items}
+                      label={t(`cats.${cat}`)}
+                    />
+                  ) : null;
+                })}
+              </>
+            ) : (
+              <KpiGrid kpis={stats.kpis} label={kpiLabel} />
+            )
+          )}
+
+          {/* Cola de revisión comercial del admin: leads NEW del /pro
+              (más antiguos primero) → entidad leads de /admin/datos
+              precargada por URL. */}
+          {activeRole === "ADMIN" &&
+            (stats?.pendingLeads?.count ?? 0) > 0 && (
+            <section aria-label={t("leadsTitle")} data-tour="admin-leads">
+              <div className="mb-3 flex items-baseline justify-between gap-3">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+                  {t("leadsTitle")}
+                </h3>
+                <p className="text-xs tabular-nums text-ink/50">
+                  {t("leadsSummary", {
+                    count: stats!.pendingLeads!.count,
+                  })}
+                </p>
+              </div>
+              <Card padded={false}>
+                <ul className="flex flex-col divide-y divide-line">
+                  {stats!.pendingLeads!.items.map((l) => (
+                    <li key={l.id}>
+                      <Link
+                        href="/admin/datos?entity=leads&status=NEW"
+                        className="flex min-h-11 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">
+                            {l.name}
+                          </span>
+                          <span className="block truncate text-xs text-ink/50">
+                            {l.email} · {t(`leadsIntent.${l.intent}`)}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-xs tabular-nums text-ink/50">
+                          {dayFmt.format(new Date(l.createdAt))}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                  {stats!.pendingLeads!.count >
+                    stats!.pendingLeads!.items.length && (
+                    <li>
+                      <Link
+                        href="/admin/datos?entity=leads&status=NEW"
+                        className="flex min-h-11 items-center justify-center gap-3 px-4 py-2.5 text-sm font-semibold text-neon transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                      >
+                        {t("leadsSeeAll", {
+                          count: stats!.pendingLeads!.count,
+                        })}
+                      </Link>
+                    </li>
+                  )}
+                </ul>
+              </Card>
+            </section>
           )}
 
           {hero && (

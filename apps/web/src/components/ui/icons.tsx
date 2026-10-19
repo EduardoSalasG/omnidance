@@ -67,6 +67,16 @@ export function RefreshIcon(props: IconProps) {
   );
 }
 
+/** Fecha/hora como metadato (reemplaza la palabra "Actualizado" etc.). */
+export function ClockIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </Svg>
+  );
+}
+
 /** Link externo (WhatsApp, mapas, video) - antes `↗`. */
 export function ArrowUpRightIcon(props: IconProps) {
   return (

@@ -261,12 +261,10 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
   DJ: [HOME_TAB, EVENTS_TAB, DJ_TAB],
   VENUE_MANAGER: [HOME_TAB, VENUE_TAB, EVENTS_TAB, ANALYTICS_TAB],
   SUPPORT: [HOME_TAB, SUPPORT_TAB, EVENTS_TAB],
-  ADMIN: [
-    HOME_TAB,
-    { href: "/admin", key: "admin", icon: icon(ICONS.admin), center: true },
-    { href: "/crm", key: "crm", icon: icon(ICONS.crm) },
-    ANALYTICS_TAB,
-  ],
+  // Admin drawer-only: el tab bar ya no se renderiza en móvil; esta
+  // lista solo alimenta el grupo bare de la sidebar (Inicio) y las
+  // rutas raíz. /admin redirige a /inicio - no es destino.
+  ADMIN: [HOME_TAB, { href: "/crm", key: "crm", icon: icon(ICONS.crm) }, ANALYTICS_TAB],
 };
 
 // Drawer lateral - el resto de los módulos del rol, agrupados por dominio.
@@ -314,6 +312,9 @@ type DrawerGroupSpec = {
 const MOBILE_DRAWER_ONLY: ReadonlySet<AppRole> = new Set([
   "ACADEMY_OWNER",
   "PRODUCER",
+  // Admin: consola densa - en móvil navega solo por el drawer (spec
+  // admin-console-billing-nav); en ≥lg la sidebar lista todo.
+  "ADMIN",
 ]);
 
 // Destinos que el tab bar móvil cubría y el drawer debe reemplazar en
@@ -629,23 +630,15 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
   // Venue: sin datasets de consulta aún - /analitica muestra el estado
   // vacío (noQueries) para su lente.
   VENUE_MANAGER: [ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM])],
+  // Admin por dominio operativo (spec admin-console-billing-nav):
+  // Gestión → Facturación → Comercial → Analítica → Plataforma → Social.
   ADMIN: [
+    // Drawer-only en móvil: Inicio primero (el tab bar ya no existe).
+    MOBILE_HOME_GROUP(),
     {
       labelNs: "admin",
-      labelKey: "title",
+      labelKey: "navGroups.management",
       items: [
-        {
-          href: "/admin/roles",
-          ns: "admin",
-          key: "modules.roles",
-          icon: ICONS.admin,
-        },
-        {
-          href: "/admin/parametros",
-          ns: "admin",
-          key: "modules.params",
-          icon: ICONS.slider,
-        },
         {
           href: "/admin/usuarios",
           ns: "admin",
@@ -653,16 +646,16 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.users,
         },
         {
-          href: "/admin/datos",
+          href: "/admin/roles",
           ns: "admin",
-          key: "modules.datos",
-          icon: ICONS.list,
+          key: "modules.roles",
+          icon: ICONS.admin,
         },
         {
-          href: "/admin/auditoria",
+          href: "/admin/academias",
           ns: "admin",
-          key: "modules.audit",
-          icon: ICONS.list,
+          key: "modules.academias",
+          icon: ICONS.academy,
         },
         {
           href: "/admin/catalogos",
@@ -672,11 +665,89 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
         },
       ],
     },
-    // CRM como sección propia - el tab /crm del admin se deduplica de
-    // la sidebar ≥lg porque su href ya renderiza este grupo.
-    CRM_DRAWER_GROUP,
+    // Facturación: superficie de monetización - páginas dedicadas +
+    // documentos + finanzas (liquidaciones). Documentos va exact: su
+    // prefijo cubre las sub-páginas.
+    {
+      labelNs: "admin",
+      labelKey: "navGroups.billing",
+      items: [
+        {
+          href: "/admin/facturacion/transacciones",
+          ns: "admin",
+          key: "modules.transactions",
+          icon: ICONS.card,
+        },
+        {
+          href: "/admin/facturacion/suscripciones",
+          ns: "admin",
+          key: "modules.subscriptions",
+          icon: ICONS.tag,
+        },
+        {
+          href: "/admin/facturacion",
+          ns: "admin",
+          key: "modules.documents",
+          icon: ICONS.list,
+          exact: true,
+        },
+        {
+          href: "/admin/finanzas",
+          ns: "admin",
+          key: "modules.finanzas",
+          icon: ICONS.slider,
+        },
+      ],
+    },
+    // Comercial: el CRM completo + la difusión por mail de plataforma.
+    // /crm va exact porque /crm/* comparte prefijo.
+    {
+      labelNs: "admin",
+      labelKey: "navGroups.commercial",
+      items: [
+        {
+          href: "/crm",
+          ns: "crm",
+          key: "nav.people",
+          icon: ICONS.crm,
+          exact: true,
+        },
+        {
+          href: "/crm/segmentos",
+          ns: "crm",
+          key: "nav.segments",
+          icon: ICONS.funnel,
+        },
+        {
+          href: "/crm/campanas",
+          ns: "crm",
+          key: "nav.campaigns",
+          icon: ICONS.megaphone,
+        },
+        {
+          href: "/crm/triggers",
+          ns: "crm",
+          key: "nav.triggers",
+          icon: ICONS.zap,
+        },
+        {
+          href: "/admin/campanas",
+          ns: "admin",
+          key: "modules.broadcast",
+          icon: ICONS.megaphone,
+        },
+      ],
+    },
+    // Analítica: consultas por lente + explorador de datos + analítica
+    // de usuario. /analitica exact: el grupo también lista su sub-ruta.
     ANALYTICS_DRAWER_GROUP([
       ANALYTICS_ITEM,
+      {
+        href: "/admin/datos",
+        ns: "admin",
+        key: "modules.datos",
+        icon: ICONS.list,
+      },
       {
         href: "/analitica/usuarios",
         ns: "admin",
@@ -684,6 +755,31 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
         icon: ICONS.users,
       },
     ]),
+    // Plataforma: configuración operativa y observabilidad.
+    {
+      labelNs: "admin",
+      labelKey: "navGroups.platform",
+      items: [
+        {
+          href: "/admin/parametros",
+          ns: "admin",
+          key: "modules.params",
+          icon: ICONS.slider,
+        },
+        {
+          href: "/admin/jobs",
+          ns: "admin",
+          key: "modules.jobs",
+          icon: ICONS.clock,
+        },
+        {
+          href: "/admin/auditoria",
+          ns: "admin",
+          key: "modules.audit",
+          icon: ICONS.list,
+        },
+      ],
+    },
     {
       labelNs: "nav",
       labelKey: "socialSection",

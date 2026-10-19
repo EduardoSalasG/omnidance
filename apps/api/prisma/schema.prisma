@@ -825,6 +825,7 @@ model Academy {
   paymentMethods AcademyPaymentMethod[]
   paymentClaims  PaymentClaim[]
   saleAgreements AcademySaleAgreement[]
+  segmentSnapshots AcademySegmentSnapshot[]
 }
 
 model AcademyInstructor {
@@ -2036,4 +2037,22 @@ model SavedReport {
   updatedAt DateTime @updatedAt
 
   @@index([personId, role])
+}
+
+// Snapshot semanal de la distribución de segmentos de score por academia
+// (spec admin-console-billing-nav): lo escribe el job
+// academy.segment_snapshots (upsert por academyId+weekStart) para la
+// comparativa semana/mes de los cards de /admin/academias.
+model AcademySegmentSnapshot {
+  id        String   @id @default(cuid())
+  academy   Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  academyId String
+  // Lunes 00:00 de la semana CL a la que pertenece el snapshot.
+  weekStart DateTime
+  // Distribución en ese instante: { CORE: n, NEW: n, AT_RISK: n, ... }.
+  segments  Json
+  createdAt DateTime @default(now())
+
+  @@unique([academyId, weekStart])
+  @@index([academyId])
 }

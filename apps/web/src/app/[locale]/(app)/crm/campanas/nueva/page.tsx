@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { SkeletonCard } from "@/components/ui";
 import {
-  ActorPicker,
   CrmGateScreen,
   useCrmContext,
 } from "@/components/crm/crm-context";
@@ -32,7 +31,6 @@ function NuevaCampanaInner() {
 
       {ctx.gate === "ready" && (
         <>
-          <ActorPicker ctx={ctx} />
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
           ) : ctx.proBlocked ? (

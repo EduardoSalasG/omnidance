@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import {
-  ActorPicker,
   CrmGateScreen,
   useCrmContext,
 } from "@/components/crm/crm-context";
@@ -25,7 +24,6 @@ export default function CrmPage() {
 
       {ctx.gate === "ready" && (
         <>
-          <ActorPicker ctx={ctx} />
           {ctx.actor ? (
             ctx.proBlocked ? (
               // El CRM del productor es feature Producer Pro - el API

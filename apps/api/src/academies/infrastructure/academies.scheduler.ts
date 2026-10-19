@@ -4,6 +4,7 @@ import { AcademyMaterializeService } from "./class-series-materialize.service";
 import { AcademyRemindersService } from "./academy-reminders.service";
 import { AcademySurveysService } from "./academy-surveys.service";
 import { ClassRemindersService } from "./class-reminders.service";
+import { AcademySegmentSnapshotsService } from "./academy-segment-snapshots.service";
 
 /**
  * Registro de los jobs diarios de academias (spec
@@ -20,6 +21,7 @@ export class AcademiesScheduler implements OnModuleInit {
     private readonly materialize: AcademyMaterializeService,
     private readonly surveys: AcademySurveysService,
     private readonly classReminders: ClassRemindersService,
+    private readonly segSnapshots: AcademySegmentSnapshotsService,
     @Inject(JOB_REGISTRY) private readonly registry: JobRegistry,
   ) {}
 
@@ -54,6 +56,18 @@ export class AcademiesScheduler implements OnModuleInit {
         "Fan-out del día 1: notifica a cada alumno las series que cursó el mes anterior y aún no evaluó.",
       defaultCron: "45 4 1 * *",
       handler: async () => this.surveys.runMonthly(),
+    });
+    // Snapshot semanal de segmentos por academia (spec
+    // admin-console-billing-nav): upsert por (academia, lunes CL) tras el
+    // recompute de scores - alimenta la comparativa semanal/mensual de
+    // /admin/academias.
+    this.registry.register({
+      key: "academies.segment_snapshots",
+      label: "Snapshot semanal de segmentos por academia",
+      description:
+        "Distribución de segmentos de score por academia, upsert por semana CL para la comparativa de /admin/academias.",
+      defaultCron: "15 6 * * *",
+      handler: async () => this.segSnapshots.runDaily(),
     });
     // Recordatorios pre-clase (spec academies/class-series): a los 30 y
     // 10 minutos del inicio real avisa al plantel y a los alumnos BOOKED.

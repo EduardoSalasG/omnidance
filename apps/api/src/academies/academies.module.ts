@@ -15,6 +15,7 @@ import { AcademyImportService } from "./infrastructure/academy-import.service";
 import { AcademyRemindersService } from "./infrastructure/academy-reminders.service";
 import { AcademyStaffController } from "./infrastructure/academy-staff.controller";
 import { AcademiesScheduler } from "./infrastructure/academies.scheduler";
+import { AcademySegmentSnapshotsService } from "./infrastructure/academy-segment-snapshots.service";
 import { AcademySurveysService } from "./infrastructure/academy-surveys.service";
 import { ClassRemindersService } from "./infrastructure/class-reminders.service";
 import { AcademyMaterializeService } from "./infrastructure/class-series-materialize.service";
@@ -58,6 +59,7 @@ import { VideosController } from "./infrastructure/videos.controller";
     AcademyMaterializeService,
     AcademyRemindersService,
     AcademiesScheduler,
+    AcademySegmentSnapshotsService,
     AcademySurveysService,
     ClassRemindersService,
   ],

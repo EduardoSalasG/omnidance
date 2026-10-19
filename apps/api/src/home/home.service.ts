@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
+import { clMonthStart } from "../common/cl-time";
 import {
   CLASS_CARD_SELECT,
   classCardItem,
@@ -89,6 +90,18 @@ type HomeStats = {
       "tus próximas clases" del home Academia. */
   myClasses?: ClassCardStats[];
   needsAcademy?: boolean;
+  /** Cola de leads NEW para la lente ADMIN (revisión comercial). */
+  pendingLeads?: {
+    count: number;
+    items: {
+      id: string;
+      name: string;
+      email: string;
+      intent: string;
+      roles: string[];
+      createdAt: Date;
+    }[];
+  };
 };
 
 const DAY = 86_400_000;
@@ -491,7 +504,8 @@ export class HomeService {
   }
 
   private async adminStats(): Promise<HomeStats> {
-    const [pendingRoles, users, activeEvents, pendingPayouts] =
+    const monthStart = clMonthStart(new Date());
+    const [pendingRoles, users, activeEvents, pendingPayouts, leadsNew, pendingLeadItems, monthPayments, subsByKind] =
       await Promise.all([
         this.prisma.personRole.count({ where: { status: "PENDING" } }),
         this.prisma.person.count(),
@@ -502,14 +516,72 @@ export class HomeService {
           },
         }),
         this.prisma.payout.count({ where: { status: "PENDING" } }),
+        this.prisma.lead.count({ where: { status: "NEW" } }),
+        this.prisma.lead.findMany({
+          where: { status: "NEW" },
+          orderBy: { createdAt: "asc" },
+          take: 6,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            intent: true,
+            roles: true,
+            createdAt: true,
+          },
+        }),
+        this.prisma.payment.findMany({
+          where: { status: "PAID", createdAt: { gte: monthStart } },
+          select: {
+            amount: true,
+            orderType: true,
+            platformFeeNetClp: true,
+            platformFeeVatClp: true,
+          },
+        }),
+        // Suscripciones vigentes por producto (ACADEMY = SaaS academia,
+        // PRODUCER = Producer Pro). CANCEL_PENDING sigue siendo vigente
+        // hasta el fin del período ya pagado.
+        this.prisma.platformSubscription.groupBy({
+          by: ["kind"],
+          where: { status: { in: ["ACTIVE", "CANCEL_PENDING"] } },
+          _count: true,
+        }),
       ]);
+    // Misma semántica que /admin/finance/summary: ingreso plataforma =
+    // fee neto + IVA de transacciones; el cobro PLATFORM_SUB es ingreso
+    // completo (no lleva platformFee - su monto ES el ingreso).
+    let txRevenueMonth = 0;
+    let subRevenueMonth = 0;
+    for (const p of monthPayments) {
+      if (p.orderType === "PLATFORM_SUB") {
+        subRevenueMonth += p.amount;
+      } else {
+        txRevenueMonth +=
+          (p.platformFeeNetClp ?? 0) + (p.platformFeeVatClp ?? 0);
+      }
+    }
     return {
       kpis: [
         { key: "pendingRoles", value: pendingRoles },
+        { key: "leadsNew", value: leadsNew },
+        { key: "txRevenueMonth", value: txRevenueMonth, format: "clp" },
+        { key: "subRevenueMonth", value: subRevenueMonth, format: "clp" },
+        {
+          key: "subsAcademy",
+          value:
+            subsByKind.find((g) => g.kind === "ACADEMY")?._count ?? 0,
+        },
+        {
+          key: "subsProducer",
+          value:
+            subsByKind.find((g) => g.kind === "PRODUCER")?._count ?? 0,
+        },
         { key: "users", value: users },
         { key: "activeEvents", value: activeEvents },
         { key: "pendingPayouts", value: pendingPayouts },
       ],
+      pendingLeads: { count: leadsNew, items: pendingLeadItems },
     };
   }
 

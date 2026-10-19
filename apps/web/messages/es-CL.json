@@ -57,7 +57,12 @@
       "mySlots": "Mis horarios",
       "upcomingAtVenue": "Eventos próximos",
       "upcomingGigs": "Gigs próximos",
-      "upcomingShifts": "Turnos próximos"
+      "upcomingShifts": "Turnos próximos",
+      "leadsNew": "Leads por revisar",
+      "txRevenueMonth": "Ingreso transacciones (mes)",
+      "subRevenueMonth": "Ingreso suscripciones (mes)",
+      "subsAcademy": "Academias",
+      "subsProducer": "Productores"
     },
     "hasTicketTonight": "Tienes entrada. Muestra tu QR en puerta",
     "buyPresale": "Comprar preventa",
@@ -83,7 +88,20 @@
     "sessionExpiredDesc": "Entra de nuevo para ver qué hay esta noche.",
     "serverError": "No pudimos cargar tu inicio",
     "serverErrorDesc": "El servidor no respondió o se cortó la conexión. Inténtalo de nuevo.",
-    "myEntries": "Tus entradas"
+    "myEntries": "Tus entradas",
+    "leadsTitle": "Leads por revisar",
+    "leadsSummary": "{count, plural, one {# pendiente} other {# pendientes}}",
+    "leadsSeeAll": "Ver todos ({count})",
+    "leadsIntent": {
+      "CONTACT": "quiere contacto",
+      "DEMO": "pide demo"
+    },
+    "cats": {
+      "ops": "Operación",
+      "billing": "Facturación",
+      "subs": "Suscripciones activas",
+      "platform": "Plataforma"
+    }
   },
   "nav": {
     "main": "Navegación principal",

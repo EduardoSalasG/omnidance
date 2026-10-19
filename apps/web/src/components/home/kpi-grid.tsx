@@ -18,7 +18,11 @@ export type Kpi = { key: string; value: number; format?: "clp" };
 
 // KPIs que representan trabajo pendiente - se destacan con borde de
 // acento para que el dashboard "grite" lo accionable.
-const ATTENTION_KEYS = new Set(["pendingRoles", "pendingPayouts"]);
+const ATTENTION_KEYS = new Set([
+  "pendingRoles",
+  "pendingPayouts",
+  "leadsNew",
+]);
 
 export function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
   const locale = useLocale();

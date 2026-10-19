@@ -6,8 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { Button, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
-import type { ActorType, CrmActor } from "./types";
-import { actorKey } from "./types";
+import type { CrmActor } from "./types";
 
 // Roles con permiso crm.manage (seed-common ROLE_GRANTS) - ADMIN pasa por
 // isSuperuser. Espejo client-side del RolesGuard; el backend valida igual.
@@ -20,27 +19,22 @@ type CrmContextValue = {
   boot: () => Promise<void>;
   actors: CrmActor[];
   actor: CrmActor | null;
-  actorSel: string;
-  setActorSel: (v: string) => void;
-  isAdmin: boolean;
-  /** El actor seleccionado es el propio CRM del productor y no tiene
+  /** El actor resuelto es el propio CRM del productor y no tiene
       Pro efectivo - espejo del gateo del API (assertActorAccess →
       assertProducerPro solo cuando actorId === caller.id). Las
       páginas renderizan el paywall en vez del contenido. */
   proBlocked: boolean;
-  manualType: ActorType;
-  setManualType: (v: ActorType) => void;
-  manualId: string;
-  setManualId: (v: string) => void;
-  applyManual: () => void;
 };
 
 /**
- * Resuelve el actor CRM del usuario:
+ * Resuelve el actor CRM del usuario (sin selector - siempre es el de la
+ * sesión):
  * - PRODUCER → su propio CRM (actorId = personId).
- * - ACADEMY_OWNER → academias donde es owner (GET /academies/mine filtrado;
- *   assertActorAccess solo acepta ownerId, no instructores).
- * - ADMIN → además puede cargar cualquier actor a mano ("manual").
+ * - ACADEMY_OWNER → la academia seleccionada en su consola
+ *   (localStorage omnidance:academy-id; fallback: la primera donde es
+ *   owner - assertActorAccess solo acepta ownerId, no instructores).
+ * - Con ambos roles gana la academia seleccionada si existe; si no, el
+ *   primer actor disponible.
  */
 export function useCrmContext(): CrmContextValue {
   const t = useTranslations("crm");
@@ -55,7 +49,6 @@ export function useCrmContext(): CrmContextValue {
     refresh: refreshMe,
   } = useMe();
   const meId = me?.id ?? "";
-  const isAdmin = me?.roles.includes("ADMIN") ?? false;
   const effectivePro = me?.effectivePro ?? null;
 
   const [myAcademies, setMyAcademies] = useState<
@@ -126,18 +119,21 @@ export function useCrmContext(): CrmContextValue {
     return list;
   }, [me, myAcademies, t]);
 
-  const [actorSel, setActorSel] = useState("");
-  const [manual, setManual] = useState<CrmActor | null>(null);
-  const [manualType, setManualType] = useState<ActorType>("PRODUCER");
-  const [manualId, setManualId] = useState("");
-
-  // Actor por defecto: el primero disponible; ADMIN sin actores cae
-  // en la entrada manual.
-  useEffect(() => {
-    if (gate === "ready" && actorSel === "") {
-      setActorSel(actors.length > 0 ? actorKey(actors[0]) : isAdmin ? "manual" : "");
+  // Actor automático: la academia seleccionada en la consola del owner
+  // (misma key que AcademyGate/AcademyKpiStrip); si no, el primero.
+  const actor = useMemo<CrmActor | null>(() => {
+    let stored: string | null = null;
+    try {
+      stored = window.localStorage.getItem("omnidance:academy-id");
+    } catch {
+      // Sin storage (modo privado) - cae al primer actor.
     }
-  }, [gate, actors, actorSel, isAdmin]);
+    return (
+      actors.find(
+        (a) => a.actorType === "ACADEMY" && a.actorId === stored,
+      ) ?? actors[0] ?? null
+    );
+  }, [actors]);
 
   const boot = useCallback(async () => {
     setAcademiesError(false);
@@ -145,21 +141,6 @@ export function useCrmContext(): CrmContextValue {
     setAcademiesNonce((n) => n + 1);
     await refreshMe();
   }, [refreshMe]);
-
-  function applyManual() {
-    const id = manualId.trim();
-    if (!id) return;
-    setManual({
-      actorType: manualType,
-      actorId: id,
-      label: `${manualType} · ${id.slice(0, 8)}`,
-    });
-  }
-
-  const actor =
-    actorSel === "manual"
-      ? manual
-      : (actors.find((a) => actorKey(a) === actorSel) ?? null);
 
   // El CRM del productor propio es feature Pro (S5): el API responde
   // 403 pro.required en todos sus endpoints - el front lo anticipa.
@@ -173,21 +154,9 @@ export function useCrmContext(): CrmContextValue {
     boot,
     actors,
     actor,
-    actorSel,
-    setActorSel,
-    isAdmin,
     proBlocked,
-    manualType,
-    setManualType,
-    manualId,
-    setManualId,
-    applyManual,
   };
 }
-
-const inputCls =
-  "min-h-11 w-full rounded-lg border border-line bg-canvas px-3 text-sm " +
-  "text-ink focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50";
 
 /** Estados previos al contenido: carga, sin sesión, sin permiso, error. */
 export function CrmGateScreen({
@@ -233,84 +202,6 @@ export function CrmGateScreen({
   }
 
   return null;
-}
-
-/** Selector de actor CRM: los propios + entrada manual para ADMIN.
- *  Con un solo actor propio (y sin ser admin) el select no aporta -
- *  se muestra el actor como contexto, no como control. */
-export function ActorPicker({ ctx }: { ctx: CrmContextValue }) {
-  const t = useTranslations("crm");
-
-  if (ctx.actors.length === 0 && !ctx.isAdmin) {
-    return <p className="text-ink/60">{t("noActor")}</p>;
-  }
-
-  if (ctx.actors.length === 1 && !ctx.isAdmin) {
-    return (
-      <p className="text-sm text-ink/70">
-        {t("actor.label")}:{" "}
-        <span className="font-medium text-ink">{ctx.actors[0].label}</span>
-      </p>
-    );
-  }
-
-  return (
-    <section
-      className="flex flex-col gap-3"
-      aria-label={t("actor.label")}
-      data-tour="crm-actor"
-    >
-      <label className="flex flex-col gap-2">
-        <span className="text-sm text-ink/70">{t("actor.label")}</span>
-        <select
-          value={ctx.actorSel}
-          onChange={(e) => ctx.setActorSel(e.target.value)}
-          className={inputCls}
-        >
-          {ctx.actors.map((a) => (
-            <option key={actorKey(a)} value={actorKey(a)}>
-              {a.label}
-            </option>
-          ))}
-          {ctx.isAdmin && <option value="manual">{t("actor.manual")}</option>}
-        </select>
-      </label>
-
-      {ctx.actorSel === "manual" && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <label className="flex flex-1 flex-col gap-2">
-            <span className="text-sm text-ink/70">{t("actor.type")}</span>
-            <select
-              value={ctx.manualType}
-              onChange={(e) => ctx.setManualType(e.target.value as ActorType)}
-              className={inputCls}
-            >
-              <option value="PRODUCER">{t("actor.producer")}</option>
-              <option value="ACADEMY">{t("actor.academy")}</option>
-            </select>
-          </label>
-          <label className="flex flex-[2] flex-col gap-2">
-            <span className="text-sm text-ink/70">{t("actor.id")}</span>
-            <input
-              type="text"
-              value={ctx.manualId}
-              onChange={(e) => ctx.setManualId(e.target.value)}
-              className={inputCls}
-              autoComplete="off"
-            />
-          </label>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={!ctx.manualId.trim()}
-            onClick={ctx.applyManual}
-          >
-            {t("actor.apply")}
-          </Button>
-        </div>
-      )}
-    </section>
-  );
 }
 
 // La navegación entre secciones del CRM vive en el drawer/sidebar
