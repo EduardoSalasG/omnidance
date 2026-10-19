@@ -792,6 +792,7 @@ model Academy {
   defaultQuorum Int? // quórum por defecto de las clases (null → 20)
   description String? // presentación pública de la academia
   address   String?
+  addressExtra String? // detalle de ubicación (piso, oficina, dpto)
   lat       Float?
   lng       Float?
   instagram String? // handle público de contacto (sin @)

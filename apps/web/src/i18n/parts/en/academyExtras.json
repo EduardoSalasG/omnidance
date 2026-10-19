@@ -78,7 +78,14 @@
       "invalidCoords": "Invalid coordinates",
       "forbidden": "You don't have access to this section.",
       "photo": "Main photo",
-      "photoPlaceholder": "https://… (image of your academy)"
+      "photoPlaceholder": "https://… (image of your academy)",
+      "addressExtra": "Additional info",
+      "addressExtraPlaceholder": "Floor 4, office 405",
+      "locate": "Locate on map",
+      "mapHint": "Drag the pin if the location is off.",
+      "geocodeError": "We couldn't find that address. Check street, number and commune.",
+      "photoUpload": "Upload photo",
+      "photoUploading": "Uploading…"
     },
     "studentProfile": {
       "plan": "Plan",

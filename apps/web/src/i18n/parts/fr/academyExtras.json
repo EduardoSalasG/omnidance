@@ -78,7 +78,14 @@
       "invalidCoords": "Coordonnées invalides",
       "forbidden": "Tu n'as pas accès à cette section.",
       "photo": "Photo principale",
-      "photoPlaceholder": "https://… (image de ton académie)"
+      "photoPlaceholder": "https://… (image de ton académie)",
+      "addressExtra": "Info complémentaire",
+      "addressExtraPlaceholder": "Étage 4, bureau 405",
+      "locate": "Localiser sur la carte",
+      "mapHint": "Déplace le repère si la position est décalée.",
+      "geocodeError": "Adresse introuvable. Vérifie la rue, le numéro et la commune.",
+      "photoUpload": "Téléverser la photo",
+      "photoUploading": "Téléversement…"
     },
     "studentProfile": {
       "plan": "Plan",

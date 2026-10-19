@@ -5,14 +5,20 @@ import {
   ConflictException,
   Controller,
   Get,
+  Inject,
   NotFoundException,
   Param,
   Patch,
   Post,
   Query,
   Req,
+  Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import type { Response } from "express";
 import {
   ArrayMaxSize,
   IsArray,
@@ -53,6 +59,11 @@ import {
 } from "./class-card-projection";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
+import {
+  mimeForKey,
+  STORAGE,
+  type FileStorage,
+} from "../../storage/storage.service";
 import { dayRange, pageParams, whitelist } from "./list-filters";
 import { agreementWrite, PAY_TYPES } from "./instructor-agreement";
 import { ApiQuery } from "@nestjs/swagger";
@@ -209,6 +220,12 @@ class UpdateAcademySettingsDto {
   @MaxLength(200)
   address?: string | null;
 
+  /** Detalle de ubicación (piso, oficina, dpto) - spec approval-gate. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  addressExtra?: string | null;
+
   @IsOptional()
   @IsNumber()
   @Min(-90)
@@ -353,6 +370,7 @@ export class AcademiesController {
     private readonly access: AcademyAccess,
     private readonly subscriptions: SubscriptionsService,
     private readonly params: ParamsService,
+    @Inject(STORAGE) private readonly storage: FileStorage,
   ) {}
 
   /**
@@ -881,6 +899,7 @@ export class AcademiesController {
       defaultQuorum: dto.defaultQuorum,
       description: cleanText(dto.description),
       address: cleanText(dto.address),
+      addressExtra: cleanText(dto.addressExtra),
       lat: dto.lat,
       lng: dto.lng,
       instagram: cleanInstagram(dto.instagram),
@@ -890,6 +909,64 @@ export class AcademiesController {
       privateLessonPrice: dto.privateLessonPrice,
     };
     return this.prisma.academy.update({ where: { id }, data });
+  }
+
+  /**
+   * Upload de la foto principal alojada por nosotros (spec
+   * academy-approval-gate): el owner sube el archivo, se guarda en
+   * storage local y `photoUrl` queda apuntando al stream público
+   * /api/academies/photos/<key> (el front lo sirve por su proxy /api).
+   */
+  @Post(":id/photo")
+  @UseGuards(SessionGuard)
+  @UseInterceptors(
+    FileInterceptor("photo", { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  async uploadPhoto(
+    @Param("id") id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapabilityWrite(id, req.person!, "profile");
+    if (!file) throw new BadRequestException("falta el archivo photo");
+    let key: string;
+    try {
+      key = await this.storage.save(
+        {
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          buffer: file.buffer,
+          size: file.size,
+        },
+        "academy-photos",
+      );
+    } catch {
+      throw new BadRequestException("tipo de archivo no soportado");
+    }
+    const photoUrl = `/api/academies/photos/${key}`;
+    await this.prisma.academy.update({
+      where: { id },
+      data: { photoUrl },
+    });
+    return { photoUrl };
+  }
+
+  /**
+   * Stream público de la foto alojada (la ficha es pública; el storageKey
+   * es uuid — resolve() de LocalDiskStorage bloquea traversal).
+   */
+  @Get("photos/:key")
+  async servePhoto(@Param("key") key: string, @Res() res: Response) {
+    const full = `academy-photos/${key}`;
+    let buffer: Buffer;
+    try {
+      buffer = await this.storage.read(full);
+    } catch {
+      throw new NotFoundException("foto no encontrada");
+    }
+    res.setHeader("content-type", mimeForKey(full));
+    res.setHeader("cache-control", "public, max-age=86400, immutable");
+    res.send(buffer);
   }
 
   /**
