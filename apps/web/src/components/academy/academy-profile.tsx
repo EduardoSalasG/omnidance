@@ -28,6 +28,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
   const [instagram, setInstagram] = useState(academy.instagram ?? "");
   const [whatsapp, setWhatsapp] = useState(academy.whatsapp ?? "");
   const [website, setWebsite] = useState(academy.website ?? "");
+  const [photoUrl, setPhotoUrl] = useState(academy.photoUrl ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -82,6 +83,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
           instagram,
           whatsapp,
           website,
+          photoUrl,
         }),
       });
       if (!res.ok) {
@@ -183,6 +185,18 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
             placeholder={t("websitePlaceholder")}
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">{t("photo")}</span>
+          <input
+            type="url"
+            inputMode="url"
+            autoCapitalize="none"
+            className={inputCls}
+            value={photoUrl}
+            onChange={(e) => setPhotoUrl(e.target.value)}
+            placeholder={t("photoPlaceholder")}
           />
         </label>
         {error && (

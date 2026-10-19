@@ -42,6 +42,11 @@ import {
 } from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
 import {
+  evaluateAcademyChecks,
+  isAcademyVisible,
+  promoteCompletedAcademies,
+} from "./academy-review";
+import {
   CLASS_CARD_SELECT,
   classCardItem,
   classEnded,
@@ -234,6 +239,12 @@ class UpdateAcademySettingsDto {
   @MaxLength(300)
   website?: string | null;
 
+  /** URL externa de la foto principal (spec academy-approval-gate). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  photoUrl?: string | null;
+
   /** Precio único (CLP) de la clase particular; null desactiva la venta. */
   @IsOptional()
   @IsInt()
@@ -319,6 +330,22 @@ function cleanWebsite(
   }
 }
 
+/** URL externa de la foto (nunca hosteada) - misma regla que website. */
+function cleanPhotoUrl(
+  v: string | null | undefined,
+): string | null | undefined {
+  if (v === undefined) return undefined;
+  const t = (v ?? "").trim();
+  if (t === "") return null;
+  try {
+    const url = new URL(/^https?:\/\//i.test(t) ? t : `https://${t}`);
+    if (!url.hostname.includes(".")) throw new Error("no host");
+    return url.toString();
+  } catch {
+    throw new BadRequestException("photoUrl inválido");
+  }
+}
+
 @Controller("academies")
 export class AcademiesController {
   constructor(
@@ -346,6 +373,9 @@ export class AcademiesController {
       where: {
         active: true,
         billingBlockedAt: null,
+        // REJECTED nunca sale al público; PENDING se evalúa abajo
+        // (spec academy-approval-gate).
+        reviewStatus: { not: "REJECTED" },
         // Solo academias de owners validados (APPROVED) salen al
         // público - ownerId es FK escalar, resuelto por subquery.
         ownerId: { in: await this.approvedOwnerIds() },
@@ -358,6 +388,7 @@ export class AcademiesController {
         address: true,
         lat: true,
         lng: true,
+        reviewStatus: true,
         instructors: { select: { id: true, personId: true } },
         classSeries: {
           where: { active: true },
@@ -367,9 +398,13 @@ export class AcademiesController {
         },
       },
     });
+    // Visibilidad por entidad: PENDING solo pasa con checklist completo
+    // (y se auto-promueve a APPROVED en el mismo request).
+    const visible = await this.visibleAcademies(academies);
+
     const instructorIds = [
       ...new Set(
-        academies.flatMap((a) => a.instructors.map((i) => i.personId)),
+        visible.flatMap((a) => a.instructors.map((i) => i.personId)),
       ),
     ];
     const [people, myEnrollments] = await Promise.all([
@@ -384,7 +419,7 @@ export class AcademiesController {
     ]);
     const byId = new Map(people.map((p) => [p.id, p]));
     const enrolledIds = new Set(myEnrollments.map((e) => e.academyId));
-    return academies.map((a) => {
+    return visible.map((a) => {
       // Estilos que imparte = estilos de sus series activas (dedup).
       const styles = new Map<string, { id: string; name: string; genre: string | null }>();
       for (const s of a.classSeries) {
@@ -422,6 +457,7 @@ export class AcademiesController {
       where: {
         active: true,
         billingBlockedAt: null,
+        reviewStatus: { not: "REJECTED" },
         // Solo academias de owners validados (APPROVED) salen al
         // público - ownerId es FK escalar, resuelto por subquery.
         ownerId: { in: await this.approvedOwnerIds() },
@@ -430,6 +466,7 @@ export class AcademiesController {
       select: {
         id: true,
         name: true,
+        reviewStatus: true,
         classSeries: {
           where: { active: true },
           select: {
@@ -438,7 +475,8 @@ export class AcademiesController {
         },
       },
     });
-    return academies.map((a) => {
+    const visible = await this.visibleAcademies(academies);
+    return visible.map((a) => {
       const styles = new Map<string, { id: string; name: string }>();
       for (const s of a.classSeries) {
         if (s.style && !styles.has(s.style.id)) styles.set(s.style.id, s.style);
@@ -463,11 +501,40 @@ export class AcademiesController {
     return rows.map((r) => r.personId);
   }
 
+  /**
+   * Filtro de visibilidad por entidad (spec academy-approval-gate): las
+   * academias APPROVED pasan directo; las PENDING se evalúan contra el
+   * checklist — las que lo completan se auto-promueven a APPROVED y
+   * pasan; el resto queda fuera. REJECTED ya se excluyó en SQL.
+   */
+  private async visibleAcademies<T extends { id: string; reviewStatus: string }>(
+    academies: T[],
+  ): Promise<T[]> {
+    const pendingIds = academies
+      .filter((a) => a.reviewStatus === "PENDING")
+      .map((a) => a.id);
+    const checks = await evaluateAcademyChecks(this.prisma, pendingIds);
+    const promote = pendingIds.filter((id) => {
+      const c = checks.get(id);
+      return c ? isAcademyVisible("PENDING", c) : false;
+    });
+    if (promote.length > 0) {
+      await this.prisma.academy.updateMany({
+        where: { id: { in: promote }, reviewStatus: "PENDING" },
+        data: { reviewStatus: "APPROVED" },
+      });
+    }
+    const promoted = new Set(promote);
+    return academies.filter(
+      (a) => a.reviewStatus === "APPROVED" || promoted.has(a.id),
+    );
+  }
+
   @Get("mine")
   @UseGuards(SessionGuard)
-  mine(@Req() req: Request) {
+  async mine(@Req() req: Request) {
     const personId = req.person!.id;
-    return this.prisma.academy.findMany({
+    const academies = await this.prisma.academy.findMany({
       where: {
         OR: [
           { ownerId: personId },
@@ -479,6 +546,16 @@ export class AcademiesController {
       },
       orderBy: { createdAt: "asc" },
     });
+    // Checklist de publicación (spec academy-approval-gate): la consola
+    // muestra al owner qué le falta para ser visible.
+    const checks = await evaluateAcademyChecks(
+      this.prisma,
+      academies.map((a) => a.id),
+    );
+    return academies.map((a) => ({
+      ...a,
+      reviewChecks: checks.get(a.id) ?? null,
+    }));
   }
 
   /**
@@ -578,9 +655,10 @@ export class AcademiesController {
   @UseGuards(SessionGuard, RolesGuard)
   @RequirePermissions("academies.create")
   async create(@Body() dto: CreateAcademyDto, @Req() req: Request) {
-    // Owners PENDING (registro por landing) crean aquí: su academia
-    // queda fuera del directorio hasta que el rol pase a APPROVED
-    // (spec role-registration-pipeline).
+    // Toda academia nace PENDING (spec academy-approval-gate): sale al
+    // público cuando completa el checklist (auto) o por override admin.
+    // Si el owner además está PENDING (registro por landing), el filtro
+    // ownerApproved del checklist la retiene igual.
     // Trial SaaS (spec academy-saas-billing): `academy_billing.trial_days`
     // días gratis desde la creación; las academias existentes recibieron
     // la grace de lanzamiento por backfill (migration_grace_days).
@@ -608,7 +686,12 @@ export class AcademiesController {
       this.prisma.membershipPlan.count({ where: { academyId: id } }),
       this.prisma.classSlot.count({ where: { academyId: id } }),
     ]);
-    return { ...academy, stats: { activeStudents, plansCount, slotsCount } };
+    const checks = await evaluateAcademyChecks(this.prisma, [id]);
+    return {
+      ...academy,
+      reviewChecks: checks.get(id) ?? null,
+      stats: { activeStudents, plansCount, slotsCount },
+    };
   }
 
   /**
@@ -636,6 +719,8 @@ export class AcademiesController {
         instagram: true,
         whatsapp: true,
         website: true,
+        photoUrl: true,
+        reviewStatus: true,
         privateLessonPrice: true,
         // Mora SaaS (S3): la ficha pública sigue respondiendo pero el
         // flag `billingBlocked` le dice a la UI que la muestre como "no
@@ -665,6 +750,27 @@ export class AcademiesController {
       },
     });
     if (!academy) throw new NotFoundException("academia no encontrada");
+
+    // Gate de visibilidad (spec academy-approval-gate): la ficha pública
+    // solo responde para academias visibles; el equipo la ve siempre.
+    const checks = await evaluateAcademyChecks(this.prisma, [id]);
+    const visible =
+      academy.reviewStatus === "APPROVED" ||
+      (academy.reviewStatus === "PENDING" &&
+        checks.get(id) !== undefined &&
+        isAcademyVisible("PENDING", checks.get(id)!));
+    if (!visible) {
+      try {
+        await this.access.requireManage(id, req.person!);
+      } catch {
+        throw new NotFoundException("academia no encontrada");
+      }
+    } else if (academy.reviewStatus === "PENDING") {
+      await this.prisma.academy.updateMany({
+        where: { id, reviewStatus: "PENDING" },
+        data: { reviewStatus: "APPROVED" },
+      });
+    }
 
     const instructorIds = academy.instructors.map((i) => i.personId);
     const [people, myEnrollment, mySubscription, upcoming] =
@@ -780,6 +886,7 @@ export class AcademiesController {
       instagram: cleanInstagram(dto.instagram),
       whatsapp: cleanWhatsapp(dto.whatsapp),
       website: cleanWebsite(dto.website),
+      photoUrl: cleanPhotoUrl(dto.photoUrl),
       privateLessonPrice: dto.privateLessonPrice,
     };
     return this.prisma.academy.update({ where: { id }, data });

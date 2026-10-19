@@ -27,6 +27,10 @@ import {
 } from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
 import {
+  evaluateAcademyChecks,
+  isAcademyVisible,
+} from "./academy-review";
+import {
   CLASS_CARD_SELECT,
   classCardItem,
   classEnded,
@@ -337,7 +341,13 @@ export class ClassesController {
               : {}),
           // Academias bloqueadas por mora (S3) fuera de explorar -
           // también bajo scope=enrolled: sus clases no son reservables.
-          academy: { active: true, billingBlockedAt: null },
+          // REJECTED (spec academy-approval-gate) tampoco; PENDING se
+          // evalúa abajo contra el checklist.
+          academy: {
+            active: true,
+            billingBlockedAt: null,
+            reviewStatus: { not: "REJECTED" },
+          },
           series: {
             active: true,
             ...(styleId ? { styleId } : {}),
@@ -350,11 +360,42 @@ export class ClassesController {
       select: CLASS_CARD_SELECT,
     });
 
+    // Gate de visibilidad por academia (spec academy-approval-gate):
+    // academias PENDING con checklist completo se auto-promueven y sus
+    // clases pasan; las incompletas se caen del listado.
+    const pendingAcademyIds = [
+      ...new Set(
+        classes
+          .filter((c) => c.slot.academy.reviewStatus === "PENDING")
+          .map((c) => c.slot.academy.id),
+      ),
+    ];
+    const reviewChecks = await evaluateAcademyChecks(
+      this.prisma,
+      pendingAcademyIds,
+    );
+    const promoteIds = pendingAcademyIds.filter((id) => {
+      const c = reviewChecks.get(id);
+      return c ? isAcademyVisible("PENDING", c) : false;
+    });
+    if (promoteIds.length > 0) {
+      await this.prisma.academy.updateMany({
+        where: { id: { in: promoteIds }, reviewStatus: "PENDING" },
+        data: { reviewStatus: "APPROVED" },
+      });
+    }
+    const promoted = new Set(promoteIds);
+    const visible = classes.filter(
+      (c) =>
+        c.slot.academy.reviewStatus === "APPROVED" ||
+        promoted.has(c.slot.academy.id),
+    );
+
     const weekdayFilter =
       weekday !== undefined && weekday !== "" ? Number(weekday) : null;
-    const instructorName = await this.instructorNames(classes);
+    const instructorName = await this.instructorNames(visible);
 
-    return classes
+    return visible
       .filter((c) => weekdayFilter === null || c.slot.weekday === weekdayFilter)
       .map((c) => classCardItem(c, me, enrolledIds, instructorName));
   }

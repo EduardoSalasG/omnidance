@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Card } from "@/components/ui";
 import { AcademyKpiCards } from "./academy-kpi-strip";
+import { AcademyVisibilityCard } from "./academy-visibility-card";
 import {
   birthdayFmt,
   planDateFmt,
@@ -161,6 +162,13 @@ export function AcademyDashboard({
           {fullDayFmt(locale).format(new Date())}
         </p>
       </header>
+
+      {/* Estado de publicación (spec academy-approval-gate): visible al
+          owner hasta que la academia completa el checklist o es aprobada. */}
+      <AcademyVisibilityCard
+        reviewStatus={academy.reviewStatus}
+        reviewChecks={academy.reviewChecks}
+      />
 
       {/* KPIs del mes (spec consola owner): alumnos activos con plan
           vigente, planes comprables, clases/sem, asistencia/clase,

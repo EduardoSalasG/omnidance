@@ -797,6 +797,11 @@ model Academy {
   instagram String? // handle público de contacto (sin @)
   whatsapp  String? // teléfono de contacto para wa.me (E.164 sin "+")
   website   String? // URL pública del sitio (normalizada a https://…)
+  photoUrl  String? // imagen principal de la ficha (URL externa - nunca hosteada)
+  // Control de calidad por entidad (spec academy-approval-gate): la
+  // academia solo es pública con checklist completo (auto) u override
+  // admin. REJECTED la oculta aunque el checklist pase.
+  reviewStatus RoleStatus @default(PENDING)
   // Precio único (CLP) de la clase particular vendida como producto -
   // null = la academia no vende particulares. El owner asigna fecha e
   // instructor post-compra (spec private-lesson-product).
