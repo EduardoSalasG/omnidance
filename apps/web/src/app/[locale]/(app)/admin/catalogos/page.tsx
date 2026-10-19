@@ -7,13 +7,12 @@ import {
   Badge,
   Button,
   Card,
-  ConfirmSheet,
   RefreshIcon,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
-import { readError } from "@/components/academy/shared";
+import { Link } from "@/i18n/navigation";
 
 // Union de los tres catálogos: Style (genre), ClassLevel (order),
 // ClassType (solo name). El campo extra se controla con `field`.
@@ -86,17 +85,11 @@ function CatalogSection({
 }) {
   const t = useTranslations("adminCatalogs");
   const tc = useTranslations("common");
-  // No hay clave "edit" en adminCatalogs ni common - se reutiliza la de
-  // academySeries ("Editar").
-  const ts = useTranslations("academySeries");
 
   const [items, setItems] = useState<Item[] | null>(null);
   const [loadError, setLoadError] = useState(false);
 
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // Confirmación destructiva compartida (reemplaza window.confirm).
-  const [pendingItem, setPendingItem] = useState<Item | null>(null);
+
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -115,31 +108,6 @@ function CatalogSection({
   useEffect(() => {
     void load();
   }, [load]);
-
-  // DELETE rechaza con 409 cuando el valor está referenciado - el
-  // message del backend lo explica; fallback a inUse.
-  async function remove(item: Item): Promise<void> {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await apiFetch(`${endpoint}/${item.id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        setPendingItem(null);
-        const msg = await readError(res);
-        setError(msg ?? (res.status === 409 ? t("inUse") : t("error")));
-        return;
-      }
-      setPendingItem(null);
-      await load();
-    } catch {
-      setPendingItem(null);
-      setError(t("error"));
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <section aria-label={title} className="flex flex-col gap-3">
@@ -171,9 +139,13 @@ function CatalogSection({
       {items !== null && (
         <Card className="divide-y divide-line p-0">
           {items.map((item) => (
-            <div key={item.id}>
-              {/* Jerarquía: nombre primario → meta (género/orden)
-                  secundario → acciones terciarias en tinta baja. */}
+            /* Fila navegable → página de editar (editar/eliminar viven
+               ahí, no en el listado). */
+            <Link
+              key={item.id}
+              href={`/admin/catalogos/${cat}/${item.id}/editar`}
+              className="block transition-colors hover:bg-elevated"
+            >
               <div className="flex min-h-11 items-center gap-3 px-4 py-1.5">
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold">
                   {item.name}
@@ -189,43 +161,12 @@ function CatalogSection({
                       {item.order ?? 0}
                     </span>
                   )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-ink/60 hover:text-ink"
-                    href={`/admin/catalogos/${cat}/${item.id}/editar`}
-                  >
-                    {ts("edit")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-red-400/70 hover:text-red-300"
-                    disabled={busy}
-                    onClick={() => setPendingItem(item)}
-                  >
-                    {t("delete")}
-                  </Button>
                 </span>
               </div>
-            </div>
+            </Link>
           ))}
         </Card>
       )}
-
-      {error && (
-        <p role="alert" className="text-sm text-red-400">
-          {error}
-        </p>
-      )}
-      <ConfirmSheet
-        open={pendingItem !== null}
-        title={t("deleteConfirm", { name: pendingItem?.name ?? "" })}
-        confirmLabel={t("delete")}
-        busy={busy}
-        onConfirm={() => pendingItem && void remove(pendingItem)}
-        onClose={() => setPendingItem(null)}
-      />
     </section>
   );
 }

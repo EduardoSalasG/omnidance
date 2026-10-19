@@ -1066,7 +1066,8 @@
       "OTHER": "Otro"
     },
     "editTitle": "Editar valor · {catalog}",
-    "valueNotFound": "Valor no encontrado"
+    "valueNotFound": "Valor no encontrado",
+    "deleteHint": "Elimina el valor del catálogo; no se puede deshacer."
   },
   "producerParams": {
     "title": "Valores por defecto",

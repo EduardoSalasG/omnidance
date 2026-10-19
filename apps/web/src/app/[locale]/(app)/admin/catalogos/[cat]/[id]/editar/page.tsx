@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, RefreshIcon } from "@/components/ui";
+import { Button, Card, ConfirmSheet, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -62,6 +62,7 @@ function EditPanel({ cat, id }: { cat: Cat; id: string }) {
   const [order, setOrder] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -114,6 +115,30 @@ function EditPanel({ cat, id }: { cat: Cat; id: string }) {
       }
       router.push("/admin/catalogos");
     } catch {
+      setError(t("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // DELETE rechaza con 409 cuando el valor está en uso - el message
+  // del backend lo explica; fallback a inUse.
+  async function remove() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await apiFetch(`${cfg.endpoint}/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        setConfirmDelete(false);
+        const msg = await readError(res);
+        setError(msg ?? (res.status === 409 ? t("inUse") : t("error")));
+        return;
+      }
+      router.push("/admin/catalogos");
+    } catch {
+      setConfirmDelete(false);
       setError(t("error"));
     } finally {
       setBusy(false);
@@ -207,6 +232,31 @@ function EditPanel({ cat, id }: { cat: Cat; id: string }) {
           </div>
         </form>
       </Card>
+
+      {/* Zona de peligro al pie: delete con confirmación compartida. */}
+      <Card className="border-red-400/30">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-ink/50">{t("deleteHint")}</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="shrink-0 text-red-400 hover:text-red-300"
+            disabled={busy}
+            onClick={() => setConfirmDelete(true)}
+          >
+            {t("delete")}
+          </Button>
+        </div>
+      </Card>
+
+      <ConfirmSheet
+        open={confirmDelete}
+        title={t("deleteConfirm", { name: item.name })}
+        confirmLabel={t("delete")}
+        busy={busy}
+        onConfirm={() => void remove()}
+        onClose={() => setConfirmDelete(false)}
+      />
     </section>
   );
 }
