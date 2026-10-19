@@ -364,7 +364,7 @@
 - `/admin/campanas` ⚠️: lista; Edit (DRAFT|SCHEDULED); **Test** send sin confirm; **Run now** ConfirmSheet (audiencia completa real); Cancel ConfirmSheet. Form: audiencia ALL|ROLE|EVENT|lifecycle+days; audience-count debounce; schedule ONCE|CRON.
 - `/admin/auditoria`: read-only `GET /admin/audit` filtros.
 - `/admin/academias`: score-health read-only + drill a usuarios.
-- `/admin/catalogos`: styles(+genre)/class-levels(+order)/class-types — filas de lectura + edit inline apilado; alta en página dedicada `/admin/catalogos/nuevo?cat=styles|levels|types` (cat inválido→styles); delete ConfirmSheet; 409 en uso; 409 dup.
+- `/admin/catalogos`: styles(+genre)/class-levels(+order)/class-types — filas de lectura (nombre|meta|Editar+Eliminar); alta en `/admin/catalogos/nuevo?cat=` y edición en `/admin/catalogos/[cat]/[id]/editar` (ambas páginas dedicadas, cat inválido→styles, id inválido→notFound); delete ConfirmSheet; 409 en uso; 409 dup.
 
 ## 10. Soporte `/soporte` (SUPPORT|ADMIN, read-only total)
 - Búsqueda ≥2c debounce → `GET /support/users` (top 20) → detalle inline `GET /support/users/:id` (person, contadores, roles, últimos 10 tickets→evento, últimos 10 pagos). Sin impersonación/refunds/edición. Superficie más segura para smoke.

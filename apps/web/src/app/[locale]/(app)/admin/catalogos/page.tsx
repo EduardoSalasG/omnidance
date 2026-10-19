@@ -7,25 +7,20 @@ import {
   Badge,
   Button,
   Card,
-  CheckIcon,
   ConfirmSheet,
   RefreshIcon,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
-import { inputCls, readError } from "@/components/academy/shared";
-
-// Espejo de GENRES en CatalogsController (admin/catalogs).
-const GENRES = ["SALSA", "BACHATA", "CUBANO", "OTHER"] as const;
-type Genre = (typeof GENRES)[number];
+import { readError } from "@/components/academy/shared";
 
 // Union de los tres catálogos: Style (genre), ClassLevel (order),
 // ClassType (solo name). El campo extra se controla con `field`.
 type Item = {
   id: string;
   name: string;
-  genre?: Genre;
+  genre?: string;
   order?: number;
 };
 
@@ -98,15 +93,8 @@ function CatalogSection({
   const [items, setItems] = useState<Item[] | null>(null);
   const [loadError, setLoadError] = useState(false);
 
-  // ─── edición inline ───
-  const [editId, setEditId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editGenre, setEditGenre] = useState<Genre>("OTHER");
-  const [editOrder, setEditOrder] = useState("");
-
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   // Confirmación destructiva compartida (reemplaza window.confirm).
   const [pendingItem, setPendingItem] = useState<Item | null>(null);
 
@@ -128,48 +116,6 @@ function CatalogSection({
     void load();
   }, [load]);
 
-  function flashSaved(): void {
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2000);
-  }
-
-  function startEdit(item: Item): void {
-    setEditId(item.id);
-    setEditName(item.name);
-    setEditGenre(item.genre ?? "OTHER");
-    setEditOrder(String(item.order ?? 0));
-    setError(null);
-  }
-
-  async function saveEdit(e: React.FormEvent, id: string): Promise<void> {
-    e.preventDefault();
-    const trimmed = editName.trim();
-    if (!trimmed) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const body: Record<string, unknown> = { name: trimmed };
-      if (field === "genre") body.genre = editGenre;
-      if (field === "order") body.order = Number.parseInt(editOrder, 10) || 0;
-      const res = await apiFetch(`${endpoint}/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        setError((await readError(res)) ?? t("error"));
-        return;
-      }
-      setEditId(null);
-      flashSaved();
-      await load();
-    } catch {
-      setError(t("error"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
   // DELETE rechaza con 409 cuando el valor está referenciado - el
   // message del backend lo explica; fallback a inUse.
   async function remove(item: Item): Promise<void> {
@@ -186,7 +132,6 @@ function CatalogSection({
         return;
       }
       setPendingItem(null);
-      if (editId === item.id) setEditId(null);
       await load();
     } catch {
       setPendingItem(null);
@@ -227,96 +172,42 @@ function CatalogSection({
         <Card className="divide-y divide-line p-0">
           {items.map((item) => (
             <div key={item.id}>
-              {editId === item.id ? (
-                <form
-                  onSubmit={(e) => void saveEdit(e, item.id)}
-                  className="flex flex-col gap-2 px-4 py-3"
-                >
-                  <input
-                    className={inputCls}
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    aria-label={t("name")}
-                    required
-                  />
-                  <div className="flex flex-wrap items-center gap-2">
-                    {field === "genre" && (
-                      <select
-                        className={`${inputCls} w-auto`}
-                        value={editGenre}
-                        onChange={(e) =>
-                          setEditGenre(e.target.value as Genre)
-                        }
-                        aria-label={t("genre")}
-                      >
-                        {GENRES.map((g) => (
-                          <option key={g} value={g}>
-                            {t(`genres.${g}`)}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {field === "order" && (
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        step={1}
-                        className={`${inputCls} w-24`}
-                        value={editOrder}
-                        onChange={(e) => setEditOrder(e.target.value)}
-                        aria-label={t("order")}
-                      />
-                    )}
-                    <Button type="submit" size="sm" disabled={busy}>
-                      {tc("save")}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setEditId(null)}
-                    >
-                      {tc("cancel")}
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <div className="flex min-h-11 items-center gap-3 px-4 py-1.5">
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                    {item.name}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-2">
-                    {field === "genre" && item.genre && (
-                      <Badge variant="muted">
-                        {t(`genres.${item.genre}`)}
-                      </Badge>
-                    )}
-                    {field === "order" && (
-                      <span className="text-xs tabular-nums text-ink/50">
-                        {item.order ?? 0}
-                      </span>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={busy}
-                      onClick={() => startEdit(item)}
-                    >
-                      {ts("edit")}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-red-400 hover:text-red-300"
-                      disabled={busy}
-                      onClick={() => setPendingItem(item)}
-                    >
-                      {t("delete")}
-                    </Button>
-                  </span>
-                </div>
-              )}
+              {/* Jerarquía: nombre primario → meta (género/orden)
+                  secundario → acciones terciarias en tinta baja. */}
+              <div className="flex min-h-11 items-center gap-3 px-4 py-1.5">
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                  {item.name}
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  {field === "genre" && item.genre && (
+                    <Badge variant="muted">
+                      {t(`genres.${item.genre}`)}
+                    </Badge>
+                  )}
+                  {field === "order" && (
+                    <span className="text-[11px] tabular-nums text-ink/40">
+                      {item.order ?? 0}
+                    </span>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-ink/60 hover:text-ink"
+                    href={`/admin/catalogos/${cat}/${item.id}/editar`}
+                  >
+                    {ts("edit")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-400/70 hover:text-red-300"
+                    disabled={busy}
+                    onClick={() => setPendingItem(item)}
+                  >
+                    {t("delete")}
+                  </Button>
+                </span>
+              </div>
             </div>
           ))}
         </Card>
@@ -327,16 +218,6 @@ function CatalogSection({
           {error}
         </p>
       )}
-      {saved && (
-        <p
-          role="status"
-          className="inline-flex items-center gap-1.5 text-sm text-neon"
-        >
-          <CheckIcon className="h-4 w-4" />
-          {t("saved")}
-        </p>
-      )}
-
       <ConfirmSheet
         open={pendingItem !== null}
         title={t("deleteConfirm", { name: pendingItem?.name ?? "" })}
