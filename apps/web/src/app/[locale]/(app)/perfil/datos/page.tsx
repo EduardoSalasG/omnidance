@@ -190,6 +190,27 @@ export default function DatosPage() {
   // El dueño de academia opera su academia - la sección "tus academias"
   // (inscripciones como alumno) no aplica a su lente.
   const activeRole = useActiveRole(me?.roles);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Avatar alojado por nosotros (mismo patrón que la foto de academia):
+  // POST multipart /me/photo → photoUrl = /api/people/photos/<key>;
+  // refreshMe actualiza el avatar en toda la app sin reload.
+  async function uploadPhoto(file: File | undefined) {
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const form = new FormData();
+      form.append("photo", file);
+      const res = await apiFetch("/me/photo", {
+        method: "POST",
+        body: form,
+      });
+      if (res.ok) await refreshMe();
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
   const state: PageState = meLoading
     ? "loading"
     : meError
@@ -472,6 +493,53 @@ export default function DatosPage() {
           {/* Email no es editable (es la identidad de login) - siempre
               visible, también en modo edición. */}
           <Field label={t("datos.email")} value={me.email ?? "·"} />
+          {/* Foto de perfil: upload alojado (no URL externa) - visible
+              siempre, también fuera del modo edición. */}
+          <div className="flex items-center gap-3 py-2">
+            {me.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- URLs alojadas en el API
+              <img
+                src={me.photoUrl}
+                alt=""
+                className="h-10 w-10 shrink-0 rounded-full border border-line object-cover"
+              />
+            ) : (
+              <span
+                aria-hidden="true"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-elevated text-sm font-bold text-neon"
+              >
+                {me.name.charAt(0).toUpperCase()}
+              </span>
+            )}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={uploadingPhoto}
+              onClick={() =>
+                (
+                  document.getElementById(
+                    "person-photo-file",
+                  ) as HTMLInputElement | null
+                )?.click()
+              }
+            >
+              {uploadingPhoto
+                ? t("datos.photoUploading")
+                : t("datos.photoUpload")}
+            </Button>
+            <input
+              id="person-photo-file"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                void uploadPhoto(f);
+              }}
+            />
+          </div>
           {personalEditing ? (
             <EditField
               id="ig-input"

@@ -211,6 +211,7 @@ describe("PeopleController", () => {
       prisma as unknown as PrismaService,
       { hashPassword: async () => "hash" } as never,
       notifications as unknown as NotificationsService,
+      {} as never, // FileStorage - no se usa en estos endpoints
     );
     prisma.people.set("me", mkPerson("me"));
   });
