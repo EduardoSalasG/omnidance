@@ -949,7 +949,7 @@ export class UserIntelController {
 
   /**
    * GET /api/admin/users/:personId/analytics?role=X - sections por lente.
-   * Rol no poseído (sin PersonRole APPROVED/SANDBOX) → 400 ROLE_NOT_HELD.
+   * Rol no poseído (sin PersonRole APPROVED/PENDING) → 400 ROLE_NOT_HELD.
    */
   @Get("users/:personId/analytics")
   async analytics(
@@ -966,7 +966,7 @@ export class UserIntelController {
       where: {
         personId,
         role: q.role,
-        status: { in: ["APPROVED", "SANDBOX"] },
+        status: { in: ["APPROVED", "PENDING"] },
       },
       select: { id: true },
     });

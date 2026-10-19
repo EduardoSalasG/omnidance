@@ -81,7 +81,6 @@ const OUTLINE = "border border-line text-ink/70";
 const ROLE_STATUS_CHIP: Record<string, string> = {
   APPROVED: NEON,
   PENDING: AMBER,
-  SANDBOX: MUTED,
   REJECTED: RED,
 };
 const TICKET_STATUS_CHIP: Record<string, string> = {

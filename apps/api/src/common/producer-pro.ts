@@ -29,9 +29,19 @@ export async function assertProducerPro(
 ): Promise<void> {
   const producer = await prisma.person.findUnique({
     where: { id: producerId },
-    select: { proTier: true, proTrialEndsAt: true },
+    select: {
+      proTier: true,
+      proTrialEndsAt: true,
+      // Un productor PENDING (registro por landing sin validar) no
+      // compra ni usa Pro - primero pasa por la cola del admin.
+      roles: {
+        select: { status: true },
+        where: { role: "PRODUCER" },
+      },
+    },
   });
-  if (!producer || !isProActive(producer)) {
+  const approved = producer?.roles.some((r) => r.status === "APPROVED");
+  if (!producer || !approved || !isProActive(producer)) {
     throw new ForbiddenException({ ...PRO_REQUIRED_BODY });
   }
 }

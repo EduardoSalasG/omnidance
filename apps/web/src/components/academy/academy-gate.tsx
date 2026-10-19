@@ -36,13 +36,13 @@ export function AcademyGate({
   const [academies, setAcademies] = useState<Academy[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // ACADEMY_OWNER (APPROVED o SANDBOX) puede crear academias adicionales
-  // - instructor/staff de otras academias no ven el CTA.
+  // ACADEMY_OWNER (APPROVED o PENDING - registrado por landing) puede
+  // crear academias adicionales; instructor/staff de otras no ven el CTA.
   const { me } = useMe();
   const canCreate = (me?.roleStates ?? []).some(
     (r) =>
       r.role === "ACADEMY_OWNER" &&
-      (r.status === "APPROVED" || r.status === "SANDBOX"),
+      (r.status === "APPROVED" || r.status === "PENDING"),
   );
 
   const boot = useCallback(async () => {

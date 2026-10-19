@@ -646,6 +646,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.users,
         },
         {
+          href: "/admin/perfiles-por-validar",
+          ns: "admin",
+          key: "modules.validation",
+          icon: ICONS.tag,
+        },
+        {
           href: "/admin/roles",
           ns: "admin",
           key: "modules.roles",

@@ -764,6 +764,12 @@ export class EventsController {
     @Query("venue") venue?: string,
     @Query("week") week?: string,
   ) {
+    const approvedProducerIds = (
+      await this.prisma.personRole.findMany({
+        where: { role: "PRODUCER", status: "APPROVED" },
+        select: { personId: true },
+      })
+    ).map((r) => r.personId);
     const GENRES: Genre[] = ["SALSA", "BACHATA", "CUBANO"];
     // ?genre= acepta CSV (multiselect): "SALSA,BACHATA" → unión.
     const gs = genre
@@ -799,6 +805,18 @@ export class EventsController {
             ],
           }
         : {}),
+      // Cartelera solo muestra eventos de productores validados
+      // (APPROVED) o sin productor - los PENDING quedan invisibles
+      // hasta la aprobación (spec role-registration-pipeline).
+      // producerId es FK escalar: ids resueltos por subquery.
+      AND: [
+        {
+          OR: [
+            { producerId: null },
+            { producerId: { in: approvedProducerIds } },
+          ],
+        },
+      ],
     };
 
     const rows = await this.prisma.event.findMany({

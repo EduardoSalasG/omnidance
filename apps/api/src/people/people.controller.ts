@@ -31,6 +31,7 @@ import { Gender } from "@prisma/client";
 import { CONSENT_VERSION } from "@omnidance/shared";
 import type { Request } from "express";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
+import { PENDING_USABLE_ROLES } from "../common/rbac/roles.guard";
 import { AuthService } from "../auth/domain/auth.service";
 import { NotificationsService } from "../notifications/domain/notifications.service";
 import { PrismaService } from "../prisma.service";
@@ -230,7 +231,14 @@ export class PeopleController {
       createdAt: person.createdAt,
       verifiedAt: person.verifiedAt,
       roles: person.roles
-        .filter((r) => r.status === "APPROVED")
+        .filter(
+          (r) =>
+            r.status === "APPROVED" ||
+            // PENDING usable (spec role-registration-pipeline): el
+            // rol existe en /me.roles para que los gates de consola
+            // pasen; roleStates sigue distinguiendo el estado real.
+            (r.status === "PENDING" && PENDING_USABLE_ROLES.has(r.role)),
+        )
         .map((r) => r.role),
       roleStates: person.roles,
       ...(isProducer

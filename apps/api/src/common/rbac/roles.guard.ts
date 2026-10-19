@@ -8,10 +8,14 @@ import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 import { PrismaService } from "../../prisma.service";
 import {
-  ALLOW_SANDBOX_KEY,
   REQUIRED_PERMISSIONS_KEY,
   REQUIRED_ROLES_KEY,
 } from "./roles.decorator";
+
+// Roles de actor cuyo PENDING ya opera la consola (spec
+// role-registration-pipeline): se registran por landing y trabajan
+// invisible al público hasta que el admin valide su perfil → APPROVED.
+export const PENDING_USABLE_ROLES = new Set(["ACADEMY_OWNER", "PRODUCER"]);
 
 // Cache de catálogo rol→permisos (compartido entre instancias del guard -
 // cambia solo desde /admin, 30s de tolerancia).
@@ -86,9 +90,10 @@ export async function roleKeysHavePermission(
  *   `@RequireRoles("STAFF")` - escape hatch por rol directo.
  *
  * Semántica de PersonRole.status:
- * - APPROVED → acceso completo.
- * - SANDBOX → acceso solo en rutas con @AllowSandbox() (flujo demo).
- * - PENDING → sin acceso privilegiado.
+ * - APPROVED → acceso completo + visibilidad pública.
+ * - PENDING → ACADEMY_OWNER/PRODUCER acceden a su consola (registro por
+ *   landing, invisibles hasta validación); otros roles sin acceso.
+ * - REJECTED → sin acceso.
  *
  * Role.isSuperuser (ADMIN) pasa cualquier check de permisos.
  * Sin metadata → permite (la autenticación la decide SessionGuard).
@@ -111,12 +116,6 @@ export class RolesGuard implements CanActivate {
     );
     if (!requiredRoles?.length && !requiredPerms?.length) return true;
 
-    const allowSandbox =
-      this.reflector.getAllAndOverride<boolean>(ALLOW_SANDBOX_KEY, [
-        ctx.getHandler(),
-        ctx.getClass(),
-      ]) ?? false;
-
     const req = ctx.switchToHttp().getRequest<Request>();
     const states = req.person?.roleStates;
     if (!states) {
@@ -124,7 +123,9 @@ export class RolesGuard implements CanActivate {
     }
 
     const active = states.filter(
-      (s) => s.status === "APPROVED" || (allowSandbox && s.status === "SANDBOX"),
+      (s) =>
+        s.status === "APPROVED" ||
+        (s.status === "PENDING" && PENDING_USABLE_ROLES.has(s.role)),
     );
     const activeRoles = active.map((s) => s.role);
 

@@ -7,6 +7,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import type { Request } from "express";
+import { PENDING_USABLE_ROLES } from "../../common/rbac/roles.guard";
 import { AuthService } from "../domain/auth.service";
 import { AUTH_REPO, type AuthRepo } from "../domain/ports";
 import { SESSION_COOKIE } from "./auth.controller";
@@ -70,7 +71,13 @@ export class SessionGuard implements CanActivate {
     req.person = {
       id: person.id,
       roles: person.roles
-        .filter((r) => r.status === "APPROVED")
+        .filter(
+          (r) =>
+            r.status === "APPROVED" ||
+            // PENDING usable: owners/productores registrados por
+            // landing operan su consola invisibles hasta validación.
+            (r.status === "PENDING" && PENDING_USABLE_ROLES.has(r.role)),
+        )
         .map((r) => r.role),
       roleStates: person.roles,
       isDemo: person.isDemoAccount,

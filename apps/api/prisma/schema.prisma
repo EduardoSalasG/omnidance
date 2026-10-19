@@ -12,8 +12,7 @@ datasource db {
 // ═══════════════════ IDENTIDAD ═══════════════════
 
 enum RoleStatus {
-  PENDING
-  SANDBOX
+  PENDING  // actor registrado por landing: opera su consola, invisible al público
   APPROVED
   REJECTED // solicitud rechazada por admin - registro preservado (auditable)
 }
@@ -126,7 +125,7 @@ model PersonRole {
   personId  String
   role      String // FK → Role.key (catálogo en DB)
   roleRef   Role       @relation(fields: [role], references: [key])
-  status    RoleStatus @default(PENDING) // sandbox/demo hasta aprobación admin
+  status    RoleStatus @default(PENDING) // aprobación admin para visibilidad pública
   createdAt DateTime   @default(now())
 
   @@unique([personId, role])
@@ -155,6 +154,7 @@ model AuthOtp {
   email      String
   codeHash   String
   consent    Boolean   @default(false) // checkbox del form, viaja con el OTP como en el magic token
+  role       String?   // ?role= de landing (spec role-registration-pipeline) - crea PersonRole PENDING al verificar
   expiresAt  DateTime
   attempts   Int       @default(0)
   consumedAt DateTime?

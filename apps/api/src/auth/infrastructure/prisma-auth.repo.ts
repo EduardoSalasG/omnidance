@@ -79,9 +79,22 @@ export class PrismaAuthRepo implements AuthRepo {
     email: string;
     codeHash: string;
     consent: boolean;
+    role?: string;
     expiresAt: Date;
   }) {
     return this.prisma.authOtp.create({ data }).then(() => {});
+  }
+
+  // Registro por landing: crea el PersonRole PENDING si no existe -
+  // upsert vacío en update para no pisar un estado ya resuelto por admin.
+  ensurePendingRole(personId: string, role: string) {
+    return this.prisma.personRole
+      .upsert({
+        where: { personId_role: { personId, role } },
+        update: {},
+        create: { personId, role, status: "PENDING" },
+      })
+      .then(() => {});
   }
 
   consumeActives(email: string) {
