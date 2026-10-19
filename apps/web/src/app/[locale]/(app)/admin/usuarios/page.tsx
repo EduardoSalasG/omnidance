@@ -19,6 +19,8 @@ type SearchUser = {
   email: string | null;
   createdAt: string;
   roles: { role: string; status: string }[];
+  academiesCount: number;
+  eventsCount: number;
 };
 type UsersResponse = {
   items: SearchUser[];
@@ -160,6 +162,20 @@ function UsersPanel() {
                     </span>
                   )}
                 </div>
+                {(u.academiesCount > 0 || u.eventsCount > 0) && (
+                  <p className="text-xs text-ink/50">
+                    {[
+                      u.academiesCount > 0 &&
+                        t("users.academiesCount", {
+                          count: u.academiesCount,
+                        }),
+                      u.eventsCount > 0 &&
+                        t("users.eventsCount", { count: u.eventsCount }),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                )}
                 {u.roles.length > 0 && (
                   <ul className="flex flex-wrap gap-1.5">
                     {u.roles.map((r) => (

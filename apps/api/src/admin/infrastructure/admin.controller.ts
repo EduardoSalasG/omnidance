@@ -228,7 +228,39 @@ export class AdminController {
       }),
       this.prisma.person.count({ where }),
     ]);
-    return { items, total, page: pg.page, pageSize: pg.pageSize };
+    // Peso del actor: academias propias (ownerId) y eventos creados
+    // (producerId) - groupBy sobre los ids de la página, sin N+1.
+    const ids = items.map((p) => p.id);
+    const [academyGroups, eventGroups] = ids.length
+      ? await Promise.all([
+          this.prisma.academy.groupBy({
+            by: ["ownerId"],
+            where: { ownerId: { in: ids } },
+            _count: { _all: true },
+          }),
+          this.prisma.event.groupBy({
+            by: ["producerId"],
+            where: { producerId: { in: ids } },
+            _count: { _all: true },
+          }),
+        ])
+      : [[], []];
+    const acadByOwner = new Map(
+      academyGroups.map((g) => [g.ownerId, g._count._all]),
+    );
+    const evByProducer = new Map(
+      eventGroups.map((g) => [g.producerId, g._count._all]),
+    );
+    return {
+      items: items.map((p) => ({
+        ...p,
+        academiesCount: acadByOwner.get(p.id) ?? 0,
+        eventsCount: evByProducer.get(p.id) ?? 0,
+      })),
+      total,
+      page: pg.page,
+      pageSize: pg.pageSize,
+    };
   }
 
   /**
