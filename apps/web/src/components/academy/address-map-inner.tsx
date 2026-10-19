@@ -3,7 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useEffect, useState } from "react";
-import { MapContainer, Marker, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 
 // Mismo basemap que EventsMapInner: CARTO Voyager con key, OSM sin key.
 const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_BASEMAP_KEY;
@@ -20,6 +20,16 @@ function pinIcon(accent: string) {
     iconSize: [18, 18],
     iconAnchor: [9, 9],
   });
+}
+
+// MapContainer ignora `center` tras el mount: re-centra cuando la
+// dirección geocodificada cambia (setView mantiene el zoom del usuario).
+function Recenter({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([lat, lng], Math.max(map.getZoom(), 16));
+  }, [lat, lng, map]);
+  return null;
 }
 
 /**
@@ -60,6 +70,7 @@ export default function AddressMapInner({
       ) : (
         <TileLayer url={OSM_STD} attribution={TILES_ATTR} maxZoom={19} />
       )}
+      <Recenter lat={lat} lng={lng} />
       <Marker
         position={[lat, lng]}
         icon={pinIcon(accent)}

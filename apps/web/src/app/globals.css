@@ -382,3 +382,14 @@ input[type="month"],
 input[type="week"] {
   min-width: 0;
 }
+
+/* Mapa del perfil de academia: los panes de Leaflet vienen con
+   z-index 200-700 y taparían el sidebar (z-50) y overlays de la app.
+   Se capea su stacking scope al contenedor - tiles/markers siguen
+   ordenando entre sí por orden de pane dentro del mapa. */
+.address-map .leaflet-pane,
+.address-map .leaflet-top,
+.address-map .leaflet-bottom,
+.address-map .leaflet-control {
+  z-index: 0;
+}
