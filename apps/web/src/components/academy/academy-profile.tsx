@@ -199,7 +199,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
           </Button>
           {coords && (
             <>
-              <div className="h-56 overflow-hidden rounded-xl border border-line">
+              <div className="address-map h-56 overflow-hidden rounded-xl border border-line">
                 <AddressMapInner
                   lat={coords.lat}
                   lng={coords.lng}
