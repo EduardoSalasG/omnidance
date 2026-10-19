@@ -13,7 +13,6 @@ type LandingProForm = (typeof landingParts)["landingPro"]["form"];
 
 
 
-type Intent = "CONTACT" | "DEMO";
 // Campos obligatorios validados en cliente antes de pegarle al API -
 // el backend revalida igual (el endpoint es público).
 type Missing = "name" | "email" | "phone" | "roles";
@@ -26,12 +25,12 @@ const inputErrorClass =
   "min-h-12 w-full rounded-xl border border-red-400/70 bg-surface/60 px-4 text-base text-ink placeholder:text-ink/50 outline-none transition-colors focus:border-red-400";
 
 /**
- * Formulario de lead de las landings pro: captura nombre, correo,
- * teléfono y roles antes de los dos intents (contacto / demo). Tras el
- * éxito ofrece "ingresa acá": crea la cuenta demo con esos roles y entra
- * directo a /inicio con sesión.
- * `fixedRole` fija el rol de la audiencia y oculta el selector (landings
- * por rol); `roleOptions` restringe el multiselect (selector /pro).
+ * Formulario de lead del hub /pro (roles sin auto-registro: DJ y
+ * locales): captura nombre, correo, teléfono y roles para el intent de
+ * contacto comercial. Si el correo ya tiene cuenta real, el estado de
+ * éxito ofrece ir a /login en vez de prometer contacto.
+ * `fixedRole` fija el rol de la audiencia y oculta el selector;
+ * `roleOptions` restringe el multiselect.
  */
 export function ProLeadForm({
   fixedRole,
@@ -61,14 +60,10 @@ export function ProLeadForm({
     ? ROLE_OPTIONS.filter((o) => roleOptions.includes(o.value))
     : ROLE_OPTIONS;
   const [missing, setMissing] = useState<Missing[]>([]);
-  const [pending, setPending] = useState<Intent | null>(null);
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [leadId, setLeadId] = useState<string | null>(null);
-  const [demoToken, setDemoToken] = useState<string | null>(null);
-  const [done, setDone] = useState<Intent | null>(null);
-  const [demoPhase, setDemoPhase] = useState<
-    "idle" | "loading" | "exists" | "error"
-  >("idle");
+  const [exists, setExists] = useState(false);
+  const [done, setDone] = useState(false);
 
   const toggleRole = (value: string) =>
     setRoles((prev) =>
@@ -77,13 +72,11 @@ export function ProLeadForm({
         : [...prev, value],
     );
 
-  // El teléfono solo es obligatorio si piden contacto - la demo baja la
-  // fricción (nombre, correo y roles bastan para entrar a la app).
-  function validate(intent: Intent): Missing[] {
+  function validate(): Missing[] {
     const miss: Missing[] = [];
     if (name.trim().length < 2) miss.push("name");
     if (!EMAIL_RE.test(email.trim())) miss.push("email");
-    if (intent === "CONTACT" && !phone.trim()) miss.push("phone");
+    if (!phone.trim()) miss.push("phone");
     if (!fixedRole && roles.length === 0) miss.push("roles");
     return miss;
   }
@@ -95,9 +88,9 @@ export function ProLeadForm({
     roles: t.fieldRoles,
   };
 
-  async function submit(intent: Intent) {
+  async function submit() {
     setError(null);
-    const miss = validate(intent);
+    const miss = validate();
     setMissing(miss);
     if (miss.length > 0) {
       setError(
@@ -108,7 +101,7 @@ export function ProLeadForm({
       );
       return;
     }
-    setPending(intent);
+    setPending(true);
     try {
       const res = await apiFetch("/leads", {
         method: "POST",
@@ -118,44 +111,17 @@ export function ProLeadForm({
           email: email.trim(),
           phone: phone.trim() || null,
           roles,
-          intent,
+          intent: "CONTACT",
         }),
       });
       if (!res.ok) throw new Error();
-      const data = (await res.json()) as {
-        id: string;
-        demoToken: string | null;
-        accountExists: boolean;
-      };
-      setLeadId(data.id);
-      setDemoToken(data.demoToken);
-      // El correo ya tiene cuenta real → no hay demo; el CTA manda a login.
-      if (data.accountExists) setDemoPhase("exists");
-      setDone(intent);
+      const data = (await res.json()) as { accountExists: boolean };
+      if (data.accountExists) setExists(true);
+      setDone(true);
     } catch {
       setError(t.errorGeneric);
     } finally {
-      setPending(null);
-    }
-  }
-
-  async function enterDemo() {
-    if (!leadId || !demoToken) return;
-    setDemoPhase("loading");
-    try {
-      const res = await apiFetch(`/leads/${leadId}/demo`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token: demoToken }),
-      });
-      if (res.status === 409) {
-        setDemoPhase("exists");
-        return;
-      }
-      if (!res.ok) throw new Error();
-      window.location.href = "/inicio";
-    } catch {
-      setDemoPhase("error");
+      setPending(false);
     }
   }
 
@@ -168,33 +134,14 @@ export function ProLeadForm({
         <p className="text-xl font-bold text-neon">
           {t.successTitle.replace("{name}", name.split(" ")[0])}
         </p>
-        <p className="mt-2 text-sm text-ink/60">
-          {done === "DEMO" ? t.successDemo : t.successContact}
-        </p>
-
-        {demoPhase === "exists" ? (
+        <p className="mt-2 text-sm text-ink/60">{t.successContact}</p>
+        {exists && (
           <Link
             href="/login"
             className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full border border-ink/15 px-6 text-sm font-semibold text-ink/80 transition-colors hover:border-ink/30 hover:text-ink"
           >
             {t.demoExists} <ChevronRightIcon />
           </Link>
-        ) : (
-          <button
-            type="button"
-            onClick={() => void enterDemo()}
-            disabled={demoPhase === "loading"}
-            className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-neon px-6 text-sm font-semibold text-on-accent transition-colors hover:bg-neon-soft active:scale-[0.97] disabled:opacity-60"
-          >
-            {demoPhase === "loading" && <Spinner size="sm" />}
-            <span className="whitespace-pre-line">{t.demoCta}</span>
-            <ChevronRightIcon />
-          </button>
-        )}
-        {demoPhase === "error" && (
-          <p role="alert" className="mt-3 text-sm font-medium text-red-400">
-            {t.demoError}
-          </p>
         )}
       </div>
     );
@@ -205,7 +152,7 @@ export function ProLeadForm({
       className="mx-auto flex max-w-md flex-col gap-4 text-left"
       onSubmit={(e) => {
         e.preventDefault();
-        void submit("CONTACT");
+        void submit();
       }}
       noValidate
     >
@@ -234,6 +181,7 @@ export function ProLeadForm({
           <input
             type="tel"
             autoComplete="tel"
+            required
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             aria-invalid={missing.includes("phone")}
@@ -307,23 +255,14 @@ export function ProLeadForm({
         </p>
       )}
 
-      <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+      <div className="mt-2 flex justify-center">
         <button
           type="submit"
-          disabled={pending !== null}
+          disabled={pending}
           className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-neon px-8 text-base font-semibold text-on-accent transition-colors hover:bg-neon-soft active:scale-[0.97] disabled:opacity-60 sm:w-auto"
         >
-          {pending === "CONTACT" && <Spinner size="sm" />}
+          {pending && <Spinner size="sm" />}
           {t.submitContact}
-        </button>
-        <button
-          type="button"
-          disabled={pending !== null}
-          onClick={() => void submit("DEMO")}
-          className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full border border-ink/15 px-8 text-base font-medium text-ink/80 transition-colors hover:border-ink/30 hover:text-ink active:scale-[0.97] disabled:opacity-60 sm:w-auto"
-        >
-          {pending === "DEMO" && <Spinner size="sm" />}
-          {t.submitDemo}
         </button>
       </div>
       <p className="text-center text-xs text-ink/50">{t.privacyNote}</p>

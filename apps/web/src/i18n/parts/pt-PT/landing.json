@@ -65,17 +65,13 @@
       "roleAcademy": "Dono de academia",
       "roleVenue": "Dono de local",
       "submitContact": "Contactem-me",
-      "submitDemo": "Experimentar a app agora",
       "errorGeneric": "Não foi possível enviar. Tenta de novo",
       "successTitle": "Feito, {name}",
       "successContact": "Contactamos-te dentro de 48 horas.",
-      "successDemo": "O teu acesso está pronto.",
       "fieldRolesHint": "podes escolher vários",
       "errorMissing": "Falta: {fields}",
-      "demoCta": "Entrar agora com os teus papéis",
-      "demoError": "Não foi possível abrir a tua sessão. Tenta de novo",
       "demoExists": "Já existe uma conta com esse e-mail. Inicia sessão",
-      "fieldPhoneHint": "obrigatório se queres que te contactemos",
+      "fieldPhoneHint": "obrigatório",
       "privacyNote": "Só te contactamos sobre isto. Sem spam."
     },
     "heroNote": "Entras com os teus papéis, sem esperar por uma chamada."
