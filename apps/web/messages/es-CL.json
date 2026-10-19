@@ -814,7 +814,11 @@
   "instagramHint": "Tu usuario público: tus amigos lo verán en tu perfil",
   "instagramPlaceholder": "tu.usuario",
   "instagramSaved": "Guardado",
-  "instagramError": "Usuario inválido. Solo letras, números, puntos y guion bajo"
+  "instagramError": "Usuario inválido. Solo letras, números, puntos y guion bajo",
+  "datos": {
+   "photoUpload": "Cambiar foto",
+   "photoUploading": "Subiendo…"
+  }
  },
  "crm": {
   "title": "CRM",

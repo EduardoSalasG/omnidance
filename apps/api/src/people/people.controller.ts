@@ -6,12 +6,20 @@ import {
   ForbiddenException,
   Get,
   HttpCode,
+  Inject,
+  NotFoundException,
+  Param,
   Patch,
   Post,
   Put,
   Req,
+  Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import type { Response } from "express";
 import { Type } from "class-transformer";
 import {
   ArrayMaxSize,
@@ -35,6 +43,11 @@ import { PENDING_USABLE_ROLES } from "../common/rbac/roles.guard";
 import { AuthService } from "../auth/domain/auth.service";
 import { NotificationsService } from "../notifications/domain/notifications.service";
 import { PrismaService } from "../prisma.service";
+import {
+  mimeForKey,
+  STORAGE,
+  type FileStorage,
+} from "../storage/storage.service";
 import { isProActive } from "../payments/domain/platform-tiers";
 import {
   monthRange,
@@ -177,7 +190,61 @@ export class PeopleController {
     private readonly prisma: PrismaService,
     private readonly auth: AuthService,
     private readonly notifications: NotificationsService,
+    @Inject(STORAGE) private readonly storage: FileStorage,
   ) {}
+
+  /**
+   * Upload del avatar alojado por nosotros (mismo patrón que la foto de
+   * academia): multipart → storage "people-photos" → photoUrl apunta al
+   * stream público /api/people/photos/<key> (avatares se muestran en
+   * superficies públicas: amigos, clases, pareja, etc.).
+   */
+  @Post("me/photo")
+  @UseGuards(SessionGuard)
+  @UseInterceptors(
+    FileInterceptor("photo", { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  async uploadMyPhoto(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() req: Request,
+  ) {
+    if (!file) throw new BadRequestException("falta el archivo photo");
+    let key: string;
+    try {
+      key = await this.storage.save(
+        {
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          buffer: file.buffer,
+          size: file.size,
+        },
+        "people-photos",
+      );
+    } catch {
+      throw new BadRequestException("tipo de archivo no soportado");
+    }
+    const photoUrl = `/api/people/photos/${key}`;
+    await this.prisma.person.update({
+      where: { id: req.person!.id },
+      data: { photoUrl },
+    });
+    return { photoUrl };
+  }
+
+  /** Stream público del avatar alojado (uuid - anti-traversal en resolve). */
+  @Get("people/photos/:key")
+  async servePersonPhoto(@Param("key") key: string, @Res() res: Response) {
+    const full = `people-photos/${key}`;
+    let buffer: Buffer;
+    try {
+      buffer = await this.storage.read(full);
+    } catch {
+      throw new NotFoundException("foto no encontrada");
+    }
+    res.setHeader("content-type", mimeForKey(full));
+    res.setHeader("cache-control", "public, max-age=86400, immutable");
+    res.send(buffer);
+  }
 
   @Get("me")
   @UseGuards(SessionGuard)
