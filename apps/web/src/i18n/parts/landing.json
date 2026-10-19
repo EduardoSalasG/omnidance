@@ -65,17 +65,13 @@
       "roleAcademy": "Dueño de academia",
       "roleVenue": "Dueño de local",
       "submitContact": "Quiero que me contacten",
-      "submitDemo": "Probar la app ahora",
       "errorGeneric": "No pudimos enviarlo. Intenta de nuevo",
       "successTitle": "Listo, {name}",
       "successContact": "Te contactaremos dentro de 48 horas.",
-      "successDemo": "Tu acceso ya está listo.",
       "fieldRolesHint": "puedes escoger varios",
       "errorMissing": "Te falta: {fields}",
-      "demoCta": "Entra ahora con tus roles",
-      "demoError": "No pudimos abrir tu sesión. Intenta de nuevo",
       "demoExists": "Ya existe una cuenta con ese correo. Inicia sesión",
-      "fieldPhoneHint": "obligatorio si quieres que te contactemos",
+      "fieldPhoneHint": "obligatorio",
       "privacyNote": "Solo te contactaremos por esto. Sin spam."
     },
     "heroNote": "Entras con tus roles, sin esperar llamada."

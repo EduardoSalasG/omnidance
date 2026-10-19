@@ -65,17 +65,13 @@
       "roleAcademy": "Academy owner",
       "roleVenue": "Venue owner",
       "submitContact": "Contact me",
-      "submitDemo": "Try the app now",
       "errorGeneric": "We couldn't send it. Try again",
       "successTitle": "Done, {name}",
       "successContact": "We'll contact you within 48 hours.",
-      "successDemo": "Your access is ready.",
       "fieldRolesHint": "you can pick several",
       "errorMissing": "Missing: {fields}",
-      "demoCta": "Enter now with your roles",
-      "demoError": "We couldn't open your session. Try again",
       "demoExists": "An account already exists with that email. Sign in",
-      "fieldPhoneHint": "required if you want us to contact you",
+      "fieldPhoneHint": "required",
       "privacyNote": "We'll only contact you about this. No spam."
     },
     "heroNote": "You enter with your roles, no waiting for a call."
