@@ -42,3 +42,9 @@ perfil) pero INVISIBLE al público hasta que admin valide el perfil.
 - Web: landings, /login, /perfil (requestRole fuera para esos roles),
   nueva página admin, i18n, nav admin.
 - docs/qa-flows-inventory, openapi/postman.
+
+## Decisión extra (usuario)
+
+- **Pro bloqueado por aprobación**: `me.effectivePro` SHALL exigir
+  `PersonRole.status === APPROVED` — un productor PENDING no puede
+  comprar ni usar features Pro hasta que admin lo valide.
