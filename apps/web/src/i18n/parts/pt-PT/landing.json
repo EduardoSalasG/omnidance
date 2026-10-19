@@ -37,7 +37,7 @@
     "eyebrow": "Produtores · DJs · Academias · Locais",
     "heroPromise": "Ordem primeiro. Crescimento depois.",
     "heroLead": "Vende bilhetes, controla a porta e vê os teus números\nnuma só plataforma.\nQuando a operação está organizada, o crescimento vem a seguir.",
-    "ctaCreateAccount": "Contactem-me",
+    "ctaCreateAccount": "Criar a minha conta",
     "ctaEvents": "Experimentar a app agora",
     "weekCount": "{count} eventos esta semana já funcionam no Omnidance",
     "weekEmpty": "Os eventos da comunidade já funcionam no Omnidance",
@@ -52,8 +52,8 @@
     "featureLearnDesc": "Aulas, alunos e cobranças organizados num só lugar.\nOs teus alunos veem horários, inscrevem-se e pagam sozinhos sem te inundar de mensagens.",
     "featureSceneTitle": "Locais",
     "featureSceneDesc": "O teu local no lineup:\npedidos de aluguer e eventos que enchem a tua porta.",
-    "finalCta": "Vamos falar",
-    "finalCtaDesc": "Quem se organiza primeiro, cresce primeiro.\nDiz-nos quem és: contactamos-te ou mostramos-te uma demo.",
+    "finalCta": "Vamos começar?",
+    "finalCtaDesc": "Cria a tua conta e entra diretamente na tua plataforma.\nRevemos cada perfil antes de o publicar.",
     "footerAlt": "Para dançarinos",
     "form": {
       "fieldName": "Nome",
@@ -82,7 +82,7 @@
   },
   "landingAcademy": {
     "metaTitle": "Gestão para academias de dança | Omnidance",
-    "metaDescription": "Horários, alunos, planos e pagamentos da tua academia de salsa, timba ou bachata organizados numa só app. Experimenta hoje com uma demo instantânea.",
+    "metaDescription": "Horários, alunos, planos e pagamentos da tua academia de salsa, timba ou bachata organizados numa só app. Regista-te e começa hoje.",
     "eyebrow": "Para academias e instrutores",
     "heroPromise": "Ensina. Deixa a plataforma organizar.",
     "heroLead": "Horários, alunos e pagamentos num só lugar.\nCada um paga como já paga:\ntu só vês quem está em dia.",
@@ -100,10 +100,11 @@
     "academyCount": "{count} academias já gerem a sua operação no Omnidance",
     "academyEmpty": "As academias da cena já funcionam no Omnidance",
     "finalCta": "Organizamos a tua academia?",
-    "finalCtaDesc": "Diz-nos quem és:\ncontactamos-te ou mostramos-te a app a funcionar.",
+    "finalCtaDesc": "Cria a tua conta e monta a tua academia hoje.\nRevemos o perfil antes de a publicar na app.",
     "crossLink": "Também produzes eventos?",
     "crossHref": "/para-productores",
-    "footerAlt": "Para dançarinos"
+    "footerAlt": "Para dançarinos",
+    "ctaEvents": "Explorar academias"
   },
   "landingProducer": {
     "metaTitle": "Bilhética e controlo para produtores | Omnidance",
@@ -123,10 +124,11 @@
     "featureSceneTitle": "Os teus números",
     "featureSceneDesc": "Vendas, afluência e liquidação ao vivo.\nSem folhas de cálculo nem surpresas no fim.",
     "finalCta": "Organizamos o teu próximo evento?",
-    "finalCtaDesc": "Diz-nos quem és:\ncontactamos-te ou mostramos-te a app a funcionar.",
+    "finalCtaDesc": "Cria a tua conta e monta o teu primeiro evento hoje.\nRevemos o perfil antes de o publicar.",
     "crossLink": "Também tens uma academia?",
     "crossHref": "/para-academias",
-    "footerAlt": "Para dançarinos"
+    "footerAlt": "Para dançarinos",
+    "ctaEvents": "Explorar eventos"
   },
   "landingProHub": {
     "metaTitle": "Omnidance para empresas",
