@@ -24,6 +24,7 @@ import {
 } from "../../payments/domain/platform-tiers";
 import type { BillingCycle } from "@prisma/client";
 import { ApiQuery } from "@nestjs/swagger";
+import { clMonthStart } from "../../common/cl-time";
 
 class SummaryQueryDto {
   @IsOptional()
@@ -46,25 +47,6 @@ const ACCRUABLE_ORDER_TYPES = [
   "PRIVATE",
 ];
 const EPOCH = new Date("2020-01-01T00:00:00Z");
-const CL_TZ = "America/Santiago";
-
-/** Inicio del mes corriente en hora Chile, como Date UTC. */
-function clMonthStart(now: Date): Date {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: CL_TZ,
-    year: "numeric",
-    month: "numeric",
-  }).formatToParts(now);
-  const year = Number(parts.find((p) => p.type === "year")!.value);
-  const month = Number(parts.find((p) => p.type === "month")!.value);
-  // Offset real CL en ese instante (UTC-3 verano / UTC-4 invierno): se
-  // deriva comparando el wall-clock CL vs UTC, sin asumir DST.
-  const guess = new Date(Date.UTC(year, month - 1, 1, 4));
-  const clWall = new Date(
-    guess.toLocaleString("en-US", { timeZone: CL_TZ }),
-  ).getTime();
-  return new Date(Date.UTC(year, month - 1, 1) - (clWall - guess.getTime()));
-}
 
 type ActorType = "PRODUCER" | "ACADEMY" | "VENUE";
 

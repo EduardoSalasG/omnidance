@@ -22,6 +22,7 @@ export {
   ChevronLeftIcon,
   ChevronDownIcon,
   RefreshIcon,
+  ClockIcon,
   ArrowUpRightIcon,
   CheckIcon,
   XIcon,

@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState, use } from "react";
 
 import {useTranslations, useLocale } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, ConfirmSheet, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, ClockIcon, ConfirmSheet, RefreshIcon, type BadgeVariant } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { RoleRow } from "@/components/admin/types";
 import { useRouter } from "@/i18n/navigation";
-import { getDateFmt, useDateFmt, useNumFmt } from "@/lib/intl";
+import { getDateFmt, useNumFmt } from "@/lib/intl";
 const fmtDate = (iso: string, locale: string) =>
   getDateFmt(locale, { dateStyle: "medium" }).format(new Date(iso));
 
@@ -123,6 +123,10 @@ const SCORE_COMPONENT_LABELS = [
   "referrals",
   "attendance",
   "spend",
+  // Semántica PRODUCER (crm.service.ts): eventos + preventa temprana.
+  "eventsRecent",
+  "eventStreak",
+  "earlyPurchases",
 ];
 
 // Catálogo completo de estados de PersonRole (mismo set que valida la API).
@@ -491,8 +495,8 @@ function UserDetailPanel({ personId }: { personId: string }) {
           <p className="text-sm text-ink/50">{t("users.roleData.empty")}</p>
         ) : (
           Object.entries(detail.roleData).map(([role, data]) => (
-            <Card key={role} className="flex flex-col gap-3">
-              <h3 className="font-semibold">{roleLabel(role)}</h3>
+            <Card key={role} className="flex flex-col gap-3 p-4">
+              <h3 className="text-sm font-semibold">{roleLabel(role)}</h3>
               <RoleDataBody role={role} data={data} />
             </Card>
           ))
@@ -518,42 +522,69 @@ function UserDetailPanel({ personId }: { personId: string }) {
               number
             > | null;
             return (
-              <Card key={`${s.actorType}:${s.actorId}`} className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="min-w-0 flex-1 truncate font-medium">
-                    {s.actorName ?? s.actorId}
-                  </span>
-                  <Badge variant="outline">{s.actorType}</Badge>
-                  <span className="text-sm font-semibold tabular-nums">
-                    {Math.round(s.score)}
-                  </span>
-                  {s.segment && (
-                    <Badge variant="muted">
-                      {tcrm(`segments.${s.segment}`)}
+              <Card key={`${s.actorType}:${s.actorId}`} className="flex flex-col gap-3 p-4">
+                {/* Header: actor+metadatos | segmento+score (el score es el
+                    dato que decide - va grande junto a su segmento) */}
+                {/* Dos filas: chips anclados a los bordes arriba,
+                    nombre↔score en la segunda línea (baseline) */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <Badge
+                      variant={ACTOR_TYPE_VARIANT[s.actorType] ?? "outline"}
+                    >
+                      {tcrm(`actor.${s.actorType.toLowerCase()}`)}
                     </Badge>
-                  )}
+                    {/* Sin segmento → chip "Pendiente" para que el borde
+                        derecho no quede vacío */}
+                    <Badge
+                      variant={
+                        s.segment
+                          ? (SEGMENT_VARIANT[s.segment] ?? "muted")
+                          : "outline"
+                      }
+                    >
+                      {s.segment
+                        ? tcrm(`segments.${s.segment}`)
+                        : t("users.scores.pending")}
+                    </Badge>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="min-w-0 truncate text-sm font-semibold">
+                      {s.actorName ?? s.actorId}
+                    </p>
+                    <span className="shrink-0 text-2xl font-bold leading-none tabular-nums">
+                      {Math.round(s.score)}
+                      <span className="ml-0.5 text-xs font-normal text-ink/40">
+                        {t("users.scores.pts")}
+                      </span>
+                    </span>
+                  </div>
                 </div>
+                {/* El "porqué" del score separado con divider - es otro
+                    grupo visual, no el mismo plano que el veredicto */}
                 {pts && (
-                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-line pt-3 sm:grid-cols-3">
                     {Object.entries(pts).map(([k, v]) => (
-                      <div
+                      <Stat
                         key={k}
-                        className="flex items-baseline justify-between gap-2"
-                      >
-                        <dt className="text-ink/50">
-                          {SCORE_COMPONENT_LABELS.includes(k)
+                        value={`+${v}`}
+                        label={
+                          SCORE_COMPONENT_LABELS.includes(k)
                             ? t(`users.scores.components.${k}`)
-                            : k}
-                        </dt>
-                        <dd className="tabular-nums text-ink/80">+{v}</dd>
-                      </div>
+                            : k
+                        }
+                      />
                     ))}
-                  </dl>
+                  </div>
                 )}
-                <p className="text-xs text-ink/40">
-                  {t("users.scores.computedAt", {
-                    date: fmtDate(s.computedAt, locale),
-                  })}
+                {/* Fecha de cálculo como footnote terciaria al pie - no es
+                    dato de decisión, solo trazabilidad */}
+                <p className="flex items-center justify-end gap-1 text-[11px] text-ink/40">
+                  <ClockIcon className="h-3 w-3" />
+                  <span className="sr-only">
+                    {t("users.scores.computedAt", { date: "" }).trim()}
+                  </span>
+                  {fmtDate(s.computedAt, locale)}
                 </p>
               </Card>
             );
@@ -624,6 +655,39 @@ function EmptyNote() {
   return <p className="text-sm text-ink/50">{t("users.roleData.empty")}</p>;
 }
 
+// Color semántico de status (skill ui-ux-principles §5): neon = vivo/ok,
+// live = atención (en vivo o cancelado), outline = pendiente/borrador,
+// muted = terminal neutro. Un color nunca cambia de significado.
+const STATUS_VARIANT: Record<string, BadgeVariant> = {
+  ACTIVE: "neon",      // ticket vigente
+  USED: "neon",        // ticket consumido
+  TRANSFERRED: "muted",
+  CANCELLED: "live",
+  PUBLISHED: "neon",
+  LIVE: "live",
+  CLOSED: "muted",
+  DRAFT: "outline",
+  REQUESTED: "outline",
+  CONFIRMED: "neon",
+};
+
+// Segmento CRM con color semántico: los mejores destacan, el riesgo pide
+// atención; NONE/nuevo quedan neutros.
+const SEGMENT_VARIANT: Record<string, BadgeVariant> = {
+  CORE: "neon",
+  BRINGS_PEOPLE: "neon",
+  NEW: "muted",
+  AT_RISK: "live",
+  NONE: "outline",
+};
+
+// Tipo de actor del score: academia destaca (institución), productor
+// neutro. Mismas semánticas que el resto de chips de la página.
+const ACTOR_TYPE_VARIANT: Record<string, BadgeVariant> = {
+  ACADEMY: "neon",
+  PRODUCER: "outline",
+};
+
 /** Badge de estado para tickets/eventos/arriendos; status desconocido se muestra crudo. */
 function DataStatusBadge({
   kind,
@@ -634,34 +698,65 @@ function DataStatusBadge({
 }) {
   const t = useTranslations("admin");
   const key = `users.roleData.status.${kind}.${status}`;
-  return <Badge variant="outline">{t.has(key) ? t(key) : status}</Badge>;
+  return (
+    <Badge variant={STATUS_VARIANT[status] ?? "outline"}>
+      {t.has(key) ? t(key) : status}
+    </Badge>
+  );
 }
 
-/** Fila estándar de listas de actividad: nombre | fecha + badge opcional. */
+/** Fila estándar de listas de actividad: nombre+contexto | valor+fecha+badge
+    (proximidad: el dato que decide va junto al status en el bloque derecho). */
 function DataRow({
   name,
   date,
   sub,
+  value,
   badge,
 }: {
   name: string;
   date?: string | null;
   sub?: string;
+  value?: string;
   badge?: React.ReactNode;
 }) {
   const locale = useLocale();
-  const dateFmt = useDateFmt({ dateStyle: "medium" });
-    return (
-    <li className="flex min-h-[44px] items-center justify-between gap-3 py-1">
+  return (
+    <li className="flex min-h-11 items-center justify-between gap-3 py-1">
       <span className="flex min-w-0 flex-col">
-        <span className="truncate text-sm">{name}</span>
+        <span className="truncate text-sm font-medium">{name}</span>
         {sub && <span className="truncate text-xs text-ink/50">{sub}</span>}
       </span>
-      <span className="flex shrink-0 items-center gap-2 text-xs text-ink/50">
-        {date && fmtDate(date, locale)}
+      <span className="flex shrink-0 items-center gap-2">
+        {value && (
+          <span className="text-sm font-semibold tabular-nums">{value}</span>
+        )}
+        {date && (
+          <span className="text-xs text-ink/50">{fmtDate(date, locale)}</span>
+        )}
         {badge}
       </span>
     </li>
+  );
+}
+
+/** Mini-KPI inline: número primario + label secundario (stat strip de card).
+    min-w-8 + text-right del valor: los labels arrancan siempre en la misma
+    x aunque el número tenga 1 o 3 dígitos. */
+function Stat({ value, label }: { value: string | number; label: string }) {
+  return (
+    <span className="flex min-w-0 items-baseline gap-1.5">
+      <span className="inline-block min-w-8 shrink-0 text-right text-sm font-semibold tabular-nums">
+        {value}
+      </span>
+      <span className="truncate text-xs text-ink/50">{label}</span>
+    </span>
+  );
+}
+
+function StatRow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap gap-x-5 gap-y-1">{children}</div>
   );
 }
 
@@ -700,10 +795,10 @@ function RoleDataBody({ role, data }: { role: string; data: unknown }) {
       const d = data as DancerData;
       return (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-ink/70">
-            {t("users.roleData.dances")}: {d.dancesCount} ·{" "}
-            {t("users.roleData.checkins")}: {d.checkinsCount}
-          </p>
+          <StatRow>
+            <Stat value={d.dancesCount} label={t("users.roleData.dances")} />
+            <Stat value={d.checkinsCount} label={t("users.roleData.checkins")} />
+          </StatRow>
           <DataList
             title={t("users.roleData.ticketsUpcoming")}
             empty={d.ticketsUpcoming.length === 0}
@@ -713,7 +808,7 @@ function RoleDataBody({ role, data }: { role: string; data: unknown }) {
                 key={tk.id}
                 name={tk.event?.name ?? "·"}
                 date={tk.event?.startsAt}
-                sub={fmtClp(tk.listPrice)}
+                value={fmtClp(tk.listPrice)}
                 badge={<DataStatusBadge kind="ticket" status={tk.status} />}
               />
             ))}
@@ -727,7 +822,7 @@ function RoleDataBody({ role, data }: { role: string; data: unknown }) {
                 key={tk.id}
                 name={tk.event?.name ?? "·"}
                 date={tk.event?.startsAt}
-                sub={fmtClp(tk.listPrice)}
+                value={fmtClp(tk.listPrice)}
                 badge={<DataStatusBadge kind="ticket" status={tk.status} />}
               />
             ))}
@@ -820,9 +915,12 @@ function RoleDataBody({ role, data }: { role: string; data: unknown }) {
               />
             ))}
           </DataList>
-          <p className="text-sm text-ink/70">
-            {t("users.roleData.classesPast")}: {d.classesPastCount}
-          </p>
+          <StatRow>
+            <Stat
+              value={d.classesPastCount}
+              label={t("users.roleData.classesPast")}
+            />
+          </StatRow>
         </div>
       );
     }

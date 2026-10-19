@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
 import { AdminGate } from "@/components/admin/admin-gate";
+import { KpiCard } from "@/components/admin/kpi-card";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
 import { FilterBar } from "@/components/query/FilterBar";
@@ -132,7 +133,7 @@ export default function AdminFinanzasPage() {
   const t = useTranslations("admin");
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
-      <ConsoleHeader backHref="/admin" backLabel={t("title")} />
+      <ConsoleHeader backHref="/inicio" backLabel={t("modules.backHome")} />
       <AdminGate>
         <FinancePanel />
       </AdminGate>
@@ -368,7 +369,7 @@ function FinancePanel() {
           <p className="text-sm text-ink/50">{t("finance.loadError")}</p>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            <Kpi
+            <KpiCard
               label={t("finance.kpiGmv")}
               value={clp.format(gmvTotal)}
               hint={t("finance.kpiGmvHint", {
@@ -377,7 +378,7 @@ function FinancePanel() {
                 saas: clp.format(summary.gmv.saas),
               })}
             />
-            <Kpi
+            <KpiCard
               label={t("finance.kpiRevenue")}
               value={clp.format(summary.platformRevenue.total)}
               hint={t("finance.kpiRevenueHint", {
@@ -385,7 +386,7 @@ function FinancePanel() {
                 vat: clp.format(summary.platformRevenue.vat),
               })}
             />
-            <Kpi
+            <KpiCard
               label={t("finance.kpiToTransfer")}
               value={clp.format(toTransfer)}
               hint={t("finance.kpiToTransferHint", {
@@ -394,7 +395,7 @@ function FinancePanel() {
                   summary.pendingPayout.approved.count,
               })}
             />
-            <Kpi
+            <KpiCard
               label={t("finance.kpiGateway")}
               value={clp.format(summary.gatewayCost)}
               hint={
@@ -675,9 +676,9 @@ function FinancePanel() {
         ) : (
           <>
             <div className="grid grid-cols-3 gap-3">
-              <Kpi label={t("finance.mrr")} value={clp.format(mrr.mrr)} />
-              <Kpi label={t("finance.arr")} value={clp.format(mrr.arr)} />
-              <Kpi
+              <KpiCard label={t("finance.mrr")} value={clp.format(mrr.mrr)} />
+              <KpiCard label={t("finance.arr")} value={clp.format(mrr.arr)} />
+              <KpiCard
                 label={t("finance.customContracts")}
                 value={num.format(mrr.customContracts)}
               />
@@ -734,25 +735,6 @@ function FinancePanel() {
           </>
         ))}
     </>
-  );
-}
-
-/** KPI card del header - label + monto + desglose breve. */
-function Kpi({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <Card className="flex flex-col gap-1 p-4">
-      <p className="text-xs text-ink/50">{label}</p>
-      <p className="text-lg font-semibold">{value}</p>
-      {hint && <p className="text-[11px] leading-snug text-ink/40">{hint}</p>}
-    </Card>
   );
 }
 

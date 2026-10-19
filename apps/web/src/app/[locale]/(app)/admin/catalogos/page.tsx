@@ -39,10 +39,11 @@ type Field = "genre" | "order" | null;
  */
 export default function AdminCatalogosPage() {
   const t = useTranslations("admin");
+  const tn = useTranslations("nav");
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
-      <ConsoleHeader backHref="/admin" backLabel={t("title")} />
+      <ConsoleHeader backHref="/inicio" backLabel={tn("home")} />
       <AdminGate>
         <CatalogsPanel />
       </AdminGate>

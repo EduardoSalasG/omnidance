@@ -188,7 +188,7 @@ export default function AdminDatosPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
-      <ConsoleHeader backHref="/admin" backLabel={t("title")} />
+      <ConsoleHeader backHref="/inicio" backLabel={t("modules.backHome")} />
       <AdminGate>
         <DatosPanel />
       </AdminGate>
@@ -266,11 +266,29 @@ function DatosPanel() {
       const list = data.entities ?? [];
       setEntities(list);
       setOptions(data.options ?? {});
-      setEntity((prev) =>
-        prev && list.some((e) => e.entity === prev)
-          ? prev
-          : (list[0]?.entity ?? ""),
-      );
+      // Deep-link (spec admin-console-billing-nav): ?entity=<e>&<key>=<v>
+      // precarga entidad y filtros declarados (inválido → default).
+      const sp = new URLSearchParams(window.location.search);
+      const urlEntity = sp.get("entity");
+      const seeded = urlEntity
+        ? list.find((e) => e.entity === urlEntity)
+        : undefined;
+      if (seeded) {
+        setEntity(seeded.entity);
+        const seededFilters: QueryFilters = {};
+        for (const f of seeded.filters) {
+          const v = sp.get(f.key);
+          if (v) seededFilters[f.key] = v;
+        }
+        if (Object.keys(seededFilters).length > 0)
+          setFilters(seededFilters);
+      } else {
+        setEntity((prev) =>
+          prev && list.some((e) => e.entity === prev)
+            ? prev
+            : (list[0]?.entity ?? ""),
+        );
+      }
       setCatalogPhase("ready");
     } catch {
       setCatalogPhase("error");

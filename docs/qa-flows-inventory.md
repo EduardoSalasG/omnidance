@@ -348,14 +348,18 @@
 
 ## 9. Admin (`/admin/*` — `admin.access`/isSuperuser; todo mutación audita AuditLog)
 
-- `/admin`: hub ModuleGrid + tour.
+- Chrome móvil: **drawer-only** (sin bottom tab bar, igual que owner/productor); drawer/sidebar por dominio: Inicio primero, **Gestión** (usuarios/roles/academias/catálogos), **Facturación** (transacciones/suscripciones/documentos/finanzas), **Comercial** (CRM 4 secciones + difusión `/admin/campanas`), **Analítica** (consultas/datos/usuarios), **Plataforma** (params/jobs/auditoría), **Social** (eventos/staff). `/crm` y `/admin/facturacion` matchean activo exacto; `/admin` redirige a `/inicio`.
+- `/inicio` (lente ADMIN): KPIs `home/stats` — pendingRoles, **leadsNew**, **txRevenueMonth** (fees neto+IVA PAID no-PLATFORM_SUB del mes CL), **subRevenueMonth** (PLATFORM_SUB PAID del mes), users, activeEvents, pendingPayouts — + sección "Leads por revisar" (NEW asc, 6 filas → `/admin/datos?entity=leads&status=NEW`) + hero.
+- `/admin` → redirect a `/inicio` (hub eliminado: los destinos viven en el sidebar).
 - `/admin/usuarios`: búsqueda q≥2 + role enum → `GET /admin/users` (cap 100) → /{personId}.
 - `/admin/usuarios/[personId]` ⚠️: cambiar status de rol (select inline sin confirm) `POST /users/:id/roles`; agregar rol; revocar ConfirmSheet `DELETE .../roles/:role`; **hard-delete** ConfirmSheet `DELETE /users/:id` (400 self-delete; irreversible); link analytics.
 - `/admin/roles` ⚠️: toggle grant `POST /roles/:key/permissions` **sin confirm** (cuidado lockout admin.access); crear rol/permiso existe sin UI.
 - `/admin/parametros` ⚠️: `PUT /params/:key` (JSON libre, sin confirm — efecto global); `GET/PUT /producers/:id/fee-params` (fee+preset cutoff; >1439 preserva raw).
-- `/admin/datos`: catalog ADMIN 13 entidades → `GET /admin/browse/:entity` (cap 100); payments→verificar cadena ledger; leads→**Convertir** `POST /leads/:id/convert` (crea cuenta demo + email magic-link real); payloads expandibles; export csv/pdf; consultas guardadas.
+- `/admin/datos`: catalog ADMIN 13 entidades → `GET /admin/browse/:entity` (cap 100); **deep-link `?entity=<e>&<key>=<v>` precarga entidad+filtros declarados**; payments→verificar cadena ledger; leads→**Convertir** `POST /leads/:id/convert` (crea cuenta demo + email magic-link real); payloads expandibles; export csv/pdf; consultas guardadas.
 - `/admin/finanzas` ⚠️: KPIs `finance/summary`; tabs payouts (approve `POST /:id/approve` sin confirm idempotente; pay `POST /:id/pay` evidence opcional), accrual (`POST /payouts/generate` idempotente), payments read-only, saas MRR.
 - `/admin/facturacion`: candidates → Emitir `POST /billing/generate` (idempotente); docs filtros → PDF inline; **Anular** inline razón* → `POST /billing/:id/void`.
+- `/admin/facturacion/transacciones`: KPIs del mes `finance/summary` (ingreso plataforma, GMV tx, costo pasarela, por transferir) + desglose segmento + FilterBar `payments` + lista `browse/payments` (default PAID; KPIs del período no siguen el filtro).
+- `/admin/facturacion/suscripciones`: KPIs `finance/mrr` (MRR/ARR/activas/a convenir) + byTier + funnel de estados clickeable (filtro client-side) + lista suscripciones (kind, actor, tier, ciclo, status, monto mensual, próximo cobro).
 - `/admin/jobs` ⚠️: pause/resume PATCH sin confirm; edit cron PATCH; **Run now** ConfirmSheet `POST /:key/run` (efectos reales: mails, payouts); runs list.
 - `/admin/campanas` ⚠️: lista; Edit (DRAFT|SCHEDULED); **Test** send sin confirm; **Run now** ConfirmSheet (audiencia completa real); Cancel ConfirmSheet. Form: audiencia ALL|ROLE|EVENT|lifecycle+days; audience-count debounce; schedule ONCE|CRON.
 - `/admin/auditoria`: read-only `GET /admin/audit` filtros.

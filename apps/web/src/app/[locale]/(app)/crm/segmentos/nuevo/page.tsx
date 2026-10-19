@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
-  ActorPicker,
   CrmGateScreen,
   useCrmContext,
 } from "@/components/crm/crm-context";
@@ -32,7 +31,6 @@ export default function NuevoSegmentoPage() {
 
       {ctx.gate === "ready" && (
         <>
-          <ActorPicker ctx={ctx} />
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
           ) : ctx.proBlocked ? (

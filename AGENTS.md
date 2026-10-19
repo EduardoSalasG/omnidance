@@ -96,6 +96,7 @@ Estos pasos se incumplieron en sesiones reales - son gates, no sugerencias:
   - Feedback de **acción** (botón presionado, submit, guardar): `Spinner` inline **inmediato** - ahí la latencia la pide el usuario, no el sistema.
   - Nunca `<Spinner>` desnudo a nivel panel ni "Cargando…" de texto plano sin delay. Nunca forzar duración mínima larga (≥1s) para "que se aprecie": penaliza el caso común rápido. Si un indicador ya se mostró, basta un mínimo ~400ms anti-parpadeo.
 - **Skills de diseño**: cualquier trabajo de UI pasa por `impeccable` (context por sesión, `craft-floor.md` antes de editar, `detect --json` al terminar) y `apple-design` cuando toque motion física, materiales o tipografía - detalle en "Orquestación multi-agente" §6.
+- **Principios UX/UI**: `.devin/skills/ui-ux-principles` mapea la checklist de craft (agrupar → jerarquizar → acercar, 3 niveles, affordance, color-semántica, i18n tipográfica) a nuestros tokens/componentes - invocarla **siempre que se desarrolle frontend** o una superficie se vea "plana". Patrones por componente en las skills hermanas: `ui-cards` (arquetipos lectura/rail), `ui-lists` (filas, tablas, drill-down, estados), `ui-filters` (searchbar, toggles, sort).
 - **Consolas** (`/academia`, `/productor`, `/admin`, `/soporte`): el patrón unificado (crear = CTA → page, card clickeable → ficha, acciones en ficha, destructivo en zona roja al pie, FilterBar + Pager, estados explícitos) vive en `.devin/skills/console-patterns` - toda página nueva o refactor de consola sigue ese skill.
 
 ### Documentación

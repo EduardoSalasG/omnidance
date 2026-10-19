@@ -10,6 +10,13 @@ import {
 import { IsNotEmpty, IsString, Matches } from "class-validator";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
+import { clMonthStart, clWeekStart } from "../../common/cl-time";
+import {
+  decodeClassRef,
+  decodeMembershipRef,
+  decodePlatformSubRef,
+  decodePrivateRef,
+} from "../../payments/domain/order-ref";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { effectiveCapacity } from "../../academies/domain/academy.service";
@@ -177,20 +184,158 @@ export class UserIntelController {
   async academyScoreHealth() {
     const scores = await this.prisma.relationshipScore.findMany({
       where: { actorType: "ACADEMY" },
-      select: { actorId: true, personId: true, score: true, segment: true },
+      select: {
+        actorId: true,
+        personId: true,
+        score: true,
+        segment: true,
+        computedAt: true,
+      },
     });
     if (!scores.length) return { items: [] };
 
     const academies = await this.prisma.academy.findMany({
       where: { id: { in: [...new Set(scores.map((s) => s.actorId))] } },
-      select: { id: true, name: true },
+      select: { id: true, name: true, tier: true, billingBlockedAt: true },
     });
     const academyName = new Map(academies.map((a) => [a.id, a.name]));
-    const personName = await this.peopleByIds(scores.map((s) => s.personId));
+    const academyTier = new Map(academies.map((a) => [a.id, a.tier]));
+    const academyBlocked = new Map(
+      academies.map((a) => [a.id, a.billingBlockedAt != null]),
+    );
 
     const byAcademy = new Map<string, typeof scores>();
     for (const s of scores) {
       (byAcademy.get(s.actorId) ?? byAcademy.set(s.actorId, []).get(s.actorId)!).push(s);
+    }
+
+    // Facturación por academia: pagos PAID que resuelven a actor ACADEMY
+    // (misma resolución que finance/accrual) del mes CL vigente y el
+    // anterior — para la comparación mes vs mes del card.
+    const mStart = clMonthStart(new Date());
+    const mPrevStart = clMonthStart(new Date(mStart.getTime() - DAY_MS));
+    const [billingPays, payEvents, payPlans, payClasses] = await Promise.all([
+      this.prisma.payment.findMany({
+        where: { status: "PAID", createdAt: { gte: mPrevStart } },
+        select: {
+          orderType: true,
+          refId: true,
+          eventId: true,
+          amount: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.event.findMany({
+        where: { academyId: { not: null } },
+        select: { id: true, academyId: true },
+      }),
+      this.prisma.membershipPlan.findMany({
+        select: { id: true, academyId: true },
+      }),
+      this.prisma.class.findMany({
+        select: { id: true, slot: { select: { academyId: true } } },
+      }),
+    ]);
+    const evAcademy = new Map(payEvents.map((e) => [e.id, e.academyId!]));
+    const planAcademy = new Map(payPlans.map((p) => [p.id, p.academyId]));
+    const classAcademy = new Map(
+      payClasses.map((c) => [c.id, c.slot.academyId]),
+    );
+    const academyOfPay = (p: (typeof billingPays)[number]) => {
+      switch (p.orderType) {
+        case "TICKET":
+          return p.eventId ? (evAcademy.get(p.eventId) ?? null) : null;
+        case "MEMBERSHIP": {
+          const id = decodeMembershipRef(p.refId)?.planId;
+          return id ? (planAcademy.get(id) ?? null) : null;
+        }
+        case "WORKSHOP": {
+          const id = decodeClassRef(p.refId)?.classId;
+          return id ? (classAcademy.get(id) ?? null) : null;
+        }
+        case "PRIVATE":
+          return decodePrivateRef(p.refId)?.academyId ?? null;
+        default:
+          return null;
+      }
+    };
+    const billing = new Map<string, { month: number; prev: number }>();
+    for (const p of billingPays) {
+      const academyId = academyOfPay(p);
+      if (!academyId) continue;
+      const b = billing.get(academyId) ?? { month: 0, prev: 0 };
+      if (p.createdAt >= mStart) b.month += p.amount;
+      else b.prev += p.amount;
+      billing.set(academyId, b);
+    }
+
+    // Inscritos (Enrollment ACTIVE) por academia + los que ya existían
+    // al inicio del mes (startedAt < mStart) para la comparación.
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: {
+        academyId: { in: [...byAcademy.keys()] },
+        status: "ACTIVE",
+      },
+      select: { academyId: true, startedAt: true, planId: true },
+    });
+    const enrolledBy = new Map<string, { now: number; prev: number }>();
+    const planBy = new Map<string, { now: number; prev: number }>();
+    for (const e of enrollments) {
+      const b = enrolledBy.get(e.academyId) ?? { now: 0, prev: 0 };
+      b.now++;
+      if (e.startedAt < mStart) b.prev++;
+      enrolledBy.set(e.academyId, b);
+      // Activos con plan comprado (vigente) - pueden no asistir.
+      if (e.planId) {
+        const p = planBy.get(e.academyId) ?? { now: 0, prev: 0 };
+        p.now++;
+        if (e.startedAt < mStart) p.prev++;
+        planBy.set(e.academyId, p);
+      }
+    }
+
+    // Activos = alumnos únicos con check-in a clases de la academia en
+    // el período (Attendance→class→slot.academyId). Mes vigente vs
+    // anterior — comparable porque la asistencia sí tiene timestamp.
+    const attendances = await this.prisma.attendance.findMany({
+      where: {
+        checkedAt: { gte: mPrevStart },
+        class: { slot: { academyId: { in: [...byAcademy.keys()] } } },
+      },
+      select: {
+        personId: true,
+        checkedAt: true,
+        class: { select: { slot: { select: { academyId: true } } } },
+      },
+    });
+    const activeBy = new Map<
+      string,
+      { now: Set<string>; prev: Set<string> }
+    >();
+    for (const at of attendances) {
+      const academyId = at.class.slot.academyId;
+      if (!academyId) continue;
+      const b =
+        activeBy.get(academyId) ?? { now: new Set(), prev: new Set() };
+      (at.checkedAt >= mStart ? b.now : b.prev).add(at.personId);
+      activeBy.set(academyId, b);
+    }
+
+    // Segmentos de la semana anterior: último snapshot previo al lunes
+    // CL vigente (job academies.segment_snapshots). null si aún no hay.
+    const weekStart = clWeekStart(new Date());
+    const prevSnaps = await this.prisma.academySegmentSnapshot.findMany({
+      where: {
+        academyId: { in: [...byAcademy.keys()] },
+        weekStart: { lt: weekStart },
+      },
+      orderBy: { weekStart: "desc" },
+      select: { academyId: true, segments: true },
+    });
+    const prevSegs = new Map<string, Record<string, number>>();
+    for (const s of prevSnaps) {
+      if (!prevSegs.has(s.academyId))
+        prevSegs.set(s.academyId, s.segments as Record<string, number>);
     }
 
     const items = [...byAcademy.entries()].map(([academyId, rows]) => {
@@ -199,31 +344,605 @@ export class UserIntelController {
         const k = r.segment ?? "NONE";
         segments[k] = (segments[k] ?? 0) + 1;
       }
-      const sorted = [...rows].sort((a, b) => b.score - a.score);
-      const brief = (r: (typeof rows)[number]) => ({
-        personId: r.personId,
-        name: personName.get(r.personId)?.name ?? null,
-        score: r.score,
-        segment: r.segment,
-      });
       return {
         academyId,
         academyName: academyName.get(academyId) ?? null,
         studentCount: rows.length,
         avgScore: Math.round(rows.reduce((a, r) => a + r.score, 0) / rows.length),
+        // Última recomputación del set (el score más reciente manda).
+        computedAt: rows.reduce(
+          (m, r) => (r.computedAt > m ? r.computedAt : m),
+          rows[0].computedAt,
+        ),
         segments,
-        top: sorted.slice(0, 3).map(brief),
-        atRisk: rows
-          .filter((r) => r.segment === "AT_RISK")
-          .slice(0, 5)
-          .map(brief),
-        // Drill-down (spec academy-score-refine): todos los alumnos con
-        // score, ordenados desc.
-        rows: sorted.map(brief),
+        billingMonthClp: billing.get(academyId)?.month ?? 0,
+        billingPrevMonthClp: billing.get(academyId)?.prev ?? 0,
+        enrolledCount: enrolledBy.get(academyId)?.now ?? 0,
+        enrolledPrev: enrolledBy.get(academyId)?.prev ?? 0,
+        planCount: planBy.get(academyId)?.now ?? 0,
+        planPrev: planBy.get(academyId)?.prev ?? 0,
+        activeNow: activeBy.get(academyId)?.now.size ?? 0,
+        activePrev: activeBy.get(academyId)?.prev.size ?? 0,
+        segmentsPrev: prevSegs.get(academyId) ?? null,
+        tier: academyTier.get(academyId) ?? null,
+        billingBlocked: academyBlocked.get(academyId) ?? false,
       };
     });
     items.sort((a, b) => b.avgScore - a.avgScore);
     return { items };
+  }
+
+  /**
+   * GET /api/admin/academies/:id/detail - ficha admin de una academia:
+   * datos generales, KPIs operativos (misma semántica que score-health)
+   * y listas de trabajo (clases próximas, top alumnos, pagos recientes).
+   */
+  @Get("academies/:id/detail")
+  async academyDetail(@Param("id") id: string) {
+    const academy = await this.prisma.academy.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        active: true,
+        createdAt: true,
+        address: true,
+        description: true,
+        instagram: true,
+        whatsapp: true,
+        website: true,
+        tier: true,
+        billingCycle: true,
+        trialEndsAt: true,
+        billingGraceUntil: true,
+        billingBlockedAt: true,
+        ownerId: true,
+        defaultQuorum: true,
+        instructors: {
+          select: {
+            personId: true,
+            payType: true,
+            payAmount: true,
+            payClasses: true,
+            commissionPct: true,
+          },
+        },
+        staff: {
+          select: {
+            personId: true,
+            canStudents: true,
+            canPayments: true,
+            canPlans: true,
+            canSchedule: true,
+            canProfile: true,
+            canTeam: true,
+            canBilling: true,
+          },
+        },
+        plans: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            price: true,
+            classCount: true,
+            weeklyClasses: true,
+            periodDays: true,
+            active: true,
+            _count: { select: { enrollments: true } },
+          },
+        },
+        classSlots: { select: { id: true } },
+      },
+    });
+    if (!academy) throw new NotFoundException("academia no encontrada");
+
+    const mStart = clMonthStart(new Date());
+    const mPrevStart = clMonthStart(new Date(mStart.getTime() - DAY_MS));
+
+    const [scores, enrollments, attendances, payments, payEvents, payPlans, payClasses, upcoming] =
+      await Promise.all([
+        this.prisma.relationshipScore.findMany({
+          where: { actorType: "ACADEMY", actorId: id },
+          select: { personId: true, score: true, segment: true, computedAt: true },
+          orderBy: { score: "desc" },
+        }),
+        this.prisma.enrollment.findMany({
+          where: { academyId: id, status: "ACTIVE" },
+          select: { startedAt: true, planId: true },
+        }),
+        this.prisma.attendance.findMany({
+          where: {
+            checkedAt: { gte: mPrevStart },
+            class: { slot: { academyId: id } },
+          },
+          select: { personId: true, checkedAt: true },
+        }),
+        this.prisma.payment.findMany({
+          where: { status: "PAID", createdAt: { gte: mPrevStart } },
+          select: {
+            orderType: true,
+            refId: true,
+            eventId: true,
+            amount: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 500,
+        }),
+        this.prisma.event.findMany({
+          where: { academyId: { not: null } },
+          select: { id: true, academyId: true },
+        }),
+        this.prisma.membershipPlan.findMany({
+          select: { id: true, academyId: true },
+        }),
+        this.prisma.class.findMany({
+          select: { id: true, slot: { select: { academyId: true } } },
+        }),
+        this.prisma.class.findMany({
+          where: {
+            slot: { academyId: id },
+            date: { gte: new Date() },
+            cancelled: false,
+          },
+          select: {
+            id: true,
+            date: true,
+            capacity: true,
+            _count: { select: { attendances: true } },
+            slot: {
+              select: {
+                startTime: true,
+                types: { select: { type: { select: { name: true } } } },
+                series: { select: { name: true } },
+              },
+            },
+          },
+          orderBy: { date: "asc" },
+          take: 20,
+        }),
+      ]);
+
+    const evAcademy = new Map(payEvents.map((e) => [e.id, e.academyId!]));
+    const planAcademy = new Map(payPlans.map((p) => [p.id, p.academyId]));
+    const classAcademy = new Map(
+      payClasses.map((c) => [c.id, c.slot.academyId]),
+    );
+    const academyOfPay = (p: (typeof payments)[number]) => {
+      switch (p.orderType) {
+        case "TICKET":
+          return p.eventId ? (evAcademy.get(p.eventId) ?? null) : null;
+        case "MEMBERSHIP": {
+          const pid = decodeMembershipRef(p.refId)?.planId;
+          return pid ? (planAcademy.get(pid) ?? null) : null;
+        }
+        case "WORKSHOP": {
+          const cid = decodeClassRef(p.refId)?.classId;
+          return cid ? (classAcademy.get(cid) ?? null) : null;
+        }
+        case "PRIVATE":
+          return decodePrivateRef(p.refId)?.academyId ?? null;
+        default:
+          return null;
+      }
+    };
+
+    let billingMonthClp = 0;
+    let billingPrevMonthClp = 0;
+    const recentPays: { amount: number; createdAt: Date; orderType: string }[] = [];
+    for (const p of payments) {
+      if (academyOfPay(p) !== id) continue;
+      if (p.createdAt >= mStart) billingMonthClp += p.amount;
+      else billingPrevMonthClp += p.amount;
+      if (recentPays.length < 10)
+        recentPays.push({
+          amount: p.amount,
+          createdAt: p.createdAt,
+          orderType: p.orderType,
+        });
+    }
+
+    const segments: Record<string, number> = {};
+    let scoreSum = 0;
+    let computedAt: Date | null = null;
+    for (const s of scores) {
+      const k = s.segment ?? "NONE";
+      segments[k] = (segments[k] ?? 0) + 1;
+      scoreSum += s.score;
+      if (!computedAt || s.computedAt > computedAt) computedAt = s.computedAt;
+    }
+    const enrolledPrev = enrollments.filter(
+      (e) => e.startedAt < mStart,
+    ).length;
+    const activeNow = new Set(
+      attendances.filter((a) => a.checkedAt >= mStart).map((a) => a.personId),
+    ).size;
+    const activePrev = new Set(
+      attendances.filter((a) => a.checkedAt < mStart).map((a) => a.personId),
+    ).size;
+
+    const personNames = await this.peopleByIds([
+      academy.ownerId,
+      ...scores.slice(0, 15).map((s) => s.personId),
+      ...academy.instructors.map((i) => i.personId),
+      ...academy.staff.map((s) => s.personId),
+    ]);
+
+    return {
+      academy: {
+        id: academy.id,
+        name: academy.name,
+        active: academy.active,
+        createdAt: academy.createdAt,
+        address: academy.address,
+        description: academy.description,
+        instagram: academy.instagram,
+        whatsapp: academy.whatsapp,
+        website: academy.website,
+        tier: academy.tier,
+        billingCycle: academy.billingCycle,
+        trialEndsAt: academy.trialEndsAt,
+        billingGraceUntil: academy.billingGraceUntil,
+        billingBlockedAt: academy.billingBlockedAt,
+        defaultQuorum: academy.defaultQuorum,
+        ownerName: personNames.get(academy.ownerId)?.name ?? null,
+        instructorCount: academy.instructors.length,
+        staffCount: academy.staff.length,
+      },
+      kpis: {
+        studentCount: scores.length,
+        avgScore: scores.length ? Math.round(scoreSum / scores.length) : 0,
+        computedAt,
+        segments,
+        enrolledCount: enrollments.length,
+        enrolledPrev,
+        planCount: enrollments.filter((e) => e.planId).length,
+        activeNow,
+        activePrev,
+        billingMonthClp,
+        billingPrevMonthClp,
+        classSlotCount: academy.classSlots.length,
+        planTotal: academy.plans.length,
+      },
+      upcoming: upcoming.map((c) => ({
+        id: c.id,
+        date: c.date,
+        startTime: c.slot.startTime,
+        capacity: c.capacity,
+        bookedCount: c._count.attendances,
+        title: c.slot.series?.name ?? "Clase",
+        types: c.slot.types.map((x) => x.type.name),
+      })),
+      topStudents: scores.slice(0, 15).map((s) => ({
+        personId: s.personId,
+        name: personNames.get(s.personId)?.name ?? null,
+        score: Math.round(s.score),
+        segment: s.segment,
+      })),
+      recentPayments: recentPays,
+      plans: academy.plans.map((p) => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        price: p.price,
+        classCount: p.classCount,
+        weeklyClasses: p.weeklyClasses,
+        periodDays: p.periodDays,
+        active: p.active,
+        enrollments: p._count.enrollments,
+      })),
+      team: {
+        instructors: academy.instructors.map((i) => ({
+          personId: i.personId,
+          name: personNames.get(i.personId)?.name ?? null,
+          payType: i.payType,
+          payAmount: i.payAmount,
+          payClasses: i.payClasses,
+          commissionPct: i.commissionPct,
+        })),
+        staff: academy.staff.map((s) => ({
+          personId: s.personId,
+          name: personNames.get(s.personId)?.name ?? null,
+          perms: (
+            [
+              "canStudents",
+              "canPayments",
+              "canPlans",
+              "canSchedule",
+              "canProfile",
+              "canTeam",
+              "canBilling",
+            ] as const
+          ).filter((k) => s[k]),
+        })),
+      },
+    };
+  }
+
+  /**
+   * GET /api/admin/academies/:id/planes/:planId - ficha admin de un plan:
+   * todos sus campos + alumnos inscritos + pagos recientes del plan.
+   */
+  @Get("academies/:id/planes/:planId")
+  async academyPlanDetail(
+    @Param("id") id: string,
+    @Param("planId") planId: string,
+  ) {
+    const plan = await this.prisma.membershipPlan.findUnique({
+      where: { id: planId },
+      include: {
+        academy: { select: { id: true, name: true } },
+        _count: { select: { enrollments: true } },
+      },
+    });
+    if (!plan || plan.academyId !== id)
+      throw new NotFoundException("plan no encontrado");
+
+    const [enrollments, payments] = await Promise.all([
+      this.prisma.enrollment.findMany({
+        where: { planId },
+        orderBy: { startedAt: "desc" },
+        take: 50,
+        select: { personId: true, status: true, startedAt: true },
+      }),
+      this.prisma.payment.findMany({
+        where: { orderType: "MEMBERSHIP", status: "PAID" },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        select: { amount: true, createdAt: true, refId: true },
+      }),
+    ]);
+
+    const names = await this.peopleByIds(enrollments.map((e) => e.personId));
+    const planPays = payments
+      .filter((p) => decodeMembershipRef(p.refId)?.planId === planId)
+      .slice(0, 10)
+      .map(({ amount, createdAt }) => ({ amount, createdAt }));
+
+    return {
+      plan: {
+        id: plan.id,
+        name: plan.name,
+        type: plan.type,
+        price: plan.price,
+        classCount: plan.classCount,
+        weeklyClasses: plan.weeklyClasses,
+        periodDays: plan.periodDays,
+        description: plan.description,
+        active: plan.active,
+        flowPlanId: plan.flowPlanId,
+        enrollmentTotal: plan._count.enrollments,
+      },
+      academy: plan.academy,
+      enrollments: enrollments.map((e) => ({
+        personId: e.personId,
+        name: names.get(e.personId)?.name ?? null,
+        status: e.status,
+        startedAt: e.startedAt,
+      })),
+      recentPayments: planPays,
+    };
+  }
+
+  /**
+   * GET /api/admin/academies/:id/clases/:classId - ficha admin de una
+   * clase: datos del horario + reservas + check-ins.
+   */
+  @Get("academies/:id/clases/:classId")
+  async academyClassDetail(
+    @Param("id") id: string,
+    @Param("classId") classId: string,
+  ) {
+    const cls = await this.prisma.class.findUnique({
+      where: { id: classId },
+      select: {
+        id: true,
+        date: true,
+        capacity: true,
+        cancelled: true,
+        instructorId: true,
+        slot: {
+          select: {
+            startTime: true,
+            endTime: true,
+            capacity: true,
+            academyId: true,
+            academy: { select: { name: true } },
+            series: { select: { name: true } },
+            types: { select: { type: { select: { name: true } } } },
+          },
+        },
+        instructors: { select: { personId: true } },
+        attendances: {
+          select: { personId: true, checkedAt: true },
+          orderBy: { checkedAt: "desc" },
+        },
+        bookings: {
+          select: { personId: true, status: true, createdAt: true },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+    if (!cls || cls.slot.academyId !== id)
+      throw new NotFoundException("clase no encontrada");
+
+    const names = await this.peopleByIds([
+      ...(cls.instructorId ? [cls.instructorId] : []),
+      ...cls.instructors.map((i) => i.personId),
+      ...cls.attendances.map((a) => a.personId),
+      ...cls.bookings.map((b) => b.personId),
+    ]);
+    const booked = cls.bookings.filter((b) => b.status === "BOOKED").length;
+
+    return {
+      cls: {
+        id: cls.id,
+        date: cls.date,
+        cancelled: cls.cancelled,
+        startTime: cls.slot.startTime,
+        endTime: cls.slot.endTime,
+        title: cls.slot.series?.name ?? "Clase",
+        types: cls.slot.types.map((x) => x.type.name),
+        capacity: cls.capacity ?? cls.slot.capacity,
+        bookedCount: booked,
+        checkedIn: cls.attendances.length,
+        instructors: [
+          ...(cls.instructorId ? [cls.instructorId] : []),
+          ...cls.instructors
+            .map((i) => i.personId)
+            .filter((p) => p !== cls.instructorId),
+        ].map((p) => ({
+          personId: p,
+          name: names.get(p)?.name ?? null,
+        })),
+      },
+      academyName: cls.slot.academy.name,
+      bookings: cls.bookings.map((b) => ({
+        personId: b.personId,
+        name: names.get(b.personId)?.name ?? null,
+        status: b.status,
+        createdAt: b.createdAt,
+      })),
+      attendances: cls.attendances.map((a) => ({
+        personId: a.personId,
+        name: names.get(a.personId)?.name ?? null,
+        checkedAt: a.checkedAt,
+      })),
+    };
+  }
+
+  /**
+   * GET /api/admin/academies/:id/suscripcion - ficha de la suscripción
+   * SaaS de la academia: estado, ciclo, cambios pendientes y cobros.
+   */
+  @Get("academies/:id/suscripcion")
+  async academySubscription(@Param("id") id: string) {
+    const [academy, sub, payments] = await Promise.all([
+      this.prisma.academy.findUnique({
+        where: { id },
+        select: {
+          name: true,
+          tier: true,
+          billingCycle: true,
+          trialEndsAt: true,
+          billingGraceUntil: true,
+          billingBlockedAt: true,
+        },
+      }),
+      this.prisma.platformSubscription.findFirst({
+        where: { academyId: id, kind: "ACADEMY" },
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.payment.findMany({
+        where: { orderType: "PLATFORM_SUB", status: "PAID" },
+        orderBy: { createdAt: "desc" },
+        take: 200,
+        select: { amount: true, createdAt: true, refId: true },
+      }),
+    ]);
+    if (!academy) throw new NotFoundException("academia no encontrada");
+
+    const payerName = sub
+      ? ((await this.peopleByIds([sub.personId])).get(sub.personId)?.name ??
+        null)
+      : null;
+
+    return {
+      academyName: academy.name,
+      academy: {
+        tier: academy.tier,
+        billingCycle: academy.billingCycle,
+        trialEndsAt: academy.trialEndsAt,
+        billingGraceUntil: academy.billingGraceUntil,
+        billingBlockedAt: academy.billingBlockedAt,
+      },
+      subscription: sub
+        ? {
+            id: sub.id,
+            status: sub.status,
+            tierCode: sub.tierCode,
+            billingCycle: sub.billingCycle,
+            pendingTierCode: sub.pendingTierCode,
+            pendingBillingCycle: sub.pendingBillingCycle,
+            nextInvoiceAt: sub.nextInvoiceAt,
+            createdAt: sub.createdAt,
+            canceledAt: sub.canceledAt,
+            flowSubscriptionId: sub.flowSubscriptionId,
+            payerName,
+          }
+        : null,
+      payments: payments
+        .filter(
+          (p) =>
+            sub && decodePlatformSubRef(p.refId)?.subscriptionId === sub.id,
+        )
+        .slice(0, 15)
+        .map((p) => ({
+          amount: p.amount,
+          createdAt: p.createdAt,
+          invoiceId: decodePlatformSubRef(p.refId)?.invoiceId ?? null,
+        })),
+      // Ingresos de la academia (tickets/membresías/talleres/particulares).
+      revenue: await this.academyRevenue(id),
+    };
+  }
+
+  /** Pagos PAID que resuelven a la academia — misma regla que score-health. */
+  private async academyRevenue(academyId: string) {
+    const [payments, evs, plans, classes] = await Promise.all([
+      this.prisma.payment.findMany({
+        where: { status: "PAID" },
+        orderBy: { createdAt: "desc" },
+        take: 500,
+        select: {
+          orderType: true,
+          refId: true,
+          eventId: true,
+          amount: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.event.findMany({
+        where: { academyId: { not: null } },
+        select: { id: true, academyId: true },
+      }),
+      this.prisma.membershipPlan.findMany({
+        select: { id: true, academyId: true },
+      }),
+      this.prisma.class.findMany({
+        select: { id: true, slot: { select: { academyId: true } } },
+      }),
+    ]);
+    const evAcademy = new Map(evs.map((e) => [e.id, e.academyId!]));
+    const planAcademy = new Map(plans.map((p) => [p.id, p.academyId]));
+    const classAcademy = new Map(classes.map((c) => [c.id, c.slot.academyId]));
+    const resolve = (p: (typeof payments)[number]) => {
+      switch (p.orderType) {
+        case "TICKET":
+          return p.eventId ? (evAcademy.get(p.eventId) ?? null) : null;
+        case "MEMBERSHIP": {
+          const pid = decodeMembershipRef(p.refId)?.planId;
+          return pid ? (planAcademy.get(pid) ?? null) : null;
+        }
+        case "WORKSHOP": {
+          const cid = decodeClassRef(p.refId)?.classId;
+          return cid ? (classAcademy.get(cid) ?? null) : null;
+        }
+        case "PRIVATE":
+          return decodePrivateRef(p.refId)?.academyId ?? null;
+        default:
+          return null;
+      }
+    };
+    return payments
+      .filter((p) => resolve(p) === academyId)
+      .slice(0, 15)
+      .map((p) => ({
+        amount: p.amount,
+        createdAt: p.createdAt,
+        orderType: p.orderType,
+      }));
   }
 
   // ── Analítica por usuario ───────────────────────────────────────────

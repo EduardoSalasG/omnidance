@@ -27,7 +27,7 @@
         "notFound": "Usuario no encontrado"
       },
       "scores": {
-        "title": "Scores por actor",
+        "title": "Scores",
         "computedAt": "Actualizado {date}",
         "components": {
           "attendanceRecent": "Asistencias recientes",
@@ -37,8 +37,13 @@
           "tenure": "Antigüedad",
           "referrals": "Referidos",
           "attendance": "Asistencias",
-          "spend": "Gasto"
-        }
+          "spend": "Gasto",
+          "eventsRecent": "Eventos recientes",
+          "eventStreak": "Racha de eventos",
+          "earlyPurchases": "Compras anticipadas"
+        },
+        "pending": "Pendiente",
+        "pts": "pts"
       },
       "roleData": {
         "ticketsUpcoming": "Entradas próximas",
@@ -191,17 +196,165 @@
       "campaigns": "Campañas de mail",
       "campaignsDesc": "Envíos programados a usuarios por audiencia",
       "academias": "Academias",
-      "academiasDesc": "Salud de alumnos por academia (scores y segmentos)"
+      "academiasDesc": "Salud de alumnos por academia (scores y segmentos)",
+      "transactions": "Transacciones",
+      "subscriptions": "Suscripciones",
+      "documents": "Documentos",
+      "backHome": "Inicio",
+      "broadcast": "Difusión"
     },
     "academies": {
-      "desc": "Salud de la base de alumnos por academia: distribución de segmentos, score medio y alumnos destacados o en riesgo.",
+      "desc": "Salud de la base de alumnos por academia: score medio, distribución de segmentos y actividad.",
       "error": "No se pudo cargar la salud de academias.",
       "empty": "Aún no hay scores de academias (ejecuta el recompute o espera el job diario).",
-      "students": "{count, plural, one {# alumno} other {# alumnos}}",
-      "avg": "Score medio {score}",
-      "top": "Top alumnos",
-      "atRisk": "En riesgo",
-      "noneAtRisk": "Nadie en riesgo"
+      "avg": "{score} prom.",
+      "enrolled": "{count, plural, one {# inscrito} other {# inscritos}}",
+      "active": "{count, plural, one {# activo} other {# activos}}",
+      "updated": "Actualizado {date}",
+      "search": "Buscar academia…",
+      "atRiskOnly": "En riesgo",
+      "sortLabel": "Ordenar por",
+      "sort": {
+        "score": "Score",
+        "billing": "Facturación",
+        "students": "Alumnos",
+        "name": "Nombre"
+      },
+      "noResults": "Sin academias que coincidan con el filtro.",
+      "billing": "Facturación este mes",
+      "billingNew": "Primer mes con ingresos",
+      "sortDir": {
+        "desc": "Descendente",
+        "asc": "Ascendente"
+      },
+      "checkin": "{count, plural, one {# con check-in} other {# con check-in}}",
+      "back": "Academias",
+      "kpi": {
+        "enrolled": "Inscritos",
+        "plan": "Con plan",
+        "checkin": "Con check-in",
+        "score": "Score medio",
+        "billing": "Facturación mes",
+        "classes": "Horarios",
+        "plans": "Planes",
+        "computed": "Score actualizado"
+      },
+      "detail": {
+        "general": "Datos generales",
+        "kpis": "Métricas",
+        "upcoming": "Próximas clases",
+        "noClasses": "Sin clases agendadas.",
+        "topStudents": "Top alumnos",
+        "plans": "Planes de membresía",
+        "recentPayments": "Pagos recientes",
+        "noPayments": "Sin pagos registrados.",
+        "owner": "Owner",
+        "address": "Dirección",
+        "instagram": "Instagram",
+        "whatsapp": "WhatsApp",
+        "website": "Web",
+        "created": "Cuenta creada",
+        "billing": "Suscripción",
+        "trial": "Trial hasta",
+        "quorum": "Quórum default",
+        "instructors": "Instructores",
+        "staff": "Staff",
+        "blocked": "Bloqueada",
+        "active": "Activa",
+        "inactive": "Inactiva",
+        "noStudents": "尚無評分資料。",
+        "noPlans": "未定義任何方案。",
+        "showAll": "Ver las {count}",
+        "showLess": "Ver menos",
+        "noInstructors": "Sin instructores registrados.",
+        "noStaff": "Sin colaboradores.",
+        "noAgreement": "Sin acuerdo",
+        "payTypes": {
+          "COMMISSION": "Comisión",
+          "PER_CLASS": "Por clase",
+          "MONTHLY": "Mensual"
+        },
+        "perms": {
+          "canStudents": "alumnos",
+          "canPayments": "pagos",
+          "canPlans": "planes",
+          "canSchedule": "horarios",
+          "canProfile": "perfil",
+          "canTeam": "equipo",
+          "canBilling": "facturación"
+        },
+        "noSubscription": "Sin suscripción",
+        "grace": "Gracia hasta",
+        "subscription": "Suscripción",
+        "blockedAt": "Bloqueada desde"
+      },
+      "plan": {
+        "data": "Datos del plan",
+        "type": "Tipo",
+        "price": "Precio",
+        "classCount": "Clases del pack",
+        "weeklyClasses": "Clases por semana",
+        "periodDays": "Vigencia",
+        "days": "{count} días",
+        "enrollments": "Inscritos total",
+        "flowSync": "Flow plan ID",
+        "enrolled": "Alumnos inscritos",
+        "noEnrollments": "Sin alumnos inscritos.",
+        "statuses": {
+          "ACTIVE": "Activo",
+          "PAUSED": "Pausado",
+          "TRIAL": "Prueba",
+          "FROZEN": "Congelado",
+          "ONLINE": "Online"
+        }
+      },
+      "class": {
+        "data": "Datos de la clase",
+        "date": "Fecha",
+        "time": "Horario",
+        "instructors": "Instructores",
+        "capacity": "Capacidad",
+        "booked": "Reservas",
+        "bookedCount": "{count}",
+        "checkedIn": "Check-ins",
+        "checkedInCount": "{count}",
+        "bookings": "Reservas",
+        "noBookings": "Sin reservas.",
+        "checkins": "Check-ins",
+        "noCheckins": "Sin check-ins.",
+        "cancelled": "Cancelada",
+        "statuses": {
+          "BOOKED": "Reservada",
+          "WAITLIST": "Lista de espera",
+          "CANCELLED": "Cancelada"
+        }
+      },
+      "sub": {
+        "data": "Datos de la suscripción",
+        "academy": "Estado en la academia",
+        "payments": "Cobros",
+        "noPayments": "Sin cobros registrados.",
+        "none": "La academia no tiene suscripción de plataforma.",
+        "status": "Estado",
+        "tier": "Plan",
+        "cycle": "Ciclo",
+        "payer": "Pagador",
+        "pendingChange": "Cambio pendiente",
+        "nextInvoice": "Próximo cobro",
+        "created": "Creada",
+        "canceledAt": "Cancelada",
+        "flowId": "Flow sub ID",
+        "statuses": {
+          "ACTIVE": "Activa",
+          "ACTIVATING": "Activando",
+          "PENDING_CARD": "Tarjeta pendiente",
+          "CANCEL_PENDING": "Cancelación programada",
+          "CANCELED": "Cancelada",
+          "FAILED_CARD": "Tarjeta rechazada"
+        },
+        "revenue": "Ingresos de la academia",
+        "noRevenue": "Sin ingresos registrados."
+      }
     },
     "jobs": {
       "title": "Jobs programados",
@@ -393,6 +546,67 @@
       "superuser": "Superusuario",
       "requestable": "Solicitable",
       "peopleCount": "{count, plural, one {# persona} other {# personas}}"
+    },
+    "navGroups": {
+      "billing": "Facturación",
+      "management": "Gestión",
+      "commercial": "Comercial",
+      "platform": "Plataforma"
+    },
+    "tx": {
+      "title": "Transacciones",
+      "desc": "Cobros procesados por la plataforma: entradas, pases, membresías y suscripciones.",
+      "kpisLabel": "Métricas del mes",
+      "kpiRevenue": "Ingreso plataforma",
+      "kpiRevenueHint": "Transacciones {tx} · Suscripciones {subs}",
+      "kpiGmv": "GMV transacciones",
+      "kpiGmvHint": "Social {social} · Academia {academy}",
+      "kpiGateway": "Costo pasarela",
+      "kpiOwnMethod": "+ {amount} cobrado por métodos propios",
+      "kpiToTransfer": "Por transferir",
+      "kpiToTransferHint": "{count, plural, one {# liquidación} other {# liquidaciones}}",
+      "listTitle": "Pagos",
+      "listEmpty": "Sin transacciones con estos filtros",
+      "loadError": "No se pudo cargar. Intenta de nuevo.",
+      "retry": "Reintentar",
+      "noPerson": "Sin persona",
+      "fee": "fee {amount}"
+    },
+    "subs": {
+      "title": "Suscripciones",
+      "desc": "Suscripciones de plataforma: academias y Producer Pro.",
+      "kpisLabel": "Métricas SaaS",
+      "kpiMrr": "MRR",
+      "kpiArr": "ARR",
+      "kpiActive": "Activas",
+      "kpiCustom": "A convenir",
+      "kpiCustomHint": "Contratos fuera del MRR",
+      "tiersTitle": "Por tier",
+      "tierCount": "{count, plural, one {# suscripción} other {# suscripciones}}",
+      "funnelTitle": "Estados",
+      "listEmpty": "Sin suscripciones en este estado",
+      "loadError": "No se pudo cargar. Intenta de nuevo.",
+      "retry": "Reintentar",
+      "perMonth": "mes",
+      "nextInvoice": "Próximo cobro {date}",
+      "kind": {
+        "ACADEMY": "Academia",
+        "PRODUCER": "Productor"
+      },
+      "cycle": {
+        "MONTHLY": "mensual",
+        "SEMIANNUAL": "semestral",
+        "ANNUAL": "anual"
+      },
+      "status": {
+        "PENDING_CARD": "Tarjeta pendiente",
+        "ACTIVATING": "Activando",
+        "ACTIVE": "Activa",
+        "PAST_DUE": "En mora",
+        "CANCEL_PENDING": "Cancela al ciclo",
+        "CANCELED": "Cancelada",
+        "FAILED_CARD": "Tarjeta fallida"
+      }
     }
   }
 }

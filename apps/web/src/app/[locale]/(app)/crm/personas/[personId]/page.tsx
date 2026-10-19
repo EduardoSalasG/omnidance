@@ -14,7 +14,6 @@ import {
 import { SkeletonCard } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
-  ActorPicker,
   CrmGateScreen,
   useCrmContext,
 } from "@/components/crm/crm-context";
@@ -74,7 +73,6 @@ export default function CrmPersonPage() {
 
       {ctx.gate === "ready" && (
         <>
-          <ActorPicker ctx={ctx} />
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
           ) : ctx.proBlocked ? (
