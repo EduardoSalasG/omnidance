@@ -130,7 +130,7 @@ const SCORE_COMPONENT_LABELS = [
 ];
 
 // Catálogo completo de estados de PersonRole (mismo set que valida la API).
-const ROLE_STATUSES = ["PENDING", "SANDBOX", "APPROVED", "REJECTED"] as const;
+const ROLE_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
 
 ;
 ;

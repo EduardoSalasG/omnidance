@@ -8380,6 +8380,78 @@
           }
         },
         {
+          "name": "GET /api/admin/validation-queue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/validation-queue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "validation-queue"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/admin/validation-queue/{personRoleId}/approve",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/validation-queue/{personRoleId}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "validation-queue",
+                "{personRoleId}",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "personRoleId",
+                  "value": ":personRoleId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/admin/validation-queue/{personRoleId}/reject",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/validation-queue/{personRoleId}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "validation-queue",
+                "{personRoleId}",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "personRoleId",
+                  "value": ":personRoleId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "DELETE /api/admin/users/{personId}/roles/{role}",
           "request": {
             "method": "DELETE",

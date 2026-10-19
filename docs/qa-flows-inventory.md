@@ -33,6 +33,7 @@
 | venue manager | VENUE_MANAGER | /venue |
 
 ### Gates de cliente (cada consola)
+- **Registro por landing**: CTAs de /para-academias y /para-productores → /login?mode=register&role=ACADEMY_OWNER|PRODUCER; el rol viaja en magic link/OTP/register y crea PersonRole PENDING (usable en su consola, invisible al público) hasta aprobación admin. SANDBOX eliminado del enum.
 - `ProducerGate` (`me.roles` ∩ {PRODUCER, ADMIN}); `AcademyGate` (`GET /academies/mine` → selector si >1, persiste en `localStorage["omnidance:academy-id"]`; CTA "Nueva academia" → `/academia/nueva` solo si `me.roleStates` tiene ACADEMY_OWNER APPROVED/SANDBOX — crear usa `POST /academies`, la nueva queda seleccionada y vuelve al hub; deep-link sin rol → estado sin-acceso); `AdminGate` (`me.roles` ADMIN); `CrmGateScreen` (`useCrmContext` + `ActorPicker`); soporte deriva gate de respuestas API; `/venue` gatea por `GET /venues/mine`.
 - Server: `SessionGuard + RolesGuard + @RequirePermissions(...)`; ADMIN bypass por `isSuperuser`.
 - **Lente activa** (`localStorage["omnidance:active-role"]`, fallback ADMIN>SUPPORT>PRODUCER>ACADEMY_OWNER>INSTRUCTOR>VENUE_MANAGER>STAFF>DJ>DANCER): condiciona lo que muestran /inicio, /perfil, /analitica, /notificaciones y la UI academia (lens INSTRUCTOR degrada privilegios reales en UI).
@@ -352,6 +353,7 @@
 - `/inicio` (lente ADMIN): KPIs `home/stats` — pendingRoles, **leadsNew**, **txRevenueMonth** (fees neto+IVA PAID no-PLATFORM_SUB del mes CL), **subRevenueMonth** (PLATFORM_SUB PAID del mes), users, activeEvents, pendingPayouts — + sección "Leads por revisar" (NEW asc, 6 filas → `/admin/datos?entity=leads&status=NEW`) + hero.
 - `/admin` → redirect a `/inicio` (hub eliminado: los destinos viven en el sidebar).
 - `/admin/usuarios`: búsqueda q≥2 + role enum (catálogo RBAC vivo) → `GET /admin/users` paginado `{items,total,page,pageSize}` (size 25) + `Pager`; cambio de filtro resetea a página 1; card muestra contadores "N academia(s)"/"N evento(s)" cuando >0 → /{personId}.
+- `/admin/perfiles-por-validar`: cola PersonRole PENDING de ACADEMY_OWNER/PRODUCER (registro por landing) → checklist nombre/email verificado/teléfono/datos del actor; Aprobar exige checklist completo (409 si falta) → APPROVED (visible); Rechazar ConfirmSheet → REJECTED auditable.
 - `/admin/usuarios/[personId]` ⚠️: cambiar status de rol (select inline sin confirm) `POST /users/:id/roles`; agregar rol; revocar ConfirmSheet `DELETE .../roles/:role`; **hard-delete** ConfirmSheet `DELETE /users/:id` (400 self-delete; irreversible); listas de "Actividad por rol" con expand tras 5 filas ("Ver las {count}"/"Ver menos"); link analytics.
 - `/admin/roles` ⚠️: toggle grant `POST /roles/:key/permissions` **sin confirm** (cuidado lockout admin.access); crear rol/permiso existe sin UI.
 - `/admin/parametros` ⚠️: `PUT /params/:key` (JSON libre, sin confirm — efecto global); `GET/PUT /producers/:id/fee-params` (fee+preset cutoff; >1439 preserva raw).

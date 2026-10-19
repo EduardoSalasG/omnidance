@@ -51,12 +51,21 @@ export class AuthService {
   // sesión) se estampa en la Person (spec legal-consent).
   // `ttl` opcional: las invitaciones (staff/import de alumnos, spec
   // academy-staff-roles) necesitan un link que dure días, no 15min.
+  // `role` opcional (spec role-registration-pipeline): landings de
+  // actores mandan ?role=ACADEMY_OWNER|PRODUCER - viaja en el token y
+  // verify() crea el PersonRole PENDING al entrar.
   createMagicToken(
     email: string,
     consent = false,
     ttl: string | number = "15m",
+    role?: string,
   ): Promise<string> {
-    return new SignJWT({ purpose: "magic", email, ...(consent ? { consent: true } : {}) })
+    return new SignJWT({
+      purpose: "magic",
+      email,
+      ...(consent ? { consent: true } : {}),
+      ...(role ? { role } : {}),
+    })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime(ttl)
@@ -65,12 +74,16 @@ export class AuthService {
 
   async verifyMagicToken(
     token: string,
-  ): Promise<{ email: string; consent: boolean }> {
+  ): Promise<{ email: string; consent: boolean; role?: string }> {
     const { payload } = await jwtVerify(token, this.key);
     if (payload.purpose !== "magic" || typeof payload.email !== "string") {
       throw new Error("invalid magic token");
     }
-    return { email: payload.email, consent: payload.consent === true };
+    return {
+      email: payload.email,
+      consent: payload.consent === true,
+      role: typeof payload.role === "string" ? payload.role : undefined,
+    };
   }
 
   async verifySession(token: string): Promise<{ personId: string }> {
@@ -124,7 +137,11 @@ export class AuthService {
   }
 
   /** Genera el código, consume los activos previos del email y persiste el hash. Devuelve el código en claro solo para el email. */
-  async createOtp(email: string, consent = false): Promise<string> {
+  async createOtp(
+    email: string,
+    consent = false,
+    role?: string,
+  ): Promise<string> {
     const repo = this.otpRepo();
     await repo.consumeActives(email);
     const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
@@ -132,6 +149,7 @@ export class AuthService {
       email,
       codeHash: this.hashOtpCode(code).toString("hex"),
       consent,
+      role,
       expiresAt: new Date(Date.now() + OTP_TTL_MS),
     });
     return code;
@@ -145,7 +163,7 @@ export class AuthService {
   async verifyOtp(
     email: string,
     code: string,
-  ): Promise<{ email: string; consent: boolean }> {
+  ): Promise<{ email: string; consent: boolean; role?: string }> {
     const repo = this.otpRepo();
     const otp = await repo.findActiveOtp(email);
     const invalid = () => new Error("invalid otp");
@@ -164,7 +182,7 @@ export class AuthService {
       throw invalid();
     }
     await repo.consumeOtp(otp.id);
-    return { email: otp.email, consent: otp.consent };
+    return { email: otp.email, consent: otp.consent, role: otp.role ?? undefined };
   }
 }
 

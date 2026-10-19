@@ -47,10 +47,7 @@ import {
   classEnded,
 } from "./class-card-projection";
 import { RolesGuard } from "../../common/rbac/roles.guard";
-import {
-  AllowSandbox,
-  RequirePermissions,
-} from "../../common/rbac/roles.decorator";
+import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { dayRange, pageParams, whitelist } from "./list-filters";
 import { agreementWrite, PAY_TYPES } from "./instructor-agreement";
 import { ApiQuery } from "@nestjs/swagger";
@@ -346,7 +343,13 @@ export class AcademiesController {
   @UseGuards(SessionGuard)
   async directory(@Req() req: Request) {
     const academies = await this.prisma.academy.findMany({
-      where: { active: true, billingBlockedAt: null },
+      where: {
+        active: true,
+        billingBlockedAt: null,
+        // Solo academias de owners validados (APPROVED) salen al
+        // público - ownerId es FK escalar, resuelto por subquery.
+        ownerId: { in: await this.approvedOwnerIds() },
+      },
       orderBy: { name: "asc" },
       select: {
         id: true,
@@ -416,7 +419,13 @@ export class AcademiesController {
   @Get("public")
   async publicDirectory() {
     const academies = await this.prisma.academy.findMany({
-      where: { active: true, billingBlockedAt: null },
+      where: {
+        active: true,
+        billingBlockedAt: null,
+        // Solo academias de owners validados (APPROVED) salen al
+        // público - ownerId es FK escalar, resuelto por subquery.
+        ownerId: { in: await this.approvedOwnerIds() },
+      },
       orderBy: { name: "asc" },
       select: {
         id: true,
@@ -442,6 +451,16 @@ export class AcademiesController {
         ),
       };
     });
+  }
+
+  // PersonRole APPROVED de ACADEMY_OWNER - los directorios públicos
+  // filtran academias por esto (ownerId es FK escalar, sin relación).
+  private async approvedOwnerIds(): Promise<string[]> {
+    const rows = await this.prisma.personRole.findMany({
+      where: { role: "ACADEMY_OWNER", status: "APPROVED" },
+      select: { personId: true },
+    });
+    return rows.map((r) => r.personId);
   }
 
   @Get("mine")
@@ -558,10 +577,10 @@ export class AcademiesController {
   @Post()
   @UseGuards(SessionGuard, RolesGuard)
   @RequirePermissions("academies.create")
-  @AllowSandbox() // spec: owners SANDBOX crean academia demo antes del APPROVED
   async create(@Body() dto: CreateAcademyDto, @Req() req: Request) {
-    // isDemo: el schema no tiene la columna - academias de owners no
-    // APPROVED quedan indistinguibles (gap reportado).
+    // Owners PENDING (registro por landing) crean aquí: su academia
+    // queda fuera del directorio hasta que el rol pase a APPROVED
+    // (spec role-registration-pipeline).
     // Trial SaaS (spec academy-saas-billing): `academy_billing.trial_days`
     // días gratis desde la creación; las academias existentes recibieron
     // la grace de lanzamiento por backfill (migration_grace_days).

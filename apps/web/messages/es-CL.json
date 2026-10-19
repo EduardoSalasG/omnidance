@@ -1139,5 +1139,23 @@
       "upcoming": "Próximos",
       "events": "Eventos 30d"
     }
+  },
+  "adminValidation": {
+    "title": "Perfiles por validar",
+    "hint": "Actores que se registraron desde las landings. Ya pueden usar su consola, pero no son visibles en la app hasta que los apruebes.",
+    "empty": "Sin perfiles por validar.",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "rejectConfirm": "¿Rechazar la solicitud de {name}? El rol queda marcado como rechazado.",
+    "checks": {
+      "name": "Nombre",
+      "emailVerified": "Email verificado",
+      "phone": "Teléfono",
+      "actorData": "Datos del actor"
+    },
+    "roles": {
+      "ACADEMY_OWNER": "Academia",
+      "PRODUCER": "Productor"
+    }
   }
 }

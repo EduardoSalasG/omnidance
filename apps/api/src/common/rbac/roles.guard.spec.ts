@@ -5,13 +5,14 @@ import { RolesGuard } from "./roles.guard";
 import {
   REQUIRED_ROLES_KEY,
   REQUIRED_PERMISSIONS_KEY,
-  ALLOW_SANDBOX_KEY,
 } from "./roles.decorator";
 import type { PrismaService } from "../../prisma.service";
 
-// RolesGuard - RBAC global DB-driven: APPROVED da acceso; SANDBOX solo donde
-// se declara; PENDING nunca pasa. Permisos se resuelven en Role/RolePermission
-// (isSuperuser pasa todo). Corre DESPUÉS de SessionGuard (lee req.person).
+// RolesGuard - RBAC global DB-driven: APPROVED da acceso; PENDING solo
+// para roles registrables por landing (ACADEMY_OWNER/PRODUCER - operan
+// su consola invisibles al público); otro PENDING/REJECTED nunca pasa.
+// Permisos se resuelven en Role/RolePermission (isSuperuser pasa todo).
+// Corre DESPUÉS de SessionGuard (lee req.person).
 describe("RolesGuard", () => {
   const reflector = new Reflector();
 
@@ -21,6 +22,9 @@ describe("RolesGuard", () => {
     { key: "R_PROD", isSuperuser: false, permissions: ["discounts.manage"] },
     { key: "R_ADMIN", isSuperuser: true, permissions: [] },
     { key: "R_NONE", isSuperuser: false, permissions: [] },
+    // Roles reales registrables por landing (PENDING usable).
+    { key: "PRODUCER", isSuperuser: false, permissions: ["discounts.manage"] },
+    { key: "ACADEMY_OWNER", isSuperuser: false, permissions: ["academies.create"] },
   ];
   const prisma = {
     role: {
@@ -51,16 +55,14 @@ describe("RolesGuard", () => {
     } as unknown as ExecutionContext;
   }
 
-  function meta(roles?: string[], perms?: string[], sandbox = false) {
+  function meta(roles?: string[], perms?: string[]) {
     Reflect.defineMetadata(REQUIRED_ROLES_KEY, roles, handler);
     Reflect.defineMetadata(REQUIRED_PERMISSIONS_KEY, perms, handler);
-    Reflect.defineMetadata(ALLOW_SANDBOX_KEY, sandbox, handler);
   }
 
   beforeEach(() => {
     Reflect.deleteMetadata(REQUIRED_ROLES_KEY, handler);
     Reflect.deleteMetadata(REQUIRED_PERMISSIONS_KEY, handler);
-    Reflect.deleteMetadata(ALLOW_SANDBOX_KEY, handler);
   });
 
   it("sin metadata → permite (la ruta no pide rol)", async () => {
@@ -73,24 +75,28 @@ describe("RolesGuard", () => {
     await expect(guard.canActivate(ctx(person))).resolves.toBe(true);
   });
 
-  it("rol en PENDING → 403 (solicitar el rol no da acceso)", async () => {
+  it("rol PENDING de landing (PRODUCER) → permite su consola", async () => {
     meta(["PRODUCER"]);
     const person = { roleStates: [{ role: "PRODUCER", status: "PENDING" }] };
+    await expect(guard.canActivate(ctx(person))).resolves.toBe(true);
+  });
+
+  it("rol PENDING no registrable (STAFF) → 403", async () => {
+    meta(["STAFF"]);
+    const person = { roleStates: [{ role: "STAFF", status: "PENDING" }] };
     await expect(guard.canActivate(ctx(person))).rejects.toThrow(
       ForbiddenException,
     );
   });
 
-  it("rol en SANDBOX → 403 salvo AllowSandbox", async () => {
+  it("rol REJECTED → 403", async () => {
     meta(["ACADEMY_OWNER"]);
     const person = {
-      roleStates: [{ role: "ACADEMY_OWNER", status: "SANDBOX" }],
+      roleStates: [{ role: "ACADEMY_OWNER", status: "REJECTED" }],
     };
     await expect(guard.canActivate(ctx(person))).rejects.toThrow(
       ForbiddenException,
     );
-    meta(["ACADEMY_OWNER"], undefined, true);
-    await expect(guard.canActivate(ctx(person))).resolves.toBe(true);
   });
 
   it("cualquiera de los roles requeridos basta (OR)", async () => {
@@ -126,14 +132,16 @@ describe("RolesGuard", () => {
     await expect(guard.canActivate(ctx(person))).resolves.toBe(true);
   });
 
-  it("permiso sobre rol SANDBOX solo pasa con AllowSandbox", async () => {
+  it("permiso sobre rol PENDING usable pasa; sobre otro PENDING no", async () => {
+    meta(undefined, ["discounts.manage"]);
+    const prod = { roleStates: [{ role: "PRODUCER", status: "PENDING" }] };
+    await expect(guard.canActivate(ctx(prod))).resolves.toBe(true);
+
     meta(undefined, ["checkins.write"]);
-    const person = { roleStates: [{ role: "R_STAFF", status: "SANDBOX" }] };
-    await expect(guard.canActivate(ctx(person))).rejects.toThrow(
+    const staff = { roleStates: [{ role: "R_STAFF", status: "PENDING" }] };
+    await expect(guard.canActivate(ctx(staff))).rejects.toThrow(
       ForbiddenException,
     );
-    meta(undefined, ["checkins.write"], true);
-    await expect(guard.canActivate(ctx(person))).resolves.toBe(true);
   });
 
   it("rol sin permisos ni grant → 403", async () => {

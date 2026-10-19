@@ -40,12 +40,11 @@ import { pageParams } from "../../academies/infrastructure/list-filters";
 import { dateRange } from "../../query/entities/helpers";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 
-const ALL_STATUSES: RoleStatus[] = [
-  "PENDING",
-  "SANDBOX",
-  "APPROVED",
-  "REJECTED",
-];
+const ALL_STATUSES: RoleStatus[] = ["PENDING", "APPROVED", "REJECTED"];
+
+// Roles de actor registrables por landing: PENDING opera la consola
+// pero solo pasa a APPROVED (visible) tras validación de perfil.
+const VALIDATION_QUEUE_ROLES = ["ACADEMY_OWNER", "PRODUCER"] as const;
 const ROLE_KEY = /^[A-Z0-9_]+$/;
 const PERM_KEY = /^[a-z0-9_.-]+$/;
 
@@ -264,7 +263,7 @@ export class AdminController {
   }
 
   /**
-   * Otorga un rol o cambia su estado (PENDING → SANDBOX → APPROVED y
+   * Otorga un rol o cambia su estado (PENDING → APPROVED y
    * downgrade para suspender acceso sin borrar el historial).
    */
   @Post("users/:personId/roles")
@@ -302,6 +301,165 @@ export class AdminController {
       next: dto.status,
     });
     return row;
+  }
+
+  /**
+   * Cola de validación (spec role-registration-pipeline): PersonRole
+   * PENDING de ACADEMY_OWNER/PRODUCER - actores registrados por landing
+   * que ya operan su consola pero son invisibles al público. El admin
+   * aprueba solo si el perfil está completo (checklist server-side).
+   */
+  @Get("validation-queue")
+  async validationQueue() {
+    const rows = await this.prisma.personRole.findMany({
+      where: { role: { in: [...VALIDATION_QUEUE_ROLES] }, status: "PENDING" },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        role: true,
+        createdAt: true,
+        person: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            verifiedAt: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+    const ids = rows.map((r) => r.person.id);
+    // "Datos del actor" del checklist: owner → tiene ≥1 academia;
+    // productor → tiene ≥1 evento creado. groupBy, sin N+1.
+    const [academyGroups, eventGroups] = ids.length
+      ? await Promise.all([
+          this.prisma.academy.groupBy({
+            by: ["ownerId"],
+            where: { ownerId: { in: ids } },
+            _count: { _all: true },
+          }),
+          this.prisma.event.groupBy({
+            by: ["producerId"],
+            where: { producerId: { in: ids } },
+            _count: { _all: true },
+          }),
+        ])
+      : [[], []];
+    const acadByOwner = new Map(
+      academyGroups.map((g) => [g.ownerId, g._count._all]),
+    );
+    const evByProducer = new Map(
+      eventGroups.map((g) => [g.producerId, g._count._all]),
+    );
+    return rows.map((r) => {
+      const checks = this.profileChecks(
+        r.person,
+        r.role,
+        acadByOwner.get(r.person.id) ?? 0,
+        evByProducer.get(r.person.id) ?? 0,
+      );
+      return {
+        id: r.id,
+        role: r.role,
+        requestedAt: r.createdAt,
+        person: r.person,
+        checks,
+        complete: Object.values(checks).every(Boolean),
+      };
+    });
+  }
+
+  /** Aprueba la solicitud: PENDING → APPROVED (visible al público). */
+  @Post("validation-queue/:personRoleId/approve")
+  @HttpCode(200)
+  async approveQueueItem(
+    @Param("personRoleId") id: string,
+    @Req() req: Request,
+  ) {
+    const row = await this.prisma.personRole.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        role: true,
+        status: true,
+        person: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            verifiedAt: true,
+          },
+        },
+      },
+    });
+    if (!row || row.status !== "PENDING") {
+      throw new NotFoundException("solicitud no encontrada");
+    }
+    const [academies, events] = await Promise.all([
+      this.prisma.academy.count({ where: { ownerId: row.person.id } }),
+      this.prisma.event.count({ where: { producerId: row.person.id } }),
+    ]);
+    const checks = this.profileChecks(row.person, row.role, academies, events);
+    if (!Object.values(checks).every(Boolean)) {
+      throw new ConflictException(
+        "perfil incompleto - faltan datos antes de aprobar",
+      );
+    }
+    await this.prisma.personRole.update({
+      where: { id },
+      data: { status: "APPROVED" },
+    });
+    await this.audit(req, "ROLE_APPROVE", "PersonRole", id, {
+      personId: row.person.id,
+      role: row.role,
+    });
+    return { ok: true };
+  }
+
+  /** Rechaza la solicitud: PENDING → REJECTED (auditable, no borra). */
+  @Post("validation-queue/:personRoleId/reject")
+  @HttpCode(200)
+  async rejectQueueItem(
+    @Param("personRoleId") id: string,
+    @Req() req: Request,
+  ) {
+    const row = await this.prisma.personRole.findUnique({
+      where: { id },
+      select: { id: true, role: true, status: true, personId: true },
+    });
+    if (!row || row.status !== "PENDING") {
+      throw new NotFoundException("solicitud no encontrada");
+    }
+    await this.prisma.personRole.update({
+      where: { id },
+      data: { status: "REJECTED" },
+    });
+    await this.audit(req, "ROLE_REJECT", "PersonRole", id, {
+      personId: row.personId,
+      role: row.role,
+    });
+    return { ok: true };
+  }
+
+  // Checklist de perfil completo para validar un actor: nombre real
+  // (no el default del email), correo verificado, teléfono y datos del
+  // actor ya operados en su consola (academia creada / evento creado).
+  private profileChecks(
+    p: { name: string; email: string | null; phone: string | null; verifiedAt: Date | null },
+    role: string,
+    academiesCount: number,
+    eventsCount: number,
+  ) {
+    return {
+      name: p.name.trim().length >= 2 && !(p.email?.startsWith(p.name) ?? false),
+      emailVerified: p.verifiedAt !== null,
+      phone: !!p.phone,
+      actorData:
+        role === "ACADEMY_OWNER" ? academiesCount > 0 : eventsCount > 0,
+    };
   }
 
   /** Revoca un rol (borra el PersonRole; queda en AuditLog). */

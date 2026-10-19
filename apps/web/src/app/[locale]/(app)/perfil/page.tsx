@@ -470,10 +470,7 @@ export default function PerfilPage() {
                     {roleLabel(rs.role)}
                     {rs.status !== "APPROVED" && (
                       <span className="ml-1 text-ink/50">
-                        ·{" "}
-                        {rs.status === "SANDBOX"
-                          ? t("roleSandbox")
-                          : t("rolePending")}
+                        · {t("rolePending")}
                       </span>
                     )}
                   </Badge>

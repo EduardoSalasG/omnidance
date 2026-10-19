@@ -55,7 +55,20 @@ class ConsentField {
   @IsOptional()
   @IsBoolean()
   consent?: boolean;
+
+  // Rol pedido desde una landing de actor (?role=) - viaja al magic
+  // token/OTP y crea el PersonRole PENDING al entrar (spec
+  // role-registration-pipeline). Solo ACADEMY_OWNER/PRODUCER.
+  @IsOptional()
+  @IsString()
+  role?: string;
 }
+
+// Roles registrables por landing - cualquier otro valor de ?role= se
+// ignora en silencio (no es canal para pedir ADMIN ni similares).
+const LANDING_ROLES = new Set(["ACADEMY_OWNER", "PRODUCER"]);
+const landingRole = (role?: string) =>
+  role && LANDING_ROLES.has(role) ? role : undefined;
 
 class MagicLinkDto extends ConsentField {
   @IsEmail()
@@ -153,12 +166,11 @@ export class AuthController {
   // dominio del web - donde la SPA hace todas sus llamadas. Si el link
   // fuera al dominio del API, la cookie quedaría en ese origen y el
   // usuario aterrizaría en el web sin sesión.
-  private async sendMagicLink(email: string, consent: boolean) {
-    // El consentimiento viaja como claim del token y en la fila del OTP:
-    // ambos caminos lo estampan en la Person al crear la sesión (spec
-    // auth-email-otp - el correo lleva link + código).
-    const token = await this.auth.createMagicToken(email, consent);
-    const code = await this.auth.createOtp(email, consent);
+  private async sendMagicLink(email: string, consent: boolean, role?: string) {
+    // Consentimiento y rol pedido viajan como claims del token y en la
+    // fila del OTP: ambos caminos los estampan al crear la sesión.
+    const token = await this.auth.createMagicToken(email, consent, "15m", role);
+    const code = await this.auth.createOtp(email, consent, role);
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const link = `${webUrl}/api/auth/verify?token=${token}`;
     await this.mailer.send(
@@ -172,7 +184,11 @@ export class AuthController {
   @HttpCode(202)
   @Throttle(AUTH_THROTTLE)
   async magicLink(@Body() dto: MagicLinkDto) {
-    await this.sendMagicLink(dto.email.toLowerCase(), dto.consent === true);
+    await this.sendMagicLink(
+      dto.email.toLowerCase(),
+      dto.consent === true,
+      landingRole(dto.role),
+    );
     return { sent: true };
   }
 
@@ -206,6 +222,10 @@ export class AuthController {
     loginAttempts.delete(key);
 
     if (dto.consent === true) await this.repo.recordConsent(person.id);
+    // Login con password desde una landing de actor también adjunta el
+    // rol pedido (PENDING si aún no existía).
+    const role = landingRole(dto.role);
+    if (role) await this.repo.ensurePendingRole(person.id, role);
     const session = await this.auth.issueSession(person.id);
     this.setSessionCookie(res, session);
     return { ok: true };
@@ -239,7 +259,7 @@ export class AuthController {
       // Best-effort: el 409 no cambia si el correo falla - la persona
       // puede reintentar con "acceder por email" desde login.
       try {
-        await this.sendMagicLink(email, dto.consent === true);
+        await this.sendMagicLink(email, dto.consent === true, landingRole(dto.role));
       } catch (err) {
         this.logger.warn(
           `claim link a ${email} falló: ${(err as Error).message}`,
@@ -255,6 +275,8 @@ export class AuthController {
       dto.name.trim(),
       passwordHash,
     );
+    const role = landingRole(dto.role);
+    if (role) await this.repo.ensurePendingRole(person.id, role);
     if (dto.consent === true) await this.repo.recordConsent(person.id);
     await this.sendWelcome(email, person.name);
     const session = await this.auth.issueSession(person.id);
@@ -278,12 +300,15 @@ export class AuthController {
   @Throttle(AUTH_THROTTLE)
   async verify(@Query("token") token: string, @Res() res: Response) {
     try {
-      const { email, consent } = await this.auth.verifyMagicToken(token);
+      const { email, consent, role } =
+        await this.auth.verifyMagicToken(token);
       // Si el correo no existía, el upsert crea la cuenta → bienvenida.
       const existed = await this.repo.findByEmail(email);
       const person = await this.repo.upsertByEmail(email);
       // Checkbox marcado al pedir el link → se estampa al crear sesión.
       if (consent) await this.repo.recordConsent(person.id);
+      // Rol pedido desde la landing (?role= viaja en el token).
+      if (role) await this.repo.ensurePendingRole(person.id, role);
       if (!existed) await this.sendWelcome(email, person.name);
       const session = await this.auth.issueSession(person.id);
       const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
@@ -308,10 +333,11 @@ export class AuthController {
   ) {
     try {
       const email = dto.email.toLowerCase();
-      const { consent } = await this.auth.verifyOtp(email, dto.code);
+      const { consent, role } = await this.auth.verifyOtp(email, dto.code);
       const existed = await this.repo.findByEmail(email);
       const person = await this.repo.upsertByEmail(email);
       if (consent) await this.repo.recordConsent(person.id);
+      if (role) await this.repo.ensurePendingRole(person.id, role);
       if (!existed) await this.sendWelcome(email, person.name);
       const session = await this.auth.issueSession(person.id);
       this.setSessionCookie(res, session);

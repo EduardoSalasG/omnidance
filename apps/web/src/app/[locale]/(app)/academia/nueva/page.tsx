@@ -24,7 +24,7 @@ export default function NuevaAcademiaPage() {
   const canCreate = (me?.roleStates ?? []).some(
     (r) =>
       r.role === "ACADEMY_OWNER" &&
-      (r.status === "APPROVED" || r.status === "SANDBOX"),
+      (r.status === "APPROVED" || r.status === "PENDING"),
   );
 
   function onCreated(academy: Academy) {

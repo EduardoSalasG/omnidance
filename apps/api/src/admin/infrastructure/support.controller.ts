@@ -16,7 +16,7 @@ import { ApiQuery } from "@nestjs/swagger";
 /**
  * Consola de soporte: búsqueda y ficha read-only de usuarios para
  * atención de casos. RequireRoles solo deja pasar PersonRole APPROVED
- * (el guard filtra PENDING/SANDBOX/REJECTED por defecto) o ADMIN.
+ * (el guard filtra PENDING/REJECTED por defecto) o ADMIN.
  * Sin mutaciones - las acciones correctivas siguen en /admin (auditadas).
  */
 @Controller("support")

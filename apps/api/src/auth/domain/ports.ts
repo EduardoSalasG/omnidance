@@ -13,6 +13,7 @@ export interface AuthOtpRecord {
   email: string;
   codeHash: string;
   consent: boolean;
+  role: string | null;
   expiresAt: Date;
   attempts: number;
   consumedAt: Date | null;
@@ -41,8 +42,13 @@ export interface AuthRepo {
     email: string;
     codeHash: string;
     consent: boolean;
+    role?: string;
     expiresAt: Date;
   }): Promise<void>;
+  // Registro por landing (spec role-registration-pipeline): garantiza
+  // el PersonRole PENDING del rol pedido en ?role= - idempotente, no
+  // toca roles ya existentes (PENDING/APPROVED/REJECTED se respetan).
+  ensurePendingRole(personId: string, role: string): Promise<void>;
   // Marca consumedAt=now en todos los OTP sin consumir del email: una
   // nueva solicitud deja un solo código válido.
   consumeActives(email: string): Promise<void>;

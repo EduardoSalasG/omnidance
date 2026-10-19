@@ -99,10 +99,18 @@ export async function Landing({
         ? t.weekCount.replace("{count}", String(weeklyEvents))
         : t.weekEmpty;
 
-  // En pro ambos CTAs llevan al formulario (los datos van primero);
-  // en dancer van a la app: registro y catálogo público de eventos.
-  // ?mode=register: quien pidió "crear cuenta" no aterriza en un login.
-  const primaryHref = isPro ? "#contacto" : "/login?mode=register";
+  // Las landings de actor van al registro normal con su rol adjunto
+  // (?role= → PersonRole PENDING, usable pero invisible hasta que el
+  // admin valide el perfil - spec role-registration-pipeline).
+  const landingRole =
+    variant === "academy"
+      ? "ACADEMY_OWNER"
+      : variant === "producer"
+        ? "PRODUCER"
+        : undefined;
+  const registerHref =
+    "/login?mode=register" + (landingRole ? `&role=${landingRole}` : "");
+  const primaryHref = registerHref;
   const secondaryHref = isPro ? "#contacto" : "/eventos";
 
   const eventDayFmt = (locale: string) => getDateFmt(locale, {
@@ -150,7 +158,7 @@ export async function Landing({
                 registro genérico - el header solo ofrece Entrar. */}
             {!isPro && (
               <Link
-                href="/login?mode=register"
+                href={registerHref}
                 className="inline-flex min-h-11 items-center rounded-full bg-neon px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-neon-soft active:scale-[0.97]"
               >
                 {t.ctaSignup}
@@ -257,7 +265,7 @@ export async function Landing({
               {t.weekStyles}
             </p>
             <Link
-              href={isPro ? "#contacto" : "/login?mode=register"}
+              href={registerHref}
               className="mt-1 inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold text-neon transition-colors hover:bg-neon/10"
             >
               {t.weekCta}

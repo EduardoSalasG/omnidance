@@ -85,11 +85,13 @@ class FakeRepo {
     email: string;
     codeHash: string;
     consent: boolean;
+    role?: string;
     expiresAt: Date;
   }) {
     this.otps.push({
       id: `otp-${this.otps.length + 1}`,
       ...data,
+      role: data.role ?? null,
       attempts: 0,
       consumedAt: null,
       createdAt: new Date(),

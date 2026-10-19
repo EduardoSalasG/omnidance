@@ -48,9 +48,13 @@ function Field({
 export default function LoginForm({
   initialMode,
   next,
+  role,
 }: {
   initialMode?: Mode;
   next?: string;
+  // ?role= de las landings de actor (ACADEMY_OWNER/PRODUCER) - viaja al
+  // magic link/OTP/register y crea el PersonRole PENDING al entrar.
+  role?: string;
 }) {
   const t = useTranslations("login");
   const tc = useTranslations("consent");
@@ -103,10 +107,11 @@ export default function LoginForm({
             name: name.trim() || email.split("@")[0],
             password,
             consent,
+            ...(role ? { role } : {}),
           }
         : mode === "password"
-          ? { email, password }
-          : { email, consent };
+          ? { email, password, ...(role ? { role } : {}) }
+          : { email, consent, ...(role ? { role } : {}) };
     const endpoint =
       mode === "register"
         ? "/auth/register"

@@ -7267,6 +7267,66 @@
         ]
       }
     },
+    "/api/admin/validation-queue": {
+      "get": {
+        "operationId": "AdminController_validationQueue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/validation-queue/{personRoleId}/approve": {
+      "post": {
+        "operationId": "AdminController_approveQueueItem",
+        "parameters": [
+          {
+            "name": "personRoleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/validation-queue/{personRoleId}/reject": {
+      "post": {
+        "operationId": "AdminController_rejectQueueItem",
+        "parameters": [
+          {
+            "name": "personRoleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
     "/api/admin/users/{personId}/roles/{role}": {
       "delete": {
         "operationId": "AdminController_revokeRole",

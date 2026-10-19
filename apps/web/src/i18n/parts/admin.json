@@ -205,7 +205,8 @@
       "subscriptions": "Suscripciones",
       "documents": "Documentos",
       "backHome": "Inicio",
-      "broadcast": "Difusión"
+      "broadcast": "Difusión",
+      "validation": "Por validar"
     },
     "academies": {
       "desc": "Salud de la base de alumnos por academia: score medio, distribución de segmentos y actividad.",
