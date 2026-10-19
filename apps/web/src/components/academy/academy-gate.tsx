@@ -3,15 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { Button, Card, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { AcademyBillingBanner } from "./academy-billing-banner";
-import { inputCls, readError, type Academy } from "./shared";
+import { CreateAcademyForm } from "./create-academy-form";
+import { ACADEMY_STORAGE_KEY, inputCls, type Academy } from "./shared";
 
 type Gate = "loading" | "unauth" | "empty" | "ready" | "error";
 
-// Academia seleccionada persiste entre el hub y las subrutas de módulo.
-const STORAGE_KEY = "omnidance:academy-id";
+const STORAGE_KEY = ACADEMY_STORAGE_KEY;
 
 /**
  * Gate compartido de /academia y sus subrutas: GET /academies/mine →
@@ -35,9 +36,14 @@ export function AcademyGate({
   const [academies, setAcademies] = useState<Academy[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  // ACADEMY_OWNER (APPROVED o SANDBOX) puede crear academias adicionales
+  // - instructor/staff de otras academias no ven el CTA.
+  const { me } = useMe();
+  const canCreate = (me?.roleStates ?? []).some(
+    (r) =>
+      r.role === "ACADEMY_OWNER" &&
+      (r.status === "APPROVED" || r.status === "SANDBOX"),
+  );
 
   const boot = useCallback(async () => {
     setGate("loading");
@@ -99,30 +105,6 @@ export function AcademyGate({
     }
   }
 
-  async function create(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setCreateError(null);
-    try {
-      const res = await apiFetch("/academies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() }),
-      });
-      if (!res.ok) {
-        // 403 = sin rol ACADEMY_OWNER - el message del server lo explica.
-        setCreateError((await readError(res)) ?? tc("error"));
-        return;
-      }
-      setName("");
-      await boot();
-    } catch {
-      setCreateError(tc("error"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
   const selected = academies.find((a) => a.id === selectedId) ?? null;
 
   return (
@@ -152,33 +134,7 @@ export function AcademyGate({
             <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
               {t("create")}
             </h2>
-            <form
-              onSubmit={create}
-              className="mt-3 flex flex-col gap-3 lg:max-w-xl"
-            >
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-ink/50">
-                  {t("academyName")}
-                  <span aria-hidden="true" className="text-neon"> *</span>
-                </span>
-                <input
-                  className={inputCls}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </label>
-              {createError && (
-                <p role="alert" className="text-sm text-red-400">
-                  {createError}
-                </p>
-              )}
-              <div>
-                <Button type="submit" size="sm" disabled={busy}>
-                  {busy ? tc("loading") : tc("create")}
-                </Button>
-              </div>
-            </form>
+            <CreateAcademyForm onCreated={() => void boot()} />
           </Card>
         </div>
       )}
@@ -189,22 +145,34 @@ export function AcademyGate({
               contenido de la consola (en /academia/suscripcion el
               componente se auto-omite - el estado va detallado ahí). */}
           <AcademyBillingBanner academy={selected} />
-          {academies.length > 1 && (
-            <label className="flex flex-col gap-1 sm:max-w-xs">
-              <span className="sr-only">{t("title")}</span>
-              <select
-                className={inputCls}
-                value={selectedId ?? ""}
-                onChange={(e) => selectAcademy(e.target.value)}
+          <div className="flex flex-wrap items-center gap-2">
+            {academies.length > 1 && (
+              <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-xs">
+                <span className="sr-only">{t("title")}</span>
+                <select
+                  className={inputCls}
+                  value={selectedId ?? ""}
+                  onChange={(e) => selectAcademy(e.target.value)}
+                >
+                  {academies.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {canCreate && (
+              <Button
+                href="/academia/nueva"
+                variant="secondary"
+                size="sm"
+                className="ml-auto"
               >
-                {academies.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
+                {t("newAcademy")}
+              </Button>
+            )}
+          </div>
           {children({ academy: selected, academies })}
         </>
       )}

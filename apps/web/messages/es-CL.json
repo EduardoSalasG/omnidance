@@ -448,6 +448,7 @@
     "directoryEmpty": "Aún no hay academias activas.",
     "instructorsLabel": "Instructores",
     "create": "Crear academia",
+    "newAcademy": "Nueva academia",
     "academyName": "Nombre de la academia",
     "loginRequired": "Entra con tu correo para administrar tu academia",
     "stats": {

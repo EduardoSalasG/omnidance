@@ -525,6 +525,10 @@ export async function readError(res: Response): Promise<string | null> {
   return null;
 }
 
+// Academia seleccionada en la consola (AcademyGate + /academia/nueva) -
+// persiste entre el hub y las subrutas de módulo.
+export const ACADEMY_STORAGE_KEY = "omnidance:academy-id";
+
 // Inputs compactos dark-first; min-h-11 = touch target 44px.
 export const inputCls =
   "min-h-11 w-full rounded-xl border border-line bg-elevated px-3 " +
