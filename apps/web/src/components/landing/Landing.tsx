@@ -6,7 +6,6 @@ import { ChevronRightIcon } from "@/components/ui";
 // (ver src/i18n/parts/). landingPro solo declara overrides: las claves
 // compartidas (nav, CTAs de header, footerTagline) vienen de `landing`.
 import { getLocale, getMessages } from "next-intl/server";
-import { ProLeadForm } from "./ProLeadForm";
 import type { JsonLdEvent } from "./JsonLd";
 import type { PublicAcademy } from "@/lib/public-academies";
 import { Link } from "@/i18n/navigation";
@@ -111,7 +110,10 @@ export async function Landing({
   const registerHref =
     "/login?mode=register" + (landingRole ? `&role=${landingRole}` : "");
   const primaryHref = registerHref;
-  const secondaryHref = isPro ? "#contacto" : "/eventos";
+  // El secundario es exploración: cada audiencia mira el directorio que
+  // le habla (academias para academias, cartelera para el resto). Anónimo
+  // rebota a /login?next= - el mismo funnel del secundario dancer.
+  const secondaryHref = variant === "academy" ? "/academias" : "/eventos";
 
   const eventDayFmt = (locale: string) => getDateFmt(locale, {
     weekday: "short",
@@ -154,16 +156,12 @@ export async function Landing({
             >
               {t.ctaLogin}
             </Link>
-            {/* En /pro el camino de alta es el lead form (con roles), no el
-                registro genérico - el header solo ofrece Entrar. */}
-            {!isPro && (
-              <Link
-                href={registerHref}
-                className="inline-flex min-h-11 items-center rounded-full bg-neon px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-neon-soft active:scale-[0.97]"
-              >
-                {t.ctaSignup}
-              </Link>
-            )}
+            <Link
+              href={registerHref}
+              className="inline-flex min-h-11 items-center rounded-full bg-neon px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-neon-soft active:scale-[0.97]"
+            >
+              {t.ctaSignup}
+            </Link>
           </nav>
         </div>
       </header>
@@ -317,36 +315,31 @@ export async function Landing({
           </div>
         </section>
 
-        {/* ─── CTA final: botón (dancer) o formulario de lead (pro) ─── */}
-        <section
-          id={isPro ? "contacto" : undefined}
-          className="border-t border-ink/5 px-6 py-20 text-center sm:py-24 lg:py-28"
-        >
+        {/* ─── CTA final: registro directo - pro lleva su rol en
+            registerHref (?role= → PersonRole PENDING). ─── */}
+        <section className="border-t border-ink/5 px-6 py-20 text-center sm:py-24 lg:py-28">
           <h2 className="text-display text-3xl font-extrabold sm:text-4xl">
             {t.finalCta}
           </h2>
           <p className="mx-auto mt-4 max-w-md whitespace-pre-line text-base leading-relaxed text-ink/60">
             {t.finalCtaDesc}
           </p>
-          {isPro ? (
-            <div className="mt-10">
-              <ProLeadForm
-                fixedRole={
-                  variant === "academy" ? "ACADEMY_OWNER" : "PRODUCER"
-                }
-              />
+          <div className="mt-8 flex flex-col items-center">
+            <Link
+              href={isPro ? registerHref : "/login"}
+              className={primaryCtaClass}
+            >
+              {t.ctaCreateAccount}
+            </Link>
+            {isPro && (
               <Link
                 href={cross.href}
                 className="mt-4 inline-flex min-h-11 items-center text-xs font-medium text-ink/50 transition-colors hover:text-ink"
               >
                 {cross.label} →
               </Link>
-            </div>
-          ) : (
-            <Link href="/login" className={`${primaryCtaClass} mt-8`}>
-              {t.ctaCreateAccount}
-            </Link>
-          )}
+            )}
+          </div>
         </section>
       </main>
 

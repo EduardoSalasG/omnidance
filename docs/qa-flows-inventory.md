@@ -68,8 +68,8 @@
 
 ### Landings pro `/pro`, `/para-academias`, `/para-productores`
 - `/pro`: cards → landings por rol; sección "otros roles" con `ProLeadForm` (roles DJ|VENUE_MANAGER).
-- `/para-*`: CTAs ancla `#contacto`; `ProLeadForm` con `fixedRole` (ACADEMY_OWNER | PRODUCER).
-- **Lead form:** name≥2, email regex, phone (solo obligatorio en intent CONTACT), role pills → `POST /leads` → 200 `{id, demoToken, accountExists}`.
+- `/para-*`: la invitación es registro directo — header "Crear cuenta", hero primario y CTA final → `/login?mode=register&role=ACADEMY_OWNER|PRODUCER`; secundario exploratorio → `/academias` (academy) o `/eventos` (producer) con bounce anon a `/login?next=`.
+- **Lead form (solo hub /pro, DJ|VENUE):** name≥2, email regex, phone (solo obligatorio en intent CONTACT), role pills → `POST /leads` → 200 `{id, demoToken, accountExists}`.
   - `accountExists` → link /login. Si no: CTA "Probar la demo" → `POST /leads/{id}/demo {token}` → cookie + `/inicio` (cuenta demo).
   - Negativos: campos faltantes (inline `#lead-error`), 409 demo ya existe, throttle 403, teléfono duplicado 409.
 

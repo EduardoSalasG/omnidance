@@ -37,7 +37,7 @@
     "eyebrow": "Producteurs · DJs · Académies · Lieux",
     "heroPromise": "D'abord l'ordre. Ensuite, la croissance.",
     "heroLead": "Vends des billets, contrôle la porte et regarde tes chiffres\nsur une seule plateforme.\nQuand l'opération est ordonnée, grandir en est la conséquence.",
-    "ctaCreateAccount": "Je veux être contacté",
+    "ctaCreateAccount": "Créer mon compte",
     "ctaEvents": "Essayer l'app maintenant",
     "weekCount": "{count} événements cette semaine s'organisent déjà avec Omnidance",
     "weekEmpty": "Les événements de la communauté s'organisent déjà avec Omnidance",
@@ -52,8 +52,8 @@
     "featureLearnDesc": "Cours, élèves et encaissements ordonnés au même endroit.\nTes élèves voient les horaires, s'inscrivent et paient seuls sans t'inonder de messages.",
     "featureSceneTitle": "Lieux",
     "featureSceneDesc": "Ton lieu sur le programme :\ndemandes de location et événements qui remplissent ta porte.",
-    "finalCta": "Parlons-en",
-    "finalCtaDesc": "Ceux qui s'organisent d'abord, grandissent d'abord.\nDis-nous qui tu es : on te contacte ou on te montre une démo.",
+    "finalCta": "On commence ?",
+    "finalCtaDesc": "Crée ton compte et entre directement dans ta plateforme.\nChaque profil est vérifié avant publication.",
     "footerAlt": "Pour les danseurs",
     "form": {
       "fieldName": "Nom",
@@ -82,7 +82,7 @@
   },
   "landingAcademy": {
     "metaTitle": "Gestion pour académies de danse | Omnidance",
-    "metaDescription": "Horaires, élèves, plans et paiements de ton académie de salsa, timba ou bachata ordonnés dans une seule app. Essaie-la aujourd'hui avec une démo immédiate.",
+    "metaDescription": "Horaires, élèves, plans et paiements de ton académie de salsa, timba ou bachata ordonnés dans une seule app. Inscris-toi et commence aujourd'hui.",
     "eyebrow": "Pour académies et profs",
     "heroPromise": "Enseigne. Laisse la plateforme organiser.",
     "heroLead": "Horaires, élèves et paiements au même endroit.\nChacun paie comme il paie déjà :\ntoi tu vois juste qui est à jour.",
@@ -100,10 +100,11 @@
     "academyCount": "{count} académies organisent déjà leur opération avec Omnidance",
     "academyEmpty": "Les académies de la scène s'organisent déjà avec Omnidance",
     "finalCta": "On organise ton académie ?",
-    "finalCtaDesc": "Dis-nous qui tu es :\non te contacte ou on te montre l'app en marche.",
+    "finalCtaDesc": "Crée ton compte et monte ton académie aujourd'hui.\nLe profil est vérifié avant sa publication dans l'app.",
     "crossLink": "Tu produis aussi des événements ?",
     "crossHref": "/para-productores",
-    "footerAlt": "Pour les danseurs"
+    "footerAlt": "Pour les danseurs",
+    "ctaEvents": "Explorer les académies"
   },
   "landingProducer": {
     "metaTitle": "Billetterie et contrôle pour producteurs | Omnidance",
@@ -123,10 +124,11 @@
     "featureSceneTitle": "Tes chiffres",
     "featureSceneDesc": "Ventes, présence et règlement en direct.\nPas de tableurs ni de surprises à la fin.",
     "finalCta": "On organise ton prochain événement ?",
-    "finalCtaDesc": "Dis-nous qui tu es :\non te contacte ou on te montre l'app en marche.",
+    "finalCtaDesc": "Crée ton compte et monte ton premier événement aujourd'hui.\nLe profil est vérifié avant sa publication.",
     "crossLink": "Tu as aussi une académie ?",
     "crossHref": "/para-academias",
-    "footerAlt": "Pour les danseurs"
+    "footerAlt": "Pour les danseurs",
+    "ctaEvents": "Explorer les événements"
   },
   "landingProHub": {
     "metaTitle": "Omnidance pour les entreprises",
