@@ -3,6 +3,31 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.2.0] - 2026-10-20
+
+### Added
+
+- **Verificación de email para cuentas con password**
+  (`fix-actor-verification-flow`): `/auth/register` envía el correo de
+  acceso (link+OTP) como verificación de posesión; nuevo
+  `POST /auth/resend-verification` (sesión) lo reenvía. Sin esto el
+  checklist `emailVerified` de la cola de actores era imposible de
+  completar para cuentas con password.
+- **Checklist de validación visible al actor**: `GET /me/role-checks`
+  devuelve al dueño el mismo checklist que la cola admin; nueva card
+  `PendingRoleCard` en `/perfil` y en el home de lente (owner/productor)
+  con links por ítem y verificación de email inline (OTP).
+
+### Fixed
+
+- `PATCH /academies/:id/settings` rechazaba el `photoUrl` hosteado
+  (`/api/...`) que el propio upload persistía — guardar el perfil tras
+  subir foto siempre fallaba con "photoUrl inválido".
+- **Uploads en prod**: `apps/api/docker-compose.yml` declara el bind
+  mount `/mnt/omnidance/uploads:/app/uploads` + `UPLOADS_DIR` — el
+  workflow re-copia el compose a la VM y pisaba el mount manual; los
+  archivos podían perderse en `--force-recreate`.
+
 ## [1.1.0] - 2026-10-20
 
 ### Added
