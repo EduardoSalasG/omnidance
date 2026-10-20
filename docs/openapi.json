@@ -87,6 +87,20 @@
         ]
       }
     },
+    "/api/auth/resend-verification": {
+      "post": {
+        "operationId": "AuthController_resendVerification",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/api/auth/password": {
       "post": {
         "operationId": "AuthController_setPassword",
@@ -209,6 +223,29 @@
         ]
       }
     },
+    "/api/people/photos/people-photos/{key}": {
+      "get": {
+        "operationId": "PeopleController_servePersonPhotoCompat",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "People"
+        ]
+      }
+    },
     "/api/me": {
       "get": {
         "operationId": "PeopleController_me",
@@ -235,6 +272,20 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "People"
+        ]
+      }
+    },
+    "/api/me/role-checks": {
+      "get": {
+        "operationId": "PeopleController_roleChecks",
+        "parameters": [],
         "responses": {
           "200": {
             "description": ""
@@ -4699,6 +4750,29 @@
     "/api/academies/photos/{key}": {
       "get": {
         "operationId": "AcademiesController_servePhoto",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Academies"
+        ]
+      }
+    },
+    "/api/academies/photos/academy-photos/{key}": {
+      "get": {
+        "operationId": "AcademiesController_servePhotoCompat",
         "parameters": [
           {
             "name": "key",
