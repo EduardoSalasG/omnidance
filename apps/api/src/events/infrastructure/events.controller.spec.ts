@@ -35,6 +35,9 @@ interface FakePerson {
   // productor dueño del recurso.
   proTier?: string;
   proTrialEndsAt?: Date | null;
+  // assertProducerPro consulta el rol PRODUCER aprobado (role pipeline):
+  // el productor del fixture nace APPROVED salvo override explícito.
+  roles?: { status: string }[];
 }
 
 interface FakeEvent {
@@ -268,6 +271,7 @@ const mkProducer = (id: string, over: Partial<FakePerson> = {}): FakePerson => (
   photoUrl: null,
   proTier: "FREE",
   proTrialEndsAt: new Date(Date.now() + 90 * 24 * 3600 * 1000),
+  roles: [{ status: "APPROVED" }],
   ...over,
 });
 
