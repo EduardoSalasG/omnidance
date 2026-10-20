@@ -72,7 +72,7 @@ describe("academies e2e", () => {
     baseUrl = `http://127.0.0.1:${address.port}`;
 
     // ─── datos de prueba ───
-    const mkPerson = (name: string, roles: { role: "DANCER" | "ACADEMY_OWNER" | "INSTRUCTOR"; status: "APPROVED" | "SANDBOX" }[]) =>
+    const mkPerson = (name: string, roles: { role: "DANCER" | "ACADEMY_OWNER" | "INSTRUCTOR"; status: "APPROVED" }[]) =>
       prisma.person
         .create({ data: { name, roles: { create: roles } } })
         .then((p) => {
@@ -110,7 +110,7 @@ describe("academies e2e", () => {
     adminSession = await auth.issueSession(admin.id);
 
     const academy = await prisma.academy.create({
-      data: { name: "Academia Test", ownerId: owner.id },
+      data: { name: "Academia Test", ownerId: owner.id, reviewStatus: "APPROVED" },
     });
     ids.academyId = academy.id;
 

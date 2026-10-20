@@ -273,7 +273,7 @@ describe("role-console-depth e2e", () => {
 
     // ─── Academia del owner + clase de hoy ───
     const academy = await prisma.academy.create({
-      data: { name: `RCD Academia ${suffix}`, ownerId: academyOwner.id },
+      data: { name: `RCD Academia ${suffix}`, ownerId: academyOwner.id, reviewStatus: "APPROVED" },
     });
     ids.academyId = academy.id;
     const now = new Date();

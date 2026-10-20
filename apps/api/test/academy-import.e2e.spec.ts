@@ -66,7 +66,7 @@ describe("academy bulk import e2e (spec academy-bulk-import)", () => {
     ownerSession = await auth.issueSession(owner.id);
 
     const academy = await prisma.academy.create({
-      data: { name: "Academia Import Test", ownerId: owner.id },
+      data: { name: "Academia Import Test", ownerId: owner.id, reviewStatus: "APPROVED" },
     });
     academyId.v = academy.id;
 
