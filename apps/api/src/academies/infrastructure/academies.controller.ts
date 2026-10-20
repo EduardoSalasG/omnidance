@@ -947,7 +947,10 @@ export class AcademiesController {
     } catch {
       throw new BadRequestException("tipo de archivo no soportado");
     }
-    const photoUrl = `/api/academies/photos/${key}`;
+    // key trae el folder (academy-photos/<uuid>.<ext>) - la URL pública
+    // va solo con el filename: /api/academies/photos/<uuid>.<ext>.
+    const filename = key.split("/").pop() ?? key;
+    const photoUrl = `/api/academies/photos/${filename}`;
     await this.prisma.academy.update({
       where: { id },
       data: { photoUrl },
@@ -961,6 +964,16 @@ export class AcademiesController {
    */
   @Get("photos/:key")
   async servePhoto(@Param("key") key: string, @Res() res: Response) {
+    return this.streamAcademyPhoto(key, res);
+  }
+
+  /** Compat: photoUrls guardadas con el folder duplicado en la URL. */
+  @Get("photos/academy-photos/:key")
+  async servePhotoCompat(@Param("key") key: string, @Res() res: Response) {
+    return this.streamAcademyPhoto(key, res);
+  }
+
+  private async streamAcademyPhoto(key: string, res: Response) {
     const full = `academy-photos/${key}`;
     let buffer: Buffer;
     try {

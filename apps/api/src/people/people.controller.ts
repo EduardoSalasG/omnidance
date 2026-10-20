@@ -224,7 +224,10 @@ export class PeopleController {
     } catch {
       throw new BadRequestException("tipo de archivo no soportado");
     }
-    const photoUrl = `/api/people/photos/${key}`;
+    // key trae el folder (people-photos/<uuid>.<ext>) - la URL pública
+    // va solo con el filename: /api/people/photos/<uuid>.<ext>.
+    const filename = key.split("/").pop() ?? key;
+    const photoUrl = `/api/people/photos/${filename}`;
     await this.prisma.person.update({
       where: { id: req.person!.id },
       data: { photoUrl },
@@ -235,7 +238,20 @@ export class PeopleController {
   /** Stream público del avatar alojado (uuid - anti-traversal en resolve). */
   @Get("people/photos/:key")
   async servePersonPhoto(@Param("key") key: string, @Res() res: Response) {
-    const full = `people-photos/${key}`;
+    return this.streamPhoto("people-photos", key, res);
+  }
+
+  /** Compat: photoUrls guardadas con el folder duplicado en la URL. */
+  @Get("people/photos/people-photos/:key")
+  async servePersonPhotoCompat(
+    @Param("key") key: string,
+    @Res() res: Response,
+  ) {
+    return this.streamPhoto("people-photos", key, res);
+  }
+
+  private async streamPhoto(folder: string, key: string, res: Response) {
+    const full = `${folder}/${key}`;
     let buffer: Buffer;
     try {
       buffer = await this.storage.read(full);

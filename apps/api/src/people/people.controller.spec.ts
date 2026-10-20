@@ -237,9 +237,40 @@ describe("PeopleController", () => {
       prisma as unknown as PrismaService,
       { hashPassword: async () => "hash" } as never,
       notifications as unknown as NotificationsService,
-      {} as never, // FileStorage - no se usa en estos endpoints
+      {
+        // FakeStorage: save devuelve key con folder como el real.
+        save: async (_f: unknown, folder: string) => `${folder}/uuid-x.jpg`,
+        read: async () => Buffer.from("img"),
+      } as never,
     );
     prisma.people.set("me", mkPerson("me"));
+  });
+
+  describe("POST /me/photo", () => {
+    const multerFile = {
+      originalname: "f.jpg",
+      mimetype: "image/jpeg",
+      buffer: Buffer.from("x"),
+      size: 1,
+    };
+
+    // Bug prod: photoUrl quedaba /api/people/photos/people-photos/<id>.jpg
+    // (folder duplicado) → la URL no matcheaba la ruta y la foto se veía
+    // rota. La URL pública va solo con el filename.
+    it("guarda photoUrl sin el folder duplicado", async () => {
+      const res = await ctrl.uploadMyPhoto(multerFile as never, reqAs("me"));
+      expect(res.photoUrl).toBe("/api/people/photos/uuid-x.jpg");
+      expect(prisma.people.get("me")!.photoUrl).toBe(
+        "/api/people/photos/uuid-x.jpg",
+      );
+    });
+
+    it("sirve por filename y por la URL legacy con folder duplicado", async () => {
+      const res = { setHeader: vi.fn(), send: vi.fn() };
+      await ctrl.servePersonPhoto("uuid-x.jpg", res as never);
+      await ctrl.servePersonPhotoCompat("uuid-x.jpg", res as never);
+      expect(res.send).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("PATCH /me gender", () => {

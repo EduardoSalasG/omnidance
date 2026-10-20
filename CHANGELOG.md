@@ -3,6 +3,16 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.3.2] - 2026-10-20
+
+### Fixed
+
+- **photoUrl con folder duplicado**: el upload de foto de persona y
+  academia guardaba `/api/{people,academies}/photos/{folder}/<uuid>` —
+  la ruta no matcheaba y la foto quedaba rota (404 "Cannot GET"). La
+  URL pública ahora lleva solo el filename y se agregaron rutas compat
+  para los photoUrls ya guardados con el folder.
+
 ## [1.3.1] - 2026-10-20
 
 ### Fixed
