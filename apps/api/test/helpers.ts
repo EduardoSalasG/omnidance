@@ -12,6 +12,12 @@ export async function deletePeople(
   prisma: PrismaService,
   ids: string[],
 ): Promise<void> {
+  // Soft delete preserva el grafo (spec admin-user-soft-delete) - el
+  // teardown físico de tests borra los dependientes directos primero.
+  await prisma.personStyleRole.deleteMany({
+    where: { personId: { in: ids } },
+  });
+  await prisma.personRole.deleteMany({ where: { personId: { in: ids } } });
   for (let i = 0; i < 4; i++) {
     try {
       await prisma.person.deleteMany({ where: { id: { in: ids } } });

@@ -61,6 +61,7 @@ export class PeopleController {
 
     const people = await this.prisma.person.findMany({
       where: {
+        deletedAt: null,
         id: { not: me },
         name: { contains: term, mode: "insensitive" },
       },
@@ -84,7 +85,7 @@ export class PeopleController {
     const me = req.person!.id;
 
     const person = await this.prisma.person.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
       select: {
         id: true,
         name: true,

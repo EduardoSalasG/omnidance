@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import type { Person } from "@prisma/client";
 import { CONSENT_VERSION } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
@@ -10,6 +10,12 @@ export class PrismaAuthRepo implements AuthRepo {
 
   async upsertByEmail(email: string): Promise<Person> {
     const existing = await this.prisma.person.findUnique({ where: { email } });
+    // Cuenta con baja lógica: el link/OTP no la resucita ni le da
+    // sesión - el admin la reactiva si corresponde (spec
+    // admin-user-soft-delete).
+    if (existing?.deletedAt) {
+      throw new UnauthorizedException("cuenta desactivada");
+    }
     if (existing) {
       return this.prisma.person.update({
         where: { email },

@@ -87,6 +87,18 @@
       "CANCELLED": "Cancelado"
      }
     }
+   },
+   "users": {
+    "deactivated": "Desactivada",
+    "reactivate": {
+     "cta": "Reactivar cuenta"
+    },
+    "delete": {
+     "title": "Zona de peligro",
+     "body": "Desactiva la cuenta: no puede entrar ni aparece en superficies públicas, pero sus datos quedan intactos y puedes reactivarla.",
+     "cta": "Desactivar usuario",
+     "confirm": "¿Desactivar a {name}? Sus datos quedan guardados — puedes reactivarla después."
+    }
    }
   },
   "status": {

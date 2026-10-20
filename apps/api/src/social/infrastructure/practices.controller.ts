@@ -138,6 +138,7 @@ export class PracticesController {
     // Event.hostId es escalar → join manual del nombre del host.
     const hosts = await this.prisma.person.findMany({
       where: {
+        deletedAt: null,
         id: {
           in: [
             ...new Set(

@@ -95,6 +95,7 @@ type PersonDetail = {
     isLightAccount: boolean;
     verifiedAt: string | null;
     createdAt: string;
+    deletedAt: string | null;
   };
   roles: { id: string; role: string; status: string; createdAt: string }[];
   roleData: RoleData;
@@ -270,8 +271,8 @@ function UserDetailPanel({ personId }: { personId: string }) {
     );
   };
 
-  // Hard delete en cascada (DELETE /admin/users/:personId) - pensado
-  // para cuentas de prueba/duplicadas; auditado server-side.
+  // Baja lógica (spec admin-user-soft-delete): deletedAt - el grafo de
+  // datos queda intacto, auth bloqueada. Reactivar la restaura.
   async function deleteUser() {
     if (!detail || deleting) return;
     setDeleting(true);
@@ -290,6 +291,26 @@ function UserDetailPanel({ personId }: { personId: string }) {
     } catch {
       setPending(null);
       setActionError(true);
+      setDeleting(false);
+    }
+  }
+
+  async function reactivateUser() {
+    if (!detail || deleting) return;
+    setDeleting(true);
+    setActionError(false);
+    try {
+      const res = await apiFetch(`/admin/users/${personId}/reactivate`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        await load();
+        return;
+      }
+      setActionError(true);
+    } catch {
+      setActionError(true);
+    } finally {
       setDeleting(false);
     }
   }
@@ -360,6 +381,9 @@ function UserDetailPanel({ personId }: { personId: string }) {
             <div className="min-w-0">
               <p className="truncate text-lg font-semibold">{person.name}</p>
               <div className="mt-1 flex flex-wrap gap-1.5">
+                {person.deletedAt && (
+                  <Badge variant="muted">{t("users.deactivated")}</Badge>
+                )}
                 {person.verifiedAt && (
                   <Badge variant="neon">{t("users.detail.verified")}</Badge>
                 )}
@@ -600,20 +624,32 @@ function UserDetailPanel({ personId }: { personId: string }) {
         {t("users.viewAnalytics")}
       </Button>
 
-      {/* Zona de peligro - hard delete en cascada, auditado */}
+      {/* Zona de peligro - baja lógica auditada (soft delete: datos
+          intactos, auth bloqueada; el admin puede reactivar). */}
       <Card className="flex flex-col gap-3 border-red-500/40">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-red-400/80">
           {t("users.delete.title")}
         </h2>
         <p className="text-sm text-ink/60">{t("users.delete.body")}</p>
-        <Button
-          variant="secondary"
-          onClick={() => setPending({ kind: "delete" })}
-          disabled={deleting}
-          className="self-start border-red-500/50 text-red-300 hover:bg-red-500/10"
-        >
-          {deleting ? tc("loading") : t("users.delete.cta")}
-        </Button>
+        {detail.person.deletedAt ? (
+          <Button
+            variant="secondary"
+            onClick={() => void reactivateUser()}
+            disabled={deleting}
+            className="self-start border-neon/50 text-neon hover:bg-neon/10"
+          >
+            {deleting ? tc("loading") : t("users.reactivate.cta")}
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            onClick={() => setPending({ kind: "delete" })}
+            disabled={deleting}
+            className="self-start border-red-500/50 text-red-300 hover:bg-red-500/10"
+          >
+            {deleting ? tc("loading") : t("users.delete.cta")}
+          </Button>
+        )}
       </Card>
 
       <ConfirmSheet

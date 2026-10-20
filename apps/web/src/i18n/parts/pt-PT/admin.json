@@ -87,7 +87,19 @@
     "showLess": "Ver menos"
    },
    "academiesCount": "{count, plural, one {# academia} other {# academias}}",
-   "eventsCount": "{count, plural, one {# evento} other {# eventos}}"
+   "eventsCount": "{count, plural, one {# evento} other {# eventos}}",
+   "users": {
+    "deactivated": "Desativada",
+    "reactivate": {
+     "cta": "Reativar conta"
+    },
+    "delete": {
+     "title": "Zona de perigo",
+     "body": "Desativa a conta: não pode entrar nem aparecer nas superfícies públicas, mas os dados ficam intactos e podes reativar.",
+     "cta": "Desativar utilizador",
+     "confirm": "Desativar {name}? Os dados ficam guardados — podes reativar depois."
+    }
+   }
   },
   "status": {
    "REJECTED": "Rejeitado"
