@@ -7,7 +7,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:4000"
+      "value": "https://api.omnidance.eduardosalasg.dev"
     }
   ],
   "item": [
@@ -129,6 +129,24 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/resend-verification",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/resend-verification",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "resend-verification"
+              ]
             }
           }
         },
@@ -291,6 +309,33 @@
           }
         },
         {
+          "name": "GET /api/people/photos/people-photos/{key}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/people/photos/people-photos/{key}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "people",
+                "photos",
+                "people-photos",
+                "{key}"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": ":key"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/me",
           "request": {
             "method": "GET",
@@ -335,6 +380,24 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "GET /api/me/role-checks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/role-checks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "role-checks"
+              ]
             }
           }
         },
@@ -5623,6 +5686,33 @@
                 "api",
                 "academies",
                 "photos",
+                "{key}"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": ":key"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/photos/academy-photos/{key}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/photos/academy-photos/{key}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "photos",
+                "academy-photos",
                 "{key}"
               ],
               "variable": [
