@@ -42,20 +42,23 @@ actor, y el usuario no veía qué le faltaba.
   0 errores (3 warnings pre-existentes en HomeHub).
 - `openspec validate --changes` verde; archive aplicó deltas a specs.
 
-## Pendiente / ojo prod
+## Estado final (actualizado post-validación prod)
 
-- **Regenerar docs API**: `node apps/api/scripts/export-api-docs.cjs`
-  con API viva → `docs/openapi.json` + postman (2 endpoints nuevos:
-  `/auth/resend-verification`, `/me/role-checks`). No se corrió aquí
-  porque requiere stack levantado.
-- **Cuenta del usuario en prod**: quedó con `verifiedAt` null — tras
-  deployar, puede reenviarse el correo desde la card y verificar; o un
-  admin le manda magic link. Su foto rota era archivo en capa del
-  contenedor pre-mount → hay que **volver a subirla** (el bind mount ya
-  persiste). Su `actorData` fallaba porque la academia no existía —
-  ahora la card le muestra el link "Datos del actor" → `/academia`.
-- **Deploy**: el próximo deploy a main llevará el compose con volumen —
-  verificar que `/mnt/omnidance/uploads` existe en la VM (ya creado por
-  el usuario) y que el `.env` no contradice `UPLOADS_DIR`.
-- Suite completa `pnpm --filter @omnidance/api test` no corrida entera
-  (solo los 3 specs tocados); correr antes del release.
+Releases deployadas: **v1.2.0** (feature principal), **v1.3.0**
+(notificación al resolver rol + revalidación /me en foreground),
+**v1.3.1** (error visible en upload), **v1.3.2** (bug folder duplicado
+en photoUrl + rutas compat). Todo en `main` con tags, dev sincronizado.
+
+- **Validado en prod por el usuario**: upload + visualización de foto OK
+  tras v1.3.2. La ruta compat sirve los photoUrls ya guardados con el
+  folder duplicado — no hay migración de datos necesaria (opcional:
+  UPDATE de photoUrl a formato limpio, muy bajo valor).
+- **Docs API**: openapi.json + postman regenerados desde prod (314
+  paths) y commiteados a dev.
+- **Cuenta del usuario**: rol aprobado por admin (funcionó), foto
+  arreglada. Si quiere ver la notificación `role.approved` en vivo
+  necesita una aprobación nueva (la suya fue pre-v1.3.0).
+- **Brecha de cobertura**: no hay spec del notifySafe en approve/reject
+  de admin.controller (controller grande sin spec propio).
+- **Deuda leve**: swagger/postman ya OK; `qa-flows-inventory` no
+  documenta el detalle del formato photoUrl (bugfix, no cambio de flujo).
