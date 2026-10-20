@@ -414,6 +414,18 @@ export class AdminController {
       where: { id },
       data: { status: "APPROVED" },
     });
+    // Aviso al actor: su rol quedó aprobado (spec rbac) - la card de
+    // pendiente desaparece y el rol pasa a visible al público.
+    await this.notifications.notifySafe(row.person.id, {
+      category: "OPERATIONAL",
+      type: "role.approved",
+      title: "Tu rol fue aprobado",
+      body:
+        row.role === "ACADEMY_OWNER"
+          ? "Tu academia ya puede publicarse y aparecer en Explorar"
+          : "Tus eventos ya son visibles en la cartelera",
+      data: { role: row.role, path: "/inicio" },
+    });
     await this.audit(req, "ROLE_APPROVE", "PersonRole", id, {
       personId: row.person.id,
       role: row.role,
@@ -438,6 +450,13 @@ export class AdminController {
     await this.prisma.personRole.update({
       where: { id },
       data: { status: "REJECTED" },
+    });
+    await this.notifications.notifySafe(row.personId, {
+      category: "OPERATIONAL",
+      type: "role.rejected",
+      title: "Tu solicitud de rol fue rechazada",
+      body: "Si crees que es un error, contáctanos por soporte",
+      data: { role: row.role, path: "/soporte" },
     });
     await this.audit(req, "ROLE_REJECT", "PersonRole", id, {
       personId: row.personId,

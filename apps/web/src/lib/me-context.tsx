@@ -123,6 +123,17 @@ export function MeProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  // Re-fetch al volver a foreground: la PWA conserva /me en memoria y
+  // cambios externos (rol aprobado por admin, nueva membresía) solo se
+  // veían al reabrir la app entera.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refresh]);
+
   // Idioma persistido vs locale activo: al primer /me resuelto con
   // language distinto, navega al path localizado (la preferencia viaja
   // entre dispositivos vía Person.language). Una sola vez por carga de

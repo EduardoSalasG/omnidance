@@ -3,6 +3,18 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.3.0] - 2026-10-20
+
+### Added
+
+- **Notificación al actor al resolver su rol**: aprobar en
+  `/admin/perfiles-por-validar` avisa `role.approved` ("Tu rol fue
+  aprobado") y rechazar `role.rejected`, in-app + push.
+- **Revalidación de roles sin reabrir la app**: `/me` se re-fetchea al
+  volver a foreground (visibilitychange en MeProvider) y `PendingRoleCard`
+  refresca `/me` al montarse en `/perfil`/home — un rol recién aprobado
+  aparece sin cerrar la PWA.
+
 ## [1.2.0] - 2026-10-20
 
 ### Added

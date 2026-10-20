@@ -53,8 +53,13 @@ export function PendingRoleCard() {
   }, []);
 
   useEffect(() => {
-    if (pendingRoles.length > 0) void load();
-  }, [pendingRoles.length, load]);
+    if (pendingRoles.length > 0) {
+      // Re-valida /me al visitar la superficie: si el admin aprobó el
+      // rol, los badges/lente se actualizan sin reabrir la app.
+      void refresh();
+      void load();
+    }
+  }, [pendingRoles.length, load, refresh]);
 
   async function resendVerification() {
     setBusy(true);
