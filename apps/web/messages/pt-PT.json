@@ -1119,5 +1119,62 @@
    "upcoming": "A seguir",
    "events": "Eventos 30d"
   }
+ },
+ "adminValidation": {
+  "title": "Perfis por validar",
+  "hint": "Atores que se registaram a partir das landings. Já podem usar a sua consola, mas não ficam visíveis na app até os aprovares.",
+  "empty": "Sem perfis por validar.",
+  "approve": "Aprovar",
+  "reject": "Rejeitar",
+  "rejectConfirm": "Rejeitar o pedido de {name}? O papel fica marcado como rejeitado.",
+  "checks": {
+   "name": "Nome",
+   "emailVerified": "Email verificado",
+   "phone": "Telefone",
+   "actorData": "Dados do ator"
+  },
+  "roles": {
+   "ACADEMY_OWNER": "Academia",
+   "PRODUCER": "Produtor"
+  },
+  "academiesTitle": "Academias por validar",
+  "academiesHint": "Publicam-se automaticamente ao completar o checklist. Aprova para forçar visibilidade ou rejeita para ocultar.",
+  "academiesEmpty": "Sem academias em revisão.",
+  "academiesChecks": {
+   "name": "Nome",
+   "description": "Descrição",
+   "address": "Morada",
+   "contact": "Contacto",
+   "photo": "Foto",
+   "activeSeries": "Série ativa",
+   "upcomingClass": "Aula próxima",
+   "plan": "Plano de preços",
+   "ownerApproved": "Dono validado"
+  },
+  "rejectAcademyConfirm": "Rejeitar {name}? A academia fica oculta do público mesmo que complete os seus dados."
+ },
+ "academyReview": {
+  "title": "Visibilidade pública",
+  "pending": "Em revisão",
+  "approved": "Publicada",
+  "rejected": "Rejeitada",
+  "hintPending": "A tua academia não aparece em Explorar até completares o seguinte:",
+  "hintApproved": "A tua academia está visível em Explorar e nas aulas.",
+  "hintRejected": "Um administrador ocultou a tua academia. Completa-a e avisa-nos para a reativarmos.",
+  "missing": "Pendente",
+  "checks": {
+   "name": "Nome",
+   "description": "Descrição",
+   "address": "Morada",
+   "contact": "Contacto (IG/WA/web)",
+   "photo": "Foto",
+   "activeSeries": "Série ativa",
+   "upcomingClass": "Aula próxima",
+   "plan": "Plano de preços",
+   "ownerApproved": "Perfil de dono validado"
+  },
+  "fixProfile": "Completar perfil",
+  "fixSeries": "Criar série/aulas",
+  "fixPlan": "Criar plano"
  }
 }

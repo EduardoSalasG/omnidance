@@ -172,6 +172,43 @@
         ]
       }
     },
+    "/api/me/photo": {
+      "post": {
+        "operationId": "PeopleController_uploadMyPhoto",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "People"
+        ]
+      }
+    },
+    "/api/people/photos/{key}": {
+      "get": {
+        "operationId": "PeopleController_servePersonPhoto",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "People"
+        ]
+      }
+    },
     "/api/me": {
       "get": {
         "operationId": "PeopleController_me",
@@ -4636,6 +4673,52 @@
         ]
       }
     },
+    "/api/academies/{id}/photo": {
+      "post": {
+        "operationId": "AcademiesController_uploadPhoto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Academies"
+        ]
+      }
+    },
+    "/api/academies/photos/{key}": {
+      "get": {
+        "operationId": "AcademiesController_servePhoto",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Academies"
+        ]
+      }
+    },
     "/api/academies/{id}/instructors/{personId}": {
       "patch": {
         "operationId": "AcademiesController_updateInstructor",
@@ -7310,6 +7393,66 @@
         "parameters": [
           {
             "name": "personRoleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/academy-review-queue": {
+      "get": {
+        "operationId": "AdminController_academyReviewQueue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/academy-review-queue/{academyId}/approve": {
+      "post": {
+        "operationId": "AdminController_approveAcademy",
+        "parameters": [
+          {
+            "name": "academyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/academy-review-queue/{academyId}/reject": {
+      "post": {
+        "operationId": "AdminController_rejectAcademy",
+        "parameters": [
+          {
+            "name": "academyId",
             "required": true,
             "in": "path",
             "schema": {
