@@ -96,5 +96,5 @@ Orden de dependencia: 1 sella los contratos (schema + catálogo shared) →
 - [x] 6.2 `node apps/api/scripts/export-api-docs.cjs` → docs/openapi.json
   + postman regenerados; `docs/architecture.md` y `docs/flows.md`
   actualizados — verifica: diff commiteado
-- [ ] 6.3 QA manual por lente (320/768/1024/1440) + handoff en `docs/` —
+- [x] 6.3 QA manual por lente (320/768/1024/1440) + handoff en `docs/` —
   verifica: handoff escrito con evidencia
