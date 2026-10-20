@@ -1,84 +1,85 @@
 {
-  "profile": {
-    "appearance": "Apariencia",
-    "pendingBanner": "Completa tus datos para activar tu cuenta",
-    "pendingBannerCta": "Completar",
-    "datos": {
-      "title": "Mis datos",
-      "personal": "Datos personales",
-      "name": "Nombre",
-      "email": "Correo",
-      "phone": "Teléfono",
-      "memberSince": "Miembro desde",
-      "verified": "Cuenta verificada",
-      "noPhone": "Sin teléfono registrado",
-      "instagramEmpty": "Sin usuario",
-      "socialSection": "Tu baile",
-      "socialEmpty": "Aún no declaras tus estilos de baile",
-      "gender": "Género",
-      "genderEmpty": "Sin declarar",
-      "birthDate": "Cumpleaños",
-      "birthDateEmpty": "Sin declarar",
-      "genderOptions": {
-        "M": "Hombre",
-        "F": "Mujer",
-        "OTHER": "Otro"
-      },
-      "edit": "Editar",
-      "addStyle": "Agregar estilo",
-      "remove": "Quitar",
-      "chooseStyle": "Elige un estilo",
-      "chooseRole": "Rol",
-      "level": {
-        "none": "Sin nivel",
-        "principiante": "Principiante",
-        "intermedio": "Intermedio",
-        "avanzado": "Avanzado"
-      },
-      "saved": "Guardado",
-      "saveError": "No se pudo guardar. Intenta de nuevo",
-      "academySection": "Tus academias",
-      "academyEmpty": "Sin inscripciones vigentes",
-      "danceRole": {
-        "LEADER": "Leader",
-        "FOLLOWER": "Follower",
-        "SWITCH": "Switch"
-      },
-      "enrollmentStatus": {
-        "ACTIVE": "Activa",
-        "TRIAL": "Prueba",
-        "ONLINE": "Online",
-        "PAUSED": "Pausada",
-        "FROZEN": "Congelada"
-      },
-      "plan": "Plan {name}",
-      "since": "Desde {date}",
-      "phonePlaceholder": "+56 9 1234 5678",
-      "nameRequired": "El nombre no puede quedar vacío",
-      "language": {
-        "title": "Idioma",
-        "hint": "Se guarda en tu perfil y se aplica en todos tus dispositivos."
-      }
-    },
-    "reminder": {
-      "title": "Completa tu perfil",
-      "body": "Te faltan datos como tu teléfono, género o tus estilos de baile.",
-      "cta": "Completar datos",
-      "dismiss": "No mostrar de nuevo"
-    },
-    "complete": {
-      "title": "Completa tu perfil",
-      "subtitle": "Confirma tus datos para activar tu cuenta y empezar a usar la app.",
-      "name": "Nombre",
-      "phone": "Teléfono",
-      "password": "Contraseña (opcional)",
-      "passwordHint": "mínimo 8 caracteres. También puedes entrar siempre por link a tu correo",
-      "submit": "Activar mi cuenta",
-      "success": "Listo, tu cuenta ya está activa",
-      "error": "No pudimos guardar. Intenta de nuevo",
-      "phoneTaken": "Este teléfono ya está registrado en otra cuenta.",
-      "passwordShort": "La contraseña debe tener al menos 8 caracteres.",
-      "loadError": "No pudimos cargar tus datos."
-    }
+ "profile": {
+  "appearance": "Apariencia",
+  "pendingBanner": "Completa tus datos para activar tu cuenta",
+  "pendingBannerCta": "Completar",
+  "datos": {
+   "title": "Mis datos",
+   "personal": "Datos personales",
+   "name": "Nombre",
+   "email": "Correo",
+   "phone": "Teléfono",
+   "memberSince": "Miembro desde",
+   "verified": "Cuenta verificada",
+   "noPhone": "Sin teléfono registrado",
+   "instagramEmpty": "Sin usuario",
+   "socialSection": "Tu baile",
+   "socialEmpty": "Aún no declaras tus estilos de baile",
+   "gender": "Género",
+   "genderEmpty": "Sin declarar",
+   "birthDate": "Cumpleaños",
+   "birthDateEmpty": "Sin declarar",
+   "genderOptions": {
+    "M": "Hombre",
+    "F": "Mujer",
+    "OTHER": "Otro"
+   },
+   "edit": "Editar",
+   "addStyle": "Agregar estilo",
+   "remove": "Quitar",
+   "chooseStyle": "Elige un estilo",
+   "chooseRole": "Rol",
+   "level": {
+    "none": "Sin nivel",
+    "principiante": "Principiante",
+    "intermedio": "Intermedio",
+    "avanzado": "Avanzado"
+   },
+   "saved": "Guardado",
+   "saveError": "No se pudo guardar. Intenta de nuevo",
+   "academySection": "Tus academias",
+   "academyEmpty": "Sin inscripciones vigentes",
+   "danceRole": {
+    "LEADER": "Leader",
+    "FOLLOWER": "Follower",
+    "SWITCH": "Switch"
+   },
+   "enrollmentStatus": {
+    "ACTIVE": "Activa",
+    "TRIAL": "Prueba",
+    "ONLINE": "Online",
+    "PAUSED": "Pausada",
+    "FROZEN": "Congelada"
+   },
+   "plan": "Plan {name}",
+   "since": "Desde {date}",
+   "phonePlaceholder": "+56 9 1234 5678",
+   "nameRequired": "El nombre no puede quedar vacío",
+   "language": {
+    "title": "Idioma",
+    "hint": "Se guarda en tu perfil y se aplica en todos tus dispositivos."
+   },
+   "photoError": "No pudimos subir la foto — prueba con una imagen más liviana (máx. 5 MB) o en JPG/PNG."
+  },
+  "reminder": {
+   "title": "Completa tu perfil",
+   "body": "Te faltan datos como tu teléfono, género o tus estilos de baile.",
+   "cta": "Completar datos",
+   "dismiss": "No mostrar de nuevo"
+  },
+  "complete": {
+   "title": "Completa tu perfil",
+   "subtitle": "Confirma tus datos para activar tu cuenta y empezar a usar la app.",
+   "name": "Nombre",
+   "phone": "Teléfono",
+   "password": "Contraseña (opcional)",
+   "passwordHint": "mínimo 8 caracteres. También puedes entrar siempre por link a tu correo",
+   "submit": "Activar mi cuenta",
+   "success": "Listo, tu cuenta ya está activa",
+   "error": "No pudimos guardar. Intenta de nuevo",
+   "phoneTaken": "Este teléfono ya está registrado en otra cuenta.",
+   "passwordShort": "La contraseña debe tener al menos 8 caracteres.",
+   "loadError": "No pudimos cargar tus datos."
   }
+ }
 }

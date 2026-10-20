@@ -1,84 +1,85 @@
 {
-  "profile": {
-    "appearance": "Apparence",
-    "pendingBanner": "Complète tes infos pour activer ton compte",
-    "pendingBannerCta": "Compléter",
-    "datos": {
-      "title": "Mes infos",
-      "personal": "Infos personnelles",
-      "name": "Nom",
-      "email": "E-mail",
-      "phone": "Téléphone",
-      "memberSince": "Membre depuis",
-      "verified": "Compte vérifié",
-      "noPhone": "Pas de téléphone enregistré",
-      "instagramEmpty": "Pas de pseudo",
-      "socialSection": "Ta danse",
-      "socialEmpty": "Tu n'as pas encore déclaré tes styles de danse",
-      "gender": "Genre",
-      "genderEmpty": "Non déclaré",
-      "birthDate": "Anniversaire",
-      "birthDateEmpty": "Non déclaré",
-      "genderOptions": {
-        "M": "Homme",
-        "F": "Femme",
-        "OTHER": "Autre"
-      },
-      "edit": "Modifier",
-      "addStyle": "Ajouter un style",
-      "remove": "Retirer",
-      "chooseStyle": "Choisis un style",
-      "chooseRole": "Rôle",
-      "level": {
-        "none": "Pas de niveau",
-        "principiante": "Débutant",
-        "intermedio": "Intermédiaire",
-        "avanzado": "Avancé"
-      },
-      "saved": "Enregistré",
-      "saveError": "Enregistrement impossible. Réessaie",
-      "academySection": "Tes académies",
-      "academyEmpty": "Pas d'inscriptions en cours",
-      "danceRole": {
-        "LEADER": "Leader",
-        "FOLLOWER": "Follower",
-        "SWITCH": "Switch"
-      },
-      "enrollmentStatus": {
-        "ACTIVE": "Active",
-        "TRIAL": "Essai",
-        "ONLINE": "En ligne",
-        "PAUSED": "En pause",
-        "FROZEN": "Gelée"
-      },
-      "plan": "Abonnement {name}",
-      "since": "Depuis le {date}",
-      "phonePlaceholder": "+56 9 1234 5678",
-      "nameRequired": "Le nom ne peut pas être vide",
-      "language": {
-        "title": "Langue",
-        "hint": "Enregistrée dans ton profil et appliquée sur tous tes appareils."
-      }
-    },
-    "reminder": {
-      "title": "Complète ton profil",
-      "body": "Il te manque des infos comme ton téléphone, ton genre ou tes styles de danse.",
-      "cta": "Compléter mes infos",
-      "dismiss": "Ne plus afficher"
-    },
-    "complete": {
-      "title": "Complète ton profil",
-      "subtitle": "Confirme tes infos pour activer ton compte et commencer à utiliser l'app.",
-      "name": "Nom",
-      "phone": "Téléphone",
-      "password": "Mot de passe (optionnel)",
-      "passwordHint": "8 caractères minimum. Tu peux aussi toujours entrer via un lien dans ton e-mail",
-      "submit": "Activer mon compte",
-      "success": "C'est bon, ton compte est actif",
-      "error": "Enregistrement impossible. Réessaie",
-      "phoneTaken": "Ce téléphone est déjà enregistré sur un autre compte.",
-      "passwordShort": "Le mot de passe doit faire au moins 8 caractères.",
-      "loadError": "Impossible de charger tes infos."
-    }
+ "profile": {
+  "appearance": "Apparence",
+  "pendingBanner": "Complète tes infos pour activer ton compte",
+  "pendingBannerCta": "Compléter",
+  "datos": {
+   "title": "Mes infos",
+   "personal": "Infos personnelles",
+   "name": "Nom",
+   "email": "E-mail",
+   "phone": "Téléphone",
+   "memberSince": "Membre depuis",
+   "verified": "Compte vérifié",
+   "noPhone": "Pas de téléphone enregistré",
+   "instagramEmpty": "Pas de pseudo",
+   "socialSection": "Ta danse",
+   "socialEmpty": "Tu n'as pas encore déclaré tes styles de danse",
+   "gender": "Genre",
+   "genderEmpty": "Non déclaré",
+   "birthDate": "Anniversaire",
+   "birthDateEmpty": "Non déclaré",
+   "genderOptions": {
+    "M": "Homme",
+    "F": "Femme",
+    "OTHER": "Autre"
+   },
+   "edit": "Modifier",
+   "addStyle": "Ajouter un style",
+   "remove": "Retirer",
+   "chooseStyle": "Choisis un style",
+   "chooseRole": "Rôle",
+   "level": {
+    "none": "Pas de niveau",
+    "principiante": "Débutant",
+    "intermedio": "Intermédiaire",
+    "avanzado": "Avancé"
+   },
+   "saved": "Enregistré",
+   "saveError": "Enregistrement impossible. Réessaie",
+   "academySection": "Tes académies",
+   "academyEmpty": "Pas d'inscriptions en cours",
+   "danceRole": {
+    "LEADER": "Leader",
+    "FOLLOWER": "Follower",
+    "SWITCH": "Switch"
+   },
+   "enrollmentStatus": {
+    "ACTIVE": "Active",
+    "TRIAL": "Essai",
+    "ONLINE": "En ligne",
+    "PAUSED": "En pause",
+    "FROZEN": "Gelée"
+   },
+   "plan": "Abonnement {name}",
+   "since": "Depuis le {date}",
+   "phonePlaceholder": "+56 9 1234 5678",
+   "nameRequired": "Le nom ne peut pas être vide",
+   "language": {
+    "title": "Langue",
+    "hint": "Enregistrée dans ton profil et appliquée sur tous tes appareils."
+   },
+   "photoError": "Impossible de téléverser la photo — essayez une image plus légère (5 Mo max) ou JPG/PNG."
+  },
+  "reminder": {
+   "title": "Complète ton profil",
+   "body": "Il te manque des infos comme ton téléphone, ton genre ou tes styles de danse.",
+   "cta": "Compléter mes infos",
+   "dismiss": "Ne plus afficher"
+  },
+  "complete": {
+   "title": "Complète ton profil",
+   "subtitle": "Confirme tes infos pour activer ton compte et commencer à utiliser l'app.",
+   "name": "Nom",
+   "phone": "Téléphone",
+   "password": "Mot de passe (optionnel)",
+   "passwordHint": "8 caractères minimum. Tu peux aussi toujours entrer via un lien dans ton e-mail",
+   "submit": "Activer mon compte",
+   "success": "C'est bon, ton compte est actif",
+   "error": "Enregistrement impossible. Réessaie",
+   "phoneTaken": "Ce téléphone est déjà enregistré sur un autre compte.",
+   "passwordShort": "Le mot de passe doit faire au moins 8 caractères.",
+   "loadError": "Impossible de charger tes infos."
   }
+ }
 }
