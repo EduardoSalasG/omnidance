@@ -1119,5 +1119,62 @@
    "upcoming": "Upcoming",
    "events": "Events 30d"
   }
+ },
+ "adminValidation": {
+  "title": "Profiles to validate",
+  "hint": "Actors who signed up from the landings. They can already use their console, but are not visible in the app until you approve them.",
+  "empty": "No profiles to validate.",
+  "approve": "Approve",
+  "reject": "Reject",
+  "rejectConfirm": "Reject {name}'s request? The role will be marked as rejected.",
+  "checks": {
+   "name": "Name",
+   "emailVerified": "Verified email",
+   "phone": "Phone",
+   "actorData": "Actor data"
+  },
+  "roles": {
+   "ACADEMY_OWNER": "Academy",
+   "PRODUCER": "Producer"
+  },
+  "academiesTitle": "Academies to validate",
+  "academiesHint": "They auto-publish once the checklist is complete. Approve to force visibility or reject to hide.",
+  "academiesEmpty": "No academies under review.",
+  "academiesChecks": {
+   "name": "Name",
+   "description": "Description",
+   "address": "Address",
+   "contact": "Contact",
+   "photo": "Photo",
+   "activeSeries": "Active series",
+   "upcomingClass": "Upcoming class",
+   "plan": "Pricing plan",
+   "ownerApproved": "Owner validated"
+  },
+  "rejectAcademyConfirm": "Reject {name}? The academy is hidden from the public even if it completes its data."
+ },
+ "academyReview": {
+  "title": "Public visibility",
+  "pending": "Under review",
+  "approved": "Published",
+  "rejected": "Rejected",
+  "hintPending": "Your academy won't appear in Explore until you complete the following:",
+  "hintApproved": "Your academy is visible in Explore and classes.",
+  "hintRejected": "An administrator hid your academy. Complete it and let us know to reactivate it.",
+  "missing": "Pending",
+  "checks": {
+   "name": "Name",
+   "description": "Description",
+   "address": "Address",
+   "contact": "Contact (IG/WA/web)",
+   "photo": "Photo",
+   "activeSeries": "Active series",
+   "upcomingClass": "Upcoming class",
+   "plan": "Pricing plan",
+   "ownerApproved": "Owner profile validated"
+  },
+  "fixProfile": "Complete profile",
+  "fixSeries": "Create series/classes",
+  "fixPlan": "Create plan"
  }
 }

@@ -1119,5 +1119,62 @@
    "upcoming": "À venir",
    "events": "Événements 30j"
   }
+ },
+ "adminValidation": {
+  "title": "Profils à valider",
+  "hint": "Acteurs inscrits depuis les landings. Ils peuvent déjà utiliser leur console, mais ne sont pas visibles dans l'app tant que vous ne les avez pas approuvés.",
+  "empty": "Aucun profil à valider.",
+  "approve": "Approuver",
+  "reject": "Rejeter",
+  "rejectConfirm": "Rejeter la demande de {name} ? Le rôle sera marqué comme rejeté.",
+  "checks": {
+   "name": "Nom",
+   "emailVerified": "Email vérifié",
+   "phone": "Téléphone",
+   "actorData": "Données de l'acteur"
+  },
+  "roles": {
+   "ACADEMY_OWNER": "Académie",
+   "PRODUCER": "Producteur"
+  },
+  "academiesTitle": "Académies à valider",
+  "academiesHint": "Elles se publient automatiquement une fois le checklist complété. Approuvez pour forcer la visibilité ou rejetez pour masquer.",
+  "academiesEmpty": "Aucune académie en révision.",
+  "academiesChecks": {
+   "name": "Nom",
+   "description": "Description",
+   "address": "Adresse",
+   "contact": "Contact",
+   "photo": "Photo",
+   "activeSeries": "Série active",
+   "upcomingClass": "Cours à venir",
+   "plan": "Grille tarifaire",
+   "ownerApproved": "Propriétaire validé"
+  },
+  "rejectAcademyConfirm": "Rejeter {name} ? L'académie sera masquée du public même si elle complète ses données."
+ },
+ "academyReview": {
+  "title": "Visibilité publique",
+  "pending": "En révision",
+  "approved": "Publiée",
+  "rejected": "Rejetée",
+  "hintPending": "Votre académie n'apparaît pas dans Explorer tant que vous n'avez pas complété :",
+  "hintApproved": "Votre académie est visible dans Explorer et les cours.",
+  "hintRejected": "Un administrateur a masqué votre académie. Complétez-la et prévenez-nous pour la réactiver.",
+  "missing": "En attente",
+  "checks": {
+   "name": "Nom",
+   "description": "Description",
+   "address": "Adresse",
+   "contact": "Contact (IG/WA/web)",
+   "photo": "Photo",
+   "activeSeries": "Série active",
+   "upcomingClass": "Cours à venir",
+   "plan": "Grille tarifaire",
+   "ownerApproved": "Profil du propriétaire validé"
+  },
+  "fixProfile": "Compléter le profil",
+  "fixSeries": "Créer série/cours",
+  "fixPlan": "Créer un plan"
  }
 }

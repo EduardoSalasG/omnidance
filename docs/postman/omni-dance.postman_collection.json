@@ -247,6 +247,50 @@
       "name": "People",
       "item": [
         {
+          "name": "POST /api/me/photo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/photo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "photo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/people/photos/{key}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/people/photos/{key}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "people",
+                "photos",
+                "{key}"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": ":key"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/me",
           "request": {
             "method": "GET",
@@ -5540,6 +5584,58 @@
           }
         },
         {
+          "name": "POST /api/academies/{id}/photo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/photo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "photo"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/photos/{key}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/photos/{key}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "photos",
+                "{key}"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": ":key"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "PATCH /api/academies/{id}/instructors/{personId}",
           "request": {
             "method": "PATCH",
@@ -8445,6 +8541,78 @@
                 {
                   "key": "personRoleId",
                   "value": ":personRoleId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/academy-review-queue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/academy-review-queue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "academy-review-queue"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/admin/academy-review-queue/{academyId}/approve",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/academy-review-queue/{academyId}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "academy-review-queue",
+                "{academyId}",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "academyId",
+                  "value": ":academyId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/admin/academy-review-queue/{academyId}/reject",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/academy-review-queue/{academyId}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "academy-review-queue",
+                "{academyId}",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "academyId",
+                  "value": ":academyId"
                 }
               ],
               "query": []

@@ -207,17 +207,30 @@ sequenceDiagram
 ```mermaid
 stateDiagram-v2
     [*] --> APPROVED: admin setRole<br/>(POST /admin/users/:id/roles)
-    [*] --> PENDING: admin setRole<br/>(sin acceso aún)
-    [*] --> SANDBOX: admin setRole<br/>(acceso limitado @AllowSandbox)
-    PENDING --> APPROVED: admin setRole
-    SANDBOX --> APPROVED: admin setRole<br/>(upgrade de acceso)
+    [*] --> PENDING: registro por landing<br/>(/login?role= owner|producer)<br/>o admin setRole
+    PENDING --> APPROVED: admin aprueba en<br/>/admin/perfiles-por-validar
     APPROVED --> REJECTED: admin setRole<br/>(fila preservada - auditable)
     APPROVED --> [*]: admin DELETE /admin/users/:id/roles/:role
 ```
 
-- No hay auto-solicitud de roles: el admin gestiona todo el ciclo desde `/admin/usuarios` (`role-requests` y `roles/request` fueron eliminados).
-- `PENDING` y `REJECTED`: sin acceso, no aparece en `req.person.roles` (sí en `roleStates` de `/me`).
-- `SANDBOX`: acceso solo a endpoints marcados `@AllowSandbox` (hoy `POST /academies`).
+- `ACADEMY_OWNER`/`PRODUCER` se auto-registran desde las landings (`/para-academias`, `/para-productores`) → `PersonRole` PENDING al primer login. El resto de roles solo los asigna el admin (`role-requests` y `roles/request` fueron eliminados).
+- `PENDING` en owner/producer = **consola completa pero invisible al público** (directorios, lineups, búsqueda de actores) hasta APPROVED; en otros roles = sin acceso. `REJECTED`: sin acceso; ambos aparecen en `roleStates` de `/me`, no en `req.person.roles`.
+
+## Visibilidad de academia (academy-approval-gate)
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: POST /academies<br/>(default)
+    PENDING --> APPROVED: checklist completo<br/>(auto, promoteCompletedAcademies<br/>en cualquier GET público)
+    PENDING --> APPROVED: admin override<br/>POST /admin/academy-review-queue/:id/approve
+    PENDING --> REJECTED: admin<br/>POST .../:id/reject
+    APPROVED --> REJECTED: admin<br/>POST .../:id/reject
+    REJECTED --> APPROVED: solo admin approve<br/>(nunca auto)
+```
+
+- Checklist server-side (`academy-review.ts`, batch sin N+1): nombre, descripción, dirección, contacto (IG/WA/web), `photoUrl`, serie activa, clase futura, plan activo, owner `ACADEMY_OWNER` APPROVED.
+- Visibilidad: `GET /academies` + `/academies/public` excluyen REJECTED y filtran PENDING sin checklist (promueven best-effort las completas); `GET /academies/:id/profile` → 404 si no visible y el viewer no es manager; `/classes/browse` aplica el mismo filtro por academia. La auto-promoción corre dentro del GET, no en el PATCH.
+- Owner ve `AcademyVisibilityCard` en `/academia` con el estado y los ítems faltantes (links a la sección que los resuelve); la cola admin vive en `/admin/perfiles-por-validar` → sección Academias.
 
 ## Ticket - estados y transferencia
 
