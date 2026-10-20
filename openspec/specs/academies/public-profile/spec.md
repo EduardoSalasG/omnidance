@@ -16,6 +16,10 @@ limpian el campo; sin esquema se asume `https://`; el resultado debe ser
 una URL http(s) válida o se rechaza con 400. La ficha pública muestra el
 link solo cuando hay website (muestra el host como etiqueta).
 
+La ficha pública (`GET /academies/:id/profile`) SHALL además exigir que
+la academia sea visible (`reviewStatus` APPROVED o checklist completo)
+para viewers sin privilegios de gestión — ver academies/approval-gate.
+
 #### Scenario: guardar y mostrar
 
 - **GIVEN** el owner edita el perfil con `website: "miacademia.cl"`
@@ -36,6 +40,13 @@ link solo cuando hay website (muestra el host como etiqueta).
 - **WHEN** se renderiza la ficha pública
 - **THEN** no aparece el chip de sitio web (Instagram/WhatsApp siguen
   siendo igual de opcionales)
+
+#### Scenario: ficha de academia no visible
+
+- **GIVEN** una academia con `reviewStatus` PENDING e incompleta
+- **WHEN** un usuario sin privilegios de gestión pide
+  `GET /academies/:id/profile`
+- **THEN** responde como si la academia no existiera
 
 ### Requirement: Tipo de plan como tag y nombre como categoría
 
