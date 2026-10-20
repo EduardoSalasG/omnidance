@@ -42,3 +42,11 @@
 ## Nota operativa
 
 - `pnpm --filter @omnidance/api build` (nest build) **borra `dist/main` y mata el `nest start --watch` del dev server** — correr build solo con el dev detenido, o reiniciar `pnpm dev` después.
+
+## Release 1.1.0 — armado, BLOQUEADO por suite e2e
+
+- Version bump + CHANGELOG commiteados en `7d93df8` (dev). **Sin merge a main ni tag**: `pnpm test` tiene 38 fallos en 6 specs (pre-existentes, no de esta sesión).
+- Ya reparado en `3baddea`: fixtures de academia → `reviewStatus:"APPROVED"` (6 specs), SANDBOX→PENDING (admin.e2e), admin con PRODUCER APPROVED (gap-producer). Bajó de 45→38 fallos.
+- **Patrón restante**: fixtures de productor sin `proTier`/`proTrialEndsAt` → `requireProSelf` lanza PRO_REQUIRED (events.controller.spec y similares); revisar los 6 archivos rojos con `pnpm --filter @omnidance/api test` y agregar `proTrialEndsAt: future` o `proTier:"PRO_STARTER"` al fixture del productor.
+- Después de suite verde → `git checkout main && git merge dev && git tag v1.1.0 && push` → el deploy corre migrate → **recién ahí** lanzar `SEED_ENV=dev pnpm --filter @omnidance/api prisma db seed` con la DATABASE_URL de Neon (el seed ya lleva `reviewStatus:"APPROVED"` en academias demo).
+- Foto upload en prod: infra ya montada por el usuario (`/mnt/omnidance/uploads` + compose + nginx `client_max_body_size`).
