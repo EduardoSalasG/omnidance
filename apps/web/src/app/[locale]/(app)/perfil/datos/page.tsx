@@ -195,9 +195,12 @@ export default function DatosPage() {
   // Avatar alojado por nosotros (mismo patrón que la foto de academia):
   // POST multipart /me/photo → photoUrl = /api/people/photos/<key>;
   // refreshMe actualiza el avatar en toda la app sin reload.
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
   async function uploadPhoto(file: File | undefined) {
     if (!file) return;
     setUploadingPhoto(true);
+    setPhotoError(null);
     try {
       const form = new FormData();
       form.append("photo", file);
@@ -206,6 +209,9 @@ export default function DatosPage() {
         body: form,
       });
       if (res.ok) await refreshMe();
+      else setPhotoError(t("datos.photoError"));
+    } catch {
+      setPhotoError(t("datos.photoError"));
     } finally {
       setUploadingPhoto(false);
     }
@@ -540,6 +546,9 @@ export default function DatosPage() {
               }}
             />
           </div>
+          {photoError && (
+            <p className="-mt-1 pb-1 text-xs text-red-400">{photoError}</p>
+          )}
           {personalEditing ? (
             <EditField
               id="ig-input"

@@ -3,6 +3,14 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.3.1] - 2026-10-20
+
+### Fixed
+
+- **Upload de foto sin feedback**: `/perfil/datos` tragaba el error del
+  upload (foto >5 MB o formato no soportado → 400/413 silencioso y el
+  avatar quedaba roto con la URL anterior). Ahora muestra el error.
+
 ## [1.3.0] - 2026-10-20
 
 ### Added
