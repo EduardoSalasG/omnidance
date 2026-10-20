@@ -30,6 +30,7 @@ interface FakePersonRow {
   // Gating Producer Pro (S5) - solo se consultan para el owner.
   proTier?: string;
   proTrialEndsAt?: Date | null;
+  roles?: { status: string }[];
 }
 
 interface FakeRating {
@@ -85,8 +86,10 @@ class FakePrisma {
   person = {
     findMany: async ({ where }: { where: { id: { in: string[] } } }) =>
       [...this.people.values()].filter((p) => where.id.in.includes(p.id)),
-    findUnique: async ({ where }: { where: { id: string } }) =>
-      this.people.get(where.id) ?? null,
+    findUnique: async ({ where }: { where: { id: string } }) => {
+      const p = this.people.get(where.id) ?? null;
+      return p ? { ...p, roles: p.roles ?? [{ status: "APPROVED" }] } : null;
+    },
   };
 
   eventRating = {

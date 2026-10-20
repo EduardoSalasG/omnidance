@@ -16,6 +16,7 @@ interface FakePersonRow {
   id: string;
   proTier: string;
   proTrialEndsAt: Date | null;
+  roles?: { status: string }[];
 }
 
 interface FakeRole {
@@ -30,8 +31,10 @@ class FakePrisma {
   roles: FakeRole[] = [];
 
   person = {
-    findUnique: async ({ where }: { where: { id: string } }) =>
-      this.people.get(where.id) ?? null,
+    findUnique: async ({ where }: { where: { id: string } }) => {
+      const p = this.people.get(where.id) ?? null;
+      return p ? { ...p, roles: p.roles ?? [{ status: "APPROVED" }] } : null;
+    },
   };
 
   academy = {
