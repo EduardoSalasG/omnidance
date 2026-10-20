@@ -21,6 +21,7 @@ import {
   XIcon,
 } from "@/components/ui";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
+import { PendingRoleCard } from "@/components/people/pending-role-card";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import pkg from "../../../../../package.json";
 import { Link } from "@/i18n/navigation";
@@ -492,6 +493,10 @@ export default function PerfilPage() {
           </svg>
         </Card>
       </Link>
+
+      {/* Rol de actor en revisión (spec rbac): checklist visible de
+          lo que falta para la aprobación - vacío si no hay pendiente. */}
+      <PendingRoleCard />
 
       <ProfileReminder />
 

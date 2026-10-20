@@ -18,6 +18,7 @@ interface FakePerson {
   passwordHash: string | null;
   consentVersion: string | null;
   consentAcceptedAt: Date | null;
+  verifiedAt: Date | null;
 }
 
 // No `implements AuthRepo`: los métodos devuelven FakePerson (shape
@@ -31,7 +32,11 @@ class FakeRepo {
 
   async upsertByEmail(email: string): Promise<FakePerson> {
     const existing = this.people.get(email);
-    if (existing) return existing;
+    if (existing) {
+      // El link/OTP prueba posesión del correo (spec auth-email-verification).
+      existing.verifiedAt = new Date();
+      return existing;
+    }
     const person: FakePerson = {
       id: `p-${++this.seq}`,
       email,
@@ -39,6 +44,7 @@ class FakeRepo {
       passwordHash: null,
       consentVersion: null,
       consentAcceptedAt: null,
+      verifiedAt: new Date(),
     };
     this.people.set(email, person);
     return person;
@@ -54,6 +60,8 @@ class FakeRepo {
       email,
       name,
       passwordHash,
+      // Password no prueba posesión del correo - queda sin verificar.
+      verifiedAt: null,
       consentVersion: null,
       consentAcceptedAt: null,
     };
@@ -356,5 +364,76 @@ describe("AuthController - OTP (spec auth-email-otp)", () => {
       ctrl.otpVerify({ email: "x@omnidance.dev", code: wrong }, mkRes()),
     ).rejects.toThrow("Código inválido o expirado");
     expect(repo.otps[0].attempts).toBe(1);
+  });
+});
+
+// spec auth-email-verification: la cuenta con password nace sin
+// verifiedAt - el correo de acceso (link+OTP) actúa como verificación.
+describe("AuthController - verificación de correo", () => {
+  let auth: AuthService;
+  let repo: FakeRepo;
+  let mailer: { send: ReturnType<typeof vi.fn> };
+  let ctrl: AuthController;
+
+  beforeEach(() => {
+    repo = new FakeRepo();
+    auth = new AuthService(SECRET, repo as unknown as AuthRepo);
+    mailer = { send: vi.fn(async () => {}) };
+    ctrl = new AuthController(
+      auth,
+      mailer as unknown as Mailer,
+      repo as unknown as AuthRepo,
+    );
+  });
+
+  const extractCode = (html: string) =>
+    /letter-spacing:0\.4em;[^<]*>(\d{6})</.exec(html)![1];
+
+  it("register envía bienvenida + correo de acceso (verificación)", async () => {
+    await ctrl.register(
+      {
+        email: "nueva@omnidance.dev",
+        name: "Nueva",
+        password: "clave-secreta-123",
+      },
+      mkRes(),
+    );
+    // welcome + acceso (link+OTP); la cuenta sigue sin verificar hasta
+    // que use una de las dos vías.
+    expect(mailer.send).toHaveBeenCalledTimes(2);
+    const person = repo.people.get("nueva@omnidance.dev")!;
+    expect(person.verifiedAt).toBeNull();
+    // El link del correo de acceso verifica el correo al clickearlo.
+    const html: string = mailer.send.mock.calls[1][2];
+    const token = /token=([^"'\s]+)/.exec(html)![1];
+    await ctrl.verify(token, mkRes());
+    expect(person.verifiedAt).toBeInstanceOf(Date);
+  });
+
+  it("resend-verification reenvía link+OTP cuando verifiedAt es null", async () => {
+    const person = await repo.createWithPassword(
+      "pendiente@omnidance.dev",
+      "Pendiente",
+      await auth.hashPassword("clave-secreta-123"),
+    );
+    const req = { person: { id: person.id } } as unknown as Request;
+    const out = await ctrl.resendVerification(req);
+    expect(out).toEqual({ ok: true });
+    expect(mailer.send).toHaveBeenCalledTimes(1);
+    // El OTP del correo verifica la cuenta.
+    const code = extractCode(mailer.send.mock.calls[0][2]);
+    await ctrl.otpVerify(
+      { email: "pendiente@omnidance.dev", code },
+      mkRes(),
+    );
+    expect(person.verifiedAt).toBeInstanceOf(Date);
+  });
+
+  it("resend-verification es idempotente si ya está verificado", async () => {
+    const person = await repo.upsertByEmail("verificada@omnidance.dev");
+    const req = { person: { id: person.id } } as unknown as Request;
+    const out = await ctrl.resendVerification(req);
+    expect(out).toEqual({ ok: true, alreadyVerified: true });
+    expect(mailer.send).not.toHaveBeenCalled();
   });
 });

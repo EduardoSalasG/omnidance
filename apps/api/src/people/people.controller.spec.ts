@@ -49,6 +49,7 @@ interface FakeEvent {
   name: string;
   endsAt: Date;
   surveyNotifiedAt: Date | null;
+  producerId?: string;
 }
 
 interface FakeRating {
@@ -62,6 +63,8 @@ class FakePrisma {
   events: FakeEvent[] = [];
   ratings: FakeRating[] = [];
   personUpdates: Record<string, unknown>[] = [];
+  academies: { ownerId: string }[] = [];
+  personRoles: { personId: string; role: string; status: string }[] = [];
 
   person = {
     findUniqueOrThrow: async ({ where }: { where: { id: string } }) => {
@@ -101,6 +104,27 @@ class FakePrisma {
     findMany: async () => [],
   };
 
+  personRole = {
+    findMany: async ({
+      where,
+    }: {
+      where: { personId: string; role: { in: string[] }; status: string };
+    }) =>
+      this.personRoles
+        .filter(
+          (r) =>
+            r.personId === where.personId &&
+            where.role.in.includes(r.role) &&
+            r.status === where.status,
+        )
+        .map((r) => ({ role: r.role })),
+  };
+
+  academy = {
+    count: async ({ where }: { where: { ownerId: string } }) =>
+      this.academies.filter((a) => a.ownerId === where.ownerId).length,
+  };
+
   checkin = {
     findMany: async ({
       where,
@@ -126,6 +150,8 @@ class FakePrisma {
   };
 
   event = {
+    count: async ({ where }: { where: { producerId: string } }) =>
+      this.events.filter((e) => e.producerId === where.producerId).length,
     findMany: async ({
       where,
       orderBy,
@@ -357,6 +383,80 @@ describe("PeopleController", () => {
       const res = await ctrl.me(reqAs("me"));
       expect(res.consentVersion).toBeNull();
       expect(res.consentAcceptedAt).toBeNull();
+    });
+  });
+
+  // spec rbac - checklist visible al actor: misma evaluación que la
+  // cola admin, expuesta al dueño de la cuenta.
+  describe("GET /me/role-checks", () => {
+    it("sin roles PENDING de validación → []", async () => {
+      expect(await ctrl.roleChecks(reqAs("me"))).toEqual([]);
+      // Un DANCER APPROVED tampoco genera checklist.
+      prisma.personRoles.push({
+        personId: "me",
+        role: "DANCER",
+        status: "APPROVED",
+      });
+      expect(await ctrl.roleChecks(reqAs("me"))).toEqual([]);
+    });
+
+    it("ACADEMY_OWNER PENDING devuelve el checklist con lo faltante", async () => {
+      prisma.personRoles.push({
+        personId: "me",
+        role: "ACADEMY_OWNER",
+        status: "PENDING",
+      });
+      const [row] = await ctrl.roleChecks(reqAs("me"));
+      expect(row.role).toBe("ACADEMY_OWNER");
+      // mkPerson: name real, sin email verificado, sin phone, sin academia.
+      expect(row.checks).toEqual({
+        name: true,
+        emailVerified: false,
+        phone: false,
+        actorData: false,
+      });
+      expect(row.complete).toBe(false);
+
+      // Completando datos el checklist pasa.
+      const me = prisma.people.get("me")!;
+      me.verifiedAt = new Date();
+      me.phone = "+56911111111";
+      prisma.academies.push({ ownerId: "me" });
+      const [done] = await ctrl.roleChecks(reqAs("me"));
+      expect(done.checks.actorData).toBe(true);
+      expect(done.complete).toBe(true);
+    });
+
+    it("PRODUCER PENDING evalúa actorData por eventos, no academias", async () => {
+      prisma.personRoles.push(
+        { personId: "me", role: "PRODUCER", status: "PENDING" },
+        { personId: "me", role: "ACADEMY_OWNER", status: "APPROVED" },
+      );
+      prisma.events.push({
+        id: "ev-1",
+        name: "Social",
+        endsAt: new Date(),
+        surveyNotifiedAt: null,
+        producerId: "me",
+      });
+      const rows = await ctrl.roleChecks(reqAs("me"));
+      // Solo roles PENDING entran a la lista.
+      expect(rows).toHaveLength(1);
+      expect(rows[0].role).toBe("PRODUCER");
+      expect(rows[0].checks.actorData).toBe(true);
+    });
+
+    it("nombre = prefijo del email no cuenta como nombre real", async () => {
+      const me = prisma.people.get("me")!;
+      me.email = "baila@omnidance.dev";
+      me.name = "baila"; // default del alta por magic link
+      prisma.personRoles.push({
+        personId: "me",
+        role: "ACADEMY_OWNER",
+        status: "PENDING",
+      });
+      const [row] = await ctrl.roleChecks(reqAs("me"));
+      expect(row.checks.name).toBe(false);
     });
   });
 

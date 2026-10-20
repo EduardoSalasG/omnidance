@@ -19,6 +19,7 @@ import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
 import { ProducerDashboard } from "@/components/producer/producer-dashboard";
+import { PendingRoleCard } from "@/components/people/pending-role-card";
 
 import { GENRE_TEXT, localDayKey } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
@@ -707,6 +708,9 @@ export function HomeHub() {
         // academia (o alta si no tiene) + dashboard con KPIs, clases de
         // hoy e insights. /academia redirige acá para el owner - la
         // página aparte no tenía sentido.
+        <>
+        {/* Rol PENDING: qué le falta para la aprobación (spec rbac). */}
+        <PendingRoleCard />
         <AcademyGate>
           {({ academy }) => (
             <>
@@ -781,12 +785,14 @@ export function HomeHub() {
             </>
           )}
         </AcademyGate>
+        </>
       ) : activeRole === "PRODUCER" ? (
         // El home del productor ES su consola (spec
         // events/producer-console): KPIs + cobros por revisar + tops -
         // mismo formato que el dashboard del owner. Sin hero ni
         // "Próximos eventos".
         <>
+          <PendingRoleCard />
           <ProducerDashboard />
           {/* Tour del productor (spec events/producer-console): sus
               anchors viven en el dashboard; cobros/tops se omiten si

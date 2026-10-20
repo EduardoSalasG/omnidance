@@ -1200,5 +1200,27 @@
   "fixProfile": "Completar perfil",
   "fixSeries": "Crear serie/clases",
   "fixPlan": "Crear plan"
+ },
+ "roleReview": {
+  "title": "Tu rol de {role}",
+  "pending": "En revisión",
+  "hintPending": "Completa lo siguiente para que un admin te apruebe:",
+  "hintComplete": "Perfil completo — queda pendiente la aprobación del admin.",
+  "checks": {
+   "name": "Nombre real",
+   "emailVerified": "Email verificado",
+   "phone": "Teléfono",
+   "actorData": "Datos del actor"
+  },
+  "roles": {
+   "ACADEMY_OWNER": "academia",
+   "PRODUCER": "productor"
+  },
+  "verifyCta": "verificar",
+  "verifySent": "Te enviamos un código a {email} — ingrésalo aquí o abre el link del correo.",
+  "otpPlaceholder": "000000",
+  "otpSubmit": "Confirmar",
+  "otpInvalid": "Código inválido o expirado",
+  "verifyError": "No pudimos enviar el correo — intenta de nuevo"
  }
 }
