@@ -3,6 +3,26 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.4.0] - 2026-10-20
+
+### Changed
+
+- **Niveles de baile** (`dance-levels-catalog`): el set pasa a
+  Iniciación/Básico/Intermedio/Avanzado — la misma escala que
+  `ClassLevel` de academias. Migración: `principiante → basico`.
+- **Email post-registro con password**: ahora dice "Verifica tu correo"
+  (copy de verificación) en vez de "Tu acceso a Omnidance" — el usuario
+  no había pedido un código de acceso, está confirmando su correo.
+- **Checklist del actor** (`PendingRoleCard`): el check `actorData`
+  muestra el nombre por rol — "Nombre de academia" / "Nombre de evento"
+  en vez del genérico "Datos del actor".
+
+### Fixed
+
+- **Botón "Nueva academia" en todas las páginas**: `AcademyGate` lo
+  renderizaba en cada página de la consola. Ahora es una opción
+  "＋ Nueva academia" dentro del selector de academia (un solo sitio).
+
 ## [1.3.2] - 2026-10-20
 
 ### Fixed

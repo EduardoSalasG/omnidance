@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { Button, Card, RefreshIcon } from "@/components/ui";
+import { useRouter } from "@/i18n/navigation";
 import { PageLoading } from "@/components/ui/spinner";
 import { AcademyBillingBanner } from "./academy-billing-banner";
 import { CreateAcademyForm } from "./create-academy-form";
@@ -31,6 +32,7 @@ export function AcademyGate({
 }) {
   const t = useTranslations("academy");
   const tc = useTranslations("common");
+  const router = useRouter();
 
   const [gate, setGate] = useState<Gate>("loading");
   const [academies, setAcademies] = useState<Academy[]>([]);
@@ -146,31 +148,33 @@ export function AcademyGate({
               componente se auto-omite - el estado va detallado ahí). */}
           <AcademyBillingBanner academy={selected} />
           <div className="flex flex-wrap items-center gap-2">
-            {academies.length > 1 && (
+            {(academies.length > 1 || canCreate) && (
               <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-xs">
                 <span className="sr-only">{t("title")}</span>
+                {/* La opción "Nueva academia" vive dentro del selector
+                    (un solo sitio) - antes era un botón repetido en
+                    todas las páginas de la consola. */}
                 <select
                   className={inputCls}
                   value={selectedId ?? ""}
-                  onChange={(e) => selectAcademy(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value === "__new") {
+                      router.push("/academia/nueva");
+                      return;
+                    }
+                    selectAcademy(e.target.value);
+                  }}
                 >
                   {academies.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
                     </option>
                   ))}
+                  {canCreate && (
+                    <option value="__new">＋ {t("newAcademy")}</option>
+                  )}
                 </select>
               </label>
-            )}
-            {canCreate && (
-              <Button
-                href="/academia/nueva"
-                variant="secondary"
-                size="sm"
-                className="ml-auto"
-              >
-                {t("newAcademy")}
-              </Button>
             )}
           </div>
           {children({ academy: selected, academies })}

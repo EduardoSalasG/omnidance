@@ -31,9 +31,10 @@
    "chooseRole": "Papel",
    "level": {
     "none": "Sem nível",
-    "principiante": "Iniciante",
     "intermedio": "Intermédio",
-    "avanzado": "Avançado"
+    "avanzado": "Avançado",
+    "iniciacion": "Iniciação",
+    "basico": "Básico"
    },
    "saved": "Guardado",
    "saveError": "Não foi possível guardar. Tenta de novo",

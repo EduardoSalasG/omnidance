@@ -132,7 +132,10 @@ export function PendingRoleCard() {
                     k === "actorData"
                       ? (ACTOR_HREF[row.role] ?? "/perfil/datos")
                       : CHECK_HREF[k];
-                  const label = t(`checks.${k}`);
+                  const label =
+                    k === "actorData"
+                      ? t(`actorLabels.${row.role}`)
+                      : t(`checks.${k}`);
                   if (k === "emailVerified") {
                     return (
                       <li key={k}>

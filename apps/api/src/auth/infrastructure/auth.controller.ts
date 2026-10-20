@@ -25,7 +25,11 @@ import { AuthService } from "../domain/auth.service";
 import type { Mailer, AuthRepo } from "../domain/ports";
 import { MAILER, AUTH_REPO } from "../domain/ports";
 import { SessionGuard } from "./session.guard";
-import { magicLinkEmailHtml, welcomeEmailHtml } from "./emails";
+import {
+  magicLinkEmailHtml,
+  verifyEmailHtml,
+  welcomeEmailHtml,
+} from "./emails";
 
 export const SESSION_COOKIE = "omnidance_session";
 
@@ -167,18 +171,34 @@ export class AuthController {
   // dominio del web - donde la SPA hace todas sus llamadas. Si el link
   // fuera al dominio del API, la cookie quedaría en ese origen y el
   // usuario aterrizaría en el web sin sesión.
-  private async sendMagicLink(email: string, consent: boolean, role?: string) {
+  private async sendMagicLink(
+    email: string,
+    consent: boolean,
+    role?: string,
+    purpose: "access" | "verify" = "access",
+  ) {
     // Consentimiento y rol pedido viajan como claims del token y en la
     // fila del OTP: ambos caminos los estampan al crear la sesión.
     const token = await this.auth.createMagicToken(email, consent, "15m", role);
     const code = await this.auth.createOtp(email, consent, role);
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const link = `${webUrl}/api/auth/verify?token=${token}`;
-    await this.mailer.send(
-      email,
-      "Tu acceso a Omnidance",
-      magicLinkEmailHtml(link, code),
-    );
+    // "verify" es el correo post-registro con password: no es un acceso
+    // pedido - es la confirmación de posesión del correo (spec
+    // auth/email-verification). Copy dedicado para no confundir.
+    if (purpose === "verify") {
+      await this.mailer.send(
+        email,
+        "Verifica tu correo en Omnidance",
+        verifyEmailHtml(link, code),
+      );
+    } else {
+      await this.mailer.send(
+        email,
+        "Tu acceso a Omnidance",
+        magicLinkEmailHtml(link, code),
+      );
+    }
   }
 
   @Post("magic-link")
@@ -289,6 +309,7 @@ export class AuthController {
         email,
         dto.consent === true,
         landingRole(dto.role),
+        "verify",
       );
     } catch (err) {
       this.logger.warn(
@@ -315,7 +336,7 @@ export class AuthController {
     if (!person?.email) {
       throw new BadRequestException("la cuenta no tiene email");
     }
-    await this.sendMagicLink(person.email, false);
+    await this.sendMagicLink(person.email, false, undefined, "verify");
     return { ok: true };
   }
 

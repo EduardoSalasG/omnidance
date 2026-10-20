@@ -18,7 +18,7 @@ type StyleDraft = { role: DanceRole; level: string };
 type StyleItem = { id: string; name: string; genre: string | null };
 
 const DANCE_ROLES: DanceRole[] = ["LEADER", "FOLLOWER", "SWITCH"];
-const DANCE_LEVELS = ["principiante", "intermedio", "avanzado"];
+const DANCE_LEVELS = ["iniciacion", "basico", "intermedio", "avanzado"];
 const GENDERS: Gender[] = ["M", "F", "OTHER"];
 
 const chipCls = (active: boolean) =>

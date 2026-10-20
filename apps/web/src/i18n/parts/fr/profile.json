@@ -31,9 +31,10 @@
    "chooseRole": "Rôle",
    "level": {
     "none": "Pas de niveau",
-    "principiante": "Débutant",
     "intermedio": "Intermédiaire",
-    "avanzado": "Avancé"
+    "avanzado": "Avancé",
+    "iniciacion": "Initiation",
+    "basico": "Basique"
    },
    "saved": "Enregistré",
    "saveError": "Enregistrement impossible. Réessaie",

@@ -3576,20 +3576,20 @@ export async function seedDev(prisma: PrismaClient) {
   };
   await Promise.all([
     styleRole(dancer, "Salsa cubana (casino)", "LEADER", "intermedio"),
-    styleRole(dancer, "Bachata tradicional", "LEADER", "principiante"),
+    styleRole(dancer, "Bachata tradicional", "LEADER", "iniciacion"),
     styleRole(camila, "Bachata sensual", "FOLLOWER", "intermedio"),
     styleRole(camila, "Salsa cubana (casino)", "FOLLOWER", "intermedio"),
     styleRole(josefa, "Salsa cubana (casino)", "FOLLOWER", "avanzado"),
     styleRole(josefa, "Timba", "FOLLOWER", "intermedio"),
     styleRole(diego, "Salsa cubana (casino)", "LEADER", "intermedio"),
-    styleRole(diego, "Rueda de casino", "LEADER", "principiante"),
+    styleRole(diego, "Rueda de casino", "LEADER", "iniciacion"),
     styleRole(antonia, "Bachata sensual", "FOLLOWER", "avanzado"),
     styleRole(antonia, "Salsa cubana (casino)", "FOLLOWER", "intermedio"),
     styleRole(sebastian, "Mambo on2", "LEADER", "intermedio"),
-    styleRole(francisca, "Bachata sensual", "FOLLOWER", "principiante"),
+    styleRole(francisca, "Bachata sensual", "FOLLOWER", "iniciacion"),
     styleRole(felipe, "Timba", "LEADER", "intermedio"),
-    styleRole(felipe, "Salsa cubana (casino)", "SWITCH", "principiante"),
-    styleRole(daniela, "Bachata sensual", "FOLLOWER", "principiante"),
+    styleRole(felipe, "Salsa cubana (casino)", "SWITCH", "iniciacion"),
+    styleRole(daniela, "Bachata sensual", "FOLLOWER", "iniciacion"),
     // Instructores y DJs también bailan social - sus perfiles lo reflejan.
     styleRole(vale, "Salsa cubana (casino)", "SWITCH", "avanzado"),
     styleRole(vale, "Bachata sensual", "FOLLOWER", "avanzado"),
@@ -3618,7 +3618,7 @@ export async function seedDev(prisma: PrismaClient) {
     styleRole(eduardo, "Bachata sensual", "LEADER", "intermedio"),
     // Jorge - alumno de mambo en Erick Baez: leader en formación.
     styleRole(jorge, "Mambo on2", "LEADER", "básico"),
-    styleRole(jorge, "Bachata sensual", "LEADER", "principiante"),
+    styleRole(jorge, "Bachata sensual", "LEADER", "iniciacion"),
     // Adrián y Leo - su perfil público muestra el estilo de la casa.
     styleRole(adrian, "Mambo on2", "LEADER", "avanzado"),
     styleRole(leo, "Mambo on2", "LEADER", "avanzado"),

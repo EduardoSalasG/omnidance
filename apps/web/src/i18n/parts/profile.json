@@ -31,9 +31,10 @@
    "chooseRole": "Rol",
    "level": {
     "none": "Sin nivel",
-    "principiante": "Principiante",
     "intermedio": "Intermedio",
-    "avanzado": "Avanzado"
+    "avanzado": "Avanzado",
+    "iniciacion": "Iniciación",
+    "basico": "Básico"
    },
    "saved": "Guardado",
    "saveError": "No se pudo guardar. Intenta de nuevo",
