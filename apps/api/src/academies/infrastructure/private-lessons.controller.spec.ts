@@ -237,8 +237,12 @@ class FakePrisma {
   };
 
   enrollment = { count: async () => 0 };
-  membershipPlan = { count: async () => 0 };
-  classSlot = { count: async () => 0 };
+  membershipPlan = { count: async () => 0, groupBy: async () => [] };
+  classSlot = { count: async () => 0, findMany: async () => [] };
+  // evaluateAcademyChecks (review gate) consulta estos modelos en detail()
+  classSeries = { groupBy: async () => [] };
+  personRole = { findMany: async () => [] };
+  class = { groupBy: async () => [] };
 
   private matchLesson(l: FakeLesson, where: FakeLessonWhere): boolean {
     const base =

@@ -19,6 +19,7 @@ interface FakePerson {
   name: string | null;
   proTier?: string;
   proTrialEndsAt?: Date | null;
+  roles?: { status: string }[];
 }
 
 interface FakeEvent {
@@ -130,8 +131,10 @@ class FakePrisma {
   };
 
   person = {
-    findUnique: async ({ where }: { where: { id: string } }) =>
-      this.people.get(where.id) ?? null,
+    findUnique: async ({ where }: { where: { id: string } }) => {
+      const p = this.people.get(where.id) ?? null;
+      return p ? { ...p, roles: p.roles ?? [{ status: "APPROVED" }] } : null;
+    },
     findMany: async ({ where }: { where: { id?: { in: string[] } } }) =>
       [...this.people.values()].filter(
         (p) => !where.id || where.id.in.includes(p.id),

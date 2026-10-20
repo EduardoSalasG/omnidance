@@ -182,6 +182,35 @@ describe("gamification e2e", () => {
     });
 
     // ─── misiones (3 templates) ───
+    // Limpieza de corridas previas: MissionProgress → Mission → Template
+    const staleTpls = await prisma.missionTemplate.findMany({
+      where: {
+        key: {
+          in: [
+            "baila_diverso",
+            "madrugador",
+            "estilo_explorer",
+            "primera_bachata",
+            "bailarin_constante",
+          ],
+        },
+      },
+      select: { id: true },
+    });
+    const staleTplIds = staleTpls.map((t) => t.id);
+    const staleMissions = await prisma.mission.findMany({
+      where: { templateId: { in: staleTplIds } },
+      select: { id: true },
+    });
+    await prisma.missionProgress.deleteMany({
+      where: { missionId: { in: staleMissions.map((m) => m.id) } },
+    });
+    await prisma.mission.deleteMany({
+      where: { templateId: { in: staleTplIds } },
+    });
+    await prisma.missionTemplate.deleteMany({
+      where: { id: { in: staleTplIds } },
+    });
     const tplDiverso = await prisma.missionTemplate.create({
       data: {
         key: "baila_diverso",

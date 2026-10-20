@@ -8,6 +8,7 @@ import { PrismaService } from "../src/prisma.service";
 import { PeopleController } from "../src/people/people.controller";
 import { EventRatingsController } from "../src/events/infrastructure/event-ratings.controller";
 import { EventAnalyticsController } from "../src/events/infrastructure/event-analytics.controller";
+import { STORAGE } from "../src/storage/storage.service";
 import { deletePeople } from "./helpers";
 
 // dancer-profile-survey-analytics (slice API): gender en PATCH/GET /me,
@@ -76,7 +77,18 @@ describe("dancer-profile-survey-analytics e2e", () => {
         EventRatingsController,
         EventAnalyticsController,
       ],
-      providers: [PrismaService],
+      providers: [
+        PrismaService,
+        // PeopleController inyecta STORAGE (POST /me/photo) - mock en memoria
+        {
+          provide: STORAGE,
+          useValue: {
+            save: async () => "test-key",
+            read: async () => Buffer.alloc(0),
+            delete: async () => {},
+          },
+        },
+      ],
     }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix("api");
