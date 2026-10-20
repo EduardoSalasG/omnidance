@@ -345,7 +345,7 @@ export async function seedDev(prisma: PrismaClient) {
   };
   const muvet = await ensure(
     () => prisma.academy.findFirst({ where: { name: "MuéveteOnTour" } }),
-    () => prisma.academy.create({ data: muvetData }),
+    () => prisma.academy.create({ data: { ...muvetData, reviewStatus: "APPROVED" as const } }),
     (a) =>
       prisma.academy.update({
         where: { id: a.id },
@@ -388,7 +388,7 @@ export async function seedDev(prisma: PrismaClient) {
   };
   const tumbao = await ensure(
     () => prisma.academy.findFirst({ where: { name: "Academia Tumbao" } }),
-    () => prisma.academy.create({ data: tumbaoData }),
+    () => prisma.academy.create({ data: { ...tumbaoData, reviewStatus: "APPROVED" as const } }),
     (a) =>
       prisma.academy.update({
         where: { id: a.id },
@@ -1112,7 +1112,7 @@ export async function seedDev(prisma: PrismaClient) {
     };
     const academy = await ensure(
       () => prisma.academy.findFirst({ where: { name: a.name } }),
-      () => prisma.academy.create({ data: academyData }),
+      () => prisma.academy.create({ data: { ...academyData, reviewStatus: "APPROVED" as const } }),
       // Backfill idempotente: academias sembradas antes de los campos
       // de perfil público se completan sin pisar ediciones manuales.
       (existing) =>
@@ -1244,7 +1244,7 @@ export async function seedDev(prisma: PrismaClient) {
   };
   const mambo = await ensure(
     () => prisma.academy.findFirst({ where: { name: "Mambo Madness" } }),
-    () => prisma.academy.create({ data: mamboData }),
+    () => prisma.academy.create({ data: { ...mamboData, reviewStatus: "APPROVED" as const } }),
     (a) =>
       prisma.academy.update({
         where: { id: a.id },
@@ -1647,7 +1647,7 @@ export async function seedDev(prisma: PrismaClient) {
   };
   const adrianLeo = await ensure(
     () => prisma.academy.findFirst({ where: { name: "Adrian y Leo" } }),
-    () => prisma.academy.create({ data: alData }),
+    () => prisma.academy.create({ data: { ...alData, reviewStatus: "APPROVED" as const } }),
     (a) => prisma.academy.update({ where: { id: a.id }, data: alData }),
   );
   for (const profe of [adrian, leo]) {

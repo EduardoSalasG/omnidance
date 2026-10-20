@@ -134,12 +134,12 @@ describe("admin role assignment e2e", () => {
     it("re-asignación actualiza el status (upsert)", async () => {
       const res = await post(
         `/api/admin/users/${ids.dancerId}/roles`,
-        { role: "INSTRUCTOR", status: "SANDBOX" },
+        { role: "INSTRUCTOR", status: "PENDING" },
         adminSession,
       );
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.status).toBe("SANDBOX");
+      expect(body.status).toBe("PENDING");
     });
 
     it("rol fuera del catálogo → 400", async () => {

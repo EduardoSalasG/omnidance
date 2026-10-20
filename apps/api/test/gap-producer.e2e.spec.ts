@@ -99,6 +99,16 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
     sessions.producer2 = prod2.session;
     ids.adminId = admin.id;
     sessions.admin = admin.session;
+    // El pipeline de roles hace invisible al público los eventos de un
+    // productor sin PRODUCER APPROVED - el admin del fixture publica
+    // eventos propios, así que necesita el rol aprobado además de ADMIN.
+    await prisma.personRole.create({
+      data: {
+        personId: admin.id,
+        role: "PRODUCER",
+        status: "APPROVED",
+      },
+    });
     ids.dancerId = dancer.id;
     sessions.dancer = dancer.session;
     ids.staffId = staff.id;

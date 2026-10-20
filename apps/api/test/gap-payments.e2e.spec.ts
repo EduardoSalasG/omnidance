@@ -242,6 +242,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
       data: {
         name: `Academia Payout ${suffix}`,
         ownerId: payoutProducer.id,
+        reviewStatus: "APPROVED",
       },
     });
     ids.academyId = academy.id;
