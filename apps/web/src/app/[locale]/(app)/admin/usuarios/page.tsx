@@ -17,6 +17,7 @@ type SearchUser = {
   id: string;
   name: string;
   email: string | null;
+  deletedAt: string | null;
   createdAt: string;
   roles: { role: string; status: string }[];
   academiesCount: number;
@@ -155,7 +156,12 @@ function UsersPanel() {
             >
               <Card className="flex min-h-[44px] flex-col gap-2 transition-colors hover:border-neon/60">
                 <div className="flex min-w-0 flex-col">
-                  <span className="truncate font-semibold">{u.name}</span>
+                  <span className="flex items-center gap-2 truncate font-semibold">
+                    {u.name}
+                    {u.deletedAt && (
+                      <Badge variant="muted">{t("users.deactivated")}</Badge>
+                    )}
+                  </span>
                   {u.email && (
                     <span className="truncate text-sm text-ink/60">
                       {u.email}

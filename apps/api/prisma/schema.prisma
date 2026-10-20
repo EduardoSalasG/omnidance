@@ -62,6 +62,10 @@ model Person {
   // del opt-out vía link firmado en el footer. Solo afecta campañas —
   // los mails transaccionales (magic link, recibos) siguen llegando.
   mailOptOutAt    DateTime?
+  // Soft delete (spec admin-user-soft-delete): baja lógica - la fila y
+  // todo su grafo quedan intactos; auth bloqueada y fuera de
+  // superficies públicas. Admin puede reactivar.
+  deletedAt       DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

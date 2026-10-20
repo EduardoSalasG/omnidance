@@ -87,7 +87,19 @@
     "showLess": "Show less"
    },
    "academiesCount": "{count, plural, one {# academy} other {# academies}}",
-   "eventsCount": "{count, plural, one {# event} other {# events}}"
+   "eventsCount": "{count, plural, one {# event} other {# events}}",
+   "users": {
+    "deactivated": "Deactivated",
+    "reactivate": {
+     "cta": "Reactivate account"
+    },
+    "delete": {
+     "title": "Danger zone",
+     "body": "Deactivates the account: they can't sign in or appear in public surfaces, but their data stays intact and you can reactivate it.",
+     "cta": "Deactivate user",
+     "confirm": "Deactivate {name}? Their data stays saved — you can reactivate later."
+    }
+   }
   },
   "status": {
    "REJECTED": "Rejected"

@@ -98,7 +98,7 @@ export class EventGuestListsController {
     if (!event) throw new NotFoundException("evento no encontrado");
 
     const owner = await this.prisma.person.findUnique({
-      where: { id: dto.ownerId },
+      where: { id: dto.ownerId, deletedAt: null },
       select: { id: true },
     });
     if (!owner) throw new NotFoundException("owner no encontrado");
@@ -141,7 +141,8 @@ export class EventGuestListsController {
       ]),
     ];
     const people = await this.prisma.person.findMany({
-      where: { id: { in: personIds } },
+      where: {
+        deletedAt: null, id: { in: personIds } },
       select: { id: true, name: true, photoUrl: true },
     });
     const byId = new Map(people.map((p) => [p.id, p]));
@@ -209,7 +210,8 @@ export class GuestListsController {
       ...new Set([list.ownerId, ...list.entries.map((e) => e.personId)]),
     ];
     const people = await this.prisma.person.findMany({
-      where: { id: { in: personIds } },
+      where: {
+        deletedAt: null, id: { in: personIds } },
       select: { id: true, name: true, photoUrl: true },
     });
     const byId = new Map(people.map((p) => [p.id, p]));
@@ -234,7 +236,7 @@ export class GuestListsController {
     if (!list) throw new NotFoundException("guest list no encontrada");
 
     const person = await this.prisma.person.findUnique({
-      where: { id: dto.personId },
+      where: { id: dto.personId, deletedAt: null },
       select: { id: true, name: true, photoUrl: true },
     });
     if (!person) throw new NotFoundException("persona no encontrada");

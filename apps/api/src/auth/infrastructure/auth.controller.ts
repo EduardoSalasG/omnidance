@@ -232,8 +232,13 @@ export class AuthController {
     }
 
     const person = await this.repo.findByEmail(email);
+    // Cuenta con baja lógica: mismo error genérico que credenciales
+    // inválidas - no revela que el email existe (spec
+    // admin-user-soft-delete).
     const ok =
-      person?.passwordHash &&
+      person &&
+      !person.deletedAt &&
+      person.passwordHash &&
       (await this.auth.verifyPassword(dto.password, person.passwordHash));
     if (!ok) {
       recordFailure(key);

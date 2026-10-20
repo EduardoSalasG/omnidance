@@ -3,6 +3,17 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.5.0] - 2026-10-20
+
+### Changed
+
+- **Baja de usuarios pasa a soft delete** (`admin-user-soft-delete`):
+  `DELETE /admin/users/:id` ahora marca `Person.deletedAt` — el grafo
+  (academias, eventos, tickets, roles, historial) queda intacto. Auth
+  bloqueada (sesión, password, magic link, OTP), email no liberado,
+  fuera de superficies públicas. Nuevo `POST /admin/users/:id/reactivate`
+  + badge "Desactivada" y botón Reactivar en el admin.
+
 ## [1.4.0] - 2026-10-20
 
 ### Changed

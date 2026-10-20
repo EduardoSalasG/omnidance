@@ -66,7 +66,9 @@ export class SessionGuard implements CanActivate {
     }
 
     const person = await this.repo.findById(personId);
-    if (!person) throw new UnauthorizedException();
+    // Cuenta con baja lógica (deletedAt): sesión inválida de inmediato -
+    // sus datos siguen intactos pero no puede operar.
+    if (!person || person.deletedAt) throw new UnauthorizedException();
 
     req.person = {
       id: person.id,

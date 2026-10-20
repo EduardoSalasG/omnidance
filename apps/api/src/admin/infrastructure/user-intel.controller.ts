@@ -74,6 +74,7 @@ export class UserIntelController {
         isLightAccount: true,
         verifiedAt: true,
         createdAt: true,
+        deletedAt: true,
         roles: {
           select: { id: true, role: true, status: true, createdAt: true },
           orderBy: { createdAt: "asc" },

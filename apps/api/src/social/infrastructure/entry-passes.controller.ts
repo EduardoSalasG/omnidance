@@ -59,7 +59,8 @@ export class EventEntryPassesController {
       orderBy: { createdAt: "desc" },
     });
     const people = await this.prisma.person.findMany({
-      where: { id: { in: [...new Set(passes.map((p) => p.personId))] } },
+      where: {
+        deletedAt: null, id: { in: [...new Set(passes.map((p) => p.personId))] } },
       select: { id: true, name: true, phone: true },
     });
     const byId = new Map(people.map((p) => [p.id, p]));

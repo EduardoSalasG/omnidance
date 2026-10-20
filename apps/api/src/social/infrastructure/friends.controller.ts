@@ -51,7 +51,7 @@ export class FriendsController {
     }
 
     const target = await this.prisma.person.findUnique({
-      where: { id: dto.personId },
+      where: { id: dto.personId, deletedAt: null },
       select: { id: true },
     });
     if (!target) throw new NotFoundException("persona no encontrada");
@@ -73,7 +73,7 @@ export class FriendsController {
     });
 
     const requester = await this.prisma.person.findUnique({
-      where: { id: aId },
+      where: { id: aId, deletedAt: null },
       select: { name: true },
     });
     await this.notifications.notifySafe(dto.personId, {
@@ -131,7 +131,10 @@ export class FriendsController {
       ...new Set(rows.map((f) => (f.aId === me ? f.bId : f.aId))),
     ];
     const people = await this.prisma.person.findMany({
-      where: { id: { in: counterpartIds } },
+      where: {
+        deletedAt: null,
+        id: { in: counterpartIds },
+      },
       select: { id: true, name: true, photoUrl: true },
     });
     const byId = new Map(people.map((p) => [p.id, p]));
@@ -193,7 +196,8 @@ export class FriendsController {
 
     const goingIds = [...new Set(tickets.map((t) => t.ownerId))];
     const people = await this.prisma.person.findMany({
-      where: { id: { in: goingIds } },
+      where: {
+        deletedAt: null, id: { in: goingIds } },
       select: { id: true, name: true, photoUrl: true },
     });
     const byPerson = new Map(people.map((p) => [p.id, p]));

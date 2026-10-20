@@ -221,6 +221,8 @@ export class AdminController {
           name: true,
           email: true,
           createdAt: true,
+          // Baja lógica: el admin ve "Desactivado" y puede reactivar.
+          deletedAt: true,
           roles: {
             select: { id: true, role: true, status: true, createdAt: true },
             orderBy: { createdAt: "asc" },
@@ -601,29 +603,49 @@ export class AdminController {
     }
     const person = await this.prisma.person.findUnique({
       where: { id: personId },
-      select: { id: true, email: true, name: true },
+      select: { id: true, email: true, name: true, deletedAt: true },
     });
     if (!person) throw new NotFoundException("usuario no encontrado");
+    if (person.deletedAt) return { ok: true, alreadyDeleted: true };
 
-    await this.prisma.$transaction([
-      this.prisma.platformSubscription.updateMany({
-        where: { producerId: personId },
-        data: { producerId: null },
-      }),
-      this.prisma.platformSubscription.deleteMany({
-        where: { personId },
-      }),
-      this.prisma.personRole.deleteMany({ where: { personId } }),
-      this.prisma.fiscalProfile.deleteMany({ where: { personId } }),
-      this.prisma.personStyleRole.deleteMany({ where: { personId } }),
-      this.prisma.rsvp.deleteMany({ where: { personId } }),
-      this.prisma.eventDj.deleteMany({ where: { personId } }),
-      this.prisma.notification.deleteMany({ where: { personId } }),
-      this.prisma.pushToken.deleteMany({ where: { personId } }),
-      this.prisma.paymentClaim.deleteMany({ where: { personId } }),
-      this.prisma.person.delete({ where: { id: personId } }),
-    ]);
+    // Soft delete: la fila y todo su grafo (academias, eventos, tickets,
+    // checkins, suscripciones…) quedan intactos; auth queda bloqueada
+    // (SessionGuard + upsertByEmail/login) y las superficies públicas
+    // filtran deletedAt. AuditLog conserva la huella.
+    await this.prisma.person.update({
+      where: { id: personId },
+      data: { deletedAt: new Date() },
+    });
     await this.audit(req, "USER_DELETE", "Person", personId, {
+      email: person.email,
+      name: person.name,
+    });
+    return { ok: true };
+  }
+
+  /**
+   * Reactiva una cuenta con baja lógica: deletedAt=null - el usuario
+   * recupera sesión y superficies, datos intactos (spec
+   * admin-user-soft-delete).
+   */
+  @Post("users/:personId/reactivate")
+  @HttpCode(200)
+  async reactivateUser(
+    @Param("personId") personId: string,
+    @Req() req: Request,
+  ) {
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { id: true, email: true, name: true, deletedAt: true },
+    });
+    if (!person || !person.deletedAt) {
+      throw new NotFoundException("usuario no encontrado o activo");
+    }
+    await this.prisma.person.update({
+      where: { id: personId },
+      data: { deletedAt: null },
+    });
+    await this.audit(req, "USER_REACTIVATE", "Person", personId, {
       email: person.email,
       name: person.name,
     });
