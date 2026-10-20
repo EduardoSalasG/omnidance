@@ -50,3 +50,11 @@
 - **Patrón restante**: fixtures de productor sin `proTier`/`proTrialEndsAt` → `requireProSelf` lanza PRO_REQUIRED (events.controller.spec y similares); revisar los 6 archivos rojos con `pnpm --filter @omnidance/api test` y agregar `proTrialEndsAt: future` o `proTier:"PRO_STARTER"` al fixture del productor.
 - Después de suite verde → `git checkout main && git merge dev && git tag v1.1.0 && push` → el deploy corre migrate → **recién ahí** lanzar `SEED_ENV=dev pnpm --filter @omnidance/api prisma db seed` con la DATABASE_URL de Neon (el seed ya lleva `reviewStatus:"APPROVED"` en academias demo).
 - Foto upload en prod: infra ya montada por el usuario (`/mnt/omnidance/uploads` + compose + nginx `client_max_body_size`).
+
+## RESUELTO — Release 1.1.0 publicado
+
+- **Suite verde**: 99/99 archivos, 1941 tests. Fixes: fakes con `roles` APPROVED para `assertProducerPro` (crm/event-analytics/query/private-lessons specs), STORAGE mock en survey-analytics, cleanup de missionTemplates stale en gamification, data lead-e2e stale limpiada (3baddea, 739e4e6, 2045650).
+- **Fix migración crítico** (`76b4eb8`): `role_landing_pipeline` no re-tipaba `Academy.reviewStatus` → `DROP TYPE RoleStatus_old` fallaba P3018 en DBs frescas (CI test DB lo cachó). Agregado el swap de la columna + checksum actualizado en dev (`_prisma_migrations.checksum` = sha256 del archivo nuevo). Lección: migraciones que hacen swap de enum deben cubrir TODAS las columnas que lo usan — las DBs frescas aplican por timestamp, no por orden de autoría.
+- **Deploy prod verde** (run 39466969872): migrate aplicó limpio en Neon, API prod health 200.
+- **Seed prod ejecutado** (`SEED_ENV=dev` contra Neon, ~21 min): 892 personas, 20 academias (todas APPROVED gracias al patch del seed), 42 eventos, 20 métodos TRANSFER, roles demo 905 APPROVED.
+- **Pendiente nada bloqueante**: OTP PWA ok (usuario), uploads montados en VM (usuario), suite verde, release en main con tag v1.1.0.
