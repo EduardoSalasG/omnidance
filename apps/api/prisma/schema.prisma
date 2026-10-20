@@ -198,7 +198,7 @@ model PersonStyleRole {
   style    Style     @relation(fields: [styleId], references: [id])
   styleId  String
   role     DanceRole
-  level    String? // autodeclarado: principiante/intermedio/avanzado
+  level    String? // autodeclarado: iniciacion/basico/intermedio/avanzado
 
   @@unique([personId, styleId, role])
 }

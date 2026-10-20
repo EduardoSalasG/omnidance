@@ -1221,6 +1221,10 @@
   "otpPlaceholder": "000000",
   "otpSubmit": "Confirm",
   "otpInvalid": "Invalid or expired code",
-  "verifyError": "We couldn't send the email — try again"
+  "verifyError": "We couldn't send the email — try again",
+  "actorLabels": {
+   "ACADEMY_OWNER": "Academy name",
+   "PRODUCER": "Event name"
+  }
  }
 }

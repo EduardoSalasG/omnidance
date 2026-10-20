@@ -31,9 +31,10 @@
    "chooseRole": "Role",
    "level": {
     "none": "No level",
-    "principiante": "Beginner",
     "intermedio": "Intermediate",
-    "avanzado": "Advanced"
+    "avanzado": "Advanced",
+    "iniciacion": "Initiation",
+    "basico": "Basic"
    },
    "saved": "Saved",
    "saveError": "Couldn’t save. Try again",

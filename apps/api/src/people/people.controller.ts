@@ -114,7 +114,7 @@ export class UpdateMeDto {
 
 // Nivel autodeclarado del bailarín - valores sembrados por el seed y
 // elegidos en /perfil/datos ("Tu baile").
-const DANCE_LEVELS = ["principiante", "intermedio", "avanzado"] as const;
+const DANCE_LEVELS = ["iniciacion", "basico", "intermedio", "avanzado"] as const;
 const DANCE_ROLES = ["LEADER", "FOLLOWER", "SWITCH"] as const;
 
 // Ventana de encuesta post-evento - la misma de POST /events/:id/ratings.

@@ -37,20 +37,18 @@ type StyleRoleDraft = {
 
 const DANCE_ROLES: DanceRole[] = ["LEADER", "FOLLOWER", "SWITCH"];
 const GENDERS: Gender[] = ["M", "F", "OTHER"];
-const DANCE_LEVELS = ["principiante", "intermedio", "avanzado"];
+const DANCE_LEVELS = ["iniciacion", "basico", "intermedio", "avanzado"];
 // Nivel autodeclarado → order de la escala de clases (Iniciación=0 …
 // Avanzado=3) para pintarlo con las mismas barras que ClassCard.
 const LEVEL_ORDER: Record<string, number> = {
-  principiante: 0,
+  iniciacion: 0,
+  basico: 1,
   intermedio: 2,
   avanzado: 3,
 };
 
-;
-
 // birthDate llega a medianoche UTC - formatear en UTC para que el día
 // no se corra en zonas horarias negativas (CL).
-;
 
 const ENROLLMENT_VARIANT: Record<string, "neon" | "outline" | "muted"> = {
   ACTIVE: "neon",
