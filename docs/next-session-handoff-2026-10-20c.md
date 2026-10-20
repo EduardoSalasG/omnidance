@@ -24,13 +24,20 @@
 
 - **`analytics-query-engine` archivado**: task 6.3 cumplida vía Playwright headless con sesión admin (JWT minted local) — `/analitica` en 320/768/1024/1440: todas 200, **sin overflow horizontal** (`scrollWidth == clientWidth`), console renderiza catálogo+filtros+acciones. Screenshots en `test-results/qa-viewport/analitica-{320,768,1024,1440}.png`. Nota: socket.io polling 404 por el proxy dev de Next (en prod lo resuelve el redirect edge de netlify.toml) — ruido conocido, no del change. Specs: `analytics/query-console` (nueva) + `events/producer-export`.
 
+## Cierre posterior 2 (misma sesión)
+
+- **i18n catch-up completo** (`f460b07`): las 207 keys faltantes traducidas a en/fr/pt-PT (187 `admin.*` → `parts/<loc>/admin.json`; 20 `home.*`/`academy.newAcademy`/`adminCatalogs.*` → `messages/<loc>.json`), 4 extras eliminadas (`admin.academies.students/top/atRisk/noneAtRisk`), y fix de 2 valores en chino colados en es-CL (`noStudents`, `noPlans`). Parity: `3823 keys · missing 0 · extra 0` ×3 locales; audit `ALL_KEYS_OK`. Change openspec omitido explícitamente (no toca comportamiento).
+- **Spec del review gate** (`79dd0ef`): `academy-review.spec.ts` — 7 tests (isAcademyVisible, evaluateAcademyChecks por campo, promoteCompletedAcademies) verdes.
+- **QA vivo preventa atribuida `?a=`** (gap del handoff 11-03): deal `Latin Dancing` 20% sobre "Desafío de Tronos" INVITED→ACTIVE → compra dancer con `academyId` → webhook stub PAID → `Payment.soldByAcademyId` + `academyCommissionClp=1200`, `producerNetClp=5520` intacto → deuda `pendingClp:1200` en `sale-deals` → `mark-paid` materializa `AcademySaleSettlement` con `evidenceUrl`.
+- **QA vivo selector de idioma**: `PATCH /me {language:"en"}` persiste (GET /me lo devuelve); idioma inválido → 400.
+
 ## Brechas conocidas / pendientes
 
 - ~~`analytics-query-engine` abierto~~ → **archivado** (ver arriba).
-- **Deuda i18n amplia**: quedan ~207 keys faltantes en en/fr/pt-PT de otros cambios (`home.kpi.*`, `admin.users.*`, `academy.newAcademy`, etc.) + 4 extras. No es del scope del gate — candidata a un change propio de "i18n catch-up".
-- **Sin specs del review gate**: ningún test cubre `academy-review.ts` ni la cola admin (el QA se hizo en vivo contra la API). Si se toca esa lógica, agregar spec antes.
+- ~~Deuda i18n~~ → **cerrada** (catch-up commiteado, paridad total).
+- ~~Sin specs del review gate~~ → **cubierto** (academy-review.spec.ts, 7 tests).
 - Lock stale `openspec/changes/archive/.openspec-archive.lock` reaparece tras cada `openspec archive` — hay que borrarlo entre corridas (bug del CLI, no del repo).
-- Pendientes de handoffs previos siguen vivos: seed `SEED_ENV=dev` contra Neon prod, QA compra atribuida `?a=`, QA selector de idioma con sesión real, QA OTP en PWA.
+- Pendientes de handoffs previos: seed `SEED_ENV=dev` contra Neon prod (requiere URL directa), QA OTP en PWA instalada.
 
 ## Nota operativa
 
