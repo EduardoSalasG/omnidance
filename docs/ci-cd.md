@@ -141,19 +141,30 @@ SESSION_SAMESITE="lax"
 UPLOADS_DIR="/app/uploads"
 ```
 
-**Volumen de uploads (obligatorio si hay academias con pago directo)**:
-los comprobantes viven en disco, no en Neon - el service `api` del
-compose de la VM debe montar el disco dedicado:
+**Volumen de uploads (obligatorio - fotos de perfil/academia y
+comprobantes de pago directo)**: los archivos viven en disco, no en
+Neon. El bind mount **ya va versionado en `apps/api/docker-compose.yml`**
+(el deploy re-copia ese archivo a la VM en cada corrida - editarlo a
+mano en la VM se pierde):
 
 ```yaml
 services:
   api:
+    environment:
+      - UPLOADS_DIR=/app/uploads
     volumes:
-      - /data/omnidance-uploads:/app/uploads
+      - /mnt/omnidance/uploads:/app/uploads
 ```
 
+Ruta real en la VM (verificada 2026-10-20): host `/mnt/omnidance/uploads`
+→ contenedor `/app/uploads`, con subdirectorios por funcionalidad
+(`people-photos`, `academy-photos`, `payment-claims`…). El directorio
+del host se crea una sola vez (`mkdir -p /mnt/omnidance/uploads`).
+
 Sin el volumen, los archivos se pierden en cada `--force-recreate` del
-deploy. El env `UPLOADS_DIR` debe calzar con el destino del mount.
+deploy. Si el `.env` de la VM define `UPLOADS_DIR` con otra ruta, el
+`environment` del compose (explícito) gana sobre `env_file` - mantener
+ambos calzados.
 
 Otros knobs opcionales ya tienen default: `PORT` (4000 interno del
 contenedor - el host expone **3002**), `LOG_LEVEL`, `SERVICE_FEE_CLP`,

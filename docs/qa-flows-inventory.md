@@ -78,7 +78,7 @@
 - Modos: password (default) | magic | register. `/login` NO es anon-only.
 - Password: `POST /auth/login` → cookie → `next ?? /inicio`; 401/400 → invalidCredentials.
 - Magic: `POST /auth/magic-link` → pantalla OTP 6 dígitos → `POST /auth/otp/verify` → `isNew` ? /bienvenida : next|/inicio; 401 otpInvalid; 5 fallos → lock.
-- Register: `POST /auth/register` → /bienvenida(?next=); 409 emailTaken. Con password correcto de cuenta seed → login silencioso (claim).
+- Register: `POST /auth/register` → /bienvenida(?next=); 409 emailTaken. Con password correcto de cuenta seed → login silencioso (claim). Cuenta nueva recibe bienvenida + correo de acceso (link+OTP = verificación de email; `verifiedAt` solo se estampa por link/OTP, nunca por password).
 - Link de email: `GET /auth/verify?token=` → cookie + 302 /inicio|/bienvenida; inválido → 401 HTML.
 - Lockout login: 10 fallos/10min por email+IP → 401.
 
@@ -354,7 +354,7 @@
 - `/inicio` (lente ADMIN): KPIs `home/stats` — pendingRoles, **leadsNew**, **txRevenueMonth** (fees neto+IVA PAID no-PLATFORM_SUB del mes CL), **subRevenueMonth** (PLATFORM_SUB PAID del mes), users, activeEvents, pendingPayouts — + sección "Leads por revisar" (NEW asc, 6 filas → `/admin/datos?entity=leads&status=NEW`) + hero.
 - `/admin` → redirect a `/inicio` (hub eliminado: los destinos viven en el sidebar).
 - `/admin/usuarios`: búsqueda q≥2 + role enum (catálogo RBAC vivo) → `GET /admin/users` paginado `{items,total,page,pageSize}` (size 25) + `Pager`; cambio de filtro resetea a página 1; card muestra contadores "N academia(s)"/"N evento(s)" cuando >0 → /{personId}.
-- `/admin/perfiles-por-validar`: cola PersonRole PENDING de ACADEMY_OWNER/PRODUCER (registro por landing) → checklist nombre/email verificado/teléfono/datos del actor; Aprobar exige checklist completo (409 si falta) → APPROVED (visible); Rechazar ConfirmSheet → REJECTED auditable.
+- `/admin/perfiles-por-validar`: cola PersonRole PENDING de ACADEMY_OWNER/PRODUCER (registro por landing) → checklist nombre/email verificado/teléfono/datos del actor; Aprobar exige checklist completo (409 si falta) → APPROVED (visible); Rechazar ConfirmSheet → REJECTED auditable. El actor ve el mismo checklist en `PendingRoleCard` (en `/perfil` y en su home de lente): `GET /me/role-checks` + links a resolver cada ítem; email se verifica inline (`POST /auth/resend-verification` → OTP `POST /auth/otp/verify`).
 - `/admin/usuarios/[personId]` ⚠️: cambiar status de rol (select inline sin confirm) `POST /users/:id/roles`; agregar rol; revocar ConfirmSheet `DELETE .../roles/:role`; **hard-delete** ConfirmSheet `DELETE /users/:id` (400 self-delete; irreversible); listas de "Actividad por rol" con expand tras 5 filas ("Ver las {count}"/"Ver menos"); link analytics.
 - `/admin/roles` ⚠️: toggle grant `POST /roles/:key/permissions` **sin confirm** (cuidado lockout admin.access); crear rol/permiso existe sin UI.
 - `/admin/parametros` ⚠️: `PUT /params/:key` (JSON libre, sin confirm — efecto global); `GET/PUT /producers/:id/fee-params` (fee+preset cutoff; >1439 preserva raw).

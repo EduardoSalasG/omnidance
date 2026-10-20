@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -279,8 +280,42 @@ export class AuthController {
     if (role) await this.repo.ensurePendingRole(person.id, role);
     if (dto.consent === true) await this.repo.recordConsent(person.id);
     await this.sendWelcome(email, person.name);
+    // Correo de acceso (link+OTP) = verificación de posesión del email
+    // (spec auth-email-verification) - la cuenta con password nace sin
+    // verifiedAt y el checklist de actores lo exige. Best-effort: el
+    // alta nunca falla por el correo.
+    try {
+      await this.sendMagicLink(
+        email,
+        dto.consent === true,
+        landingRole(dto.role),
+      );
+    } catch (err) {
+      this.logger.warn(
+        `verification link a ${email} falló: ${(err as Error).message}`,
+      );
+    }
     const session = await this.auth.issueSession(person.id);
     this.setSessionCookie(res, session);
+    return { ok: true };
+  }
+
+  /**
+   * Reenvío del correo de verificación para cuentas con password (spec
+   * auth-email-verification): link+OTP prueban la posesión del email.
+   * Idempotente - si el correo ya está verificado no reenvía.
+   */
+  @Post("resend-verification")
+  @HttpCode(200)
+  @UseGuards(SessionGuard)
+  @Throttle(AUTH_THROTTLE)
+  async resendVerification(@Req() req: Request) {
+    const person = await this.repo.findById(req.person!.id);
+    if (person?.verifiedAt) return { ok: true, alreadyVerified: true };
+    if (!person?.email) {
+      throw new BadRequestException("la cuenta no tiene email");
+    }
+    await this.sendMagicLink(person.email, false);
     return { ok: true };
   }
 

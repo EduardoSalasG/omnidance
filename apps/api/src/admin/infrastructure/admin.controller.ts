@@ -38,6 +38,7 @@ import {
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { pageParams } from "../../academies/infrastructure/list-filters";
 import { evaluateAcademyChecks } from "../../academies/infrastructure/academy-review";
+import { roleProfileChecks } from "../../common/role-checks";
 import { dateRange } from "../../query/entities/helpers";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 
@@ -355,7 +356,7 @@ export class AdminController {
       eventGroups.map((g) => [g.producerId, g._count._all]),
     );
     return rows.map((r) => {
-      const checks = this.profileChecks(
+      const checks = roleProfileChecks(
         r.person,
         r.role,
         acadByOwner.get(r.person.id) ?? 0,
@@ -403,7 +404,7 @@ export class AdminController {
       this.prisma.academy.count({ where: { ownerId: row.person.id } }),
       this.prisma.event.count({ where: { producerId: row.person.id } }),
     ]);
-    const checks = this.profileChecks(row.person, row.role, academies, events);
+    const checks = roleProfileChecks(row.person, row.role, academies, events);
     if (!Object.values(checks).every(Boolean)) {
       throw new ConflictException(
         "perfil incompleto - faltan datos antes de aprobar",
@@ -534,24 +535,6 @@ export class AdminController {
       ownerId: row.ownerId,
     });
     return { ok: true };
-  }
-
-  // Checklist de perfil completo para validar un actor: nombre real
-  // (no el default del email), correo verificado, teléfono y datos del
-  // actor ya operados en su consola (academia creada / evento creado).
-  private profileChecks(
-    p: { name: string; email: string | null; phone: string | null; verifiedAt: Date | null },
-    role: string,
-    academiesCount: number,
-    eventsCount: number,
-  ) {
-    return {
-      name: p.name.trim().length >= 2 && !(p.email?.startsWith(p.name) ?? false),
-      emailVerified: p.verifiedAt !== null,
-      phone: !!p.phone,
-      actorData:
-        role === "ACADEMY_OWNER" ? academiesCount > 0 : eventsCount > 0,
-    };
   }
 
   /** Revoca un rol (borra el PersonRole; queda en AuditLog). */

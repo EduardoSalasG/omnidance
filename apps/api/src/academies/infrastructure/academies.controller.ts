@@ -347,13 +347,17 @@ function cleanWebsite(
   }
 }
 
-/** URL externa de la foto (nunca hosteada) - misma regla que website. */
-function cleanPhotoUrl(
+/** URL externa de la foto (nunca hosteada) - misma regla que website.
+ *  Excepción: paths `/api/...` (foto subida por POST /:id/photo) pasan
+ *  tal cual - el PATCH de settings no debe rechazar lo que el upload
+ *  persistió. */
+export function cleanPhotoUrl(
   v: string | null | undefined,
 ): string | null | undefined {
   if (v === undefined) return undefined;
   const t = (v ?? "").trim();
   if (t === "") return null;
+  if (t.startsWith("/api/")) return t;
   try {
     const url = new URL(/^https?:\/\//i.test(t) ? t : `https://${t}`);
     if (!url.hostname.includes(".")) throw new Error("no host");

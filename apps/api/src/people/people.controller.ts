@@ -40,6 +40,7 @@ import { CONSENT_VERSION } from "@omnidance/shared";
 import type { Request } from "express";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
 import { PENDING_USABLE_ROLES } from "../common/rbac/roles.guard";
+import { roleProfileChecks } from "../common/role-checks";
 import { AuthService } from "../auth/domain/auth.service";
 import { NotificationsService } from "../notifications/domain/notifications.service";
 import { PrismaService } from "../prisma.service";
@@ -330,6 +331,47 @@ export class PeopleController {
       // el tour de una superficie solo si su clave falta.
       onboarding: (person.onboarding as Record<string, string> | null) ?? {},
     };
+  }
+
+  /**
+   * Checklist de validación del propio actor (spec rbac): misma
+   * evaluación que la cola admin, expuesta al dueño para que vea qué le
+   * falta mientras su rol está PENDING. Solo roles de validación.
+   */
+  @Get("me/role-checks")
+  @UseGuards(SessionGuard)
+  async roleChecks(@Req() req: Request) {
+    const personId = req.person!.id;
+    const pendings = await this.prisma.personRole.findMany({
+      where: {
+        personId,
+        role: { in: [...PENDING_USABLE_ROLES] },
+        status: "PENDING",
+      },
+      select: { role: true },
+    });
+    if (pendings.length === 0) return [];
+    const person = await this.prisma.person.findUniqueOrThrow({
+      where: { id: personId },
+      select: { name: true, email: true, phone: true, verifiedAt: true },
+    });
+    const [academiesCount, eventsCount] = await Promise.all([
+      this.prisma.academy.count({ where: { ownerId: personId } }),
+      this.prisma.event.count({ where: { producerId: personId } }),
+    ]);
+    return pendings.map((p) => {
+      const checks = roleProfileChecks(
+        person,
+        p.role,
+        academiesCount,
+        eventsCount,
+      );
+      return {
+        role: p.role,
+        checks,
+        complete: Object.values(checks).every(Boolean),
+      };
+    });
   }
 
   /**
