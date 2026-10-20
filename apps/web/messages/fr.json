@@ -57,7 +57,12 @@
    "mySlots": "Mes créneaux",
    "upcomingAtVenue": "Prochains événements",
    "upcomingGigs": "Prochains gigs",
-   "upcomingShifts": "Prochains shifts"
+   "upcomingShifts": "Prochains shifts",
+   "leadsNew": "Leads à valider",
+   "txRevenueMonth": "Revenu des transactions (mois)",
+   "subRevenueMonth": "Revenu des abonnements (mois)",
+   "subsAcademy": "Académies",
+   "subsProducer": "Producteurs"
   },
   "hasTicketTonight": "Tu as un billet. Montre ton QR à la porte",
   "buyPresale": "Acheter en prévente",
@@ -83,7 +88,20 @@
   "sessionExpiredDesc": "Reconnecte-toi pour voir ce qu'il y a ce soir.",
   "serverError": "Impossible de charger ton accueil",
   "serverErrorDesc": "Le serveur n'a pas répondu ou la connexion a été coupée. Réessaie.",
-  "myEntries": "Tes billets"
+  "myEntries": "Tes billets",
+  "leadsTitle": "Leads à valider",
+  "leadsSummary": "{count, plural, one {# en attente} other {# en attente}}",
+  "leadsSeeAll": "Tout voir ({count})",
+  "leadsIntent": {
+   "CONTACT": "veut un contact",
+   "DEMO": "demande une démo"
+  },
+  "cats": {
+   "ops": "Opérations",
+   "billing": "Facturation",
+   "subs": "Abonnements actifs",
+   "platform": "Plateforme"
+  }
  },
  "nav": {
   "main": "Navigation principale",
@@ -496,7 +514,8 @@
   "planStudentsTitle": "Élèves sur ce plan",
   "planStudentsEmpty": "Personne n'a ce plan actif",
   "planFrom": "Du",
-  "planUntil": "Jusqu'au"
+  "planUntil": "Jusqu'au",
+  "newAcademy": "Nouvelle académie"
  },
  "practices": {
   "title": "Pratiques",
@@ -1047,7 +1066,12 @@
    "BACHATA": "Bachata",
    "CUBANO": "Cubain",
    "OTHER": "Autre"
-  }
+  },
+  "new": "Nouveau",
+  "newTitle": "Nouvelle valeur · {catalog}",
+  "editTitle": "Modifier la valeur · {catalog}",
+  "valueNotFound": "Valeur introuvable",
+  "deleteHint": "Supprime la valeur du catalogue ; irréversible."
  },
  "producerParams": {
   "title": "Valeurs par défaut",

@@ -57,7 +57,12 @@
    "mySlots": "My slots",
    "upcomingAtVenue": "Upcoming events",
    "upcomingGigs": "Upcoming gigs",
-   "upcomingShifts": "Upcoming shifts"
+   "upcomingShifts": "Upcoming shifts",
+   "leadsNew": "Leads to review",
+   "txRevenueMonth": "Transaction revenue (month)",
+   "subRevenueMonth": "Subscription revenue (month)",
+   "subsAcademy": "Academies",
+   "subsProducer": "Producers"
   },
   "hasTicketTonight": "You have a ticket. Show your QR at the door",
   "buyPresale": "Buy presale",
@@ -83,7 +88,20 @@
   "sessionExpiredDesc": "Sign in again to see what's on tonight.",
   "serverError": "We couldn't load your home",
   "serverErrorDesc": "The server didn't respond or the connection dropped. Try again.",
-  "myEntries": "Your tickets"
+  "myEntries": "Your tickets",
+  "leadsTitle": "Leads to review",
+  "leadsSummary": "{count, plural, one {# pending} other {# pending}}",
+  "leadsSeeAll": "See all ({count})",
+  "leadsIntent": {
+   "CONTACT": "wants contact",
+   "DEMO": "requests demo"
+  },
+  "cats": {
+   "ops": "Operations",
+   "billing": "Billing",
+   "subs": "Active subscriptions",
+   "platform": "Platform"
+  }
  },
  "nav": {
   "main": "Main navigation",
@@ -496,7 +514,8 @@
   "planStudentsTitle": "Students on this plan",
   "planStudentsEmpty": "Nobody has this plan active",
   "planFrom": "From",
-  "planUntil": "Until"
+  "planUntil": "Until",
+  "newAcademy": "New academy"
  },
  "practices": {
   "title": "Practices",
@@ -1047,7 +1066,12 @@
    "BACHATA": "Bachata",
    "CUBANO": "Cuban",
    "OTHER": "Other"
-  }
+  },
+  "new": "New",
+  "newTitle": "New value · {catalog}",
+  "editTitle": "Edit value · {catalog}",
+  "valueNotFound": "Value not found",
+  "deleteHint": "Deletes the catalog value; cannot be undone."
  },
  "producerParams": {
   "title": "Default values",

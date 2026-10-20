@@ -57,7 +57,12 @@
    "mySlots": "Os meus horários",
    "upcomingAtVenue": "Próximos eventos",
    "upcomingGigs": "Próximos gigs",
-   "upcomingShifts": "Próximos turnos"
+   "upcomingShifts": "Próximos turnos",
+   "leadsNew": "Leads por validar",
+   "txRevenueMonth": "Receita de transações (mês)",
+   "subRevenueMonth": "Receita de subscrições (mês)",
+   "subsAcademy": "Academias",
+   "subsProducer": "Produtores"
   },
   "hasTicketTonight": "Tens um bilhete. Mostra o teu QR à porta",
   "buyPresale": "Comprar em pré-venda",
@@ -83,7 +88,20 @@
   "sessionExpiredDesc": "Inicia sessão de novo para ver o que há esta noite.",
   "serverError": "Não foi possível carregar a tua página inicial",
   "serverErrorDesc": "O servidor não respondeu ou a ligação caiu. Tenta de novo.",
-  "myEntries": "Os teus bilhetes"
+  "myEntries": "Os teus bilhetes",
+  "leadsTitle": "Leads por validar",
+  "leadsSummary": "{count, plural, one {# pendente} other {# pendentes}}",
+  "leadsSeeAll": "Ver todos ({count})",
+  "leadsIntent": {
+   "CONTACT": "quer contacto",
+   "DEMO": "pede demo"
+  },
+  "cats": {
+   "ops": "Operações",
+   "billing": "Faturação",
+   "subs": "Subscrições ativas",
+   "platform": "Plataforma"
+  }
  },
  "nav": {
   "main": "Navegação principal",
@@ -496,7 +514,8 @@
   "planStudentsTitle": "Alunos neste plano",
   "planStudentsEmpty": "Ninguém tem este plano ativo",
   "planFrom": "De",
-  "planUntil": "Até"
+  "planUntil": "Até",
+  "newAcademy": "Nova academia"
  },
  "practices": {
   "title": "Práticas",
@@ -1047,7 +1066,12 @@
    "BACHATA": "Bachata",
    "CUBANO": "Cubano",
    "OTHER": "Outro"
-  }
+  },
+  "new": "Novo",
+  "newTitle": "Novo valor · {catalog}",
+  "editTitle": "Editar valor · {catalog}",
+  "valueNotFound": "Valor não encontrado",
+  "deleteHint": "Elimina o valor do catálogo; não é reversível."
  },
  "producerParams": {
   "title": "Valores por omissão",
