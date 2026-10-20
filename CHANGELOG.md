@@ -3,6 +3,47 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.1.0] - 2026-10-20
+
+### Added
+
+- **Registro por landing con rol usable-invisible** (`role-registration-pipeline`):
+  CTAs de `/para-academias` y `/para-productores` llevan a
+  `/login?role=ACADEMY_OWNER|PRODUCER`; el primer login crea el
+  `PersonRole` PENDING — consola completa pero **invisible al público**
+  (directorios, lineups, búsqueda) hasta que el admin aprueba.
+  Nueva cola `/admin/perfiles-por-validar` con checklist de la persona.
+  Se elimina el estado `SANDBOX` (migrado a `PENDING`).
+- **Control de calidad por academia** (`academy-approval-gate`):
+  `Academy.reviewStatus` PENDING/APPROVED/REJECTED — la academia solo es
+  pública con checklist server-side completo (auto-aprobación en el GET)
+  u override admin en la cola; REJECTED la oculta siempre. Card de
+  visibilidad con ítems faltantes en el dashboard del owner.
+- **Perfil público de academia enriquecido**: mapa con pin arrastrable
+  tras geocoding, campo información adicional y foto principal alojada.
+- **Fotos alojadas**: `POST /academies/:id/photo` y `POST /me/photo` +
+  streams públicos `/api/{academies,people}/photos/<key>` sobre storage
+  local (`UPLOADS_DIR`, disco dedicado en prod).
+- **i18n multi-locale completo**: es-CL default + en/fr/pt-PT con
+  paridad total (3823 keys/locale), `Person.language` + selector en
+  `/perfil/datos` que persiste entre dispositivos, formatters por
+  locale, alternates SEO por idioma.
+- **Consola admin**: nav drawer-only, facturación (`/admin/finanzas`
+  transacciones + suscripciones), fichas, snapshots de segmento,
+  `/admin/usuarios` paginado, CRUD de catálogos en páginas dedicadas,
+  `/academia/nueva` para owners multi-academia.
+- **Consola de analítica** (`analytics-query-engine`): `/analitica` con
+  catálogo por lente, filtros data-driven, paginación `page/pageSize`
+  en `POST /query/run` y consultas guardadas.
+- **Tests**: spec de `academy-review.ts` (checklist + auto-promoción).
+
+### Changed
+
+- `/pro` conserva solo el intent contacto; las landings `/para-*`
+  invitan a registro directo (sin lead form).
+- Preventa por academias (spec academy-presale-commission) queda
+  verificada E2E en dev.
+
 ## [1.0.3] - 2026-10-18
 
 ### Fixed
