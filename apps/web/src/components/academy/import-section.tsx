@@ -63,6 +63,9 @@ export function ImportCard({
       }
       const body = (await res.json()) as { results: RowResult[] };
       setResults(body.results);
+    } catch {
+      setErr(t("error"));
+      setResults(null);
     } finally {
       setBusy(false);
     }

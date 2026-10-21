@@ -84,6 +84,8 @@ function MethodCreate({ academy }: { academy: Academy }) {
       // Notice breve antes de volver al listado (patrón de la consola).
       setSaved(true);
       setTimeout(() => router.push("/academia/configuracion/pagos"), 1200);
+    } catch {
+      setErr(t("error"));
     } finally {
       setBusy(false);
     }

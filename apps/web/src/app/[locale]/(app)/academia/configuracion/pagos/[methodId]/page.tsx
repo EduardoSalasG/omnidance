@@ -153,6 +153,9 @@ function MethodDetail({
         return;
       }
       router.push("/academia/configuracion/pagos");
+    } catch {
+      setConfirmDelete(false);
+      setErr(t("error"));
     } finally {
       setBusy(false);
     }
