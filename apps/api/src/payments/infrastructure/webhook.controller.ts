@@ -35,6 +35,7 @@ import { PaymentSettlementService } from "../application/payment-settlement.serv
 import { GatewayAccountsService } from "../application/gateway-accounts.service";
 import { SubscriptionsService } from "../application/subscriptions.service";
 import { PlatformSubscriptionsService } from "../application/platform-subscriptions.service";
+import { SocialPassService } from "../application/social-pass.service";
 import {
   decodeClassRef,
   decodePrivateRef,
@@ -94,6 +95,7 @@ export class PaymentsController {
     @Inject(PAYMENT_GATEWAYS)
     private readonly gateways: GatewayRegistry,
     private readonly accounts: GatewayAccountsService,
+    private readonly socialPass: SocialPassService,
   ) {}
 
   // Público: lo llama la pasarela (o el stub en dev).
@@ -155,15 +157,19 @@ export class PaymentsController {
     accountId?: string,
     ctx?: WebhookContext,
   ) {
-    let result: {
-      refId: string;
-      status: "PAID" | "FAILED";
-      gatewayData?: unknown;
-    };
+    let result;
     try {
       result = await gateway.verifyWebhook(body, ctx);
     } catch {
       throw new BadRequestException("webhook inválido");
+    }
+
+    // Evento de billing de suscripción (spec pase-social): invoice.* /
+    // customer.subscription.* / Checkout mode=subscription - sin Payment
+    // asociado, va al SocialPassService y no al settle de órdenes.
+    if (result.billing) {
+      await this.socialPass.handleBillingEvent(result.billing);
+      return { ok: true, billing: result.billing.type };
     }
 
     const payment = await this.prisma.payment.findFirst({

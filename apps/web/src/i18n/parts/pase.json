@@ -1,0 +1,43 @@
+{
+  "pase": {
+    "title": "Pase Social",
+    "subtitle": "La suscripción del bailarín: entradas y precio preventa en cualquier ciudad.",
+    "benefitCredits": "{count} entradas a crédito por período",
+    "benefitPresale": "Siempre pagas precio preventa",
+    "benefitDoor": "Sin cargo de puerta en la app",
+    "benefitReset": "Los créditos se renuevan cada período - no acumulan",
+    "pricePerMonth": "{price} / mes",
+    "subscribeCta": "Suscribirme al Pase Social",
+    "subscribeHint": "Pago seguro con Stripe - tarjeta y primer período en un paso.",
+    "loginCta": "Inicia sesión para suscribirte",
+    "memberActive": "Pase activo",
+    "memberCancelPending": "Pase activo hasta el fin del período",
+    "memberFailedCard": "Pago rechazado - actualiza tu tarjeta",
+    "memberPending": "Suscripción en proceso",
+    "memberCanceled": "Pase cancelado",
+    "creditsLeft": "Te quedan {used} de {total} créditos del período",
+    "nextCharge": "Próximo cobro: {date}",
+    "activeUntil": "Acceso hasta {date}",
+    "cancelCta": "Cancelar suscripción",
+    "cancelTitle": "¿Cancelar el Pase Social?",
+    "cancelDesc": "Seguirás con acceso hasta el fin del período ya pagado. Los créditos no usados se pierden.",
+    "cancelConfirm": "Sí, cancelar",
+    "resubscribeCta": "Volver a suscribirme",
+    "updateCardCta": "Actualizar tarjeta",
+    "loadError": "No pudimos cargar tu pase.",
+    "actionError": "No se completó la acción. Intenta de nuevo.",
+    "confirming": "Confirmando tu suscripción…",
+    "confirmed": "Pase Social activado",
+    "confirmPending": "El pago sigue en proceso - actualiza en unos segundos.",
+    "retry": "Reintentar",
+    "disabled": "El Pase Social no está disponible por ahora."
+  },
+  "checkout": {
+    "paseBenefit": "Precio Pase Social",
+    "paseBenefitHint": "Pagas preventa con tu pase",
+    "paseCredit": "Usar crédito del Pase Social",
+    "paseCreditHint": "{count} entrada(s) cubiertas por tu pase - quedan {left}",
+    "paseCreditLine": "Pase Social · crédito",
+    "paseCreditShort": "Sin saldo suficiente del pase"
+  }
+}

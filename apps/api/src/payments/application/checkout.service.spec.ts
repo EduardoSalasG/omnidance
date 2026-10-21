@@ -156,6 +156,19 @@ function mkPrisma() {
         return data;
       }),
     },
+    // Pase Social (spec pase-social): sin pass por defecto; los tests
+    // del pase siembran la fila y verifican balance/ledger.
+    socialPass: {
+      findUnique: vi.fn(
+        async (): Promise<Record<string, unknown> | null> => null,
+      ),
+      updateMany: vi.fn(async () => ({ count: 0 })),
+    },
+    socialPassLedger: {
+      create: vi.fn(
+        async ({ data }: { data: Record<string, unknown> }) => data,
+      ),
+    },
     $executeRaw: vi.fn(async () => 0),
   };
   // $transaction pasa el mismo prisma como tx - el emit de ledger usa
@@ -241,6 +254,12 @@ const mkSettlement = () => ({
   settle: vi.fn(async () => ({ ok: true, status: "PAID" as const })),
 });
 
+// Feature flags (spec pase-social): OFF por defecto - los tests del pase
+// lo encienden sobreescribiendo isEnabled.
+const featuresStub = {
+  isEnabled: vi.fn(async () => false),
+};
+
 const mkEvent = (over: Record<string, unknown> = {}) => ({
   id: "evt-1",
   status: "PUBLISHED",
@@ -301,6 +320,7 @@ describe("CheckoutService.purchaseTicket", () => {
       gw.registry,
       accountsStub as never,
       academySalesStub as never,
+      featuresStub as never,
     );
   });
 
@@ -1112,6 +1132,7 @@ describe("CheckoutService.purchaseTicket", () => {
       registry,
       accountsStub as never,
       academySalesStub as never,
+      featuresStub as never,
     );
     const res = await svc2.purchaseTicket("per-1", { eventId: "evt-1" });
     expect(stripeish.createOrder).toHaveBeenCalledTimes(1);
@@ -1306,6 +1327,7 @@ describe("CheckoutService.discountQuote", () => {
       gw.registry,
       accountsStub as never,
       academySalesStub as never,
+      featuresStub as never,
     );
   });
 
@@ -1417,6 +1439,7 @@ describe("CheckoutService.purchaseSeriesPass", () => {
       gw.registry,
       accountsStub as never,
       academySalesStub as never,
+      featuresStub as never,
     );
   });
 
@@ -1551,6 +1574,7 @@ describe("CheckoutService.membershipQuote", () => {
       gw.registry,
       accountsStub as never,
       academySalesStub as never,
+      featuresStub as never,
     );
   });
 
@@ -1683,6 +1707,7 @@ describe("CheckoutService.purchaseMembership", () => {
       gw.registry,
       accountsStub as never,
       academySalesStub as never,
+      featuresStub as never,
     );
   });
 
@@ -1818,6 +1843,7 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
       gw.registry,
       accountsStub as never,
       academySalesStub as never,
+      featuresStub as never,
     );
   });
 
@@ -1940,6 +1966,7 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
       gw.registry,
       accountsStub as never,
       academySalesStub as never,
+      featuresStub as never,
     );
   });
 
@@ -2009,5 +2036,164 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
     expect(res.paymentUrl).toContain("pay.example");
     expect(gw.createOrder).toHaveBeenCalledOnce();
     expect(decodePrivateRef(p.refId as string)?.academyId).toBe("ac-1");
+  });
+});
+
+// ─── Pase Social (spec pase-social) ───
+describe("CheckoutService - Pase Social", () => {
+  let fx: ReturnType<typeof mkPrisma>;
+  let pf: ReturnType<typeof mkParams>;
+  let gw: ReturnType<typeof mkGateway>;
+  let stl: { settle: ReturnType<typeof vi.fn> };
+  let svc: CheckoutService;
+
+  const ACTIVE_PASS = {
+    id: "sp-1",
+    personId: "per-1",
+    status: "ACTIVE",
+    creditsBalance: 4,
+    creditsPerPeriod: 4,
+  };
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    pf = mkParams();
+    gw = mkGateway();
+    stl = { settle: vi.fn(async () => ({ ok: true, status: "PAID" as const })) };
+    fx.prisma.event.findUnique.mockResolvedValue(mkEvent());
+    academySalesStub.resolveAttribution.mockClear();
+    academySalesStub.codeAgreement.mockClear();
+    academySalesStub.codeAgreement.mockResolvedValue(null);
+    featuresStub.isEnabled.mockClear();
+    featuresStub.isEnabled.mockResolvedValue(true);
+    fx.prisma.socialPass.findUnique.mockResolvedValue(ACTIVE_PASS);
+    fx.prisma.socialPass.updateMany.mockResolvedValue({ count: 1 });
+    svc = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      gw.gateway,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+      stl as never,
+      gw.registry,
+      accountsStub as never,
+      academySalesStub as never,
+      featuresStub as never,
+    );
+  });
+
+  const buy = (input: Record<string, unknown> = {}) =>
+    svc.purchaseTicket("per-1", { eventId: "evt-1", ...input });
+
+  it("pass ACTIVE en preventa: precio normal y el flag se consulta una vez", async () => {
+    const res = await buy();
+    expect(res.quote.listPrice).toBe(10000);
+    expect(res.socialPass?.benefit).toBeUndefined();
+    expect(featuresStub.isEnabled).toHaveBeenCalledWith("social_pass");
+  });
+
+  it("pass ACTIVE post-corte → paga presalePrice y marca el beneficio", async () => {
+    // Evento ayer → el corte de las 19:00 ya pasó; con puerta abierta
+    // el suscriptor paga el precio de preventa (spec scenario).
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        startsAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+        endsAt: new Date(Date.now() + 60 * 60 * 1000),
+        doorPrice: 8000,
+      }),
+    );
+    const res = await buy();
+    expect(fx.payments[0]!.channel).toBe("DOOR");
+    expect(fx.payments[0]!.unitListPrice).toBe(10000); // presalePrice
+    expect(res.quote.listPrice).toBe(10000);
+    expect(res.socialPass?.benefit).toEqual({
+      presalePriceApplied: true,
+      doorFeeWaived: true,
+    });
+  });
+
+  it("flag OFF → ni el pass se consulta ni hay beneficio", async () => {
+    featuresStub.isEnabled.mockResolvedValue(false);
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        startsAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+        endsAt: new Date(Date.now() + 60 * 60 * 1000),
+        doorPrice: 8000,
+      }),
+    );
+    const res = await buy();
+    expect(fx.prisma.socialPass.findUnique).not.toHaveBeenCalled();
+    expect(res.quote.listPrice).toBe(8000);
+    expect(res.socialPass).toBeUndefined();
+  });
+
+  it("payWithCredit: orden $0 FREE, PAID al instante, REDEEM atómico en la misma tx", async () => {
+    const res = await buy({ payWithCredit: true });
+    expect(res.paid).toBe(true);
+    expect(res.paymentUrl).toBeNull();
+    expect(res.socialPass?.creditsUsed).toBe(1);
+    const p = fx.payments[0]!;
+    expect(p.amount).toBe(0);
+    expect(p.gateway).toBe("FREE");
+    // Decremento condicional por saldo + línea REDEEM con el paymentId.
+    expect(fx.prisma.socialPass.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "sp-1", creditsBalance: { gte: 1 } },
+        data: { creditsBalance: { decrement: 1 } },
+      }),
+    );
+    expect(fx.prisma.socialPassLedger.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          passId: "sp-1",
+          delta: -1,
+          reason: "REDEEM",
+          paymentId: p.id,
+        }),
+      }),
+    );
+    expect(gw.createOrder).not.toHaveBeenCalled();
+    expect(stl.settle).toHaveBeenCalledTimes(1);
+  });
+
+  it("payWithCredit con quantity 3 consume 3 créditos", async () => {
+    const res = await buy({ payWithCredit: true, quantity: 3 });
+    expect(fx.prisma.socialPass.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "sp-1", creditsBalance: { gte: 3 } },
+      }),
+    );
+    expect(res.socialPass?.creditsUsed).toBe(3);
+  });
+
+  it("payWithCredit sin saldo suficiente → 409 y nada muta", async () => {
+    fx.prisma.socialPass.findUnique.mockResolvedValue({
+      ...ACTIVE_PASS,
+      creditsBalance: 1,
+    });
+    await expect(buy({ payWithCredit: true, quantity: 2 })).rejects.toThrow(
+      /créditos/,
+    );
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("payWithCredit sin pass ACTIVE → 409", async () => {
+    fx.prisma.socialPass.findUnique.mockResolvedValue({
+      ...ACTIVE_PASS,
+      status: "CANCELED",
+    });
+    await expect(buy({ payWithCredit: true })).rejects.toThrow(/Pase Social/);
+  });
+
+  it("payWithCredit con regalos → 409 (v1: el crédito es solo del comprador)", async () => {
+    await expect(
+      buy({ payWithCredit: true, recipientIds: ["amigo-1"], quantity: 2 }),
+    ).rejects.toThrow(/regalos/);
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("payWithCredit con método propio → 409", async () => {
+    await expect(
+      buy({ payWithCredit: true, methodId: "pm-1" }),
+    ).rejects.toThrow(/métodos propios/);
   });
 });

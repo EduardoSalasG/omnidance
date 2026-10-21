@@ -156,6 +156,9 @@ const PARAM_DEFAULTS: Array<{
   // la ventana en que resolveQuota sigue habilitando reservas vencidas.
   { key: "academy.renewal.first_notice_days", value: 5, description: "Días antes del endsAt para el primer email de renovación" },
   { key: "academy.renewal.grace_days", value: 5, description: "Días de gracia tras endsAt: aviso de regularización + reservas habilitadas" },
+  // ─── Pase Social (spec pase-social, flag social_pass OFF) ───
+  { key: "social_pass.credits_per_month", value: 4, description: "Entradas a crédito por período del Pase Social (reset duro - no acumulan)" },
+  { key: "social_pass.price_clp", value: 15000, description: "Precio mensual fallback del Pase Social (CLP) - el precio real por país vive en TierPrice SOCIAL_PASS" },
 ];
 
 /** Catálogo de badges - las keys deben coincidir con BadgeAwarder (gamification/rules.ts). */
@@ -484,6 +487,32 @@ export async function seedCommon(prisma: PrismaClient) {
       create: lt,
     });
   }
+
+  // ─── Price book del Pase Social (spec pase-social): precio por país
+  // vía TierPrice tierCode=SOCIAL_PASS. `kind`/`billingCycle` son
+  // requeridos por el schema aunque el pase no es ni ACADEMY ni PRODUCER
+  // - se siembra con kind PRODUCER / MONTHLY como placeholder hasta que
+  // exista un kind de bailarín (el resolver busca por tierCode+country).
+  // update:{} no pisa precios editados por admin.
+  await prisma.tierPrice.upsert({
+    where: {
+      tierCode_kind_billingCycle_countryCode: {
+        tierCode: "SOCIAL_PASS",
+        kind: "PRODUCER",
+        billingCycle: "MONTHLY",
+        countryCode: "CL",
+      },
+    },
+    update: {},
+    create: {
+      tierCode: "SOCIAL_PASS",
+      kind: "PRODUCER",
+      billingCycle: "MONTHLY",
+      countryCode: "CL",
+      price: 15000,
+      currency: "CLP",
+    },
+  });
 
   console.log(
     `  baseline: ${ROLE_CATALOG.length} roles, ${PERMISSION_CATALOG.length} permisos, ${STYLE_CATALOG.length} estilos, ${BADGE_CATALOG.length} badges, ${PARAM_DEFAULTS.length} params`,

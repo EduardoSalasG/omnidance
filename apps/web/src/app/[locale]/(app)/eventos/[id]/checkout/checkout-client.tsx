@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useFeatures } from "@/lib/features-context";
 import {
   Badge,
   Button,
@@ -95,6 +96,18 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
   // hay activos se ofrecen como alternativa a la pasarela.
   const [ownMethods, setOwnMethods] = useState<OwnMethod[]>([]);
   const [methodId, setMethodId] = useState<string | null>(null);
+  // Pase Social (spec pase-social): con flag ON se consulta el pase del
+  // comprador - ACTIVE habilita el precio preventa post-corte y la
+  // opción "usar crédito" (sin regalos ni método propio).
+  const { flags } = useFeatures();
+  const [pase, setPase] = useState<{
+    status: string | null;
+    creditsBalance: number;
+  } | null>(null);
+  const [useCredit, setUseCredit] = useState(false);
+  const paseActive =
+    flags.social_pass === true &&
+    (pase?.status === "ACTIVE" || pase?.status === "CANCEL_PENDING");
 
   // Cantidad de la orden (1–10): 1 propia + asignadas a amigos +
   // reclamables (link por WhatsApp para quien no esté en la app).
@@ -148,6 +161,28 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
       .catch(() => undefined);
   }, [event.id]);
 
+  useEffect(() => {
+    if (flags.social_pass !== true) return;
+    apiFetch("/me/social-pass")
+      .then(async (res) => (res.ok ? res.json() : null))
+      .then((data) => setPase(data))
+      .catch(() => undefined);
+  }, [flags.social_pass]);
+
+  // Crédito disponible: pase activo + saldo para TODAS las entradas,
+  // sin regalos ni método propio (mismas reglas que el API).
+  const creditAvailable =
+    paseActive &&
+    giftIds.size === 0 &&
+    !methodId &&
+    (pase?.creditsBalance ?? 0) >= quantity;
+  // El crédito deja de aplicar si baja la cantidad por sobre el saldo o
+  // se agregan regalos - se desmarca solo para no mandar un 409.
+  useEffect(() => {
+    if (useCredit && !creditAvailable) setUseCredit(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [creditAvailable]);
+
   const isStub =
     phase.kind === "awaiting" && phase.paymentUrl.startsWith("stub://");
   const busy =
@@ -173,7 +208,9 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
   // El quote del API trae montos unitarios + total de la orden; acá cada
   // línea se multiplica por la cantidad (descuento = una vez por orden).
   const listPrice = doorChannel
-    ? event.doorPrice!
+    ? paseActive && event.presalePrice != null
+      ? event.presalePrice
+      : event.doorPrice!
     : (event.presalePrice ?? 0);
   const quote =
     phase.kind === "awaiting" || phase.kind === "stillPending"
@@ -188,7 +225,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     : {
         listPrice,
         discount: estDiscount,
-        total: listPrice * quantity - estDiscount,
+        total: useCredit ? 0 : listPrice * quantity - estDiscount,
       };
 
   // Polling del pago mientras esperamos confirmación (stub o retorno del gateway)
@@ -305,6 +342,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             ? { tablePartySize: partySize }
             : {}),
           ...(methodId ? { methodId } : {}),
+          ...(useCredit ? { payWithCredit: true } : {}),
         }),
       });
 
@@ -730,6 +768,20 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                 </dd>
               </div>
             )}
+            {paseActive && doorChannel && event.presalePrice != null && (
+              <div className="flex items-center justify-between">
+                <dt className="text-sm text-neon">{t("paseBenefit")}</dt>
+                <dd className="text-xs text-ink/50">{t("paseBenefitHint")}</dd>
+              </div>
+            )}
+            {useCredit && (
+              <div className="flex items-center justify-between">
+                <dt className="text-sm text-neon">{t("paseCreditLine")}</dt>
+                <dd>
+                  <PriceTag amount={-(breakdown.listPrice * quantity - estDiscount)} />
+                </dd>
+              </div>
+            )}
             <div className="mt-1 flex items-center justify-between border-t border-line pt-4">
               <dt className="text-base font-semibold">{t("total")}</dt>
               <dd aria-live="polite">
@@ -741,6 +793,40 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             {doorChannel ? t("doorChannelNote") : t("presaleCutoff")}
           </p>
         </Card>
+
+        {/* Pase Social: pagar con créditos (solo sin regalos, sin método
+            propio y con saldo para TODAS las entradas de la orden). */}
+        {paseActive && giftIds.size === 0 && !methodId && (
+          <Card>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-base font-semibold">{t("paseCredit")}</h2>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={useCredit}
+                disabled={busy || (pase?.creditsBalance ?? 0) < quantity}
+                onClick={() => setUseCredit((v) => !v)}
+                className={`relative h-8 w-14 shrink-0 rounded-full transition-colors disabled:opacity-40 ${
+                  useCredit ? "bg-neon" : "bg-elevated"
+                }`}
+              >
+                <span
+                  className={`absolute top-1 h-6 w-6 rounded-full bg-canvas transition-all ${
+                    useCredit ? "left-7" : "left-1"
+                  }`}
+                />
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-ink/50">
+              {(pase?.creditsBalance ?? 0) >= quantity
+                ? t("paseCreditHint", {
+                    count: quantity,
+                    left: (pase?.creditsBalance ?? 0) - quantity,
+                  })
+                : t("paseCreditShort")}
+            </p>
+          </Card>
+        )}
 
         {/* Forma de pago: pasarela vs métodos propios del productor
             (spec producer-own-methods). Siempre visible - aunque solo

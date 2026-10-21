@@ -50,6 +50,7 @@ import {
   TableSoldOutError,
   OwnMethodUnavailableError,
 } from "../application/checkout.service";
+import { SocialPassConflictError } from "../application/social-pass.service";
 import { SubscriptionsService } from "../application/subscriptions.service";
 import { ApiQuery } from "@nestjs/swagger";
 
@@ -120,6 +121,15 @@ class CheckoutTicketDto {
   @IsOptional()
   @IsString()
   academyId?: string;
+
+  /**
+   * Pase Social (spec pase-social): pagar la orden con créditos del
+   * pase (1 por entrada) - solo sin regalos ni método propio, con pass
+   * ACTIVE y saldo suficiente; si no, el service responde 409.
+   */
+  @IsOptional()
+  @IsBoolean()
+  payWithCredit?: boolean;
 }
 
 class CheckoutSeriesPassDto {
@@ -189,7 +199,8 @@ export class CheckoutController {
       if (
         e instanceof PresaleSoldOutError ||
         e instanceof DoorSoldOutError ||
-        e instanceof TableSoldOutError
+        e instanceof TableSoldOutError ||
+        e instanceof SocialPassConflictError
       ) {
         throw new ConflictException(e.message);
       }

@@ -49,6 +49,9 @@ import { TicketDayOfService } from "./application/ticket-day-of.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { AcademyAccessModule } from "../academies/academy-access.module";
 import { StorageModule } from "../storage/storage.module";
+import { FeaturesModule } from "../features/features.module";
+import { SocialPassService } from "./application/social-pass.service";
+import { SocialPassController } from "./infrastructure/social-pass.controller";
 
 @Module({
   imports: [
@@ -59,6 +62,7 @@ import { StorageModule } from "../storage/storage.module";
     PrismaModule,
     AcademyAccessModule,
     StorageModule,
+    FeaturesModule,
   ],
   controllers: [
     CheckoutController,
@@ -73,6 +77,7 @@ import { StorageModule } from "../storage/storage.module";
     ProducerProController,
     AcademySalesController,
     WalletController,
+    SocialPassController,
   ],
   providers: [
     CheckoutService,
@@ -90,6 +95,7 @@ import { StorageModule } from "../storage/storage.module";
     TicketDayOfService,
     WalletService,
     AcademySalesService,
+    SocialPassService,
     GatewayTransactionsService,
     { provide: PricingService, useFactory: () => new PricingService() },
     {
