@@ -8275,6 +8275,32 @@
           }
         },
         {
+          "name": "GET /api/classes/{id}/calendar.ics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/classes/{id}/calendar.ics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "classes",
+                "{id}",
+                "calendar.ics"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/classes/{id}/roster",
           "request": {
             "method": "GET",
