@@ -29,9 +29,14 @@ export function OwnMethodDetails({ method }: { method: OwnMethod }) {
   const [copied, setCopied] = useState<string | null>(null);
 
   async function copy(key: string, text: string) {
-    await navigator.clipboard?.writeText(text).catch(() => {});
-    setCopied(key);
-    setTimeout(() => setCopied(null), 1500);
+    if (!navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+      setTimeout(() => setCopied(null), 1500);
+    } catch {
+      // Clipboard rechazó: no mostrar "Copiado" sin haber copiado.
+    }
   }
 
   return (

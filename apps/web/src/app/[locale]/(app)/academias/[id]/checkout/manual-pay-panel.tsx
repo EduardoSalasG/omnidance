@@ -79,28 +79,37 @@ export function ManualPayPanel({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
-    const [m, c] = await Promise.all([
-      apiFetch(`/academies/${academyId}/payment-methods`),
-      apiFetch(`/academies/${academyId}/claims/mine`),
-    ]);
-    const methodRows: PaymentMethod[] = m.ok ? await m.json() : [];
-    const claims: MyClaim[] = c.ok ? await c.json() : [];
-    setMethods(methodRows);
-    // El intento vivo de este plan manda; si el último quedó REJECTED
-    // se muestra el motivo y se permite un intento nuevo.
-    const live = claims.find(
-      (r) =>
-        r.planId === planId &&
-        (r.status === "AWAITING" || r.status === "PENDING"),
-    );
-    const lastRejected = claims.find(
-      (r) => r.planId === planId && r.status === "REJECTED",
-    );
-    setClaim(live ?? null);
-    setRejectedNote(!live && lastRejected ? lastRejected.reviewNote : null);
-    onBlockingChange(
-      !!live || claims.some((r) => r.planId === planId && r.status === "PENDING"),
-    );
+    try {
+      const [m, c] = await Promise.all([
+        apiFetch(`/academies/${academyId}/payment-methods`),
+        apiFetch(`/academies/${academyId}/claims/mine`),
+      ]);
+      const methodRows: PaymentMethod[] = m.ok ? await m.json() : [];
+      const claims: MyClaim[] = c.ok ? await c.json() : [];
+      setMethods(methodRows);
+      // El intento vivo de este plan manda; si el último quedó REJECTED
+      // se muestra el motivo y se permite un intento nuevo.
+      const live = claims.find(
+        (r) =>
+          r.planId === planId &&
+          (r.status === "AWAITING" || r.status === "PENDING"),
+      );
+      const lastRejected = claims.find(
+        (r) => r.planId === planId && r.status === "REJECTED",
+      );
+      setClaim(live ?? null);
+      setRejectedNote(!live && lastRejected ? lastRejected.reviewNote : null);
+      onBlockingChange(
+        !!live ||
+          claims.some((r) => r.planId === planId && r.status === "PENDING"),
+      );
+    } catch {
+      // Fallo de red: el panel igual se muestra con la pasarela
+      // como única opción (manualActive queda en false) + error
+      // visible, en vez de un panel invisible sin explicación.
+      setMethods([]);
+      setError(true);
+    }
   }, [academyId, planId, onBlockingChange]);
 
   useEffect(() => {
@@ -114,9 +123,14 @@ export function ManualPayPanel({
   }, [claim, selected, onBlockingChange]);
 
   async function copy(key: string, text: string) {
-    await navigator.clipboard?.writeText(text).catch(() => {});
-    setCopied(key);
-    setTimeout(() => setCopied(null), 1500);
+    if (!navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+      setTimeout(() => setCopied(null), 1500);
+    } catch {
+      // Clipboard rechazó: no mostrar "Copiado" sin haber copiado.
+    }
   }
 
   function copyAll(method: PaymentMethod) {
@@ -144,6 +158,8 @@ export function ManualPayPanel({
       setClaim(await res.json());
       setSelected(null);
       onBlockingChange(true);
+    } catch {
+      setError(true);
     } finally {
       setBusy(false);
     }
@@ -167,6 +183,8 @@ export function ManualPayPanel({
       setClaim(await res.json());
       setFile(null);
       if (fileRef.current) fileRef.current.value = "";
+    } catch {
+      setError(true);
     } finally {
       setBusy(false);
     }
@@ -175,12 +193,19 @@ export function ManualPayPanel({
   async function cancelIntent() {
     if (!claim || busy) return;
     setBusy(true);
+    setError(false);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/claims/${claim.id}/cancel`,
         { method: "POST" },
       );
-      if (res.ok) setClaim(null);
+      if (res.ok) {
+        setClaim(null);
+      } else {
+        setError(true);
+      }
+    } catch {
+      setError(true);
     } finally {
       setBusy(false);
     }
@@ -374,12 +399,16 @@ export function ManualPayPanel({
               })}
             </Button>
           )}
-          {error && (
-            <p role="alert" className="text-sm text-red-400">
-              {tc("error")}
-            </p>
-          )}
         </div>
+      )}
+
+      {/* Error común a todas las ramas (selector, AWAITING, fallo de
+          carga): antes solo se renderizaba dentro de !claim y el
+          fallo de sendReceipt quedaba invisible. */}
+      {error && (
+        <p role="alert" className="text-sm text-red-400">
+          {tc("error")}
+        </p>
       )}
     </Card>
   );
