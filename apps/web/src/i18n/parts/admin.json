@@ -210,7 +210,9 @@
    "documents": "Documentos",
    "backHome": "Inicio",
    "broadcast": "Difusión",
-   "validation": "Por validar"
+   "validation": "Por validar",
+   "features": "Funcionalidades",
+   "featuresDesc": "Flags de funcionalidad por toggle"
   },
   "academies": {
    "desc": "Salud de la base de alumnos por academia: score medio, distribución de segmentos y actividad.",
@@ -561,6 +563,16 @@
    "management": "Gestión",
    "commercial": "Comercial",
    "platform": "Plataforma"
+  },
+  "features": {
+   "hint": "Activa o apaga funcionalidades por toggle. El cambio aplica al instante y queda registrado en auditoría.",
+   "empty": "No hay funcionalidades registradas - el catálogo lo define el seed.",
+   "loadError": "No se pudo cargar el catálogo de funcionalidades.",
+   "on": "Activa",
+   "off": "Apagada",
+   "updatedAt": "Actualizado {date}",
+   "updatedBy": "por {name}",
+   "announce": "{label} quedó {state}"
   },
   "tx": {
    "title": "Transacciones",

@@ -773,6 +773,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.slider,
         },
         {
+          href: "/admin/funcionalidades",
+          ns: "admin",
+          key: "modules.features",
+          icon: ICONS.zap,
+        },
+        {
           href: "/admin/jobs",
           ns: "admin",
           key: "modules.jobs",
