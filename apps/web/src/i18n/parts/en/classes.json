@@ -46,6 +46,7 @@
     "paidTag": "Purchased",
     "academyUnavailable": "The academy is unavailable at the moment",
     "academyUnavailableBadge": "Unavailable",
-    "privateLesson": "Private lesson"
+    "privateLesson": "Private lesson",
+    "addToCalendar": "Add to my calendar"
   }
 }
