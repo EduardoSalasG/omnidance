@@ -67,6 +67,17 @@ export function RefreshIcon(props: IconProps) {
   );
 }
 
+/** Agendar/guardar en calendario (descarga .ics, "agregar a mi
+    calendario") - el + dentro remite a agregar, no a fecha genérica. */
+export function CalendarIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18M12 14v5M9.5 16.5h5" />
+    </Svg>
+  );
+}
+
 /** Fecha/hora como metadato (reemplaza la palabra "Actualizado" etc.). */
 export function ClockIcon(props: IconProps) {
   return (

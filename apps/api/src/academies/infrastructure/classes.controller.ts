@@ -12,9 +12,10 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
 } from "@nestjs/common";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 import type { EnrollmentStatus } from "@prisma/client";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
@@ -39,6 +40,7 @@ import {
   type ClassCardRow,
 } from "./class-card-projection";
 import { filterDate } from "./list-filters";
+import { buildClassIcs } from "./class-ics";
 import { ApiQuery } from "@nestjs/swagger";
 
 // Inscripción vigente: la que habilita ver la academia como "mía" en
@@ -834,6 +836,12 @@ export class ClassesController {
                 // "academia no disponible" en el CTA (book/checkout ya
                 // rechazan con academy.unavailable - el flag lo anticipa).
                 billingBlockedAt: true,
+                // Sede de la clase (spec class-calendar-ics): las clases
+                // se dictan en la academia - su address/addressExtra es
+                // la ubicación y city.timezone fija el TZID del .ics.
+                address: true,
+                addressExtra: true,
+                city: { select: { name: true, timezone: true } },
               },
             },
             series: {
@@ -998,6 +1006,102 @@ export class ClassesController {
         endTime: u.slot.endTime,
       })),
     };
+  }
+
+  /**
+   * Descarga .ics (RFC 5545) de la clase - spec class-calendar-ics.
+   * Misma sesión que el detalle; NO re-guard por booking: la puerta UX
+   * es el botón que solo ve quien reservó, y el archivo es compartible
+   * dentro de la sesión (decisión del change). La sede es la academia
+   * (las clases no tienen venue propio) y el TZID sale de City.timezone
+   * de la academia - fallback America/Santiago.
+   */
+  @Get(":id/calendar.ics")
+  async calendarIcs(
+    @Param("id") classId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const cls = await this.prisma.class.findUnique({
+      where: { id: classId },
+      select: {
+        id: true,
+        date: true,
+        instructorId: true,
+        slot: {
+          select: {
+            startTime: true,
+            endTime: true,
+            instructorId: true,
+            academy: {
+              select: {
+                name: true,
+                address: true,
+                addressExtra: true,
+                city: { select: { name: true, timezone: true } },
+              },
+            },
+            series: {
+              select: {
+                name: true,
+                instructorId: true,
+                level: { select: { name: true } },
+                style: { select: { name: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!cls) throw new NotFoundException("clase no encontrada");
+
+    // Instructor efectivo para la descripción: override de la clase →
+    // del slot → default de la serie (misma cadena que detail).
+    const instructorId =
+      cls.instructorId ?? cls.slot.instructorId ?? cls.slot.series.instructorId;
+    const instructor = instructorId
+      ? await this.prisma.person.findUnique({
+          where: { id: instructorId },
+          select: { name: true },
+        })
+      : null;
+
+    const academy = cls.slot.academy;
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const description = [
+      `Clase de ${academy.name}`,
+      instructor?.name ? `Profesor: ${instructor.name}` : null,
+      cls.slot.series.level?.name
+        ? `Nivel: ${cls.slot.series.level.name}`
+        : null,
+      cls.slot.series.style?.name
+        ? `Estilo: ${cls.slot.series.style.name}`
+        : null,
+      `${webUrl}/clases/${cls.id}`,
+    ]
+      .filter((x): x is string => !!x)
+      .join("\n");
+
+    const ics = buildClassIcs({
+      classId: cls.id,
+      date: cls.date,
+      startTime: cls.slot.startTime,
+      endTime: cls.slot.endTime,
+      timezone: academy.city?.timezone ?? "America/Santiago",
+      title: cls.slot.series.name ?? academy.name,
+      academyName: academy.name,
+      location: [academy.name, academy.address, academy.addressExtra]
+        .filter((x): x is string => !!x)
+        .join(", "),
+      description,
+      webUrl,
+    });
+
+    res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="clase-${cls.id}.ics"`,
+    );
+    return ics;
   }
 
   /**

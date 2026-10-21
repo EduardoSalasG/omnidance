@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
-import { Button, Card, PriceTag, Spinner } from "@/components/ui";
+import { Button, CalendarIcon, Card, PriceTag, Spinner } from "@/components/ui";
 import { readError } from "@/components/academy/shared";
 import { Link, useRouter } from "@/i18n/navigation";
 
@@ -488,6 +488,21 @@ export function ClassBookingCta({
             >
               {notice.text}
             </p>
+          )}
+          {/* .ics de la clase (spec class-calendar-ics): descarga con
+              sesión vía proxy same-origin, igual que los exports de
+              analítica. Solo con asiento propio - nunca en WAITLIST ni
+              en la compra pendiente de gateway. Aparece tras reservar
+              sin recargar (booking pasa a BOOKED local). */}
+          {booking === "BOOKED" && (
+            <a
+              href={`/api/classes/${classId}/calendar.ics`}
+              download
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              <CalendarIcon />
+              {t("addToCalendar")}
+            </a>
           )}
           <button
             type="button"

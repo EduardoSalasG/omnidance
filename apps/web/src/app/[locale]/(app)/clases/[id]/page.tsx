@@ -55,6 +55,11 @@ type ClassDetail = {
     /** Mora SaaS (S3/S6): el CTA de reserva/compra queda deshabilitado
         con copy honesto - la ficha sigue visible (S6b). */
     billingBlocked: boolean;
+    /** Sede de la clase = la academia (spec class-calendar-ics): el
+        .ics la usa como LOCATION y la ciudad fija su TZID. */
+    address: string | null;
+    addressExtra: string | null;
+    city: { name: string; timezone: string } | null;
   };
   instructor: {
     id: string;

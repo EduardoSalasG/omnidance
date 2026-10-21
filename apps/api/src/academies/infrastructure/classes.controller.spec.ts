@@ -60,6 +60,11 @@ interface FakeClass {
       name: string;
       defaultQuorum: number | null;
       billingBlockedAt: Date | null;
+      // Sede de la clase (spec class-calendar-ics): la academia es la
+      // ubicación y su ciudad fija el TZID del .ics.
+      address: string | null;
+      addressExtra: string | null;
+      city: { name: string; timezone: string } | null;
     };
   };
 }
@@ -139,6 +144,9 @@ class FakePrisma {
           name: "Academia X",
           defaultQuorum: null,
           billingBlockedAt: null,
+          address: "Av. Siempre Viva 123",
+          addressExtra: null,
+          city: { name: "Santiago", timezone: "America/Santiago" },
           ...overAcademy,
         },
       },
@@ -213,7 +221,12 @@ class FakePrisma {
   };
 
   person = {
-    findUnique: async () => null,
+    // detail solo consulta cuando la clase/slot/serie fija instructorId;
+    // calendarIcs lo usa para el "Profesor:" de DESCRIPTION.
+    findUnique: async ({ where }: { where: { id: string } }) => ({
+      id: where.id,
+      name: `Nombre ${where.id}`,
+    }),
     findMany: async ({ where }: { where: { id: { in: string[] } } }) =>
       where.id.in.map((id) => ({ id, name: `Nombre ${id}` })),
   };
@@ -1510,5 +1523,139 @@ describe("ClassesController.markAttendance", () => {
     await expect(
       ctrl.markAttendance("cls-1", {}, reqAs("inst-1")),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+
+// GET /classes/:id/calendar.ics (spec class-calendar-ics): mismo guard
+// del detalle (sesión), sin re-guard por booking - la puerta UX es el
+// botón post-reserva. Emite VCALENDAR/VEVENT RFC 5545 con TZID de la
+// ciudad de la academia, LOCATION = sede (academia), VALARM -60min.
+describe("ClassesController.calendarIcs", () => {
+  let prisma: FakePrisma;
+  let ctrl: ClassesController;
+  // Fake de Response Express: passthrough devuelve el string y el test
+  // inspecciona los headers seteados.
+  let res: { setHeader: ReturnType<typeof vi.fn> };
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    ctrl = new ClassesController(
+      prisma as unknown as PrismaService,
+      { notifySafe: vi.fn() } as unknown as NotificationsService,
+      {} as AcademyAccess,
+      fakeParams(),
+    );
+    res = { setHeader: vi.fn() };
+    prisma.addClass("cls-1", {
+      date: new Date(Date.UTC(2026, 8, 15)), // 15 sep 2026
+      slot: {
+        startTime: "20:00",
+        endTime: "21:30",
+        series: {
+          name: "Bachata Inicial",
+          level: { id: "lvl-1", name: "Inicial", order: 1 },
+        },
+      },
+    });
+  });
+
+  // Las aserciones van sobre líneas lógicas: el folding RFC 5545 (75
+  // octets) parte las largas con "CRLF + espacio" - unfold las reúne.
+  const call = async (id = "cls-1") => {
+    const raw = await ctrl.calendarIcs(
+      id,
+      res as unknown as Parameters<ClassesController["calendarIcs"]>[1],
+    );
+    return raw.replace(/\r\n /g, "");
+  };
+
+  it("emite VCALENDAR con los campos obligatorios y headers de descarga", async () => {
+    const body = await call();
+    expect(body).toContain("\r\n"); // líneas lógicas separadas por CRLF
+    expect(body).toContain("BEGIN:VCALENDAR");
+    expect(body).toContain("VERSION:2.0");
+    expect(body).toContain("PRODID:-//Omnidance//ES");
+    expect(body).toContain("BEGIN:VEVENT");
+    expect(body).toContain("UID:class-cls-1@omnidance");
+    expect(body).toContain("DTSTAMP:");
+    expect(body).toContain("DTSTART;TZID=America/Santiago:20260915T200000");
+    expect(body).toContain("DTEND;TZID=America/Santiago:20260915T213000");
+    expect(body).toContain("SUMMARY:Bachata Inicial — Academia X");
+    expect(body).toContain(
+      "LOCATION:Academia X\\, Av. Siempre Viva 123",
+    );
+    expect(body).toContain("DESCRIPTION:Clase de Academia X");
+    expect(body).toContain("/clases/cls-1");
+    expect(body).toContain("BEGIN:VALARM");
+    expect(body).toContain("TRIGGER:-PT60M");
+    expect(body).toContain("END:VCALENDAR");
+    expect(res.setHeader).toHaveBeenCalledWith(
+      "Content-Type",
+      "text/calendar; charset=utf-8",
+    );
+    expect(res.setHeader).toHaveBeenCalledWith(
+      "Content-Disposition",
+      'attachment; filename="clase-cls-1.ics"',
+    );
+  });
+
+  it("instructor efectivo y nivel/estilo van en DESCRIPTION", async () => {
+    prisma.addClass("cls-2", {
+      slot: {
+        instructorId: "inst-9",
+        series: { name: "Salsa Cubana" },
+      },
+    });
+    const body = await call("cls-2");
+    expect(body).toContain("Profesor: Nombre inst-9");
+    expect(body).toContain("Estilo: Bachata");
+  });
+
+  it("academia sin ciudad → TZID fallback America/Santiago", async () => {
+    prisma.addClass("cls-3", {
+      slot: { academy: { city: null } },
+    });
+    const body = await call("cls-3");
+    expect(body).toContain("DTSTART;TZID=America/Santiago:");
+  });
+
+  it("timezone de la ciudad de la academia manda sobre el fallback", async () => {
+    prisma.addClass("cls-4", {
+      slot: {
+        academy: { city: { name: "Buenos Aires", timezone: "America/Argentina/Buenos_Aires" } },
+      },
+    });
+    const body = await call("cls-4");
+    expect(body).toContain(
+      "DTSTART;TZID=America/Argentina/Buenos_Aires:",
+    );
+  });
+
+  it("comas/punto y coma del nombre se escapan RFC 5545", async () => {
+    prisma.addClass("cls-5", {
+      slot: {
+        series: { name: "Rueda, nivel 2; intensivo" },
+        academy: { name: "Academia, X" },
+      },
+    });
+    const body = await call("cls-5");
+    expect(body).toContain(
+      "SUMMARY:Rueda\\, nivel 2\\; intensivo — Academia\\, X",
+    );
+  });
+
+  it("clase que cruza medianoche → DTEND al día siguiente", async () => {
+    prisma.addClass("cls-6", {
+      date: new Date(Date.UTC(2026, 8, 19)),
+      slot: { startTime: "23:00", endTime: "00:30" },
+    });
+    const body = await call("cls-6");
+    expect(body).toContain("DTSTART;TZID=America/Santiago:20260919T230000");
+    expect(body).toContain("DTEND;TZID=America/Santiago:20260920T003000");
+  });
+
+  it("clase inexistente → NotFoundException", async () => {
+    await expect(call("cls-x")).rejects.toBeInstanceOf(NotFoundException);
+    expect(res.setHeader).not.toHaveBeenCalled();
   });
 });
