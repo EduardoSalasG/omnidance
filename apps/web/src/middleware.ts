@@ -35,8 +35,11 @@ const PUBLIC_PATHS = new Set([
 
 // Prefijos públicos: /reclamar/<token> es la landing de invitación -
 // el destinatario la abre desde WhatsApp sin sesión; el reclamo en sí
-// (POST) exige sesión vía SessionGuard del API.
-const PUBLIC_PREFIXES = ["/reclamar"];
+// (POST) exige sesión vía SessionGuard del API. /ciudades es la
+// superficie pública de descubrimiento por ciudad (spec
+// city-discovery) - anónima y logueada la comparten (no va en
+// ANON_ONLY: el bailarín también la usa).
+const PUBLIC_PREFIXES = ["/reclamar", "/ciudades"];
 
 // Solo-anónimas: con sesión van directo a /inicio. Antes lo hacía cada
 // page con cookies() -> las volvía dinámicas + no-store (y mataba el

@@ -14,7 +14,6 @@ import { StylesController } from "./infrastructure/styles.controller";
 import { VenueConsoleController } from "./infrastructure/venue-console.controller";
 import { VenuesController } from "./infrastructure/venues.controller";
 import { WaitlistController } from "./infrastructure/waitlist.controller";
-import { CitiesController } from "./infrastructure/cities.controller";
 
 /** Social: guest lists, waitlist, prácticas, venues, amistades y consola venue. */
 @Module({
@@ -33,7 +32,8 @@ import { CitiesController } from "./infrastructure/cities.controller";
     FriendsController,
     PeopleController,
     EventEntryPassesController,
-    CitiesController,
+    // El antiguo CitiesController de /cities se migró a
+    // cities/cities.module (contrato público de city-discovery).
   ],
 })
 export class SocialModule {}

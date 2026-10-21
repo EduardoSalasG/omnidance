@@ -18,13 +18,5 @@
   "commentsTitle": "Commentaires de la série",
   "noComments": "Pas encore de commentaires écrits",
   "anonymousNote": "Les commentaires arrivent anonymement — l'auteur n'est jamais affiché."
- },
- "cities": {
-  "title": "Danser à {city}",
-  "notFound": "Ville introuvable",
-  "events": "Prochains événements",
-  "academies": "Académies",
-  "practices": "Pratiques",
-  "empty": "Rien de publié dans cette ville pour l'instant"
  }
 }

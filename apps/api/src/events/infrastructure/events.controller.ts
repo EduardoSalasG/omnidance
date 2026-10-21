@@ -54,6 +54,12 @@ import {
 } from "../../query/producer-export";
 import { fmtCl } from "../../query/entities/helpers";
 import {
+  PUBLIC_FEED_SELECT,
+  approvedProducerIds,
+  mapPublicFeed,
+  publicProducerWhere,
+} from "../../common/event-feed";
+import {
   PRESALE_CUTOFF_MAX_MINUTES,
   presaleCutoffDate,
   resolvePresaleCutoffMinutes,
@@ -764,12 +770,7 @@ export class EventsController {
     @Query("venue") venue?: string,
     @Query("week") week?: string,
   ) {
-    const approvedProducerIds = (
-      await this.prisma.personRole.findMany({
-        where: { role: "PRODUCER", status: "APPROVED" },
-        select: { personId: true },
-      })
-    ).map((r) => r.personId);
+    const approvedIds = await approvedProducerIds(this.prisma);
     const GENRES: Genre[] = ["SALSA", "BACHATA", "CUBANO"];
     // ?genre= acepta CSV (multiselect): "SALSA,BACHATA" → unión.
     const gs = genre
@@ -809,44 +810,18 @@ export class EventsController {
       // (APPROVED) o sin productor - los PENDING quedan invisibles
       // hasta la aprobación (spec role-registration-pipeline).
       // producerId es FK escalar: ids resueltos por subquery.
-      AND: [
-        {
-          OR: [
-            { producerId: null },
-            { producerId: { in: approvedProducerIds } },
-          ],
-        },
-      ],
+      AND: [publicProducerWhere(approvedIds)],
     };
 
     const rows = await this.prisma.event.findMany({
       where,
       orderBy: { startsAt: "asc" },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        status: true,
-        startsAt: true,
-        endsAt: true,
-        presalePrice: true,
-        doorPrice: true,
-        genres: true,
-        genreMix: true,
-        platformFeePct: true,
-        series: { select: { id: true, name: true, genres: true, genreMix: true } },
-        venue: { select: { id: true, name: true, address: true, lat: true, lng: true } },
-      },
+      select: PUBLIC_FEED_SELECT,
     });
 
     // genreMix resuelto igual que genres: el evento manda; si no, hereda
     // el ciclo de la serie. null → el card no muestra barra de mezcla.
-    return rows.map(({ series, genres, genreMix, ...e }) => ({
-      ...e,
-      genres: genres.length > 0 ? genres : (series?.genres ?? []),
-      genreMix: genreMix ?? series?.genreMix ?? null,
-      series: series ? { id: series.id, name: series.name } : null,
-    }));
+    return mapPublicFeed(rows);
   }
 
   @Get(":id")
