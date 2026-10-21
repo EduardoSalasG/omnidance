@@ -419,6 +419,7 @@ export class PaymentSettlementService {
           paymentId: payment.id,
           listPrice: unitListPrice,
           serviceFee: unitServiceFee,
+          currency: payment.currency,
           discountCodeId: code?.id ?? null,
         },
       });
@@ -432,6 +433,7 @@ export class PaymentSettlementService {
             paymentId: payment.id,
             listPrice: unitListPrice,
             serviceFee: unitServiceFee,
+            currency: payment.currency,
           },
         });
       }
@@ -453,6 +455,7 @@ export class PaymentSettlementService {
             claimToken: randomBytes(16).toString("hex"),
             listPrice: unitListPrice,
             serviceFee: unitServiceFee,
+            currency: payment.currency,
           },
         });
       }
@@ -516,7 +519,7 @@ export class PaymentSettlementService {
     if (paidNow) {
       const clp = new Intl.NumberFormat("es-CL", {
         style: "currency",
-        currency: "CLP",
+        currency: payment.currency ?? "CLP",
         maximumFractionDigits: 0,
       }).format(payment.amount);
       const recipientIds = Array.isArray(payment.recipients)
@@ -834,7 +837,7 @@ export class PaymentSettlementService {
     if (paidNow) {
       const clp = new Intl.NumberFormat("es-CL", {
         style: "currency",
-        currency: "CLP",
+        currency: payment.currency ?? "CLP",
         maximumFractionDigits: 0,
       }).format(payment.amount);
       await this.notifications.notifySafe(payment.personId, {
@@ -982,7 +985,7 @@ export class PaymentSettlementService {
     if (paidNow) {
       const clp = new Intl.NumberFormat("es-CL", {
         style: "currency",
-        currency: "CLP",
+        currency: payment.currency ?? "CLP",
         maximumFractionDigits: 0,
       }).format(payment.amount);
       await this.notifications.notifySafe(payment.personId, {
@@ -1072,7 +1075,7 @@ export class PaymentSettlementService {
     if (paidNow) {
       const clp = new Intl.NumberFormat("es-CL", {
         style: "currency",
-        currency: "CLP",
+        currency: payment.currency ?? "CLP",
         maximumFractionDigits: 0,
       }).format(payment.amount);
       await this.notifications.notifySafe(payment.personId, {
@@ -1210,7 +1213,7 @@ export class PaymentSettlementService {
     if (paidNow) {
       const clp = new Intl.NumberFormat("es-CL", {
         style: "currency",
-        currency: "CLP",
+        currency: payment.currency ?? "CLP",
         maximumFractionDigits: 0,
       }).format(payment.amount);
       if (sub.kind === "ACADEMY") {
