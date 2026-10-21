@@ -24,6 +24,7 @@ import { Type } from "class-transformer";
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsOptional,
@@ -36,9 +37,10 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Gender } from "@prisma/client";
-import { CONSENT_VERSION } from "@omnidance/shared";
 import type { Request } from "express";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
+import { ConsentService } from "../legal/consent.service";
+import type { ConsentScopes } from "../legal/consent.service";
 import { PENDING_USABLE_ROLES } from "../common/rbac/roles.guard";
 import { roleProfileChecks } from "../common/role-checks";
 import { AuthService } from "../auth/domain/auth.service";
@@ -110,6 +112,12 @@ export class UpdateMeDto {
   @IsOptional()
   @IsIn(["es-CL", "en", "fr", "pt-PT"])
   language?: string;
+
+  // Jurisdicción legal (spec consent-por-jurisdiccion): editable en
+  // /perfil/datos. Cambia qué texto de consentimiento aplica.
+  @IsOptional()
+  @IsIn(["CL", "EU"])
+  jurisdiction?: "CL" | "EU";
 }
 
 // Nivel autodeclarado del bailarín - valores sembrados por el seed y
@@ -175,14 +183,37 @@ class OnboardingDto {
   tour!: string;
 }
 
+// Scopes granulares del consentimiento (spec consent-por-jurisdiccion):
+// el cliente declara los opt-in que marcó (EU: marketing/analytics);
+// el servidor solo persiste los declarados en requiredScopes del
+// LegalText vigente - "essential" queda siempre true.
+class ConsentScopesDto {
+  @IsOptional()
+  @IsBoolean()
+  essential?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  marketing?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  analytics?: boolean;
+}
+
 class ConsentDto {
   // Versión que el cliente dice aceptar - informativa: el servidor
-  // siempre estampa la vigente (CONSENT_VERSION). Se acepta para que el
-  // front pueda declarar qué vio, y para compat si el shape crece.
+  // siempre estampa la vigente de la jurisdicción de la persona. Se
+  // acepta para que el front pueda declarar qué vio.
   @IsOptional()
   @IsString()
   @MaxLength(20)
   version?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ConsentScopesDto)
+  scopes?: ConsentScopesDto;
 }
 
 @Controller()
@@ -192,6 +223,7 @@ export class PeopleController {
     private readonly auth: AuthService,
     private readonly notifications: NotificationsService,
     @Inject(STORAGE) private readonly storage: FileStorage,
+    private readonly consentService: ConsentService,
   ) {}
 
   /**
@@ -339,6 +371,9 @@ export class PeopleController {
       // difiere de CONSENT_VERSION (shared).
       consentAcceptedAt: person.consentAcceptedAt,
       consentVersion: person.consentVersion,
+      // Jurisdicción legal (spec consent-por-jurisdiccion): el banner
+      // consulta GET /legal/consent?jurisdiction= con este valor.
+      jurisdiction: person.jurisdiction,
       // Flags de ciclo de vida: demo (lead /pro, solo lectura) y
       // pendingProfile (admin convirtió el lead - falta completar datos).
       isDemo: person.isDemoAccount,
@@ -406,6 +441,7 @@ export class PeopleController {
       gender?: Gender | null;
       birthDate?: Date | null;
       language?: string;
+      jurisdiction?: string;
     } = {};
     if (dto.instagram !== undefined) {
       const handle = (dto.instagram ?? "").trim().replace(/^@+/, "");
@@ -447,6 +483,9 @@ export class PeopleController {
     }
     if (dto.language !== undefined) {
       data.language = dto.language;
+    }
+    if (dto.jurisdiction !== undefined) {
+      data.jurisdiction = dto.jurisdiction;
     }
     if (dto.gender !== undefined) {
       data.gender = dto.gender; // null = prefiere no declarar
@@ -739,23 +778,25 @@ export class PeopleController {
   /**
    * POST /me/consent - registra la aceptación de Términos+Privacidad de
    * la versión vigente (aviso in-app para cuentas legadas o tras un
-   * cambio de versión). Siempre estampa CONSENT_VERSION del servidor:
-   * aceptar una versión antigua no tiene sentido.
+   * cambio de versión). Escribe el ConsentRecord auditable de la
+   * jurisdicción de la persona + el snapshot Person (spec
+   * consent-por-jurisdiccion). Siempre estampa la versión vigente del
+   * servidor: aceptar una versión antigua no tiene sentido.
    */
   @Post("me/consent")
   @HttpCode(200)
   @UseGuards(SessionGuard)
-  async consent(@Req() req: Request, @Body() _dto: ConsentDto) {
+  async consent(@Req() req: Request, @Body() dto: ConsentDto) {
     const personId = req.person!.id;
-    const person = await this.prisma.person.update({
-      where: { id: personId },
-      data: {
-        consentAcceptedAt: new Date(),
-        consentVersion: CONSENT_VERSION,
-      },
-      select: { consentAcceptedAt: true, consentVersion: true },
-    });
-    return { ok: true, ...person };
+    const { version, acceptedAt } = await this.consentService.recordAcceptance(
+      personId,
+      dto.scopes as ConsentScopes | undefined,
+    );
+    return {
+      ok: true,
+      consentVersion: version,
+      consentAcceptedAt: acceptedAt,
+    };
   }
 
   /** Marca un tour de primera visita como visto (merge sobre el JSON). */

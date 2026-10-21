@@ -173,6 +173,65 @@ const BADGE_CATALOG = [
   { key: "explorador_academias", name: "Explorador de academias", category: "CONDUCT" },
 ] as const;
 
+/**
+ * Textos legales vigentes por jurisdicción (spec
+ * consent-por-jurisdiccion). CL: consentimiento único "essential" -
+ * el body es una consolidación fiel de la Política de Privacidad
+ * pública (/privacidad) hasta que legal entregue el copy final
+ * (draftNote). EU: texto base GDPR con consentimiento granular -
+ * CONTENIDO PRELIMINAR pendiente de revisión legal (draftNote), no
+ * publicar como definitivo.
+ */
+const LEGAL_TEXT_SEED: {
+  jurisdiction: string;
+  version: string;
+  granular: boolean;
+  requiredScopes: string[];
+  draftNote: string;
+  body: string;
+}[] = [
+  {
+    jurisdiction: "CL",
+    version: "cl-v1.0",
+    granular: false,
+    requiredScopes: ["essential"],
+    draftNote: "consolidar con copy de /privacidad",
+    body: `Política de Privacidad y Términos de Omnidance (Chile) - versión consolidada 1.0.
+
+Responsable del tratamiento: Omni Dance SpA. Esta política se rige por la Ley N° 19.628 sobre Protección de la Vida Privada, según modificada por la Ley N° 21.719 sobre Protección de los Datos Personales, y su reglamento.
+
+Datos que tratamos: cuenta (nombre, correo, teléfono optativo), perfil de baile (género, estilos, roles y nivel autodeclarados), actividad (check-ins QR, sesiones de baile y valoraciones - siempre privadas y agregadas, nunca individuales), pagos procesados por Flow (no almacenamos datos de tarjetas), tokens push y registros técnicos. NO recolectamos geolocalización ni datos sensibles.
+
+Finalidades: operar la plataforma (identidad QR, entradas, academias), notificaciones transaccionales, seguridad y prevención de fraude, estadísticas agregadas y anonimizadas, y cumplimiento de obligaciones tributarias. Base legal: tu consentimiento como titular y la ejecución del contrato de uso de la plataforma.
+
+Compartimos datos con encargados de tratamiento que actúan por cuenta nuestra: Flow (pagos), Resend (correos transaccionales), proveedor de hosting e infraestructura, y Apple/Google (notificaciones push). Algunos procesan datos fuera de Chile bajo contratos con nivel de protección adecuado.
+
+Tus derechos (personales, intransferibles, irrenunciables y gratuitos): acceso, rectificación, supresión, oposición, bloqueo del tratamiento y portabilidad. Para ejercerlos escribe a privacidad@omnidance.cl indicando tu nombre, correo de la cuenta y el derecho que ejerces.
+
+Conservamos tus datos mientras tu cuenta esté activa; tras el cierre, solo lo necesario por los plazos legales. La plataforma está dirigida a mayores de 18 años. Usamos una cookie de sesión necesaria y no usamos cookies publicitarias de terceros. Si esta política cambia de forma material, te pediremos un nuevo consentimiento.`,
+  },
+  {
+    jurisdiction: "EU",
+    version: "eu-v1.0",
+    granular: true,
+    requiredScopes: ["essential", "marketing", "analytics"],
+    draftNote: "pending legal review",
+    body: `Política de Privacidad de Omnidance (Espacio Económico Europeo) - base GDPR 1.0.
+
+Responsable del tratamiento: Omni Dance SpA, en adelante "el responsable". Puedes contactarnos en privacidad@omnidance.cl para cualquier consulta sobre el tratamiento de tus datos personales conforme al Reglamento (UE) 2016/679 (RGPD).
+
+Base jurídica y finalidades. Tratamos tus datos sobre dos bases: (a) la ejecución del contrato de uso de la plataforma y tu consentimiento para los tratamientos esenciales - cuenta, identidad QR, entradas, academias, notificaciones transaccionales y seguridad (art. 6.1.b y 6.1.a RGPD); y (b) tu consentimiento expreso y separado para finalidades opcionales: comunicaciones de marketing y analítica de uso (art. 6.1.a RGPD). Puedes retirar cada consentimiento opcional en cualquier momento sin que ello afecte la licitud del tratamiento previo ni la prestación del servicio esencial.
+
+Datos tratados: datos de cuenta (nombre, correo, teléfono optativo), perfil de baile autodeclarado, actividad en la plataforma (check-ins, sesiones y valoraciones, siempre agregadas y nunca expuestas de forma individual), identificadores de dispositivo para notificaciones push y registros técnicos de seguridad. No tratamos categorías especiales de datos (art. 9 RGPD).
+
+Destinatarios y transferencias: encargados de tratamiento para pagos, correo transaccional, hosting y entrega de notificaciones push. Algunos proveedores tratan datos fuera del EEE; en ese caso aplicamos las garantías del capítulo V RGPD (decisiones de adecuación o cláusulas contractuales tipo).
+
+Tus derechos: acceso, rectificación, supresión ("derecho al olvido"), limitación del tratamiento, portabilidad, oposición y a no ser objeto de decisiones automatizadas con efectos significativos. También puedes reclamar ante la autoridad de control de protección de datos de tu Estado miembro. Para ejercerlos, escribe a privacidad@omnidance.cl.
+
+Conservación: mantenemos tus datos mientras la cuenta esté activa y, tras el cierre, solo durante los plazos legales aplicables, tras los cuales se eliminan o anonimizan.`,
+  },
+];
+
 /** Crea o confirma una persona con sus roles. Idempotente por email. */
 export async function ensurePerson(
   prisma: PrismaClient,
@@ -358,6 +417,22 @@ export async function seedCommon(prisma: PrismaClient) {
     where: { cityId: null },
     data: { cityId: "city-stgo-cl" },
   });
+
+  // ─── Textos legales por jurisdicción (spec consent-por-jurisdiccion)
+  // Upsert por (jurisdiction, version): re-correr el seed no duplica ni
+  // pisa edits hechos en admin (update:{} conserva el contenido).
+  for (const lt of LEGAL_TEXT_SEED) {
+    await prisma.legalText.upsert({
+      where: {
+        jurisdiction_version: {
+          jurisdiction: lt.jurisdiction,
+          version: lt.version,
+        },
+      },
+      update: {},
+      create: lt,
+    });
+  }
 
   console.log(
     `  baseline: ${ROLE_CATALOG.length} roles, ${PERMISSION_CATALOG.length} permisos, ${STYLE_CATALOG.length} estilos, ${BADGE_CATALOG.length} badges, ${PARAM_DEFAULTS.length} params`,

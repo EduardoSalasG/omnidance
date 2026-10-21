@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
@@ -151,6 +151,33 @@ export default function DatosPage() {
   const router = useRouter();
   const [langBusy, setLangBusy] = useState(false);
   const [langErr, setLangErr] = useState(false);
+  // Jurisdicción legal (spec consent-por-jurisdiccion): editable en el
+  // perfil - define qué texto de consentimiento aplica (CL único vs
+  // EU granular GDPR).
+  const [jurBusy, setJurBusy] = useState(false);
+  const [jurErr, setJurErr] = useState(false);
+
+  async function changeJurisdiction(next: "CL" | "EU") {
+    if (next === (me?.jurisdiction ?? "CL") || jurBusy) return;
+    setJurBusy(true);
+    setJurErr(false);
+    try {
+      const res = await apiFetch("/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jurisdiction: next }),
+      });
+      if (!res.ok) {
+        setJurErr(true);
+        return;
+      }
+      void refreshMe();
+    } catch {
+      setJurErr(true);
+    } finally {
+      setJurBusy(false);
+    }
+  }
 
   async function changeLanguage(next: Locale) {
     if (next === locale || langBusy) return;
@@ -715,6 +742,40 @@ export default function DatosPage() {
           </p>
         )}
         {langErr && (
+          <p className="mt-2 text-xs text-red-400" role="alert">
+            {tc("error")}
+          </p>
+        )}
+      </Card>
+
+      {/* Jurisdicción legal (spec consent-por-jurisdiccion): define el
+          texto de consentimiento que aplica; si el consent vigente de
+          la nueva jurisdicción difiere, el banner lo pedirá de nuevo. */}
+      <Card>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+          {t("datos.jurisdiction.title")}
+        </h2>
+        <p className="mt-1 text-xs text-ink/50">
+          {t("datos.jurisdiction.hint")}
+        </p>
+        <select
+          aria-label={t("datos.jurisdiction.title")}
+          value={me.jurisdiction ?? "CL"}
+          disabled={jurBusy}
+          onChange={(e) =>
+            void changeJurisdiction(e.target.value as "CL" | "EU")
+          }
+          className={`${selectCls} mt-3 w-full`}
+        >
+          <option value="CL">{t("datos.jurisdiction.options.CL")}</option>
+          <option value="EU">{t("datos.jurisdiction.options.EU")}</option>
+        </select>
+        {jurBusy && (
+          <p className="mt-2 text-xs text-ink/50" role="status">
+            {tc("loading")}
+          </p>
+        )}
+        {jurErr && (
           <p className="mt-2 text-xs text-red-400" role="alert">
             {tc("error")}
           </p>

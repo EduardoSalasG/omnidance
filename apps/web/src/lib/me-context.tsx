@@ -47,6 +47,9 @@ export type MeContextData = {
   roleStates?: { role: string; status: string }[];
   consentAcceptedAt?: string | null;
   consentVersion?: string | null;
+  // Jurisdicción legal ("CL" | "EU") - el ConsentBanner consulta el
+  // texto vigente por jurisdicción (GET /legal/consent).
+  jurisdiction?: string | null;
   // Cuenta demo de lead pendiente de activación - el chrome pide
   // completar el perfil (POST /me/complete-profile la vuelve real).
   pendingProfile?: boolean;
