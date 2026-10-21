@@ -1006,8 +1006,8 @@ export async function seedDev(prisma: PrismaClient) {
   // de Tumbao; si Tumbao no declarara, caería al fallback 20).
   await mkClassSeries({
     academyId: tumbao.id,
-    name: "Timba",
-    styleName: "Timba",
+    name: "Casino",
+    styleName: "Salsa cubana (casino)",
     levelName: "Intermedio",
     typeNames: ["Shines"],
     instructorId: vale.id,
@@ -3580,14 +3580,14 @@ export async function seedDev(prisma: PrismaClient) {
     styleRole(camila, "Bachata sensual", "FOLLOWER", "intermedio"),
     styleRole(camila, "Salsa cubana (casino)", "FOLLOWER", "intermedio"),
     styleRole(josefa, "Salsa cubana (casino)", "FOLLOWER", "avanzado"),
-    styleRole(josefa, "Timba", "FOLLOWER", "intermedio"),
+    styleRole(josefa, "Cubano", "FOLLOWER", "intermedio"),
     styleRole(diego, "Salsa cubana (casino)", "LEADER", "intermedio"),
     styleRole(diego, "Rueda de casino", "LEADER", "iniciacion"),
     styleRole(antonia, "Bachata sensual", "FOLLOWER", "avanzado"),
     styleRole(antonia, "Salsa cubana (casino)", "FOLLOWER", "intermedio"),
     styleRole(sebastian, "Mambo on2", "LEADER", "intermedio"),
     styleRole(francisca, "Bachata sensual", "FOLLOWER", "iniciacion"),
-    styleRole(felipe, "Timba", "LEADER", "intermedio"),
+    styleRole(felipe, "Cubano", "LEADER", "intermedio"),
     styleRole(felipe, "Salsa cubana (casino)", "SWITCH", "iniciacion"),
     styleRole(daniela, "Bachata sensual", "FOLLOWER", "iniciacion"),
     // Instructores y DJs también bailan social - sus perfiles lo reflejan.
@@ -3595,7 +3595,7 @@ export async function seedDev(prisma: PrismaClient) {
     styleRole(vale, "Bachata sensual", "FOLLOWER", "avanzado"),
     styleRole(rodrigo, "Salsa cubana (casino)", "LEADER", "avanzado"),
     styleRole(rodrigo, "Rueda de casino", "LEADER", "avanzado"),
-    styleRole(jesus, "Timba", "LEADER", "avanzado"),
+    styleRole(jesus, "Cubano", "LEADER", "avanzado"),
     styleRole(steban, "Salsa on1", "LEADER", "intermedio"),
     styleRole(matias, "Salsa cubana (casino)", "LEADER", "intermedio"),
     styleRole(fabian, "Bachata sensual", "SWITCH", "intermedio"),
@@ -3867,7 +3867,7 @@ export async function seedDev(prisma: PrismaClient) {
   await session(prevEdition.id, antonia, daniela, "CONFIRMED", at(110), "Salsa cubana (casino)", [
     [antonia, 5],
   ]);
-  await session(prevEdition.id, josefa, diego, "CONFIRMED", at(145), "Timba");
+  await session(prevEdition.id, josefa, diego, "CONFIRMED", at(145), "Cubano");
   // Gabriel/Mónica/María también bailaron la edición pasada - sus
   // /bailes arrancan con historial, no con una lista vacía.
   await session(prevEdition.id, gabriel, antonia, "RATED", at(80), "Bachata sensual", [
@@ -3963,17 +3963,17 @@ export async function seedDev(prisma: PrismaClient) {
     [dancer, 4, 4, 5, 4],
     [felipe, 5],
   ]);
-  await session(liveEvent.id, dancer, sebastian, "CONFIRMED", liveAt(50), "Timba");
+  await session(liveEvent.id, dancer, sebastian, "CONFIRMED", liveAt(50), "Cubano");
   await session(liveEvent.id, vale, dancer, "RATED", liveAt(70), "Salsa cubana (casino)", [
     [dancer, 5, 5, 4, 5],
     [vale, 4],
   ]);
   await session(liveEvent.id, dancer, daniela, "CONFIRMED", liveAt(80), "Bachata sensual");
-  await session(liveEvent.id, francisca, dancer, "CONFIRMED", liveAt(105), "Timba");
+  await session(liveEvent.id, francisca, dancer, "CONFIRMED", liveAt(105), "Cubano");
   // Jorge también está en la pista esta noche.
   await session(liveEvent.id, jorge, josefa, "CONFIRMED", liveAt(65), "Mambo on2");
   // Camila: su propia noche - el card también debe verse rico en su cuenta.
-  await session(liveEvent.id, camila, diego, "RATED", liveAt(20), "Timba", [
+  await session(liveEvent.id, camila, diego, "RATED", liveAt(20), "Cubano", [
     [camila, 5, 5, 5, 4],
     [diego, 4],
   ]);
@@ -4096,11 +4096,11 @@ export async function seedDev(prisma: PrismaClient) {
   await session(edition2.id, josefa, dancer, "CONFIRMED", atEdition(edition2, 90), "Salsa cubana (casino)", [
     [josefa, 5],
   ]);
-  await session(edition2.id, dancer, diego, "CONFIRMED", atEdition(edition2, 120), "Timba");
+  await session(edition2.id, dancer, diego, "CONFIRMED", atEdition(edition2, 120), "Cubano");
   await session(edition2.id, daniela, dancer, "CONFIRMED", atEdition(edition2, 150), "Bachata sensual");
   await session(edition2.id, dancer, francisca, "CONFIRMED", atEdition(edition2, 180), "Salsa cubana (casino)");
   await session(edition2.id, sebastian, dancer, "CONFIRMED", atEdition(edition2, 210), "Bachata sensual");
-  await session(edition2.id, dancer, felipe, "RATED", atEdition(edition2, 240), "Timba", [
+  await session(edition2.id, dancer, felipe, "RATED", atEdition(edition2, 240), "Cubano", [
     [felipe, 4],
   ]);
   await session(edition2.id, vale, dancer, "RATED", atEdition(edition2, 270), "Salsa cubana (casino)", [
@@ -4128,7 +4128,7 @@ export async function seedDev(prisma: PrismaClient) {
   await session(edition3.id, dancer, antonia, "CONFIRMED", atEdition(edition3, 70), "Bachata sensual", [
     [antonia, 5],
   ]);
-  await session(edition3.id, josefa, diego, "RATED", atEdition(edition3, 100), "Timba", [
+  await session(edition3.id, josefa, diego, "RATED", atEdition(edition3, 100), "Cubano", [
     [josefa, 4],
     [diego, 4],
   ]);
