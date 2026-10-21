@@ -32,7 +32,7 @@ class CreatePayoutDestinationDto {
 
   /** ISO-2 en mayúsculas del país de la cuenta Connect Express. */
   @IsString()
-  @Matches(/^[A-Z]{2}$/)
+  @Matches(/^[A-Za-z]{2}$/)
   country!: string;
 }
 

@@ -1513,13 +1513,45 @@ model Payout {
   // comisión pero absorbe el costo Flow, tasa gateway_fee.academy_passthrough_pct).
   gatewayFee  Int         @default(0)
   net         Int
+  // Moneda de la liquidación (ISO-4217): el desembolso por rail solo
+  // procede si el PayoutDestination del actor declara la misma
+  // moneda (spec payouts/payout-rails).
+  currency    String       @default("CLP")
   status      PayoutStatus @default(PENDING)
   evidenceUrl String? // comprobante de transferencia
   paidAt      DateTime?
+  // Rail de desembolso usado (spec payouts/payout-rails): null o
+  // "MANUAL" = pago manual con evidenceUrl; "STRIPE_CONNECT" con
+  // railRef = transfer tr_… de Stripe.
+  rail        String?
+  railRef     String?
   createdAt   DateTime     @default(now())
 
   lines       PayoutLine[]
   billingDoc  BillingDocument?
+}
+
+// Destino de desembolso declarado por el actor (spec
+// payouts/payout-rails): hoy solo STRIPE_CONNECT (cuenta Express
+// onboarded por Account Link; externalId = acct_…). Un actor sin
+// destino ACTIVE liquida por rail MANUAL (transferencia + evidencia,
+// flujo vigente). status: PENDING → ACTIVE cuando Stripe reporta
+// details_submitted + charges_enabled; DISABLED lo apaga sin borrar.
+model PayoutDestination {
+  id          String    @id @default(cuid())
+  actorType   String // PRODUCER | ACADEMY | VENUE
+  actorId     String
+  rail        String // STRIPE_CONNECT
+  externalId  String // acct_… (ref del rail)
+  country     String // ISO-2 del Connect account
+  currency    String // default_currency reportada por la cuenta
+  status      String    @default("PENDING") // PENDING | ACTIVE | DISABLED
+  lastError   String?
+  onboardedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([actorType, actorId, rail])
 }
 
 // Deducción auditable por liquidación (spec producer-fee-model, BIAN):

@@ -22,6 +22,11 @@ interface Settlement {
   platformFee: number;
   gatewayFee: number;
   net: number;
+  // Moneda única del devengado: todas las órdenes contadas comparten
+  // ISO-4217. "CLP" cuando el período mezcla monedas (la suma ya es
+  // cuestionable) o no hay líneas - el rail solo desembolsa moneda
+  // calzada con el PayoutDestination (spec payouts/payout-rails).
+  currency: string;
   lines: SettlementLine[];
 }
 
@@ -106,6 +111,7 @@ const PAYMENT_SELECT = {
   refId: true,
   amount: true,
   fee: true,
+  currency: true,
   gateway: true,
   feeMode: true,
   platformFeeRate: true,
@@ -159,6 +165,7 @@ export class PayoutSettlementService {
       platformFee: 0,
       gatewayFee: 0,
       net: 0,
+      currency: "CLP",
       lines: [],
     };
     const [ivaPct, passthroughPct] = await Promise.all([
@@ -168,12 +175,19 @@ export class PayoutSettlementService {
     const unliquidated = opts?.unliquidatedOnly
       ? { payoutLines: { none: {} } }
       : {};
+    const currencies = new Set<string>();
+    const singleCurrency = (acc: Settlement) => {
+      acc.currency = currencies.size === 1 ? [...currencies][0] : "CLP";
+      return acc;
+    };
     const accrue = (
       acc: Settlement,
       lines: SettlementLine[],
       gross: number,
+      currency?: string,
     ) => {
       acc.gross += gross;
+      if (currency) currencies.add(currency);
       for (const l of lines) {
         acc.lines.push(l);
         if (l.type === "GATEWAY_FEE_PASSTHROUGH") acc.gatewayFee += l.amount;
@@ -306,6 +320,7 @@ export class PayoutSettlementService {
                 ]
               : [],
             p.amount,
+            p.currency,
           );
         } else {
           // VENUE: regla legacy (fee real + platformFeePct del evento).
@@ -328,11 +343,11 @@ export class PayoutSettlementService {
               meta: { orderAmount: p.amount, rate: pct, legacy: true },
             });
           }
-          accrue(acc, lines, p.amount);
+          accrue(acc, lines, p.amount, p.currency);
         }
       }
       acc.net = acc.gross - acc.platformFee - acc.gatewayFee;
-      return acc;
+      return singleCurrency(acc);
     }
     if (actorType !== "PRODUCER") return empty;
 
@@ -375,6 +390,7 @@ export class PayoutSettlementService {
           acc,
           managedSettlementLines(p, ivaPct),
           p.gateway === "MANUAL" ? 0 : p.amount,
+          p.currency,
         );
       } else if (p.feeMode === "OWN_METHOD" || p.feeMode === "OWN_GATEWAY") {
         // Métodos/pasarela propios del actor: la plata nunca pasó por
@@ -402,9 +418,10 @@ export class PayoutSettlementService {
             meta,
           });
         }
-        accrue(acc, lines, 0);
+        accrue(acc, lines, 0, p.currency);
       } else if (p.feeMode === "FREE") {
         acc.gross += p.amount; // 0 - registro sin deducción
+        currencies.add(p.currency);
       } else if (p.gateway === "MANUAL") {
         continue; // venta propia legacy sin snapshot: plata ajena, no entra
       } else {
@@ -431,11 +448,11 @@ export class PayoutSettlementService {
             meta: { orderAmount: p.amount, rate: pct, legacy: true },
           });
         }
-        accrue(acc, lines, p.amount);
+        accrue(acc, lines, p.amount, p.currency);
       }
     }
     acc.net = acc.gross - acc.platformFee - acc.gatewayFee;
-    return acc;
+    return singleCurrency(acc);
   }
 
   /** % legacy para pagos sin snapshot (evento → productor → global). */

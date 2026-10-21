@@ -268,6 +268,22 @@ class FakePrisma {
       Object.assign(row, data);
       return row;
     },
+    updateMany: async ({
+      where,
+      data,
+    }: {
+      where: Row;
+      data: Partial<FakePayout>;
+    }) => {
+      let count = 0;
+      for (const row of this.payouts) {
+        if (matchWhere(row as unknown as Row, where)) {
+          Object.assign(row, data);
+          count++;
+        }
+      }
+      return { count };
+    },
   };
 
   payoutDestination = {
@@ -1010,5 +1026,33 @@ describe("AdminPayoutsController.disburse - rail de desembolso", () => {
     expect(
       prisma.auditLogs.some((a) => a.action === "PAYOUT_DISBURSE"),
     ).toBe(false);
+  });
+
+  it("transfer enviado pero el payout se resolvió por otra vía → 409 + audit CONFLICT", async () => {
+    connectDestination();
+    const fetchMock = vi.fn(async () => {
+      // Carrera: un /pay manual (u otro disburse) marca el payout
+      // mientras el transfer estaba en vuelo - el dinero salió una
+      // sola vez (Idempotency-Key) y el claim APPROVED→PAID pierde.
+      prisma.payouts.find((p) => p.id === payoutId)!.status = "PAID";
+      return new Response(JSON.stringify({ id: "tr_race" }), {
+        status: 200,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(ctrl.disburse(payoutId, adminReq)).rejects.toThrow(
+      /tr_race/,
+    );
+    const payout = prisma.payouts.find((p) => p.id === payoutId)!;
+    // El claim perdido no pisa el estado ajeno ni el railRef.
+    expect(payout.status).toBe("PAID");
+    expect(payout.railRef).toBeNull();
+    expect(
+      prisma.auditLogs.some(
+        (a) =>
+          a.action === "PAYOUT_DISBURSE_CONFLICT" &&
+          (a.payload as { ref?: string }).ref === "tr_race",
+      ),
+    ).toBe(true);
   });
 });
