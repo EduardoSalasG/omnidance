@@ -5,6 +5,7 @@ import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { NotificationsModule } from "../src/notifications/notifications.module";
 import { PrismaService } from "../src/prisma.service";
+import { ConsentService } from "../src/legal/consent.service";
 import { PeopleController } from "../src/people/people.controller";
 import { EventRatingsController } from "../src/events/infrastructure/event-ratings.controller";
 import { EventAnalyticsController } from "../src/events/infrastructure/event-analytics.controller";
@@ -78,6 +79,7 @@ describe("dancer-profile-survey-analytics e2e", () => {
         EventAnalyticsController,
       ],
       providers: [
+        ConsentService,
         PrismaService,
         // PeopleController inyecta STORAGE (POST /me/photo) - mock en memoria
         {
