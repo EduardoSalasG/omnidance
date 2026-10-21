@@ -124,7 +124,14 @@ export function InstallPrompt() {
     <div
       role="region"
       aria-label={t("title")}
-      className="fixed inset-x-0 z-40 px-4 sm:left-1/2 sm:right-auto sm:w-full sm:max-w-lg sm:-translate-x-1/2 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)] lg:bottom-6"
+      className={`fixed inset-x-0 z-40 px-4 sm:left-1/2 sm:right-auto sm:w-full sm:max-w-lg sm:-translate-x-1/2 lg:bottom-6 ${
+        // Roles drawer-only (data-notabbar en <html> via BottomNav):
+        // sin tab bar el prompt baja al borde real.
+        typeof document !== "undefined" &&
+        document.documentElement.dataset.notabbar === "true"
+          ? "bottom-[max(0.75rem,env(safe-area-inset-bottom))]"
+          : "bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)]"
+      }`}
     >
       <div className="rounded-2xl border border-ink/15 bg-surface/95 p-4 shadow-xl shadow-black/40 backdrop-blur">
         <div className="flex items-start gap-3">

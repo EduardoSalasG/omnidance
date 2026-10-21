@@ -73,7 +73,7 @@ export function DancerActionsSheet({
         role="dialog"
         aria-modal="true"
         aria-label={t("moreMenu")}
-        className={`fixed inset-x-0 bottom-0 mx-auto max-w-lg rounded-t-3xl border-t border-line bg-surface px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl shadow-black/50 transition-transform duration-300 ease-out motion-reduce:transition-none ${
+        className={`fixed inset-x-0 bottom-0 mx-auto max-h-[85dvh] max-w-lg overflow-y-auto rounded-t-3xl border-t border-line bg-surface px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl shadow-black/50 transition-transform duration-300 ease-out motion-reduce:transition-none ${
           entered ? "translate-y-0" : "translate-y-full"
         }`}
         onClick={(e) => e.stopPropagation()}
