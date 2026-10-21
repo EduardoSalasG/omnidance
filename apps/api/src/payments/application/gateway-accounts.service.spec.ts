@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { GatewayAccountsService } from "./gateway-accounts.service";
 import { FlowGateway } from "../infrastructure/flow.gateway";
 import { MercadoPagoGateway } from "../infrastructure/mercadopago.gateway";
+import { StripeGateway } from "../infrastructure/stripe.gateway";
 import { StubGateway } from "../infrastructure/stub.gateway";
 import { decryptSecret } from "../../common/secrets";
 import type { PrismaService } from "../../prisma.service";
@@ -70,14 +71,30 @@ function mkPrisma() {
       },
     ),
   };
+  const destinations: Row[] = [];
   const prisma = {
     producerGatewayAccount: table,
+    payoutDestination: {
+      findUnique: vi.fn(
+        async ({ where }: { where: { actorType_actorId_rail: Row } }) => {
+          const k = where.actorType_actorId_rail;
+          return (
+            destinations.find(
+              (d) =>
+                d.actorType === k.actorType &&
+                d.actorId === k.actorId &&
+                d.rail === k.rail,
+            ) ?? null
+          );
+        },
+      ),
+    },
     $transaction: vi.fn(
       async (fn: (tx: unknown) => Promise<unknown>) =>
         fn({ producerGatewayAccount: table }),
     ),
   };
-  return { prisma, accounts };
+  return { prisma, accounts, destinations };
 }
 
 function mkSvc(prisma: unknown) {
@@ -134,7 +151,7 @@ describe("GatewayAccountsService", () => {
     const { prisma } = mkPrisma();
     const { svc } = mkSvc(prisma);
     await expect(
-      svc.upsert("p", { provider: "STRIPE", apiKey: "k" }),
+      svc.upsert("p", { provider: "PAYPAL", apiKey: "k" }),
     ).rejects.toBeInstanceOf(BadRequestException);
     await expect(
       svc.upsert("p", { provider: "FLOW", apiKey: "" }),
@@ -257,5 +274,95 @@ describe("GatewayAccountsService", () => {
     ).rejects.toThrow();
     expect(accounts[0]!.lastError).toContain("bad key");
     fetchMock.mockRestore();
+  });
+
+  // ─── Cuenta propia STRIPE Connect (spec connect-own-gateway) ───
+
+  function connectDest(over: Row = {}): Row {
+    return {
+      id: "pd-1",
+      actorType: "PRODUCER",
+      actorId: "p1",
+      rail: "STRIPE_CONNECT",
+      externalId: "acct_1AbCdEf9876",
+      status: "ACTIVE",
+      ...over,
+    };
+  }
+
+  it("upsert STRIPE con destino ACTIVE → creds={accountId}, keyMask últimos 4 del acct_", async () => {
+    const { prisma, accounts, destinations } = mkPrisma();
+    destinations.push(connectDest());
+    const { svc } = mkSvc(prisma);
+    // Sin apiKey en el input: la acct_ sale del PayoutDestination.
+    const view = await svc.upsert("p1", { provider: "STRIPE" });
+    expect(view.provider).toBe("STRIPE");
+    expect(view.status).toBe("ACTIVE");
+    expect(view.keyMask).toBe("••••9876");
+    const blob = accounts[0]!.credentialsEnc as string;
+    expect(JSON.parse(decryptSecret(blob))).toEqual({
+      accountId: "acct_1AbCdEf9876",
+    });
+    // La vista nunca expone la acct_ completa.
+    expect(JSON.stringify(view)).not.toContain("acct_1AbCdEf9876");
+  });
+
+  it("upsert STRIPE sin destino o destino no ACTIVE → 400 guiando a conectar", async () => {
+    const { prisma, accounts, destinations } = mkPrisma();
+    const { svc } = mkSvc(prisma);
+    await expect(
+      svc.upsert("p1", { provider: "STRIPE" }),
+    ).rejects.toThrow(/\/productor\/pagos/);
+    destinations.push(connectDest({ status: "PENDING" }));
+    await expect(
+      svc.upsert("p1", { provider: "STRIPE" }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    // Nunca se persiste una cuenta sin acct_.
+    expect(accounts).toHaveLength(0);
+  });
+
+  it("adapterFor STRIPE → StripeGateway con Stripe-Account (direct charge)", async () => {
+    const { prisma, destinations } = mkPrisma();
+    destinations.push(connectDest());
+    const { svc } = mkSvc(prisma);
+    process.env.STRIPE_SECRET_KEY = "sk_test_platform";
+    try {
+      const a = await svc.upsert("p1", { provider: "STRIPE" });
+      const { gateway } = await svc.adapterFor(a.id);
+      expect(gateway).toBeInstanceOf(StripeGateway);
+      const fetchMock = vi
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ id: "cs_1", url: "https://pay.stripe/cs_1" }),
+            { status: 200 },
+          ),
+        );
+      await gateway.createOrder({
+        refId: "tkt_x",
+        amount: 1000,
+        email: "a@b.cl",
+        returnUrl: "https://app/r",
+      });
+      const init = fetchMock.mock.calls[0]![1] as {
+        headers: Record<string, string>;
+      };
+      expect(init.headers["Stripe-Account"]).toBe("acct_1AbCdEf9876");
+      expect(init.headers.authorization).toBe("Bearer sk_test_platform");
+      fetchMock.mockRestore();
+    } finally {
+      delete process.env.STRIPE_SECRET_KEY;
+    }
+  });
+
+  it("adapterFor STRIPE sin STRIPE_SECRET_KEY de plataforma → error explícito (fail-closed)", async () => {
+    const { prisma, destinations } = mkPrisma();
+    destinations.push(connectDest());
+    const { svc } = mkSvc(prisma);
+    delete process.env.STRIPE_SECRET_KEY;
+    const a = await svc.upsert("p1", { provider: "STRIPE" });
+    await expect(svc.adapterFor(a.id)).rejects.toThrow(
+      /STRIPE_SECRET_KEY/,
+    );
   });
 });

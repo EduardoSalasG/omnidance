@@ -1153,6 +1153,31 @@ describe("CheckoutService.purchaseTicket", () => {
     expect(res.paymentUrl).toBe("https://own.example/pay");
   });
 
+  it("cuenta propia STRIPE (Connect) → cobra en su adaptador + OWN_GATEWAY (spec connect-own-gateway)", async () => {
+    const ownStripe = {
+      name: "STRIPE",
+      createOrder: vi.fn(async () => ({
+        paymentUrl: "https://pay.stripe.com/cs_x",
+        gatewayRef: "cs_x",
+      })),
+      verifyWebhook: vi.fn(),
+    };
+    accountsStub.activeForProducer.mockResolvedValueOnce({
+      account: { id: "acct-stripe" },
+      gateway: ownStripe,
+    } as never);
+    const res = await buy();
+    expect(ownStripe.createOrder).toHaveBeenCalledTimes(1);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+    const p = fx.payments[0];
+    // El desglose OWN_GATEWAY es idéntico al resto de providers:
+    // comisión devengada, neteada en payout - nunca application_fee.
+    expect(p.feeMode).toBe("OWN_GATEWAY");
+    expect(p.gatewayAccountId).toBe("acct-stripe");
+    expect(p.gateway).toBe("STRIPE");
+    expect(res.paymentUrl).toBe("https://pay.stripe.com/cs_x");
+  });
+
   // ─── Método propio del productor (spec producer-own-methods) ───
 
   it("methodId válido → Payment MANUAL PENDING OWN_METHOD, sin tocar la pasarela y con instrucciones", async () => {

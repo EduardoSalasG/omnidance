@@ -193,6 +193,13 @@ export class StripeGateway implements PaymentGateway {
     // El endpoint webhook se registra en el dashboard apuntando a
     // `${API_URL}/api/payments/webhook/STRIPE` (documentado).
     private readonly onTx?: (e: GatewayTxEntry) => Promise<void>,
+    // Cuenta propia del productor (spec connect-own-gateway): cuando
+    // viene, TODA request lleva `Stripe-Account: acct_…` - la auth sigue
+    // siendo la secret key de plataforma y el cargo es "direct charge"
+    // en la cuenta Connect conectada (createOrder crea la sesión ahí;
+    // fetchSession la lee ahí también - sin el header la sesión cs_…
+    // no existe para la cuenta plataforma).
+    private readonly stripeAccount?: string,
   ) {}
 
   async createOrder(p: {
@@ -364,6 +371,11 @@ export class StripeGateway implements PaymentGateway {
           authorization: `Bearer ${this.secretKey}`,
           ...(params !== undefined
             ? { "content-type": "application/x-www-form-urlencoded" }
+            : undefined),
+          // Direct charge Connect: presente solo si el adaptador se
+          // construyó para una cuenta propia del productor.
+          ...(this.stripeAccount
+            ? { "Stripe-Account": this.stripeAccount }
             : undefined),
         },
         body:
