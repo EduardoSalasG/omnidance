@@ -23,6 +23,9 @@ export const PUBLIC_FEED_SELECT = {
   venue: {
     select: { id: true, name: true, address: true, lat: true, lng: true },
   },
+  // Zona horaria de la ciudad del evento - el front formatea startsAt
+  // en la hora local del evento (no del server/viewer).
+  city: { select: { timezone: true } },
 } satisfies Prisma.EventSelect;
 
 export type PublicFeedRow = Prisma.EventGetPayload<{
