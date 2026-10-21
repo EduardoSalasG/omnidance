@@ -21,6 +21,8 @@ import { SupportController } from "./infrastructure/support.controller";
 import { UserIntelController } from "./infrastructure/user-intel.controller";
 import { AdminJobsController } from "./infrastructure/jobs.controller";
 import { AdminFeatureFlagsController } from "./infrastructure/feature-flags.controller";
+import { AdminCityGuidesController } from "./infrastructure/city-guides.controller";
+import { AdminCityGuidesService } from "./application/city-guides.service";
 
 @Module({
   imports: [
@@ -45,7 +47,8 @@ import { AdminFeatureFlagsController } from "./infrastructure/feature-flags.cont
     UserIntelController,
     AdminJobsController,
     AdminFeatureFlagsController,
+    AdminCityGuidesController,
   ],
-  providers: [AdminBillingService],
+  providers: [AdminBillingService, AdminCityGuidesService],
 })
 export class AdminModule {}
