@@ -37,7 +37,10 @@ jobs:
       NODE_ENV: test
       JWT_SECRET: ci-secret
       QR_SECRET: ci-qr-secret
-      SEED_ENV: prod
+      # Los specs e2e usan el dataset demo (admin@omnidance.dev como
+      # login fixture) - SEED_ENV=prod ya no lo siembra (prod = baseline
+      # puro desde que terminó el piloto). dev = baseline + demo.
+      SEED_ENV: dev
       SEED_ADMIN_EMAIL: admin@ci.local
     steps:
       - uses: actions/checkout@v4
