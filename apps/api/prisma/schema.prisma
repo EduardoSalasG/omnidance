@@ -76,6 +76,7 @@ model Person {
   fiscalProfile  FiscalProfile?
   styleRoles     PersonStyleRole[]
   seriesReviews  SeriesReview[]
+  adminRegions   AdminRegion[]
   notifications  Notification[]
   pushTokens     PushToken[]
   eventDjs       EventDj[]
@@ -246,8 +247,22 @@ model City {
   venues    Venue[]
   academies Academy[]
   events    Event[]
+  adminRegions AdminRegion[]
 
   @@unique([countryId, name])
+}
+
+// Scoping regional de validación (spec multipais-foundation): un
+// revisor con regiones solo ve perfiles/academias de su zona; sin
+// regiones asignadas = admin global, ve todo.
+model AdminRegion {
+  id       String @id @default(cuid())
+  person   Person @relation(fields: [personId], references: [id])
+  personId String
+  city     City   @relation(fields: [cityId], references: [id])
+  cityId   String
+
+  @@unique([personId, cityId])
 }
 
 model Venue {

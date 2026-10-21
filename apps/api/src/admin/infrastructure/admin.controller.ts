@@ -313,8 +313,22 @@ export class AdminController {
    * que ya operan su consola pero son invisibles al público. El admin
    * aprueba solo si el perfil está completo (checklist server-side).
    */
+  /**
+   * Regiones del revisor (spec multipais-foundation): vacío = admin
+   * global, ve todo; con regiones solo ve actores cuya entidad
+   * (academia/evento) esté en su zona.
+   */
+  private async reviewerRegions(personId: string) {
+    const rows = await this.prisma.adminRegion.findMany({
+      where: { personId },
+      select: { cityId: true },
+    });
+    return rows.map((r) => r.cityId);
+  }
+
   @Get("validation-queue")
-  async validationQueue() {
+  async validationQueue(@Req() req: Request) {
+    const regions = await this.reviewerRegions(req.person!.id);
     const rows = await this.prisma.personRole.findMany({
       where: { role: { in: [...VALIDATION_QUEUE_ROLES] }, status: "PENDING" },
       orderBy: { createdAt: "asc" },
@@ -336,28 +350,57 @@ export class AdminController {
     });
     const ids = rows.map((r) => r.person.id);
     // "Datos del actor" del checklist: owner → tiene ≥1 academia;
-    // productor → tiene ≥1 evento creado. groupBy, sin N+1.
-    const [academyGroups, eventGroups] = ids.length
-      ? await Promise.all([
-          this.prisma.academy.groupBy({
-            by: ["ownerId"],
-            where: { ownerId: { in: ids } },
-            _count: { _all: true },
-          }),
-          this.prisma.event.groupBy({
-            by: ["producerId"],
-            where: { producerId: { in: ids } },
-            _count: { _all: true },
-          }),
-        ])
-      : [[], []];
+    // productor → tiene ≥1 evento creado. groupBy, sin N+1. Con
+    // regiones asignadas el revisor solo ve actores cuya entidad
+    // (academia/evento) esté en su zona (spec multipais-foundation).
+    const [academyGroups, eventGroups, academyCities, eventCities] =
+      ids.length
+        ? await Promise.all([
+            this.prisma.academy.groupBy({
+              by: ["ownerId"],
+              where: { ownerId: { in: ids } },
+              _count: { _all: true },
+            }),
+            this.prisma.event.groupBy({
+              by: ["producerId"],
+              where: { producerId: { in: ids } },
+              _count: { _all: true },
+            }),
+            regions.length
+              ? this.prisma.academy.findMany({
+                  where: { ownerId: { in: ids } },
+                  select: { ownerId: true, cityId: true },
+                })
+              : [],
+            regions.length
+              ? this.prisma.event.findMany({
+                  where: { producerId: { in: ids } },
+                  select: { producerId: true, cityId: true },
+                })
+              : [],
+          ])
+        : [[], [], [], []];
+    const inRegion = new Set<string>();
+    if (regions.length) {
+      for (const a of academyCities) {
+        if (a.cityId && regions.includes(a.cityId)) inRegion.add(a.ownerId);
+      }
+      for (const e of eventCities) {
+        if (e.cityId && regions.includes(e.cityId)) {
+          inRegion.add(e.producerId!);
+        }
+      }
+    }
+    const scopedRows = regions.length
+      ? rows.filter((r) => inRegion.has(r.person.id))
+      : rows;
     const acadByOwner = new Map(
       academyGroups.map((g) => [g.ownerId, g._count._all]),
     );
     const evByProducer = new Map(
       eventGroups.map((g) => [g.producerId, g._count._all]),
     );
-    return rows.map((r) => {
+    return scopedRows.map((r) => {
       const checks = roleProfileChecks(
         r.person,
         r.role,
@@ -473,9 +516,13 @@ export class AdminController {
    * qué falta; la mayoría se auto-aprueba sola al completar datos.
    */
   @Get("academy-review-queue")
-  async academyReviewQueue() {
+  async academyReviewQueue(@Req() req: Request) {
+    const regions = await this.reviewerRegions(req.person!.id);
     const academies = await this.prisma.academy.findMany({
-      where: { reviewStatus: { in: ["PENDING", "REJECTED"] } },
+      where: {
+        reviewStatus: { in: ["PENDING", "REJECTED"] },
+        ...(regions.length ? { cityId: { in: regions } } : {}),
+      },
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
