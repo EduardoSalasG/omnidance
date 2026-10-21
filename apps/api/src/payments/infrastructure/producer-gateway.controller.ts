@@ -17,14 +17,18 @@ import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import { GatewayAccountsService } from "../application/gateway-accounts.service";
 
 class GatewayAccountDto {
-  /** FLOW | MERCADOPAGO | FINTOC (STUB solo fuera de producción). */
-  @IsIn(["FLOW", "MERCADOPAGO", "FINTOC", "STUB"])
+  /** FLOW | MERCADOPAGO | FINTOC | STRIPE (STUB solo fuera de
+      producción). */
+  @IsIn(["FLOW", "MERCADOPAGO", "FINTOC", "STUB", "STRIPE"])
   provider!: string;
 
-  /** FLOW: apiKey · MERCADOPAGO: access token · FINTOC: secret key. */
+  /** FLOW: apiKey · MERCADOPAGO: access token · FINTOC: secret key.
+      STRIPE no lo usa: la acct_ sale de su PayoutDestination Connect
+      (spec connect-own-gateway) - se valida en el service. */
+  @IsOptional()
   @IsString()
   @MaxLength(200)
-  apiKey!: string;
+  apiKey?: string;
 
   /** FLOW: secret key · FINTOC: webhook endpoint secret (whsec_).
       Obligatorio para FLOW/FINTOC, ignorado en MP/STUB. */
@@ -60,7 +64,10 @@ export class ProducerGatewayAccountsController {
   async upsert(@Req() req: Request, @Body() dto: GatewayAccountDto) {
     const me = req.person!;
     await this.assertProducerOrAdmin(me.id, me.roles);
-    if (!dto.apiKey?.trim()) {
+    // STRIPE no pide credencial: la acct_ sale del PayoutDestination
+    // Connect del productor (spec connect-own-gateway). El service
+    // valida el destino ACTIVE y devuelve 400 si no conectó antes.
+    if (dto.provider.toUpperCase() !== "STRIPE" && !dto.apiKey?.trim()) {
       throw new BadRequestException("apiKey requerido");
     }
     const account = await this.accounts.upsert(me.id, dto);

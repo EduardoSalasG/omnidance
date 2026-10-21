@@ -161,6 +161,70 @@ describe("StripeGateway.createOrder", () => {
   });
 });
 
+describe("StripeGateway Connect (stripeAccount)", () => {
+  const created = { id: "cs_test_abc", url: "https://pay.stripe.com/cs" };
+  const connected = () =>
+    new StripeGateway(
+      KEY,
+      WH,
+      "https://api.stripe.test",
+      undefined,
+      "acct_prod1",
+    );
+
+  const headersOf = (call: unknown[]) =>
+    (call[1] as { headers: Record<string, string> }).headers;
+
+  it("createOrder envía Stripe-Account (direct charge en la cuenta)", async () => {
+    const fetchMock = mockFetch({ "checkout/sessions": created });
+    vi.stubGlobal("fetch", fetchMock);
+    await connected().createOrder({
+      refId: "tkt_x",
+      amount: 5000,
+      email: "a@b.cl",
+      returnUrl: "https://app/r",
+    });
+    const h = headersOf(fetchMock.mock.calls[0] as unknown[]);
+    expect(h["Stripe-Account"]).toBe("acct_prod1");
+    // La auth sigue siendo la secret key de plataforma.
+    expect(h.authorization).toBe(`Bearer ${KEY}`);
+  });
+
+  it("refreshStatus consulta la sesión con el mismo header (polling por cuenta)", async () => {
+    const fetchMock = mockFetch({
+      "checkout/sessions": {
+        id: "cs_x",
+        status: "complete",
+        payment_status: "paid",
+        amount_total: 5000,
+        currency: "clp",
+      },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const r = await connected().refreshStatus("tkt_x", {
+      gatewayRef: "cs_x",
+    });
+    expect(r.status).toBe("PAID");
+    expect(headersOf(fetchMock.mock.calls[0] as unknown[])[
+      "Stripe-Account"
+    ]).toBe("acct_prod1");
+  });
+
+  it("sin stripeAccount el header no se envía (cuenta plataforma)", async () => {
+    const fetchMock = mockFetch({ "checkout/sessions": created });
+    vi.stubGlobal("fetch", fetchMock);
+    await gw().createOrder({
+      refId: "tkt_x",
+      amount: 1,
+      email: "e",
+      returnUrl: "u",
+    });
+    expect(
+      headersOf(fetchMock.mock.calls[0] as unknown[])["Stripe-Account"],
+    ).toBeUndefined();
+  });
+});
+
 describe("StripeGateway.verifyWebhook", () => {
   const session = {
     id: "cs_abc123",

@@ -107,6 +107,14 @@ describe("ProducerGatewayAccountsController", () => {
     expect(out.account.keyMask).toBe("••••1234");
   });
 
+  it("STRIPE no exige apiKey - la acct_ sale del PayoutDestination (spec connect-own-gateway)", async () => {
+    const { ctrl, accounts } = mk({ producer: true });
+    await ctrl.upsert(req("me"), { provider: "STRIPE" });
+    expect(accounts.upsert).toHaveBeenCalledWith("me", {
+      provider: "STRIPE",
+    });
+  });
+
   it("disable baja la cuenta activa (no-op si no hay)", async () => {
     const { ctrl, accounts } = mk({
       producer: true,

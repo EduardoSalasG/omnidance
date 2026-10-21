@@ -21,6 +21,7 @@ import type { PaymentGateway } from "../domain/ports";
 import { FlowGateway } from "../infrastructure/flow.gateway";
 import { MercadoPagoGateway } from "../infrastructure/mercadopago.gateway";
 import { FintocGateway } from "../infrastructure/fintoc.gateway";
+import { StripeGateway } from "../infrastructure/stripe.gateway";
 import { StubGateway } from "../infrastructure/stub.gateway";
 import {
   GatewayTransactionsService,
@@ -28,7 +29,13 @@ import {
 } from "../infrastructure/gateway-transactions.service";
 
 const SANDBOX_BASE_URL = "https://sandbox.flow.cl/api";
-const SUPPORTED = new Set(["FLOW", "MERCADOPAGO", "FINTOC", "STUB"]);
+const SUPPORTED = new Set([
+  "FLOW",
+  "MERCADOPAGO",
+  "FINTOC",
+  "STUB",
+  "STRIPE",
+]);
 
 /** Credenciales planas por proveedor (solo existen en memoria). */
 interface AccountCredentials {
@@ -37,6 +44,7 @@ interface AccountCredentials {
   accessToken?: string; // MERCADOPAGO
   secretKey?: string; // FINTOC
   webhookSecret?: string; // FINTOC
+  accountId?: string; // STRIPE: acct_… Connect (direct charge)
 }
 
 /** Vista segura de la cuenta - nunca material plano ni blob. */
@@ -135,7 +143,7 @@ export class GatewayAccountsService {
    */
   async upsert(
     producerId: string,
-    input: { provider: string; apiKey: string; secret?: string },
+    input: { provider: string; apiKey?: string; secret?: string },
   ): Promise<GatewayAccountView> {
     const provider = input.provider.toUpperCase();
     if (!SUPPORTED.has(provider)) {
@@ -146,31 +154,60 @@ export class GatewayAccountsService {
     if (provider === "STUB" && process.env.NODE_ENV === "production") {
       throw new BadRequestException("STUB no disponible en producción");
     }
-    if (!input.apiKey?.trim()) {
-      throw new BadRequestException("apiKey requerido");
-    }
-    const creds: AccountCredentials =
-      provider === "MERCADOPAGO"
-        ? { accessToken: input.apiKey.trim() }
-        : provider === "FLOW"
-          ? { apiKey: input.apiKey.trim(), secret: input.secret?.trim() }
-          : provider === "FINTOC"
-            ? {
-                secretKey: input.apiKey.trim(),
-                webhookSecret: input.secret?.trim(),
-              }
-            : {};
-    if (provider === "FLOW" && !creds.secret) {
-      throw new BadRequestException("secret requerido para FLOW");
-    }
-    if (provider === "FINTOC" && !creds.webhookSecret) {
-      throw new BadRequestException(
-        "secret (webhook endpoint secret) requerido para FINTOC",
-      );
+    let creds: AccountCredentials;
+    let maskSource: string;
+    if (provider === "STRIPE") {
+      // STRIPE es distinto (spec connect-own-gateway): no hay credencial
+      // que ingresar - el "direct charge" se hace con la secret key de
+      // PLATAFORMA + header Stripe-Account con la acct_ del productor.
+      // Esa acct_ sale de su PayoutDestination STRIPE_CONNECT ACTIVE
+      // (el onboarding Connect es la puerta de entrada: sin destino
+      // activo no hay cuenta donde cobrar → 400 guiando a conectar).
+      const destination = await this.prisma.payoutDestination.findUnique({
+        where: {
+          actorType_actorId_rail: {
+            actorType: "PRODUCER",
+            actorId: producerId,
+            rail: "STRIPE_CONNECT",
+          },
+        },
+      });
+      if (!destination || destination.status !== "ACTIVE") {
+        throw new BadRequestException(
+          "conecta tu cuenta de desembolso en /productor/pagos primero",
+        );
+      }
+      creds = { accountId: destination.externalId };
+      maskSource = destination.externalId;
+    } else {
+      if (!input.apiKey?.trim()) {
+        throw new BadRequestException("apiKey requerido");
+      }
+      const apiKey = input.apiKey.trim();
+      creds =
+        provider === "MERCADOPAGO"
+          ? { accessToken: apiKey }
+          : provider === "FLOW"
+            ? { apiKey, secret: input.secret?.trim() }
+            : provider === "FINTOC"
+              ? {
+                  secretKey: apiKey,
+                  webhookSecret: input.secret?.trim(),
+                }
+              : {};
+      if (provider === "FLOW" && !creds.secret) {
+        throw new BadRequestException("secret requerido para FLOW");
+      }
+      if (provider === "FINTOC" && !creds.webhookSecret) {
+        throw new BadRequestException(
+          "secret (webhook endpoint secret) requerido para FINTOC",
+        );
+      }
+      maskSource = apiKey;
     }
 
     const blob = encryptSecret(JSON.stringify(creds));
-    const keyMask = maskSecret(input.apiKey.trim());
+    const keyMask = maskSecret(maskSource);
     const account = await this.prisma.$transaction(async (tx) => {
       await tx.producerGatewayAccount.updateMany({
         where: { producerId, status: "ACTIVE" },
@@ -258,6 +295,26 @@ export class GatewayAccountsService {
           onTx,
         );
         break;
+      case "STRIPE": {
+        // Cargo directo en la cuenta Connect del productor: la auth es
+        // la secret key de PLATAFORMA y el Stripe-Account es la acct_
+        // persistida. Sin secret de plataforma la cuenta no puede
+        // operar → fail explícito, nunca cobra en otra cuenta.
+        const platformKey = process.env.STRIPE_SECRET_KEY;
+        if (!platformKey || !creds.accountId) {
+          throw new Error(
+            "cuenta STRIPE inoperable: falta STRIPE_SECRET_KEY de plataforma o accountId",
+          );
+        }
+        gateway = new StripeGateway(
+          platformKey,
+          process.env.STRIPE_WEBHOOK_SECRET ?? "",
+          process.env.STRIPE_BASE_URL ?? "https://api.stripe.com",
+          onTx,
+          creds.accountId,
+        );
+        break;
+      }
       default:
         // STUB (dev): su confirmUrl solo informa al flujo simulado.
         gateway = new StubGateway();
