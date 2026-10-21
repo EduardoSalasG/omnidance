@@ -26,10 +26,12 @@ import {
   AdminPayoutsController,
   MePayoutsController,
 } from "./infrastructure/payouts.controller";
+import { PayoutDestinationsController } from "./infrastructure/payout-destinations.controller";
 import { CheckoutService } from "./application/checkout.service";
 import { GatewayAccountsService } from "./application/gateway-accounts.service";
 import { PaymentSettlementService } from "./application/payment-settlement.service";
 import { PayoutSettlementService } from "./application/payout-settlement.service";
+import { PayoutDestinationService } from "./application/payout-destination.service";
 import { SubscriptionsService } from "./application/subscriptions.service";
 import { PlatformSubscriptionsService } from "./application/platform-subscriptions.service";
 import { SubscriptionsController } from "./infrastructure/subscriptions.controller";
@@ -64,6 +66,7 @@ import { StorageModule } from "../storage/storage.module";
     PaymentsController,
     AdminPayoutsController,
     MePayoutsController,
+    PayoutDestinationsController,
     SubscriptionsController,
     ProducerGatewayAccountsController,
     ProducerClaimsController,
@@ -77,6 +80,9 @@ import { StorageModule } from "../storage/storage.module";
     ProducerClaimsService,
     PaymentSettlementService,
     PayoutSettlementService,
+    // Rails de desembolso (spec payouts/payout-rails): instancia el
+    // cliente/rail Stripe Connect por env igual que los gateways.
+    PayoutDestinationService,
     SubscriptionsService,
     PlatformSubscriptionsService,
     SubscriptionsScheduler,
@@ -111,6 +117,7 @@ import { StorageModule } from "../storage/storage.module";
     GatewayAccountsService,
     PaymentSettlementService,
     PayoutSettlementService,
+    PayoutDestinationService,
     SubscriptionsService,
     PlatformSubscriptionsService,
   ],

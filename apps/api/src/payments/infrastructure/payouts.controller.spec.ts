@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
+  BadGatewayException,
   BadRequestException,
   ConflictException,
   NotFoundException,
@@ -8,12 +9,14 @@ import type { Request } from "express";
 import type { PrismaService } from "../../prisma.service";
 import type { ParamsService } from "../../params/params.service";
 import type { ProducerFeeDefaults } from "../../params/params.service";
+import type { GatewayTransactionsService } from "./gateway-transactions.service";
 // Ciclo session.guard ⇄ auth.controller (SESSION_COOKIE): si session.guard
 // entra primero, los @UseGuards de auth.controller evalúan con SessionGuard
 // undefined. Cargar auth.controller antes rompe el ciclo a favor del test.
 import "../../auth/infrastructure/auth.controller";
 import { AdminPayoutsController } from "./payouts.controller";
 import { PayoutSettlementService } from "../application/payout-settlement.service";
+import { PayoutDestinationService } from "../application/payout-destination.service";
 import { encodePrivateRef, encodeSeriesPassRef } from "../domain/order-ref";
 import { managedFeeBreakdown } from "../../common/fee-breakdown";
 
@@ -117,9 +120,12 @@ interface FakePayout {
   /** Línea GATEWAY_FEE_PASSTHROUGH - solo payouts ACADEMY (modelo SaaS). */
   gatewayFee: number;
   net: number;
+  currency: string;
   status: string;
   paidAt: Date | null;
   evidenceUrl: string | null;
+  rail: string | null;
+  railRef: string | null;
   createdAt: Date;
 }
 
@@ -131,6 +137,7 @@ class FakePrisma {
   payments: FakePayment[] = [];
   payouts: FakePayout[] = [];
   payoutLines: Row[] = [];
+  payoutDestinations: Row[] = [];
   paymentEvents: Row[] = [];
   auditLogs: Row[] = [];
   private seq = 0;
@@ -237,9 +244,12 @@ class FakePrisma {
     }) => {
       const row: FakePayout = {
         id: `po-${++this.seq}`,
+        currency: "CLP",
         status: "PENDING",
         paidAt: null,
         evidenceUrl: null,
+        rail: null,
+        railRef: null,
         createdAt: new Date(),
         ...data,
       };
@@ -258,6 +268,11 @@ class FakePrisma {
       Object.assign(row, data);
       return row;
     },
+  };
+
+  payoutDestination = {
+    findMany: async ({ where }: { where: Row }) =>
+      this.payoutDestinations.filter((d) => matchWhere(d, where)),
   };
 
   auditLog = {
@@ -281,6 +296,15 @@ function mkParams() {
 }
 
 const adminReq = { person: { id: "admin-1" } } as unknown as Request;
+
+/** Resolver destino→rail real sobre el fake (solo lo usa /disburse). */
+const mkDestinations = (prisma: FakePrisma) =>
+  new PayoutDestinationService(
+    prisma as unknown as PrismaService,
+    {
+      record: async () => {},
+    } as unknown as GatewayTransactionsService,
+  );
 
 const IN_PERIOD = new Date("2025-11-15T12:00:00Z");
 const DTO = {
@@ -325,6 +349,7 @@ describe("AdminPayoutsController.generate - computeSettlement", () => {
         prisma as unknown as PrismaService,
         pf.params as unknown as ParamsService,
       ),
+      mkDestinations(prisma),
     );
 
     prisma.events.push(
@@ -721,6 +746,7 @@ describe("AdminPayoutsController - ciclo approve/pay", () => {
         prisma as unknown as PrismaService,
         pf.params as unknown as ParamsService,
       ),
+      mkDestinations(prisma),
     );
     const payout = await ctrl.generate(
       {
@@ -781,5 +807,208 @@ describe("AdminPayoutsController - ciclo approve/pay", () => {
     await expect(ctrl.pay("po-x", {}, adminReq)).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+});
+
+describe("AdminPayoutsController.disburse - rail de desembolso", () => {
+  // spec payouts/payout-rails: APPROVED + destino Connect ACTIVE en la
+  // moneda → transfer tr_… + PAID + rail/railRef + audit PAYOUT_DISBURSE.
+  // Sin destino (o moneda distinta) → 409 requiresManualEvidence; ya
+  // pagado o pendiente → 409; fallo del proveedor → 502 y queda APPROVED.
+  let prisma: FakePrisma;
+  let ctrl: AdminPayoutsController;
+  let payoutId: string;
+
+  function mkPayout(over: Partial<FakePayout>): FakePayout {
+    const row: FakePayout = {
+      id: `po-disb-${prisma.payouts.length + 1}`,
+      actorType: "PRODUCER",
+      actorId: "prod-1",
+      periodStart: new Date(DTO.periodStart),
+      periodEnd: new Date(DTO.periodEnd),
+      gross: 40000,
+      platformFee: 8000,
+      gatewayFee: 2000,
+      net: 30000,
+      currency: "CLP",
+      status: "APPROVED",
+      paidAt: null,
+      evidenceUrl: null,
+      rail: null,
+      railRef: null,
+      createdAt: new Date(),
+      ...over,
+    };
+    prisma.payouts.push(row);
+    return row;
+  }
+
+  function connectDestination(over: Row = {}): Row {
+    const row = {
+      id: "pd-1",
+      actorType: "PRODUCER",
+      actorId: "prod-1",
+      rail: "STRIPE_CONNECT",
+      externalId: "acct_prod1",
+      country: "CL",
+      currency: "CLP",
+      status: "ACTIVE",
+      lastError: null,
+      onboardedAt: new Date(),
+      ...over,
+    };
+    prisma.payoutDestinations.push(row);
+    return row;
+  }
+
+  function fetchHandlers(handlers: Record<string, unknown>) {
+    return vi.fn(async (input: unknown) => {
+      const url = String(
+        typeof input === "string" ? input : (input as { url: string }).url,
+      );
+      for (const [frag, body] of Object.entries(handlers)) {
+        if (url.includes(frag)) {
+          // Response ya armada: clone() - el body solo se lee una vez y
+          // el test puede disparar el mismo fetch más de una vez.
+          return body instanceof Response
+            ? body.clone()
+            : new Response(JSON.stringify(body), { status: 200 });
+        }
+      }
+      return new Response("not found", { status: 404 });
+    });
+  }
+
+  function formOf(call: unknown[]): Record<string, string> {
+    const init = call[1] as { body: string };
+    return Object.fromEntries(new URLSearchParams(init.body));
+  }
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    const pf = mkParams();
+    ctrl = new AdminPayoutsController(
+      prisma as unknown as PrismaService,
+      new PayoutSettlementService(
+        prisma as unknown as PrismaService,
+        pf.params as unknown as ParamsService,
+      ),
+      mkDestinations(prisma),
+    );
+    payoutId = mkPayout({}).id;
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_disb");
+    vi.stubEnv("STRIPE_BASE_URL", "https://api.stripe.test");
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("APPROVED + destino Connect ACTIVE en la moneda → PAID + railRef tr_… + audit", async () => {
+    connectDestination();
+    const fetchMock = fetchHandlers({ "v1/transfers": { id: "tr_abc" } });
+    vi.stubGlobal("fetch", fetchMock);
+    const res = await ctrl.disburse(payoutId, adminReq);
+    expect(res.status).toBe("PAID");
+    expect(res.paidAt).toBeInstanceOf(Date);
+    expect(res.rail).toBe("STRIPE_CONNECT");
+    expect(res.railRef).toBe("tr_abc");
+    // El transfer salió con el net en minor units (CLP zero-decimal) e
+    // Idempotency-Key por payoutId.
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [
+      string,
+      { method: string; headers: Record<string, string> },
+    ];
+    expect(url).toContain("/v1/transfers");
+    expect(init.headers["idempotency-key"]).toBe(`payout:${payoutId}`);
+    const body = formOf(fetchMock.mock.calls[0] as unknown[]);
+    expect(body.amount).toBe("30000");
+    expect(body.currency).toBe("clp");
+    expect(body.destination).toBe("acct_prod1");
+    expect(body["metadata[payoutId]"]).toBe(payoutId);
+    expect(prisma.auditLogs.at(-1)).toMatchObject({
+      action: "PAYOUT_DISBURSE",
+      targetType: "Payout",
+      targetId: payoutId,
+      payload: {
+        rail: "STRIPE_CONNECT",
+        ref: "tr_abc",
+        amount: 30000,
+        currency: "CLP",
+      },
+    });
+  });
+
+  it("sin destino activo → 409 requiresManualEvidence (queda APPROVED, /pay sigue)", async () => {
+    await expect(ctrl.disburse(payoutId, adminReq)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    await expect(ctrl.disburse(payoutId, adminReq)).rejects.toThrow(
+      /requiresManualEvidence/,
+    );
+    expect(
+      prisma.payouts.find((p) => p.id === payoutId)!.status,
+    ).toBe("APPROVED");
+    expect(
+      prisma.auditLogs.some((a) => a.action === "PAYOUT_DISBURSE"),
+    ).toBe(false);
+  });
+
+  it("destino ACTIVE en otra moneda → 409 requiresManualEvidence", async () => {
+    connectDestination({ currency: "USD" });
+    await expect(ctrl.disburse(payoutId, adminReq)).rejects.toThrow(
+      /requiresManualEvidence/,
+    );
+  });
+
+  it("PENDING → 409 (el gate de aprobación humana no se salta)", async () => {
+    const p = mkPayout({ status: "PENDING" });
+    await expect(ctrl.disburse(p.id, adminReq)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+  });
+
+  it("ya PAID → 409 (idempotencia por estado)", async () => {
+    const p = mkPayout({ status: "PAID", rail: "STRIPE_CONNECT", railRef: "tr_old" });
+    const fetchMock = fetchHandlers({});
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(ctrl.disburse(p.id, adminReq)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("payout inexistente → NotFoundException", async () => {
+    await expect(ctrl.disburse("po-x", adminReq)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it("fallo del rail (HTTP Stripe) → 502 y el payout queda APPROVED", async () => {
+    connectDestination();
+    vi.stubGlobal(
+      "fetch",
+      fetchHandlers({
+        "v1/transfers": new Response(
+          JSON.stringify({
+            error: { message: "insufficient available funds" },
+          }),
+          { status: 402 },
+        ),
+      }),
+    );
+    await expect(ctrl.disburse(payoutId, adminReq)).rejects.toBeInstanceOf(
+      BadGatewayException,
+    );
+    await expect(ctrl.disburse(payoutId, adminReq)).rejects.toThrow(
+      /insufficient available funds/,
+    );
+    const payout = prisma.payouts.find((p) => p.id === payoutId)!;
+    expect(payout.status).toBe("APPROVED");
+    expect(payout.railRef).toBeNull();
+    expect(
+      prisma.auditLogs.some((a) => a.action === "PAYOUT_DISBURSE"),
+    ).toBe(false);
   });
 });

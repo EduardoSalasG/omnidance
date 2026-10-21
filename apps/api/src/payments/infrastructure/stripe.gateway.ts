@@ -57,16 +57,17 @@ const SIGNATURE_TOLERANCE_S = 300;
 
 /**
  * Unidad mayor → minor units: ×100 salvo zero-decimal (CLP 5000 = 5000,
- * USD 25 = 2500, JPY 5000 = 5000).
+ * USD 25 = 2500, JPY 5000 = 5000). Exportado para el rail de desembolso
+ * Connect (stripe-connect.rail.ts reutiliza la misma tabla).
  */
-function toMinorUnits(currency: string, amount: number): number {
+export function toMinorUnits(currency: string, amount: number): number {
   return ZERO_DECIMAL_CURRENCIES.has(currency.toUpperCase())
     ? amount
     : Math.round(amount * 100);
 }
 
 /** Minor units → unidad mayor (inversa de toMinorUnits). */
-function fromMinorUnits(currency: string, amount: number): number {
+export function fromMinorUnits(currency: string, amount: number): number {
   return ZERO_DECIMAL_CURRENCIES.has(currency.toUpperCase())
     ? amount
     : amount / 100;
