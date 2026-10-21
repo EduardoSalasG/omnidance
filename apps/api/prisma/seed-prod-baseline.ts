@@ -2,11 +2,8 @@
 // estilos, params) + el admin inicial. Sin data demo: venues/eventos/
 // personas se crean por la app real.
 //
-// TEMPORALMENTE FUERA DEL DISPATCH: durante el piloto con usuarios
-// reales, `SEED_ENV=prod` corre el dataset demo (seed-dev.ts). Este
-// archivo preserva el seed productivo intacto para restaurar el
-// dispatch cuando termine el piloto - mientras tanto se puede correr
-// directo con `SEED_ENV=baseline`.
+// Es el seed que corre `SEED_ENV=prod` (y `baseline`) - la DB de prod
+// queda limpia para uso real desde el primer deploy.
 //
 // Idempotente: correr N veces no duplica ni pisa valores editados
 // desde /admin.
