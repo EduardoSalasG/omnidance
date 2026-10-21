@@ -51,6 +51,7 @@ function PlanDetail({
   const [loadError, setLoadError] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const dateFmt = useDateFmt({
         day: "numeric",
@@ -82,6 +83,7 @@ function PlanDetail({
     if (!plan) return;
     setBusy(true);
     setActionError(null);
+    setNotice(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/plans/${plan.id}`,
@@ -95,6 +97,7 @@ function PlanDetail({
         setActionError(tc("error"));
         return;
       }
+      setNotice(t("planSaved"));
       await reload();
     } catch {
       setActionError(tc("error"));
@@ -152,6 +155,11 @@ function PlanDetail({
         {actionError && (
           <p role="alert" className="text-sm text-red-400">
             {actionError}
+          </p>
+        )}
+        {notice && (
+          <p role="status" className="text-sm text-neon">
+            {notice}
           </p>
         )}
         <div className="flex flex-wrap gap-2">

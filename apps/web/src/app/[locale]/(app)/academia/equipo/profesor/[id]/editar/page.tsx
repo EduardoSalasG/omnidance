@@ -60,6 +60,7 @@ function EditAgreement({
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -93,6 +94,7 @@ function EditAgreement({
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (saved) return;
     const amount = payAmount.trim() === "" ? null : Number(payAmount);
     const classes = payClasses.trim() === "" ? null : Number(payClasses);
     const pct = commissionPct.trim() === "" ? null : Number(commissionPct);
@@ -120,6 +122,7 @@ function EditAgreement({
     }
     setBusy(true);
     setErr(null);
+    setSaved(false);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/instructors/${personId}`,
@@ -141,7 +144,12 @@ function EditAgreement({
         setErr((await readError(res)) ?? t("error"));
         return;
       }
-      router.push(`/academia/equipo/profesor/${personId}`);
+      // Notice breve antes de volver a la ficha (patrón de la consola).
+      setSaved(true);
+      setTimeout(
+        () => router.push(`/academia/equipo/profesor/${personId}`),
+        1200,
+      );
     } finally {
       setBusy(false);
     }
@@ -250,8 +258,13 @@ function EditAgreement({
             {err}
           </p>
         )}
+        {saved && (
+          <p role="status" className="text-sm text-neon">
+            {t("agreementSaved")}
+          </p>
+        )}
         <div>
-          <Button type="submit" size="sm" disabled={busy}>
+          <Button type="submit" size="sm" disabled={busy || saved}>
             {busy ? t("adding") : t("saveAgreement")}
           </Button>
         </div>

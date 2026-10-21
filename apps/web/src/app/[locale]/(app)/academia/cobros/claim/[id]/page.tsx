@@ -90,6 +90,7 @@ function ClaimDetail({
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const statusLabel = useMemo(
     () => ({
@@ -120,6 +121,7 @@ function ClaimDetail({
   async function approve() {
     setBusy(true);
     setMsg(null);
+    setNotice(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/claims/${claimId}/approve`,
@@ -133,8 +135,10 @@ function ClaimDetail({
         setMsg(t("error"));
         return;
       }
-      // Aprobado → vuelve a la cola (el claim ya no es accionable).
-      router.push("/academia/cobros");
+      // Aprobado → notice breve y vuelve a la cola (el claim ya no es
+      // accionable). Mismo patrón notice→push del resto de la consola.
+      setNotice(t("approvedMsg"));
+      setTimeout(() => router.push("/academia/cobros"), 1200);
     } finally {
       setBusy(false);
     }
@@ -144,6 +148,7 @@ function ClaimDetail({
     if (!rejectNote.trim()) return;
     setBusy(true);
     setMsg(null);
+    setNotice(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/claims/${claimId}/reject`,
@@ -157,7 +162,8 @@ function ClaimDetail({
         setMsg(t("error"));
         return;
       }
-      router.push("/academia/cobros");
+      setNotice(t("rejectedMsg"));
+      setTimeout(() => router.push("/academia/cobros"), 1200);
     } finally {
       setBusy(false);
     }
@@ -274,15 +280,23 @@ function ClaimDetail({
               {msg}
             </p>
           )}
+          {notice && (
+            <p role="status" className="text-sm text-neon">
+              {notice}
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => void approve()} disabled={busy}>
+            <Button
+              onClick={() => void approve()}
+              disabled={busy || notice !== null}
+            >
               {busy ? <Spinner size="sm" /> : null}
               {t("approve")}
             </Button>
             <Button
               variant="secondary"
               onClick={() => setRejectOpen((v) => !v)}
-              disabled={busy}
+              disabled={busy || notice !== null}
             >
               {t("reject")}
             </Button>
@@ -302,7 +316,7 @@ function ClaimDetail({
                 <Button
                   size="sm"
                   onClick={() => void reject()}
-                  disabled={!rejectNote.trim() || busy}
+                  disabled={!rejectNote.trim() || busy || notice !== null}
                 >
                   {t("confirm")}
                 </Button>

@@ -55,6 +55,7 @@ function DealDetail({
   const [busy, setBusy] = useState(false);
   const [codeBusy, setCodeBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
@@ -121,6 +122,7 @@ function DealDetail({
   async function emitCode() {
     setCodeBusy(true);
     setFormError(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/academy-deals/${agreementId}/codes`, {
         method: "POST",
@@ -131,7 +133,13 @@ function DealDetail({
         );
         return;
       }
-      await load();
+      // Refetch solo de códigos: la fila nueva es el feedback - un
+      // load() completo re-skeletonizaría toda la ficha.
+      const codesRes = await apiFetch(`/academy-deals/${agreementId}/codes`);
+      if (codesRes.ok) {
+        setCodes((await codesRes.json()) as AcademyPresaleCode[]);
+      }
+      setNotice(t("codeIssued"));
     } catch {
       setFormError(tc("error"));
     } finally {
@@ -142,6 +150,7 @@ function DealDetail({
   async function respond(action: "accept" | "decline") {
     setBusy(true);
     setFormError(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/academy-deals/${agreementId}`, {
         method: "PATCH",
@@ -152,7 +161,15 @@ function DealDetail({
         setFormError(tc("error"));
         return;
       }
-      await load();
+      // Update local del estado (aceptar→ACTIVE, rechazar→DECLINED):
+      // la ficha cambia de sección sin refetch ni skeleton - el PATCH
+      // no recalcula stats.
+      setDeal((d) =>
+        d
+          ? { ...d, status: action === "accept" ? "ACTIVE" : "DECLINED" }
+          : d,
+      );
+      setNotice(t("responded"));
     } catch {
       setFormError(tc("error"));
     } finally {
@@ -335,6 +352,11 @@ function DealDetail({
             </div>
           )}
 
+          {notice && (
+            <p role="status" className="text-sm text-neon">
+              {notice}
+            </p>
+          )}
           {formError && (
             <p role="alert" className="text-sm text-red-400">
               {formError}
