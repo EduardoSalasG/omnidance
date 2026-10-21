@@ -81,6 +81,24 @@
    "phoneTaken": "Ce téléphone est déjà enregistré sur un autre compte.",
    "passwordShort": "Le mot de passe doit faire au moins 8 caractères.",
    "loadError": "Impossible de charger tes infos."
+  },
+  "password": {
+   "title": "Sécurité",
+   "label": "Mot de passe",
+   "defined": "Défini",
+   "notSet": "Pas de mot de passe — tu entres via un lien dans ton e-mail",
+   "set": "Définir un mot de passe",
+   "change": "Changer le mot de passe",
+   "current": "Mot de passe actuel",
+   "new": "Nouveau mot de passe",
+   "confirm": "Confirmer le mot de passe",
+   "hint": "8 caractères minimum",
+   "tooShort": "Le mot de passe doit faire au moins 8 caractères.",
+   "mismatch": "Les mots de passe ne correspondent pas.",
+   "incorrect": "Le mot de passe actuel n'est pas correct.",
+   "same": "Le nouveau mot de passe doit être différent de l'actuel.",
+   "saved": "Mot de passe mis à jour",
+   "saveError": "Enregistrement impossible. Réessaie"
   }
  }
 }

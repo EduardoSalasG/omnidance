@@ -128,6 +128,13 @@ class RegisterDto extends PasswordLoginDto {
 }
 
 class SetPasswordDto {
+  // Obligatoria cuando la cuenta YA tiene passwordHash (spec
+  // cambiar-password) - se valida en el handler, que conoce el estado
+  // persistido. Cuentas magic-link-only la omiten.
+  @IsOptional()
+  @IsString()
+  currentPassword?: string;
+
   @IsString()
   @MinLength(8)
   password!: string;
@@ -403,11 +410,27 @@ export class AuthController {
 
   // Crear/cambiar contraseña de la cuenta propia (sesión activa requerida).
   // Cubre a usuarios que entraron por magic link y quieren habilitar
-  // el login con contraseña después.
+  // el login con contraseña después. Misma regla que PUT /me/password
+  // (spec cambiar-password): con hash existente la actual es requerida
+  // y verificada - una sesión activa ya no cambia el password en
+  // silencio. Superficie legacy: el front usa PUT /me/password.
   @Post("password")
   @HttpCode(200)
   @UseGuards(SessionGuard)
   async setPassword(@Req() req: Request, @Body() dto: SetPasswordDto) {
+    const person = await this.repo.findById(req.person!.id);
+    if (person?.passwordHash) {
+      const ok =
+        !!dto.currentPassword &&
+        (await this.auth.verifyPassword(
+          dto.currentPassword,
+          person.passwordHash,
+        ));
+      if (!ok) throw new BadRequestException("password.incorrect");
+      if (dto.password === dto.currentPassword) {
+        throw new BadRequestException("password.same");
+      }
+    }
     const hash = await this.auth.hashPassword(dto.password);
     await this.repo.setPassword(req.person!.id, hash);
     return { ok: true };

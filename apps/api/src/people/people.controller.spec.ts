@@ -3,7 +3,11 @@ import type { Request } from "express";
 import { CONSENT_VERSION } from "@omnidance/shared";
 import type { PrismaService } from "../prisma.service";
 import "../auth/infrastructure/auth.controller"; // ciclo session.guard ⇄ auth.controller (ver events.controller.spec)
-import { PeopleController, UpdateMeDto } from "./people.controller";
+import {
+  ChangePasswordDto,
+  PeopleController,
+  UpdateMeDto,
+} from "./people.controller";
 import { ConsentService } from "../legal/consent.service";
 import type { NotificationsService } from "../notifications/domain/notifications.service";
 import { plainToInstance } from "class-transformer";
@@ -32,6 +36,7 @@ interface FakePerson {
   consentVersion: string | null;
   consentAcceptedAt: Date | null;
   jurisdiction: string | null;
+  passwordHash: string | null;
   roles: { role: string; status: string }[];
   styleRoles: {
     role: string;
@@ -269,6 +274,7 @@ const mkPerson = (id: string, gender: string | null = null): FakePerson => ({
   consentVersion: null,
   consentAcceptedAt: null,
   jurisdiction: null,
+  passwordHash: null,
   roles: [],
   styleRoles: [],
 });
@@ -288,7 +294,13 @@ describe("PeopleController", () => {
     notifications = { notifySafe: vi.fn(async () => {}) };
     ctrl = new PeopleController(
       prisma as unknown as PrismaService,
-      { hashPassword: async () => "hash" } as never,
+      // Fake auth con formato determinista hashed:<pw> - permite
+      // ejercer verifyPassword de verdad en PUT /me/password.
+      {
+        hashPassword: async (pw: string) => `hashed:${pw}`,
+        verifyPassword: async (pw: string, stored: string) =>
+          stored === `hashed:${pw}`,
+      } as never,
       notifications as unknown as NotificationsService,
       {
         // FakeStorage: save devuelve key con folder como el real.
@@ -478,6 +490,74 @@ describe("PeopleController", () => {
       prisma.people.get("me")!.jurisdiction = "EU";
       const res = await ctrl.me(reqAs("me"));
       expect(res.jurisdiction).toBe("EU");
+    });
+
+    // Spec cambiar-password: el front decide el form (pedir actual vs
+    // establecer) según el flag - el hash nunca sale en el payload.
+    it("expone hasPassword sin filtrar el hash", async () => {
+      expect((await ctrl.me(reqAs("me"))).hasPassword).toBe(false);
+      prisma.people.get("me")!.passwordHash = "hashed:vieja-123";
+      const res = await ctrl.me(reqAs("me"));
+      expect(res.hasPassword).toBe(true);
+      expect("passwordHash" in res).toBe(false);
+    });
+  });
+
+  // spec cambiar-password - PUT /me/password: con hash previo exige la
+  // actual verificada; magic-link-only establece la primera sin actual.
+  describe("PUT /me/password", () => {
+    it("con hash existente y actual correcta → reemplaza el hash", async () => {
+      prisma.people.get("me")!.passwordHash = "hashed:vieja-123";
+      const res = await ctrl.changePassword(reqAs("me"), {
+        currentPassword: "vieja-123",
+        newPassword: "nueva-clave-456",
+      });
+      expect(res).toEqual({ ok: true });
+      expect(prisma.people.get("me")!.passwordHash).toBe(
+        "hashed:nueva-clave-456",
+      );
+    });
+
+    it.each([{ currentPassword: "mala-000" }, {}])(
+      "actual incorrecta o ausente → 400 password.incorrect sin mutar",
+      async (dto) => {
+        prisma.people.get("me")!.passwordHash = "hashed:vieja-123";
+        await expect(
+          ctrl.changePassword(reqAs("me"), {
+            newPassword: "nueva-clave-456",
+            ...dto,
+          }),
+        ).rejects.toThrow("password.incorrect");
+        expect(prisma.people.get("me")!.passwordHash).toBe("hashed:vieja-123");
+      },
+    );
+
+    it("newPassword igual a la actual → 400 password.same", async () => {
+      prisma.people.get("me")!.passwordHash = "hashed:vieja-123";
+      await expect(
+        ctrl.changePassword(reqAs("me"), {
+          currentPassword: "vieja-123",
+          newPassword: "vieja-123",
+        }),
+      ).rejects.toThrow("password.same");
+      expect(prisma.people.get("me")!.passwordHash).toBe("hashed:vieja-123");
+    });
+
+    it("sin hash (magic-link-only) → establece la primera sin actual", async () => {
+      const res = await ctrl.changePassword(reqAs("me"), {
+        newPassword: "primera-clave-1",
+      });
+      expect(res).toEqual({ ok: true });
+      expect(prisma.people.get("me")!.passwordHash).toBe(
+        "hashed:primera-clave-1",
+      );
+    });
+
+    it("newPassword <8 → error de validación (400 en el pipe)", async () => {
+      const errors = await validate(
+        plainToInstance(ChangePasswordDto, { newPassword: "corta" }),
+      );
+      expect(errors.some((e) => e.property === "newPassword")).toBe(true);
     });
   });
 

@@ -213,7 +213,7 @@
 
 ### Perfil `/perfil`, `/perfil/datos`, `/perfil/pagos`
 - Hub: `?sub=error` alert; identidad→datos; badges de roles; ProfileReminder (dismiss→`POST /me/onboarding`); "Interactuar como" radiogroup (lens); KPIs DANCER; streak+badges por modo; ThemeToggle; link pagos; **logout** `POST /auth/logout`→`/`。
-- Datos: PATCH /me {name*,phone,instagram,gender,birthDate} (409 phoneTaken); selector idioma → PATCH /me {language} + router.replace locale; sección por modo (academy→enrollments; otro→editor styleRoles PUT /me/style-roles).
+- Datos: PATCH /me {name*,phone,instagram,gender,birthDate} (409 phoneTaken); selector idioma → PATCH /me {language} + router.replace locale; sección por modo (academy→enrollments; otro→editor styleRoles PUT /me/style-roles); sección Seguridad: cambiar contraseña (hasPassword→pide actual) o establecer (magic-link-only) → PUT /me/password (400 password.incorrect|password.same; nueva ≥8 + confirmación).
 - Pagos: `GET /payments/mine` + `/subscriptions/mine` (CANCELED fuera); cancel sub → 2-pasos → `POST /subscriptions/:id/cancel`; filas expanden ledger `GET /payments/:id/events`.
 
 ---

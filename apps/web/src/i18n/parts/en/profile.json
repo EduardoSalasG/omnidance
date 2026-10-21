@@ -81,6 +81,24 @@
    "phoneTaken": "This phone is already registered to another account.",
    "passwordShort": "Password must be at least 8 characters.",
    "loadError": "We couldn’t load your details."
+  },
+  "password": {
+   "title": "Security",
+   "label": "Password",
+   "defined": "Set",
+   "notSet": "No password — you sign in via your email link",
+   "set": "Set password",
+   "change": "Change password",
+   "current": "Current password",
+   "new": "New password",
+   "confirm": "Confirm password",
+   "hint": "minimum 8 characters",
+   "tooShort": "Password must be at least 8 characters.",
+   "mismatch": "Passwords don’t match.",
+   "incorrect": "The current password is not correct.",
+   "same": "The new password must be different from the current one.",
+   "saved": "Password updated",
+   "saveError": "Couldn’t save. Try again"
   }
  }
 }
