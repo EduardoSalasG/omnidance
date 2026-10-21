@@ -211,15 +211,20 @@ export class StripeGateway implements PaymentGateway {
         "line_items[0][price_data][unit_amount]": String(
           toMinorUnits(currency, p.amount),
         ),
-        // El refId codifica el tipo de orden (tkt_/sp_/mem_) - el nombre
-        // del ítem refleja qué se está comprando (mismo criterio MP/Flow).
+        // El refId codifica el tipo de orden (tkt_/sp_/mem_/wks_/pvt_) -
+        // el nombre del ítem refleja qué se está comprando (mismo
+        // criterio MP/Flow, ampliado a las órdenes de academia).
         "line_items[0][price_data][product_data][name]": p.refId.startsWith(
           "mem_",
         )
           ? "Plan Omnidance"
           : p.refId.startsWith("sp_")
             ? "Pase de serie Omnidance"
-            : "Ticket Omnidance",
+            : p.refId.startsWith("pvt_")
+              ? "Clase particular Omnidance"
+              : p.refId.startsWith("wks_")
+                ? "Workshop Omnidance"
+                : "Ticket Omnidance",
         "line_items[0][quantity]": "1",
         // refId duplicado: client_reference_id indexa en Stripe y
         // metadata.refId viaja dentro del objeto (redundancia deliberada).

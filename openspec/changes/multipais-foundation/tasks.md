@@ -9,9 +9,10 @@
   membresías) + price book `tier × country`
 - [~] 3. `Person.phoneCountryCode` (campo done; falta formatos
   por país en UI/validación)
-- [ ] 4. Adapter Stripe en `gateway-registry` (+MercadoPago opc.);
-  port `PayoutRail` (Chile=Fintoc, resto=Stripe Connect)
-- [ ] 5. Scoping regional: `AdminRegion(personId, regionId)` +
+- [x] 4. Adapter Stripe en `gateway-registry` (MP ya existía) +
+  port `PayoutRail` (MANUAL/STRIPE_CONNECT; Chile sigue manual,
+  rail Fintoc pendiente) — hecho en `stripe-gateway-payout-rail`
+- [x] 5. Scoping regional: `AdminRegion(personId, regionId)` +
   filtro de colas de validación por región
 - [ ] 6. Consent por jurisdicción (GDPR vs Ley 19.628)
 - [ ] 7. Landing por ciudad + "cerca de mí" (geohash)

@@ -123,20 +123,24 @@ describe("StripeGateway.createOrder", () => {
     expect(body["line_items[0][price_data][unit_amount]"]).toBe("1000");
   });
 
-  it("título del ítem por prefijo de refId (mem_/sp_/default)", async () => {
+  it("título del ítem por prefijo de refId (mem_/sp_/pvt_/wks_/default)", async () => {
     vi.stubGlobal("fetch", mockFetch({ "checkout/sessions": created }));
     const fetchMock = vi.mocked(fetch);
-    for (const [refId, name] of [
-      ["mem_plan-1_x", "Plan Omnidance"],
-      ["sp_ser-1_2026-10_x", "Pase de serie Omnidance"],
-      ["wks_cls-1_x", "Ticket Omnidance"],
+    for (const [refId] of [
+      ["mem_plan-1_x"],
+      ["sp_ser-1_2026-10_x"],
+      ["pvt_aca-1_x"],
+      ["wks_cls-1_x"],
+      ["tkt_x"],
     ] as const) {
       await gw().createOrder({ refId, amount: 1, email: "e", returnUrl: "u" });
     }
     for (const [i, name] of [
       [0, "Plan Omnidance"],
       [1, "Pase de serie Omnidance"],
-      [2, "Ticket Omnidance"],
+      [2, "Clase particular Omnidance"],
+      [3, "Workshop Omnidance"],
+      [4, "Ticket Omnidance"],
     ] as const) {
       expect(
         formOf(fetchMock.mock.calls[i] as unknown[])[

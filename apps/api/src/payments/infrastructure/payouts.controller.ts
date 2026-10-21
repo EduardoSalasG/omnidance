@@ -205,6 +205,7 @@ export class AdminPayoutsController {
           platformFee: settlement.platformFee,
           gatewayFee: settlement.gatewayFee,
           net: settlement.net,
+          currency: settlement.currency,
         },
       });
       if (settlement.lines.length) {
@@ -368,14 +369,30 @@ export class AdminPayoutsController {
       );
     }
 
-    const updated = await this.prisma.payout.update({
-      where: { id },
+    // Claim atómico APPROVED→PAID: si otra vía (POST /pay u otro
+    // disburse) resolvió el payout mientras el rail ejecutaba, el
+    // dinero ya salió una sola vez (Idempotency-Key) pero hay que
+    // conciliar a mano - el railRef identifica el transfer.
+    const claimed = await this.prisma.payout.updateMany({
+      where: { id, status: "APPROVED" },
       data: {
         status: "PAID",
         paidAt: new Date(),
         rail: resolution.rail.name,
         railRef: ref,
       },
+    });
+    if (claimed.count === 0) {
+      await this.audit(req, "PAYOUT_DISBURSE_CONFLICT", id, {
+        rail: resolution.rail.name,
+        ref,
+      });
+      throw new ConflictException(
+        `desembolso enviado (${ref}) pero el payout fue resuelto por otra vía - conciliar manualmente`,
+      );
+    }
+    const updated = await this.prisma.payout.findUniqueOrThrow({
+      where: { id },
     });
     await this.audit(req, "PAYOUT_DISBURSE", id, {
       rail: resolution.rail.name,
@@ -385,7 +402,6 @@ export class AdminPayoutsController {
     });
     return updated;
   }
-
 
   private audit(
     req: Request,

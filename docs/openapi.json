@@ -1558,6 +1558,85 @@
         ]
       }
     },
+    "/api/events/series/{id}/engagement": {
+      "get": {
+        "operationId": "SeriesEngagementController_engagement",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SeriesEngagement"
+        ]
+      }
+    },
+    "/api/events/series/{id}/review": {
+      "post": {
+        "operationId": "SeriesEngagementController_review",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SeriesEngagement"
+        ]
+      }
+    },
+    "/api/events/series/{id}/reviews": {
+      "get": {
+        "operationId": "SeriesEngagementController_reviews",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SeriesEngagement"
+        ]
+      }
+    },
     "/api/events/{id}/analytics": {
       "get": {
         "operationId": "EventAnalyticsController_analytics",
@@ -2949,6 +3028,29 @@
         ]
       }
     },
+    "/api/admin/payouts/{id}/disburse": {
+      "post": {
+        "operationId": "AdminPayoutsController_disburse",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminPayouts"
+        ]
+      }
+    },
     "/api/me/payouts": {
       "get": {
         "operationId": "MePayoutsController_mine",
@@ -3040,6 +3142,42 @@
         },
         "tags": [
           "MePayouts"
+        ]
+      }
+    },
+    "/api/me/payout-destinations": {
+      "post": {
+        "operationId": "PayoutDestinationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePayoutDestinationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PayoutDestinations"
+        ]
+      },
+      "get": {
+        "operationId": "PayoutDestinationsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PayoutDestinations"
         ]
       }
     },
@@ -4564,6 +4702,74 @@
         },
         "tags": [
           "EventEntryPasses"
+        ]
+      }
+    },
+    "/api/cities/near": {
+      "get": {
+        "operationId": "CitiesController_near",
+        "parameters": [
+          {
+            "name": "lat",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lng",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Cities"
+        ]
+      }
+    },
+    "/api/cities": {
+      "get": {
+        "operationId": "CitiesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Cities"
+        ]
+      }
+    },
+    "/api/cities/{slug}": {
+      "get": {
+        "operationId": "CitiesController_detail",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Cities"
         ]
       }
     },
@@ -7598,6 +7804,29 @@
         ]
       }
     },
+    "/api/admin/users/{personId}/reactivate": {
+      "post": {
+        "operationId": "AdminController_reactivateUser",
+        "parameters": [
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
     "/api/admin/roles": {
       "get": {
         "operationId": "AdminController_roles",
@@ -10459,6 +10688,10 @@
         "type": "object",
         "properties": {}
       },
+      "ReviewDto": {
+        "type": "object",
+        "properties": {}
+      },
       "ProducerTableParamsDto": {
         "type": "object",
         "properties": {}
@@ -10544,6 +10777,10 @@
         "properties": {}
       },
       "PayPayoutDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreatePayoutDestinationDto": {
         "type": "object",
         "properties": {}
       },

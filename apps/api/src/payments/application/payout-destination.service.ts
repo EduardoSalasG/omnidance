@@ -144,7 +144,7 @@ export class PayoutDestinationService {
       );
     }
     await this.assertOwnership(personId, dto.actorType, dto.actorId);
-    const country = dto.country.toUpperCase();
+    let country = dto.country.toUpperCase();
 
     const existing = await this.prisma.payoutDestination.findUnique({
       where: {
@@ -164,10 +164,12 @@ export class PayoutDestinationService {
     let externalId: string;
     let currency: string;
     if (existing?.status === "PENDING") {
-      // Reintento de onboarding: la cuenta Express ya existe - solo se
-      // emite un Account Link nuevo (nunca una segunda acct_ por actor).
+      // Reintento de onboarding: la cuenta Express ya existe con su
+      // país - solo se emite un Account Link nuevo (nunca una segunda
+      // acct_ ni un país distinto al de la cuenta remota).
       externalId = existing.externalId;
       currency = existing.currency;
+      country = existing.country;
     } else {
       const account = await client.createExpressAccount({
         country,
@@ -181,18 +183,9 @@ export class PayoutDestinationService {
       currency = account.default_currency?.toUpperCase() ?? "USD";
     }
 
-    // El onboarding aterriza en la consola de pagos del productor
-    // (apps/web /productor/pagos) - refresh y return comparten URL.
-    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-    const link = await client.createAccountLink({
-      account: externalId,
-      refresh_url: `${webUrl}/productor/pagos`,
-      return_url: `${webUrl}/productor/pagos`,
-    });
-    if (!link.url) {
-      throw new Error("stripe account_links: respuesta sin url");
-    }
-
+    // Persistir ANTES del Account Link: si el link falla, el row
+    // PENDING ya apunta a la acct_ y el próximo intento la reutiliza
+    // (sin cuentas huérfanas).
     const destination = existing
       ? await this.prisma.payoutDestination.update({
           where: { id: existing.id },
@@ -216,6 +209,19 @@ export class PayoutDestinationService {
             status: "PENDING",
           },
         });
+
+    // El onboarding aterriza en la consola de pagos del productor
+    // (apps/web /productor/pagos) - refresh y return comparten URL.
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const link = await client.createAccountLink({
+      account: externalId,
+      refresh_url: `${webUrl}/productor/pagos`,
+      return_url: `${webUrl}/productor/pagos`,
+    });
+    if (!link.url) {
+      throw new Error("stripe account_links: respuesta sin url");
+    }
+
     return { destination, onboardingUrl: link.url };
   }
 
@@ -347,7 +353,22 @@ export class PayoutDestinationService {
       }
       return;
     }
-    if (!account.details_submitted || !account.charges_enabled) return;
+    if (!account.details_submitted || !account.charges_enabled) {
+      // El fetch funcionó: un lastError viejo de un fallo previo no
+      // corresponde más - se limpia aunque la cuenta siga sin operar.
+      if (destination.lastError) {
+        try {
+          await this.prisma.payoutDestination.update({
+            where: { id: destination.id },
+            data: { lastError: null },
+          });
+          destination.lastError = null;
+        } catch {
+          // best-effort
+        }
+      }
+      return;
+    }
     const updated = await this.prisma.payoutDestination.update({
       where: { id: destination.id },
       data: {
