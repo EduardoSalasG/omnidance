@@ -2230,3 +2230,16 @@ model ConsentRecord {
 
   @@index([personId, acceptedAt])
 }
+
+// Flags de funcionalidad globales (spec feature-flags-admin): catálogo
+// seedado desde código — un flag sin consumer no sirve, por eso no hay
+// alta desde UI; el admin solo togglea `enabled`. `updatedById` =
+// última persona que lo flippeó (además del AuditLog FEATURE_FLAG_TOGGLE).
+model FeatureFlag {
+  key         String   @id // "social_pass" | "trip_planner" | ...
+  label       String
+  description String?
+  enabled     Boolean  @default(false)
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
