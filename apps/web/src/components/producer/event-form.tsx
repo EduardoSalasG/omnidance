@@ -287,6 +287,10 @@ export function EventForm({
         setDjsText("");
         setDjsDirty(false);
       }
+    } catch {
+      // El contrato onSubmit devuelve errores como string; un throw
+      // inesperado no debe quedar silencioso.
+      setError(tc("error"));
     } finally {
       setBusy(false);
     }

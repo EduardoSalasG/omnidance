@@ -87,10 +87,14 @@ function BillingPanel() {
   maximumFractionDigits: 0,
 });
   const t = useTranslations("admin.billing");
+  const tc = useTranslations("common");
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [docs, setDocs] = useState<BillingDoc[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Fallo de red en la carga inicial: los arrays quedan en null y se
+  // muestra error + retry en vez de skeletons infinitos.
+  const [loadFailed, setLoadFailed] = useState(false);
   const [generating, setGenerating] = useState<string | null>(null);
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
@@ -101,24 +105,30 @@ function BillingPanel() {
   // listado (los candidatos a emitir siempre van completos).
   const load = useCallback(async () => {
     setError(null);
+    setLoadFailed(false);
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(filters)) {
       if (v) params.set(k, v);
     }
     const qs = params.toString();
-    const [rc, rd] = await Promise.all([
-      apiFetch("/admin/billing/candidates"),
-      apiFetch(`/admin/billing${qs ? `?${qs}` : ""}`),
-    ]);
-    if (!rc.ok || !rd.ok) {
-      setError(await readError(rc.ok ? rd : rc));
-      setCandidates([]);
-      setDocs([]);
-      return;
+    try {
+      const [rc, rd] = await Promise.all([
+        apiFetch("/admin/billing/candidates"),
+        apiFetch(`/admin/billing${qs ? `?${qs}` : ""}`),
+      ]);
+      if (!rc.ok || !rd.ok) {
+        setError(await readError(rc.ok ? rd : rc));
+        setCandidates([]);
+        setDocs([]);
+        return;
+      }
+      setCandidates(await rc.json());
+      setDocs(await rd.json());
+    } catch {
+      setError(tc("error"));
+      setLoadFailed(true);
     }
-    setCandidates(await rc.json());
-    setDocs(await rd.json());
-  }, [filters]);
+  }, [filters, tc]);
 
   useEffect(() => {
     void load();
@@ -140,6 +150,8 @@ function BillingPanel() {
         setNotice(t("generated"));
         await load();
       }
+    } catch {
+      setError(tc("error"));
     } finally {
       setGenerating(null);
     }
@@ -162,6 +174,8 @@ function BillingPanel() {
         setVoidReason("");
         await load();
       }
+    } catch {
+      setError(tc("error"));
     } finally {
       setVoidBusy(false);
     }
@@ -175,8 +189,17 @@ function BillingPanel() {
         <h1 className="text-lg font-semibold">{t("title")}</h1>
         <p className="text-sm text-ink/60">{t("desc")}</p>
         {error && (
-          <Card className="border-red-500/40 p-3 text-sm text-red-300">
-            {error}
+          <Card className="flex items-center justify-between gap-3 border-red-500/40 p-3 text-sm text-red-300">
+            <span>{error}</span>
+            {loadFailed && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void load()}
+              >
+                {tc("retry")}
+              </Button>
+            )}
           </Card>
         )}
         {notice && (
@@ -192,7 +215,9 @@ function BillingPanel() {
           {t("candidatesTitle")}
         </h2>
         {candidates === null ? (
-          <SkeletonList items={3} />
+          loadFailed ? null : (
+            <SkeletonList items={3} />
+          )
         ) : pending.length === 0 ? (
           <Card className="p-4 text-sm text-ink/60">
             {t("candidatesEmpty")}
@@ -245,7 +270,9 @@ function BillingPanel() {
           options={{}}
         />
         {docs === null ? (
-          <SkeletonList items={3} />
+          loadFailed ? null : (
+            <SkeletonList items={3} />
+          )
         ) : docs.length === 0 ? (
           <Card className="p-4 text-sm text-ink/60">{t("docsEmpty")}</Card>
         ) : (

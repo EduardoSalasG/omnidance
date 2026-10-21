@@ -159,14 +159,19 @@ function CampaignsPanel() {
 
   const load = useCallback(async () => {
     setError(null);
-    const res = await apiFetch("/admin/mail-campaigns");
-    if (!res.ok) {
-      setError(await readError(res));
+    try {
+      const res = await apiFetch("/admin/mail-campaigns");
+      if (!res.ok) {
+        setError(await readError(res));
+        setCampaigns([]);
+        return;
+      }
+      setCampaigns(await res.json());
+    } catch {
+      setError(tc("error"));
       setCampaigns([]);
-      return;
     }
-    setCampaigns(await res.json());
-  }, []);
+  }, [tc]);
 
   useEffect(() => {
     void load();
@@ -366,6 +371,7 @@ function CampaignForm({
 });
   const fmt = (iso: string | null) => (iso ? dt.format(new Date(iso)) : "—");
   const t = useTranslations("admin");
+  const tc = useTranslations("common");
   const [name, setName] = useState(initial?.name ?? "");
   const [subject, setSubject] = useState(initial?.subject ?? "");
   const [htmlBody, setHtmlBody] = useState(initial?.htmlBody ?? "");
@@ -388,9 +394,11 @@ function CampaignForm({
   const eventTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    void apiFetch("/admin/roles").then(async (r) => {
-      if (r.ok) setRoles(await r.json());
-    });
+    void apiFetch("/admin/roles")
+      .then(async (r) => {
+        if (r.ok) setRoles(await r.json());
+      })
+      .catch(() => setRoles([]));
   }, []);
 
   // Buscador de eventos (debounce): sin filtro de status — también los
@@ -402,8 +410,12 @@ function CampaignForm({
       const params = eventQ.trim()
         ? `?q=${encodeURIComponent(eventQ.trim())}`
         : "";
-      const r = await apiFetch(`/admin/browse/events${params}`);
-      if (r.ok) setEvents(await r.json());
+      try {
+        const r = await apiFetch(`/admin/browse/events${params}`);
+        if (r.ok) setEvents(await r.json());
+      } catch {
+        // Búsqueda auxiliar - el próximo keystroke reintenta.
+      }
     }, 300);
     return () => {
       if (eventTimer.current) clearTimeout(eventTimer.current);
@@ -418,9 +430,13 @@ function CampaignForm({
       if (kind === "ROLE") params.set("roleKey", roleKey);
       if (kind === "EVENT") params.set("eventId", eventId);
       if (LIFECYCLE.has(kind)) params.set("days", days);
-      const res = await apiFetch(`/admin/mail-campaigns/audience-count?${params}`);
-      if (res.ok) setCount((await res.json()).count);
-      else setCount(null);
+      try {
+        const res = await apiFetch(`/admin/mail-campaigns/audience-count?${params}`);
+        if (res.ok) setCount((await res.json()).count);
+        else setCount(null);
+      } catch {
+        setCount(null);
+      }
     }, 400);
     return () => {
       if (countTimer.current) clearTimeout(countTimer.current);
@@ -463,6 +479,8 @@ function CampaignForm({
       } else {
         await onSaved();
       }
+    } catch {
+      onError(tc("error"));
     } finally {
       setSaving(false);
     }

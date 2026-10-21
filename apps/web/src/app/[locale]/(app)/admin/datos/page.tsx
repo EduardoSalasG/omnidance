@@ -466,7 +466,11 @@ function DatosPanel() {
           firstBadSeq?: number;
         };
         setChainResult((prev) => ({ ...prev, [paymentId]: data }));
+      } else {
+        setNotice({ kind: "err", text: tc("error") });
       }
+    } catch {
+      setNotice({ kind: "err", text: tc("error") });
     } finally {
       setVerifying(null);
     }

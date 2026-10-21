@@ -94,6 +94,8 @@ export function ProducerPaymentMethodsSection() {
       setOrder("0");
       setMsg({ kind: "ok", text: tp("created") });
       await load();
+    } catch {
+      setMsg({ kind: "err", text: t("error") });
     } finally {
       setBusy(false);
     }

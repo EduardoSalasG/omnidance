@@ -90,19 +90,27 @@ function JobsPanel() {
   const [cronDraft, setCronDraft] = useState("");
   const [runsFor, setRunsFor] = useState<string | null>(null);
   const [runs, setRuns] = useState<JobRun[] | null>(null);
+  // Fallo al cargar las corridas: distinto de "sin corridas" - el panel
+  // expandido muestra error en vez de una vacía ambigua.
+  const [runsError, setRunsError] = useState(false);
   // Confirmación compartida de "correr ahora" (reemplaza window.confirm).
   const [pendingRun, setPendingRun] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
-    const res = await apiFetch("/admin/jobs");
-    if (!res.ok) {
-      setError(await readError(res));
+    try {
+      const res = await apiFetch("/admin/jobs");
+      if (!res.ok) {
+        setError(await readError(res));
+        setJobs([]);
+        return;
+      }
+      setJobs(await res.json());
+    } catch {
+      setError(tc("error"));
       setJobs([]);
-      return;
     }
-    setJobs(await res.json());
-  }, []);
+  }, [tc]);
 
   useEffect(() => {
     void load();
@@ -157,12 +165,24 @@ function JobsPanel() {
     if (runsFor === key) {
       setRunsFor(null);
       setRuns(null);
+      setRunsError(false);
       return;
     }
     setRunsFor(key);
     setRuns(null);
-    const res = await apiFetch(`/admin/jobs/${encodeURIComponent(key)}/runs`);
-    setRuns(res.ok ? await res.json() : []);
+    setRunsError(false);
+    try {
+      const res = await apiFetch(
+        `/admin/jobs/${encodeURIComponent(key)}/runs`,
+      );
+      if (!res.ok) {
+        setRunsError(true);
+        return;
+      }
+      setRuns(await res.json());
+    } catch {
+      setRunsError(true);
+    }
   }
 
   return (
@@ -305,13 +325,17 @@ function JobsPanel() {
 
               {runsFor === job.key && (
                 <div className="rounded-xl border border-ink/10">
-                  {runs === null ? (
+                  {runs === null && !runsError ? (
                     <div className="p-3">
                       <SkeletonList items={2} />
                     </div>
-                  ) : runs.length === 0 ? (
+                  ) : runsError ? (
+                    <p role="alert" className="p-3 text-xs text-red-300">
+                      {tc("error")}
+                    </p>
+                  ) : runs !== null && runs.length === 0 ? (
                     <p className="p-3 text-xs text-ink/50">{t("jobs.noRuns")}</p>
-                  ) : (
+                  ) : runs !== null ? (
                     <ul className="flex flex-col">
                       {runs.map((run) => (
                         <li
@@ -350,7 +374,7 @@ function JobsPanel() {
                         </li>
                       ))}
                     </ul>
-                  )}
+                  ) : null}
                 </div>
               )}
             </Card>

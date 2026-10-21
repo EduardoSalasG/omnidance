@@ -22,8 +22,12 @@ export function SeriesCommentsCard({ seriesId }: { seriesId: string }) {
   const [rows, setRows] = useState<ReviewRow[] | null>(null);
 
   const load = useCallback(async () => {
-    const res = await apiFetch(`/events/series/${seriesId}/reviews`);
-    if (res.ok) setRows((await res.json()) as ReviewRow[]);
+    // Sección auxiliar: si falla la carga la card simplemente no se
+    // monta (rows queda en null) - sin unhandled rejection.
+    const res = await apiFetch(
+      `/events/series/${seriesId}/reviews`,
+    ).catch(() => null);
+    if (res?.ok) setRows((await res.json()) as ReviewRow[]);
   }, [seriesId]);
 
   useEffect(() => {

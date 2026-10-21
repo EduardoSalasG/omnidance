@@ -44,6 +44,9 @@ function NewEventStaff({ eventId }: { eventId: string }) {
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [searching, setSearching] = useState(false);
+  // Fallo de la búsqueda: distinto de "sin resultados" (una vacía
+  // ambigua escondería un error de red).
+  const [searchError, setSearchError] = useState(false);
   const [selected, setSelected] = useState<Candidate | null>(null);
   const [role, setRole] = useState<StaffRole>("DOOR");
   const [busy, setBusy] = useState(false);
@@ -85,15 +88,27 @@ function NewEventStaff({ eventId }: { eventId: string }) {
     if (selected || term.length < 2) {
       setCandidates(null);
       setSearching(false);
+      setSearchError(false);
       return;
     }
     setSearching(true);
+    setSearchError(false);
     const timer = setTimeout(() => {
       apiFetch(
         `/events/${eventId}/staff/candidates?q=${encodeURIComponent(term)}`,
       )
-        .then(async (res) => setCandidates(res.ok ? await res.json() : []))
-        .catch(() => setCandidates([]))
+        .then(async (res) => {
+          if (res.ok) {
+            setCandidates(await res.json());
+          } else {
+            setCandidates([]);
+            setSearchError(true);
+          }
+        })
+        .catch(() => {
+          setCandidates([]);
+          setSearchError(true);
+        })
         .finally(() => setSearching(false));
     }, 300);
     return () => clearTimeout(timer);
@@ -236,11 +251,18 @@ function NewEventStaff({ eventId }: { eventId: string }) {
                           {tc("loading")}
                         </p>
                       )}
-                      {candidates !== null && candidates.length === 0 && (
-                        <p role="status" className="text-xs text-ink/50">
-                          {t("staffSection.noResults")}
+                      {searchError && (
+                        <p role="alert" className="text-xs text-red-400">
+                          {tc("error")}
                         </p>
                       )}
+                      {!searchError &&
+                        candidates !== null &&
+                        candidates.length === 0 && (
+                          <p role="status" className="text-xs text-ink/50">
+                            {t("staffSection.noResults")}
+                          </p>
+                        )}
                     </div>
                     {candidates !== null && candidates.length > 0 && (
                       <ul className="flex flex-col gap-1" role="listbox">
