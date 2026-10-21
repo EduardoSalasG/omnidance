@@ -3,6 +3,38 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.8.0] - 2026-10-21
+
+### Added
+
+- **Roadmap multipais completo**: feature flags admin (fail-closed),
+  city discovery (landings por ciudad, "cerca de mi" geohash), city
+  guides editoriales + admin, Mi viaje (trip planner), Pase Social
+  (Stripe Billing + creditos + beneficios, flag OFF).
+- **Feedback de exito transversal** (todos los roles): ActionNotice
+  fijo post-accion, errors silenciosos cubiertos, ConfirmSheet en
+  acciones de dinero/destructivas, marcaje de asistencia sin skeleton.
+- **Agregar a mi calendario** tras reservar clase (.ics RFC 5545,
+  TZID, VALARM).
+- **Cuota semanal en Inicio**: GET /classes/my-quota + WeeklyQuotaCard.
+- **Cambiar contrasena**: PUT /me/password (verifica actual o
+  establece si magic-link-only) + seccion en perfil.
+- Onboarding mobile: banners con precedencia de slot, tours con
+  anchor visible, action sheets scrolleables.
+
+### Fixed
+
+- Landing: fecha del evento en hora local (city.timezone) - ya no
+  corre un dia por TZ del servidor.
+- PushOptIn dentro de MeProvider (runtime error).
+- Copy de agotamiento: mayuscula + singular/plural correcto.
+
+### Changed
+
+- Seed prod = solo baseline + admin (dataset demo fuera de prod);
+  Timba fuera del catalogo (REMOVED_STYLES lo depura de DBs).
+- Texto legal EU reescrito sobre patron art.13 RGPD.
+
 ## [1.7.0] - 2026-10-21
 
 ### Added
