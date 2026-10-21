@@ -72,6 +72,17 @@ function mkPrisma() {
         ledger.push(data);
         return data;
       }),
+      // Dedup por invoiceId persistido (spec pase-social review):
+      // un RESET con el mismo paymentId marca el evento como retry.
+      findFirst: vi.fn(
+        async ({ where }: { where: Row }): Promise<Row | null> =>
+          ledger.find(
+            (l) =>
+              l.passId === where.passId &&
+              l.reason === where.reason &&
+              l.paymentId === where.paymentId,
+          ) ?? null,
+      ),
     },
     auditLog: {
       create: vi.fn(async ({ data }: { data: Row }) => {

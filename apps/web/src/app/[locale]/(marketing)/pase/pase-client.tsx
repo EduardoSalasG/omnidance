@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
+import { Link } from "@/i18n/navigation";
 import { apiFetch } from "@/lib/api";
 import { useDateFmt } from "@/lib/intl";
 import {
@@ -138,6 +139,12 @@ export function PaseClient() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 sm:px-6">
+      <Link
+        href="/"
+        className="inline-flex min-h-11 items-center text-sm text-ink/60 transition-colors hover:text-ink"
+      >
+        {t("backHome")}
+      </Link>
       <header className="flex flex-col gap-2">
         <Badge variant="neon" className="self-start">
           {t("title")}

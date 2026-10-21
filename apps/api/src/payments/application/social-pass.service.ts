@@ -131,13 +131,22 @@ export class SocialPassService {
    */
   private async priceFor(jurisdiction?: string | null) {
     const cc = (jurisdiction ?? "CL").toUpperCase();
+    // La unique key de TierPrice lleva kind+billingCycle (schema:
+    // SOCIAL_PASS se siembra PRODUCER/MONTHLY como placeholder) -
+    // filtrar explícito para no tomar una fila de otro ciclo si el
+    // admin agrega una segunda.
+    const tierWhere = {
+      tierCode: PASS_TIER,
+      kind: "PRODUCER" as const,
+      billingCycle: "MONTHLY" as const,
+    };
     const row =
       (await this.prisma.tierPrice.findFirst({
-        where: { tierCode: PASS_TIER, countryCode: cc },
+        where: { ...tierWhere, countryCode: cc },
       })) ??
       (cc !== "CL"
         ? await this.prisma.tierPrice.findFirst({
-            where: { tierCode: PASS_TIER, countryCode: "CL" },
+            where: { ...tierWhere, countryCode: "CL" },
           })
         : null);
     if (row) return { amount: row.price, currency: row.currency };
@@ -244,12 +253,34 @@ export class SocialPassService {
       { correlationId },
     );
 
+    // Re-suscripción tras FAILED_CARD: la sub remota puede seguir viva
+    // (Stripe Smart Retries la reintenta) y una sesión nueva crearía
+    // una SEGUNDA suscripción con doble cobro. Se cancelan todas las
+    // subs no-canceled del customer como compensación de huérfanas
+    // (uso legítimo de `immediate` del port) antes de la sesión nueva.
+    const remoteSubs =
+      (await provider.listCustomerSubscriptions?.(customerId, {
+        correlationId,
+      })) ?? [];
+    for (const sub of remoteSubs) {
+      if (sub.status !== "CANCELED") {
+        await provider.cancelSubscription(sub.subscriptionId, {
+          immediate: true,
+          correlationId,
+        });
+      }
+    }
+
     // Upsert por personId (único): re-suscripción tras CANCELED /
     // FAILED_CARD reutiliza la fila y conserva su historial de ledger.
+    // stripeSubId se resetea a pending: los eventos rezagados del sub
+    // viejo (deleted/payment_failed tardío) no deben resolver contra
+    // este pass nuevo - findPass los ignora sin match.
     const pass = await this.prisma.socialPass.upsert({
       where: { personId },
       update: {
         stripeCustomerId: customerId,
+        stripeSubId: `pending:${personId}`,
         status: "PENDING",
         amount: price.amount,
         currency: price.currency,
@@ -274,7 +305,7 @@ export class SocialPassService {
         // Vuelta al pitch del pase; el front confirma por polling
         // (mismo patrón que la orden del checkout) - en dev el webhook
         // no llega a localhost.
-        returnUrl: `${this.webUrl}/pase?sub=return`,
+        returnUrl: `${this.webUrl}/pase?sub=return&session_id={CHECKOUT_SESSION_ID}`,
         planId: PASS_TIER,
         currency: price.currency,
         metadata: { personId, socialPass: "1" },
@@ -430,6 +461,17 @@ export class SocialPassService {
       return;
     }
 
+    // checkout.session.expired (mode=subscription): la sesión expiró
+    // sin cobrar - el pass PENDING no se puede cancelar ni reactivar,
+    // así que se limpia para que el usuario pueda suscribir de nuevo.
+    if (ev.type === "checkout.session.expired" && pass.status === "PENDING") {
+      await this.prisma.socialPass.delete({ where: { id: pass.id } });
+      await this.audit(pass.personId, "SOCIAL_PASS_EXPIRED", pass.id, {
+        stripeSubId: ev.subscriptionId,
+      });
+      return;
+    }
+
     // checkout.session.* mode=subscription: la sesión ya cobró - activa
     // si el pass sigue PENDING (redundante con invoice.paid, idempotente).
     if (
@@ -498,25 +540,47 @@ export class SocialPassService {
       periodEnd != null &&
       pass.currentPeriodEnd.getTime() === periodEnd.getTime();
     await this.prisma.$transaction(async (tx) => {
+      // Dedup anclado en invoiceId persistido en el ledger (estable
+      // entre reintentos de Stripe, a diferencia de periodEnd que
+      // puede faltar); samePeriod cubre eventos sin invoice. Un
+      // reintento NO re-muta el balance - la línea es la única
+      // evidencia del allotment y sin ella el refill sería crédito
+      // gratis e irrazonable ante auditoría.
+      const dup =
+        (invoiceId != null &&
+          (await tx.socialPassLedger.findFirst({
+            where: {
+              passId: pass.id,
+              reason: "RESET",
+              paymentId: invoiceId,
+            },
+          }))) ||
+        samePeriod;
       await tx.socialPass.update({
         where: { id: pass.id },
         data: {
           stripeSubId: remote.subscriptionId,
           status: "ACTIVE",
-          // Reset duro: el allotment del período reemplaza el remanente.
-          creditsBalance: pass.creditsPerPeriod,
-          lastCreditResetAt: new Date(),
+          // Reset duro solo en período nuevo: el allotment del período
+          // reemplaza el remanente; en reintento el balance no se toca.
+          ...(dup
+            ? {}
+            : {
+                creditsBalance: pass.creditsPerPeriod,
+                lastCreditResetAt: new Date(),
+              }),
           currentPeriodEnd: periodEnd,
           cancelAtPeriodEnd: remote.cancelAtPeriodEnd ?? false,
         },
       });
-      if (!samePeriod) {
+      if (!dup) {
         await tx.socialPassLedger.create({
           data: {
             passId: pass.id,
             personId: pass.personId,
             delta: pass.creditsPerPeriod,
             reason: "RESET",
+            paymentId: invoiceId ?? null,
           },
         });
       }

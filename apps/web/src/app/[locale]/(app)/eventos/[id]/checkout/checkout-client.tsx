@@ -799,22 +799,28 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         {paseActive && giftIds.size === 0 && !methodId && (
           <Card>
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-base font-semibold">{t("paseCredit")}</h2>
+              <h2 id="pase-credit-label" className="text-base font-semibold">{t("paseCredit")}</h2>
               <button
                 type="button"
                 role="switch"
                 aria-checked={useCredit}
+                aria-labelledby="pase-credit-label"
                 disabled={busy || (pase?.creditsBalance ?? 0) < quantity}
                 onClick={() => setUseCredit((v) => !v)}
-                className={`relative h-8 w-14 shrink-0 rounded-full transition-colors disabled:opacity-40 ${
-                  useCredit ? "bg-neon" : "bg-elevated"
-                }`}
+                className="relative min-h-11 shrink-0 p-2 -m-2 transition-colors disabled:opacity-40"
               >
                 <span
-                  className={`absolute top-1 h-6 w-6 rounded-full bg-canvas transition-all ${
-                    useCredit ? "left-7" : "left-1"
+                  aria-hidden
+                  className={`relative block h-8 w-14 rounded-full transition-colors ${
+                    useCredit ? "bg-neon" : "bg-elevated"
                   }`}
-                />
+                >
+                  <span
+                    className={`absolute top-1 h-6 w-6 rounded-full bg-canvas transition-all ${
+                      useCredit ? "left-7" : "left-1"
+                    }`}
+                  />
+                </span>
               </button>
             </div>
             <p className="mt-1 text-xs text-ink/50">

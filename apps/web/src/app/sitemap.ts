@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { fetchPublicEvents } from "@/lib/public-events";
+// fetchPublicEvents quitado: las fichas de evento piden sesión y no
+// se indexan (el middleware las redirige a login).
 import { fetchPublicCities } from "@/lib/public-cities";
 import { SITE_URL as WEB_URL } from "@/lib/site-url";
 import { routing, type Locale } from "@/i18n/routing";
@@ -16,10 +17,7 @@ function languages(path: string): Record<Locale, string> {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
-  const [events, cities] = await Promise.all([
-    fetchPublicEvents(),
-    fetchPublicCities(),
-  ]);
+  const cities = await fetchPublicCities();
 
   // Solo rutas públicas indexables - el resto son superficies de app.
   const entries: MetadataRoute.Sitemap = [
@@ -27,8 +25,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/pro",
     "/para-academias",
     "/para-productores",
-    "/eventos",
+    // /eventos y /eventos/[id] piden sesión (middleware): fuera del
+    // sitemap para no indexar redirects a login.
     "/ciudades",
+    "/pase",
     "/login",
     "/terminos",
     "/privacidad",
@@ -38,13 +38,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     alternates: { languages: languages(path) },
   }));
 
-  for (const e of events) {
-    entries.push({
-      url: `${WEB_URL}/eventos/${e.id}`,
-      lastModified: new Date(e.startsAt),
-      alternates: { languages: languages(`/eventos/${e.id}`) },
-    });
-  }
   // Landings por ciudad (spec city-discovery): públicas e indexables.
   for (const c of cities ?? []) {
     entries.push({

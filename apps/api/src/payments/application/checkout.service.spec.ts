@@ -2155,22 +2155,22 @@ describe("CheckoutService - Pase Social", () => {
     expect(stl.settle).toHaveBeenCalledTimes(1);
   });
 
-  it("payWithCredit con quantity 3 consume 3 créditos", async () => {
-    const res = await buy({ payWithCredit: true, quantity: 3 });
-    expect(fx.prisma.socialPass.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: "sp-1", creditsBalance: { gte: 3 } },
-      }),
+  it("payWithCredit con quantity >1 → 409 (el crédito es solo del comprador)", async () => {
+    // quantity>1 deja entradas claimables (transferibles) - el crédito
+    // nunca puede convertirse en regalo vía link (spec pase-social).
+    await expect(buy({ payWithCredit: true, quantity: 3 })).rejects.toThrow(
+      /propia entrada/,
     );
-    expect(res.socialPass?.creditsUsed).toBe(3);
+    expect(fx.payments).toHaveLength(0);
+    expect(fx.prisma.socialPass.updateMany).not.toHaveBeenCalled();
   });
 
   it("payWithCredit sin saldo suficiente → 409 y nada muta", async () => {
     fx.prisma.socialPass.findUnique.mockResolvedValue({
       ...ACTIVE_PASS,
-      creditsBalance: 1,
+      creditsBalance: 0,
     });
-    await expect(buy({ payWithCredit: true, quantity: 2 })).rejects.toThrow(
+    await expect(buy({ payWithCredit: true, quantity: 1 })).rejects.toThrow(
       /créditos/,
     );
     expect(fx.payments).toHaveLength(0);
