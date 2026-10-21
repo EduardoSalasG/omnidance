@@ -9,6 +9,7 @@ import { PrismaService } from "../src/prisma.service";
 // Controllers montados directo en el test module para cubrir el contrato.
 import { FriendsController } from "../src/social/infrastructure/friends.controller";
 import { PeopleController } from "../src/social/infrastructure/people.controller";
+import { ConsentService } from "../src/legal/consent.service";
 import { deletePeople } from "./helpers";
 
 describe("spec-gap-closure: declare + friendships e2e", () => {
@@ -52,7 +53,7 @@ describe("spec-gap-closure: declare + friendships e2e", () => {
     const moduleRef = await Test.createTestingModule({
       imports: [SessionsModule, AuthModule, NotificationsModule],
       controllers: [FriendsController, PeopleController],
-      providers: [PrismaService],
+      providers: [PrismaService, ConsentService],
     }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix("api");

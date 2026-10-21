@@ -7,7 +7,7 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsBoolean } from "class-validator";
+import { IsBoolean, IsDefined } from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { RolesGuard } from "../../common/rbac/roles.guard";
@@ -16,6 +16,7 @@ import { FeatureFlagsService } from "../../features/feature-flags.service";
 
 class SetFeatureFlagDto {
   @IsBoolean()
+  @IsDefined()
   enabled!: boolean;
 }
 
