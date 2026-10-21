@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, CheckIcon, Spinner } from "@/components/ui";
+import { ActionNotice } from "@/components/ui/action-notice";
 
 type PracticeBarProps = {
   eventId: string;
@@ -18,12 +19,16 @@ type PracticeBarProps = {
  */
 export function PracticeBar({ eventId, initialCount }: PracticeBarProps) {
   const t = useTranslations("events");
+  const tc = useTranslations("common");
   // null = resolviendo sesión/estado; undefined nunca se usa.
   const [state, setState] = useState<{ going: boolean; count: number } | null>(
     null,
   );
   const [unauth, setUnauth] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(
+    null,
+  );
 
   useEffect(() => {
     apiFetch(`/practices/${eventId}/rsvp`)
@@ -54,11 +59,20 @@ export function PracticeBar({ eventId, initialCount }: PracticeBarProps) {
       setUnauth(true);
       return;
     }
-    if (res?.ok) setState((await res.json()) as typeof state);
+    if (res?.ok) {
+      setNotice(null);
+      setState((await res.json()) as typeof state);
+      return;
+    }
+    // Fallo ≠401 o de red - antes silencioso: el botón parecía no
+    // hacer nada. Aviso fijo (la barra es sticky pero el estado no
+    // cambia, así que sin notice no hay feedback perceptible).
+    setNotice({ text: tc("error"), error: true });
   }
 
   return (
     <>
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
       <div className="min-w-0">
         <span className="block text-xs text-ink/50">
           {going

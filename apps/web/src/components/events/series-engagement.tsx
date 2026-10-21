@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, Spinner } from "@/components/ui";
+import { ActionNotice } from "@/components/ui/action-notice";
 
 type Engagement = {
   events: number;
@@ -35,6 +36,9 @@ export function SeriesEngagementCard({ seriesId }: { seriesId: string }) {
   const [comment, setComment] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     try {
@@ -70,7 +74,13 @@ export function SeriesEngagementCard({ seriesId }: { seriesId: string }) {
       if (res.ok) {
         setSent(true);
         await load();
+      } else {
+        // Antes silencioso - la review no se enviaba y la card no
+        // decía nada.
+        setNotice({ text: tc("error"), error: true });
       }
+    } catch {
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setSending(false);
     }
@@ -83,90 +93,93 @@ export function SeriesEngagementCard({ seriesId }: { seriesId: string }) {
   const leaderPct = pct(danceRoles.leader, danceRoles.declared);
 
   return (
-    <Card className="flex flex-col gap-4">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/60">
-        {t("title")}
-      </h2>
+    <>
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
+      <Card className="flex flex-col gap-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/60">
+          {t("title")}
+        </h2>
 
-      {/* Stats verificadas por check-in */}
-      <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-        {data.avgAttendance > 0 && (
-          <div>
-            <dt className="text-xs text-ink/50">{t("avgAttendance")}</dt>
-            <dd className="mt-0.5 font-semibold">{data.avgAttendance}</dd>
-          </div>
-        )}
-        {genderTotal > 0 && (
-          <div>
-            <dt className="text-xs text-ink/50">{t("genderSplit")}</dt>
-            <dd className="mt-0.5 font-semibold">
-              {pct(gender.M, genderTotal)}% / {pct(gender.F, genderTotal)}%
-            </dd>
-          </div>
-        )}
-        {danceRoles.declared > 0 && (
-          <div>
-            <dt className="text-xs text-ink/50">{t("roleSplit")}</dt>
-            <dd className="mt-0.5 font-semibold">
-              {leaderPct}% / {100 - leaderPct}%
-            </dd>
-          </div>
-        )}
-        {data.review.count > 0 && data.review.avg != null && (
-          <div>
-            <dt className="text-xs text-ink/50">{t("score")}</dt>
-            <dd className="mt-0.5 font-semibold text-neon">
-              ★ {data.review.avg} · {data.review.count}
-            </dd>
-          </div>
-        )}
-      </dl>
+        {/* Stats verificadas por check-in */}
+        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+          {data.avgAttendance > 0 && (
+            <div>
+              <dt className="text-xs text-ink/50">{t("avgAttendance")}</dt>
+              <dd className="mt-0.5 font-semibold">{data.avgAttendance}</dd>
+            </div>
+          )}
+          {genderTotal > 0 && (
+            <div>
+              <dt className="text-xs text-ink/50">{t("genderSplit")}</dt>
+              <dd className="mt-0.5 font-semibold">
+                {pct(gender.M, genderTotal)}% / {pct(gender.F, genderTotal)}%
+              </dd>
+            </div>
+          )}
+          {danceRoles.declared > 0 && (
+            <div>
+              <dt className="text-xs text-ink/50">{t("roleSplit")}</dt>
+              <dd className="mt-0.5 font-semibold">
+                {leaderPct}% / {100 - leaderPct}%
+              </dd>
+            </div>
+          )}
+          {data.review.count > 0 && data.review.avg != null && (
+            <div>
+              <dt className="text-xs text-ink/50">{t("score")}</dt>
+              <dd className="mt-0.5 font-semibold text-neon">
+                ★ {data.review.avg} · {data.review.count}
+              </dd>
+            </div>
+          )}
+        </dl>
 
-      {/* Review propia - solo asistentes verificados (check-in) */}
-      {data.canReview && (
-        <div className="flex flex-col gap-3 border-t border-ink/10 pt-3">
-          <p className="text-sm font-medium">
-            {data.myReview ? t("yourReview") : t("rateCta")}
-          </p>
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setScore(n)}
-                aria-label={`${n}`}
-                className={`min-h-[44px] min-w-[44px] text-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
-                  n <= score ? "text-neon" : "text-ink/30 hover:text-ink/60"
-                }`}
+        {/* Review propia - solo asistentes verificados (check-in) */}
+        {data.canReview && (
+          <div className="flex flex-col gap-3 border-t border-ink/10 pt-3">
+            <p className="text-sm font-medium">
+              {data.myReview ? t("yourReview") : t("rateCta")}
+            </p>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setScore(n)}
+                  aria-label={`${n}`}
+                  className={`min-h-[44px] min-w-[44px] text-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+                    n <= score ? "text-neon" : "text-ink/30 hover:text-ink/60"
+                  }`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              maxLength={500}
+              rows={2}
+              placeholder={t("commentPlaceholder")}
+              className="w-full rounded-xl border border-ink/15 bg-transparent px-3 py-2 text-sm focus:border-neon focus:outline-none"
+            />
+            <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void submit()}
+                disabled={!score || sending}
+                className="self-start"
               >
-                ★
-              </button>
-            ))}
+                {sending ? <Spinner className="size-4" /> : t("submit")}
+              </Button>
+              {sent && (
+                <span className="text-xs text-neon">{t("thanks")}</span>
+              )}
+            </div>
           </div>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            maxLength={500}
-            rows={2}
-            placeholder={t("commentPlaceholder")}
-            className="w-full rounded-xl border border-ink/15 bg-transparent px-3 py-2 text-sm focus:border-neon focus:outline-none"
-          />
-          <div className="flex items-center gap-3">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void submit()}
-              disabled={!score || sending}
-              className="self-start"
-            >
-              {sending ? <Spinner className="size-4" /> : t("submit")}
-            </Button>
-            {sent && (
-              <span className="text-xs text-neon">{t("thanks")}</span>
-            )}
-          </div>
-        </div>
-      )}
-    </Card>
+        )}
+      </Card>
+    </>
   );
 }

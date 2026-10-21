@@ -22,6 +22,7 @@ import {
   SkeletonList,
 } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
+import { ActionNotice } from "@/components/ui/action-notice";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import { Link } from "@/i18n/navigation";
@@ -107,7 +108,11 @@ export default function AmigosPage() {
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
-  const [actionErr, setActionErr] = useState(false);
+  // Aviso post-acción fijo (enviar/aceptar/rechazar/cancelar) - éxito
+  // y error; la acción puede ocurrir en una fila scrolleada.
+  const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(
+    null,
+  );
   // Descarta respuestas de búsqueda que llegan fuera de orden.
   const searchSeq = useRef(0);
   // Ref del buscador - el CTA del empty state lo enfoca.
@@ -183,47 +188,60 @@ export default function AmigosPage() {
 
   // Tras cada acción se refetchea todo: lista de amigos + resultados de
   // búsqueda visibles (los friendship.status cambian con la acción).
-  async function act(key: string, fn: () => Promise<Response>) {
+  async function act(
+    key: string,
+    fn: () => Promise<Response>,
+    okText: string,
+  ) {
     setBusyKey(key);
-    setActionErr(false);
     try {
       const res = await fn();
       // 409 = solicitud duplicada: el estado ya cambió, solo refrescamos.
       if (!res.ok && res.status !== 409) {
-        setActionErr(true);
+        setNotice({ text: t("actionError"), error: true });
         return;
       }
+      if (res.ok) setNotice({ text: okText, error: false });
       const q = query.trim();
       await Promise.all([
         load(),
         q.length >= MIN_CHARS ? runSearch(q) : Promise.resolve(),
       ]);
     } catch {
-      setActionErr(true);
+      setNotice({ text: t("actionError"), error: true });
     } finally {
       setBusyKey(null);
     }
   }
 
   const sendRequest = (personId: string) =>
-    act(`add:${personId}`, () =>
-      apiFetch("/friends", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ personId }),
-      }),
+    act(
+      `add:${personId}`,
+      () =>
+        apiFetch("/friends", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ personId }),
+        }),
+      t("requestSent"),
     );
   const acceptReq = (fid: string) =>
-    act(`acc:${fid}`, () =>
-      apiFetch(`/friends/${fid}/accept`, { method: "POST" }),
+    act(
+      `acc:${fid}`,
+      () => apiFetch(`/friends/${fid}/accept`, { method: "POST" }),
+      t("requestAccepted"),
     );
   const declineReq = (fid: string) =>
-    act(`dec:${fid}`, () =>
-      apiFetch(`/friends/${fid}/decline`, { method: "POST" }),
+    act(
+      `dec:${fid}`,
+      () => apiFetch(`/friends/${fid}/decline`, { method: "POST" }),
+      t("requestDeclined"),
     );
   const removeRel = (fid: string) =>
-    act(`del:${fid}`, () =>
-      apiFetch(`/friends/${fid}`, { method: "DELETE" }),
+    act(
+      `del:${fid}`,
+      () => apiFetch(`/friends/${fid}`, { method: "DELETE" }),
+      t("requestCancelled"),
     );
 
   function Row({
@@ -319,6 +337,7 @@ export default function AmigosPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8">
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
       {/* Agregar amigos: buscador por nombre + link de invitación.
           El link apunta a mi propio perfil - quien lo abre sin sesión
           cae a login/registro y aterriza aquí con el botón Agregar. */}
@@ -424,12 +443,6 @@ export default function AmigosPage() {
           </ul>
         )}
       </section>
-
-      {actionErr && (
-        <p role="alert" className="text-sm text-red-400">
-          {t("actionError")}
-        </p>
-      )}
 
       {state === "loading" && <SkeletonList />}
       {state === "error" && (

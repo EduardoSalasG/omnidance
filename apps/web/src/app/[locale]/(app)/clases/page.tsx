@@ -17,6 +17,7 @@ import {
   OnboardingRunner,
   type TourStep,
 } from "@/components/onboarding/OnboardingRunner";
+import { ActionNotice } from "@/components/ui/action-notice";
 import { readError } from "@/components/academy/shared";
 import {
   ClassCard,
@@ -808,16 +809,10 @@ function ClasesInner() {
         )}
       </header>
 
-      {/* Feedback de reservar/cancelar junto al contenido - al final
-          del main quedaba fuera de pantalla en listas largas. */}
-      {notice && (
-        <p
-          role={notice.error ? "alert" : "status"}
-          className={`text-sm ${notice.error ? "text-red-400" : "text-neon"}`}
-        >
-          {notice.text}
-        </p>
-      )}
+      {/* Feedback de reservar fijo sobre la BottomNav - el punto de
+          acción queda fuera del viewport en listas largas (bug
+          reportado: reservar scrolleado abajo no mostraba nada). */}
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
 
       {scope === "historial" ? (
         /* ─── Historial - progreso personal, no competitivo (spec §9) ─── */

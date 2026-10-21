@@ -273,6 +273,9 @@ export default function DatosPage() {
   >(null);
   const [srSaving, setSrSaving] = useState(false);
   const [srErr, setSrErr] = useState(false);
+  // "Guardado" fugaz tras persistir Tu baile - mismo patrón que el
+  // personalState "saved" de datos personales.
+  const [srSaved, setSrSaved] = useState(false);
   const keySeq = useRef(0);
 
   // birthDate llega como ISO completa - el input date usa solo la
@@ -399,6 +402,8 @@ export default function DatosPage() {
       }
       void refreshMe();
       setSrEditing(false);
+      setSrSaved(true);
+      setTimeout(() => setSrSaved(false), 2500);
     } catch {
       setSrErr(true);
     } finally {
@@ -981,6 +986,11 @@ export default function DatosPage() {
                     </li>
                   ))}
                 </ul>
+              )}
+              {srSaved && (
+                <p role="status" className="mt-2 text-xs text-neon">
+                  {t("datos.saved")}
+                </p>
               )}
               <div className="mt-3 flex justify-center">
                 <button

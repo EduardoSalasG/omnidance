@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
+import { ActionNotice } from "@/components/ui/action-notice";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Link, useRouter } from "@/i18n/navigation";
 
@@ -58,7 +59,10 @@ export default function AmigoPerfilPage(
   const [state, setState] = useState<PageState>("loading");
   const [person, setPerson] = useState<PersonProfile | null>(null);
   const [busy, setBusy] = useState(false);
-  const [actionErr, setActionErr] = useState(false);
+  // Aviso post-acción fijo - éxito y error de las acciones de amistad.
+  const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(
+    null,
+  );
   // Confirmación de eliminar amistad - bottom sheet (mismo patrón que
   // el modal de entrada duplicada), no window.confirm.
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -93,50 +97,60 @@ export default function AmigoPerfilPage(
   }, [load]);
 
   // Refetch del perfil tras cada acción - el friendship cambia en servidor.
-  async function act(fn: () => Promise<Response>) {
+  async function act(fn: () => Promise<Response>, okText: string) {
     setBusy(true);
-    setActionErr(false);
     try {
       const res = await fn();
       // 409 = solicitud duplicada: el estado ya cambió, solo refrescamos.
       if (!res.ok && res.status !== 409) {
-        setActionErr(true);
+        setNotice({ text: t("actionError"), error: true });
         return;
       }
+      if (res.ok) setNotice({ text: okText, error: false });
       await load();
     } catch {
-      setActionErr(true);
+      setNotice({ text: t("actionError"), error: true });
     } finally {
       setBusy(false);
     }
   }
 
   const sendRequest = () =>
-    act(() =>
-      apiFetch("/friends", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ personId: id }),
-      }),
+    act(
+      () =>
+        apiFetch("/friends", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ personId: id }),
+        }),
+      t("requestSent"),
     );
   const acceptReq = (fid: string) =>
-    act(() => apiFetch(`/friends/${fid}/accept`, { method: "POST" }));
+    act(
+      () => apiFetch(`/friends/${fid}/accept`, { method: "POST" }),
+      t("requestAccepted"),
+    );
   const declineReq = (fid: string) =>
-    act(() => apiFetch(`/friends/${fid}/decline`, { method: "POST" }));
+    act(
+      () => apiFetch(`/friends/${fid}/decline`, { method: "POST" }),
+      t("requestDeclined"),
+    );
   // Eliminar amistad: solo desde el pie del perfil, con confirmación.
   // En éxito vuelve a la lista - el perfil ya no tiene acciones útiles.
-  const removeRel = async (fid: string) => {
+  // El aviso necesita un beat antes del push: la navegación desmonta
+  // el componente y se llevaría el toast sin mostrarlo.
+  const removeRel = async (fid: string, okText: string) => {
     setBusy(true);
-    setActionErr(false);
     try {
       const res = await apiFetch(`/friends/${fid}`, { method: "DELETE" });
       if (!res.ok && res.status !== 409) {
-        setActionErr(true);
+        setNotice({ text: t("actionError"), error: true });
         return;
       }
-      router.push("/amigos");
+      setNotice({ text: okText, error: false });
+      window.setTimeout(() => router.push("/amigos"), 900);
     } catch {
-      setActionErr(true);
+      setNotice({ text: t("actionError"), error: true });
     } finally {
       setBusy(false);
     }
@@ -168,6 +182,7 @@ export default function AmigoPerfilPage(
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-4xl lg:px-8">
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
       {state === "loading" && <SkeletonList />}
       {state === "notfound" && (
         <Card className="flex flex-col items-start gap-3">
@@ -241,12 +256,6 @@ export default function AmigoPerfilPage(
             </div>
           </Card>
 
-          {actionErr && (
-            <p role="alert" className="text-sm text-red-400">
-              {t("actionError")}
-            </p>
-          )}
-
           {/* Acción de amistad - no aplica al propio perfil */}
           {!person.isMe &&
             (() => {
@@ -267,7 +276,7 @@ export default function AmigoPerfilPage(
                           variant="ghost"
                           size="sm"
                           disabled={busy}
-                          onClick={() => removeRel(fid)}
+                          onClick={() => removeRel(fid, t("requestCancelled"))}
                         >
                           {t("cancelRequest")}
                         </Button>
@@ -393,7 +402,7 @@ export default function AmigoPerfilPage(
                 disabled={busy}
                 onClick={() => {
                   setConfirmRemove(false);
-                  void removeRel(person.friendship!.id!);
+                  void removeRel(person.friendship!.id!, t("removed"));
                 }}
               >
                 {t("remove")}

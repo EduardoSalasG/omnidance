@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Button, Card } from "@/components/ui";
+import { ActionNotice } from "@/components/ui/action-notice";
 import { readError } from "@/components/academy/shared";
 import { useRouter } from "@/i18n/navigation";
 
@@ -15,8 +16,19 @@ import { useRouter } from "@/i18n/navigation";
  * confirmación en bottom sheet, nunca inline ni window.confirm. La
  * devolución del dinero es gestión manual (Flow) - el owner recibe
  * una notificación (academy.private_lesson.cancelled_paid).
+ *
+ * La página lo monta SIEMPRE (con `cancellable` según el status): si
+ * se condiciona afuera, el router.refresh() post-cancel desmonta el
+ * componente y el aviso de éxito nunca se ve.
  */
-export function PrivateLessonCancelCta({ lessonId }: { lessonId: string }) {
+export function PrivateLessonCancelCta({
+  lessonId,
+  cancellable,
+}: {
+  lessonId: string;
+  /** Solo REQUESTED/CONFIRMED muestran la zona destructiva. */
+  cancellable: boolean;
+}) {
   const tl = useTranslations("academyExtras.lessons");
   const t = useTranslations("classes");
   const tc = useTranslations("common");
@@ -64,26 +76,24 @@ export function PrivateLessonCancelCta({ lessonId }: { lessonId: string }) {
 
   return (
     <>
-      {/* Pie: aviso post-cancelación + zona destructiva centrada -
-          patrón "eliminar amigo" / cancelar reserva. */}
-      <div className="flex flex-col items-center gap-2 pt-2">
-        {notice && (
-          <p
-            role={notice.error ? "alert" : "status"}
-            className={`text-sm ${notice.error ? "text-red-400" : "text-neon"}`}
+      {/* Aviso post-cancelación fijo - vive fuera del condicional de
+          `cancellable` para sobrevivir al refresh (la particular pasa
+          a CANCELLED y la zona destructiva desaparece). */}
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
+      {/* Pie: zona destructiva centrada - patrón "eliminar amigo" /
+          cancelar reserva. */}
+      {cancellable && (
+        <div className="flex flex-col items-center gap-2 pt-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirming(true)}
+            className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
           >
-            {notice.text}
-          </p>
-        )}
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => setConfirming(true)}
-          className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-        >
-          {tl("cancel")}
-        </button>
-      </div>
+            {tl("cancel")}
+          </button>
+        </div>
+      )}
 
       {confirming && (
         <div
