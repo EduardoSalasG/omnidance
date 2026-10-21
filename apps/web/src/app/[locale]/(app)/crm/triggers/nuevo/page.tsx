@@ -59,6 +59,7 @@ function NewTriggerBody({
 }) {
   const [keys, setKeys] = useState<string[] | null>(null);
   const [error, setError] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
     setError(false);
@@ -90,13 +91,24 @@ function NewTriggerBody({
     );
   }
 
+  if (saved) {
+    return (
+      <p role="status" className="text-sm text-neon">
+        {t("triggers.saved")}
+      </p>
+    );
+  }
+
   return (
     <TriggerForm
       actor={actor}
       existingKeys={keys}
       editing={null}
       onCancel={() => router.push("/crm/triggers")}
-      onSaved={() => router.push("/crm/triggers")}
+      onSaved={() => {
+        setSaved(true);
+        setTimeout(() => router.push("/crm/triggers"), 900);
+      }}
     />
   );
 }

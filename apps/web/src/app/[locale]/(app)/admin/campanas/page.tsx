@@ -143,9 +143,11 @@ function CampaignsPanel() {
   const fmt = (iso: string | null) =>
     iso ? dt.format(new Date(iso)) : "—";
   const t = useTranslations("admin");
+  const tc = useTranslations("common");
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
   const [filters, setFilters] = useState<QueryFilters>({});
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Campaign | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -173,12 +175,19 @@ function CampaignsPanel() {
   async function act(id: string, action: "test" | "run" | "cancel") {
     setBusy(`${id}:${action}`);
     setError(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/admin/mail-campaigns/${id}/${action}`, {
         method: "POST",
       });
-      if (!res.ok) setError(await readError(res));
-      else await load();
+      if (!res.ok) {
+        setError(await readError(res));
+      } else {
+        if (action === "test") setNotice(t("campaigns.testSent"));
+        await load();
+      }
+    } catch {
+      setError(tc("error"));
     } finally {
       setBusy(null);
       setPending(null);
@@ -202,6 +211,11 @@ function CampaignsPanel() {
           <Card className="border-red-500/40 p-3 text-sm text-red-300">
             {error}
           </Card>
+        )}
+        {notice && (
+          <p role="status" className="text-sm text-neon">
+            {notice}
+          </p>
         )}
         {!showForm && (
           <div>

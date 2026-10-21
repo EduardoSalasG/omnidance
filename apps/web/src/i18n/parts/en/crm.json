@@ -134,7 +134,8 @@
       "notFound": "Campaign not found or no access.",
       "createdAt": "Created",
       "sendTitle": "Send campaign?",
-      "sendDesc": "It's a bulk action and can't be undone."
+      "sendDesc": "It's a bulk action and can't be undone.",
+      "unscheduled": "Send unscheduled: the campaign is back to draft."
     },
     "triggers": {
       "title": "Automatic triggers",
@@ -185,7 +186,8 @@
         "ACADEMY": "Academy only",
         "PRODUCER": "Producer only"
       },
-      "notFound": "Trigger not found."
+      "notFound": "Trigger not found.",
+      "saved": "Trigger saved."
     },
     "actorSegments": {
       "title": "Segments",

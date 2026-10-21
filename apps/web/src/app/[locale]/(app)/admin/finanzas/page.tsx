@@ -262,15 +262,27 @@ function FinancePanel() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [evidence, setEvidence] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  // Feedback de las acciones de dinero (éxito y error).
+  const [notice, setNotice] = useState<{
+    kind: "ok" | "err";
+    text: string;
+  } | null>(null);
 
   async function approve(id: string) {
     setBusy(id);
+    setNotice(null);
     try {
       const res = await apiFetch(`/admin/payouts/${id}/approve`, {
         method: "POST",
       });
-      if (res.ok) await loadPayouts();
+      if (res.ok) {
+        setNotice({ kind: "ok", text: t("finance.approved") });
+        await loadPayouts();
+      } else {
+        setNotice({ kind: "err", text: t("finance.actionError") });
+      }
+    } catch {
+      setNotice({ kind: "err", text: t("finance.actionError") });
     } finally {
       setBusy(null);
     }
@@ -278,6 +290,7 @@ function FinancePanel() {
 
   async function pay(id: string) {
     setBusy(id);
+    setNotice(null);
     try {
       const res = await apiFetch(`/admin/payouts/${id}/pay`, {
         method: "POST",
@@ -285,9 +298,14 @@ function FinancePanel() {
         body: JSON.stringify({ evidenceUrl: evidence[id] || undefined }),
       });
       if (res.ok) {
+        setNotice({ kind: "ok", text: t("finance.paid") });
         await loadPayouts();
         void loadSummary();
+      } else {
+        setNotice({ kind: "err", text: t("finance.actionError") });
       }
+    } catch {
+      setNotice({ kind: "err", text: t("finance.actionError") });
     } finally {
       setBusy(null);
     }
@@ -308,13 +326,18 @@ function FinancePanel() {
         }),
       });
       if (res.ok) {
-        setNotice(t("finance.generated", { name: actor.actorName }));
+        setNotice({
+          kind: "ok",
+          text: t("finance.generated", { name: actor.actorName }),
+        });
         await loadAccrual();
         await loadPayouts();
         void loadSummary();
       } else {
-        setNotice(t("finance.generateError"));
+        setNotice({ kind: "err", text: t("finance.generateError") });
       }
+    } catch {
+      setNotice({ kind: "err", text: t("finance.generateError") });
     } finally {
       setBusy(null);
     }
@@ -421,8 +444,15 @@ function FinancePanel() {
       />
 
       {notice && (
-        <p className="rounded-lg bg-ink/5 px-3 py-2 text-sm text-ink/70">
-          {notice}
+        <p
+          role={notice.kind === "err" ? "alert" : "status"}
+          className={`rounded-lg px-3 py-2 text-sm ${
+            notice.kind === "err"
+              ? "bg-red-500/10 text-red-300"
+              : "bg-ink/5 text-ink/70"
+          }`}
+        >
+          {notice.text}
         </p>
       )}
 

@@ -454,7 +454,8 @@
     "DONE": "Sent",
     "FAILED": "Failed",
     "CANCELLED": "Cancelled"
-   }
+   },
+   "testSent": "Test sent — check your inbox."
   },
   "billing": {
    "title": "Billing",
@@ -479,7 +480,8 @@
    "void": "Void",
    "voidConfirm": "Void note",
    "voidReasonPlaceholder": "Void reason",
-   "voidedReason": "Voided: {reason}"
+   "voidedReason": "Voided: {reason}",
+   "generated": "Charge note issued."
   },
   "finance": {
    "from": "From",
@@ -549,7 +551,10 @@
     "FAILED_CARD": "Card failed",
     "CANCEL_PENDING": "Cancels at close",
     "CANCELLED": "Cancelled"
-   }
+   },
+   "approved": "Payout approved.",
+   "paid": "Payout marked as paid.",
+   "actionError": "Could not complete the action."
   },
   "roles": {
    "superuser": "Superuser",

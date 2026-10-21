@@ -188,7 +188,9 @@
         "CONFIRMED": "Confirmada",
         "CANCELLED": "Cancelada"
       },
-      "seatsOccupancy": "{used} de {total} asientos ocupados"
+      "seatsOccupancy": "{used} de {total} asientos ocupados",
+      "cancelTitle": "¿Cancelar la reserva?",
+      "cancelDesc": "{name} — {count, plural, one {# persona} other {# personas}}."
     },
     "ratings": {
       "notEnough": "Aún no hay suficientes evaluaciones para mostrar ({count}/3).",
@@ -340,7 +342,10 @@
       "queueEmpty": "Sin comprobantes pendientes.",
       "queueEmptyDesc": "Cuando alguien pague por transferencia, link o efectivo y suba su comprobante, aparecerá aquí para validarlo.",
       "orderTicket": "Entrada",
-      "orderSeriesPass": "Pase de serie"
+      "orderSeriesPass": "Pase de serie",
+      "created": "Medio de cobro agregado.",
+      "updated": "Medio de cobro actualizado.",
+      "removed": "Medio de cobro eliminado."
     },
     "billingDocs": {
       "title": "Notas de cobro",
@@ -418,7 +423,10 @@
       "reviewNote": "Motivo",
       "orderRef": "N° orden",
       "openReceipt": "Ver comprobante",
-      "notFound": "No encontramos este comprobante."
+      "notFound": "No encontramos este comprobante.",
+      "approveTitle": "¿Aprobar este comprobante?",
+      "approveDesc": "Al aprobar, la orden se liquida y la entrada se emite al instante.",
+      "approvedMsg": "Pago aprobado: la orden quedó emitida."
     },
     "collaborators": {
       "title": "Colaboradores",
@@ -434,7 +442,9 @@
       "nameLabel": "Nombre (opcional)",
       "inviteSubmit": "Enviar invitación",
       "invited": "Invitación enviada — le llegó un correo con acceso",
-      "added": "Colaborador agregado"
+      "added": "Colaborador agregado",
+      "removeTitle": "¿Quitar a {name}?",
+      "removeDesc": "Dejará de aparecer como candidato de staff en tus eventos."
     }
   }
 }

@@ -82,6 +82,7 @@ function JobsPanel() {
 });
   const fmt = (iso: string | null) => (iso ? dt.format(new Date(iso)) : "—");;
   const t = useTranslations("admin");
+  const tc = useTranslations("common");
   const [jobs, setJobs] = useState<Job[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -107,7 +108,12 @@ function JobsPanel() {
     void load();
   }, [load]);
 
-  async function patch(key: string, body: Record<string, unknown>) {
+  // Devuelve éxito/fracaso: el editor de cron solo se cierra cuando el
+  // PATCH efectivamente se aplicó (un fallo no debe esconder el form).
+  async function patch(
+    key: string,
+    body: Record<string, unknown>,
+  ): Promise<boolean> {
     setBusy(key);
     setError(null);
     try {
@@ -116,8 +122,15 @@ function JobsPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) setError(await readError(res));
-      else await load();
+      if (!res.ok) {
+        setError((await readError(res)) ?? tc("error"));
+        return false;
+      }
+      await load();
+      return true;
+    } catch {
+      setError(tc("error"));
+      return false;
     } finally {
       setBusy(null);
     }
@@ -130,8 +143,10 @@ function JobsPanel() {
       const res = await apiFetch(`/admin/jobs/${encodeURIComponent(key)}/run`, {
         method: "POST",
       });
-      if (!res.ok) setError(await readError(res));
+      if (!res.ok) setError((await readError(res)) ?? tc("error"));
       else await load();
+    } catch {
+      setError(tc("error"));
     } finally {
       setBusy(null);
       setPendingRun(null);
@@ -211,8 +226,9 @@ function JobsPanel() {
                   className="flex flex-col gap-2 rounded-xl border border-ink/10 p-3"
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    await patch(job.key, { cronExpr: cronDraft });
-                    setEditing(null);
+                    if (await patch(job.key, { cronExpr: cronDraft })) {
+                      setEditing(null);
+                    }
                   }}
                 >
                   <label className="text-xs text-ink/60">
@@ -255,7 +271,7 @@ function JobsPanel() {
                     variant="secondary"
                     size="sm"
                     disabled={job.orphaned || busy === job.key}
-                    onClick={() => patch(job.key, { enabled: !job.enabled })}
+                    onClick={() => void patch(job.key, { enabled: !job.enabled })}
                   >
                     {job.enabled ? t("jobs.pause") : t("jobs.resume")}
                   </Button>

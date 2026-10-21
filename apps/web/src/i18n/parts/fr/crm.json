@@ -134,7 +134,8 @@
       "notFound": "Campagne introuvable ou pas d'accès.",
       "createdAt": "Créée",
       "sendTitle": "Envoyer la campagne ?",
-      "sendDesc": "C'est une action en masse et elle ne peut pas être annulée."
+      "sendDesc": "C'est une action en masse et elle ne peut pas être annulée.",
+      "unscheduled": "Envoi déprogrammé : la campagne est repassée en brouillon."
     },
     "triggers": {
       "title": "Triggers automatiques",
@@ -185,7 +186,8 @@
         "ACADEMY": "Académie seulement",
         "PRODUCER": "Producteur seulement"
       },
-      "notFound": "Trigger introuvable."
+      "notFound": "Trigger introuvable.",
+      "saved": "Trigger enregistré."
     },
     "actorSegments": {
       "title": "Segments",

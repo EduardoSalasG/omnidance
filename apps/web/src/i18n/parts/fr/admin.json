@@ -454,7 +454,8 @@
     "DONE": "Envoyée",
     "FAILED": "Échouée",
     "CANCELLED": "Annulée"
-   }
+   },
+   "testSent": "Test envoyé — vérifie ta boîte mail."
   },
   "billing": {
    "title": "Facturation",
@@ -479,7 +480,8 @@
    "void": "Annuler",
    "voidConfirm": "Annuler la note",
    "voidReasonPlaceholder": "Motif de l'annulation",
-   "voidedReason": "Annulée : {reason}"
+   "voidedReason": "Annulée : {reason}",
+   "generated": "Note de frais émise."
   },
   "finance": {
    "from": "Du",
@@ -549,7 +551,10 @@
     "FAILED_CARD": "Carte échouée",
     "CANCEL_PENDING": "S'annule à la clôture",
     "CANCELLED": "Annulée"
-   }
+   },
+   "approved": "Liquidation approuvée.",
+   "paid": "Liquidation marquée comme payée.",
+   "actionError": "Impossible de terminer l'action."
   },
   "roles": {
    "superuser": "Superutilisateur",

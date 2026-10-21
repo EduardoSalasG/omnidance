@@ -169,7 +169,10 @@
       "empty": "No saved queries yet",
       "rename": "Rename",
       "delete": "Delete",
-      "created": "Query saved"
+      "created": "Query saved",
+      "actionError": "Could not complete the action.",
+      "deleteTitle": "Delete this query?",
+      "deleteDesc": "“{name}” will be removed from your saved queries."
     },
     "cols": {
       "sales": {

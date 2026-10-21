@@ -9,6 +9,7 @@ import {
   Badge,
   Button,
   Card,
+  ConfirmSheet,
   PriceTag,
   RefreshIcon,
   SkeletonCard,
@@ -66,6 +67,9 @@ function DealDetail({
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [confirmDisable, setConfirmDisable] = useState(false);
+  // Regularizar el saldo es una acción de dinero - confirmación previa
+  // (mismo patrón que desactivar el acuerdo).
+  const [confirmPaid, setConfirmPaid] = useState(false);
   const disableDialogRef = useDialogFocus<HTMLDivElement>(confirmDisable);
 
   const load = useCallback(async () => {
@@ -435,7 +439,7 @@ function DealDetail({
               </label>
               <Button
                 type="button"
-                onClick={() => void markPaid()}
+                onClick={() => setConfirmPaid(true)}
                 disabled={busy}
                 className="self-start"
               >
@@ -477,6 +481,39 @@ function DealDetail({
             </section>
           )}
         </>
+      )}
+
+      {/* Confirmación de regularización del saldo - la descripción
+          repite el monto para que la acción de dinero quede explícita. */}
+      {deal && (
+        <ConfirmSheet
+          open={confirmPaid}
+          title={
+            deal.stats.pendingClp > 0
+              ? t("markPaidTitle")
+              : t("markCollectTitle")
+          }
+          description={
+            deal.stats.pendingClp > 0
+              ? t("markPaidDesc", {
+                  amount: `$${getNumFmt(locale).format(deal.stats.pendingClp)}`,
+                  academy: deal.academyName,
+                })
+              : t("markCollectDesc", {
+                  amount: `$${getNumFmt(locale).format(Math.abs(deal.stats.pendingClp))}`,
+                  academy: deal.academyName,
+                })
+          }
+          confirmLabel={
+            deal.stats.pendingClp > 0 ? t("markPaid") : t("markCollected")
+          }
+          busy={busy}
+          onConfirm={() => {
+            setConfirmPaid(false);
+            void markPaid();
+          }}
+          onClose={() => setConfirmPaid(false)}
+        />
       )}
 
       {confirmDisable && deal && (

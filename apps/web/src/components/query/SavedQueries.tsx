@@ -7,7 +7,13 @@ import {
   type QueryRole,
   type SavedReportParams,
 } from "@omnidance/shared";
-import { Card, CheckIcon, ChevronDownIcon, XIcon } from "@/components/ui";
+import {
+  Card,
+  CheckIcon,
+  ChevronDownIcon,
+  ConfirmSheet,
+  XIcon,
+} from "@/components/ui";
 import { inputCls } from "@/components/academy/shared";
 import { getDateFmt, useDateFmt } from "@/lib/intl";
 
@@ -57,6 +63,11 @@ export function SavedQueries({
   const [open, setOpen] = useState(defaultOpen);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  // Borrado destructivo - confirmación bottom-sheet con el nombre de la
+  // consulta (compartida por /admin/datos y /analitica).
+  const [pendingDelete, setPendingDelete] = useState<SavedQuery | null>(
+    null,
+  );
 
   const system = SYSTEM_QUERIES[role] ?? [];
 
@@ -187,7 +198,7 @@ export function SavedQueries({
                     <button
                       type="button"
                       disabled={busyId === q.id}
-                      onClick={() => onDelete(q.id)}
+                      onClick={() => setPendingDelete(q)}
                       className={`${iconBtn} px-3 text-xs font-semibold hover:text-red-400`}
                     >
                       {t("saved.delete")}
@@ -201,6 +212,24 @@ export function SavedQueries({
       </section>
         </>
       )}
+
+      <ConfirmSheet
+        open={pendingDelete !== null}
+        title={t("saved.deleteTitle")}
+        description={
+          pendingDelete
+            ? t("saved.deleteDesc", { name: pendingDelete.name })
+            : undefined
+        }
+        confirmLabel={t("saved.delete")}
+        busy={pendingDelete !== null && busyId === pendingDelete.id}
+        onConfirm={() => {
+          const q = pendingDelete;
+          setPendingDelete(null);
+          if (q) onDelete(q.id);
+        }}
+        onClose={() => setPendingDelete(null)}
+      />
     </Card>
   );
 }

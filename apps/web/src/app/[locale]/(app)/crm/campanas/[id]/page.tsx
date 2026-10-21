@@ -127,6 +127,7 @@ export default function CrmCampanaPage() {
   async function doCancel() {
     if (cancelling || !campaign) return;
     setCancelling(true);
+    setNotice(null);
     try {
       const res = await apiFetch(`/crm/campaigns/${campaign.id}/cancel`, {
         method: "POST",
@@ -134,6 +135,7 @@ export default function CrmCampanaPage() {
       if (!res.ok) return setError(true);
       setConfirmCancel(false);
       setCampaign((await res.json()) as CrmCampaign);
+      setNotice(t("campaigns.unscheduled"));
     } catch {
       setError(true);
     } finally {
@@ -398,7 +400,11 @@ export default function CrmCampanaPage() {
               )}
 
               <div aria-live="polite">
-                {notice && <p className="text-sm text-neon">{notice}</p>}
+                {notice && (
+                  <p role="status" className="text-sm text-neon">
+                    {notice}
+                  </p>
+                )}
               </div>
 
               {(c.status === "DRAFT" || c.status === "SCHEDULED") && (

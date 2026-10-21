@@ -246,7 +246,11 @@ function DatosPanel() {
   const [savedBusy, setSavedBusy] = useState<string | null>(null);
   const [saveName, setSaveName] = useState("");
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  // Feedback de las mutaciones de consultas/lead (éxito y error).
+  const [notice, setNotice] = useState<{
+    kind: "ok" | "err";
+    text: string;
+  } | null>(null);
 
   const statusLabel = (s: string) =>
     ta.has(`statusLabels.${s}`) ? ta(`statusLabels.${s}`) : s;
@@ -357,9 +361,13 @@ function DatosPanel() {
       });
       if (res.ok) {
         setSaveName("");
-        setNotice(tq("saved.created"));
+        setNotice({ kind: "ok", text: tq("saved.created") });
         void loadSaved();
+      } else {
+        setNotice({ kind: "err", text: tq("saved.actionError") });
       }
+    } catch {
+      setNotice({ kind: "err", text: tq("saved.actionError") });
     } finally {
       setSaving(false);
     }
@@ -373,7 +381,13 @@ function DatosPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       });
-      if (res.ok) await loadSaved();
+      if (res.ok) {
+        await loadSaved();
+      } else {
+        setNotice({ kind: "err", text: tq("saved.actionError") });
+      }
+    } catch {
+      setNotice({ kind: "err", text: tq("saved.actionError") });
     } finally {
       setSavedBusy(null);
     }
@@ -383,7 +397,13 @@ function DatosPanel() {
     setSavedBusy(id);
     try {
       const res = await apiFetch(`/query/saved/${id}`, { method: "DELETE" });
-      if (res.ok) await loadSaved();
+      if (res.ok) {
+        await loadSaved();
+      } else {
+        setNotice({ kind: "err", text: tq("saved.actionError") });
+      }
+    } catch {
+      setNotice({ kind: "err", text: tq("saved.actionError") });
     } finally {
       setSavedBusy(null);
     }
@@ -415,11 +435,19 @@ function DatosPanel() {
   // pendiente y le envía magic link + notificación para completar datos.
   async function convertLead(leadId: string) {
     setConvertingLead(leadId);
+    setNotice(null);
     try {
       const res = await apiFetch(`/admin/leads/${leadId}/convert`, {
         method: "POST",
       });
-      if (res.ok) await load();
+      if (res.ok) {
+        setNotice({ kind: "ok", text: t("datos.leadConverted") });
+        await load();
+      } else {
+        setNotice({ kind: "err", text: tc("error") });
+      }
+    } catch {
+      setNotice({ kind: "err", text: tc("error") });
     } finally {
       setConvertingLead(null);
     }
@@ -876,8 +904,13 @@ function DatosPanel() {
 
           <div aria-live="polite">
             {notice && (
-              <p role="status" className="text-sm font-medium text-neon">
-                {notice}
+              <p
+                role={notice.kind === "err" ? "alert" : "status"}
+                className={`text-sm font-medium ${
+                  notice.kind === "err" ? "text-red-400" : "text-neon"
+                }`}
+              >
+                {notice.text}
               </p>
             )}
           </div>

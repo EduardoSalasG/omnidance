@@ -169,7 +169,10 @@
       "empty": "Ainda não tens consultas guardadas",
       "rename": "Renomear",
       "delete": "Eliminar",
-      "created": "Consulta guardada"
+      "created": "Consulta guardada",
+      "actionError": "Não foi possível concluir a ação.",
+      "deleteTitle": "Apagar esta consulta?",
+      "deleteDesc": "“{name}” será removida das tuas consultas guardadas."
     },
     "cols": {
       "sales": {

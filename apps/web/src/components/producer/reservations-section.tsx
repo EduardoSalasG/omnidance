@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, Pager, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, ConfirmSheet, Pager, RefreshIcon } from "@/components/ui";
 import { ChevronDownIcon, SkeletonList } from "@/components/ui";
 import {
   inputCls,
@@ -53,6 +53,10 @@ export function ReservationsSection({
   // Fila expandida: los controles de ajuste (personas/mesa/confirmar/
   // cancelar) solo ocupan espacio en la reserva que se está editando.
   const [openId, setOpenId] = useState<string | null>(null);
+  // Cancelar la reserva de un cliente es destructivo - confirmación
+  // previa con nombre y tamaño del grupo (bottom-sheet compartido).
+  const [pendingCancel, setPendingCancel] =
+    useState<TableReservationItem | null>(null);
 
   const load = useCallback(async () => {
     setError(false);
@@ -384,9 +388,7 @@ export function ReservationsSection({
                         size="sm"
                         variant="ghost"
                         disabled={busyId === r.id}
-                        onClick={() =>
-                          void manage(r.id as string, "CANCELLED")
-                        }
+                        onClick={() => setPendingCancel(r)}
                       >
                         {t("reservations.cancel")}
                       </Button>
@@ -417,6 +419,29 @@ export function ReservationsSection({
           )}
         </>
       )}
+
+      <ConfirmSheet
+        open={pendingCancel !== null}
+        title={t("reservations.cancelTitle")}
+        description={
+          pendingCancel
+            ? t("reservations.cancelDesc", {
+                name: pendingCancel.person.name ?? "—",
+                count: pendingCancel.partySize,
+              })
+            : undefined
+        }
+        confirmLabel={t("reservations.cancel")}
+        busy={
+          pendingCancel !== null && busyId === pendingCancel.id
+        }
+        onConfirm={() => {
+          const r = pendingCancel;
+          setPendingCancel(null);
+          if (r?.id) void manage(r.id, "CANCELLED");
+        }}
+        onClose={() => setPendingCancel(null)}
+      />
     </section>
   );
 }
