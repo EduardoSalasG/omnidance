@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   Body,
   ConflictException,
@@ -27,6 +28,8 @@ import { PrismaService } from "../../prisma.service";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { PayoutSettlementService } from "../application/payout-settlement.service";
+import { PayoutDestinationService } from "../application/payout-destination.service";
+import { PayoutRequiresManualError } from "../domain/payout-rail";
 import { emitPaymentEvent } from "../domain/payment-ledger";
 import { pageParams } from "../../academies/infrastructure/list-filters";
 import { ApiPropertyOptional } from "@nestjs/swagger";
@@ -155,6 +158,7 @@ export class AdminPayoutsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settlement: PayoutSettlementService,
+    private readonly destinations: PayoutDestinationService,
   ) {}
 
   /**
@@ -310,6 +314,74 @@ export class AdminPayoutsController {
       prev: "APPROVED",
       next: "PAID",
       evidenceUrl: updated.evidenceUrl,
+    });
+    return updated;
+  }
+
+  /**
+   * Desembolsa el payout por el rail del actor (spec payouts/payout-rails):
+   * resuelve PayoutDestination ACTIVE en la moneda del payout → rail
+   * (STRIPE_CONNECT = transfer tr_… a la cuenta Connect) → marca PAID +
+   * paidAt + rail + railRef. Sin destino o moneda distinta → rail MANUAL
+   * → 409 requiresManualEvidence (POST /pay con evidencia sigue siendo
+   * el camino). Fallo del proveedor → 502 y el payout queda APPROVED
+   * para reintento seguro (Idempotency-Key por payoutId).
+   */
+  @Post(":id/disburse")
+  @HttpCode(200)
+  async disburse(@Param("id") id: string, @Req() req: Request) {
+    const payout = await this.prisma.payout.findUnique({ where: { id } });
+    if (!payout) throw new NotFoundException("payout no encontrado");
+    if (payout.status !== "APPROVED") {
+      throw new ConflictException(
+        "solo se puede desembolsar un payout aprobado",
+      );
+    }
+
+    const resolution = await this.destinations.resolveRail(
+      payout.actorType,
+      payout.actorId,
+      payout.currency,
+    );
+    let ref: string;
+    try {
+      const out = await resolution.rail.disburse({
+        payoutId: payout.id,
+        amount: payout.net,
+        currency: payout.currency,
+        destinationRef:
+          resolution.kind === "STRIPE_CONNECT"
+            ? resolution.destination.externalId
+            : "",
+      });
+      ref = out.ref;
+    } catch (e) {
+      if (e instanceof PayoutRequiresManualError) {
+        throw new ConflictException("requiresManualEvidence");
+      }
+      // El proveedor rechazó/cayó: el payout queda APPROVED para
+      // reintentar - la Idempotency-Key hace seguro el retry.
+      throw new BadGatewayException(
+        `desembolso rechazado por el proveedor: ${
+          e instanceof Error ? e.message : String(e)
+        }`,
+      );
+    }
+
+    const updated = await this.prisma.payout.update({
+      where: { id },
+      data: {
+        status: "PAID",
+        paidAt: new Date(),
+        rail: resolution.rail.name,
+        railRef: ref,
+      },
+    });
+    await this.audit(req, "PAYOUT_DISBURSE", id, {
+      rail: resolution.rail.name,
+      ref,
+      amount: payout.net,
+      currency: payout.currency,
     });
     return updated;
   }
