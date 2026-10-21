@@ -68,6 +68,7 @@
     "invitedDesc": "The producer invited you to sell presale for this event. If you accept, you get your attribution link.",
     "accept": "Accept",
     "decline": "Decline",
+    "responded": "Agreement updated.",
     "status": {
       "INVITED": "Invited",
       "ACTIVE": "Active",

@@ -199,7 +199,9 @@ function SeriesDetail({
     })();
   }, [academyId]);
 
-  async function patch(body: Record<string, unknown>): Promise<void> {
+  // Devuelve éxito: el caller decide si cerrar UI asociada (ej. el
+  // mini-form de horario no se cierra si el PATCH falla).
+  async function patch(body: Record<string, unknown>): Promise<boolean> {
     setBusy(true);
     setActionError(null);
     setFeedback(null);
@@ -214,12 +216,14 @@ function SeriesDetail({
       );
       if (!res.ok) {
         setActionError((await readError(res)) ?? t("error"));
-        return;
+        return false;
       }
       setFeedback(t("updated"));
       await reload();
+      return true;
     } catch {
       setActionError(t("error"));
+      return false;
     } finally {
       setBusy(false);
     }
@@ -253,7 +257,7 @@ function SeriesDetail({
       setActionError(t("error"));
       return;
     }
-    await patch({
+    const ok = await patch({
       addSlots: [
         {
           weekday: nsWeekday,
@@ -263,12 +267,15 @@ function SeriesDetail({
         },
       ],
     });
-    setSlotForm(false);
+    // Solo cerrar el mini-form si el PATCH salió bien: si falla, el
+    // usuario conserva lo que cargó y el error queda visible.
+    if (ok) setSlotForm(false);
   }
 
   async function removeSlot(slotId: string): Promise<void> {
     setBusy(true);
     setActionError(null);
+    setFeedback(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/slots/${slotId}`,
@@ -280,6 +287,7 @@ function SeriesDetail({
         return;
       }
       setConfirm(null);
+      setFeedback(t("updated"));
       await reload();
     } catch {
       setConfirm(null);

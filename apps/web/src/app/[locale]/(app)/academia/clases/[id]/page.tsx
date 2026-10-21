@@ -78,6 +78,21 @@ export default function AcademiaClaseRosterPage(
     void load();
   }, [load]);
 
+  // Marcaje in-place: el alumno queda "Presente" sin refetch - un load()
+  // completo volvería toda la página a SkeletonList (regla ~5s en pista).
+  const markAttended = useCallback((personId: string) => {
+    setRoster((r) =>
+      r
+        ? {
+            ...r,
+            booked: r.booked.map((b) =>
+              b.personId === personId ? { ...b, attended: true } : b,
+            ),
+          }
+        : r,
+    );
+  }, []);
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-4xl lg:px-8">
       {state === "loading" && <SkeletonList />}
@@ -108,7 +123,7 @@ export default function AcademiaClaseRosterPage(
           <RosterDetail
             roster={roster}
             classId={classId}
-            onChanged={() => void load()}
+            onChanged={markAttended}
           />
           {/* Tour de primera visita del roster - los anchors montan
               con el detalle (state ready). */}
@@ -163,7 +178,7 @@ function RosterDetail({
 }: {
   roster: ClassRoster;
   classId: string;
-  onChanged: () => void;
+  onChanged: (personId: string) => void;
 }) {
   const locale = useLocale();
   const t = useTranslations("instructor");
@@ -196,7 +211,7 @@ function RosterDetail({
         setMarkError(tc("error"));
         return;
       }
-      onChanged();
+      onChanged(personId);
     } catch {
       setMarkError(tc("error"));
     } finally {

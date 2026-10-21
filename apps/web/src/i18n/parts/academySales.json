@@ -68,6 +68,7 @@
     "invitedDesc": "El productor te invitó a vender la preventa de este evento. Si aceptas, obtienes tu link con atribución.",
     "accept": "Aceptar",
     "decline": "Rechazar",
+    "responded": "Acuerdo actualizado.",
     "status": {
       "INVITED": "Invitada",
       "ACTIVE": "Activo",

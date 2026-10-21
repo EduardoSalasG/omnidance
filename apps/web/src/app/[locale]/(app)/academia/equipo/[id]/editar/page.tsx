@@ -58,6 +58,7 @@ function EditCaps({
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -82,9 +83,10 @@ function EditCaps({
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!caps) return;
+    if (!caps || saved) return;
     setBusy(true);
     setErr(null);
+    setSaved(false);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/staff/${personId}`,
@@ -98,7 +100,9 @@ function EditCaps({
         setErr((await readError(res)) ?? t("error"));
         return;
       }
-      router.push(`/academia/equipo/${personId}`);
+      // Notice breve antes de volver a la ficha (patrón de la consola).
+      setSaved(true);
+      setTimeout(() => router.push(`/academia/equipo/${personId}`), 1200);
     } finally {
       setBusy(false);
     }
@@ -145,8 +149,13 @@ function EditCaps({
             {err}
           </p>
         )}
+        {saved && (
+          <p role="status" className="text-sm text-neon">
+            {t("capsSaved")}
+          </p>
+        )}
         <div>
-          <Button type="submit" size="sm" disabled={busy}>
+          <Button type="submit" size="sm" disabled={busy || saved}>
             {busy ? t("adding") : t("saveCaps")}
           </Button>
         </div>
