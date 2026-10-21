@@ -134,9 +134,17 @@ function GuideEditor({ cityId }: { cityId: string }) {
     };
     window.addEventListener("beforeunload", onBeforeUnload);
     document.addEventListener("click", onDocClick, true);
+    // Atrás del navegador en SPA no dispara beforeunload ni click:
+    // se apila una entrada para que el primer back caiga en popstate
+    // (la página no cambia porque la URL empujada es la misma) y se
+    // abre el ConfirmSheet; confirmar = history.back() real.
+    history.pushState(null, "", location.href);
+    const onPop = () => setPendingHref("__back__");
+    window.addEventListener("popstate", onPop);
     return () => {
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("click", onDocClick, true);
+      window.removeEventListener("popstate", onPop);
     };
   }, [dirty]);
 
@@ -341,9 +349,15 @@ function GuideEditor({ cityId }: { cityId: string }) {
         onConfirm={() => {
           const href = pendingHref;
           setPendingHref(null);
-          if (href) router.push(href);
+          if (href === "__back__") window.history.back();
+          else if (href) router.push(href);
         }}
-        onClose={() => setPendingHref(null)}
+        onClose={() => {
+          setPendingHref(null);
+          // Re-arma la guardia: si cancela y sigue dirty, vuelve a
+          // empujar la entrada para el próximo back.
+          if (dirty) history.pushState(null, "", location.href);
+        }}
       />
     </>
   );

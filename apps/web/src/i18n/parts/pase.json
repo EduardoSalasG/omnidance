@@ -30,7 +30,8 @@
     "confirmed": "Pase Social activado",
     "confirmPending": "El pago sigue en proceso - actualiza en unos segundos.",
     "retry": "Reintentar",
-    "disabled": "El Pase Social no está disponible por ahora."
+    "disabled": "El Pase Social no está disponible por ahora.",
+    "backHome": "Volver"
   },
   "checkout": {
     "paseBenefit": "Precio Pase Social",

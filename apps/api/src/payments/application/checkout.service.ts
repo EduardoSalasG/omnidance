@@ -606,8 +606,15 @@ export class CheckoutService {
     // puerta app es vacuosa hoy - el modelo todo incluido ya no cobra
     // fee al comprador (unitServiceFee=0); se marca igual para el
     // desglose/auditoría según la spec.
+    // Beneficio solo para la entrada del comprador (spec pase-social):
+    // con quantity>1 las sobrantes quedan claimables (transferibles)
+    // y con recipientIds son regalo a terceros - en ambos casos el
+    // precio beneficio no aplica a nada de la orden (el pricing es por
+    // unidad, mezclar por unidad queda para iteración).
+    const soloBuyer =
+      (input.quantity ?? 1) === 1 && !(input.recipientIds?.length);
     const socialPassBenefit =
-      passActive && channel === "DOOR" && event.presalePrice != null
+      passActive && soloBuyer && channel === "DOOR" && event.presalePrice != null
         ? {
             presalePriceApplied: true,
             doorFeeWaived: true,
@@ -617,9 +624,9 @@ export class CheckoutService {
     // v1: el crédito cubre TODAS las entradas de la orden o ninguna y
     // es solo del comprador - se rechaza ANTES de validar la amistad
     // de cada regalo para que el error diga el motivo real.
-    if (payWithCredit && input.recipientIds?.length) {
+    if (payWithCredit && !soloBuyer) {
       throw new SocialPassConflictError(
-        "el crédito del Pase Social solo cubre tus entradas - quita los regalos",
+        "el crédito del Pase Social solo cubre tu propia entrada - compra de a una y sin regalos",
       );
     }
     if (payWithCredit && input.methodId) {
@@ -834,7 +841,7 @@ export class CheckoutService {
       listPrice:
         channel === "PRESALE"
           ? event.presalePrice!
-          : passActive && event.presalePrice != null
+          : passActive && soloBuyer && event.presalePrice != null
             ? event.presalePrice!
             : event.doorPrice!,
       discount: code,

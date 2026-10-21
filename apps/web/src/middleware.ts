@@ -39,7 +39,7 @@ const PUBLIC_PATHS = new Set([
 // superficie pública de descubrimiento por ciudad (spec
 // city-discovery) - anónima y logueada la comparten (no va en
 // ANON_ONLY: el bailarín también la usa).
-const PUBLIC_PREFIXES = ["/reclamar", "/ciudades"];
+const PUBLIC_PREFIXES = ["/reclamar", "/ciudades", "/pase"];
 
 // Solo-anónimas: con sesión van directo a /inicio. Antes lo hacía cada
 // page con cookies() -> las volvía dinámicas + no-store (y mataba el
