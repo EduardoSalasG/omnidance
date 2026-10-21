@@ -651,7 +651,7 @@ sequenceDiagram
     alt sin inscripción vigente
         API-->>U: 403
     else cupo libre y cuota agotada
-        API-->>U: 409 "agotaste tus clases de esta semana"
+        API-->>U: 409 "Agotaste tus N clases de esta semana" (singular/pack con copy propio)
     else cupo libre
         API->>DB: BOOKED + enrollmentId (qué plan consumió)
     else clase llena

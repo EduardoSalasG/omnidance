@@ -8209,6 +8209,24 @@
           }
         },
         {
+          "name": "GET /api/classes/my-quota",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/classes/my-quota",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "classes",
+                "my-quota"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/classes/teaching",
           "request": {
             "method": "GET",
