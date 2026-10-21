@@ -95,3 +95,16 @@ payout_rail_destinations/payout_currency aplicaron vía deploy.
   --applied para drift). `npx` sigue frágil — spawn directo:
   `node ../../node_modules/.pnpm/prisma@5.22.0/node_modules/prisma/build/index.js`.
 - Git no está en PATH en estas shells MSYS: `"/c/Program Files/Git/bin/git.exe"`.
+
+## Addendum — gaps resueltos (commit f740cfc)
+
+- `Ticket.currency` + formato de montos en notificaciones del settle
+  ahora propagan `payment.currency` (era "CLP" hardcodeado, ~6 sitios).
+- MP declara solo LatAm en el routing (`USD`/`EUR` las toma STRIPE);
+  `createOrder` sigue aceptando todo vía SUPPORTED_CURRENCIES (cuentas
+  propias intactas).
+- Test e2e `event.currency:"USD"`→STRIPE agregado (checkout.spec 113).
+- `.env.example`: nota suscribir solo `checkout.session.completed|expired`.
+- vitest payments 180 tests de los archivos tocados verdes; tsc limpio.
+- Quedan por diseño (slice propio): cobro own-gateway sobre Connect,
+  front de payout-destinations, consent por jurisdicción (task 6).
