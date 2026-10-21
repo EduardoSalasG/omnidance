@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, RefreshIcon, SkeletonList } from "@/components/ui";
+import {
+  Button,
+  Card,
+  ConfirmSheet,
+  RefreshIcon,
+  SkeletonList,
+} from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import {
@@ -39,6 +45,11 @@ function CollaboratorsList() {
   const [items, setItems] = useState<Collaborator[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Quitar de la nómina es destructivo - confirmación con el nombre de
+  // la persona (bottom-sheet compartido).
+  const [pendingRemove, setPendingRemove] = useState<Collaborator | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     setState("loading");
@@ -61,6 +72,7 @@ function CollaboratorsList() {
 
   async function remove(personId: string) {
     if (busyId) return;
+    setPendingRemove(null);
     setBusyId(personId);
     setActionError(null);
     try {
@@ -147,7 +159,7 @@ function CollaboratorsList() {
                     size="sm"
                     variant="ghost"
                     disabled={busyId === c.person.id}
-                    onClick={() => void remove(c.person.id)}
+                    onClick={() => setPendingRemove(c)}
                   >
                     {t("collaborators.remove")}
                   </Button>
@@ -163,6 +175,23 @@ function CollaboratorsList() {
           </p>
         )}
       </section>
+
+      <ConfirmSheet
+        open={pendingRemove !== null}
+        title={t("collaborators.removeTitle", {
+          name:
+            pendingRemove?.person.name ??
+            pendingRemove?.person.email ??
+            "",
+        })}
+        description={t("collaborators.removeDesc")}
+        confirmLabel={t("collaborators.remove")}
+        busy={pendingRemove !== null && busyId === pendingRemove.person.id}
+        onConfirm={() =>
+          pendingRemove && void remove(pendingRemove.person.id)
+        }
+        onClose={() => setPendingRemove(null)}
+      />
 
       {/* Tour de la nómina (primera visita): con lista vacía el
           anchor collab-list no existe y el tour queda solo en el

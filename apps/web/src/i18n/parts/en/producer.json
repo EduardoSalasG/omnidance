@@ -188,7 +188,9 @@
         "CONFIRMED": "Confirmed",
         "CANCELLED": "Cancelled"
       },
-      "seatsOccupancy": "{used} of {total} seats occupied"
+      "seatsOccupancy": "{used} of {total} seats occupied",
+      "cancelTitle": "Cancel the reservation?",
+      "cancelDesc": "{name} — {count, plural, one {# person} other {# people}}."
     },
     "ratings": {
       "notEnough": "Not enough ratings to show yet ({count}/3).",
@@ -340,7 +342,10 @@
       "queueEmpty": "No pending receipts.",
       "queueEmptyDesc": "When someone pays by transfer, link or cash and uploads their receipt, it'll appear here for validation.",
       "orderTicket": "Ticket",
-      "orderSeriesPass": "Series pass"
+      "orderSeriesPass": "Series pass",
+      "created": "Payment method added.",
+      "updated": "Payment method updated.",
+      "removed": "Payment method removed."
     },
     "billingDocs": {
       "title": "Charge notes",
@@ -391,7 +396,10 @@
       "reviewNote": "Reason",
       "orderRef": "Order no.",
       "openReceipt": "View receipt",
-      "notFound": "We couldn't find this receipt."
+      "notFound": "We couldn't find this receipt.",
+      "approveTitle": "Approve this receipt?",
+      "approveDesc": "Approving settles the order and issues the ticket instantly.",
+      "approvedMsg": "Payment approved: the order was issued."
     },
     "collaborators": {
       "title": "Collaborators",
@@ -407,7 +415,9 @@
       "nameLabel": "Name (optional)",
       "inviteSubmit": "Send invite",
       "invited": "Invite sent — they got an email with access",
-      "added": "Collaborator added"
+      "added": "Collaborator added",
+      "removeTitle": "Remove {name}?",
+      "removeDesc": "They will no longer appear as a staff candidate for your events."
     }
   }
 }

@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   Card,
+  ConfirmSheet,
   RefreshIcon,
   SkeletonList,
   Spinner,
@@ -78,7 +79,14 @@ function ClaimDetail() {
   const [busy, setBusy] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
+  // Feedback de la acción (éxito y error) - el ok queda visible el
+  // ~1.2s previo al redirect a la cola.
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(
+    null,
+  );
+  // Aprobar liquida la orden y emite la entrada de una - confirmación
+  // previa (bottom-sheet compartido).
+  const [confirmApprove, setConfirmApprove] = useState(false);
 
   const load = useCallback(async () => {
     const res = await apiFetch(`/producer/claims/${id}`).catch(() => null);
@@ -106,11 +114,15 @@ function ClaimDetail() {
         body: "{}",
       });
       if (!res.ok) {
-        setMsg(t("error"));
+        setMsg({ kind: "err", text: t("error") });
+        setConfirmApprove(false);
         return;
       }
-      // Resuelto → vuelve a la cola (el claim ya no es accionable).
-      router.push("/productor/comprobantes");
+      // Resuelto → aviso breve y vuelve a la cola (el claim ya no es
+      // accionable).
+      setConfirmApprove(false);
+      setMsg({ kind: "ok", text: tp("claimDetail.approvedMsg") });
+      setTimeout(() => router.push("/productor/comprobantes"), 1200);
     } finally {
       setBusy(false);
     }
@@ -127,10 +139,11 @@ function ClaimDetail() {
         body: JSON.stringify({ note: rejectNote.trim() }),
       });
       if (!res.ok) {
-        setMsg(t("error"));
+        setMsg({ kind: "err", text: t("error") });
         return;
       }
-      router.push("/productor/comprobantes");
+      setMsg({ kind: "ok", text: t("rejectedMsg") });
+      setTimeout(() => router.push("/productor/comprobantes"), 1200);
     } finally {
       setBusy(false);
     }
@@ -280,19 +293,27 @@ function ClaimDetail() {
           {claim.status === "PENDING" && (
             <section className="flex flex-col gap-3">
               {msg && (
-                <p role="alert" className="text-sm text-red-400">
-                  {msg}
+                <p
+                  role={msg.kind === "err" ? "alert" : "status"}
+                  className={`text-sm ${
+                    msg.kind === "err" ? "text-red-400" : "text-neon"
+                  }`}
+                >
+                  {msg.text}
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => void approve()} disabled={busy}>
+                <Button
+                  onClick={() => setConfirmApprove(true)}
+                  disabled={busy || msg?.kind === "ok"}
+                >
                   {busy ? <Spinner size="sm" /> : null}
                   {t("approve")}
                 </Button>
                 <Button
                   variant="secondary"
                   onClick={() => setRejectOpen((v) => !v)}
-                  disabled={busy}
+                  disabled={busy || msg?.kind === "ok"}
                 >
                   {t("reject")}
                 </Button>
@@ -312,7 +333,9 @@ function ClaimDetail() {
                     <Button
                       size="sm"
                       onClick={() => void reject()}
-                      disabled={!rejectNote.trim() || busy}
+                      disabled={
+                        !rejectNote.trim() || busy || msg?.kind === "ok"
+                      }
                     >
                       {t("confirm")}
                     </Button>
@@ -330,6 +353,18 @@ function ClaimDetail() {
           )}
         </div>
       )}
+
+      {/* Aprobar liquida la orden y emite la entrada con un solo click -
+          confirmación previa (mismo patrón que cancelar evento). */}
+      <ConfirmSheet
+        open={confirmApprove}
+        title={tp("claimDetail.approveTitle")}
+        description={tp("claimDetail.approveDesc")}
+        confirmLabel={t("approve")}
+        busy={busy}
+        onConfirm={() => void approve()}
+        onClose={() => setConfirmApprove(false)}
+      />
     </>
   );
 }

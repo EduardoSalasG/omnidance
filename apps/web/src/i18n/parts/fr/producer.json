@@ -188,7 +188,9 @@
         "CONFIRMED": "Confirmée",
         "CANCELLED": "Annulée"
       },
-      "seatsOccupancy": "{used} places sur {total} occupées"
+      "seatsOccupancy": "{used} places sur {total} occupées",
+      "cancelTitle": "Annuler la réservation ?",
+      "cancelDesc": "{name} — {count, plural, one {# personne} other {# personnes}}."
     },
     "ratings": {
       "notEnough": "Pas encore assez d'évaluations à afficher ({count}/3).",
@@ -340,7 +342,10 @@
       "queueEmpty": "Pas de justificatifs en attente.",
       "queueEmptyDesc": "Quand quelqu'un paie par virement, lien ou espèces et envoie son justificatif, il apparaîtra ici pour validation.",
       "orderTicket": "Billet",
-      "orderSeriesPass": "Pass de série"
+      "orderSeriesPass": "Pass de série",
+      "created": "Moyen d'encaissement ajouté.",
+      "updated": "Moyen d'encaissement mis à jour.",
+      "removed": "Moyen d'encaissement supprimé."
     },
     "billingDocs": {
       "title": "Notes de débit",
@@ -391,7 +396,10 @@
       "reviewNote": "Motif",
       "orderRef": "N° de commande",
       "openReceipt": "Voir le justificatif",
-      "notFound": "Impossible de trouver ce justificatif."
+      "notFound": "Impossible de trouver ce justificatif.",
+      "approveTitle": "Approuver ce justificatif ?",
+      "approveDesc": "En approuvant, la commande est soldée et le billet est émis aussitôt.",
+      "approvedMsg": "Paiement approuvé : la commande a été émise."
     },
     "collaborators": {
       "title": "Collaborateurs",
@@ -407,7 +415,9 @@
       "nameLabel": "Nom (optionnel)",
       "inviteSubmit": "Envoyer l'invitation",
       "invited": "Invitation envoyée — il a reçu un e-mail avec accès",
-      "added": "Collaborateur ajouté"
+      "added": "Collaborateur ajouté",
+      "removeTitle": "Retirer {name} ?",
+      "removeDesc": "Il n'apparaîtra plus comme candidat staff pour tes événements."
     }
   }
 }

@@ -44,6 +44,7 @@ export default function CrmSegmentoPage() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const deleteDialogRef = useDialogFocus<HTMLDivElement>(confirmDelete, () =>
@@ -135,12 +136,20 @@ export default function CrmSegmentoPage() {
               editing={s}
               onSaved={() => {
                 setEditing(false);
+                setNotice(t("actorSegments.saved"));
                 void load();
               }}
               onCancel={() => setEditing(false)}
             />
           ) : (
             <div className="flex flex-col gap-6">
+              <div aria-live="polite">
+                {notice && (
+                  <p role="status" className="text-sm font-medium text-neon">
+                    {notice}
+                  </p>
+                )}
+              </div>
               <Card className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-lg font-semibold">{s.name}</h2>
@@ -168,7 +177,10 @@ export default function CrmSegmentoPage() {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => setEditing(true)}
+                    onClick={() => {
+                      setNotice(null);
+                      setEditing(true);
+                    }}
                   >
                     {t("actorSegments.edit")}
                   </Button>

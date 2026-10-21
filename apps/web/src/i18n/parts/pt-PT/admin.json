@@ -454,7 +454,8 @@
     "DONE": "Enviada",
     "FAILED": "Falhou",
     "CANCELLED": "Cancelada"
-   }
+   },
+   "testSent": "Teste enviado — verifica o teu e-mail."
   },
   "billing": {
    "title": "Faturação",
@@ -479,7 +480,8 @@
    "void": "Anular",
    "voidConfirm": "Anular a nota",
    "voidReasonPlaceholder": "Motivo da anulação",
-   "voidedReason": "Anulada : {reason}"
+   "voidedReason": "Anulada : {reason}",
+   "generated": "Nota de cobrança emitida."
   },
   "finance": {
    "from": "De",
@@ -549,7 +551,10 @@
     "FAILED_CARD": "Cartão recusado",
     "CANCEL_PENDING": "Cancela no fecho",
     "CANCELLED": "Cancelada"
-   }
+   },
+   "approved": "Liquidação aprovada.",
+   "paid": "Liquidação marcada como paga.",
+   "actionError": "Não foi possível concluir a ação."
   },
   "roles": {
    "superuser": "Superutilizador",

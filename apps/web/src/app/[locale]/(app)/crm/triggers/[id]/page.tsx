@@ -29,6 +29,7 @@ export default function CrmTriggerEditPage() {
 
   const [items, setItems] = useState<CrmTrigger[] | null>(null);
   const [error, setError] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
     if (!ctx.actor) return;
@@ -76,6 +77,10 @@ export default function CrmTriggerEditPage() {
             <p role="alert" className="text-sm text-red-400">
               {t("triggers.notFound")}
             </p>
+          ) : saved ? (
+            <p role="status" className="text-sm text-neon">
+              {t("triggers.saved")}
+            </p>
           ) : (
             <TriggerForm
               key={editing.id}
@@ -83,7 +88,10 @@ export default function CrmTriggerEditPage() {
               existingKeys={items.map((tr) => tr.key)}
               editing={editing}
               onCancel={() => router.push("/crm/triggers")}
-              onSaved={() => router.push("/crm/triggers")}
+              onSaved={() => {
+                setSaved(true);
+                setTimeout(() => router.push("/crm/triggers"), 900);
+              }}
             />
           )}
         </>

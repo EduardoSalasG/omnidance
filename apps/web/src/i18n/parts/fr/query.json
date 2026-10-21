@@ -169,7 +169,10 @@
       "empty": "Tu n'as pas encore de requêtes enregistrées",
       "rename": "Renommer",
       "delete": "Supprimer",
-      "created": "Requête enregistrée"
+      "created": "Requête enregistrée",
+      "actionError": "Impossible de terminer l'action.",
+      "deleteTitle": "Supprimer cette requête ?",
+      "deleteDesc": "« {name} » sera supprimée de tes requêtes enregistrées."
     },
     "cols": {
       "sales": {

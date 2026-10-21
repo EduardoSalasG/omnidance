@@ -46,7 +46,11 @@ export function ProducerPaymentMethodsSection() {
   const [details, setDetails] = useState<Record<string, string>>({});
   const [order, setOrder] = useState("0");
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  // Feedback de la sección (éxito y error): vive fuera del form para
+  // que siga visible cuando el form se cierra tras crear.
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(
+    null,
+  );
   // Confirmación destructiva compartida (reemplaza window.confirm).
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
@@ -81,13 +85,14 @@ export function ProducerPaymentMethodsSection() {
         }),
       });
       if (!res.ok) {
-        setMsg(t("error"));
+        setMsg({ kind: "err", text: t("error") });
         return;
       }
       setShowForm(false);
       setLabel("");
       setDetails({});
       setOrder("0");
+      setMsg({ kind: "ok", text: tp("created") });
       await load();
     } finally {
       setBusy(false);
@@ -95,18 +100,48 @@ export function ProducerPaymentMethodsSection() {
   }
 
   async function patch(id: string, data: Record<string, unknown>) {
-    await apiFetch(`/producer/payment-methods/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    await load();
+    if (busy) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await apiFetch(`/producer/payment-methods/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        setMsg({ kind: "err", text: t("error") });
+        return;
+      }
+      setMsg({ kind: "ok", text: tp("updated") });
+      await load();
+    } catch {
+      setMsg({ kind: "err", text: t("error") });
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function remove(id: string) {
     setPendingDelete(null);
-    await apiFetch(`/producer/payment-methods/${id}`, { method: "DELETE" });
-    await load();
+    if (busy) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await apiFetch(`/producer/payment-methods/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        setMsg({ kind: "err", text: t("error") });
+        return;
+      }
+      setMsg({ kind: "ok", text: tp("removed") });
+      await load();
+    } catch {
+      setMsg({ kind: "err", text: t("error") });
+    } finally {
+      setBusy(false);
+    }
   }
 
   const inputCls =
@@ -202,11 +237,6 @@ export function ProducerPaymentMethodsSection() {
               className={`${inputCls} w-24`}
             />
           </label>
-          {msg && (
-            <p role="alert" className="text-sm text-red-400">
-              {msg}
-            </p>
-          )}
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -225,6 +255,15 @@ export function ProducerPaymentMethodsSection() {
             </Button>
           </div>
         </div>
+      )}
+
+      {msg && (
+        <p
+          role={msg.kind === "err" ? "alert" : "status"}
+          className={`text-sm ${msg.kind === "err" ? "text-red-400" : "text-neon"}`}
+        >
+          {msg.text}
+        </p>
       )}
 
       {methods === null ? (

@@ -90,6 +90,7 @@ function BillingPanel() {
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [docs, setDocs] = useState<BillingDoc[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [generating, setGenerating] = useState<string | null>(null);
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
@@ -126,14 +127,19 @@ function BillingPanel() {
   async function generate(payoutId: string) {
     setGenerating(payoutId);
     setError(null);
+    setNotice(null);
     try {
       const res = await apiFetch("/admin/billing/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ payoutId }),
       });
-      if (!res.ok) setError(await readError(res));
-      else await load();
+      if (!res.ok) {
+        setError(await readError(res));
+      } else {
+        setNotice(t("generated"));
+        await load();
+      }
     } finally {
       setGenerating(null);
     }
@@ -143,6 +149,7 @@ function BillingPanel() {
     if (!voidReason.trim()) return;
     setVoidBusy(true);
     setError(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/admin/billing/${id}/void`, {
         method: "POST",
@@ -171,6 +178,11 @@ function BillingPanel() {
           <Card className="border-red-500/40 p-3 text-sm text-red-300">
             {error}
           </Card>
+        )}
+        {notice && (
+          <p role="status" className="text-sm text-neon">
+            {notice}
+          </p>
         )}
       </section>
 

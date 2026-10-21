@@ -134,7 +134,8 @@
       "notFound": "Campanha não encontrada ou sem acesso.",
       "createdAt": "Criada",
       "sendTitle": "Enviar a campanha?",
-      "sendDesc": "É uma ação em massa e não pode ser desfeita."
+      "sendDesc": "É uma ação em massa e não pode ser desfeita.",
+      "unscheduled": "Envio desprogramado: a campanha voltou a rascunho."
     },
     "triggers": {
       "title": "Triggers automáticos",
@@ -185,7 +186,8 @@
         "ACADEMY": "Só academia",
         "PRODUCER": "Só produtor"
       },
-      "notFound": "Trigger não encontrado."
+      "notFound": "Trigger não encontrado.",
+      "saved": "Trigger guardado."
     },
     "actorSegments": {
       "title": "Segmentos",

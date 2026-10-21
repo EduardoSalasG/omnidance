@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -22,6 +22,7 @@ function NuevaCampanaInner() {
   const t = useTranslations("crm");
   const router = useRouter();
   const ctx = useCrmContext();
+  const [saved, setSaved] = useState(false);
   const initialIds =
     useSearchParams().get("personIds")?.split(",").filter(Boolean) ?? [];
 
@@ -35,13 +36,20 @@ function NuevaCampanaInner() {
             <p className="text-ink/60">{t("pickActor")}</p>
           ) : ctx.proBlocked ? (
             <ProPaywall />
+          ) : saved ? (
+            <p role="status" className="text-sm text-neon">
+              {t("campaigns.created")}
+            </p>
           ) : (
             <CampaignForm
               key={actorKey(ctx.actor)}
               actor={ctx.actor}
               initialPersonIds={initialIds}
               onCancel={() => router.push("/crm/campanas")}
-              onCreated={() => router.push("/crm/campanas")}
+              onCreated={() => {
+                setSaved(true);
+                setTimeout(() => router.push("/crm/campanas"), 900);
+              }}
             />
           )}
         </>

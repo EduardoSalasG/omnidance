@@ -53,7 +53,10 @@ export function GatewayAccountSection() {
   const [apiKey, setApiKey] = useState("");
   const [secret, setSecret] = useState("");
   const [busy, setBusy] = useState<"save" | "disable" | null>(null);
+  // Feedback separado: éxito → role="status", error → role="alert"
+  // (antes ambos salían por status y el error no se anunciaba).
   const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
   const [confirmOff, setConfirmOff] = useState(false);
 
   const load = useCallback(async () => {
@@ -86,6 +89,7 @@ export function GatewayAccountSection() {
   async function save() {
     setBusy("save");
     setMsg(null);
+    setErr(null);
     try {
       const res = await apiFetch("/producer/gateway-account", {
         method: "PUT",
@@ -99,7 +103,7 @@ export function GatewayAccountSection() {
         }),
       });
       if (!res.ok) {
-        setMsg(await readError(res));
+        setErr((await readError(res)) ?? tc("error"));
         return;
       }
       const body = (await res.json()) as {
@@ -110,7 +114,7 @@ export function GatewayAccountSection() {
       setSecret("");
       setMsg(t("saved"));
     } catch {
-      setMsg(tc("error"));
+      setErr(tc("error"));
     } finally {
       setBusy(null);
     }
@@ -119,12 +123,13 @@ export function GatewayAccountSection() {
   async function disable() {
     setBusy("disable");
     setMsg(null);
+    setErr(null);
     try {
       const res = await apiFetch("/producer/gateway-account", {
         method: "DELETE",
       });
       if (!res.ok) {
-        setMsg(await readError(res));
+        setErr((await readError(res)) ?? tc("error"));
         return;
       }
       const body = (await res.json()) as {
@@ -134,7 +139,7 @@ export function GatewayAccountSection() {
       setConfirmOff(false);
       setMsg(t("disabled"));
     } catch {
-      setMsg(tc("error"));
+      setErr(tc("error"));
     } finally {
       setBusy(null);
     }
@@ -334,6 +339,11 @@ export function GatewayAccountSection() {
                   {t("disable")}
                 </Button>
               ))}
+            {err && (
+              <span role="alert" className="text-sm text-red-400">
+                {err}
+              </span>
+            )}
             {msg && (
               <span role="status" className="text-sm text-ink/70">
                 {msg}

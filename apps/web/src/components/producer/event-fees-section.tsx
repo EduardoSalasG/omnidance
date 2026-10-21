@@ -166,7 +166,12 @@ export function EventFeeInline({ event, isAdmin, isOwner, onSaved }: Props) {
           "-"
         )}
       </span>
-      {saved && <CheckIcon className="size-3.5 text-neon" />}
+      {saved && (
+        <span role="status" className="inline-flex items-center">
+          <CheckIcon className="size-3.5 text-neon" />
+          <span className="sr-only">{t("fees.saved")}</span>
+        </span>
+      )}
       {canEdit && (
         <button
           type="button"
