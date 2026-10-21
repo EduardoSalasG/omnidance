@@ -14,7 +14,8 @@
   rail Fintoc pendiente) — hecho en `stripe-gateway-payout-rail`
 - [x] 5. Scoping regional: `AdminRegion(personId, regionId)` +
   filtro de colas de validación por región
-- [ ] 6. Consent por jurisdicción (GDPR vs Ley 19.628)
+- [x] 6. Consent por jurisdicción (GDPR vs Ley 19.628) —
+  hecho en `consent-por-jurisdiccion`
 - [ ] 7. Landing por ciudad + "cerca de mí" (geohash)
 - [ ] 8. City guides curadas (editorial por ciudad)
 - [ ] 9. "Mi viaje" — trip planner de actividades
