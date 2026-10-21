@@ -186,6 +186,20 @@
         ]
       }
     },
+    "/api/legal/consent": {
+      "get": {
+        "operationId": "LegalController_current",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Legal"
+        ]
+      }
+    },
     "/api/me/photo": {
       "post": {
         "operationId": "PeopleController_uploadMyPhoto",
