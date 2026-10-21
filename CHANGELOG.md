@@ -3,6 +3,18 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.6.1] - 2026-10-21
+
+### Fixed
+
+- Migración de datos: normaliza `photoUrl` legacy con folder
+  duplicado (bug 1.3.1) en `Person`/`Academy`.
+- e2e: cubre notificaciones `role.approved`/`role.rejected` en la
+  cola de validación (deuda: spec de notifySafe).
+- Docs: inventario QA con flujos de soft-delete y engagement de
+  serie; roadmap multipaís suma congresos y modelo de créditos
+  ClassPass para el Pase Viajero.
+
 ## [1.6.0] - 2026-10-20
 
 ### Added

@@ -18,4 +18,9 @@
 - [ ] 9. "Mi viaje" — trip planner de actividades
 - [ ] 10. Pases multi-día / packs cross-academia
 - [ ] 11. Prácticas/socials free como adquisición por ciudad
-- [ ] 12. Pase Viajero (suscripción Person, red drop-in opt-in)
+- [ ] 12. Pase Viajero (suscripción Person, modelo **créditos
+  ClassPass**: N créditos/mes, coste por clase/spot dinámico por
+  demanda, rollover con tope, top-ups, red de academias opt-in con
+  revenue share por redención, intro offer)
+- [ ] 13. Congresos/festivales (evento multi-día: tracks de
+  workshops, socials nocturnas, artistas, full pass vs day pass)
