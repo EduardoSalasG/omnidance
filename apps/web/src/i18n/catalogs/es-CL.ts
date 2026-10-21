@@ -34,11 +34,12 @@ import p31 from "../parts/venue.json";
 import p32 from "../parts/wallet.json";
 import p33 from "../parts/welcome.json";
 import p34 from "../parts/cities.json";
+import p35 from "../parts/trip.json";
 
 import { mergeDict, type Dict, type DM } from "../merge";
 
-const parts = [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34] as Dict[];
+const parts = [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35] as Dict[];
 
 /** Catálogo es-CL: base + parts (fallback: es-CL debajo en messages.ts). */
 const catalog = parts.reduce<Dict>((acc, p) => mergeDict(acc, p), { ...base })
-export default catalog as unknown as DM<typeof base, DM<typeof p0, DM<typeof p1, DM<typeof p2, DM<typeof p3, DM<typeof p4, DM<typeof p5, DM<typeof p6, DM<typeof p7, DM<typeof p8, DM<typeof p9, DM<typeof p10, DM<typeof p11, DM<typeof p12, DM<typeof p13, DM<typeof p14, DM<typeof p15, DM<typeof p16, DM<typeof p17, DM<typeof p18, DM<typeof p19, DM<typeof p20, DM<typeof p21, DM<typeof p22, DM<typeof p23, DM<typeof p24, DM<typeof p25, DM<typeof p26, DM<typeof p27, DM<typeof p28, DM<typeof p29, DM<typeof p30, DM<typeof p31, DM<typeof p32, DM<typeof p33, typeof p34>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>;
+export default catalog as unknown as DM<typeof base, DM<typeof p0, DM<typeof p1, DM<typeof p2, DM<typeof p3, DM<typeof p4, DM<typeof p5, DM<typeof p6, DM<typeof p7, DM<typeof p8, DM<typeof p9, DM<typeof p10, DM<typeof p11, DM<typeof p12, DM<typeof p13, DM<typeof p14, DM<typeof p15, DM<typeof p16, DM<typeof p17, DM<typeof p18, DM<typeof p19, DM<typeof p20, DM<typeof p21, DM<typeof p22, DM<typeof p23, DM<typeof p24, DM<typeof p25, DM<typeof p26, DM<typeof p27, DM<typeof p28, DM<typeof p29, DM<typeof p30, DM<typeof p31, DM<typeof p32, DM<typeof p33, DM<typeof p34, typeof p35>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>;

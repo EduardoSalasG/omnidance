@@ -130,6 +130,8 @@ const ICONS = {
   // Nota musical - consola del DJ.
   music:
     "M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z",
+  // Marcador - "Mi viaje" (bookmark del trip planner, spec mi-viaje).
+  bookmark: "M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z",
   // Audífonos - consola de soporte.
   headset:
     "M4 13a8 8 0 0 1 16 0M4 13v4a2 2 0 0 0 2 2h1a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H4zM20 13v4a2 2 0 0 1-2 2h-1a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h3z",
@@ -405,6 +407,26 @@ const withCities = (items: DrawerSpec[], enabled: boolean) => {
   const at = items.findIndex((i) => i.href === "/practicas");
   const out = [...items];
   out.splice(at >= 0 ? at + 1 : out.length, 0, CITIES_ITEM);
+  return out;
+};
+// "Mi viaje" (spec mi-viaje): itinerario del bailarín - va tras el
+// bloque de descubrimiento (Ciudades si está, si no Prácticas) en el
+// sheet móvil y la sidebar desktop, detrás del flag trip_planner.
+const TRIP_ITEM: DrawerSpec = {
+  href: "/mi-viaje",
+  ns: "nav",
+  key: "trip",
+  icon: ICONS.bookmark,
+  flag: "trip_planner",
+};
+const withTrip = (items: DrawerSpec[], enabled: boolean) => {
+  if (!enabled) return items;
+  const at = Math.max(
+    items.findIndex((i) => i.href === "/ciudades"),
+    items.findIndex((i) => i.href === "/practicas"),
+  );
+  const out = [...items];
+  out.splice(at >= 0 ? at + 1 : out.length, 0, TRIP_ITEM);
   return out;
 };
 // Lente academia del bailarín: /clases y /academias ya son tabs y las
@@ -1273,9 +1295,12 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           ...DANCER_SIDEBAR[dancerAcademy ? "academy" : "social"].map(
             (g) => ({
               label: labelFor(g.labelNs, g.labelKey),
-              items: withCities(
-                g.items,
-                !dancerAcademy && flags.city_landing === true,
+              items: withTrip(
+                withCities(
+                  g.items,
+                  !dancerAcademy && flags.city_landing === true,
+                ),
+                !dancerAcademy && flags.trip_planner === true,
               ).map((spec) => {
                 const itemPath = spec.href.split("?")[0];
                 return {
@@ -1335,6 +1360,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     // Módulos del sheet del bailarín (ya no viven en el drawer).
     ["/bailes", t("dances")],
     ["/practicas", t("practices")],
+    // "Mi viaje" (spec mi-viaje) - destino del sheet/sidebar del
+    // bailarín: el título contextual y la raíz también lo conocen.
+    ["/mi-viaje", t("trip")],
     ["/academia", tac("title")],
     // /qr ya no es tab del bailarín (vive embebido en el sheet) -
     // la ruta sigue existiendo (escáner desde /bailes, /practicas).
@@ -1430,9 +1458,12 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
   // Ítems del sheet del bailarín - labels resueltos como en el drawer.
   const isDancer = activeRole === "DANCER";
-  const sheetItems: SheetItem[] = withCities(
-    dancerAcademy ? SHEET_ACADEMY_ITEMS : SHEET_SOCIAL_ITEMS,
-    !dancerAcademy && flags.city_landing === true,
+  const sheetItems: SheetItem[] = withTrip(
+    withCities(
+      dancerAcademy ? SHEET_ACADEMY_ITEMS : SHEET_SOCIAL_ITEMS,
+      !dancerAcademy && flags.city_landing === true,
+    ),
+    !dancerAcademy && flags.trip_planner === true,
   ).map((spec) => ({
     href: spec.href,
     label: labelFor(spec.ns, spec.key),
