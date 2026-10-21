@@ -5,6 +5,7 @@ import { RealtimeProvider } from "@/components/realtime/RealtimeProvider";
 import { NavPendingOverlay } from "@/components/ui/nav-pending";
 import { ConsentBanner } from "@/components/legal/ConsentBanner";
 import { InstallPrompt } from "@/components/install/InstallPrompt";
+import { PushOptIn } from "@/components/realtime/PushOptIn";
 import { MeProvider } from "@/lib/me-context";
 import { FeaturesProvider } from "@/lib/features-context";
 import { appMessages } from "@/i18n/messages";
@@ -58,6 +59,12 @@ export default async function AppLayout({
                 instrucciones). Dismiss persistente, se oculta si el
                 banner de consentimiento ocupa el slot. */}
             <InstallPrompt />
+            {/* Opt-in de Web Push: comparte el slot inferior con
+                ConsentBanner/InstallPrompt y les cede precedencia por
+                estado (consent pendiente > install > push). Vive dentro
+                de MeProvider porque consulta /me - antes estaba dentro
+                de RealtimeProvider y useMe lanzaba. */}
+            <PushOptIn />
           </FeaturesProvider>
         </MeProvider>
       </NavPendingOverlay>

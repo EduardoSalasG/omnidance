@@ -15,7 +15,6 @@ import {
   type RealtimeNotification,
 } from "@/lib/realtime";
 import { NotificationToast } from "./NotificationToast";
-import { PushOptIn } from "./PushOptIn";
 
 /**
  * Contexto realtime del centro de notificaciones.
@@ -126,7 +125,6 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     <RealtimeContext.Provider value={value}>
       {children}
       <NotificationToast />
-      <PushOptIn />
     </RealtimeContext.Provider>
   );
 }
