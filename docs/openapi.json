@@ -310,6 +310,30 @@
         ]
       }
     },
+    "/api/me/password": {
+      "put": {
+        "operationId": "PeopleController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "People"
+        ]
+      }
+    },
     "/api/me/pending-surveys": {
       "get": {
         "operationId": "PeopleController_pendingSurveys",
@@ -10980,6 +11004,10 @@
         "properties": {}
       },
       "UpdateMeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ChangePasswordDto": {
         "type": "object",
         "properties": {}
       },
