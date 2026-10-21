@@ -128,7 +128,7 @@ export class AdminCityGuidesService {
     if (!city) throw new NotFoundException("ciudad no encontrada");
 
     const patch = Object.fromEntries(
-      GUIDE_SECTIONS.filter((s) => dto[s] !== undefined).map((s) => [
+      GUIDE_SECTIONS.filter((s) => dto[s] != null).map((s) => [
         s,
         dto[s],
       ]),
