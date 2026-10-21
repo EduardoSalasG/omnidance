@@ -20,6 +20,48 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 export class CitiesController {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * GET /cities/near?lat&lng - "cerca de mí": ciudades ordenadas por
+   * distancia a la posición (haversine sobre lat/lng del City).
+   */
+  @Get("near")
+  async near(
+    @Param() _params: unknown,
+    @Req() req: Request,
+  ) {
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    if (!isFinite(lat) || !isFinite(lng)) {
+      throw new NotFoundException("lat/lng requeridos");
+    }
+    const cities = await this.prisma.city.findMany({
+      where: { lat: { not: null }, lng: { not: null } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        lat: true,
+        lng: true,
+        timezone: true,
+        country: { select: { code: true, name: true } },
+      },
+    });
+    const km = (a: { lat: number | null; lng: number | null }) => {
+      const R = 6371;
+      const dLat = ((a.lat! - lat) * Math.PI) / 180;
+      const dLng = ((a.lng! - lng) * Math.PI) / 180;
+      const h =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((lat * Math.PI) / 180) *
+          Math.cos((a.lat! * Math.PI) / 180) *
+          Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(h));
+    };
+    return cities
+      .map((c) => ({ ...c, distanceKm: Math.round(km(c)) }))
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+  }
+
   /** GET /cities - ciudades con conteos de oferta activa. */
   @Get()
   async list() {
