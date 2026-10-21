@@ -14,7 +14,8 @@ import {
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
-import { IsBoolean, IsEmail, IsOptional, IsString, Matches, MinLength } from "class-validator";
+import { IsBoolean, IsEmail, IsOptional, IsString, Matches, MinLength, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
 import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import {
@@ -22,6 +23,8 @@ import {
   throttleTtlMs,
 } from "../../common/throttle.config";
 import { AuthService } from "../domain/auth.service";
+import { ConsentService } from "../../legal/consent.service";
+import { resolveJurisdiction } from "../../legal/jurisdiction";
 import type { Mailer, AuthRepo } from "../domain/ports";
 import { MAILER, AUTH_REPO } from "../domain/ports";
 import { SessionGuard } from "./session.guard";
@@ -89,10 +92,39 @@ class PasswordLoginDto extends ConsentField {
   password!: string;
 }
 
+// Scopes granulares declarados en el alta (spec
+// consent-por-jurisdiccion): EU exige opt-in separado de
+// marketing/analytics; el servidor solo persiste los que el LegalText
+// vigente de la jurisdicción declara en requiredScopes.
+class RegisterScopesDto {
+  @IsOptional()
+  @IsBoolean()
+  essential?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  marketing?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  analytics?: boolean;
+}
+
 class RegisterDto extends PasswordLoginDto {
   @IsString()
   @MinLength(2)
   name!: string;
+
+  // País declarado (ISO-3166 alpha-2): resuelve Person.jurisdiction
+  // (UE/EEE/GB → EU, resto/ausencia → CL).
+  @IsOptional()
+  @Matches(/^[A-Za-z]{2}$/)
+  country?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RegisterScopesDto)
+  scopes?: RegisterScopesDto;
 }
 
 class SetPasswordDto {
@@ -148,6 +180,9 @@ export class AuthController {
     private readonly auth: AuthService,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(AUTH_REPO) private readonly repo: AuthRepo,
+    // Registro auditable del consentimiento (ConsentRecord + snapshot)
+    // - compartido con POST /me/consent (spec consent-por-jurisdiccion).
+    private readonly consentService: ConsentService,
   ) {}
 
   /** Bienvenida best-effort: el alta nunca falla por el correo. */
@@ -247,7 +282,9 @@ export class AuthController {
     // Login exitoso limpia los fallos previos de la ventana.
     loginAttempts.delete(key);
 
-    if (dto.consent === true) await this.repo.recordConsent(person.id);
+    if (dto.consent === true) {
+      await this.consentService.recordAcceptance(person.id);
+    }
     // Login con password desde una landing de actor también adjunta el
     // rol pedido (PENDING si aún no existía).
     const role = landingRole(dto.role);
@@ -277,7 +314,20 @@ export class AuthController {
         existing.passwordHash &&
         (await this.auth.verifyPassword(dto.password, existing.passwordHash))
       ) {
-        if (dto.consent === true) await this.repo.recordConsent(existing.id);
+        // País declarado en un re-registro: actualiza la jurisdicción
+        // (alta inicial sin country deja CL por default).
+        if (dto.country) {
+          await this.repo.setJurisdiction(
+            existing.id,
+            resolveJurisdiction(dto.country),
+          );
+        }
+        if (dto.consent === true) {
+          await this.consentService.recordAcceptance(
+            existing.id,
+            dto.scopes,
+          );
+        }
         const session = await this.auth.issueSession(existing.id);
         this.setSessionCookie(res, session);
         return { ok: true };
@@ -300,10 +350,16 @@ export class AuthController {
       email,
       dto.name.trim(),
       passwordHash,
+      // Jurisdicción legal del país declarado (CL si no declara).
+      resolveJurisdiction(dto.country),
     );
     const role = landingRole(dto.role);
     if (role) await this.repo.ensurePendingRole(person.id, role);
-    if (dto.consent === true) await this.repo.recordConsent(person.id);
+    // Consent declarado en el alta → ConsentRecord auditable con los
+    // scopes de la jurisdicción (spec consent-por-jurisdiccion).
+    if (dto.consent === true) {
+      await this.consentService.recordAcceptance(person.id, dto.scopes);
+    }
     await this.sendWelcome(email, person.name);
     // Correo de acceso (link+OTP) = verificación de posesión del email
     // (spec auth-email-verification) - la cuenta con password nace sin
@@ -367,7 +423,7 @@ export class AuthController {
       const existed = await this.repo.findByEmail(email);
       const person = await this.repo.upsertByEmail(email);
       // Checkbox marcado al pedir el link → se estampa al crear sesión.
-      if (consent) await this.repo.recordConsent(person.id);
+      if (consent) await this.consentService.recordAcceptance(person.id);
       // Rol pedido desde la landing (?role= viaja en el token).
       if (role) await this.repo.ensurePendingRole(person.id, role);
       if (!existed) await this.sendWelcome(email, person.name);
@@ -397,7 +453,7 @@ export class AuthController {
       const { consent, role } = await this.auth.verifyOtp(email, dto.code);
       const existed = await this.repo.findByEmail(email);
       const person = await this.repo.upsertByEmail(email);
-      if (consent) await this.repo.recordConsent(person.id);
+      if (consent) await this.consentService.recordAcceptance(person.id);
       if (role) await this.repo.ensurePendingRole(person.id, role);
       if (!existed) await this.sendWelcome(email, person.name);
       const session = await this.auth.issueSession(person.id);

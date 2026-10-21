@@ -10,6 +10,7 @@ import {
 import { PrismaModule } from "./prisma.module";
 import { HealthController } from "./health.controller";
 import { AuthModule } from "./auth/auth.module";
+import { LegalModule } from "./legal/legal.module";
 import { PeopleModule } from "./people/people.module";
 import { QrModule } from "./qr/qr.module";
 import { EventsModule } from "./events/events.module";
@@ -51,6 +52,7 @@ import { StorageModule } from "./storage/storage.module";
       ],
     }),
     AuthModule,
+    LegalModule,
     PeopleModule,
     QrModule,
     EventsModule,

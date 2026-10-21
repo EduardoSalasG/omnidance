@@ -4,6 +4,7 @@ import { CONSENT_VERSION } from "@omnidance/shared";
 import type { PrismaService } from "../prisma.service";
 import "../auth/infrastructure/auth.controller"; // ciclo session.guard ⇄ auth.controller (ver events.controller.spec)
 import { PeopleController, UpdateMeDto } from "./people.controller";
+import { ConsentService } from "../legal/consent.service";
 import type { NotificationsService } from "../notifications/domain/notifications.service";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
@@ -30,6 +31,7 @@ interface FakePerson {
   proTrialEndsAt: Date | null;
   consentVersion: string | null;
   consentAcceptedAt: Date | null;
+  jurisdiction: string | null;
   roles: { role: string; status: string }[];
   styleRoles: {
     role: string;
@@ -196,6 +198,56 @@ class FakePrisma {
           r.raterId === where.raterId && where.eventId.in.includes(r.eventId),
       ),
   };
+
+  // spec consent-por-jurisdiccion: catálogo LegalText + records auditables.
+  legalTexts: {
+    jurisdiction: string;
+    version: string;
+    body: string;
+    requiredScopes: string[];
+    granular: boolean;
+    active: boolean;
+    publishedAt: Date;
+  }[] = [];
+  consentRecords: {
+    personId: string;
+    jurisdiction: string;
+    version: string;
+    scopes: unknown;
+  }[] = [];
+
+  legalText = {
+    findFirst: async ({
+      where,
+    }: {
+      where: { jurisdiction: string; active: boolean };
+    }) =>
+      this.legalTexts
+        .filter(
+          (t) =>
+            t.jurisdiction === where.jurisdiction && t.active === where.active,
+        )
+        .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())[0] ??
+      null,
+  };
+
+  consentRecord = {
+    create: async ({
+      data,
+    }: {
+      data: {
+        personId: string;
+        jurisdiction: string;
+        version: string;
+        scopes: unknown;
+      };
+    }) => {
+      this.consentRecords.push(data);
+      return data;
+    },
+  };
+
+  $transaction = async (ops: Promise<unknown>[]) => Promise.all(ops);
 }
 
 const mkPerson = (id: string, gender: string | null = null): FakePerson => ({
@@ -216,6 +268,7 @@ const mkPerson = (id: string, gender: string | null = null): FakePerson => ({
   proTrialEndsAt: null,
   consentVersion: null,
   consentAcceptedAt: null,
+  jurisdiction: null,
   roles: [],
   styleRoles: [],
 });
@@ -242,6 +295,9 @@ describe("PeopleController", () => {
         save: async (_f: unknown, folder: string) => `${folder}/uuid-x.jpg`,
         read: async () => Buffer.from("img"),
       } as never,
+      // ConsentService real sobre el mismo FakePrisma - ejerce
+      // LegalText + ConsentRecord de verdad.
+      new ConsentService(prisma as unknown as PrismaService),
     );
     prisma.people.set("me", mkPerson("me"));
   });
@@ -415,6 +471,14 @@ describe("PeopleController", () => {
       expect(res.consentVersion).toBeNull();
       expect(res.consentAcceptedAt).toBeNull();
     });
+
+    // Spec consent-por-jurisdiccion: el banner consulta el texto por
+    // la jurisdiction persistida.
+    it("expone jurisdiction", async () => {
+      prisma.people.get("me")!.jurisdiction = "EU";
+      const res = await ctrl.me(reqAs("me"));
+      expect(res.jurisdiction).toBe("EU");
+    });
   });
 
   // spec rbac - checklist visible al actor: misma evaluación que la
@@ -491,8 +555,26 @@ describe("PeopleController", () => {
     });
   });
 
+  describe("PATCH /me jurisdiction", () => {
+    // Spec consent-por-jurisdiccion: la jurisdicción es editable en el
+    // perfil del usuario.
+    it("persiste la jurisdicción declarada", async () => {
+      await ctrl.updateMe(reqAs("me"), { jurisdiction: "EU" });
+      expect(prisma.personUpdates.at(-1)).toEqual({ jurisdiction: "EU" });
+      expect(prisma.people.get("me")!.jurisdiction).toBe("EU");
+    });
+
+    it("valor fuera del set → error de validación (400 en el pipe)", async () => {
+      const errors = await validate(
+        plainToInstance(UpdateMeDto, { jurisdiction: "US" }),
+      );
+      expect(errors.some((e) => e.property === "jurisdiction")).toBe(true);
+    });
+  });
+
   describe("POST /me/consent", () => {
-    it("estampa la versión vigente y el timestamp", async () => {
+    it("estampa la versión vigente y el timestamp + escribe ConsentRecord", async () => {
+      // Sin LegalText sembrado → baseline legacy (CONSENT_VERSION).
       const res = await ctrl.consent(reqAs("me"), { version: "0.0-vieja" });
       const me = prisma.people.get("me")!;
       // Siempre la versión del servidor - nunca la que envía el cliente.
@@ -501,6 +583,37 @@ describe("PeopleController", () => {
       expect(res).toMatchObject({
         ok: true,
         consentVersion: CONSENT_VERSION,
+      });
+      // spec consent-por-jurisdiccion: registro auditable por aceptación.
+      expect(prisma.consentRecords).toHaveLength(1);
+      expect(prisma.consentRecords[0]).toMatchObject({
+        personId: "me",
+        jurisdiction: "CL",
+        version: CONSENT_VERSION,
+        scopes: { essential: true },
+      });
+    });
+
+    it("con LegalText vigente estampa su versión y scopes de la jurisdicción", async () => {
+      prisma.legalTexts.push({
+        jurisdiction: "EU",
+        version: "eu-v1.0",
+        body: "x",
+        requiredScopes: ["essential", "marketing", "analytics"],
+        granular: true,
+        active: true,
+        publishedAt: new Date(),
+      });
+      prisma.people.get("me")!.jurisdiction = "EU";
+      const res = await ctrl.consent(reqAs("me"), {
+        version: "eu-v1.0",
+        scopes: { essential: true, marketing: true },
+      });
+      expect(res.consentVersion).toBe("eu-v1.0");
+      expect(prisma.consentRecords[0]).toMatchObject({
+        jurisdiction: "EU",
+        version: "eu-v1.0",
+        scopes: { essential: true, marketing: true, analytics: false },
       });
     });
   });

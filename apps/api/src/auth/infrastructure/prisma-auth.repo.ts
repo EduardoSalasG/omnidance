@@ -1,6 +1,5 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import type { Person } from "@prisma/client";
-import { CONSENT_VERSION } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
 import type { AuthRepo } from "../domain/ports";
 
@@ -42,12 +41,18 @@ export class PrismaAuthRepo implements AuthRepo {
     return this.prisma.person.findUnique({ where: { email } });
   }
 
-  createWithPassword(email: string, name: string, passwordHash: string) {
+  createWithPassword(
+    email: string,
+    name: string,
+    passwordHash: string,
+    jurisdiction?: string,
+  ) {
     return this.prisma.person.create({
       data: {
         email,
         name,
         passwordHash,
+        ...(jurisdiction ? { jurisdiction } : {}),
         roles: { create: { role: "DANCER", status: "APPROVED" } },
       },
     });
@@ -60,16 +65,11 @@ export class PrismaAuthRepo implements AuthRepo {
     });
   }
 
-  recordConsent(personId: string) {
-    return this.prisma.person
-      .update({
-        where: { id: personId },
-        data: {
-          consentAcceptedAt: new Date(),
-          consentVersion: CONSENT_VERSION,
-        },
-      })
-      .then(() => {});
+  async setJurisdiction(personId: string, jurisdiction: string) {
+    await this.prisma.person.update({
+      where: { id: personId },
+      data: { jurisdiction },
+    });
   }
 
   findById(id: string) {

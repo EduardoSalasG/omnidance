@@ -27,11 +27,14 @@ export interface AuthRepo {
     email: string,
     name: string,
     passwordHash: string,
+    // Jurisdicción resuelta del país declarado (spec
+    // consent-por-jurisdiccion) - undefined deja null → CL por default.
+    jurisdiction?: string,
   ): Promise<Person>;
   setPassword(personId: string, passwordHash: string): Promise<void>;
-  // Estampa la aceptación de Términos+Privacidad (spec legal-consent):
-  // consentAcceptedAt=now y consentVersion=CONSENT_VERSION vigente.
-  recordConsent(personId: string): Promise<void>;
+  // Ajusta la jurisdicción legal de una Person existente (register
+  // sobre cuenta pre-sembrada con país declarado).
+  setJurisdiction(personId: string, jurisdiction: string): Promise<void>;
   findById(
     id: string,
   ): Promise<(Person & { roles: { role: string; status: string }[] }) | null>;

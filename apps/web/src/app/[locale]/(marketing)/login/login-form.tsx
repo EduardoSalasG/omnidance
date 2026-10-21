@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -9,6 +9,35 @@ import { Button } from "@/components/ui/Button";
 import { Link } from "@/i18n/navigation";
 
 type Mode = "password" | "magic" | "register";
+
+// Respuesta de GET /legal/consent (spec consent-por-jurisdiccion):
+// texto vigente + scopes de la jurisdicción resuelta por `country`.
+type LegalConsent = {
+  version: string;
+  body: string;
+  requiredScopes: string[];
+  granular: boolean;
+  jurisdiction: string;
+};
+
+// Scopes opcionales GDPR - `essential` es requerido, no opt-in.
+type OptionalScope = "marketing" | "analytics";
+
+// Select de país del alta: mercados naturales de la escena + "Otro"
+// (cualquier código fuera del set EU/EEE/GB resuelve CL en el server).
+const CONSENT_COUNTRIES = [
+  "CL",
+  "AR",
+  "PE",
+  "CO",
+  "MX",
+  "ES",
+  "DE",
+  "FR",
+  "IT",
+  "GB",
+  "US",
+] as const;
 
 const inputClass =
   "min-h-12 rounded-xl border border-line bg-surface px-4 py-3 text-ink focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 aria-[invalid=true]:border-red-400";
@@ -69,6 +98,43 @@ export default function LoginForm({
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Consentimiento por jurisdicción (spec consent-por-jurisdiccion):
+  // el registro declara su país → GET /legal/consent decide si el
+  // consentimiento es granular (EU: essential + opt-ins) o único (CL).
+  const [country, setCountry] = useState<string>("CL");
+  const [legal, setLegal] = useState<LegalConsent | null>(null);
+  const [optIns, setOptIns] = useState<Record<OptionalScope, boolean>>({
+    marketing: false,
+    analytics: false,
+  });
+
+  const isRegister = mode === "register";
+  const granular = isRegister && legal?.granular === true;
+  const optionalScopes: OptionalScope[] = (
+    legal?.requiredScopes ?? []
+  ).filter((s): s is OptionalScope => s === "marketing" || s === "analytics");
+
+  // Al declarar el país se consulta el texto vigente de la jurisdicción.
+  // Si el fetch falla, `legal` queda null → checkbox único (fail-open al
+  // comportamiento CL, igual que el fallback del endpoint).
+  useEffect(() => {
+    if (!isRegister) return;
+    let cancelled = false;
+    const url = country
+      ? `/legal/consent?country=${encodeURIComponent(country)}`
+      : "/legal/consent";
+    apiFetch(url)
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        setLegal((await res.json()) as LegalConsent);
+      })
+      .catch(() => {
+        if (!cancelled) setLegal(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isRegister, country]);
 
   function go(path: string) {
     // Recarga completa: la cookie de sesión debe estar activa antes de
@@ -107,6 +173,10 @@ export default function LoginForm({
             name: name.trim() || email.split("@")[0],
             password,
             consent,
+            // País declarado → jurisdicción legal (spec
+            // consent-por-jurisdiccion); granular → opt-ins GDPR.
+            ...(country ? { country } : {}),
+            ...(granular ? { scopes: optIns } : {}),
             ...(role ? { role } : {}),
           }
         : mode === "password"
@@ -192,8 +262,6 @@ export default function LoginForm({
       setError(t("genericError"));
     }
   }
-
-  const isRegister = mode === "register";
 
   return (
     // flex-1 (no min-h-dvh): el alto restante lo da el layout tras el
@@ -390,12 +458,107 @@ export default function LoginForm({
               </Field>
             )}
 
-            {/* Consentimiento legal (spec legal-consent): solo en alta
-                (register) y pedido de magic link - quien entra con
-                contraseña ya tiene cuenta; las legadas re-aceptan por el
-                aviso in-app (POST /me/consent). Links a pestaña nueva
-                para no perder el formulario. */}
-            {mode !== "password" && (
+            {/* País declarado (spec consent-por-jurisdiccion): decide
+                la jurisdicción legal y si el consentimiento es granular.
+                Solo en el alta - login/magic no cambian la jurisdicción. */}
+            {isRegister && (
+              <Field label={tc("countryLabel")} required={false}>
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className={inputClass}
+                >
+                  {CONSENT_COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {tc(`countries.${c}`)}
+                    </option>
+                  ))}
+                  <option value="">{tc("countryOther")}</option>
+                </select>
+              </Field>
+            )}
+
+            {/* Consentimiento legal (spec legal-consent +
+                consent-por-jurisdiccion): solo en alta (register) y
+                pedido de magic link - quien entra con contraseña ya
+                tiene cuenta; las legadas re-aceptan por el aviso in-app
+                (POST /me/consent). Jurisdicción EU (granular) →
+                checkbox essential requerido + opt-ins por scope; el
+                resto → checkbox único como siempre. Links a pestaña
+                nueva para no perder el formulario. */}
+            {mode !== "password" && granular && (
+              <fieldset className="flex flex-col gap-3">
+                <label className="flex cursor-pointer items-start gap-3 text-left">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={consent}
+                    onChange={(e) => {
+                      setConsent(e.target.checked);
+                      if (
+                        e.target.checked &&
+                        error === tc("checkboxRequired")
+                      ) {
+                        setError(null);
+                      }
+                    }}
+                    aria-invalid={
+                      error === tc("checkboxRequired") ? true : undefined
+                    }
+                    aria-describedby={error ? "login-error" : undefined}
+                    className="mt-0.5 size-5 shrink-0 accent-neon focus-visible:ring-2 focus-visible:ring-neon/50"
+                  />
+                  <span className="text-sm leading-snug text-ink/70">
+                    {tc.rich("checkboxLabel", {
+                      terms: (chunks) => (
+                        <Link
+                          href="/terminos"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-medium text-neon underline-offset-4 hover:underline"
+                        >
+                          {chunks}
+                        </Link>
+                      ),
+                      privacy: (chunks) => (
+                        <Link
+                          href="/privacidad"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-medium text-neon underline-offset-4 hover:underline"
+                        >
+                          {chunks}
+                        </Link>
+                      ),
+                    })}
+                  </span>
+                </label>
+                {optionalScopes.map((scope) => (
+                  <label
+                    key={scope}
+                    className="flex cursor-pointer items-start gap-3 text-left"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={optIns[scope]}
+                      onChange={(e) =>
+                        setOptIns((prev) => ({
+                          ...prev,
+                          [scope]: e.target.checked,
+                        }))
+                      }
+                      className="mt-0.5 size-5 shrink-0 accent-neon focus-visible:ring-2 focus-visible:ring-neon/50"
+                    />
+                    <span className="text-sm leading-snug text-ink/70">
+                      {tc(`scope.${scope}`)}
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            {mode !== "password" && !granular && (
               <label className="flex cursor-pointer items-start gap-3 text-left">
                 <input
                   type="checkbox"

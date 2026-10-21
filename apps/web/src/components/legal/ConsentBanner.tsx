@@ -4,22 +4,33 @@ import { useState } from "react";
 
 
 import { useTranslations } from "next-intl";
-import { CONSENT_VERSION } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import {
+  optionalConsentScopes,
+  useLegalConsent,
+  type OptionalConsentScope,
+} from "@/lib/legal-consent";
 import { CHROME_HIDDEN_PREFIXES } from "@/components/layout/BottomNav";
 import { XIcon } from "@/components/ui";
 import { Link, usePathname } from "@/i18n/navigation";
 
 /**
- * Aviso de consentimiento legal (spec legal-consent): si GET /me trae
- * consentAcceptedAt null o consentVersion distinta de la vigente, se
- * muestra un banner fijo NO bloqueante sobre el contenido.
- * - "Acepto" → POST /me/consent → se oculta y no vuelve (servidor
- *   estampa la versión vigente).
+ * Aviso de consentimiento legal (spec legal-consent +
+ * consent-por-jurisdiccion): si GET /me trae consentAcceptedAt null o
+ * consentVersion distinta de la vigente DE SU JURISDICCIÓN, se muestra
+ * un banner fijo NO bloqueante sobre el contenido.
+ * - Consulta GET /legal/consent?jurisdiction=<me.jurisdiction> (vía
+ *   useLegalConsent): la versión vigente es por jurisdicción
+ *   (CL "cl-v1.0", EU "eu-v1.0"), con fallback a CONSENT_VERSION si el
+ *   endpoint falla.
+ * - Jurisdicción granular (EU) → checkboxes opt-in por scope
+ *   (marketing/analytics); essential queda implícito en "Acepto".
+ * - "Acepto" → POST /me/consent {version, scopes} → se oculta y no
+ *   vuelve (servidor estampa la versión vigente + ConsentRecord).
  * - Dismiss (X) lo cierra solo para este montaje - al recargar la app
  *   vuelve hasta que la persona acepte (dismissible-pero-persistente).
- * - 401 (sin sesión) o respuesta sin campos → no se muestra.
+ * - 401 (sin sesión) → no se muestra.
  */
 export function ConsentBanner() {
   const t = useTranslations("consent");
@@ -27,15 +38,30 @@ export function ConsentBanner() {
   // /me compartido (MeProvider del layout): mientras `loading` o sin
   // sesión no se sabe → no renderizar nada.
   const { me, loading, refresh: refreshMe } = useMe();
-  const needsConsent =
-    !loading &&
-    !!me &&
-    (!me.consentAcceptedAt || me.consentVersion !== CONSENT_VERSION);
+  const { legal, failed: legalFailed, currentVersion } = useLegalConsent(
+    me?.jurisdiction,
+    !loading && !!me,
+  );
+  const [optIns, setOptIns] = useState<Record<OptionalConsentScope, boolean>>({
+    marketing: false,
+    analytics: false,
+  });
   const [dismissed, setDismissed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
+  const needsConsent =
+    !loading &&
+    !!me &&
+    // Mientras el texto no resuelve (y no falló) no se puede decidir la
+    // versión vigente ni el form → no renderizar todavía.
+    (!!legal || legalFailed) &&
+    (!me.consentAcceptedAt || me.consentVersion !== currentVersion);
+
   if (!needsConsent || dismissed) return null;
+
+  const optionalScopes = optionalConsentScopes(legal);
+  const granular = legal?.granular === true && optionalScopes.length > 0;
 
   async function accept() {
     setBusy(true);
@@ -44,7 +70,14 @@ export function ConsentBanner() {
       const res = await apiFetch("/me/consent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ version: CONSENT_VERSION }),
+        body: JSON.stringify(
+          granular
+            ? {
+                version: currentVersion,
+                scopes: { essential: true, ...optIns },
+              }
+            : { version: currentVersion },
+        ),
       });
       if (res.ok) {
         // El /me compartido queda con el consentimiento vigente -
@@ -91,6 +124,34 @@ export function ConsentBanner() {
                 {t("bannerChanges")}
               </Link>
             </p>
+            {/* Opt-ins GDPR (spec consent-por-jurisdiccion): solo en
+                jurisdicción granular; el checkbox essential queda
+                implícito en el botón Acepto. */}
+            {granular && (
+              <div className="mt-3 flex flex-col gap-2">
+                {optionalScopes.map((scope) => (
+                  <label
+                    key={scope}
+                    className="flex cursor-pointer items-start gap-2.5 text-left"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={optIns[scope]}
+                      onChange={(e) =>
+                        setOptIns((prev) => ({
+                          ...prev,
+                          [scope]: e.target.checked,
+                        }))
+                      }
+                      className="mt-0.5 size-4 shrink-0 accent-neon focus-visible:ring-2 focus-visible:ring-neon/50"
+                    />
+                    <span className="text-xs leading-snug text-ink/70">
+                      {t(`scope.${scope}`)}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
             {failed && (
               <p role="alert" className="mt-2 text-xs text-red-400">
                 {t("bannerError")}

@@ -3,11 +3,15 @@ import type { Request, Response } from "express";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "../domain/auth.service";
 import type { AuthOtpRecord, AuthRepo, Mailer } from "../domain/ports";
+import type { ConsentService } from "../../legal/consent.service";
 
-// AuthController - consentimiento legal (spec legal-consent): el flag
-// `consent:true` de magic-link/login/register se estampa en la Person al
-// crear la sesión. En magic link viaja como claim del token y se estampa
-// en GET /auth/verify.
+// AuthController - consentimiento legal (spec legal-consent +
+// consent-por-jurisdiccion): el flag `consent:true` de
+// magic-link/login/register se estampa en la Person al crear la sesión
+// vía ConsentService (ConsentRecord auditable + snapshot). En magic
+// link viaja como claim del token y se estampa en GET /auth/verify.
+// Register acepta `country` (ISO-2 → Person.jurisdiction) y `scopes`
+// granulares.
 
 const SECRET = "test-secret-at-least-32-chars-long!!";
 
@@ -19,6 +23,7 @@ interface FakePerson {
   consentVersion: string | null;
   consentAcceptedAt: Date | null;
   verifiedAt: Date | null;
+  jurisdiction: string | null;
 }
 
 // No `implements AuthRepo`: los métodos devuelven FakePerson (shape
@@ -26,7 +31,6 @@ interface FakePerson {
 // controller cubre la diferencia.
 class FakeRepo {
   people = new Map<string, FakePerson>();
-  consentStamps: string[] = [];
   otps: AuthOtpRecord[] = [];
   private seq = 0;
 
@@ -45,6 +49,7 @@ class FakeRepo {
       consentVersion: null,
       consentAcceptedAt: null,
       verifiedAt: new Date(),
+      jurisdiction: null,
     };
     this.people.set(email, person);
     return person;
@@ -54,7 +59,12 @@ class FakeRepo {
     return this.people.get(email) ?? null;
   }
 
-  async createWithPassword(email: string, name: string, passwordHash: string) {
+  async createWithPassword(
+    email: string,
+    name: string,
+    passwordHash: string,
+    jurisdiction?: string,
+  ) {
     const person: FakePerson = {
       id: `p-${++this.seq}`,
       email,
@@ -64,6 +74,7 @@ class FakeRepo {
       verifiedAt: null,
       consentVersion: null,
       consentAcceptedAt: null,
+      jurisdiction: jurisdiction ?? null,
     };
     this.people.set(email, person);
     return person;
@@ -74,13 +85,9 @@ class FakeRepo {
     if (p) p.passwordHash = passwordHash;
   }
 
-  async recordConsent(personId: string) {
-    this.consentStamps.push(personId);
+  async setJurisdiction(personId: string, jurisdiction: string) {
     const p = [...this.people.values()].find((x) => x.id === personId);
-    if (p) {
-      p.consentVersion = "2026-10";
-      p.consentAcceptedAt = new Date();
-    }
+    if (p) p.jurisdiction = jurisdiction;
   }
 
   async findById(id: string) {
@@ -131,6 +138,28 @@ class FakeRepo {
   }
 }
 
+// Fake del ConsentService compartido (spec consent-por-jurisdiccion):
+// estampa el snapshot de la Person como hace el real y registra las
+// llamadas para assertions (personId + scopes declarados).
+class FakeConsent {
+  calls: { personId: string; scopes?: unknown }[] = [];
+  constructor(private readonly repo: FakeRepo) {}
+
+  async recordAcceptance(personId: string, scopes?: unknown) {
+    this.calls.push({ personId, scopes });
+    const p = [...this.repo.people.values()].find((x) => x.id === personId);
+    if (p) {
+      p.consentVersion = "cl-v1.0";
+      p.consentAcceptedAt = new Date();
+    }
+    return {
+      version: "cl-v1.0",
+      acceptedAt: new Date(),
+      jurisdiction: p?.jurisdiction ?? "CL",
+    };
+  }
+}
+
 const mkRes = () =>
   ({
     cookie: vi.fn(),
@@ -143,6 +172,7 @@ const mkReq = () => ({ ip: "127.0.0.1" }) as unknown as Request;
 describe("AuthController - consentimiento legal", () => {
   let auth: AuthService;
   let repo: FakeRepo;
+  let consent: FakeConsent;
   let mailer: { send: ReturnType<typeof vi.fn> };
   let ctrl: AuthController;
 
@@ -150,13 +180,17 @@ describe("AuthController - consentimiento legal", () => {
     repo = new FakeRepo();
     // El repo se inyecta para los métodos OTP - JWT/password no lo usan.
     auth = new AuthService(SECRET, repo as unknown as AuthRepo);
+    consent = new FakeConsent(repo);
     mailer = { send: vi.fn(async () => {}) };
     ctrl = new AuthController(
       auth,
       mailer as unknown as Mailer,
       repo as unknown as AuthRepo,
+      consent as unknown as ConsentService,
     );
   });
+
+  const stampedIds = () => consent.calls.map((c) => c.personId);
 
   it("register con consent:true estampa la Person creada", async () => {
     const res = mkRes();
@@ -170,8 +204,8 @@ describe("AuthController - consentimiento legal", () => {
       res,
     );
     const person = repo.people.get("nueva@omnidance.dev")!;
-    expect(repo.consentStamps).toEqual([person.id]);
-    expect(person.consentVersion).toBe("2026-10");
+    expect(stampedIds()).toEqual([person.id]);
+    expect(person.consentVersion).toBe("cl-v1.0");
     expect(person.consentAcceptedAt).toBeInstanceOf(Date);
   });
 
@@ -184,8 +218,58 @@ describe("AuthController - consentimiento legal", () => {
       },
       mkRes(),
     );
-    expect(repo.consentStamps).toEqual([]);
+    expect(stampedIds()).toEqual([]);
     expect(repo.people.get("sin@omnidance.dev")!.consentVersion).toBeNull();
+  });
+
+  it("register con country EU → jurisdiction EU y scopes al record", async () => {
+    await ctrl.register(
+      {
+        email: "euro@omnidance.dev",
+        name: "Euro",
+        password: "clave-secreta-123",
+        consent: true,
+        country: "ES",
+        scopes: { essential: true, marketing: true },
+      },
+      mkRes(),
+    );
+    const person = repo.people.get("euro@omnidance.dev")!;
+    expect(person.jurisdiction).toBe("EU");
+    expect(consent.calls[0]).toMatchObject({
+      personId: person.id,
+      scopes: { essential: true, marketing: true },
+    });
+  });
+
+  it("register sin country → jurisdiction CL", async () => {
+    await ctrl.register(
+      {
+        email: "local@omnidance.dev",
+        name: "Local",
+        password: "clave-secreta-123",
+      },
+      mkRes(),
+    );
+    expect(repo.people.get("local@omnidance.dev")!.jurisdiction).toBe("CL");
+  });
+
+  it("register sobre cuenta existente con country actualiza su jurisdicción", async () => {
+    const seeded = await repo.createWithPassword(
+      "vieja@omnidance.cl",
+      "Vieja",
+      await auth.hashPassword("gatoperro123"),
+    );
+    await ctrl.register(
+      {
+        email: "vieja@omnidance.cl",
+        name: "Vieja",
+        password: "gatoperro123",
+        country: "DE",
+      },
+      mkRes(),
+    );
+    expect(seeded.jurisdiction).toBe("EU");
   });
 
   it("login con consent:true estampa; sin consent no", async () => {
@@ -199,7 +283,7 @@ describe("AuthController - consentimiento legal", () => {
       mkReq(),
       mkRes(),
     );
-    expect(repo.consentStamps).toEqual([]);
+    expect(stampedIds()).toEqual([]);
     await ctrl.login(
       {
         email: "baila@omnidance.dev",
@@ -209,7 +293,7 @@ describe("AuthController - consentimiento legal", () => {
       mkReq(),
       mkRes(),
     );
-    expect(repo.consentStamps).toEqual([person.id]);
+    expect(stampedIds()).toEqual([person.id]);
   });
 
   it("register sobre cuenta pre-sembrada con password correcto → reclama sesión", async () => {
@@ -290,8 +374,8 @@ describe("AuthController - consentimiento legal", () => {
     const token = /token=([^"'\s]+)/.exec(html)![1];
     await ctrl.verify(token, mkRes());
     const person = repo.people.get("link@omnidance.dev")!;
-    expect(repo.consentStamps).toEqual([person.id]);
-    expect(person.consentVersion).toBe("2026-10");
+    expect(stampedIds()).toEqual([person.id]);
+    expect(person.consentVersion).toBe("cl-v1.0");
   });
 
   it("magic-link sin consent → verify no estampa", async () => {
@@ -299,24 +383,27 @@ describe("AuthController - consentimiento legal", () => {
     const html: string = mailer.send.mock.calls[0][2];
     const token = /token=([^"'\s]+)/.exec(html)![1];
     await ctrl.verify(token, mkRes());
-    expect(repo.consentStamps).toEqual([]);
+    expect(stampedIds()).toEqual([]);
   });
 });
 
 describe("AuthController - OTP (spec auth-email-otp)", () => {
   let auth: AuthService;
   let repo: FakeRepo;
+  let consent: FakeConsent;
   let mailer: { send: ReturnType<typeof vi.fn> };
   let ctrl: AuthController;
 
   beforeEach(() => {
     repo = new FakeRepo();
     auth = new AuthService(SECRET, repo as unknown as AuthRepo);
+    consent = new FakeConsent(repo);
     mailer = { send: vi.fn(async () => {}) };
     ctrl = new AuthController(
       auth,
       mailer as unknown as Mailer,
       repo as unknown as AuthRepo,
+      consent as unknown as ConsentService,
     );
   });
 
@@ -336,7 +423,7 @@ describe("AuthController - OTP (spec auth-email-otp)", () => {
     expect(out).toEqual({ ok: true, isNew: true });
     expect(res.cookie).toHaveBeenCalled();
     const person = repo.people.get("otp@omnidance.dev")!;
-    expect(repo.consentStamps).toEqual([person.id]);
+    expect(consent.calls.map((c) => c.personId)).toEqual([person.id]);
     // OTP consumido: reuso → 401.
     await expect(
       ctrl.otpVerify({ email: "otp@omnidance.dev", code }, mkRes()),
@@ -372,17 +459,20 @@ describe("AuthController - OTP (spec auth-email-otp)", () => {
 describe("AuthController - verificación de correo", () => {
   let auth: AuthService;
   let repo: FakeRepo;
+  let consent: FakeConsent;
   let mailer: { send: ReturnType<typeof vi.fn> };
   let ctrl: AuthController;
 
   beforeEach(() => {
     repo = new FakeRepo();
     auth = new AuthService(SECRET, repo as unknown as AuthRepo);
+    consent = new FakeConsent(repo);
     mailer = { send: vi.fn(async () => {}) };
     ctrl = new AuthController(
       auth,
       mailer as unknown as Mailer,
       repo as unknown as AuthRepo,
+      consent as unknown as ConsentService,
     );
   });
 

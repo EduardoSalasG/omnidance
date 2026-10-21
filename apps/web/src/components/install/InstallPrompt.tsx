@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
-import { CONSENT_VERSION } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import { useLegalConsent } from "@/lib/legal-consent";
 import { CHROME_HIDDEN_PREFIXES } from "@/components/layout/BottomNav";
 import { XIcon } from "@/components/ui";
 import { usePathname } from "@/i18n/navigation";
@@ -33,6 +33,13 @@ export function InstallPrompt() {
   const t = useTranslations("install");
   const pathname = usePathname();
   const { me, loading, refresh: refreshMe } = useMe();
+  // Versión vigente de la jurisdicción del usuario (spec
+  // consent-por-jurisdiccion) - el banner de consentimiento gana el
+  // slot mientras la aceptación esté pendiente.
+  const { legal, failed: legalFailed, currentVersion } = useLegalConsent(
+    me?.jurisdiction,
+    !loading && !!me,
+  );
   const [deferred, setDeferred] = useState<BipEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [isIos, setIsIos] = useState(false);
@@ -86,7 +93,13 @@ export function InstallPrompt() {
   if (loading || !me || installed) return null;
   if (me.onboarding?.["install-prompt"]) return null;
   // El banner de consentimiento legal ocupa el mismo slot - gana él.
-  if (!me.consentAcceptedAt || me.consentVersion !== CONSENT_VERSION) {
+  // Mientras el texto legal no resuelve no se sabe si está pendiente →
+  // el prompt espera (fail-close al banner, igual que antes).
+  if (
+    (!legal && !legalFailed) ||
+    !me.consentAcceptedAt ||
+    me.consentVersion !== currentVersion
+  ) {
     return null;
   }
   if (CHROME_HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) {

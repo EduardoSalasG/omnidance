@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { PrismaModule } from "../prisma.module";
+import { LegalModule } from "../legal/legal.module";
 import { AuthService } from "./domain/auth.service";
 import { AuthController } from "./infrastructure/auth.controller";
 import { PrismaAuthRepo } from "./infrastructure/prisma-auth.repo";
@@ -10,7 +11,7 @@ import type { AuthRepo } from "./domain/ports";
 import { secretOrDevFallback } from "../common/env";
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, LegalModule],
   controllers: [AuthController],
   providers: [
     {
