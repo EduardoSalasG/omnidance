@@ -244,6 +244,8 @@ model City {
   timezone  String  @default("America/Santiago") // IANA - las fechas se guardan UTC, se renderizan acá
   geohash   String? // prefijo para "cerca de mí"
   venues    Venue[]
+  academies Academy[]
+  events    Event[]
 
   @@unique([countryId, name])
 }
@@ -323,6 +325,8 @@ model Event {
   name        String
   description String?   // notas libres - hoy lo usa PRACTICA ("trae agua, junto al skatepark")
   currency    String   @default("CLP") // ISO-4217 (spec multipais-foundation)
+  city        City?    @relation(fields: [cityId], references: [id])
+  cityId      String?  // desnormalizado de venue/venueText - filtrado uniforme por ciudad (incluye prácticas sin Venue)
   startsAt    DateTime
   endsAt      DateTime
   capacity    Int?
@@ -442,6 +446,7 @@ model Ticket {
   buyerId      String       // comprador ≠ dueño (gift tickets)
   listPrice    Int
   serviceFee   Int
+  currency     String @default("CLP") // ISO-4217 (spec multipais-foundation)
   status       TicketStatus @default(ACTIVE)
   giftedFromId String?
   discountCodeId String?
@@ -850,6 +855,8 @@ model Academy {
   addressExtra String? // detalle de ubicación (piso, oficina, dpto)
   lat       Float?
   lng       Float?
+  city      City?   @relation(fields: [cityId], references: [id])
+  cityId    String? // spec multipais-foundation
   instagram String? // handle público de contacto (sin @)
   whatsapp  String? // teléfono de contacto para wa.me (E.164 sin "+")
   website   String? // URL pública del sitio (normalizada a https://…)
@@ -1940,6 +1947,7 @@ model PlatformSubscription {
   // PRO_STARTER|PRO_GROWTH|PRO_BIG (PRODUCER). String y no enum para no
   // duplicar los dos dominios; precios/límites en PlatformParam.
   tierCode           String
+  currency           String @default("CLP") // ISO-4217 (spec multipais-foundation)
   billingCycle       BillingCycle
   // Cambio de plan pendiente (downgrade/cambio de ciclo): se aplica al
   // iniciarse el próximo ciclo - el reconcile cancela la Flow sub al fin de

@@ -18,5 +18,13 @@
   "commentsTitle": "Comentarios de la serie",
   "noComments": "Aún no hay comentarios escritos",
   "anonymousNote": "Los comentarios llegan anónimos — nunca se muestra quién los escribió."
+ },
+ "cities": {
+  "title": "Bailar en {city}",
+  "notFound": "Ciudad no encontrada",
+  "events": "Próximos eventos",
+  "academies": "Academias",
+  "practices": "Prácticas",
+  "empty": "Aún no hay oferta publicada en esta ciudad"
  }
 }
