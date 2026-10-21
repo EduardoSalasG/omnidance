@@ -10,9 +10,9 @@
    "revokeConfirm": "Revoke the role {role}? It's recorded in the audit log.",
    "delete": {
     "title": "Danger zone",
-    "body": "Deletes the account and its profile data (roles, styles, RSVPs, notifications). Useful for test or duplicate accounts. Can't be undone.",
-    "cta": "Delete user",
-    "confirm": "Permanently delete {name}? Their account and profile data are deleted. Can't be undone."
+    "body": "Deactivates the account: they can't sign in or appear in public surfaces, but their data stays intact and you can reactivate it.",
+    "cta": "Deactivate user",
+    "confirm": "Deactivate {name}? Their data stays saved — you can reactivate later."
    },
    "detail": {
     "personal": "Personal details",
@@ -88,17 +88,9 @@
    },
    "academiesCount": "{count, plural, one {# academy} other {# academies}}",
    "eventsCount": "{count, plural, one {# event} other {# events}}",
-   "users": {
-    "deactivated": "Deactivated",
-    "reactivate": {
-     "cta": "Reactivate account"
-    },
-    "delete": {
-     "title": "Danger zone",
-     "body": "Deactivates the account: they can't sign in or appear in public surfaces, but their data stays intact and you can reactivate it.",
-     "cta": "Deactivate user",
-     "confirm": "Deactivate {name}? Their data stays saved — you can reactivate later."
-    }
+   "deactivated": "Deactivated",
+   "reactivate": {
+    "cta": "Reactivate account"
    }
   },
   "status": {

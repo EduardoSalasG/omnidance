@@ -10,9 +10,9 @@
    "revokeConfirm": "Revogar o papel {role}? Fica registado na auditoria.",
    "delete": {
     "title": "Zona de perigo",
-    "body": "Elimina a conta e os seus dados de perfil (papéis, estilos, RSVPs, notificações). Útil para contas de teste ou duplicadas. Irreversível.",
-    "cta": "Eliminar o utilizador",
-    "confirm": "Eliminar definitivamente {name}? A conta e os dados de perfil são eliminados. Irreversível."
+    "body": "Desativa a conta: não pode entrar nem aparecer nas superfícies públicas, mas os dados ficam intactos e podes reativar.",
+    "cta": "Desativar utilizador",
+    "confirm": "Desativar {name}? Os dados ficam guardados — podes reativar depois."
    },
    "detail": {
     "personal": "Dados pessoais",
@@ -88,17 +88,9 @@
    },
    "academiesCount": "{count, plural, one {# academia} other {# academias}}",
    "eventsCount": "{count, plural, one {# evento} other {# eventos}}",
-   "users": {
-    "deactivated": "Desativada",
-    "reactivate": {
-     "cta": "Reativar conta"
-    },
-    "delete": {
-     "title": "Zona de perigo",
-     "body": "Desativa a conta: não pode entrar nem aparecer nas superfícies públicas, mas os dados ficam intactos e podes reativar.",
-     "cta": "Desativar utilizador",
-     "confirm": "Desativar {name}? Os dados ficam guardados — podes reativar depois."
-    }
+   "deactivated": "Desativada",
+   "reactivate": {
+    "cta": "Reativar conta"
    }
   },
   "status": {
