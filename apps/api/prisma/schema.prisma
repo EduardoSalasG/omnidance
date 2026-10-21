@@ -58,6 +58,10 @@ model Person {
   // cuenta legada que aún no acepta → el front muestra el aviso.
   consentVersion    String?
   consentAcceptedAt DateTime?
+  // Jurisdicción legal resuelta al alta (spec consent-por-jurisdiccion):
+  // país declarado → EU/EEA = "EU" (GDPR granular), resto = "CL"
+  // (Ley 19.628/21.719). Editable en perfil; null = legado sin país.
+  jurisdiction      String?
   // Baja de correos de campañas (spec platform-polish-gaps): timestamp
   // del opt-out vía link firmado en el footer. Solo afecta campañas —
   // los mails transaccionales (magic link, recibos) siguen llegando.
@@ -94,6 +98,7 @@ model Person {
   mailCampaigns MailCampaign[]
   classSlotInstructors ClassSlotInstructor[]
   classInstructors     ClassInstructor[]
+  consentRecords       ConsentRecord[]
 }
 
 // Catálogo de roles vivo en DB - se administran desde /admin, no desde código.
@@ -2187,4 +2192,41 @@ model AcademySegmentSnapshot {
 
   @@unique([academyId, weekStart])
   @@index([academyId])
+}
+
+// Texto legal versionado por jurisdicción (spec consent-por-jurisdiccion):
+// GDPR (EU) exige consentimiento granular por scopes; CL usa el único
+// "essential". `granular` marca si el form debe mostrar checkboxes
+// separados; `requiredScopes` = los que el envío exige (["essential"]).
+// draftNote = nota interna de que el texto necesita revisión legal.
+model LegalText {
+  id             String   @id @default(cuid())
+  jurisdiction   String // CL | EU | <futuro>
+  version        String // "cl-v1.0", "eu-v1.0"
+  body           String // texto legal completo mostrado al aceptar
+  requiredScopes String[] @default(["essential"])
+  granular       Boolean  @default(false)
+  draftNote      String?
+  active         Boolean  @default(true)
+  publishedAt    DateTime @default(now())
+
+  @@unique([jurisdiction, version])
+  @@index([jurisdiction, active])
+}
+
+// Registro auditable de cada aceptación de consentimiento (spec
+// consent-por-jurisdiccion): historia por persona/jurisdicción/versión
+// con los scopes aceptados - GDPR exige poder reconstruir qué aceptó
+// quién y cuándo. Person.consentVersion/AcceptedAt = snapshot del
+// último record (lectura rápida del gate de re-aceptación).
+model ConsentRecord {
+  id           String   @id @default(cuid())
+  person       Person   @relation(fields: [personId], references: [id])
+  personId     String
+  jurisdiction String // CL | EU - resuelta al momento de aceptar
+  version      String // LegalText.version aceptada
+  scopes       Json // {essential:true, marketing?:bool, analytics?:bool}
+  acceptedAt   DateTime @default(now())
+
+  @@index([personId, acceptedAt])
 }
