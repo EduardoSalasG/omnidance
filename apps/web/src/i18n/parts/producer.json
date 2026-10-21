@@ -348,6 +348,33 @@
       "folio": "Nota N° {n}",
       "openPdf": "Ver PDF"
     },
+    "disbursement": {
+      "title": "Cuenta de desembolso",
+      "desc": "La cuenta donde recibes tus liquidaciones por transferencia automática.",
+      "empty": "Aún no tienes una cuenta de desembolso. Conéctala con Stripe para recibir tus liquidaciones por transferencia automática.",
+      "rail": "Stripe Connect",
+      "country": "País de la cuenta",
+      "countryHelper": "El país donde está tu cuenta bancaria. Por ahora operamos en los países de la lista.",
+      "otherCountry": "Otro país (aún no disponible)",
+      "connectCta": "Conectar con Stripe",
+      "continueCta": "Continuar en Stripe",
+      "pendingHint": "Verificación en curso: la cuenta se activa cuando Stripe confirme tus datos. Si abandonaste el flujo, continúa donde quedaste.",
+      "onboardedAt": "Activa desde",
+      "lastError": "Último error del proveedor",
+      "forbidden": "No tienes permiso para conectar la cuenta de desembolso.",
+      "unavailable": "El desembolso automático aún no está disponible; tus liquidaciones se siguen pagando por transferencia manual.",
+      "connectError": "No pudimos iniciar la conexión con Stripe. Inténtalo de nuevo.",
+      "status": {
+        "PENDING": "Pendiente de completar",
+        "ACTIVE": "Activa",
+        "DISABLED": "Desactivada"
+      },
+      "actorTypes": {
+        "PRODUCER": "Productor",
+        "ACADEMY": "Academia",
+        "VENUE": "Local"
+      }
+    },
     "codeDetail": {
       "redemptions": "Canjes del código",
       "redemptionsDesc": "Cada canje queda registrado con la persona y la orden que lo usó.",
