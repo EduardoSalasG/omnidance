@@ -357,10 +357,15 @@ export class CheckoutService {
    * param `payments.default_gateway` resuelto contra el registry; si el
    * provider pedido no está registrado (sin credenciales) cae al
    * default del env - `this.gateway` es ese mismo default.
+   * `currency` = moneda de la orden (Payment.currency): habilita el
+   * routing por moneda del registry (spec stripe-gateway-payout-rail).
    */
-  private async resolveGateway(): Promise<PaymentGateway> {
+  private async resolveGateway(currency?: string): Promise<PaymentGateway> {
     const name = await this.params.get("payments.default_gateway");
-    return this.gateways.resolve(typeof name === "string" ? name : null);
+    return this.gateways.resolve(
+      typeof name === "string" ? name : null,
+      currency,
+    );
   }
 
   /**
@@ -368,15 +373,18 @@ export class CheckoutService {
    * tiene cuenta ACTIVE la orden se cobra en SU Flow/MP →
    * `gatewayAccountId` + feeMode OWN_GATEWAY (comisión devengada,
    * neteada en su payout). Sin cuenta → default de la plataforma.
+   * La cuenta propia gana siempre primero - el routing por moneda solo
+   * aplica al camino MANAGED.
    */
   private async orderGateway(
     producerId: string | null | undefined,
+    currency?: string,
   ): Promise<{ gateway: PaymentGateway; gatewayAccountId: string | null }> {
     if (producerId) {
       const own = await this.accounts.activeForProducer(producerId);
       if (own) return { gateway: own.gateway, gatewayAccountId: own.account.id };
     }
-    return { gateway: await this.resolveGateway(), gatewayAccountId: null };
+    return { gateway: await this.resolveGateway(currency), gatewayAccountId: null };
   }
 
   /**
@@ -485,6 +493,7 @@ export class CheckoutService {
         tablesTotal: true,
         tableSeatMax: true,
         tableSeatsTotal: true,
+        currency: true,
       },
     });
     if (!event) throw new EventNotFoundError();
@@ -753,9 +762,13 @@ export class CheckoutService {
     const ownMethod = input.methodId
       ? await this.ownMethodFor(event.producerId, input.methodId)
       : null;
+    // Moneda de la orden: la declarada por el evento (multipaís) - es la
+    // que queda en Payment.currency y la que rutea el gateway (CLP si el
+    // evento no la trae, p.ej. selects legacy).
+    const orderCurrency = event.currency ?? "CLP";
     const { gateway, gatewayAccountId } = ownMethod
       ? { gateway: null, gatewayAccountId: null }
-      : await this.orderGateway(event.producerId);
+      : await this.orderGateway(event.producerId, orderCurrency);
     const breakdown =
       orderTotal > 0 && (gatewayAccountId || ownMethod)
         ? ownMethodBreakdown(
@@ -804,6 +817,7 @@ export class CheckoutService {
         eventId: event.id,
         discountCodeId: code?.id ?? null,
         amount: orderTotal,
+        currency: orderCurrency,
         fee: 0, // costo pasarela: desconocido hasta la liquidación
         net: orderTotal,
         quantity,
@@ -1062,7 +1076,9 @@ export class CheckoutService {
       : null;
     const { gateway, gatewayAccountId } = ownMethod
       ? { gateway: null, gatewayAccountId: null }
-      : await this.orderGateway(series.producerId);
+      // EventSeries no declara moneda propia - la orden queda en el
+      // default CLP del schema (Payment.currency).
+      : await this.orderGateway(series.producerId, "CLP");
     const breakdown =
       quote.total > 0 && (gatewayAccountId || ownMethod)
         ? ownMethodBreakdown(
@@ -1191,7 +1207,9 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    const gateway = await this.resolveGateway();
+    // MembershipPlan no declara moneda - la orden es CLP (default del
+    // schema), la misma que se persiste en Payment.currency.
+    const gateway = await this.resolveGateway("CLP");
     const payment = await this.createAssessedPayment(
       {
         orderType: "MEMBERSHIP",
@@ -1287,7 +1305,7 @@ export class CheckoutService {
           membershipEndsAt(plan, new Date())?.toISOString() ?? null,
         currentEndsAt: null,
         subscription: null,
-        gateway: (await this.resolveGateway()).name,
+        gateway: (await this.resolveGateway("CLP")).name,
       };
     }
 
@@ -1338,7 +1356,7 @@ export class CheckoutService {
       // compra extiende ("vence el X - la nueva vigencia parte después").
       currentEndsAt: enrollment?.endsAt?.toISOString() ?? null,
       subscription: subscription ?? null,
-      gateway: (await this.resolveGateway()).name,
+      gateway: (await this.resolveGateway("CLP")).name,
     };
   }
 
@@ -1435,7 +1453,7 @@ export class CheckoutService {
       },
       series: { id: cls.slot.series.id, name: cls.slot.series.name },
       academy: { id: cls.slot.academy.id, name: cls.slot.academy.name },
-      gateway: (await this.resolveGateway()).name,
+      gateway: (await this.resolveGateway("CLP")).name,
     };
   }
 
@@ -1487,7 +1505,8 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    const gateway = await this.resolveGateway();
+    // Sin moneda declarada en la entidad - la orden es CLP (default).
+    const gateway = await this.resolveGateway("CLP");
     const payment = await this.createAssessedPayment(
       {
         orderType: "WORKSHOP",
@@ -1566,7 +1585,7 @@ export class CheckoutService {
     return {
       ...quote,
       academy: { id: academy.id, name: academy.name },
-      gateway: (await this.resolveGateway()).name,
+      gateway: (await this.resolveGateway("CLP")).name,
     };
   }
 
@@ -1594,7 +1613,8 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    const gateway = await this.resolveGateway();
+    // Sin moneda declarada en la entidad - la orden es CLP (default).
+    const gateway = await this.resolveGateway("CLP");
     const payment = await this.createAssessedPayment(
       {
         orderType: "PRIVATE",

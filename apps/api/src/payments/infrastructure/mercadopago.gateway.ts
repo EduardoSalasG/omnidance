@@ -24,7 +24,7 @@ import {
 // APP_USR- prod). El adapter no se registra sin token.
 
 /** Monedas que el adaptador acepta en createOrder (ISO 4217). */
-const SUPPORTED_CURRENCIES = new Set([
+export const SUPPORTED_CURRENCIES = new Set([
   "CLP",
   "ARS",
   "BRL",
@@ -83,6 +83,9 @@ function normalizeGatewayData(p: MpPayment): Record<string, unknown> {
 @Injectable()
 export class MercadoPagoGateway implements PaymentGateway {
   readonly name = "MERCADOPAGO";
+  // Declaración para el routing por moneda del registry (spec
+  // stripe-gateway-payout-rail) - la misma lista que valida createOrder.
+  readonly currencies = [...SUPPORTED_CURRENCIES];
 
   constructor(
     private readonly accessToken: string,

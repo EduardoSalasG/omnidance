@@ -13,6 +13,7 @@ import { StubGateway } from "./infrastructure/stub.gateway";
 import { FlowGateway } from "./infrastructure/flow.gateway";
 import { MercadoPagoGateway } from "./infrastructure/mercadopago.gateway";
 import { FintocGateway } from "./infrastructure/fintoc.gateway";
+import { StripeGateway } from "./infrastructure/stripe.gateway";
 import {
   GatewayTransactionsService,
   type GatewayTxEntry,
@@ -166,7 +167,8 @@ export function resolveGateway(
 /**
  * Registry multi-proveedor (spec gateway-port-normalization): instancia
  * todos los adaptadores con credenciales disponibles y los indexa por
- * name (FLOW / MERCADOPAGO / STUB). El default sigue la misma regla de
+ * name (FLOW / MERCADOPAGO / FINTOC / STRIPE / STUB). El default sigue
+ * la misma regla de
  * `resolveGateway` (PAYMENT_GATEWAY=flow o stub según env) - los
  * providers extra quedan disponibles para `webhook/:provider` y la
  * selección por param `payments.default_gateway` sin cambiar el
@@ -202,6 +204,21 @@ function resolveGateways(
         env.FINTOC_SECRET_KEY,
         env.FINTOC_WEBHOOK_SECRET ?? "",
         env.FINTOC_BASE_URL ?? "https://api.fintoc.com",
+        onTx,
+      ),
+    );
+  }
+  // Stripe (spec stripe-gateway-payout-rail): checkout sessions hosted +
+  // webhook firmado Stripe-Signature. El whsec_ del endpoint se puede
+  // omitir solo si el proveedor nunca enviará webhooks (el polling
+  // refreshStatus cubre la confirmación) - el adaptador rechaza
+  // cualquier webhook sin firma verificable.
+  if (env.STRIPE_SECRET_KEY) {
+    adapters.push(
+      new StripeGateway(
+        env.STRIPE_SECRET_KEY,
+        env.STRIPE_WEBHOOK_SECRET ?? "",
+        env.STRIPE_BASE_URL ?? "https://api.stripe.com",
         onTx,
       ),
     );

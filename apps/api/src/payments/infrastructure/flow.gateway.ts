@@ -117,6 +117,9 @@ function normalizeSubscription(data: FlowRawSubscription): RemoteSubscription {
 @Injectable()
 export class FlowGateway implements PaymentGateway, SubscriptionProvider {
   readonly name = "FLOW";
+  // Flow solo opera CLP (mismo rechazo de createOrder) - el registry
+  // lo usa para el routing por moneda.
+  readonly currencies = ["CLP"];
 
   constructor(
     private readonly apiKey: string,

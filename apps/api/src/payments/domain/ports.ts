@@ -37,8 +37,17 @@ export interface WebhookContext {
 }
 
 export interface PaymentGateway {
-  /** Identificador persistido en Payment.gateway (STUB | FLOW | MERCADOPAGO | FINTOC). */
+  /** Identificador persistido en Payment.gateway (STUB | FLOW | MERCADOPAGO | FINTOC | STRIPE). */
   readonly name: string;
+
+  /**
+   * Monedas ISO 4217 que el adaptador declara soportar en createOrder
+   * (spec stripe-gateway-payout-rail - routing por moneda del
+   * GatewayRegistry). `undefined` = sin restricción declarada: el
+   * adaptador decide por sí mismo en createOrder (p.ej. STRIPE no
+   * hardcodea mercados, STUB cubre todo en dev).
+   */
+  readonly currencies?: string[];
 
   createOrder(p: {
     refId: string;
