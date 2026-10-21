@@ -9,6 +9,7 @@ import { useMe } from "@/lib/me-context";
 import { useViewMode } from "@/lib/view-mode";
 import { useActiveRole } from "@/lib/active-role";
 import { GenderGroup, type Gender } from "@/components/profile/GenderGroup";
+import { PasswordSection } from "@/components/profile/PasswordSection";
 import { isProfileStyleVisible } from "@/lib/profile-styles";
 import {
   Badge,
@@ -786,6 +787,11 @@ export default function DatosPage() {
           </p>
         )}
       </Card>
+
+      {/* Seguridad - cambio/establecimiento de contraseña (spec
+          cambiar-password). `hasPassword` viene de /me: sin hash la
+          cuenta es magic-link-only y el form no pide la actual. */}
+      <PasswordSection hasPassword={me.hasPassword === true} />
 
       {/* Datos por modo - social: estilos con rol/nivel declarados;
           academia: inscripciones vigentes con plan y estado. */}

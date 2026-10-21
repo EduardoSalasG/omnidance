@@ -89,6 +89,24 @@
    "phoneTaken": "Este teléfono ya está registrado en otra cuenta.",
    "passwordShort": "La contraseña debe tener al menos 8 caracteres.",
    "loadError": "No pudimos cargar tus datos."
+  },
+  "password": {
+   "title": "Seguridad",
+   "label": "Contraseña",
+   "defined": "Definida",
+   "notSet": "Sin contraseña — entras por link a tu correo",
+   "set": "Establecer contraseña",
+   "change": "Cambiar contraseña",
+   "current": "Contraseña actual",
+   "new": "Nueva contraseña",
+   "confirm": "Confirmar contraseña",
+   "hint": "mínimo 8 caracteres",
+   "tooShort": "La contraseña debe tener al menos 8 caracteres.",
+   "mismatch": "Las contraseñas no coinciden.",
+   "incorrect": "La contraseña actual no es correcta.",
+   "same": "La nueva contraseña debe ser distinta de la actual.",
+   "saved": "Contraseña actualizada",
+   "saveError": "No se pudo guardar. Intenta de nuevo"
   }
  }
 }

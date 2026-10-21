@@ -73,6 +73,19 @@ class CompleteProfileDto {
   password?: string;
 }
 
+// Cambio de contraseña propia (spec cambiar-password). currentPassword
+// es opcional a nivel DTO: su exigencia depende del estado persistido
+// (la valida el handler - cuentas magic-link-only no tienen actual).
+export class ChangePasswordDto {
+  @IsOptional()
+  @IsString()
+  currentPassword?: string;
+
+  @IsString()
+  @MinLength(8)
+  newPassword!: string;
+}
+
 export class UpdateMeDto {
   // Handle de Instagram autodeclarado - público por naturaleza (se muestra
   // en el perfil de amistad). "" o null limpia el campo.
@@ -374,6 +387,10 @@ export class PeopleController {
       // Jurisdicción legal (spec consent-por-jurisdiccion): el banner
       // consulta GET /legal/consent?jurisdiction= con este valor.
       jurisdiction: person.jurisdiction,
+      // Spec cambiar-password: solo el flag, NUNCA el hash - el front
+      // decide si pedir la contraseña actual o es establecimiento
+      // inicial (magic-link-only).
+      hasPassword: !!person.passwordHash,
       // Flags de ciclo de vida: demo (lead /pro, solo lectura) y
       // pendingProfile (admin convirtió el lead - falta completar datos).
       isDemo: person.isDemoAccount,
@@ -507,6 +524,41 @@ export class PeopleController {
       }
     }
     await this.prisma.person.update({ where: { id: personId }, data });
+    return { ok: true };
+  }
+
+  /**
+   * PUT /me/password - cambio de contraseña propia (spec
+   * cambiar-password). Con passwordHash existente exige la actual
+   * verificada (verifyPassword scrypt) - cierra el cambio silencioso
+   * con solo sesión activa. Cuentas magic-link-only (passwordHash
+   * null) establecen la primera sin actual. La respuesta nunca expone
+   * el hash.
+   */
+  @Put("me/password")
+  @UseGuards(SessionGuard)
+  async changePassword(@Req() req: Request, @Body() dto: ChangePasswordDto) {
+    const personId = req.person!.id;
+    const person = await this.prisma.person.findUniqueOrThrow({
+      where: { id: personId },
+      select: { passwordHash: true },
+    });
+    if (person.passwordHash) {
+      const ok =
+        !!dto.currentPassword &&
+        (await this.auth.verifyPassword(
+          dto.currentPassword,
+          person.passwordHash,
+        ));
+      if (!ok) throw new BadRequestException("password.incorrect");
+      if (dto.newPassword === dto.currentPassword) {
+        throw new BadRequestException("password.same");
+      }
+    }
+    await this.prisma.person.update({
+      where: { id: personId },
+      data: { passwordHash: await this.auth.hashPassword(dto.newPassword) },
+    });
     return { ok: true };
   }
 

@@ -53,6 +53,10 @@ export type MeContextData = {
   // Cuenta demo de lead pendiente de activación - el chrome pide
   // completar el perfil (POST /me/complete-profile la vuelve real).
   pendingProfile?: boolean;
+  // La cuenta tiene contraseña (spec cambiar-password): false = solo
+  // magic link → la sección Seguridad ofrece "establecer" sin pedir la
+  // actual. El hash nunca viaja en /me.
+  hasPassword?: boolean;
   // Producer Pro efectivo (suscripción o trial vigente) - gates Pro.
   effectivePro?: boolean;
   // Tours de primera visita ya vistos (POST /me/onboarding los marca).

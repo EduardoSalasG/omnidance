@@ -81,6 +81,24 @@
    "phoneTaken": "Este telefone já está registado noutra conta.",
    "passwordShort": "A palavra-passe deve ter pelo menos 8 caracteres.",
    "loadError": "Não foi possível carregar os teus dados."
+  },
+  "password": {
+   "title": "Segurança",
+   "label": "Palavra-passe",
+   "defined": "Definida",
+   "notSet": "Sem palavra-passe — entras por link no teu e-mail",
+   "set": "Definir palavra-passe",
+   "change": "Alterar palavra-passe",
+   "current": "Palavra-passe atual",
+   "new": "Nova palavra-passe",
+   "confirm": "Confirmar palavra-passe",
+   "hint": "mínimo 8 caracteres",
+   "tooShort": "A palavra-passe deve ter pelo menos 8 caracteres.",
+   "mismatch": "As palavras-passe não coincidem.",
+   "incorrect": "A palavra-passe atual não está correta.",
+   "same": "A nova palavra-passe tem de ser diferente da atual.",
+   "saved": "Palavra-passe atualizada",
+   "saveError": "Não foi possível guardar. Tenta de novo"
   }
  }
 }
