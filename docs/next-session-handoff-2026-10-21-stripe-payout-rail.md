@@ -108,3 +108,47 @@ payout_rail_destinations/payout_currency aplicaron vía deploy.
 - vitest payments 180 tests de los archivos tocados verdes; tsc limpio.
 - Quedan por diseño (slice propio): cobro own-gateway sobre Connect,
   front de payout-destinations, consent por jurisdicción (task 6).
+
+## Addendum 2 — 3 slices más completados (2026-10-21)
+
+Commits en `dev`: `c213bac2` consent, `5e718da6` front payouts,
+`ed5b6344` connect-own-gateway, `6756aedb` schema consent, integración
+docs/archivos. Changes archivados: `2026-10-21-consent-por-jurisdiccion`,
+`2026-10-21-payout-destinations-front`, `2026-10-21-connect-own-gateway`
+(deltas mergeados a specs canónicas; validate 4/4 verde).
+
+- **consent-por-jurisdiccion**: `Person.jurisdiction` (country ISO-2
+  register → EU/EEA+GB=`EU`, else=`CL`, editable en /perfil/datos);
+  `LegalText` versionado por jurisdicción (seed cl-v1.0 + eu-v1.0
+  `draftNote:"pending legal review"` — correr `pnpm db:seed`, sin
+  seed falla abierto a CONSENT_VERSION legacy); `GET /legal/consent`
+  público; `ConsentRecord` auditable por aceptación; front con
+  checkboxes granulares GDPR (essential requerido + marketing/
+  analytics opt-in) en registro y ConsentBanner.
+- **payout-destinations-front**: sección "Cuenta de desembolso" en
+  `/productor/pagos` — onboarding Connect Express end-to-end desde
+  UI (país ISO-2 → POST → Account Link); estados Skeleton/empty/
+  503-unavailable; PENDING muestra "Continuar en Stripe".
+- **connect-own-gateway**: `ProducerGatewayAccount` acepta `STRIPE`
+  (creds={accountId} del PayoutDestination ACTIVE — una sola cuenta
+  Connect sirve cobro y desembolso); `StripeGateway` gana header
+  `Stripe-Account` → direct charges; `feeMode:OWN_GATEWAY` intacto;
+  confirmación por polling (Connect webhook = iteración posterior).
+
+## Verificación final
+
+- tsc api+web limpio; vitest `src/payments` 548 tests + legal/auth/
+  people 68 tests verdes; eslint 0 issues nuevos; i18n-audit OK;
+  `impeccable detect` [] en la UI nueva; openapi/postman 324 paths.
+- DB dev: 57/57 migraciones aplicadas.
+
+## Pendiente
+
+- `pnpm db:seed` en cada entorno para poblar `LegalText` (sin él el
+  /legal/consent responde el baseline legacy — fail-open, no 500).
+- Texto EU GDPR `eu-v1.0` es contenido base — revisión legal antes
+  de operar en Europa.
+- Connect webhook de cuentas (confirmación webhook real de own-
+  gateway STRIPE) — v1 confirma por polling.
+- Roadmap: tasks 7-9 multipaís (landing por ciudad, geohash "cerca
+  de mí", city guides) + Pase Social (task 12, Stripe Billing).
