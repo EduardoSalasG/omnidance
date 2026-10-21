@@ -62,6 +62,9 @@ model Person {
   // del opt-out vía link firmado en el footer. Solo afecta campañas —
   // los mails transaccionales (magic link, recibos) siguen llegando.
   mailOptOutAt    DateTime?
+  // País del teléfono (spec multipais-foundation): ISO-3166 alpha-2,
+  // hoy cuentas ligeras de puerta asumen +56.
+  phoneCountryCode String?
   // Soft delete (spec admin-user-soft-delete): baja lógica - la fila y
   // todo su grafo quedan intactos; auth bloqueada y fuera de
   // superficies públicas. Admin puede reactivar.
@@ -222,6 +225,29 @@ model Friendship {
 
 // ═══════════════════ VENUES / EVENTOS ═══════════════════
 
+// ═══ Geografía (spec multipais-foundation) ═══
+model Country {
+  id     String @id @default(cuid())
+  code   String @unique // ISO-3166 alpha-2: "CL", "ES"
+  name   String
+  cities City[]
+}
+
+model City {
+  id        String  @id @default(cuid())
+  country   Country @relation(fields: [countryId], references: [id])
+  countryId String
+  name      String
+  slug      String  @unique // "santiago-cl" - URL de la landing de ciudad
+  lat       Float?
+  lng       Float?
+  timezone  String  @default("America/Santiago") // IANA - las fechas se guardan UTC, se renderizan acá
+  geohash   String? // prefijo para "cerca de mí"
+  venues    Venue[]
+
+  @@unique([countryId, name])
+}
+
 model Venue {
   id       String  @id @default(cuid())
   name     String
@@ -229,6 +255,8 @@ model Venue {
   capacity Int?
   lat      Float?
   lng      Float?
+  city     City?   @relation(fields: [cityId], references: [id])
+  cityId   String? // spec multipais-foundation - venue pertenece a una ciudad
   logoUrl  String?
   // Horario de atención en texto libre ("Mar–Sáb desde 22:00") - los
   // sociales no tienen horario semanal fijo, varía por noche/marca.
@@ -294,6 +322,7 @@ model Event {
   program     Json?       // override del cronograma de la serie; noches standalone lo declaran acá
   name        String
   description String?   // notas libres - hoy lo usa PRACTICA ("trae agua, junto al skatepark")
+  currency    String   @default("CLP") // ISO-4217 (spec multipais-foundation)
   startsAt    DateTime
   endsAt      DateTime
   capacity    Int?
