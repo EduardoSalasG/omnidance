@@ -3,6 +3,10 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
+import { useLegalConsent } from "@/lib/legal-consent";
+import { CHROME_HIDDEN_PREFIXES } from "@/components/layout/BottomNav";
+import { usePathname } from "@/i18n/navigation";
 import { Button, Card } from "@/components/ui";
 
 /**
@@ -68,6 +72,16 @@ type Phase = "hidden" | "prompt" | "busy" | "done" | "error";
 
 export function PushOptIn() {
   const t = useTranslations("realtime.push");
+  const pathname = usePathname();
+  const { me, loading } = useMe();
+  // Mismo slot que ConsentBanner y InstallPrompt - el orden de
+  // precedencia es: consent legal > instalar PWA > push opt-in. Sin
+  // este gate los cards se solapaban en primer uso (el de abajo quedaba
+  // tapado e inalcanzable - "mensaje fuera del viewport").
+  const { legal, failed: legalFailed, currentVersion } = useLegalConsent(
+    me?.jurisdiction,
+    !loading && !!me,
+  );
   const [phase, setPhase] = useState<Phase>("hidden");
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
 
@@ -155,11 +169,36 @@ export function PushOptIn() {
   }
 
   if (phase === "hidden") return null;
+  // Contextos sin chrome (staff puerta) no llevan banners de primera
+  // vez - mismo criterio que InstallPrompt/ConsentBanner.
+  if (CHROME_HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return null;
+  }
+  // Mientras el consent o el prompt de instalación tienen el slot, el
+  // push opt-in espera: sin sesión/estado legal resuelto no se sabe si
+  // el consent está pendiente (fail-close igual que InstallPrompt).
+  if (loading || !me) return null;
+  if (
+    (!legal && !legalFailed) ||
+    !me.consentAcceptedAt ||
+    me.consentVersion !== currentVersion ||
+    !me.onboarding?.["install-prompt"]
+  ) {
+    return null;
+  }
 
   return (
     <section
       aria-label={t("title")}
-      className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] z-40 flex justify-center px-4 lg:bottom-6"
+      className={`fixed inset-x-0 z-40 flex justify-center px-4 lg:bottom-6 ${
+        // Roles drawer-only (MOBILE_DRAWER_ONLY) o contextos sin chrome:
+        // la tab bar no existe - el card baja al borde real. data-notabbar
+        // lo setea BottomNav sobre <html>.
+        typeof document !== "undefined" &&
+        document.documentElement.dataset.notabbar === "true"
+          ? "bottom-[max(0.75rem,env(safe-area-inset-bottom))]"
+          : "bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)]"
+      }`}
     >
       <Card className="w-full max-w-md border-neon/30 bg-surface/95 shadow-2xl shadow-black/50 backdrop-blur">
         {phase === "done" ? (

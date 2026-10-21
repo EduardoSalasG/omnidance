@@ -94,10 +94,13 @@ export function ConsentBanner() {
   }
 
   // La tab bar (4rem + safe-area) solo existe cuando el chrome se ve -
-  // en contextos fullscreen (staff) el banner baja hasta el borde.
-  const chromeHidden = CHROME_HIDDEN_PREFIXES.some((p) =>
-    pathname.startsWith(p),
-  );
+  // en contextos fullscreen (staff) y en roles drawer-only
+  // (data-notabbar en <html>, seteado por BottomNav) el banner baja
+  // hasta el borde.
+  const chromeHidden =
+    CHROME_HIDDEN_PREFIXES.some((p) => pathname.startsWith(p)) ||
+    (typeof document !== "undefined" &&
+      document.documentElement.dataset.notabbar === "true");
 
   return (
     <div

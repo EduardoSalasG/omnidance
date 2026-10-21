@@ -55,6 +55,14 @@ function BienvenidaForm() {
   const [picked, setPicked] = useState<Map<string, StyleDraft>>(new Map());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<"generic" | "phoneTaken" | null>(null);
+  // Con el teclado abierto la alerta puede quedar bajo el fold - la
+  // traemos al view cuando aparece.
+  useEffect(() => {
+    if (error)
+      document
+        .querySelector('[role="alert"]')
+        ?.scrollIntoView({ block: "nearest" });
+  }, [error]);
   const prefilled = useRef(false);
 
   function destino() {

@@ -53,16 +53,23 @@ export function OnboardingRunner({
     // no rompe el tour (p.ej. primera card vacía), y en desktop (≥lg)
     // los targets del chrome móvil (tab bar, drawer) están con
     // display:none: getClientRects()=0 los excluye sin JS de breakpoint.
+    // Varios anchors existen duplicados (tab bar móvil + sidebar
+    // desktop): querySelector toma el primero del DOM, que puede ser el
+    // oculto - se resuelve el primer match VISIBLE y se pasa el
+    // elemento resuelto a driver (acepta Element, no solo selector).
     const resolveSteps = (): DriveStep[] =>
       steps
-        .filter((s) => {
-          const el = document.querySelector(s.element);
-          return (
-            el instanceof HTMLElement && el.getClientRects().length > 0
+        .map((s) => {
+          const el = [...document.querySelectorAll(s.element)].find(
+            (e) => e instanceof HTMLElement && e.getClientRects().length > 0,
           );
+          return el ? { s, el } : null;
         })
-        .map((s) => ({
-          element: s.element,
+        .filter((x): x is { s: (typeof steps)[number]; el: Element } =>
+          Boolean(x),
+        )
+        .map(({ s, el }) => ({
+          element: el,
           popover: {
             title: s.title,
             description: s.description,

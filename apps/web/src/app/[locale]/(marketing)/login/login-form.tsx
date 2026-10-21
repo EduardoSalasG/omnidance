@@ -97,6 +97,13 @@ export default function LoginForm({
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Alerta visible aunque el teclado la tape en mobile.
+  useEffect(() => {
+    if (error)
+      document
+        .getElementById("login-error")
+        ?.scrollIntoView({ block: "nearest" });
+  }, [error]);
   const [loading, setLoading] = useState(false);
   // Consentimiento por jurisdicción (spec consent-por-jurisdiccion):
   // el registro declara su país → GET /legal/consent decide si el

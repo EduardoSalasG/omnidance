@@ -76,7 +76,7 @@ export function ActionNotice({
   const error = notice.error === true;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-4 pb-3">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-4 pb-3 lg:bottom-6">
       <div
         role={error ? "alert" : "status"}
         className={`pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-2xl border bg-surface/95 px-4 py-3 shadow-2xl shadow-black/50 backdrop-blur transition-all duration-300 ease-out motion-reduce:transition-none ${

@@ -37,6 +37,12 @@ export default function CompletarPerfilPage() {
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (error)
+      document
+        .querySelector('[role="alert"]')
+        ?.scrollIntoView({ block: "nearest" });
+  }, [error]);
 
   useEffect(() => {
     if (meLoading) return;
