@@ -27,6 +27,7 @@ import {
   type Payout,
   type PayoutLine,
 } from "@/components/producer/shared";
+import { DisbursementAccountSection } from "@/components/producer/disbursement-account-section";
 import { FilterBar } from "@/components/query/FilterBar";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { Link } from "@/i18n/navigation";
@@ -305,6 +306,8 @@ export default function ProducerPayoutsPage() {
           />
         </>
       )}
+
+      {gate === "ready" && <DisbursementAccountSection />}
 
       {gate === "ready" && <BillingDocsSection />}
     </main>
