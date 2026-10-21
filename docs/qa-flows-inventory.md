@@ -401,3 +401,20 @@
 9. **Offline puerta**: flujo IndexedDB + sync — candidato a tests de integración específicos (Playwright offline mode).
 10. **Blast radius admin**: role grants, params globales, payouts, billing void, campaigns (emails reales), lead convert, jobs run-now — preferir rol custom de prueba y stubs de mailer.
 11. **Render stale al cambiar de entidad/vista** (bug real 2026-10-18 en `/admin/datos`): al seleccionar otra entidad hay un frame con rows viejas bajo la entidad nueva antes de que corra el fetch — `renderRow` formateaba campos inexistentes → `RangeError: Invalid time value`. Fix: filas etiquetadas con la entidad que las produjo (`result.entity === entity`). Caso QA: cambiar de entidad/píldora repetidamente con datos cargados no debe crashear; vale para cualquier página con filas shape-per-entity (`/admin/datos`; `/analitica` es inmune por shape genérico de celdas).
+
+## Baja lógica de usuario (spec admin-user-soft-delete)
+
+- Admin en `/admin/usuarios/[id]` → "Desactivar usuario" → badge
+  "Desactivada" en lista/ficha; el usuario no puede autenticarse
+  (sesión, password, magic link, OTP), no aparece en superficies
+  públicas ni pickers; su grafo (academias, eventos, tickets) intacto.
+- Re-registro con ese email → 409. "Reactivar cuenta" lo restaura.
+
+## Engagement de serie (spec series-engagement)
+
+- `/eventos/[id]` con `seriesId` → card "La serie en números":
+  asistencia promedio, ratio género, leader/follower, score agregado.
+- Asistente con check-in → estrellas + comentario opcional
+  (upsert; sin check-in → 403).
+- Productor en `/productor/eventos/[id]` → card "Comentarios de la
+  serie" con textos anónimos (sin autor).

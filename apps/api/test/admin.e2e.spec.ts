@@ -290,4 +290,73 @@ describe("admin role assignment e2e", () => {
       createdPersonIds.push(victim.id);
     });
   });
+
+  describe("notificaciones de aprobación/rechazo de rol", () => {
+    it("approve → notificación role.approved al actor", async () => {
+      const suffix = Date.now();
+      const producer = await prisma.person.create({
+        data: {
+          name: "Productor Notify",
+          email: `notify-${suffix}@omnidance.dev`,
+          phone: `+5690000${String(suffix).slice(-4)}`,
+          verifiedAt: new Date(),
+          roles: {
+            create: [{ role: "PRODUCER", status: "PENDING" }],
+          },
+        },
+      });
+      createdPersonIds.push(producer.id);
+      // actorData: el productor necesita un evento para el checklist.
+      const event = await prisma.event.create({
+        data: {
+          name: "Evento Notify",
+          producerId: producer.id,
+          startsAt: new Date(Date.now() + 86400e3),
+          endsAt: new Date(Date.now() + 86400e3 + 7200e3),
+        },
+      });
+      const role = await prisma.personRole.findFirstOrThrow({
+        where: { personId: producer.id, role: "PRODUCER" },
+      });
+      const res = await post(
+        `/api/admin/validation-queue/${role.id}/approve`,
+        {},
+        adminSession,
+      );
+      expect(res.status).toBe(200);
+      const notif = await prisma.notification.findFirst({
+        where: { personId: producer.id, type: "role.approved" },
+      });
+      expect(notif).not.toBeNull();
+      await prisma.notification.deleteMany({
+        where: { personId: producer.id },
+      });
+      await prisma.event.delete({ where: { id: event.id } });
+    });
+
+    it("reject → notificación role.rejected al actor", async () => {
+      const producer = await prisma.person.create({
+        data: {
+          name: "Rechazado Notify",
+          roles: {
+            create: [{ role: "PRODUCER", status: "PENDING" }],
+          },
+        },
+      });
+      createdPersonIds.push(producer.id);
+      const role = await prisma.personRole.findFirstOrThrow({
+        where: { personId: producer.id, role: "PRODUCER" },
+      });
+      const res = await post(
+        `/api/admin/validation-queue/${role.id}/reject`,
+        {},
+        adminSession,
+      );
+      expect(res.status).toBe(200);
+      const notif = await prisma.notification.findFirst({
+        where: { personId: producer.id, type: "role.rejected" },
+      });
+      expect(notif).not.toBeNull();
+    });
+  });
 });
