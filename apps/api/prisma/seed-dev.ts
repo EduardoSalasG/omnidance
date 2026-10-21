@@ -5191,6 +5191,164 @@ export async function seedDev(prisma: PrismaClient) {
     }
   }
 
+  // ─── Demo multipaís (specs city-discovery, city-guides, mi-viaje,
+  // pase-social): superficies nuevas con data para probar en dev.
+  // SOLO dev - no corre en baseline/prod. Idempotente por clave natural.
+  step("demo multipaís…");
+  const chile = await prisma.country.findFirst({ where: { code: "CL" } });
+  const spain = await prisma.country.upsert({
+    where: { code: "ES" },
+    update: {},
+    create: { code: "ES", name: "España" },
+  });
+  const ensureCity = async (c: {
+    slug: string;
+    name: string;
+    countryId: string;
+    lat: number;
+    lng: number;
+    timezone: string;
+  }) =>
+    prisma.city.upsert({
+      where: { slug: c.slug },
+      update: {},
+      create: c,
+    });
+  const santiago = await prisma.city.findUnique({
+    where: { slug: "santiago-cl" },
+  });
+  const valpo = await ensureCity({
+    slug: "valparaiso-cl",
+    name: "Valparaíso",
+    countryId: chile!.id,
+    lat: -33.0472,
+    lng: -71.6127,
+    timezone: "America/Santiago",
+  });
+  const madrid = await ensureCity({
+    slug: "madrid-es",
+    name: "Madrid",
+    countryId: spain.id,
+    lat: 40.4168,
+    lng: -3.7038,
+    timezone: "Europe/Madrid",
+  });
+
+  // Venue + social en Valparaíso (carlos ya es productor aprobado -
+  // sus eventos salen en el feed público igual que los de Santiago).
+  const muelle = await prisma.venue.upsert({
+    where: { id: "venue-muelle-baron" },
+    update: {},
+    create: {
+      id: "venue-muelle-baron",
+      name: "Muelle Barón (demo)",
+      address: "Muelle Barón s/n, Valparaíso",
+      cityId: valpo.id,
+      lat: -33.0413,
+      lng: -71.624,
+    },
+  });
+  const socialValpo = await prisma.event.findFirst({
+    where: { name: "Social Puerto (demo)", producerId: carlos.id },
+  });
+  if (!socialValpo) {
+    const starts = new Date(Date.now() + 5 * 86400000);
+    await prisma.event.create({
+      data: {
+        name: "Social Puerto (demo)",
+        type: "SOCIAL",
+        status: "PUBLISHED",
+        producerId: carlos.id,
+        venue: { connect: { id: muelle.id } },
+        city: { connect: { id: valpo.id } },
+        startsAt: starts,
+        endsAt: new Date(starts.getTime() + 5 * 3600000),
+        presalePrice: 5000,
+        doorPrice: 8000,
+        presaleCutoffMinutes: 240,
+        currency: "CLP",
+      },
+    });
+  }
+  // Madrid queda sin eventos a propósito - demuestra el estado vacío
+  // del directorio y la landing sin actividad.
+  void madrid;
+
+  // Guía editorial de Santiago (demo - contenido genérico de la escena
+  // SBK porteña/santiaguina, no copy final).
+  if (santiago) {
+    await prisma.cityGuide.upsert({
+      where: { cityId: santiago.id },
+      update: {},
+      create: {
+        cityId: santiago.id,
+        intro:
+          "Santiago concentra la escena SBK más activa de Chile: socials casi todas las noches entre Providencia y Ñuñoa, prácticas gratuitas en parques los fines de semana y academias con programas de cubano, bachata y salsa en línea. La comunidad es abierta - nadie mira raro al recién llegado que solo va a mirar.",
+        nightlife:
+          "La grilla típica: prácticas al aire libre el sábado en el Parque de los Reyes, socials de semana en Ñuñoa y Providencia, y las noches grandes el viernes y sábado. Llegar temprano paga: los primeros 45 minutos son los de los bailarines más avanzados. La mayoría de los locales acepta efectivo y tarjeta; la entrada incluye guardarropía en la mayoría.",
+        practical:
+          "Moverse: Metro L1/L5 cubre el eje principal, después de medianoche conviene app de transporte. Vestimenta: zapatos de piso liso o de baile - los locales se reservan el derecho de negar entrada con tacos o tacones aguja que dañen la pista. Hidratación: lleva botella, la mayoría de los locales tiene agua pero no siempre gratis.",
+        updatedById: admin.id,
+      },
+    });
+  }
+
+  // Mi viaje: 2 eventos futuros guardados para el admin (uno con nota).
+  const tripEvents = await prisma.event.findMany({
+    where: { status: "PUBLISHED", startsAt: { gt: new Date() } },
+    orderBy: { startsAt: "asc" },
+    take: 2,
+    select: { id: true },
+  });
+  for (const [i, ev] of tripEvents.entries()) {
+    await prisma.tripItem.upsert({
+      where: {
+        personId_eventId: { personId: admin.id, eventId: ev.id },
+      },
+      update: {},
+      create: {
+        personId: admin.id,
+        eventId: ev.id,
+        note: i === 0 ? "demo: ir temprano a calentar" : null,
+      },
+    });
+  }
+
+  // Pase Social demo (flag social_pass sigue OFF - al activarlo en
+  // /admin/funcionalidades, /pase muestra el estado de miembro sin
+  // necesidad de Stripe). IDs claramente demo, no son cargos reales.
+  const periodEnd = new Date(Date.now() + 30 * 86400000);
+  const demoPass = await prisma.socialPass.upsert({
+    where: { personId: admin.id },
+    update: {},
+    create: {
+      personId: admin.id,
+      stripeCustomerId: "cus_demo_admin",
+      stripeSubId: "sub_demo_admin",
+      status: "ACTIVE",
+      amount: 15000,
+      currency: "CLP",
+      tierCode: "SOCIAL_PASS",
+      creditsPerPeriod: 4,
+      creditsBalance: 4,
+      lastCreditResetAt: new Date(),
+      currentPeriodEnd: periodEnd,
+    },
+  });
+  const hasReset = await prisma.socialPassLedger.findFirst({
+    where: { passId: demoPass.id, reason: "RESET" },
+  });
+  if (!hasReset) {
+    await prisma.socialPassLedger.create({
+      data: {
+        passId: demoPass.id,
+        personId: admin.id,
+        delta: 4,
+        reason: "RESET",
+      },
+    });
+  }
+
   // Password dev: mismo formato scrypt$N$r$p$salt$hash que AuthService.
   step("passwords dev…");
   const salt = randomBytes(16);
