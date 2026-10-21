@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import { getLocale, getMessages } from "next-intl/server";
 import { EventCard, type EventCardData } from "@/components/events/event-card";
+import { NearMeSection } from "@/components/events/near-me";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import {
   TicketWallet,
@@ -553,6 +554,11 @@ export default async function EventosPage(
           </>
         )}
       </header>
+
+      {/* "Cerca de mí" (spec city-discovery): sección aditiva de la
+          vista lista - el componente se oculta solo si el flag
+          city_landing está apagado. */}
+      {view === "list" && <NearMeSection />}
 
       {view === "mios" ? (
         /* "Mis entradas" fusionada con /entradas: gestión completa

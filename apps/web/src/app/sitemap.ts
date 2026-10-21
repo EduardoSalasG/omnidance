@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { fetchPublicEvents } from "@/lib/public-events";
+import { fetchPublicCities } from "@/lib/public-cities";
 import { SITE_URL as WEB_URL } from "@/lib/site-url";
 import { routing, type Locale } from "@/i18n/routing";
 
@@ -15,7 +16,10 @@ function languages(path: string): Record<Locale, string> {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
-  const events = await fetchPublicEvents();
+  const [events, cities] = await Promise.all([
+    fetchPublicEvents(),
+    fetchPublicCities(),
+  ]);
 
   // Solo rutas públicas indexables - el resto son superficies de app.
   const entries: MetadataRoute.Sitemap = [
@@ -24,6 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/para-academias",
     "/para-productores",
     "/eventos",
+    "/ciudades",
     "/login",
     "/terminos",
     "/privacidad",
@@ -38,6 +43,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${WEB_URL}/eventos/${e.id}`,
       lastModified: new Date(e.startsAt),
       alternates: { languages: languages(`/eventos/${e.id}`) },
+    });
+  }
+  // Landings por ciudad (spec city-discovery): públicas e indexables.
+  for (const c of cities ?? []) {
+    entries.push({
+      url: `${WEB_URL}/ciudades/${c.slug}`,
+      lastModified,
+      alternates: { languages: languages(`/ciudades/${c.slug}`) },
     });
   }
   return entries;

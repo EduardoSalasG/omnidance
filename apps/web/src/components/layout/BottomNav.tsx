@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe, type MeContextData } from "@/lib/me-context";
+import { useFeatures } from "@/lib/features-context";
 import { notificationLens } from "@/lib/notification-lens";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
@@ -386,6 +387,22 @@ const SHEET_SOCIAL_ITEMS: DrawerSpec[] = [
     icon: ICONS.practices,
   },
 ];
+// Directorio de ciudades (spec city-discovery): lente social del
+// bailarín, detrás del flag city_landing - OFF → ni sheet ni sidebar
+// lo listan. Se inserta tras Prácticas (bloque de descubrimiento).
+const CITIES_ITEM: DrawerSpec = {
+  href: "/ciudades",
+  ns: "nav",
+  key: "cities",
+  icon: ICONS.pin,
+};
+const withCities = (items: DrawerSpec[], enabled: boolean) => {
+  if (!enabled) return items;
+  const at = items.findIndex((i) => i.href === "/practicas");
+  const out = [...items];
+  out.splice(at >= 0 ? at + 1 : out.length, 0, CITIES_ITEM);
+  return out;
+};
 // Lente academia del bailarín: /clases y /academias ya son tabs y las
 // particulares compradas aparecen en reservadas (sin bandeja separada)
 // - el sheet queda solo con el QR.
@@ -916,6 +933,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     query: useTranslations("query"),
     crm: useTranslations("crm"),
   } as const;
+  // Flags de funcionalidad (spec feature-flags-admin): gatean ítems
+  // de superficie (Ciudades en el sheet/sidebar del bailarín).
+  const { flags } = useFeatures();
   // null = sin sesión (o fetch aún no responde con certeza) → sin badge.
   const [unread, setUnread] = useState<number | null>(null);
   // null = sin sesión → el drawer muestra solo Perfil.
@@ -1236,7 +1256,10 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           ...DANCER_SIDEBAR[dancerAcademy ? "academy" : "social"].map(
             (g) => ({
               label: labelFor(g.labelNs, g.labelKey),
-              items: g.items.map((spec) => {
+              items: withCities(
+                g.items,
+                !dancerAcademy && flags.city_landing === true,
+              ).map((spec) => {
                 const itemPath = spec.href.split("?")[0];
                 return {
                   href: spec.href,
@@ -1390,8 +1413,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
   // Ítems del sheet del bailarín - labels resueltos como en el drawer.
   const isDancer = activeRole === "DANCER";
-  const sheetItems: SheetItem[] = (
-    dancerAcademy ? SHEET_ACADEMY_ITEMS : SHEET_SOCIAL_ITEMS
+  const sheetItems: SheetItem[] = withCities(
+    dancerAcademy ? SHEET_ACADEMY_ITEMS : SHEET_SOCIAL_ITEMS,
+    !dancerAcademy && flags.city_landing === true,
   ).map((spec) => ({
     href: spec.href,
     label: labelFor(spec.ns, spec.key),

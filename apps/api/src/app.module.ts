@@ -13,6 +13,7 @@ import { AuthModule } from "./auth/auth.module";
 import { LegalModule } from "./legal/legal.module";
 import { PeopleModule } from "./people/people.module";
 import { QrModule } from "./qr/qr.module";
+import { CitiesModule } from "./cities/cities.module";
 import { EventsModule } from "./events/events.module";
 import { SessionsModule } from "./sessions/sessions.module";
 import { CheckinsModule } from "./checkins/checkins.module";
@@ -56,6 +57,10 @@ import { StorageModule } from "./storage/storage.module";
     LegalModule,
     PeopleModule,
     QrModule,
+    // CitiesModule ANTES de EventsModule: su EventsNearController
+    // registra GET /events/near, que perdería contra el @Get(":id")
+    // del controller de eventos si se registrara después.
+    CitiesModule,
     EventsModule,
     SessionsModule,
     CheckinsModule,
