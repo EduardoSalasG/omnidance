@@ -3,6 +3,22 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.6.0] - 2026-10-20
+
+### Added
+
+- **Engagement de serie** (`series-engagement`): `GET
+  /events/series/:id/engagement` devuelve stats verificadas por
+  check-in — asistencia promedio, ratio género y leader/follower de
+  asistentes únicos — más score agregado de reviews.
+- **Reviews verificadas**: `POST /events/series/:id/review` solo para
+  asistentes con check-in (upsert por persona×serie). Comentarios
+  privados del productor vía `GET /events/series/:id/reviews` —
+  anónimos hasta para él (regla de ratings privados).
+- UI: card "La serie en números" en `/eventos/[id]` con stats +
+  formulario de evaluación; card de comentarios privada en la ficha
+  del productor.
+
 ## [1.5.2] - 2026-10-20
 
 ### Fixed

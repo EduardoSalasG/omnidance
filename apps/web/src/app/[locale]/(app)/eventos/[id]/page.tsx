@@ -16,6 +16,7 @@ import {
 import type { GenreMixBlock } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
 import { SeriesPassCta } from "@/components/checkout/series-pass-cta";
+import { SeriesEngagementCard } from "@/components/events/series-engagement";
 import { BuyTicketCta } from "@/components/checkout/buy-ticket-cta";
 import { AcademyAttribution } from "@/components/checkout/academy-attribution";
 import { PracticeBar } from "@/components/social/PracticeBar";
@@ -440,6 +441,10 @@ export default async function EventoDetailPage(
           </p>
         </Card>
       )}
+
+      {/* Engagement de serie - stats verificadas + review del asistente
+          (spec series-engagement) */}
+      {seriesId && <SeriesEngagementCard seriesId={seriesId} />}
 
       {/* Prime Time - solo cuando el evento está en vivo (nunca en prácticas:
           no cuentan para la racha competitiva, spec §8) */}

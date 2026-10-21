@@ -21,6 +21,7 @@ import { PaymentsSection } from "@/components/producer/payments-section";
 import { SuggestionsSection } from "@/components/producer/suggestions-section";
 import { ReservationsSection } from "@/components/producer/reservations-section";
 import { EventListsSection } from "@/components/producer/event-lists-section";
+import { SeriesCommentsCard } from "@/components/producer/series-comments";
 import { AcademySalesSection } from "@/components/producer/academy-sales-section";
 import { RatingsSection } from "@/components/producer/ratings-section";
 import { AnalyticsSection } from "@/components/producer/analytics-section";
@@ -353,6 +354,12 @@ export default function ProducerEventDetailPage(
                 {t("cancelEvent")}
               </Button>
             </section>
+          )}
+
+          {/* Comentarios de la serie - privados del productor, llegan
+              anónimos del API (spec series-engagement) */}
+          {event.seriesId && (
+            <SeriesCommentsCard seriesId={event.seriesId} />
           )}
         </>
       )}

@@ -5,6 +5,7 @@ import { ParamsModule } from "../params/params.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { EventsController } from "./infrastructure/events.controller";
 import { EventRatingsController } from "./infrastructure/event-ratings.controller";
+import { SeriesEngagementController } from "./infrastructure/series-engagement.controller";
 import { EventAnalyticsController } from "./infrastructure/event-analytics.controller";
 import { ProducerController } from "./infrastructure/producer.controller";
 import { TableReservationsController } from "./infrastructure/table-reservations.controller";
@@ -16,6 +17,7 @@ import { DjController } from "./infrastructure/dj.controller";
   controllers: [
     EventsController,
     EventRatingsController,
+    SeriesEngagementController,
     EventAnalyticsController,
     ProducerController,
     TableReservationsController,

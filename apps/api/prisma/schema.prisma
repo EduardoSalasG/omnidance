@@ -72,6 +72,7 @@ model Person {
   roles          PersonRole[]
   fiscalProfile  FiscalProfile?
   styleRoles     PersonStyleRole[]
+  seriesReviews  SeriesReview[]
   notifications  Notification[]
   pushTokens     PushToken[]
   eventDjs       EventDj[]
@@ -272,6 +273,7 @@ model EventSeries {
   events     Event[]
   seriesPass SeriesPass[]
   academySaleAgreements AcademySaleAgreement[]
+  reviews    SeriesReview[]
 }
 
 model Event {
@@ -596,6 +598,26 @@ model EventRating {
   updatedAt     DateTime @updatedAt
 
   @@unique([eventId, raterId])
+}
+
+// Review de serie (spec series-engagement): una por persona × serie,
+// gateada por check-in válido — reviews probadas por asistencia real.
+// El score público es siempre agregado (promedio + conteo); el
+// comentario escrito es privado del productor/admin - nunca expone
+// al autor (regla de plataforma: ratings privados).
+model SeriesReview {
+  id        String   @id @default(cuid())
+  series    EventSeries @relation(fields: [seriesId], references: [id])
+  seriesId  String
+  person    Person   @relation(fields: [personId], references: [id])
+  personId  String
+  score     Int      // 1-5
+  comment   String?  // privado al productor/admin
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([seriesId, personId])
+  @@index([seriesId])
 }
 
 // Encuesta mensual de curso (spec academy-console-v3): una por alumno ×

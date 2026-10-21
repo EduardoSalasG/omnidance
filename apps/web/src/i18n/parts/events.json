@@ -1,7 +1,22 @@
 {
-  "events": {
-    "metaTitle": "Eventos de salsa y bachata esta semana",
-    "filterByStyle": "Filtrar por estilo",
-    "genresLabel": "Géneros"
-  }
+ "events": {
+  "metaTitle": "Eventos de salsa y bachata esta semana",
+  "filterByStyle": "Filtrar por estilo",
+  "genresLabel": "Géneros"
+ },
+ "seriesEngagement": {
+  "title": "La serie en números",
+  "avgAttendance": "Asistencia / noche",
+  "genderSplit": "H / M",
+  "roleSplit": "Leader / Follower",
+  "score": "Valoración",
+  "rateCta": "Evalúa la serie",
+  "yourReview": "Tu evaluación",
+  "commentPlaceholder": "Comentario opcional (solo lo ve el productor)",
+  "submit": "Enviar",
+  "thanks": "¡Gracias por evaluar!",
+  "commentsTitle": "Comentarios de la serie",
+  "noComments": "Aún no hay comentarios escritos",
+  "anonymousNote": "Los comentarios llegan anónimos — nunca se muestra quién los escribió."
+ }
 }
