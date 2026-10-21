@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Button, CalendarIcon, Card, PriceTag, Spinner } from "@/components/ui";
+import { ActionNotice } from "@/components/ui/action-notice";
 import { readError } from "@/components/academy/shared";
 import { Link, useRouter } from "@/i18n/navigation";
 
@@ -299,6 +300,11 @@ export function ClassBookingCta({
 
   return (
     <>
+      {/* Aviso post-acción fijo sobre la BottomNav - éxito y error de
+          reservar/cancelar/comprar. El punto de acción (barra fija o
+          pie) puede quedar fuera del viewport o desmontarse al cambiar
+          `booking` - el aviso vive fuera de ambos condicionales. */}
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
       {/* Barra de acción fija - flota sobre la BottomNav (4rem + safe
           area), igual que la ficha de evento. Solo existe cuando hay
           acción: reservada/en espera → el estado va en los chips del
@@ -343,14 +349,6 @@ export function ClassBookingCta({
               </div>
             ) : (
               <>
-                {notice && (
-                  <p
-                    role={notice.error ? "alert" : "status"}
-                    className={`text-sm ${notice.error ? "text-red-400" : "text-neon"}`}
-                  >
-                    {notice.text}
-                  </p>
-                )}
                 {academyBlocked ? (
                   // Academia bloqueada por mora (S3): el API rechaza
                   // book/checkout con academy.unavailable - la barra
@@ -476,19 +474,11 @@ export function ClassBookingCta({
         </div>
       )}
 
-      {/* Pie: aviso post-reserva + zona destructiva centrada - patrón
-          "eliminar amigo": lejos del pulgar, la confirmación va en
-          bottom sheet (no inline ni window.confirm). */}
+      {/* Pie: zona destructiva centrada - patrón "eliminar amigo":
+          lejos del pulgar, la confirmación va en bottom sheet (no
+          inline ni window.confirm). */}
       {booking && (
         <div className="flex flex-col items-center gap-2 pt-2">
-          {notice && (
-            <p
-              role={notice.error ? "alert" : "status"}
-              className={`text-sm ${notice.error ? "text-red-400" : "text-neon"}`}
-            >
-              {notice.text}
-            </p>
-          )}
           {/* .ics de la clase (spec class-calendar-ics): descarga con
               sesión vía proxy same-origin, igual que los exports de
               analítica. Solo con asiento propio - nunca en WAITLIST ni

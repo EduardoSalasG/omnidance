@@ -27,7 +27,9 @@
   },
   "sessions": {
     "refresh": "Actualizar",
-    "rating": "Puntuación: {value} de 5"
+    "rating": "Puntuación: {value} de 5",
+    "discardedOk": "Invitación descartada",
+    "ratedOk": "Baile puntuado"
   },
   "notifications": {
     "unread": "Sin leer"
@@ -45,7 +47,12 @@
   "friends": {
     "emptyCta": "Buscar amigos",
     "inviteError": "No pudimos copiar el link. Intenta de nuevo.",
-    "notFound": "No encontramos a esta persona."
+    "notFound": "No encontramos a esta persona.",
+    "requestSent": "Solicitud enviada",
+    "requestAccepted": "Ahora son amigos",
+    "requestDeclined": "Solicitud rechazada",
+    "requestCancelled": "Solicitud cancelada",
+    "removed": "Amistad eliminada"
   },
   "gamification": {
     "badgeCategory": {

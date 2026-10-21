@@ -289,10 +289,16 @@ export default async function ClaseDetailPage(
         </Card>
 
         {/* Cancelar = zona destructiva al pie con confirmación en
-            sheet - mismo patrón que la reserva normal. */}
-        {(lesson.status === "REQUESTED" || lesson.status === "CONFIRMED") && (
-          <PrivateLessonCancelCta lessonId={lesson.id} />
-        )}
+            sheet - mismo patrón que la reserva normal. Se monta siempre
+            (cancellable gatea la zona, no el componente): si se
+            condiciona acá, el router.refresh() post-cancel desmonta el
+            CTA y el aviso de éxito nunca llega a verse. */}
+        <PrivateLessonCancelCta
+          lessonId={lesson.id}
+          cancellable={
+            lesson.status === "REQUESTED" || lesson.status === "CONFIRMED"
+          }
+        />
       </main>
     );
   }

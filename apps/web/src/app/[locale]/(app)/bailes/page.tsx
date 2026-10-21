@@ -13,6 +13,7 @@ import {
   XIcon,
 } from "@/components/ui";
 import { EventDate } from "@/components/ui/EventDate";
+import { ActionNotice } from "@/components/ui/action-notice";
 import { SessionCard } from "@/components/sessions/SessionCard";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { isInvitee } from "@/components/sessions/types";
@@ -43,6 +44,11 @@ function Bailes() {
   const [streakDone, setStreakDone] = useState(false);
   // Progressive disclosure del historial: primeras N noches visibles.
   const [allNights, setAllNights] = useState(false);
+  // Aviso post-acción fijo (descartar invitación / puntuar) - la acción
+  // puede ocurrir en una card scrolleada dentro de un <details>.
+  const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(
+    null,
+  );
 
   const fetchSessions = useCallback(async () => {
     const res = await apiFetch(
@@ -129,6 +135,13 @@ function Bailes() {
       setPhase("unauth");
       return;
     }
+    // Fallo ≠401 o de red - antes silencioso: la invitación seguía
+    // ahí sin explicación.
+    if (!res?.ok) {
+      setNotice({ text: tCommon("error"), error: true });
+      return;
+    }
+    setNotice({ text: t("discardedOk"), error: false });
     await fetchSessions();
   }
 
@@ -144,6 +157,11 @@ function Bailes() {
       setPhase("unauth");
       return;
     }
+    if (!res?.ok) {
+      setNotice({ text: tCommon("error"), error: true });
+      return;
+    }
+    setNotice({ text: t("ratedOk"), error: false });
     await fetchSessions();
   }
 
@@ -228,6 +246,7 @@ function Bailes() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-4 pt-3 sm:px-6 lg:max-w-5xl lg:px-8">
       <h1 className="sr-only">{t("title")}</h1>
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
       {/* Contexto del filtro ?event= - permite salir de la vista acotada */}
       {eventId && (
         <Link
