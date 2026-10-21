@@ -262,6 +262,29 @@
       ]
     },
     {
+      "name": "Legal",
+      "item": [
+        {
+          "name": "GET /api/legal/consent",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/legal/consent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "legal",
+                "consent"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "People",
       "item": [
         {
