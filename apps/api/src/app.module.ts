@@ -16,6 +16,7 @@ import { QrModule } from "./qr/qr.module";
 import { CitiesModule } from "./cities/cities.module";
 import { EventsModule } from "./events/events.module";
 import { SessionsModule } from "./sessions/sessions.module";
+import { TripModule } from "./trip/trip.module";
 import { CheckinsModule } from "./checkins/checkins.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { DiscountsModule } from "./discounts/discounts.module";
@@ -63,6 +64,9 @@ import { StorageModule } from "./storage/storage.module";
     CitiesModule,
     EventsModule,
     SessionsModule,
+    // "Mi viaje" (spec mi-viaje): /me/trip del bailarín - rutas
+    // propias bajo /me, sin choque de prefijos con otros módulos.
+    TripModule,
     CheckinsModule,
     PaymentsModule,
     DiscountsModule,

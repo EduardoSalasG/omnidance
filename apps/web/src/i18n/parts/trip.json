@@ -1,0 +1,27 @@
+{
+  "trip": {
+    "title": "Mi viaje",
+    "subtitle": "Los eventos que guardaste, ordenados por ciudad y fecha.",
+    "disabled": "Mi viaje está desactivado por ahora.",
+    "loadError": "No pudimos cargar tu viaje.",
+    "empty": "Aún no guardas eventos en tu viaje.",
+    "emptyDesc": "Guarda los que te interesen en cualquier ciudad y arma tu itinerario acá.",
+    "emptyCta": "Explorar ciudades",
+    "emptyCtaEvents": "Ver la cartelera",
+    "save": "Guardar en Mi viaje",
+    "saved": "En tu viaje",
+    "added": "Evento guardado en tu viaje",
+    "removed": "Evento quitado de tu viaje",
+    "toggleError": "No pudimos actualizar tu viaje. Intenta de nuevo.",
+    "actionError": "No pudimos quitar el evento. Intenta de nuevo.",
+    "signIn": "Inicia sesión",
+    "signInToSave": "Inicia sesión para guardarlo en tu viaje",
+    "notePlaceholder": "Nota privada: hotel, vuelo, con quién vas…",
+    "noteLabel": "Nota para {event}",
+    "noteSaved": "Nota guardada",
+    "noteError": "No pudimos guardar la nota.",
+    "remove": "Quitar",
+    "removeLabel": "Quitar {event} de tu viaje",
+    "noCity": "Sin ciudad"
+  }
+}

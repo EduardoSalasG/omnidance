@@ -15,6 +15,7 @@ import {
 } from "@/components/ui";
 import type { GenreMixBlock } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
+import { TripBookmark } from "@/components/events/trip-bookmark";
 import { SeriesPassCta } from "@/components/checkout/series-pass-cta";
 import { SeriesEngagementCard } from "@/components/events/series-engagement";
 import { BuyTicketCta } from "@/components/checkout/buy-ticket-cta";
@@ -147,6 +148,23 @@ async function getFriendsGoing(eventId: string): Promise<FriendGoing[] | null> {
 }
 
 /**
+ * GET /me/trip/ids (SessionGuard, spec mi-viaje): eventIds guardados del
+ * viewer - la ficha resuelve `inTrip` sin tocar el endpoint público de
+ * detalle. Sin sesión/flag OFF → false (el toggle se oculta igual por
+ * flag, esto solo define el estado inicial del bookmark).
+ */
+async function getTripIds(eventId: string): Promise<boolean> {
+  const API_URL = await serverApiUrl();
+  const res = await fetch(`${API_URL}/api/me/trip/ids`, {
+    cache: "no-store",
+    headers: { cookie: (await cookies()).toString() },
+  }).catch(() => null);
+  if (!res?.ok) return false;
+  const ids = (await res.json()) as string[];
+  return ids.includes(eventId);
+}
+
+/**
  * GET /tickets/mine (SessionGuard): true si el usuario ya tiene una entrada
  * ACTIVE para este evento - dispara el popup de confirmación en el CTA.
  */
@@ -181,12 +199,14 @@ export default async function EventoDetailPage(
   const t = m.events;
   const tc = m.common;
   const tg = m.gamification;
-  const [event, missions, myTicket, friendsGoing] = await Promise.all([
-    getEvent(params.id),
-    getMissions(params.id),
-    hasActiveTicket(params.id),
-    getFriendsGoing(params.id),
-  ]);
+  const [event, missions, myTicket, friendsGoing, inTrip] =
+    await Promise.all([
+      getEvent(params.id),
+      getMissions(params.id),
+      hasActiveTicket(params.id),
+      getFriendsGoing(params.id),
+      getTripIds(params.id),
+    ]);
 
   if (event === "error") {
     return (
@@ -385,6 +405,15 @@ export default async function EventoDetailPage(
             </div>
           </div>
         )}
+        {/* "Guardar en Mi viaje" (spec mi-viaje): island con sesión -
+            se oculta sola si el flag trip_planner está OFF o el usuario
+            no tiene cuenta (muestra link a login). key= remonta el
+            estado del toggle al navegar entre fichas client-side. */}
+        <TripBookmark
+          key={event.id}
+          eventId={event.id}
+          initialSaved={inTrip}
+        />
       </header>
 
       {/* Prueba social: amigos confirmados con entrada - avatares + nombres.
