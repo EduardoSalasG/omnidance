@@ -14,6 +14,10 @@ import {
 } from "../common/event-feed";
 
 const CITY_LANDING_FLAG = "city_landing";
+// Guía editorial (spec city-guides): el flag city_guides gatea que la
+// guía viaje en la ficha pública - OFF → ni `guide` ni hasGuide:true.
+const CITY_GUIDES_FLAG = "city_guides";
+const GUIDE_SECTION_KEYS = ["intro", "nightlife", "practical"] as const;
 /** Radio de "cerca de mí" (spec city-discovery): default 25km, máx 200. */
 const NEAR_DEFAULT_KM = 25;
 const NEAR_MAX_KM = 200;
@@ -129,9 +133,11 @@ export class CitiesService {
 
   /**
    * GET /cities/:slug - ficha de ciudad: coordenadas, próximos eventos
-   * (shape del feed público), venues activos y hasGuide (CityGuide
-   * existe pero hoy no tiene contenido seedeado - city-guides lo
-   * enciende). 404 con slug inexistente.
+   * (shape del feed público), venues activos y la guía editorial
+   * (spec city-guides): `guide` viaja solo si el flag city_guides está
+   * ON y al menos una sección tiene texto - hasGuide sigue ese mismo
+   * criterio (guía vacía o flag OFF → false, sin `guide`). 404 con
+   * slug inexistente.
    */
   async detail(slug: string) {
     await this.assertEnabled();
@@ -144,7 +150,9 @@ export class CitiesService {
         lat: true,
         lng: true,
         country: { select: { code: true, name: true } },
-        guide: { select: { id: true } },
+        guide: {
+          select: { intro: true, nightlife: true, practical: true },
+        },
       },
     });
     if (!city) throw new NotFoundException("ciudad no encontrada");
@@ -165,11 +173,26 @@ export class CitiesService {
     ]);
 
     const { guide, ...rest } = city;
+    const guidesOn = await this.flags.isEnabled(CITY_GUIDES_FLAG);
+    const sections = guide
+      ? {
+          intro: guide.intro ?? "",
+          nightlife: guide.nightlife ?? "",
+          practical: guide.practical ?? "",
+        }
+      : null;
+    const hasGuide =
+      guidesOn &&
+      sections != null &&
+      GUIDE_SECTION_KEYS.some((s) => sections[s].trim().length > 0);
     return {
       ...rest,
       upcomingEvents: mapPublicFeed(events),
       venues,
-      hasGuide: guide != null,
+      hasGuide,
+      // `guide` solo existe en el payload cuando hay contenido visible -
+      // flag OFF o guía vacía → la key ni siquiera viaja (spec).
+      ...(hasGuide ? { guide: sections } : {}),
     };
   }
 

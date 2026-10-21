@@ -24,7 +24,11 @@ type FakeCity = {
   lat: number | null;
   lng: number | null;
   country: { code: string; name: string };
-  guide?: { id: string } | null;
+  guide?: {
+    intro: string;
+    nightlife: string;
+    practical: string;
+  } | null;
 };
 type FakeVenue = {
   id: string;
@@ -224,6 +228,12 @@ const flag = (enabled: boolean): FakeFlag => ({
   key: "city_landing",
   enabled,
 });
+// Flag de guías editoriales (spec city-guides) - ausente = OFF
+// (fail-closed): sin flag en la fixture, hasGuide nunca es true.
+const guidesFlag = (enabled: boolean): FakeFlag => ({
+  key: "city_guides",
+  enabled,
+});
 
 const CL = { code: "CL", name: "Chile" };
 const cityStgo: FakeCity = {
@@ -377,12 +387,62 @@ describe("CitiesService.detail (GET /cities/:slug)", () => {
 
   it("ciudad sin eventos → upcomingEvents: [] y hasGuide según guía", async () => {
     const prisma = mkPrisma({
-      flags: [flag(true)],
-      cities: [{ ...cityStgo, guide: { id: "g-1" } }],
+      flags: [flag(true), guidesFlag(true)],
+      cities: [
+        {
+          ...cityStgo,
+          guide: { intro: "Escena grande", nightlife: "", practical: "" },
+        },
+      ],
     });
     const res = await mkService(prisma).detail("santiago-cl");
     expect(res.upcomingEvents).toEqual([]);
     expect(res.hasGuide).toBe(true);
+    expect(res.guide).toEqual({
+      intro: "Escena grande",
+      nightlife: "",
+      practical: "",
+    });
+  });
+
+  it("guía con contenido viaja en guide solo con city_guides ON", async () => {
+    const content = {
+      intro: "Qué esperar",
+      nightlife: "",
+      practical: "Cómo moverte",
+    };
+    const on = mkPrisma({
+      flags: [flag(true), guidesFlag(true)],
+      cities: [{ ...cityStgo, guide: content }],
+    });
+    const resOn = await mkService(on).detail("santiago-cl");
+    expect(resOn.hasGuide).toBe(true);
+    expect(resOn.guide).toEqual(content);
+
+    // OFF → la guía no viaja ni se enlaza (spec city-guides).
+    const off = mkPrisma({
+      flags: [flag(true), guidesFlag(false)],
+      cities: [{ ...cityStgo, guide: content }],
+    });
+    const resOff = await mkService(off).detail("santiago-cl");
+    expect(resOff.hasGuide).toBe(false);
+    // La key `guide` ni siquiera viaja en el payload (spec).
+    expect("guide" in resOff).toBe(false);
+  });
+
+  it("guía con todas las secciones vacías → hasGuide false", async () => {
+    const prisma = mkPrisma({
+      flags: [flag(true), guidesFlag(true)],
+      cities: [
+        {
+          ...cityStgo,
+          guide: { intro: "   ", nightlife: "", practical: "" },
+        },
+      ],
+    });
+    const res = await mkService(prisma).detail("santiago-cl");
+    expect(res.hasGuide).toBe(false);
+    expect("guide" in res).toBe(false);
   });
 });
 

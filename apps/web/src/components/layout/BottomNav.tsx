@@ -292,6 +292,10 @@ type DrawerSpec = {
   // true = active solo con match exacto (raíces de módulo cuyo prefijo
   // también matchea sus sub-páginas - p.ej. /analitica vs /analitica/*).
   exact?: boolean;
+  // Flag de features-context que gatea el ítem (p.ej. "city_guides"):
+  // ausente → siempre visible; presente → solo si flags[flag] === true
+  // (fail-closed, mismo criterio que el gate del API).
+  flag?: string;
 };
 
 type DrawerGroupSpec = {
@@ -783,6 +787,15 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       labelNs: "admin",
       labelKey: "navGroups.platform",
       items: [
+        // Guías editoriales por ciudad (spec city-guides) - el flag
+        // city_guides la oculta del drawer/sidebar cuando está OFF.
+        {
+          href: "/admin/ciudades",
+          ns: "admin",
+          key: "modules.cities",
+          icon: ICONS.pin,
+          flag: "city_guides",
+        },
         {
           href: "/admin/parametros",
           ns: "admin",
@@ -1194,22 +1207,26 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           label: labelFor(g.labelNs, g.labelKey),
           bare: g.bare,
           mobileOnly: g.mobileOnly,
-          items: g.items.map((spec) => {
-            const active =
-              (showTabBar ? !tabHrefs.has(spec.href) : true) &&
-              (spec.exact
-                ? pathname === spec.href
-                : pathname.startsWith(spec.href));
-            return {
-              href: spec.href,
-              label: labelFor(spec.ns, spec.key),
-              icon: icon(spec.icon)(active),
-              active,
-              // Los ítems que fueron tab (Eventos del productor) llevan
-              // su anchor de tour para que ≥lg siga resolviéndolo.
-              dataTour: SIDEBAR_TOUR[spec.href],
-            };
-          }),
+          // Ítems con `flag` solo entran si el flag resolvió ON - el
+          // drawer/sidebar nunca enlazan superficies apagadas.
+          items: g.items
+            .filter((spec) => !spec.flag || flags[spec.flag] === true)
+            .map((spec) => {
+              const active =
+                (showTabBar ? !tabHrefs.has(spec.href) : true) &&
+                (spec.exact
+                  ? pathname === spec.href
+                  : pathname.startsWith(spec.href));
+              return {
+                href: spec.href,
+                label: labelFor(spec.ns, spec.key),
+                icon: icon(spec.icon)(active),
+                active,
+                // Los ítems que fueron tab (Eventos del productor) llevan
+                // su anchor de tour para que ≥lg siga resolviéndolo.
+                dataTour: SIDEBAR_TOUR[spec.href],
+              };
+            }),
         })),
         accountGroup,
       ];
