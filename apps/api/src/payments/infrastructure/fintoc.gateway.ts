@@ -95,6 +95,9 @@ function verifySignature(
 @Injectable()
 export class FintocGateway implements PaymentGateway {
   readonly name = "FINTOC";
+  // Mismas monedas que acepta createOrder - routing por moneda del
+  // registry (spec stripe-gateway-payout-rail).
+  readonly currencies = [...SUPPORTED_CURRENCIES];
 
   constructor(
     private readonly secretKey: string,
