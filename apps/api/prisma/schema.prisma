@@ -99,6 +99,9 @@ model Person {
   classSlotInstructors ClassSlotInstructor[]
   classInstructors     ClassInstructor[]
   consentRecords       ConsentRecord[]
+  tripItems            TripItem[]
+  socialPass           SocialPass?
+  socialPassLedger     SocialPassLedger[]
 }
 
 // Catálogo de roles vivo en DB - se administran desde /admin, no desde código.
@@ -253,6 +256,7 @@ model City {
   academies Academy[]
   events    Event[]
   adminRegions AdminRegion[]
+  guide     CityGuide?
 
   @@unique([countryId, name])
 }
@@ -400,6 +404,7 @@ model Event {
   shows          Show[]
   rsvps          Rsvp[]
   academySaleAgreements AcademySaleAgreement[]
+  tripItems      TripItem[]
 }
 
 // RSVP "voy" (spec §8) - intención de asistencia sin ticket. Hoy lo usa
@@ -2242,4 +2247,79 @@ model FeatureFlag {
   enabled     Boolean  @default(false)
   updatedById String?
   updatedAt   DateTime @updatedAt
+}
+
+// Guía editorial curada por ciudad (spec city-guides): tres secciones
+// de texto plano que el admin edita desde /admin/ciudades y la landing
+// pública renderiza bajo el hero. hasGuide = al menos una sección con
+// texto — nunca se muestran secciones vacías al visitante.
+model CityGuide {
+  id          String   @id @default(cuid())
+  city        City     @relation(fields: [cityId], references: [id])
+  cityId      String   @unique
+  intro       String   @default("") // qué esperar de la escena
+  nightlife   String   @default("") // dónde se baila cada noche / nivel
+  practical   String   @default("") // cómo moverse, dress code, tips
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
+// Item de "Mi viaje" (spec mi-viaje): evento guardado por el bailarín
+// para planear su itinerario multipaís. Una lista por persona v1 —
+// el modelo deja abierta la puerta a trips nombrados (sería un
+// contenedor Trip→items) si el uso lo pide.
+model TripItem {
+  id        String   @id @default(cuid())
+  person    Person   @relation(fields: [personId], references: [id])
+  personId  String
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  note      String?
+  addedAt   DateTime @default(now())
+
+  @@unique([personId, eventId])
+  @@index([personId])
+}
+
+// Suscripción del bailarín "Pase Social" (spec pase-social): Stripe
+// Billing en cuenta de plataforma. Créditos = entradas gratis a
+// sociales/prácticas/eventos por período (reset duro, no acumulan);
+// el balance solo se muta vía SocialPassLedger.
+model SocialPass {
+  id                String   @id @default(cuid())
+  person            Person   @relation(fields: [personId], references: [id])
+  personId          String   @unique
+  stripeCustomerId  String
+  stripeSubId       String   @unique
+  status            String   // ACTIVE|FAILED_CARD|CANCEL_PENDING|CANCELED|PENDING
+  amount            Int      // precio de período snapshot (minor units de `currency`)
+  currency          String   @default("CLP")
+  tierCode          String   @default("SOCIAL_PASS") // precio vía TierPrice×país
+  creditsPerPeriod  Int      @default(4)
+  creditsBalance    Int      @default(0)
+  lastCreditResetAt DateTime?
+  currentPeriodEnd  DateTime?
+  cancelAtPeriodEnd Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  ledger SocialPassLedger[]
+}
+
+// Ledger auditable de créditos del pase (spec pase-social): toda mutación
+// del balance deja línea — RESET (allotment del período al invoice.paid),
+// REDEEM (entrada usada), GRANT (admin).
+model SocialPassLedger {
+  id        String     @id @default(cuid())
+  pass      SocialPass @relation(fields: [passId], references: [id])
+  passId    String
+  person    Person     @relation(fields: [personId], references: [id])
+  personId  String
+  delta     Int        // +N reset/grant, -N redeem
+  reason    String     // RESET|REDEEM|GRANT
+  paymentId String?    // la orden $0 que consumió el crédito (REDEEM)
+  createdAt DateTime   @default(now())
+
+  @@index([personId, createdAt])
+  @@index([passId])
 }
