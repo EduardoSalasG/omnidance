@@ -255,6 +255,22 @@ model City {
 // Scoping regional de validación (spec multipais-foundation): un
 // revisor con regiones solo ve perfiles/academias de su zona; sin
 // regiones asignadas = admin global, ve todo.
+// Price book por mercado (spec multipais-foundation): el precio de
+// cada tier de suscripción se define por país - Chile en CLP, Europa
+// en EUR, etc. Fallback: si no hay fila para el país del actor, se usa
+// la del país default (CL).
+model TierPrice {
+  id           String   @id @default(cuid())
+  tierCode     String
+  kind         PlatformSubKind
+  billingCycle BillingCycle
+  countryCode  String   // ISO-3166 alpha-2
+  price        Int      // monto en la moneda declarada (unidad menor si aplica)
+  currency     String   // ISO-4217
+
+  @@unique([tierCode, kind, billingCycle, countryCode])
+}
+
 model AdminRegion {
   id       String @id @default(cuid())
   person   Person @relation(fields: [personId], references: [id])
