@@ -3,6 +3,13 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.5.1] - 2026-10-20
+
+### Fixed
+
+- i18n de la zona de peligro/baja lógica: keys quedaron anidadas en
+  `users.users.*` por error y el badge mostraba la clave cruda.
+
 ## [1.5.0] - 2026-10-20
 
 ### Changed

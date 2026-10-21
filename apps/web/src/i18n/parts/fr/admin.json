@@ -10,9 +10,9 @@
    "revokeConfirm": "Révoquer le rôle {role} ? C'est enregistré dans l'audit.",
    "delete": {
     "title": "Zone de danger",
-    "body": "Supprime le compte et ses données de profil (rôles, styles, RSVPs, notifications). Utile pour les comptes de test ou doublons. Irréversible.",
-    "cta": "Supprimer l'utilisateur",
-    "confirm": "Supprimer définitivement {name} ? Son compte et ses données de profil sont supprimés. Irréversible."
+    "body": "Désactive le compte : la personne ne peut ni se connecter ni apparaître publiquement, mais ses données restent intactes et vous pouvez le réactiver.",
+    "cta": "Désactiver l'utilisateur",
+    "confirm": "Désactiver {name} ? Ses données restent enregistrées — réactivation possible ensuite."
    },
    "detail": {
     "personal": "Infos personnelles",
@@ -88,17 +88,9 @@
    },
    "academiesCount": "{count, plural, one {# académie} other {# académies}}",
    "eventsCount": "{count, plural, one {# événement} other {# événements}}",
-   "users": {
-    "deactivated": "Désactivée",
-    "reactivate": {
-     "cta": "Réactiver le compte"
-    },
-    "delete": {
-     "title": "Zone de danger",
-     "body": "Désactive le compte : la personne ne peut ni se connecter ni apparaître publiquement, mais ses données restent intactes et vous pouvez le réactiver.",
-     "cta": "Désactiver l'utilisateur",
-     "confirm": "Désactiver {name} ? Ses données restent enregistrées — réactivation possible ensuite."
-    }
+   "deactivated": "Désactivée",
+   "reactivate": {
+    "cta": "Réactiver le compte"
    }
   },
   "status": {
