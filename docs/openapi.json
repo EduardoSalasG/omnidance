@@ -813,6 +813,90 @@
         ]
       }
     },
+    "/api/events/near": {
+      "get": {
+        "operationId": "EventsNearController_near",
+        "parameters": [
+          {
+            "name": "radiusKm",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "lng",
+            "required": true,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "lat",
+            "required": true,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "EventsNear"
+        ]
+      }
+    },
+    "/api/cities": {
+      "get": {
+        "operationId": "CitiesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Cities"
+        ]
+      }
+    },
+    "/api/cities/{slug}": {
+      "get": {
+        "operationId": "CitiesController_detail",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Cities"
+        ]
+      }
+    },
+    "/api/features": {
+      "get": {
+        "operationId": "FeaturesController_map",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Features"
+        ]
+      }
+    },
     "/api/events/mine": {
       "get": {
         "operationId": "EventsController_mine",
@@ -2125,6 +2209,97 @@
         },
         "tags": [
           "Sessions"
+        ]
+      }
+    },
+    "/api/me/trip": {
+      "get": {
+        "operationId": "TripController_list",
+        "parameters": [
+          {
+            "name": "includePast",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Trip"
+        ]
+      }
+    },
+    "/api/me/trip/ids": {
+      "get": {
+        "operationId": "TripController_ids",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Trip"
+        ]
+      }
+    },
+    "/api/me/trip/{eventId}": {
+      "put": {
+        "operationId": "TripController_save",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveTripItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Trip"
+        ]
+      },
+      "delete": {
+        "operationId": "TripController_remove",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Trip"
         ]
       }
     },
@@ -3897,6 +4072,72 @@
         ]
       }
     },
+    "/api/me/social-pass": {
+      "get": {
+        "operationId": "SocialPassController_getMine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SocialPass"
+        ]
+      }
+    },
+    "/api/me/social-pass/subscribe": {
+      "post": {
+        "operationId": "SocialPassController_subscribe",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SocialPass"
+        ]
+      }
+    },
+    "/api/me/social-pass/cancel": {
+      "post": {
+        "operationId": "SocialPassController_cancel",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SocialPass"
+        ]
+      }
+    },
+    "/api/me/social-pass/confirm": {
+      "post": {
+        "operationId": "SocialPassController_confirm",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SocialPass"
+        ]
+      }
+    },
     "/api/discount-codes": {
       "post": {
         "operationId": "DiscountsController_create",
@@ -4716,74 +4957,6 @@
         },
         "tags": [
           "EventEntryPasses"
-        ]
-      }
-    },
-    "/api/cities/near": {
-      "get": {
-        "operationId": "CitiesController_near",
-        "parameters": [
-          {
-            "name": "lat",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "lng",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Cities"
-        ]
-      }
-    },
-    "/api/cities": {
-      "get": {
-        "operationId": "CitiesController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Cities"
-        ]
-      }
-    },
-    "/api/cities/{slug}": {
-      "get": {
-        "operationId": "CitiesController_detail",
-        "parameters": [
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Cities"
         ]
       }
     },
@@ -9134,6 +9307,121 @@
         ]
       }
     },
+    "/api/admin/feature-flags": {
+      "get": {
+        "operationId": "AdminFeatureFlagsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminFeatureFlags"
+        ]
+      }
+    },
+    "/api/admin/feature-flags/{key}": {
+      "patch": {
+        "operationId": "AdminFeatureFlagsController_setEnabled",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetFeatureFlagDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminFeatureFlags"
+        ]
+      }
+    },
+    "/api/admin/city-guides": {
+      "get": {
+        "operationId": "AdminCityGuidesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminCityGuides"
+        ]
+      }
+    },
+    "/api/admin/city-guides/{cityId}": {
+      "get": {
+        "operationId": "AdminCityGuidesController_detail",
+        "parameters": [
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminCityGuides"
+        ]
+      },
+      "put": {
+        "operationId": "AdminCityGuidesController_update",
+        "parameters": [
+          {
+            "name": "cityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCityGuideDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminCityGuides"
+        ]
+      }
+    },
     "/api/crm/people": {
       "get": {
         "operationId": "CrmController_listPeople",
@@ -10730,6 +11018,10 @@
         "type": "object",
         "properties": {}
       },
+      "SaveTripItemDto": {
+        "type": "object",
+        "properties": {}
+      },
       "ScanCheckinDto": {
         "type": "object",
         "properties": {}
@@ -10827,6 +11119,10 @@
         "properties": {}
       },
       "MarkPaidDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ConfirmDto": {
         "type": "object",
         "properties": {}
       },
@@ -10967,6 +11263,14 @@
         "properties": {}
       },
       "UpdateJobDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SetFeatureFlagDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateCityGuideDto": {
         "type": "object",
         "properties": {}
       },

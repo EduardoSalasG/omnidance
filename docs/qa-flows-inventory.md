@@ -392,6 +392,15 @@
 
 ---
 
+## 13. Multipaís — discovery, viaje, pase social (specs city-discovery, city-guides, mi-viaje, pase-social, feature-flags-admin)
+
+- **Feature flags**: `/admin/funcionalidades` (admin.access) — catálogo, toggle sin confirm + revert en error + role=switch + quién/cuándo; `GET /features` público → el front oculta superficies gated; `isEnabled` server-side 404ea endpoints apagados. Seed: `social_pass` OFF; `trip_planner`/`city_guides`/`city_landing` ON.
+- **Directorio y landing de ciudad** (`city_landing`): `/ciudades` público (directorio con count) → `/ciudades/[slug]` (hero + eventos + venues + guía si hasGuide); flag OFF → endpoints 404 + páginas notFound + sin enlaces en nav.
+- **Cerca de mí** (`/eventos`): botón geolocalización → `GET /events/near?lat&lng&radiusKm` (haversine sobre `City.lat/lng`, default 25 máx 200); permiso denegado → estado + fallback select de ciudades; vacío → `nearestCity` sugerencia. Resultados con chip "Cerca de ti" aditivos al feed.
+- **Guías de ciudad** (`city_guides`): `/admin/ciudades` (lista con estado vacía/parcial/completa) → editor por sección (3 textareas máx 8000 + contador + guardado + dirty-guard: ConfirmSheet en navegación in-app + beforeunload); `PUT /admin/city-guides/:cityId` upsert por sección audita `CITY_GUIDE_UPDATE`; público: solo secciones con texto renderizan en `/ciudades/[slug]`.
+- **Mi viaje** (`trip_planner`): bookmark en ficha `/eventos/[id]` (optimista + revert + aria-pressed; sin sesión → link login); `/mi-viaje` agrupada ciudad→fecha con nota inline (blur/Enter, serializada contra quitar) + quitar optimista; `GET|PUT|DELETE /me/trip` (+`/ids`) con aislamiento por persona; flag OFF → 404 + nav oculta.
+- **Pase Social** (`social_pass` OFF — superficie apagada por diseño): `/pase` pública gated (pitch + precio por jurisdicción + subscribe→Stripe Checkout; miembro → estado/créditos restantes/cancel ConfirmSheet; `?session_id=` confirma por polling). Checkout ticket con pass: línea "Precio Pase Social" en desglose + toggle "usar crédito" (sin regalos ni método propio, saldo ≥ cantidad) → orden $0 `FREE` + `REDEEM` ledger atómico. Endpoints `GET|POST /me/social-pass[/subscribe|/cancel|/confirm]` → 404 flag OFF. Webhook STRIPE billing: `invoice.paid`→RESET créditos dedup por período, `payment_failed`→FAILED_CARD, `customer.subscription.deleted`→CANCELED.
+
 ## Anexo A — Gaps y notas para automatización
 
 1. **Sin infra e2e actual**: no existe playwright.config ni specs e2e; solo Vitest unit en api y un test web (`wallet-sort.test.ts`). El "Playwright smoke e2e" de AGENTS.md está por construir — este inventario es su backlog.
