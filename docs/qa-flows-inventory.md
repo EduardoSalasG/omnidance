@@ -403,6 +403,9 @@
 
 - **Agregar clase al calendario**: ficha clase reservada (BOOKED) muestra "Agregar a mi calendario" →  descarga  RFC 5545 (SUMMARY clase+academia, DTSTART/DTEND con TZID de la ciudad, LOCATION sede academia, DESCRIPTION instructor/nivel+link, UID estable, VALARM -60min). Solo BOOKED; WAITLIST/compra pendiente sin boton. Sesion requerida, 404 clase inexistente.
 
+- **Feedback de exito transversal** (success-feedback-audit): toda mutacion visible emite confirmacion perceptible — notice inline role=status junto a la accion, el atom ActionNotice fijo (auto-dismiss 3s, sobre BottomNav, lg:bottom-6) cuando el punto puede quedar fuera del viewport (reserva de clase en /clases y ficha, RSVP practica, bailes act/rate, review de serie, amigos, cancel de clase particular), ConfirmSheet previo en acciones financieras/destructivas (aprobar claim productor, markPaid acuerdo, eliminar colaborador, cancelar reserva de mesa, borrar consulta guardada) y role=alert perceptible en fallos (approve/pay/generate admin, metodos de pago). Marcaje de asistencia del instructor actualiza in-place sin skeleton full-page.
+- **Onboarding mobile viewport**: banners de primer uso comparten slot con precedencia consent > install > push (PushOptIn cede como InstallPrompt); tours resuelven el anchor visible (tab bar movil vs sidebar); DancerActionsSheet max-h-85dvh scrolleable; banners respetan data-notabbar; alertas de form de alta/login/completar scrollean al view.
+
 ## Anexo A — Gaps y notas para automatización
 
 1. **Sin infra e2e actual**: no existe playwright.config ni specs e2e; solo Vitest unit en api y un test web (`wallet-sort.test.ts`). El "Playwright smoke e2e" de AGENTS.md está por construir — este inventario es su backlog.
