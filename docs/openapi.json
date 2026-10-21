@@ -6980,6 +6980,20 @@
         ]
       }
     },
+    "/api/classes/my-quota": {
+      "get": {
+        "operationId": "ClassesController_myQuota",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Classes"
+        ]
+      }
+    },
     "/api/classes/teaching": {
       "get": {
         "operationId": "ClassesController_teaching",
