@@ -325,6 +325,32 @@ export async function seedCommon(prisma: PrismaClient) {
     });
   }
 
+  // ─── Geografía base (spec multipais-foundation): Chile/Santiago
+  // como ciudad 0 - idempotente, replica el backfill de la migración.
+  await prisma.country.upsert({
+    where: { code: "CL" },
+    update: {},
+    create: { id: "country-cl", code: "CL", name: "Chile" },
+  });
+  await prisma.city.upsert({
+    where: { slug: "santiago-cl" },
+    update: {},
+    create: {
+      id: "city-stgo-cl",
+      countryId: "country-cl",
+      name: "Santiago",
+      slug: "santiago-cl",
+      lat: -33.4489,
+      lng: -70.6693,
+      timezone: "America/Santiago",
+      geohash: "66rcc",
+    },
+  });
+  await prisma.venue.updateMany({
+    where: { cityId: null },
+    data: { cityId: "city-stgo-cl" },
+  });
+
   console.log(
     `  baseline: ${ROLE_CATALOG.length} roles, ${PERMISSION_CATALOG.length} permisos, ${STYLE_CATALOG.length} estilos, ${BADGE_CATALOG.length} badges, ${PARAM_DEFAULTS.length} params`,
   );

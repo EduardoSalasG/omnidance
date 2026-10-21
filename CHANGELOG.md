@@ -3,6 +3,18 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.7.0] - 2026-10-21
+
+### Added
+
+- **Fundación multipaís** (`multipais-foundation`, slice 1):
+  `Country`/`City` (slug, lat/lng, timezone IANA, geohash) +
+  `Venue.cityId` con backfill a Santiago, Chile — ciudad 0 intacta.
+- `Event.currency` (ISO-4217, default CLP) y
+  `Person.phoneCountryCode`.
+- Roadmap: Pase Social con modelo cargo-en-puerta + preventa
+  garantizada + créditos; congresos como task 13.
+
 ## [1.6.1] - 2026-10-21
 
 ### Fixed
