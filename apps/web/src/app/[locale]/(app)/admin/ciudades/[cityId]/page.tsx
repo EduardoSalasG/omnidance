@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
@@ -10,13 +10,14 @@ import {
   SkeletonList,
   Spinner,
 } from "@/components/ui";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { useFeatures } from "@/lib/features-context";
 import { useMe } from "@/lib/me-context";
 import { useDateFmt } from "@/lib/intl";
 import { inputCls } from "@/components/academy/shared";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import type { CityGuideDetail } from "@/components/admin/types";
 
 // Ficha editor de la guía editorial de una ciudad (spec city-guides):
@@ -69,6 +70,11 @@ function GuideEditor({ cityId }: { cityId: string }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Navegación interna interceptada con cambios sin guardar - el href
+  // pendiente abre el ConfirmSheet de "salir sin guardar".
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const router = useRouter();
 
   const load = useCallback(async () => {
     setState("loading");
@@ -109,15 +115,38 @@ function GuideEditor({ cityId }: { cityId: string }) {
     saved != null &&
     SECTION_KEYS.some((k) => drafts[k] !== saved[k]);
 
-  // Protección de salida con cambios sin guardar: confirmación nativa
-  // del browser al cerrar/recargar. La navegación in-app queda cubierta
-  // por el hint visible + "Descartar" explícito.
+  // Protección de salida con cambios sin guardar: beforeunload cubre
+  // cerrar/recargar; el listener de document cubre CUALQUIER navegación
+  // in-app (back del header, drawer, sidebar, links de la página) -
+  // ev.preventDefault del click del anchor abre el ConfirmSheet y solo
+  // si confirma se hace router.push al destino interceptado.
   useEffect(() => {
     if (!dirty) return;
-    const handler = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    const onDocClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest?.(
+        "a[href]",
+      ) as HTMLAnchorElement | null;
+      if (!anchor || anchor.target === "_blank") return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingHref(anchor.getAttribute("href"));
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("click", onDocClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("click", onDocClick, true);
+    };
   }, [dirty]);
+
+  // Limpia el timer del flash de guardado si el componente se desmonta.
+  useEffect(
+    () => () => {
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+    },
+    [],
+  );
 
   async function save() {
     if (saving || !dirty || !drafts) return;
@@ -161,7 +190,7 @@ function GuideEditor({ cityId }: { cityId: string }) {
           : d,
       );
       setSavedFlash(true);
-      setTimeout(() => setSavedFlash(false), 2500);
+      savedTimer.current = setTimeout(() => setSavedFlash(false), 2500);
     } catch {
       setSaveError(true);
     } finally {
@@ -249,11 +278,15 @@ function GuideEditor({ cityId }: { cityId: string }) {
               })}
             </span>
           </div>
-          <p className="text-xs text-ink/50">
+          <p
+            id={`guide-${key}-help`}
+            className="text-xs text-ink/50"
+          >
             {t(`cities.sections.${key}.help`)}
           </p>
           <textarea
             id={`guide-${key}`}
+            aria-describedby={`guide-${key}-help`}
             rows={6}
             maxLength={SECTION_MAX}
             value={drafts[key]}
@@ -299,6 +332,19 @@ function GuideEditor({ cityId }: { cityId: string }) {
               : ""}
         </p>
       </div>
+
+      <ConfirmSheet
+        open={pendingHref != null}
+        title={t("cities.unsavedTitle")}
+        description={t("cities.unsavedDesc")}
+        confirmLabel={t("cities.leaveAnyway")}
+        onConfirm={() => {
+          const href = pendingHref;
+          setPendingHref(null);
+          if (href) router.push(href);
+        }}
+        onClose={() => setPendingHref(null)}
+      />
     </>
   );
 }
