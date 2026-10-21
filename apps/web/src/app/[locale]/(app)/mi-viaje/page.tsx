@@ -104,7 +104,26 @@ export default function MiViajePage() {
     return dayFmt.format(new Date(iso));
   };
 
+  // Race blur-save vs quitar: si el usuario quita un item con una nota
+  // sin blur, el saveNote posterior NO debe re-crearla (PUT upsert).
+  // removedIds bloquea saves tardíos; pendingSaves serializa el caso
+  // inverso (save en vuelo → quitar espera a que resuelva y el DELETE
+  // llega después al servidor, ganando el orden).
+  const removedIds = useRef(new Set<string>());
+  const pendingSaves = useRef(new Map<string, Promise<unknown>>());
+
+  const canSave = (eventId: string) => !removedIds.current.has(eventId);
+  const trackSave = (eventId: string, p: Promise<unknown>) => {
+    pendingSaves.current.set(eventId, p);
+    void p.finally(() => pendingSaves.current.delete(eventId));
+  };
+
   const removeItem = async (eventId: string) => {
+    setActionError(false);
+    removedIds.current.add(eventId);
+    // Espera el save en vuelo para que el DELETE llegue último al server.
+    const pending = pendingSaves.current.get(eventId);
+    if (pending) await pending;
     const prev = items ?? [];
     // Optimista: quita al tiro - la acción es reversible re-agregando
     // desde la ficha, no pide confirmación (spec).
@@ -116,6 +135,7 @@ export default function MiViajePage() {
       if (!res.ok) throw new Error(`trip ${res.status}`);
     } catch {
       // Reversa por refetch: el servidor es la verdad del orden.
+      removedIds.current.delete(eventId);
       setActionError(true);
       void load();
     }
@@ -210,6 +230,8 @@ export default function MiViajePage() {
                   key={item.id}
                   item={item}
                   when={dayLabel(item.startsAt)}
+                  canSave={canSave}
+                  trackSave={trackSave}
                   onRemove={() => void removeItem(item.id)}
                   onNoteSaved={noteSaved}
                 />
@@ -242,11 +264,15 @@ export default function MiViajePage() {
 function TripItemRow({
   item,
   when,
+  canSave,
+  trackSave,
   onRemove,
   onNoteSaved,
 }: {
   item: TripItem;
   when: string;
+  canSave: (eventId: string) => boolean;
+  trackSave: (eventId: string, p: Promise<unknown>) => void;
   onRemove: () => void;
   onNoteSaved: (eventId: string, note: string | null) => void;
 }) {
@@ -265,20 +291,26 @@ function TripItemRow({
   const saveNote = async () => {
     const next = note.trim();
     if (next === (item.note ?? "")) return;
-    try {
-      const res = await apiFetch(`/me/trip/${item.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ note: next }),
-      });
-      if (!res.ok) throw new Error(`trip ${res.status}`);
-      onNoteSaved(item.id, next || null);
-      setStatus("saved");
-      if (savedTimer.current) clearTimeout(savedTimer.current);
-      savedTimer.current = setTimeout(() => setStatus("idle"), 2500);
-    } catch {
-      setStatus("error");
-    }
+    // Si el item ya se quitó el PUT upsert lo re-crearía - se salta.
+    if (!canSave(item.id)) return;
+    const p = (async () => {
+      try {
+        const res = await apiFetch(`/me/trip/${item.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ note: next }),
+        });
+        if (!res.ok) throw new Error(`trip ${res.status}`);
+        onNoteSaved(item.id, next || null);
+        setStatus("saved");
+        if (savedTimer.current) clearTimeout(savedTimer.current);
+        savedTimer.current = setTimeout(() => setStatus("idle"), 2500);
+      } catch {
+        setStatus("error");
+      }
+    })();
+    trackSave(item.id, p);
+    await p;
   };
 
   return (
