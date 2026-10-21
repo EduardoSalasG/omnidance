@@ -16,12 +16,12 @@
   filtro de colas de validación por región
 - [x] 6. Consent por jurisdicción (GDPR vs Ley 19.628) —
   hecho en `consent-por-jurisdiccion`
-- [ ] 7. Landing por ciudad + "cerca de mí" (geohash)
-- [ ] 8. City guides curadas (editorial por ciudad)
-- [ ] 9. "Mi viaje" — trip planner de actividades
+- [x] 7. Landing por ciudad + "cerca de mí" (geohash)
+- [x] 8. City guides curadas (editorial por ciudad)
+- [x] 9. "Mi viaje" — trip planner de actividades
 - [ ] 10. Pases multi-día / packs cross-academia
 - [ ] 11. Prácticas/socials free como adquisición por ciudad
-- [ ] 12. Pase Social (suscripción Person, créditos ClassPass):
+- [x] 12. Pase Social (suscripción Person, créditos ClassPass):
   N créditos/mes canjeables en **sociales, prácticas y eventos**
   (NO clases de academia — el baile tiene trayectoria, no es
   consumible hop-to-hop como gimnasio). Canje por QR/check-in

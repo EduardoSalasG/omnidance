@@ -1118,6 +1118,116 @@
       ]
     },
     {
+      "name": "EventsNear",
+      "item": [
+        {
+          "name": "GET /api/events/near",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/near",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "near"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "radiusKm",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "lng",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "lat",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cities",
+      "item": [
+        {
+          "name": "GET /api/cities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/cities/{slug}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/{slug}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                "{slug}"
+              ],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": ":slug"
+                }
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Features",
+      "item": [
+        {
+          "name": "GET /api/features",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/features",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "features"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Events",
       "item": [
         {
@@ -2557,6 +2667,122 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trip",
+      "item": [
+        {
+          "name": "GET /api/me/trip",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/trip",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "trip"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "includePast",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/me/trip/ids",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/trip/ids",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "trip",
+                "ids"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /api/me/trip/{eventId}",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/trip/{eventId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "trip",
+                "{eventId}"
+              ],
+              "variable": [
+                {
+                  "key": "eventId",
+                  "value": ":eventId"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/me/trip/{eventId}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/trip/{eventId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "trip",
+                "{eventId}"
+              ],
+              "variable": [
+                {
+                  "key": "eventId",
+                  "value": ":eventId"
+                }
+              ],
+              "query": []
             }
           }
         }
@@ -4733,6 +4959,100 @@
       ]
     },
     {
+      "name": "SocialPass",
+      "item": [
+        {
+          "name": "GET /api/me/social-pass",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/social-pass",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "social-pass"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/me/social-pass/subscribe",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/social-pass/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "social-pass",
+                "subscribe"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/me/social-pass/cancel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/social-pass/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "social-pass",
+                "cancel"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/me/social-pass/confirm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/social-pass/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "social-pass",
+                "confirm"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Discounts",
       "item": [
         {
@@ -5647,84 +5967,6 @@
                 {
                   "key": "id",
                   "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Cities",
-      "item": [
-        {
-          "name": "GET /api/cities/near",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/cities/near",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "cities",
-                "near"
-              ],
-              "variable": [],
-              "query": [
-                {
-                  "key": "lat",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "lng",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /api/cities",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/cities",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "cities"
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /api/cities/{slug}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/cities/{slug}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "cities",
-                "{slug}"
-              ],
-              "variable": [
-                {
-                  "key": "slug",
-                  "value": ":slug"
                 }
               ],
               "query": []
@@ -10572,6 +10814,158 @@
                   "disabled": true
                 }
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AdminFeatureFlags",
+      "item": [
+        {
+          "name": "GET /api/admin/feature-flags",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/feature-flags",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "feature-flags"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/admin/feature-flags/{key}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/feature-flags/{key}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "feature-flags",
+                "{key}"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": ":key"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AdminCityGuides",
+      "item": [
+        {
+          "name": "GET /api/admin/city-guides",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/city-guides",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "city-guides"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/city-guides/{cityId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/city-guides/{cityId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "city-guides",
+                "{cityId}"
+              ],
+              "variable": [
+                {
+                  "key": "cityId",
+                  "value": ":cityId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "PUT /api/admin/city-guides/{cityId}",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/city-guides/{cityId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "city-guides",
+                "{cityId}"
+              ],
+              "variable": [
+                {
+                  "key": "cityId",
+                  "value": ":cityId"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         }
