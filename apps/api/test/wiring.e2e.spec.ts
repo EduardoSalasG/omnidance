@@ -21,6 +21,8 @@ import {
 import { PricingService } from "../src/payments/domain/pricing.service";
 import { StubGateway } from "../src/payments/infrastructure/stub.gateway";
 import { PaymentSettlementService } from "../src/payments/application/payment-settlement.service";
+import { SocialPassService } from "../src/payments/application/social-pass.service";
+import { FeatureFlagsService } from "../src/features/feature-flags.service";
 import { GatewayAccountsService } from "../src/payments/application/gateway-accounts.service";
 import { SubscriptionsService } from "../src/payments/application/subscriptions.service";
 import { PlatformSubscriptionsService } from "../src/payments/application/platform-subscriptions.service";
@@ -105,6 +107,13 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
         PlatformSubscriptionsService,
         GatewayTransactionsService,
         GatewayAccountsService,
+        // PaymentsController inyecta SocialPassService (spec pase-social).
+        // El spec no ejerce el pase: flags stubeado (OFF) satisface la DI.
+        {
+          provide: FeatureFlagsService,
+          useValue: { isEnabled: async () => false },
+        },
+        SocialPassService,
       ],
     }).compile();
     app = moduleRef.createNestApplication();
