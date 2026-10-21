@@ -3,6 +3,13 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.5.2] - 2026-10-20
+
+### Fixed
+
+- Pickers internos (staff, asignaciones, CRM, soporte, búsqueda de
+  personas en academias/eventos) ya no ofrecen cuentas desactivadas.
+
 ## [1.5.1] - 2026-10-20
 
 ### Fixed

@@ -1325,7 +1325,8 @@ export class EventsController {
     if (pool.length === 0) return [];
     return this.prisma.person.findMany({
       where: {
-        id: { in: pool },
+        deletedAt: null,
+id: { in: pool },
         name: { contains: term, mode: "insensitive" },
       },
       select: { id: true, name: true, email: true },

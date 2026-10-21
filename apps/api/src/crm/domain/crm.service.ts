@@ -316,7 +316,8 @@ export class CrmService {
       // del tag - igual que el filtro client-side original.
       const named = await this.prisma.person.findMany({
         where: {
-          id: { in: filtered.map((r) => r.personId) },
+          deletedAt: null,
+id: { in: filtered.map((r) => r.personId) },
           name: { contains: term, mode: "insensitive" },
         },
         select: { id: true },
