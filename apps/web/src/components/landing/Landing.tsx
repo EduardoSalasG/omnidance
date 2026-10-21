@@ -115,10 +115,15 @@ export async function Landing({
   // rebota a /login?next= - el mismo funnel del secundario dancer.
   const secondaryHref = variant === "academy" ? "/academias" : "/eventos";
 
-  const eventDayFmt = (locale: string) => getDateFmt(locale, {
-    weekday: "short",
-    day: "numeric",
-  });
+  // La fecha se formatea en la hora local del EVENTO (city.timezone) -
+  // sin TZ explícita el server formatea en UTC y una noche chilena
+  // aparece un día adelante.
+  const eventDayFmt = (locale: string, timeZone?: string | null) =>
+    getDateFmt(locale, {
+      weekday: "short",
+      day: "numeric",
+      timeZone: timeZone ?? "America/Santiago",
+    });
 
   return (
     <div style={variant === "academy" ? ACADEMY_ACCENT : undefined}>
@@ -246,7 +251,9 @@ export async function Landing({
                       className="inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm text-ink/60 transition-colors hover:text-ink"
                     >
                       <span className="font-medium capitalize text-neon">
-                        {eventDayFmt(locale).format(new Date(event.startsAt))}
+                        {eventDayFmt(locale, event.city?.timezone).format(
+                          new Date(event.startsAt),
+                        )}
                       </span>
                       <span className="text-ink/80">{event.name}</span>
                       {event.venue?.name && (

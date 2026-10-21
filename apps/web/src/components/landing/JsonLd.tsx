@@ -5,6 +5,9 @@ export type JsonLdEvent = {
   name: string;
   startsAt: string;
   venue: { name: string } | null;
+  // TZ de la ciudad del evento - fechas formateadas en hora local del
+  // evento, no en la del servidor (UTC corría el día en landing).
+  city?: { timezone: string } | null;
 };
 
 /**

@@ -13,7 +13,7 @@ const TRIP_FLAG = "trip_planner";
 // ciudad - el itinerario se agrupa por ciudad en /mi-viaje.
 const TRIP_EVENT_SELECT = {
   ...PUBLIC_FEED_SELECT,
-  city: { select: { name: true, slug: true } },
+  city: { select: { name: true, slug: true, timezone: true } },
 } satisfies Prisma.EventSelect;
 
 /**
