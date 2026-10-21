@@ -139,6 +139,8 @@ function ClaimDetail({
       // accionable). Mismo patrón notice→push del resto de la consola.
       setNotice(t("approvedMsg"));
       setTimeout(() => router.push("/academia/cobros"), 1200);
+    } catch {
+      setMsg(t("error"));
     } finally {
       setBusy(false);
     }
@@ -164,6 +166,8 @@ function ClaimDetail({
       }
       setNotice(t("rejectedMsg"));
       setTimeout(() => router.push("/academia/cobros"), 1200);
+    } catch {
+      setMsg(t("error"));
     } finally {
       setBusy(false);
     }

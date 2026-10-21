@@ -103,6 +103,8 @@ function EditCaps({
       // Notice breve antes de volver a la ficha (patrón de la consola).
       setSaved(true);
       setTimeout(() => router.push(`/academia/equipo/${personId}`), 1200);
+    } catch {
+      setErr(t("error"));
     } finally {
       setBusy(false);
     }

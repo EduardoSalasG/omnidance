@@ -150,6 +150,8 @@ function EditAgreement({
         () => router.push(`/academia/equipo/profesor/${personId}`),
         1200,
       );
+    } catch {
+      setErr(t("error"));
     } finally {
       setBusy(false);
     }

@@ -134,6 +134,9 @@ export function PrivateLessons({ academy }: Props) {
   const [staffFilters, setStaffFilters] = useState<QueryFilters>({});
 
   const [feedback, setFeedback] = useState<string | null>(null);
+  // Canal de error separado del feedback de éxito: los errores se
+  // anuncian con role="alert" en rojo, nunca como notice verde.
+  const [actionErr, setActionErr] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   // Cancelar clase particular pide confirmación destructiva (sheet,
   // no window.confirm).
@@ -247,6 +250,7 @@ export function PrivateLessons({ academy }: Props) {
   ): Promise<void> {
     setBusyId(id);
     setFeedback(null);
+    setActionErr(null);
     try {
       const res = await apiFetch(`/private-lessons/${id}`, {
         method: "PATCH",
@@ -260,7 +264,7 @@ export function PrivateLessons({ academy }: Props) {
         }),
       });
       if (!res.ok) {
-        setFeedback((await readError(res)) ?? tc("error"));
+        setActionErr((await readError(res)) ?? tc("error"));
         return;
       }
       setFeedback(action === "assign" ? t.assigned : t.updated);
@@ -271,7 +275,7 @@ export function PrivateLessons({ academy }: Props) {
       setAssignWhen("");
       await loadStaff();
     } catch {
-      setFeedback(tc("error"));
+      setActionErr(tc("error"));
     } finally {
       setBusyId(null);
     }
@@ -596,6 +600,11 @@ export function PrivateLessons({ academy }: Props) {
           )}
       </section>
 
+      {actionErr && (
+        <p role="alert" className="text-sm text-red-400">
+          {actionErr}
+        </p>
+      )}
       <p role="status" aria-live="polite" className="text-sm text-neon">
         {feedback}
       </p>

@@ -78,6 +78,9 @@ export function Videos({ academy }: { academy: Academy }) {
   const [page, setPage] = useState(1);
   const [state, setState] = useState<LoadState>("loading");
   const [feedback, setFeedback] = useState<string | null>(null);
+  // Canal de error separado del feedback de éxito (alert rojo, no
+  // notice verde).
+  const [err, setErr] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   // Borrado de video con confirmación destructiva (sheet).
   const [pendingVideo, setPendingVideo] = useState<VideoItem | null>(null);
@@ -116,6 +119,7 @@ export function Videos({ academy }: { academy: Academy }) {
   async function remove(v: VideoItem): Promise<void> {
     setBusyId(v.id);
     setFeedback(null);
+    setErr(null);
     try {
       const res = await apiFetch(
         `/academies/${academy.id}/videos/${v.id}`,
@@ -123,7 +127,7 @@ export function Videos({ academy }: { academy: Academy }) {
       );
       if (!res.ok) {
         setPendingVideo(null);
-        setFeedback((await readError(res)) ?? tc("error"));
+        setErr((await readError(res)) ?? tc("error"));
         return;
       }
       setPendingVideo(null);
@@ -131,7 +135,7 @@ export function Videos({ academy }: { academy: Academy }) {
       await load();
     } catch {
       setPendingVideo(null);
-      setFeedback(tc("error"));
+      setErr(tc("error"));
     } finally {
       setBusyId(null);
     }
@@ -242,6 +246,11 @@ export function Videos({ academy }: { academy: Academy }) {
         />
       )}
 
+      {err && (
+        <p role="alert" className="text-sm text-red-400">
+          {err}
+        </p>
+      )}
       <p role="status" aria-live="polite" className="text-sm text-neon">
         {feedback}
       </p>

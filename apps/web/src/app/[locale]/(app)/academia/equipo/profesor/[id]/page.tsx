@@ -117,6 +117,9 @@ function Detail({
         return;
       }
       router.push("/academia/equipo");
+    } catch {
+      setConfirmRemove(false);
+      setErr(t("error"));
     } finally {
       setBusy(false);
     }
