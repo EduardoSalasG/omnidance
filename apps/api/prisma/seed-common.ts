@@ -350,6 +350,14 @@ export async function seedCommon(prisma: PrismaClient) {
     where: { cityId: null },
     data: { cityId: "city-stgo-cl" },
   });
+  await prisma.event.updateMany({
+    where: { cityId: null },
+    data: { cityId: "city-stgo-cl" },
+  });
+  await prisma.academy.updateMany({
+    where: { cityId: null },
+    data: { cityId: "city-stgo-cl" },
+  });
 
   console.log(
     `  baseline: ${ROLE_CATALOG.length} roles, ${PERMISSION_CATALOG.length} permisos, ${STYLE_CATALOG.length} estilos, ${BADGE_CATALOG.length} badges, ${PARAM_DEFAULTS.length} params`,

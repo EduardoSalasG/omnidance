@@ -18,5 +18,13 @@
   "commentsTitle": "Series comments",
   "noComments": "No written comments yet",
   "anonymousNote": "Comments arrive anonymously — the author is never shown."
+ },
+ "cities": {
+  "title": "Dance in {city}",
+  "notFound": "City not found",
+  "events": "Upcoming events",
+  "academies": "Academies",
+  "practices": "Practices",
+  "empty": "Nothing published in this city yet"
  }
 }
