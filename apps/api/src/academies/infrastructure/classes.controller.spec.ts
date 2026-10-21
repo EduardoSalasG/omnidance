@@ -247,16 +247,28 @@ class FakePrisma {
     findMany: async ({
       where,
     }: {
-      where: { personId: string; academyId: string; status: { in: string[] } };
+      // academyId es opcional: my-quota lista todas las inscripciones
+      // del viewer; resolveQuota acota por academia.
+      where: {
+        personId: string;
+        academyId?: string;
+        status: { in: string[] };
+      };
     }) =>
       this.enrollments
         .filter(
           (e) =>
             e.personId === where.personId &&
-            e.academyId === where.academyId &&
+            (where.academyId === undefined ||
+              e.academyId === where.academyId) &&
             where.status.in.includes(e.status),
         )
-        .map((e) => ({ ...e })),
+        // El select de my-quota incluye academy{id,name} - el fake la
+        // materializa desde academyId.
+        .map((e) => ({
+          ...e,
+          academy: { id: e.academyId, name: `Academia ${e.academyId}` },
+        })),
   };
 
   /** Matcher de where para classBooking (subset que usa el controller). */
@@ -780,7 +792,7 @@ describe("cuota de créditos (book)", () => {
     prisma.addClass("cls-3");
   });
 
-  it("plan 1 clase/semana con cuota agotada → 409", async () => {
+  it("plan 1 clase/semana con cuota agotada → 409 (copy singular)", async () => {
     prisma.addEnrollment("per-1", "acad-1", "ACTIVE", {
       type: "MONTHLY",
       weeklyClasses: 1,
@@ -788,13 +800,13 @@ describe("cuota de créditos (book)", () => {
     });
     const first = await ctrl.book("cls-1", reqAs("per-1"));
     expect(first.status).toBe("BOOKED");
-    await expect(ctrl.book("cls-2", reqAs("per-1"))).rejects.toBeInstanceOf(
-      ConflictException,
+    await expect(ctrl.book("cls-2", reqAs("per-1"))).rejects.toThrow(
+      "Agotaste tu clase de esta semana",
     );
     expect(prisma.bookings).toHaveLength(1);
   });
 
-  it("plan 2 clases/semana: segunda reserva pasa, tercera → 409", async () => {
+  it("plan 2 clases/semana: segunda reserva pasa, tercera → 409 (copy plural)", async () => {
     prisma.addEnrollment("per-1", "acad-1", "ACTIVE", {
       type: "MONTHLY",
       weeklyClasses: 2,
@@ -802,8 +814,8 @@ describe("cuota de créditos (book)", () => {
     });
     await ctrl.book("cls-1", reqAs("per-1"));
     await ctrl.book("cls-2", reqAs("per-1"));
-    await expect(ctrl.book("cls-3", reqAs("per-1"))).rejects.toBeInstanceOf(
-      ConflictException,
+    await expect(ctrl.book("cls-3", reqAs("per-1"))).rejects.toThrow(
+      "Agotaste tus 2 clases de esta semana",
     );
   });
 
@@ -862,7 +874,7 @@ describe("cuota de créditos (book)", () => {
     );
   });
 
-  it("CLASS_PACK agotado → 409; pack con saldo registra enrollmentId", async () => {
+  it("CLASS_PACK agotado → 409 con copy de pack (no 'de esta semana'); pack con saldo registra enrollmentId", async () => {
     const packEnr = prisma.addEnrollment("per-1", "acad-1", "ACTIVE", {
       type: "CLASS_PACK",
       weeklyClasses: null,
@@ -873,8 +885,8 @@ describe("cuota de créditos (book)", () => {
     expect(
       prisma.bookings.find((b) => b.id === res.id)?.enrollmentId,
     ).toBe(packEnr);
-    await expect(ctrl.book("cls-2", reqAs("per-1"))).rejects.toBeInstanceOf(
-      ConflictException,
+    await expect(ctrl.book("cls-2", reqAs("per-1"))).rejects.toThrow(
+      "Agotaste la clase de tu pack",
     );
   });
 
@@ -1657,5 +1669,161 @@ describe("ClassesController.calendarIcs", () => {
   it("clase inexistente → NotFoundException", async () => {
     await expect(call("cls-x")).rejects.toBeInstanceOf(NotFoundException);
     expect(res.setHeader).not.toHaveBeenCalled();
+  });
+});
+
+// GET /classes/my-quota (spec home-weekly-quota): una fila por
+// inscripción reservable del viewer - WEEKLY cuenta la semana ISO
+// actual, PACK desde startedAt, UNLIMITED sin números. Mismo conteo
+// que rige la reserva; la gracia post-endsAt excluye la inscripción.
+describe("GET /classes/my-quota", () => {
+  let prisma: FakePrisma;
+  let ctrl: ClassesController;
+
+  /** Clase en la semana ISO actual (medianoche UTC de hoy - no "mañana",
+      que cae en la semana siguiente si el test corre un domingo). */
+  const addClassThisWeek = (id: string, academyId = "acad-1") => {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    prisma.addClass(id, { date: today, slot: { academyId } });
+  };
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    ctrl = new ClassesController(
+      prisma as unknown as PrismaService,
+      { notifySafe: vi.fn() } as unknown as NotificationsService,
+      {} as AcademyAccess,
+      fakeParams(), // grace_days default 5
+    );
+  });
+
+  it("sin inscripciones → []", async () => {
+    expect(await ctrl.myQuota(reqAs("per-1"))).toEqual([]);
+  });
+
+  it("plan semanal → WEEKLY con used de la semana ISO actual y limit del plan", async () => {
+    prisma.addEnrollment("per-1", "acad-1", "ACTIVE", {
+      type: "MONTHLY",
+      weeklyClasses: 3,
+      classCount: null,
+    });
+    addClassThisWeek("cls-w");
+    prisma.addBooking("cls-w", "per-1", "BOOKED"); // 1 consumida
+    // Reserva de otra academia y una pagada no suman al conteo.
+    addClassThisWeek("cls-otra", "acad-2");
+    prisma.addBooking("cls-otra", "per-1", "BOOKED");
+    prisma.addBooking("cls-w", "per-1", "BOOKED", new Date(), {
+      paymentId: "pay-1",
+    });
+
+    const rows = await ctrl.myQuota(reqAs("per-1"));
+    expect(rows).toEqual([
+      {
+        academyId: "acad-1",
+        academyName: "Academia acad-1",
+        kind: "WEEKLY",
+        used: 1, // BOOKED sin pago; la segunda fila es pagada → no cuenta
+        limit: 3,
+      },
+    ]);
+  });
+
+  it("cancelación tardía (refunded:false) consume; refunded:true no", async () => {
+    prisma.addEnrollment("per-1", "acad-1", "ACTIVE", {
+      type: "MONTHLY",
+      weeklyClasses: 2,
+      classCount: null,
+    });
+    addClassThisWeek("cls-w");
+    prisma.addBooking("cls-w", "per-1", "CANCELLED", new Date(), {
+      refunded: false, // tarde - la clase se perdió
+    });
+    prisma.addBooking("cls-w", "per-1", "CANCELLED", new Date(), {
+      refunded: true, // a tiempo - devuelve el crédito
+    });
+    const rows = await ctrl.myQuota(reqAs("per-1"));
+    expect(rows[0]).toMatchObject({ kind: "WEEKLY", used: 1, limit: 2 });
+  });
+
+  it("CLASS_PACK → PACK con used desde startedAt y limit = classCount", async () => {
+    prisma.addEnrollment("per-1", "acad-1", "ACTIVE", {
+      type: "CLASS_PACK",
+      weeklyClasses: null,
+      classCount: 5,
+    });
+    // Reserva de una clase ANTES del startedAt no cuenta (el enrollment
+      // fake nace ayer; una clase de hace 10 días queda fuera).
+    prisma.addClass("cls-vieja", {
+      date: new Date(Date.now() - 10 * 86_400_000),
+    });
+    prisma.addBooking("cls-vieja", "per-1", "BOOKED");
+    addClassThisWeek("cls-w");
+    prisma.addBooking("cls-w", "per-1", "BOOKED");
+
+    const rows = await ctrl.myQuota(reqAs("per-1"));
+    expect(rows).toEqual([
+      {
+        academyId: "acad-1",
+        academyName: "Academia acad-1",
+        kind: "PACK",
+        used: 1,
+        limit: 5,
+      },
+    ]);
+  });
+
+  it("plan sin cupo o inscripción sin plan → UNLIMITED sin números", async () => {
+    prisma.addEnrollment("per-1", "acad-1", "ACTIVE", {
+      type: "MONTHLY",
+      weeklyClasses: null,
+      classCount: null,
+    });
+    prisma.addEnrollment("per-1", "acad-2", "TRIAL"); // plan null
+    const rows = await ctrl.myQuota(reqAs("per-1"));
+    expect(rows).toEqual([
+      {
+        academyId: "acad-1",
+        academyName: "Academia acad-1",
+        kind: "UNLIMITED",
+        used: null,
+        limit: null,
+      },
+      {
+        academyId: "acad-2",
+        academyName: "Academia acad-2",
+        kind: "UNLIMITED",
+        used: null,
+        limit: null,
+      },
+    ]);
+  });
+
+  it("endsAt vencido dentro de la gracia cuenta; gracia pasada excluye", async () => {
+    prisma.addEnrollment(
+      "per-1",
+      "acad-1",
+      "ACTIVE",
+      { type: "MONTHLY", weeklyClasses: 2, classCount: null },
+      new Date(Date.now() - 2 * 86_400_000), // venció hace 2d, gracia 5d
+    );
+    prisma.addEnrollment(
+      "per-1",
+      "acad-3",
+      "ACTIVE",
+      { type: "MONTHLY", weeklyClasses: 2, classCount: null },
+      new Date(Date.now() - 10 * 86_400_000), // gracia vencida hace 5d
+    );
+    const rows = await ctrl.myQuota(reqAs("per-1"));
+    expect(rows.map((r) => r.academyId)).toEqual(["acad-1"]);
+  });
+
+  it("inscripción PAUSED no es reservable → fuera del listado", async () => {
+    prisma.addEnrollment("per-1", "acad-1", "PAUSED", {
+      type: "MONTHLY",
+      weeklyClasses: 2,
+      classCount: null,
+    });
+    expect(await ctrl.myQuota(reqAs("per-1"))).toEqual([]);
   });
 });

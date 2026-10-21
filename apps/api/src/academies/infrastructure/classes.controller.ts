@@ -104,6 +104,35 @@ export class ClassesController {
   // CANCELLED con refunded=true devuelve. Ver resolveQuota.
 
   /**
+   * Conteo canónico de crédito consumido: reservas del alumno en la
+   * academia dentro del rango de fechas de clase, excluyendo asientos
+   * pagados (paymentId) que ocupan cupo pero no gastan plan.
+   */
+  private countConsumedBookings(
+    tx: Pick<PrismaService, "classBooking">,
+    personId: string,
+    academyId: string,
+    range: { gte: Date; lt?: Date },
+  ) {
+    return tx.classBooking.count({
+      where: {
+        personId,
+        class: {
+          slot: { academyId },
+          date: { gte: range.gte, ...(range.lt ? { lt: range.lt } : {}) },
+        },
+        // Un asiento pagado (clase suelta / taller, orderType WORKSHOP)
+        // ocupa cupo físico pero NO consume crédito del plan.
+        paymentId: null,
+        OR: [
+          { status: "BOOKED" },
+          { status: "CANCELLED", refunded: false },
+        ],
+      },
+    });
+  }
+
+  /**
    * Qué inscripción responde por la cuota de una reserva en `classDate`.
    * Orden: plan semanal con saldo → pack con saldo → ilimitado. Una fila
    * con plan null (inscripción legacy/administrativa) cuenta ilimitada.
@@ -142,23 +171,8 @@ export class ClassesController {
     );
     const now = new Date();
 
-    const countIn = async (range: { gte: Date; lt?: Date }) =>
-      tx.classBooking.count({
-        where: {
-          personId,
-          class: {
-            slot: { academyId },
-            date: { gte: range.gte, ...(range.lt ? { lt: range.lt } : {}) },
-          },
-          // Un asiento pagado (clase suelta / taller, orderType WORKSHOP)
-          // ocupa cupo físico pero NO consume crédito del plan.
-          paymentId: null,
-          OR: [
-            { status: "BOOKED" },
-            { status: "CANCELLED", refunded: false },
-          ],
-        },
-      });
+    const countIn = (range: { gte: Date; lt?: Date }) =>
+      this.countConsumedBookings(tx, personId, academyId, range);
 
     const { start, end } = isoWeekRange(classDate);
     let packFallback: QuotaResolution | null = null;
@@ -607,6 +621,91 @@ export class ClassesController {
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       )
       .slice(0, 50);
+  }
+
+  /**
+   * Resumen de cuota del viewer por academia (spec home-weekly-quota):
+   * una fila por inscripción reservable - WEEKLY cuenta la semana ISO
+   * actual, PACK desde startedAt, ilimitado/sin plan sin números. El
+   * conteo es el mismo que rige la reserva (BOOKED + cancelaciones sin
+   * refund, sin asientos pagados - countConsumedBookings).
+   *
+   * Una inscripción con endsAt vencido solo cuenta dentro de la gracia
+   * (endsAt + academy.renewal.grace_days - misma regla que resolveQuota);
+   * pasada la gracia no habilita reserva y sale del listado.
+   */
+  @Get("my-quota")
+  async myQuota(@Req() req: Request) {
+    const me = req.person!.id;
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { personId: me, status: { in: BOOKABLE_ENROLLMENT } },
+      select: {
+        startedAt: true,
+        endsAt: true,
+        academy: { select: { id: true, name: true } },
+        plan: {
+          select: { type: true, weeklyClasses: true, classCount: true },
+        },
+      },
+    });
+    if (!enrollments.length) return [];
+
+    const graceDays = await this.params.getNumber(
+      "academy.renewal.grace_days",
+      5,
+    );
+    const now = new Date();
+    const week = isoWeekRange(now);
+
+    const rows: {
+      academyId: string;
+      academyName: string;
+      kind: "WEEKLY" | "PACK" | "UNLIMITED";
+      used: number | null;
+      limit: number | null;
+    }[] = [];
+
+    for (const e of enrollments) {
+      if (e.endsAt != null) {
+        const graceEnd = new Date(
+          e.endsAt.getTime() + graceDays * 24 * 60 * 60 * 1000,
+        );
+        if (now > graceEnd) continue;
+      }
+      const base = { academyId: e.academy.id, academyName: e.academy.name };
+      const plan = e.plan;
+      if (plan?.weeklyClasses != null) {
+        rows.push({
+          ...base,
+          kind: "WEEKLY",
+          used: await this.countConsumedBookings(
+            this.prisma,
+            me,
+            e.academy.id,
+            { gte: week.start, lt: week.end },
+          ),
+          limit: plan.weeklyClasses,
+        });
+        continue;
+      }
+      if (plan?.type === "CLASS_PACK" && plan.classCount != null) {
+        rows.push({
+          ...base,
+          kind: "PACK",
+          used: await this.countConsumedBookings(
+            this.prisma,
+            me,
+            e.academy.id,
+            { gte: e.startedAt },
+          ),
+          limit: plan.classCount,
+        });
+        continue;
+      }
+      // Plan sin cupo (ilimitado) o inscripción sin plan.
+      rows.push({ ...base, kind: "UNLIMITED", used: null, limit: null });
+    }
+    return rows;
   }
 
   /**
@@ -1411,8 +1510,16 @@ export class ClassesController {
       // Re-activar un asiento pagado cancelado tampoco: el pago ya
       // ocurrió, el cupo no vuelve a consumir crédito.
       if (status === "BOOKED" && !existing?.paymentId && !quota.ok) {
+        // Copy honesto por tipo de cuota: semanal vs pack (el pack no
+        // vence "esta semana") - y singular correcto (1 clase).
         throw new ConflictException(
-          `agotaste tus ${quota.limit} clases de esta semana`,
+          quota.kind === "PACK"
+            ? quota.limit === 1
+              ? "Agotaste la clase de tu pack"
+              : `Agotaste las ${quota.limit} clases de tu pack`
+            : quota.limit === 1
+              ? "Agotaste tu clase de esta semana"
+              : `Agotaste tus ${quota.limit} clases de esta semana`,
         );
       }
 
