@@ -27,3 +27,14 @@ export type RoleRow = {
 };
 
 export type PermissionRow = { key: string; description: string | null };
+
+// GET /admin/feature-flags (spec feature-flags-admin) - catálogo de
+// flags con el último editor resuelto por el API.
+export type FeatureFlagRow = {
+  key: string;
+  label: string;
+  description: string | null;
+  enabled: boolean;
+  updatedAt: string;
+  updatedBy: { id: string; name: string; email: string | null } | null;
+};

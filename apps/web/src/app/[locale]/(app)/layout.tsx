@@ -6,6 +6,7 @@ import { NavPendingOverlay } from "@/components/ui/nav-pending";
 import { ConsentBanner } from "@/components/legal/ConsentBanner";
 import { InstallPrompt } from "@/components/install/InstallPrompt";
 import { MeProvider } from "@/lib/me-context";
+import { FeaturesProvider } from "@/lib/features-context";
 import { appMessages } from "@/i18n/messages";
 import { routing, type Locale } from "@/i18n/routing";
 import type { Messages } from "next-intl";
@@ -44,15 +45,20 @@ export default async function AppLayout({
             páginas consumen useMe() en vez de refetchear. No bloquea
             children: cada consumidor gatea con `loading`. */}
         <MeProvider>
-          <ChromeShell>{children}</ChromeShell>
-          {/* Aviso legal no bloqueante (spec legal-consent): visible solo
-              cuando /me reporta consentimiento ausente o de versión
-              antigua. */}
-          <ConsentBanner />
-          {/* Invita a instalar la PWA (Chromium: prompt nativo; iOS:
-              instrucciones). Dismiss persistente, se oculta si el
-              banner de consentimiento ocupa el slot. */}
-          <InstallPrompt />
+          {/* Flags de funcionalidad (spec feature-flags-admin): un solo
+              fetch de GET /features por sesión - las superficies gated
+              consultan useFeatures(). */}
+          <FeaturesProvider>
+            <ChromeShell>{children}</ChromeShell>
+            {/* Aviso legal no bloqueante (spec legal-consent): visible solo
+                cuando /me reporta consentimiento ausente o de versión
+                antigua. */}
+            <ConsentBanner />
+            {/* Invita a instalar la PWA (Chromium: prompt nativo; iOS:
+                instrucciones). Dismiss persistente, se oculta si el
+                banner de consentimiento ocupa el slot. */}
+            <InstallPrompt />
+          </FeaturesProvider>
         </MeProvider>
       </NavPendingOverlay>
       </RealtimeProvider>

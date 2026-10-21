@@ -232,6 +232,46 @@ Conservación: mantenemos tus datos mientras la cuenta esté activa y, tras el c
   },
 ];
 
+/**
+ * Flags de funcionalidad (spec feature-flags-admin): catálogo global -
+ * un flag sin consumer no sirve, por eso el alta es solo por seed y la
+ * UI de /admin/funcionalidades solo togglea `enabled`. `social_pass`
+ * nace apagado (feature en desarrollo); el resto nace encendido.
+ * El upsert NO pisa `enabled`: re-correr el seed no revierte un toggle
+ * hecho por admin (update solo refresca label/description).
+ */
+const FEATURE_FLAG_SEED: {
+  key: string;
+  label: string;
+  description: string;
+  enabled: boolean;
+}[] = [
+  {
+    key: "social_pass",
+    label: "Pase Social",
+    description: "Suscripción del bailarín multipaís - aún en desarrollo",
+    enabled: false,
+  },
+  {
+    key: "trip_planner",
+    label: "Mi viaje",
+    description: "Planificador de viaje del bailarín entre ciudades",
+    enabled: true,
+  },
+  {
+    key: "city_guides",
+    label: "Guías de ciudad",
+    description: "Guías de la escena local por ciudad",
+    enabled: true,
+  },
+  {
+    key: "city_landing",
+    label: "Landing por ciudad",
+    description: "Landing pública de cada ciudad (marketing local)",
+    enabled: true,
+  },
+];
+
 /** Crea o confirma una persona con sus roles. Idempotente por email. */
 export async function ensurePerson(
   prisma: PrismaClient,
@@ -417,6 +457,17 @@ export async function seedCommon(prisma: PrismaClient) {
     where: { cityId: null },
     data: { cityId: "city-stgo-cl" },
   });
+
+  // ─── Flags de funcionalidad (spec feature-flags-admin) - upsert por
+  // key que NO pisa `enabled`: el default del seed solo aplica al crear;
+  // un flag ya toggleado por admin conserva su estado al re-sembrar.
+  for (const f of FEATURE_FLAG_SEED) {
+    await prisma.featureFlag.upsert({
+      where: { key: f.key },
+      update: { label: f.label, description: f.description },
+      create: f,
+    });
+  }
 
   // ─── Textos legales por jurisdicción (spec consent-por-jurisdiccion)
   // Upsert por (jurisdiction, version): re-correr el seed no duplica ni
