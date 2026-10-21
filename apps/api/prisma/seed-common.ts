@@ -218,20 +218,27 @@ Conservamos tus datos mientras tu cuenta esté activa; tras el cierre, solo lo n
     version: "eu-v1.0",
     granular: true,
     requiredScopes: ["essential", "marketing", "analytics"],
-    draftNote: "pending legal review",
-    body: `Política de Privacidad de Omnidance (Espacio Económico Europeo) - base GDPR 1.0.
+    draftNote:
+      "redactado sobre patrón art. 13 RGPD (Google/Apple/Civitatis): propósito→base legal→destinatario por capas. Pendiente firma de counsel antes de abrir Europa comercialmente",
+    body: `Política de Privacidad de Omnidance (Espacio Económico Europeo, Reino Unido y Suiza) - versión 1.0.
 
-Responsable del tratamiento: Omni Dance SpA, en adelante "el responsable". Puedes contactarnos en privacidad@omnidance.cl para cualquier consulta sobre el tratamiento de tus datos personales conforme al Reglamento (UE) 2016/679 (RGPD).
+1. Responsable y contacto. Omni Dance SpA es el responsable del tratamiento en los términos del Reglamento (UE) 2016/679 (RGPD). Contacto para todo lo relativo a datos personales y ejercicio de derechos: privacidad@omnidance.cl.
 
-Base jurídica y finalidades. Tratamos tus datos sobre dos bases: (a) la ejecución del contrato de uso de la plataforma y tu consentimiento para los tratamientos esenciales - cuenta, identidad QR, entradas, academias, notificaciones transaccionales y seguridad (art. 6.1.b y 6.1.a RGPD); y (b) tu consentimiento expreso y separado para finalidades opcionales: comunicaciones de marketing y analítica de uso (art. 6.1.a RGPD). Puedes retirar cada consentimiento opcional en cualquier momento sin que ello afecte la licitud del tratamiento previo ni la prestación del servicio esencial.
+2. Datos que tratamos. (a) Datos de cuenta: nombre, correo electrónico y teléfono optativo. (b) Perfil de baile autodeclarado: género, estilos, roles y nivel. (c) Actividad en la plataforma: check-ins QR, sesiones de baile y valoraciones - estas últimas siempre en forma agregada y nunca accesibles de forma individual. (d) Datos de transacción: compras de entradas y membresías; los datos de tu tarjeta los trata exclusivamente el procesador de pagos, nunca los almacenamos. (e) Datos técnicos: identificadores de dispositivo para notificaciones push, registros de seguridad y registros de consentimiento. No tratamos categorías especiales de datos en los términos del art. 9 RGPD ni datos de geolocalización.
 
-Datos tratados: datos de cuenta (nombre, correo, teléfono optativo), perfil de baile autodeclarado, actividad en la plataforma (check-ins, sesiones y valoraciones, siempre agregadas y nunca expuestas de forma individual), identificadores de dispositivo para notificaciones push y registros técnicos de seguridad. No tratamos categorías especiales de datos (art. 9 RGPD).
+3. Finalidades y base jurídica (art. 6 RGPD). (a) Prestación del servicio: operar tu cuenta, la identidad QR, la venta de entradas, las academias y las notificaciones transaccionales - base: ejecución del contrato (art. 6.1.b). (b) Seguridad y prevención de fraude - base: interés legítimo (art. 6.1.f), evaluado para no prevalecer sobre tus derechos. (c) Cumplimiento de obligaciones legales y tributarias - base: obligación legal (art. 6.1.c). (d) Comunicaciones de marketing - base: tu consentimiento expreso y separado (art. 6.1.a). (e) Analítica de uso para mejorar el producto - base: tu consentimiento expreso y separado (art. 6.1.a). Facilitar los datos es requisito contractual para usar la plataforma; negarte a los consentimientos opcionales no afecta el servicio esencial.
 
-Destinatarios y transferencias: encargados de tratamiento para pagos, correo transaccional, hosting y entrega de notificaciones push. Algunos proveedores tratan datos fuera del EEE; en ese caso aplicamos las garantías del capítulo V RGPD (decisiones de adecuación o cláusulas contractuales tipo).
+4. Consentimiento y su retiro. Pedimos tu consentimiento de forma granular: esencial (necesario para operar), marketing y analítica, cada uno activable por separado. Puedes retirar cualquier consentimiento opcional en cualquier momento desde la configuración de tu cuenta o escribiendo a privacidad@omnidance.cl - retirarlo es tan fácil como otorgarlo y no afecta la licitud del tratamiento previo a tu retiro. Registramos la fecha, versión del texto y alcance de cada aceptación como prueba del consentimiento.
 
-Tus derechos: acceso, rectificación, supresión ("derecho al olvido"), limitación del tratamiento, portabilidad, oposición y a no ser objeto de decisiones automatizadas con efectos significativos. También puedes reclamar ante la autoridad de control de protección de datos de tu Estado miembro. Para ejercerlos, escribe a privacidad@omnidance.cl.
+5. Destinatarios y transferencias internacionales. Compartimos datos con encargados de tratamiento bajo contrato: procesador de pagos, proveedor de correo transaccional, hosting e infraestructura, y servicios de notificaciones push de Apple/Google. Algunos tratan datos fuera del EEE; en esos casos aplicamos las garantías del capítulo V RGPD (decisión de adecuación vigente o cláusulas contractuales tipo de la Comisión Europea). No vendemos tus datos personales.
 
-Conservación: mantenemos tus datos mientras la cuenta esté activa y, tras el cierre, solo durante los plazos legales aplicables, tras los cuales se eliminan o anonimizan.`,
+6. Conservación. Mantenemos tus datos mientras la cuenta esté activa. Tras el cierre, conservamos únicamente lo exigido por plazos legales (registros tributarios y de consentimiento) y luego eliminamos o anonimizamos. Los datos de analítica se conservan en forma agregada o anonimizada.
+
+7. Tus derechos. Tienes derecho a acceso, rectificación, supresión ("derecho al olvido"), limitación del tratamiento, portabilidad en formato estructurado, oposición al tratamiento basado en interés legítimo y a no ser objeto de decisiones exclusivamente automatizadas con efectos jurídicos o igualmente significativos - en esta plataforma no existen tales decisiones. Ejercelos en privacidad@omnidance.cl; respondemos dentro de un mes. Además puedes reclamar ante la autoridad de control de protección de datos de tu Estado miembro (por ejemplo, la AEPD en España) o ante las autoridades judiciales.
+
+8. Edad mínima y cookies. La plataforma está dirigida a mayores de 18 años. Usamos la cookie de sesión estrictamente necesaria; las tecnologías de medición o publicitarias de terceros solo se activan si otorgas el consentimiento de analítica correspondiente.
+
+9. Cambios. Si esta política cambia de forma material te lo notificaremos con antelación y solicitaremos de nuevo tu consentimiento cuando la base jurídica aplicable lo exija.`,
   },
 ];
 
