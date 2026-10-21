@@ -48,7 +48,6 @@ const STYLE_CATALOG = [
   { name: "Cubano", genre: Genre.CUBANO },
   { name: "Afrocubano", genre: Genre.CUBANO },
   { name: "Rueda de casino", genre: Genre.CUBANO },
-  { name: "Timba", genre: Genre.CUBANO },
   { name: "Mambo on2", genre: Genre.SALSA },
   { name: "Fusión", genre: Genre.OTHER },
 ] as const;
@@ -355,12 +354,11 @@ export async function seedCommon(prisma: PrismaClient) {
     }
   }
 
-  // Depuración del catálogo (la limpieza que se hizo a mano en prod):
-  // "Salsa on2" y "Bachata dominicana" salieron de STYLE_CATALOG pero
+  // Depuración del catálogo: estilos que salieron de STYLE_CATALOG pero
   // DBs ya pobladas conservan las filas. Acá se eliminan con sus
   // referencias personales; las referencias estructurales (series,
   // bloques de horario, sesiones) quedan desvinculadas (null).
-  const REMOVED_STYLES = ["Salsa on2", "Bachata dominicana"];
+  const REMOVED_STYLES = ["Salsa on2", "Bachata dominicana", "Timba"];
   for (const stale of await prisma.style.findMany({
     where: { name: { in: REMOVED_STYLES } },
   })) {
