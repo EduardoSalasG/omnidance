@@ -7050,6 +7050,29 @@
         ]
       }
     },
+    "/api/classes/{id}/calendar.ics": {
+      "get": {
+        "operationId": "ClassesController_calendarIcs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Classes"
+        ]
+      }
+    },
     "/api/classes/{id}/roster": {
       "get": {
         "operationId": "ClassesController_roster",

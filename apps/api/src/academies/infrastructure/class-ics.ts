@@ -34,7 +34,7 @@ export function escapeIcsText(s: string): string {
     .replace(/\\/g, "\\\\")
     .replace(/;/g, "\\;")
     .replace(/,/g, "\\,")
-    .replace(/\r?\n/g, "\\n");
+    .replace(/\r\n|\r|\n/g, "\\n");
 }
 
 /**
@@ -101,7 +101,10 @@ export function buildClassIcs(input: ClassIcsInput): string {
       ? new Date(input.date.getTime() + 86_400_000)
       : input.date;
 
-  const summary = `${input.title} — ${input.academyName}`;
+  const summary =
+    input.title === input.academyName
+      ? input.title
+      : `${input.title} — ${input.academyName}`;
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",

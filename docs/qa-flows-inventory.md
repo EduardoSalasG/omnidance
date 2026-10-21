@@ -401,6 +401,8 @@
 - **Mi viaje** (`trip_planner`): bookmark en ficha `/eventos/[id]` (optimista + revert + aria-pressed; sin sesión → link login); `/mi-viaje` agrupada ciudad→fecha con nota inline (blur/Enter, serializada contra quitar) + quitar optimista; `GET|PUT|DELETE /me/trip` (+`/ids`) con aislamiento por persona; flag OFF → 404 + nav oculta.
 - **Pase Social** (`social_pass` OFF — superficie apagada por diseño): `/pase` pública gated (pitch + precio por jurisdicción + subscribe→Stripe Checkout; miembro → estado/créditos restantes/cancel ConfirmSheet; `?session_id=` confirma por polling). Checkout ticket con pass: línea "Precio Pase Social" en desglose + toggle "usar crédito" (sin regalos ni método propio, saldo ≥ cantidad) → orden $0 `FREE` + `REDEEM` ledger atómico. Endpoints `GET|POST /me/social-pass[/subscribe|/cancel|/confirm]` → 404 flag OFF. Webhook STRIPE billing: `invoice.paid`→RESET créditos dedup por período, `payment_failed`→FAILED_CARD, `customer.subscription.deleted`→CANCELED.
 
+- **Agregar clase al calendario**: ficha clase reservada (BOOKED) muestra "Agregar a mi calendario" →  descarga  RFC 5545 (SUMMARY clase+academia, DTSTART/DTEND con TZID de la ciudad, LOCATION sede academia, DESCRIPTION instructor/nivel+link, UID estable, VALARM -60min). Solo BOOKED; WAITLIST/compra pendiente sin boton. Sesion requerida, 404 clase inexistente.
+
 ## Anexo A — Gaps y notas para automatización
 
 1. **Sin infra e2e actual**: no existe playwright.config ni specs e2e; solo Vitest unit en api y un test web (`wallet-sort.test.ts`). El "Playwright smoke e2e" de AGENTS.md está por construir — este inventario es su backlog.
