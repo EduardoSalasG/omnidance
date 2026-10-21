@@ -36,7 +36,8 @@ export class SupportController {
     }
     return this.prisma.person.findMany({
       where: {
-        OR: [
+        deletedAt: null,
+OR: [
           { name: { contains: term, mode: "insensitive" } },
           { email: { contains: term, mode: "insensitive" } },
         ],

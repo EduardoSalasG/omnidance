@@ -174,7 +174,8 @@ export class AcademyStaffController {
       personIdIn = (
         await this.prisma.person.findMany({
           where: {
-            OR: [
+            deletedAt: null,
+OR: [
               { name: { contains: term, mode: "insensitive" } },
               { email: { contains: term, mode: "insensitive" } },
             ],

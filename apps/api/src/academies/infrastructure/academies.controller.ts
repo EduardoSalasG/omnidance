@@ -1724,7 +1724,10 @@ export class AcademiesController {
     let personIdIn: string[] | undefined;
     if (term.length >= 2) {
       const matches = await this.prisma.person.findMany({
-        where: { name: { contains: term, mode: "insensitive" } },
+        where: {
+          deletedAt: null,
+          name: { contains: term, mode: "insensitive" },
+        },
         select: { id: true },
         take: 500,
       });
