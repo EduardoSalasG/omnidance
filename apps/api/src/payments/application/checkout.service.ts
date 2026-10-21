@@ -39,6 +39,12 @@ import {
 import { GatewayAccountsService } from "./gateway-accounts.service";
 import { AcademySalesService } from "./academy-sales.service";
 import { emitPaymentEvent } from "../domain/payment-ledger";
+import { FeatureFlagsService } from "../../features/feature-flags.service";
+import {
+  isPassActive,
+  redeemPassCredits,
+  SocialPassConflictError,
+} from "./social-pass.service";
 import type { Prisma } from "@prisma/client";
 
 // Una orden PENDING solo reserva cupo mientras el pago puede completarse;
@@ -273,6 +279,12 @@ interface PurchaseTicketInput {
    * ACTIVE y channel=PRESALE; sin acuerdo se ignora en silencio.
    */
   academyId?: string;
+  /**
+   * Pase Social (spec pase-social): true = pagar con créditos del pase
+   * (1 crédito por entrada, orden $0). Solo válido sin regalos ni método
+   * propio y con pass ACTIVE + saldo suficiente - si no, 409.
+   */
+  payWithCredit?: boolean;
 }
 
 interface PurchaseSeriesPassInput {
@@ -311,6 +323,15 @@ export interface PurchaseTicketResult {
   paid?: boolean;
   /** Tickets de la orden (1 comprador + N regalos); 1 en series pass. */
   quantity: number;
+  /**
+   * Pase Social aplicado (spec pase-social): `benefit` marca que el
+   * comprador pagó preventa aunque la preventa ya cerró (línea visible
+   * del desglose); `creditsUsed` = entradas pagadas con crédito.
+   */
+  socialPass?: {
+    benefit?: { presalePriceApplied: boolean; doorFeeWaived: boolean };
+    creditsUsed?: number;
+  };
   /** Snapshot del método propio elegido - instrucciones al comprador. */
   method?: {
     type: string;
@@ -350,6 +371,7 @@ export class CheckoutService {
     private readonly gateways: GatewayRegistry,
     private readonly accounts: GatewayAccountsService,
     private readonly academySales: AcademySalesService,
+    private readonly features: FeatureFlagsService,
   ) {}
 
   /**
@@ -421,6 +443,15 @@ export class CheckoutService {
     data: Prisma.PaymentUncheckedCreateInput,
     breakdown: FeeBreakdown,
     extraMeta?: Record<string, unknown>,
+    /**
+     * Hook transaccional post-create (spec pase-social): el REDEEM de
+     * créditos corre acá para que orden + ledger + decremento sean un
+     * solo commit - si lanza, la tx revierte y el pago no existe.
+     */
+    onCreated?: (
+      tx: Prisma.TransactionClient,
+      payment: { id: string },
+    ) => Promise<void>,
   ) {
     return this.prisma.$transaction(async (tx) => {
       const payment = await tx.payment.create({
@@ -434,6 +465,7 @@ export class CheckoutService {
           producerNetClp: breakdown.producerNetClp,
         },
       });
+      if (onCreated) await onCreated(tx, payment);
       await emitPaymentEvent(tx, payment.id, "FEE_ASSESSED", "checkout", {
         feeMode: breakdown.feeMode,
         platformFeeRate: breakdown.platformFeeRate,
@@ -562,6 +594,40 @@ export class CheckoutService {
     }
     const channel = presaleOpen ? "PRESALE" : "DOOR";
 
+    // Pase Social (spec pase-social): flag ON + pass del comprador
+    // ACTIVE/CANCEL_PENDING (cancel_at_period_end conserva el acceso).
+    // Una sola lectura por compra; con el flag OFF ni la query corre.
+    const socialPass = (await this.features.isEnabled("social_pass"))
+      ? await this.prisma.socialPass.findUnique({ where: { personId } })
+      : null;
+    const passActive = isPassActive(socialPass);
+    // Beneficio de precio: el suscriptor paga preventa aunque la
+    // preventa haya cerrado (canal DOOR). La exención del cargo de
+    // puerta app es vacuosa hoy - el modelo todo incluido ya no cobra
+    // fee al comprador (unitServiceFee=0); se marca igual para el
+    // desglose/auditoría según la spec.
+    const socialPassBenefit =
+      passActive && channel === "DOOR" && event.presalePrice != null
+        ? {
+            presalePriceApplied: true,
+            doorFeeWaived: true,
+          }
+        : undefined;
+    const payWithCredit = input.payWithCredit === true;
+    // v1: el crédito cubre TODAS las entradas de la orden o ninguna y
+    // es solo del comprador - se rechaza ANTES de validar la amistad
+    // de cada regalo para que el error diga el motivo real.
+    if (payWithCredit && input.recipientIds?.length) {
+      throw new SocialPassConflictError(
+        "el crédito del Pase Social solo cubre tus entradas - quita los regalos",
+      );
+    }
+    if (payWithCredit && input.methodId) {
+      throw new SocialPassConflictError(
+        "el crédito del Pase Social no se combina con métodos propios",
+      );
+    }
+
     // Destinatarios de regalo: deben existir, ser amigos ACCEPTED del
     // comprador y no tener ya una entrada ACTIVE para el evento.
     const recipientIds = [
@@ -631,6 +697,22 @@ export class CheckoutService {
       throw new RecipientError(
         "Elegiste más amigos que entradas disponibles - sube la cantidad o desmarca a alguien",
       );
+    }
+
+    // Redención de créditos del pase (spec pase-social): sin pass
+    // activo o sin saldo para TODAS las entradas → 409 sin mutar nada
+    // (el decremento condicional en la tx re-verifica contra carreras).
+    if (payWithCredit) {
+      if (!passActive || !socialPass) {
+        throw new SocialPassConflictError(
+          "no tienes un Pase Social activo",
+        );
+      }
+      if (socialPass.creditsBalance < quantity) {
+        throw new SocialPassConflictError(
+          "no te quedan suficientes créditos del Pase Social",
+        );
+      }
     }
 
     if (channel === "PRESALE" && event.presaleCap != null) {
@@ -750,10 +832,18 @@ export class CheckoutService {
     // ticket) para no multiplicar el beneficio del código.
     const unit = this.pricing.quote({
       listPrice:
-        channel === "PRESALE" ? event.presalePrice! : event.doorPrice!,
+        channel === "PRESALE"
+          ? event.presalePrice!
+          : passActive && event.presalePrice != null
+            ? event.presalePrice!
+            : event.doorPrice!,
       discount: code,
     });
     const orderTotal = unit.listPrice * quantity - unit.discount;
+    // Con crédito del pase la orden queda en $0 (gateway FREE) pero el
+    // quote conserva la lista para el desglose; `charged` es lo que se
+    // persiste como amount/net del Payment.
+    const charged = payWithCredit ? 0 : orderTotal;
     const quote: Quote = { ...unit, total: orderTotal };
     // Modo de cobro de la orden (specs producer-gateway-accounts /
     // producer-own-methods): método propio → MANUAL PENDING esperando
@@ -770,15 +860,15 @@ export class CheckoutService {
       ? { gateway: null, gatewayAccountId: null }
       : await this.orderGateway(event.producerId, orderCurrency);
     const breakdown =
-      orderTotal > 0 && (gatewayAccountId || ownMethod)
+      charged > 0 && (gatewayAccountId || ownMethod)
         ? ownMethodBreakdown(
-            orderTotal,
+            charged,
             allInPct,
             cardPct,
             ivaPct,
             gatewayAccountId ? "OWN_GATEWAY" : "OWN_METHOD",
           )
-        : managedFeeBreakdown(orderTotal, allInPct, cardPct, ivaPct);
+        : managedFeeBreakdown(charged, allInPct, cardPct, ivaPct);
 
     // Atribución de preventa por academia: canal código (el vínculo
     // DiscountCode→acuerdo manda y ya viene validado) o canal link
@@ -816,10 +906,10 @@ export class CheckoutService {
         personId,
         eventId: event.id,
         discountCodeId: code?.id ?? null,
-        amount: orderTotal,
+        amount: charged,
         currency: orderCurrency,
         fee: 0, // costo pasarela: desconocido hasta la liquidación
-        net: orderTotal,
+        net: charged,
         quantity,
         recipients: recipientIds.length ? recipientIds : undefined,
         // Intención de mesa: solo si el evento ofrece mesas - el webhook
@@ -835,18 +925,32 @@ export class CheckoutService {
         // libro; "MANUAL" = método propio esperando comprobante - su
         // label queda congelado como medio declarado (methodLabel).
         gateway:
-          orderTotal === 0 ? "FREE" : ownMethod ? "MANUAL" : gateway!.name,
+          charged === 0 ? "FREE" : ownMethod ? "MANUAL" : gateway!.name,
         gatewayAccountId:
-          orderTotal === 0 || ownMethod ? null : gatewayAccountId,
+          charged === 0 || ownMethod ? null : gatewayAccountId,
         methodLabel: ownMethod?.label ?? null,
         soldByAcademyId: attribution?.soldByAcademyId ?? null,
         academyCommissionClp: attribution?.academyCommissionClp ?? null,
       },
       breakdown,
-      // La comisión atribuida queda evidenciada en el ledger cuando existe.
-      attribution
-        ? { soldByAcademyId: attribution.soldByAcademyId,
-            academyCommissionClp: attribution.academyCommissionClp }
+      // La comisión atribuida queda evidenciada en el ledger cuando existe;
+      // el beneficio del pase también (spec pase-social: línea auditable).
+      {
+        ...(attribution
+          ? {
+              soldByAcademyId: attribution.soldByAcademyId,
+              academyCommissionClp: attribution.academyCommissionClp,
+            }
+          : {}),
+        ...(socialPassBenefit ? { socialPassBenefit } : {}),
+        ...(payWithCredit ? { socialPassCreditsUsed: quantity } : {}),
+      },
+      // REDEEM de créditos en la MISMA tx que crea la orden (spec
+      // pase-social: redención atómica - si el saldo se agotó entremedio
+      // la tx revierte y no existe ni la orden ni el débito).
+      payWithCredit && socialPass
+        ? (tx, payment) =>
+            redeemPassCredits(tx, socialPass, quantity, payment.id)
         : undefined,
     );
 
@@ -867,12 +971,12 @@ export class CheckoutService {
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const returnUrl = `${webUrl}/checkout/return?paymentId=${payment.id}`;
 
-    // Orden con total $0 (preventa liberada o descuento que la dejó en
-    // cero): no hay cobro que derivar a la pasarela - se liquida al
-    // instante por el mismo settle del webhook (tickets, mesa, redención
-    // del código, ledger, notificación) y el cliente cae directo en la
-    // pantalla de éxito (paid=true - no se navega a ninguna URL).
-    if (orderTotal === 0) {
+    // Orden con total $0 (preventa liberada, descuento que la dejó en
+    // cero o crédito del Pase Social): no hay cobro que derivar a la
+    // pasarela - se liquida al instante por el mismo settle del webhook
+    // (tickets, mesa, redención del código, ledger, notificación) y el
+    // cliente cae directo en la pantalla de éxito (paid=true).
+    if (charged === 0) {
       await this.settlement.settle(payment, "PAID", { actor: "checkout" });
       return {
         paymentUrl: null,
@@ -880,6 +984,12 @@ export class CheckoutService {
         quote,
         quantity,
         paid: true,
+        socialPass: socialPassBenefit || payWithCredit
+          ? {
+              benefit: socialPassBenefit,
+              creditsUsed: payWithCredit ? quantity : undefined,
+            }
+          : undefined,
       };
     }
 
@@ -917,6 +1027,9 @@ export class CheckoutService {
       paymentId: payment.id,
       quote,
       quantity,
+      socialPass: socialPassBenefit
+        ? { benefit: socialPassBenefit }
+        : undefined,
     };
   }
 

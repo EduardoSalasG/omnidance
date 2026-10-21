@@ -429,6 +429,27 @@ const withTrip = (items: DrawerSpec[], enabled: boolean) => {
   out.splice(at >= 0 ? at + 1 : out.length, 0, TRIP_ITEM);
   return out;
 };
+// "Pase Social" (spec pase-social): suscripción del bailarín - tras
+// Mi viaje en el sheet móvil y la sidebar desktop, detrás del flag
+// social_pass (OFF → ni se enlaza ni la página existe).
+const PASE_ITEM: DrawerSpec = {
+  href: "/pase",
+  ns: "nav",
+  key: "pase",
+  icon: ICONS.tickets,
+  flag: "social_pass",
+};
+const withPase = (items: DrawerSpec[], enabled: boolean) => {
+  if (!enabled) return items;
+  const at = Math.max(
+    items.findIndex((i) => i.href === "/mi-viaje"),
+    items.findIndex((i) => i.href === "/ciudades"),
+    items.findIndex((i) => i.href === "/practicas"),
+  );
+  const out = [...items];
+  out.splice(at >= 0 ? at + 1 : out.length, 0, PASE_ITEM);
+  return out;
+};
 // Lente academia del bailarín: /clases y /academias ya son tabs y las
 // particulares compradas aparecen en reservadas (sin bandeja separada)
 // - el sheet queda solo con el QR.
@@ -1295,12 +1316,15 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           ...DANCER_SIDEBAR[dancerAcademy ? "academy" : "social"].map(
             (g) => ({
               label: labelFor(g.labelNs, g.labelKey),
-              items: withTrip(
-                withCities(
-                  g.items,
-                  !dancerAcademy && flags.city_landing === true,
+              items: withPase(
+                withTrip(
+                  withCities(
+                    g.items,
+                    !dancerAcademy && flags.city_landing === true,
+                  ),
+                  !dancerAcademy && flags.trip_planner === true,
                 ),
-                !dancerAcademy && flags.trip_planner === true,
+                !dancerAcademy && flags.social_pass === true,
               ).map((spec) => {
                 const itemPath = spec.href.split("?")[0];
                 return {
@@ -1363,6 +1387,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     // "Mi viaje" (spec mi-viaje) - destino del sheet/sidebar del
     // bailarín: el título contextual y la raíz también lo conocen.
     ["/mi-viaje", t("trip")],
+    // Pase Social (spec pase-social): ídem - la ruta es de marketing
+    // pero el título contextual la resuelve igual.
+    ["/pase", t("pase")],
     ["/academia", tac("title")],
     // /qr ya no es tab del bailarín (vive embebido en el sheet) -
     // la ruta sigue existiendo (escáner desde /bailes, /practicas).
@@ -1458,12 +1485,15 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
   // Ítems del sheet del bailarín - labels resueltos como en el drawer.
   const isDancer = activeRole === "DANCER";
-  const sheetItems: SheetItem[] = withTrip(
-    withCities(
-      dancerAcademy ? SHEET_ACADEMY_ITEMS : SHEET_SOCIAL_ITEMS,
-      !dancerAcademy && flags.city_landing === true,
+  const sheetItems: SheetItem[] = withPase(
+    withTrip(
+      withCities(
+        dancerAcademy ? SHEET_ACADEMY_ITEMS : SHEET_SOCIAL_ITEMS,
+        !dancerAcademy && flags.city_landing === true,
+      ),
+      !dancerAcademy && flags.trip_planner === true,
     ),
-    !dancerAcademy && flags.trip_planner === true,
+    !dancerAcademy && flags.social_pass === true,
   ).map((spec) => ({
     href: spec.href,
     label: labelFor(spec.ns, spec.key),

@@ -36,6 +36,61 @@ export interface WebhookContext {
   headers?: Record<string, string | string[] | undefined>;
 }
 
+/**
+ * Evento de billing de suscripción (spec pase-social): Stripe emite
+ * `invoice.*` / `customer.subscription.*` / Checkout `mode=subscription`
+ * sobre el MISMO endpoint firmado que las órdenes - sin Payment asociado.
+ * El adaptador lo normaliza a esta shape y el controller lo rutea al
+ * servicio de suscripciones en vez del settle de Payment.
+ */
+export interface BillingWebhookEvent {
+  /** Tipo crudo del evento del proveedor (p.ej. "invoice.paid"). */
+  type: string;
+  /** metadata.personId del customer/subscription cuando viene. */
+  personId?: string;
+  customerId?: string;
+  subscriptionId?: string;
+  /** Invoice normalizada (eventos invoice.*) - montos en unidad mayor. */
+  invoice?: {
+    id: string;
+    amount: number;
+    currency: string;
+    periodStart?: string;
+    periodEnd?: string;
+    paid: boolean;
+  };
+  /** Payload crudo del objeto del evento - evidencia. */
+  raw?: unknown;
+}
+
+/**
+ * Resultado de verifyWebhook (spec gateway-port-normalization +
+ * pase-social): la variante orden es la de siempre (refId + estado
+ * terminal + verdad monetaria); la variante billing cubre eventos de
+ * suscripción que no corresponden a ningún Payment - el caller decide
+ * por `billing !== undefined`.
+ */
+export type WebhookVerification =
+  | {
+      refId: string;
+      status: "PAID" | "FAILED";
+      /**
+       * Verdad monetaria normalizada (NormalizedGatewayData - Flow la
+       * produce desde paymentData, MercadoPago la mapea desde
+       * /v1/payments/:id). El settle la persiste en los campos gateway*
+       * del Payment cuando hay PAID.
+       * Opcional: StubGateway no la produce.
+       */
+      gatewayData?: unknown;
+      billing?: undefined;
+    }
+  | {
+      refId?: undefined;
+      status?: undefined;
+      gatewayData?: undefined;
+      billing: BillingWebhookEvent;
+    };
+
 export interface PaymentGateway {
   /** Identificador persistido en Payment.gateway (STUB | FLOW | MERCADOPAGO | FINTOC | STRIPE). */
   readonly name: string;
@@ -61,18 +116,7 @@ export interface PaymentGateway {
   verifyWebhook(
     body: unknown,
     ctx?: WebhookContext,
-  ): Promise<{
-    refId: string;
-    status: "PAID" | "FAILED";
-    /**
-     * Verdad monetaria normalizada (NormalizedGatewayData - Flow la
-     * produce desde paymentData, MercadoPago la mapea desde
-     * /v1/payments/:id). El settle la persiste en los campos gateway*
-     * del Payment cuando hay PAID.
-     * Opcional: StubGateway no la produce.
-     */
-    gatewayData?: unknown;
-  }>;
+  ): Promise<WebhookVerification>;
 
   /**
    * Consulta activa del estado de una orden (polling del checkout).
@@ -166,13 +210,19 @@ export interface SubscriptionProvider {
       name: string;
       amount: number;
       intervalCount: number;
+      /**
+       * ISO 4217 del plan espejo (spec pase-social): Stripe crea el
+       * Price por moneda (lookup_key omni_<planId>_<currency>); Flow es
+       * CLP-only y lo ignora. Default del adaptador si ausente.
+       */
+      currency?: string;
     },
     opts?: SubscriptionCallOpts,
   ): Promise<void>;
 
   /** plans/edit - sync cuando staff edita precio/nombre del plan local. */
   syncPlan(
-    p: { planId: string; name: string; amount: number },
+    p: { planId: string; name: string; amount: number; currency?: string },
     opts?: SubscriptionCallOpts,
   ): Promise<void>;
 
@@ -181,23 +231,66 @@ export interface SubscriptionProvider {
     opts?: SubscriptionCallOpts,
   ): Promise<{ customerId: string }>;
 
+  /**
+   * Lookup de customer por email (spec pase-social): rescata el
+   * customerId remoto cuando la fila local se perdió/nunca se escribió
+   * (Stripe: GET /v1/customers?email=). Opcional - Flow no lo expone.
+   */
+  findCustomerByEmail?(
+    email: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<{ customerId: string } | null>;
+
   /** `hasCard` = el customer ya registró medio de pago recurrente. */
   getCustomer(
     customerId: string,
     opts?: SubscriptionCallOpts,
   ): Promise<{ hasCard: boolean }>;
 
-  /** URL de registro de tarjeta (disclaimer del proveedor + retorno con token). */
+  /**
+   * URL de registro de tarjeta (disclaimer del proveedor + retorno con
+   * token). Spec pase-social: en Stripe el "registro" ES la Checkout
+   * Session mode=subscription (cobra tarjeta + primer período en un
+   * paso) - por eso acepta `planId`/`currency` para resolver el Price
+   * espejo y `metadata` para atar la sub al person. Flow/Stub ignoran
+   * los campos extra.
+   */
   registerCustomerCard(
-    p: { customerId: string; returnUrl: string },
+    p: {
+      customerId: string;
+      returnUrl: string;
+      planId?: string;
+      currency?: string;
+      metadata?: Record<string, string>;
+    },
     opts?: SubscriptionCallOpts,
   ): Promise<{ registerUrl: string }>;
 
-  /** `registered` = el registro de tarjeta terminó con éxito. */
+  /**
+   * `registered` = el registro de tarjeta terminó con éxito.
+   * `subscriptionId` (spec pase-social): la Checkout Session de Stripe
+   * ya creó la suscripción - su id viene expandido para persistirlo
+   * sin una consulta extra. Flow no lo emite.
+   */
   getRegisterStatus(
     token: string,
     opts?: SubscriptionCallOpts,
-  ): Promise<{ registered: boolean; customerId?: string }>;
+  ): Promise<{
+    registered: boolean;
+    customerId?: string;
+    subscriptionId?: string;
+  }>;
+
+  /**
+   * Suscripciones del customer (spec pase-social): la vuelta de
+   * Checkout no trae el sub id - el confirm por polling lo descubre
+   * listando las subs del customer (Stripe: GET /v1/subscriptions?
+   * customer=&status=all). Opcional - Flow no lo expone.
+   */
+  listCustomerSubscriptions?(
+    customerId: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<RemoteSubscription[]>;
 
   createSubscription(
     p: { planId: string; customerId: string; subscriptionStart: string },

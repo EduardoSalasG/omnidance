@@ -1,6 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
-import type { PaymentGateway, WebhookContext } from "../domain/ports";
+import type {
+  BillingWebhookEvent,
+  PaymentGateway,
+  RemoteSubscription,
+  RemoteSubscriptionStatus,
+  SubscriptionCallOpts,
+  SubscriptionProvider,
+  WebhookContext,
+  WebhookVerification,
+} from "../domain/ports";
 import {
   sanitizeGatewayPayload,
   type GatewayTxEntry,
@@ -97,12 +106,158 @@ interface StripeSession {
   object?: string;
   status?: string; // open | complete | expired
   payment_status?: string; // paid | unpaid | no_payment_required
+  mode?: string; // payment | subscription | setup
   amount_total?: number | null;
   currency?: string;
   client_reference_id?: string | null;
+  customer?: string | { id?: string } | null;
+  subscription?: string | { id?: string } | null;
+  subscription_data?: { metadata?: Record<string, string | undefined> };
   metadata?: Record<string, string | undefined>;
   payment_method_types?: string[];
   payment_intent?: StripePaymentIntent | string | null;
+}
+
+// ─── Billing (spec pase-social) ───
+// Eventos de suscripción del mismo endpoint firmado: invoice.* (cobro
+// de período), customer.subscription.* (estado de la sub) y Checkout
+// mode=subscription (la sesión que cobra tarjeta + primer período).
+interface StripeInvoice {
+  id?: string;
+  status?: string; // draft|open|paid|uncollectible|void
+  amount_paid?: number;
+  total?: number;
+  currency?: string;
+  customer?: string | { id?: string } | null;
+  subscription?: string | { id?: string } | null;
+  period_start?: number;
+  period_end?: number;
+  metadata?: Record<string, string | undefined>;
+  // API 2025+ (Basil): la suscripción cuelga de parent.subscription_details.
+  parent?: {
+    subscription_details?: {
+      subscription?: string | { id?: string } | null;
+      metadata?: Record<string, string | undefined>;
+    };
+  };
+  lines?: { data?: { period?: { start?: number; end?: number } }[] };
+}
+
+interface StripeSubscription {
+  id?: string;
+  status?: string;
+  cancel_at_period_end?: boolean;
+  current_period_end?: number; // API ≤2024; en Basil vive en items
+  items?: { data?: { current_period_end?: number }[] };
+  latest_invoice?: StripeInvoice | string | null;
+  customer?: string | { id?: string } | null;
+  metadata?: Record<string, string | undefined>;
+}
+
+interface StripePrice {
+  id?: string;
+  product?: string | { id?: string } | null;
+  unit_amount?: number | null;
+  currency?: string;
+  active?: boolean;
+}
+
+interface StripeList<T> {
+  data?: T[];
+}
+
+function idOf(v: string | { id?: string } | null | undefined): string | undefined {
+  return typeof v === "string" ? v : v?.id;
+}
+
+const toIso = (unix?: number): string | undefined =>
+  typeof unix === "number" ? new Date(unix * 1000).toISOString() : undefined;
+
+/** lookup_key del Price espejo: omni_<planId>_<currency> (idempotencia). */
+const planLookupKey = (planId: string, currency: string) =>
+  `omni_${planId}_${currency.toLowerCase()}`;
+
+/** Stripe status → RemoteSubscriptionStatus (spec subscription-port-generic). */
+function normalizeSubscription(s: StripeSubscription): RemoteSubscription {
+  const raw = s.status ?? "";
+  let status: RemoteSubscriptionStatus;
+  if (raw === "active" || raw === "trialing") status = "ACTIVE";
+  else if (raw === "canceled") status = "CANCELED";
+  else if (raw.startsWith("incomplete")) status = "PENDING";
+  else if (raw === "past_due" || raw === "unpaid") status = "ACTIVE"; // morosa vigente
+  else status = "UNKNOWN";
+  const inv =
+    s.latest_invoice && typeof s.latest_invoice === "object"
+      ? s.latest_invoice
+      : undefined;
+  const periodEndUnix =
+    s.current_period_end ?? s.items?.data?.[0]?.current_period_end;
+  const currency = inv?.currency?.toUpperCase();
+  const paidAmount = inv?.amount_paid ?? inv?.total;
+  return {
+    subscriptionId: s.id ?? "",
+    planId: s.metadata?.planId ?? "",
+    status,
+    rawStatus: status === "UNKNOWN" ? raw : undefined,
+    // Morosa: proveedor la reporta past_due/unpaid, o la última invoice
+    // quedó incobrable tras los reintentos.
+    morose:
+      raw === "past_due" || raw === "unpaid" || inv?.status === "uncollectible",
+    cancelAtPeriodEnd: s.cancel_at_period_end === true,
+    nextInvoiceDate: toIso(periodEndUnix),
+    invoices: inv?.id
+      ? [
+          {
+            id: inv.id,
+            amount:
+              currency && paidAmount != null
+                ? fromMinorUnits(currency, paidAmount)
+                : 0,
+            paid: inv.status === "paid",
+            periodStart: toIso(inv.period_start),
+            periodEnd: toIso(inv.period_end),
+          },
+        ]
+      : undefined,
+  };
+}
+
+/**
+ * invoice.* → BillingWebhookEvent (spec pase-social): el objeto firmado
+ * trae subscription (o parent.subscription_details en API Basil),
+ * customer, metadata.personId y los períodos - no requiere fetch.
+ */
+function billingFromInvoice(
+  type: string,
+  inv: StripeInvoice,
+): BillingWebhookEvent {
+  const currency = inv.currency?.toUpperCase() ?? "";
+  const line = inv.lines?.data?.[0]?.period;
+  const paidAmount = inv.amount_paid ?? inv.total;
+  return {
+    type,
+    personId:
+      inv.parent?.subscription_details?.metadata?.personId ??
+      inv.metadata?.personId,
+    customerId: idOf(inv.customer),
+    subscriptionId:
+      idOf(inv.subscription) ??
+      idOf(inv.parent?.subscription_details?.subscription),
+    invoice: inv.id
+      ? {
+          id: inv.id,
+          amount:
+            currency && paidAmount != null
+              ? fromMinorUnits(currency, paidAmount)
+              : 0,
+          currency,
+          periodStart: toIso(line?.start ?? inv.period_start),
+          periodEnd: toIso(line?.end ?? inv.period_end),
+          paid: inv.status === "paid",
+        }
+      : undefined,
+    raw: inv,
+  };
 }
 
 /** El charge expandido de la sesión (sin expand llega como string id). */
@@ -181,7 +336,7 @@ function verifySignature(
 }
 
 @Injectable()
-export class StripeGateway implements PaymentGateway {
+export class StripeGateway implements PaymentGateway, SubscriptionProvider {
   readonly name = "STRIPE";
   // Sin whitelist propia: si Stripe soporta la moneda, pasa (el routing
   // por moneda del registry lo trata como sin restricción declarada).
@@ -261,14 +416,22 @@ export class StripeGateway implements PaymentGateway {
    * su payload. Cualquier checkout.session.* entra aquí - el
    * fetch-confirm decide (estado no terminal → error → Stripe reintenta).
    */
+  /**
+   * Webhook Stripe (spec pase-social): firma compartida `Stripe-Signature`
+   * sobre el body crudo, luego routing por event.type:
+   * - `invoice.*` / `customer.subscription.*` → variante `billing` (el
+   *   objeto del evento ya trae subscription/customer/metadata - sin
+   *   Payment asociado ni fetch-confirm: la firma es la verificación).
+   * - `checkout.session.*` mode=subscription → `billing` (metadata.
+   *   personId + subscription del objeto, sin fetch - no hay refId).
+   * - `checkout.session.*` mode=payment → fetch-confirm de la sesión
+   *   con expand → refId + estado terminal + gatewayData (el flujo de
+   *   órdenes de siempre).
+   */
   async verifyWebhook(
     body: unknown,
     ctx?: WebhookContext,
-  ): Promise<{
-    refId: string;
-    status: "PAID" | "FAILED";
-    gatewayData?: unknown;
-  }> {
+  ): Promise<WebhookVerification> {
     const header = ctx?.headers?.["stripe-signature"];
     const sig = Array.isArray(header) ? header[0] : header;
     if (!sig || !ctx?.rawBody || !this.webhookSecret) {
@@ -278,9 +441,46 @@ export class StripeGateway implements PaymentGateway {
 
     const event = body as {
       type?: string;
-      data?: { object?: { id?: string } };
+      data?: { object?: Record<string, unknown> & { id?: string } };
     };
-    const sessionId = event?.data?.object?.id;
+    const type = event?.type ?? "";
+    const obj = event?.data?.object;
+
+    // Eventos de billing de suscripción (spec pase-social): el objeto es
+    // la invoice o la subscription misma - se traduce y el controller lo
+    // rutea a SocialPassService (no hay Payment que liquidar).
+    if (/^invoice\./.test(type) && obj) {
+      return { billing: billingFromInvoice(type, obj as StripeInvoice) };
+    }
+    if (/^customer\.subscription\./.test(type) && obj) {
+      const sub = obj as StripeSubscription;
+      return {
+        billing: {
+          type,
+          personId: sub.metadata?.personId,
+          customerId: idOf(sub.customer),
+          subscriptionId: sub.id,
+          raw: obj,
+        } satisfies BillingWebhookEvent,
+      };
+    }
+    if (/^checkout\.session\./.test(type) && obj) {
+      const s = obj as StripeSession;
+      if (s.mode === "subscription") {
+        return {
+          billing: {
+            type,
+            personId:
+              s.subscription_data?.metadata?.personId ?? s.metadata?.personId,
+            customerId: idOf(s.customer),
+            subscriptionId: idOf(s.subscription),
+            raw: obj,
+          } satisfies BillingWebhookEvent,
+        };
+      }
+    }
+
+    const sessionId = obj?.id;
     if (typeof sessionId !== "string" || !sessionId) {
       throw new Error("stripe webhook: evento sin sesión");
     }
@@ -341,6 +541,356 @@ export class StripeGateway implements PaymentGateway {
     );
   }
 
+  // ---------- Suscripciones (SubscriptionProvider - spec pase-social) ----------
+  // Stripe Billing en la cuenta de PLATAFORMA (no Connect): el plan
+  // espejo es Product+Price mensual con lookup_key omni_<planId>_<cur>;
+  // el "registro de tarjeta" ES la Checkout Session mode=subscription
+  // (cobra tarjeta + primer período en un paso). Los consumers
+  // (SocialPassService) resuelven este adaptador EXPLÍCITAMENTE por
+  // name - el param payments.subscription_gateway sigue gobernando las
+  // suscripciones de academia/productor (Flow) y no se toca.
+
+  /** Price espejo vigente por lookup_key; null si aún no existe. */
+  private async priceByLookup(
+    planId: string,
+    currency: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<StripePrice | null> {
+    const list = await this.call<StripeList<StripePrice>>(
+      `v1/prices?lookup_key=${encodeURIComponent(planLookupKey(planId, currency))}&active=true&limit=1`,
+      undefined,
+      { method: "GET", correlationId: opts?.correlationId },
+    );
+    return list.data?.[0] ?? null;
+  }
+
+  /** ensurePlan: el Price existe → no-op; si no, Product + Price nuevo. */
+  async ensurePlan(
+    p: {
+      planId: string;
+      name: string;
+      amount: number;
+      intervalCount: number;
+      currency?: string;
+    },
+    opts?: SubscriptionCallOpts,
+  ): Promise<void> {
+    const currency = (p.currency ?? "CLP").toUpperCase();
+    const existing = await this.priceByLookup(p.planId, currency, opts);
+    if (existing?.id) return;
+    const product = await this.call<{ id?: string }>(
+      "v1/products",
+      { name: p.name, "metadata[planId]": p.planId },
+      { correlationId: opts?.correlationId },
+    );
+    if (!product.id) {
+      throw new Error("stripe ensurePlan: respuesta sin product id");
+    }
+    await this.call<unknown>(
+      "v1/prices",
+      {
+        product: product.id,
+        currency: currency.toLowerCase(),
+        unit_amount: String(toMinorUnits(currency, p.amount)),
+        "recurring[interval]": "month",
+        "recurring[interval_count]": String(p.intervalCount),
+        lookup_key: planLookupKey(p.planId, currency),
+        "metadata[planId]": p.planId,
+      },
+      { correlationId: opts?.correlationId },
+    );
+  }
+
+  /**
+   * syncPlan: el Price de Stripe es inmutable → se desactiva el vigente
+   * y se crea uno nuevo (el lookup_key queda en el precio nuevo); el
+   * nombre se empuja al Product. Sin precio existente → ensurePlan.
+   */
+  async syncPlan(
+    p: { planId: string; name: string; amount: number; currency?: string },
+    opts?: SubscriptionCallOpts,
+  ): Promise<void> {
+    const currency = (p.currency ?? "CLP").toUpperCase();
+    const existing = await this.priceByLookup(p.planId, currency, opts);
+    if (!existing?.id) {
+      await this.ensurePlan(
+        { ...p, intervalCount: 1, currency },
+        opts,
+      );
+      return;
+    }
+    const productId = idOf(existing.product);
+    if (productId) {
+      await this.call<unknown>(
+        `v1/products/${encodeURIComponent(productId)}`,
+        { name: p.name },
+        { correlationId: opts?.correlationId },
+      );
+    }
+    const nextAmount = toMinorUnits(currency, p.amount);
+    if (existing.unit_amount === nextAmount) return;
+    await this.call<unknown>(
+      `v1/prices/${encodeURIComponent(existing.id)}`,
+      { active: "false" },
+      { correlationId: opts?.correlationId },
+    );
+    await this.call<unknown>(
+      "v1/prices",
+      {
+        product: productId ?? "",
+        currency: currency.toLowerCase(),
+        unit_amount: String(nextAmount),
+        "recurring[interval]": "month",
+        "recurring[interval_count]": "1",
+        lookup_key: planLookupKey(p.planId, currency),
+        "metadata[planId]": p.planId,
+      },
+      { correlationId: opts?.correlationId },
+    );
+  }
+
+  async createCustomer(
+    p: { email: string; name: string; externalId: string },
+    opts?: SubscriptionCallOpts,
+  ): Promise<{ customerId: string }> {
+    const data = await this.call<{ id?: string }>(
+      "v1/customers",
+      {
+        email: p.email,
+        name: p.name,
+        "metadata[externalId]": p.externalId,
+      },
+      { correlationId: opts?.correlationId },
+    );
+    if (!data.id) {
+      throw new Error("stripe createCustomer: respuesta inválida");
+    }
+    return { customerId: data.id };
+  }
+
+  /**
+   * Rescate de customerId por email (spec pase-social): la fila
+   * SocialPass se perdió/nunca se escribió → GET /v1/customers?email=.
+   */
+  async findCustomerByEmail(
+    email: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<{ customerId: string } | null> {
+    const list = await this.call<StripeList<{ id?: string }>>(
+      `v1/customers?email=${encodeURIComponent(email)}&limit=1`,
+      undefined,
+      { method: "GET", correlationId: opts?.correlationId },
+    );
+    const id = list.data?.[0]?.id;
+    return id ? { customerId: id } : null;
+  }
+
+  /**
+   * `hasCard` = el customer tiene default_payment_method expandido en
+   * invoice_settings (la tarjeta que Checkout dejó como recurrente).
+   */
+  async getCustomer(
+    customerId: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<{ hasCard: boolean }> {
+    const data = await this.call<{
+      invoice_settings?: { default_payment_method?: unknown };
+    }>(
+      `v1/customers/${encodeURIComponent(customerId)}?expand[]=invoice_settings.default_payment_method`,
+      undefined,
+      { method: "GET", correlationId: opts?.correlationId },
+    );
+    return { hasCard: data.invoice_settings?.default_payment_method != null };
+  }
+
+  /**
+   * El "registro de tarjeta" del pase (spec pase-social): Stripe cobra
+   * tarjeta + primer período en un paso → Checkout Session
+   * mode=subscription. `planId`+`currency` resuelven el Price espejo
+   * (debe existir - el caller corre ensurePlan antes); metadata ata la
+   * suscripción al person para el routing del webhook.
+   */
+  async registerCustomerCard(
+    p: {
+      customerId: string;
+      returnUrl: string;
+      planId?: string;
+      currency?: string;
+      metadata?: Record<string, string>;
+    },
+    opts?: SubscriptionCallOpts,
+  ): Promise<{ registerUrl: string }> {
+    if (!p.planId) {
+      throw new Error(
+        "stripe registerCustomerCard: planId requerido (Checkout mode=subscription cobra el Price espejo)",
+      );
+    }
+    const price = await this.priceByLookup(
+      p.planId,
+      p.currency ?? "CLP",
+      opts,
+    );
+    if (!price?.id) {
+      throw new Error(
+        `stripe registerCustomerCard: sin Price espejo para ${p.planId} - falta ensurePlan`,
+      );
+    }
+    const params: Record<string, string> = {
+      mode: "subscription",
+      customer: p.customerId,
+      "line_items[0][price]": price.id,
+      "line_items[0][quantity]": "1",
+      success_url: p.returnUrl,
+      cancel_url: p.returnUrl,
+      "payment_method_types[0]": "card",
+      "payment_method_types[1]": "link",
+      "metadata[socialPass]": "1",
+    };
+    for (const [k, v] of Object.entries(p.metadata ?? {})) {
+      params[`subscription_data[metadata][${k}]`] = v;
+      params[`metadata[${k}]`] = v;
+    }
+    const data = await this.call<{ id?: string; url?: string }>(
+      "v1/checkout/sessions",
+      params,
+      { correlationId: opts?.correlationId },
+    );
+    if (!data.url) {
+      throw new Error("stripe registerCustomerCard: sesión sin url");
+    }
+    return { registerUrl: data.url };
+  }
+
+  /**
+   * token = id de la Checkout Session (cs_…): GET con subscription
+   * expandida → registered cuando la sesión completó y la sub existe.
+   * Devuelve customerId + subscriptionId para que el service persista
+   * el SocialPass sin consulta extra (spec pase-social).
+   */
+  async getRegisterStatus(
+    token: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<{
+    registered: boolean;
+    customerId?: string;
+    subscriptionId?: string;
+  }> {
+    const s = await this.call<StripeSession>(
+      `v1/checkout/sessions/${encodeURIComponent(token)}?expand[]=subscription`,
+      undefined,
+      { method: "GET", correlationId: opts?.correlationId },
+    );
+    return {
+      registered: s.status === "complete" && s.subscription != null,
+      customerId: idOf(s.customer),
+      subscriptionId: idOf(s.subscription),
+    };
+  }
+
+  /**
+   * createSubscription directo (spec pase-social): subs nueva sobre un
+   * customer con tarjeta ya registrada (Checkout no es necesario). El
+   * precio se resuelve por lookup_key del planId; subscriptionStart no
+   * aplica (Stripe inicia el ciclo ya - el caller no lo usa en v1).
+   */
+  async createSubscription(
+    p: { planId: string; customerId: string; subscriptionStart: string },
+    opts?: SubscriptionCallOpts,
+  ): Promise<RemoteSubscription> {
+    // La moneda del plan se descubre por prefix-match del lookup_key:
+    // el port no trae currency y el planId del pase es único por moneda
+    // solo si el caller la embebe - se lista por lookup_key exacta del
+    // par (planId, CLP) como default y luego cualquier price cuyo
+    // metadata.planId calce.
+    let price = await this.priceByLookup(p.planId, "CLP", opts);
+    if (!price?.id) {
+      const list = await this.call<StripeList<StripePrice>>(
+        "v1/prices?active=true&limit=100",
+        undefined,
+        { method: "GET", correlationId: opts?.correlationId },
+      );
+      price =
+        list.data?.find(
+          (pr) =>
+            pr.id != null &&
+            planLookupKey(p.planId, (pr.currency ?? "clp").toUpperCase()) ===
+              `omni_${p.planId}_${(pr.currency ?? "clp").toLowerCase()}`,
+        ) ?? null;
+    }
+    if (!price?.id) {
+      throw new Error(
+        `stripe createSubscription: sin Price espejo para ${p.planId}`,
+      );
+    }
+    const data = await this.call<StripeSubscription>(
+      "v1/subscriptions",
+      {
+        customer: p.customerId,
+        "items[0][price]": price.id,
+        "metadata[planId]": p.planId,
+      },
+      { correlationId: opts?.correlationId },
+    );
+    return normalizeSubscription(data);
+  }
+
+  /**
+   * GET /v1/subscriptions/:id con latest_invoice expandida →
+   * RemoteSubscription (status/morose/cancelAtPeriodEnd/nextInvoiceDate).
+   */
+  async getSubscription(
+    subscriptionId: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<RemoteSubscription> {
+    const data = await this.call<StripeSubscription>(
+      `v1/subscriptions/${encodeURIComponent(subscriptionId)}?expand[]=latest_invoice`,
+      undefined,
+      { method: "GET", correlationId: opts?.correlationId },
+    );
+    return normalizeSubscription(data);
+  }
+
+  /**
+   * Suscripciones del customer (spec pase-social): la vuelta de Checkout
+   * no trae el sub id - el confirm por polling lista `status=all` del
+   * customer y toma la más reciente.
+   */
+  async listCustomerSubscriptions(
+    customerId: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<RemoteSubscription[]> {
+    const list = await this.call<StripeList<StripeSubscription>>(
+      `v1/subscriptions?customer=${encodeURIComponent(customerId)}&status=all&limit=5`,
+      undefined,
+      { method: "GET", correlationId: opts?.correlationId },
+    );
+    return (list.data ?? []).map(normalizeSubscription);
+  }
+
+  /**
+   * cancel_at_period_end por defecto (el acceso vive hasta el fin del
+   * período pagado); `immediate` → DELETE de la sub - solo para
+   * compensar una remota huérfana, nunca la cancelación del usuario.
+   */
+  async cancelSubscription(
+    subscriptionId: string,
+    opts?: SubscriptionCallOpts & { immediate?: boolean },
+  ): Promise<void> {
+    if (opts?.immediate) {
+      await this.call<unknown>(
+        `v1/subscriptions/${encodeURIComponent(subscriptionId)}`,
+        undefined,
+        { method: "DELETE", correlationId: opts?.correlationId },
+      );
+      return;
+    }
+    await this.call<unknown>(
+      `v1/subscriptions/${encodeURIComponent(subscriptionId)}`,
+      { cancel_at_period_end: "true" },
+      { correlationId: opts?.correlationId },
+    );
+  }
+
   /**
    * Wrapper único de HTTP contra Stripe (mismo patrón que Flow/MP/
    * Fintoc): bearer auth, form-urlencoded en POST, timeout 15s y SIEMPRE
@@ -351,7 +901,7 @@ export class StripeGateway implements PaymentGateway {
     endpoint: string,
     params?: Record<string, string>,
     opts: {
-      method?: "GET" | "POST";
+      method?: "GET" | "POST" | "DELETE";
       correlationId?: string;
       paymentId?: string;
       timeoutMs?: number;

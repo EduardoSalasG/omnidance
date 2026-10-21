@@ -49,6 +49,7 @@ const MARKETING_NS = [
   "landingProducer",
   "landingProHub",
   "legal",
+  "pase",
 ] as const;
 export function marketingMessages(locale: Locale): Dict {
   const m = getMessages(locale);

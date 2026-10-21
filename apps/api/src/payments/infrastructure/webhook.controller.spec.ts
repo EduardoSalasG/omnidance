@@ -233,6 +233,7 @@ function mkCtrl(prisma: FakePrisma) {
     access as never,
     new GatewayRegistry([], "STUB"),
     {} as never, // GatewayAccountsService - las vistas no lo usan
+    {} as never, // SocialPassService - las vistas no lo usan
   );
 }
 
@@ -520,6 +521,7 @@ describe("PaymentsController - webhook normalizado", () => {
       {} as never,
       registry,
       (opts.accounts ?? { adapterFor: vi.fn() }) as never,
+      {} as never, // SocialPassService - no lo usan
     );
     return { ctrl, settlement };
   }
@@ -672,6 +674,7 @@ describe("PaymentsController - webhook por cuenta propia", () => {
       {} as never,
       new GatewayRegistry([], "STUB"),
       accounts as never,
+      {} as never, // SocialPassService
     );
     return { ctrl, settlement, accounts, accountGateway };
   }
@@ -740,6 +743,7 @@ describe("PaymentsController - webhook por cuenta propia", () => {
       {} as never,
       new GatewayRegistry([def as unknown as PaymentGateway], "FLOW"),
       { adapterFor: vi.fn() } as never,
+      {} as never,
     );
     await expect(ctrl.webhook({ token: "t1" }, webReq)).rejects.toBeInstanceOf(
       BadRequestException,
@@ -772,5 +776,39 @@ describe("PaymentsController - webhook por cuenta propia", () => {
       "PAID",
       expect.objectContaining({ actor: "polling" }),
     );
+  });
+});
+
+// ─── Routing billing del pase (spec pase-social, task 4) ───
+describe("PaymentsController - billing STRIPE (pase social)", () => {
+  it("verifyWebhook con billing → rutea a SocialPassService y no busca Payment", async () => {
+    const prisma = new FakePrisma();
+    const billing = {
+      type: "invoice.paid",
+      customerId: "cus_1",
+      subscriptionId: "sub_1",
+    };
+    const stripeGw = {
+      name: "STRIPE",
+      createOrder: vi.fn(),
+      verifyWebhook: vi.fn(async () => ({ billing })),
+    };
+    const socialPass = { handleBillingEvent: vi.fn(async () => {}) };
+    const ctrl = new PaymentsController(
+      prisma as unknown as PrismaService,
+      {} as unknown as PaymentGateway,
+      {} as unknown as PaymentSettlementService,
+      {} as unknown as SubscriptionsService,
+      {} as unknown as PlatformSubscriptionsService,
+      {} as never,
+      new GatewayRegistry([stripeGw as never], "STRIPE"),
+      {} as never,
+      socialPass as never,
+    );
+    const res = await ctrl.webhookByProvider("STRIPE", undefined, {}, {
+      headers: {},
+    } as never);
+    expect(res).toEqual({ ok: true, billing: "invoice.paid" });
+    expect(socialPass.handleBillingEvent).toHaveBeenCalledWith(billing);
   });
 });

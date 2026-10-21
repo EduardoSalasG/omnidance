@@ -492,3 +492,242 @@ describe("StripeGateway.refreshStatus", () => {
     expect(r.status).toBe("PENDING");
   });
 });
+
+// ─── SubscriptionProvider + billing webhook (spec pase-social) ───
+describe("StripeGateway - SubscriptionProvider (pase social)", () => {
+  it("ensurePlan: price por lookup_key existe → no-op", async () => {
+    const fetchMock = mockFetch({
+      "v1/prices": { data: [{ id: "price_1" }] },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await gw().ensurePlan({
+      planId: "SOCIAL_PASS",
+      name: "Pase Social",
+      amount: 15000,
+      intervalCount: 1,
+      currency: "CLP",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]![0])).toContain(
+      "lookup_key=omni_SOCIAL_PASS_clp",
+    );
+  });
+
+  it("ensurePlan sin price → crea Product + Price mensual", async () => {
+    const fetchMock = mockFetch({
+      "v1/prices?lookup_key": { data: [] },
+      "v1/products": { id: "prod_1" },
+      "v1/prices": { id: "price_1" },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await gw().ensurePlan({
+      planId: "SOCIAL_PASS",
+      name: "Pase Social",
+      amount: 15000,
+      intervalCount: 1,
+      currency: "CLP",
+    });
+    const priceCall = fetchMock.mock.calls.find((c) =>
+      String(c[0]).endsWith("/v1/prices"),
+    )!;
+    const body = formOf(priceCall as unknown[]);
+    expect(body["recurring[interval]"]).toBe("month");
+    expect(body.unit_amount).toBe("15000"); // CLP zero-decimal
+    expect(body.lookup_key).toBe("omni_SOCIAL_PASS_clp");
+  });
+
+  it("registerCustomerCard → Checkout Session mode=subscription con metadata.personId", async () => {
+    const fetchMock = mockFetch({
+      "v1/prices": { data: [{ id: "price_1" }] },
+      "v1/checkout/sessions": { id: "cs_1", url: "https://checkout/cs_1" },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const r = await gw().registerCustomerCard({
+      customerId: "cus_1",
+      returnUrl: "https://app/pase?sub=return",
+      planId: "SOCIAL_PASS",
+      currency: "CLP",
+      metadata: { personId: "per-1", socialPass: "1" },
+    });
+    expect(r.registerUrl).toBe("https://checkout/cs_1");
+    const body = formOf(fetchMock.mock.calls[1] as unknown[]);
+    expect(body.mode).toBe("subscription");
+    expect(body["line_items[0][price]"]).toBe("price_1");
+    expect(body["subscription_data[metadata][personId]"]).toBe("per-1");
+  });
+
+  it("getRegisterStatus: sesión complete + subscription → registered con subId", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "checkout/sessions": {
+          id: "cs_1",
+          status: "complete",
+          customer: "cus_1",
+          subscription: { id: "sub_1" },
+        },
+      }),
+    );
+    const r = await gw().getRegisterStatus("cs_1");
+    expect(r).toEqual({
+      registered: true,
+      customerId: "cus_1",
+      subscriptionId: "sub_1",
+    });
+  });
+
+  it("getSubscription normaliza past_due → ACTIVE+morose y canceled → CANCELED", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "v1/subscriptions/sub_1": {
+          id: "sub_1",
+          status: "past_due",
+          cancel_at_period_end: true,
+          current_period_end: 1700000000,
+        },
+      }),
+    );
+    const r = await gw().getSubscription("sub_1");
+    expect(r.status).toBe("ACTIVE");
+    expect(r.morose).toBe(true);
+    expect(r.cancelAtPeriodEnd).toBe(true);
+    expect(r.nextInvoiceDate).toBe(
+      new Date(1700000000 * 1000).toISOString(),
+    );
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "v1/subscriptions/sub_2": { id: "sub_2", status: "canceled" },
+      }),
+    );
+    expect((await gw().getSubscription("sub_2")).status).toBe("CANCELED");
+  });
+
+  it("cancelSubscription: at_period_end por POST; immediate → DELETE", async () => {
+    const fetchMock = mockFetch({ "v1/subscriptions": { id: "sub_1" } });
+    vi.stubGlobal("fetch", fetchMock);
+    await gw().cancelSubscription("sub_1");
+    expect(
+      formOf(fetchMock.mock.calls[0] as unknown[]).cancel_at_period_end,
+    ).toBe("true");
+    await gw().cancelSubscription("sub_1", { immediate: true });
+    expect(
+      ((fetchMock.mock.calls[1] as unknown[])[1] as { method: string })
+        .method,
+    ).toBe("DELETE");
+  });
+});
+
+describe("StripeGateway.verifyWebhook - billing (pase social)", () => {
+  function signed(raw: string) {
+    return {
+      rawBody: raw,
+      headers: {
+        "stripe-signature": sign(raw, Math.floor(Date.now() / 1000)),
+      },
+    };
+  }
+
+  it("invoice.paid → billing con subscriptionId, customerId y período", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const raw = JSON.stringify({
+      type: "invoice.paid",
+      data: {
+        object: {
+          id: "in_1",
+          status: "paid",
+          amount_paid: 15000,
+          currency: "clp",
+          customer: "cus_1",
+          subscription: "sub_1",
+          lines: {
+            data: [{ period: { start: 1700000000, end: 1702592000 } }],
+          },
+        },
+      },
+    });
+    const r = await gw().verifyWebhook(JSON.parse(raw), signed(raw));
+    expect(r.billing?.type).toBe("invoice.paid");
+    expect(r.billing?.subscriptionId).toBe("sub_1");
+    expect(r.billing?.invoice).toMatchObject({
+      id: "in_1",
+      amount: 15000, // CLP zero-decimal
+      currency: "CLP",
+      paid: true,
+      periodEnd: new Date(1702592000 * 1000).toISOString(),
+    });
+    // El objeto firmado basta - no hay fetch-confirm en billing.
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("invoice Basil: subscription desde parent.subscription_details", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    const raw = JSON.stringify({
+      type: "invoice.paid",
+      data: {
+        object: {
+          id: "in_2",
+          status: "paid",
+          amount_paid: 15000,
+          currency: "clp",
+          customer: "cus_1",
+          parent: {
+            subscription_details: {
+              subscription: "sub_9",
+              metadata: { personId: "per-9" },
+            },
+          },
+        },
+      },
+    });
+    const r = await gw().verifyWebhook(JSON.parse(raw), signed(raw));
+    expect(r.billing?.subscriptionId).toBe("sub_9");
+    expect(r.billing?.personId).toBe("per-9");
+  });
+
+  it("customer.subscription.deleted → billing con metadata.personId", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    const raw = JSON.stringify({
+      type: "customer.subscription.deleted",
+      data: {
+        object: {
+          id: "sub_1",
+          customer: "cus_1",
+          metadata: { personId: "per-1" },
+        },
+      },
+    });
+    const r = await gw().verifyWebhook(JSON.parse(raw), signed(raw));
+    expect(r.billing).toMatchObject({
+      type: "customer.subscription.deleted",
+      subscriptionId: "sub_1",
+      personId: "per-1",
+    });
+  });
+
+  it("checkout.session mode=subscription → billing sin fetch ni refId", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const raw = JSON.stringify({
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_1",
+          mode: "subscription",
+          customer: "cus_1",
+          subscription: "sub_1",
+          subscription_data: { metadata: { personId: "per-1" } },
+        },
+      },
+    });
+    const r = await gw().verifyWebhook(JSON.parse(raw), signed(raw));
+    expect(r.billing).toMatchObject({
+      type: "checkout.session.completed",
+      subscriptionId: "sub_1",
+      personId: "per-1",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
