@@ -64,6 +64,17 @@
   "home": {
     "genre": {
       "other": "Otro"
+    },
+    "quota": {
+      "title": "Tus clases",
+      "book": "Agendar",
+      "renew": "Renovar",
+      "weeklyZero": "{limit, plural, one {Aún no has agendado — te queda tu clase semanal} other {Aún no has agendado — te quedan # clases esta semana}}",
+      "weeklyPartial": "Has agendado {used} de {limit, plural, one {tu clase semanal} other {tus # clases semanales}}",
+      "weeklyFull": "{limit, plural, one {Agotaste tu clase semanal — ¡nos vemos la próxima!} other {Agotaste tus # clases semanales — ¡nos vemos la próxima!}}",
+      "packLeft": "{count, plural, one {Te queda # clase de tu pack} other {Te quedan # clases de tu pack}}",
+      "packEmpty": "Agotaste tu pack de clases",
+      "unlimited": "Plan ilimitado — agenda cuando quieras"
     }
   },
   "profile": {

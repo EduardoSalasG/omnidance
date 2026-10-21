@@ -16,6 +16,7 @@ import {
   type ClassCardData,
 } from "@/components/classes/class-card";
 import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
+import { WeeklyQuotaCard } from "@/components/home/weekly-quota-card";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
 import { ProducerDashboard } from "@/components/producer/producer-dashboard";
@@ -702,6 +703,12 @@ export function HomeHub() {
           ))}
         </section>
       )}
+
+      {/* Cuota de clases del plan (spec home-weekly-quota): solo la
+          vista bailarín - el resto del home ya ES la consola del rol.
+          Resumen de compromiso, arriba del contenido de la lente; sin
+          inscripciones la card no se monta. */}
+      {activeRole === "DANCER" && <WeeklyQuotaCard />}
 
       {activeRole === "ACADEMY_OWNER" ? (
         // El home del dueño de academia ES su consola: selector de
