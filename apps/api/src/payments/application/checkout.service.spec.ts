@@ -1081,6 +1081,46 @@ describe("CheckoutService.purchaseTicket", () => {
     expect(res.paymentUrl).toBe(`https://pay.example/${fx.payments[0].refId}`);
   });
 
+  it("evento en USD con default que no la soporta → routing por moneda a STRIPE (spec stripe-gateway-payout-rail)", async () => {
+    const flowish: PaymentGateway = {
+      name: "FLOW",
+      currencies: ["CLP"],
+      createOrder: vi.fn(async () => ({
+        paymentUrl: "flow-url",
+        gatewayRef: "f-ref",
+      })),
+      verifyWebhook: vi.fn(),
+    };
+    const stripeish: PaymentGateway = {
+      name: "STRIPE",
+      createOrder: vi.fn(async (p: { refId: string }) => ({
+        paymentUrl: `stripe-url/${p.refId}`,
+        gatewayRef: "cs_test_x",
+      })),
+      verifyWebhook: vi.fn(),
+    };
+    const registry = new GatewayRegistry([flowish, stripeish], "FLOW");
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({ currency: "USD" }),
+    );
+    const svc2 = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      flowish,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+      stl as never,
+      registry,
+      accountsStub as never,
+      academySalesStub as never,
+    );
+    const res = await svc2.purchaseTicket("per-1", { eventId: "evt-1" });
+    expect(stripeish.createOrder).toHaveBeenCalledTimes(1);
+    expect(flowish.createOrder).not.toHaveBeenCalled();
+    expect(fx.payments[0].gateway).toBe("STRIPE");
+    expect(fx.payments[0].currency).toBe("USD");
+    expect(res.paymentUrl).toContain("stripe-url/");
+  });
+
   it("productor con cuenta propia → cobra en su adaptador + feeMode OWN_GATEWAY (spec producer-gateway-accounts)", async () => {
     const ownGateway = {
       name: "FLOW",
