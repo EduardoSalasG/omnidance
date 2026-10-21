@@ -3,6 +3,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
@@ -25,13 +26,10 @@ export class CitiesController {
    * distancia a la posición (haversine sobre lat/lng del City).
    */
   @Get("near")
-  async near(
-    @Param() _params: unknown,
-    @Req() req: Request,
-  ) {
-    const lat = Number(req.query.lat);
-    const lng = Number(req.query.lng);
-    if (!isFinite(lat) || !isFinite(lng)) {
+  async near(@Query("lat") lat: string, @Query("lng") lng: string) {
+    const latN = Number(lat);
+    const lngN = Number(lng);
+    if (!isFinite(latN) || !isFinite(lngN)) {
       throw new NotFoundException("lat/lng requeridos");
     }
     const cities = await this.prisma.city.findMany({
@@ -48,11 +46,11 @@ export class CitiesController {
     });
     const km = (a: { lat: number | null; lng: number | null }) => {
       const R = 6371;
-      const dLat = ((a.lat! - lat) * Math.PI) / 180;
-      const dLng = ((a.lng! - lng) * Math.PI) / 180;
+      const dLat = ((a.lat! - latN) * Math.PI) / 180;
+      const dLng = ((a.lng! - lngN) * Math.PI) / 180;
       const h =
         Math.sin(dLat / 2) ** 2 +
-        Math.cos((lat * Math.PI) / 180) *
+        Math.cos((latN * Math.PI) / 180) *
           Math.cos((a.lat! * Math.PI) / 180) *
           Math.sin(dLng / 2) ** 2;
       return 2 * R * Math.asin(Math.sqrt(h));
