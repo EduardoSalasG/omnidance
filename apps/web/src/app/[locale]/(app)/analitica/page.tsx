@@ -92,7 +92,11 @@ export default function AnaliticaPage() {
   const [savedBusy, setSavedBusy] = useState<string | null>(null);
   const [saveName, setSaveName] = useState("");
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  // Feedback de las mutaciones de consultas guardadas (éxito y error).
+  const [notice, setNotice] = useState<{
+    kind: "ok" | "err";
+    text: string;
+  } | null>(null);
 
   // ── Boot: la lente es el rol activo; /analytics/roles confirma que
   // tiene acceso a analítica (403/401 o lente ausente → forbidden). ────
@@ -270,9 +274,13 @@ export default function AnaliticaPage() {
       });
       if (res.ok) {
         setSaveName("");
-        setNotice(t("saved.created"));
+        setNotice({ kind: "ok", text: t("saved.created") });
         if (role) void loadSaved(role);
+      } else {
+        setNotice({ kind: "err", text: t("saved.actionError") });
       }
+    } catch {
+      setNotice({ kind: "err", text: t("saved.actionError") });
     } finally {
       setSaving(false);
     }
@@ -286,7 +294,13 @@ export default function AnaliticaPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       });
-      if (res.ok && role) await loadSaved(role);
+      if (res.ok) {
+        if (role) await loadSaved(role);
+      } else {
+        setNotice({ kind: "err", text: t("saved.actionError") });
+      }
+    } catch {
+      setNotice({ kind: "err", text: t("saved.actionError") });
     } finally {
       setSavedBusy(null);
     }
@@ -296,7 +310,13 @@ export default function AnaliticaPage() {
     setSavedBusy(id);
     try {
       const res = await apiFetch(`/query/saved/${id}`, { method: "DELETE" });
-      if (res.ok && role) await loadSaved(role);
+      if (res.ok) {
+        if (role) await loadSaved(role);
+      } else {
+        setNotice({ kind: "err", text: t("saved.actionError") });
+      }
+    } catch {
+      setNotice({ kind: "err", text: t("saved.actionError") });
     } finally {
       setSavedBusy(null);
     }
@@ -474,8 +494,13 @@ export default function AnaliticaPage() {
 
               <div aria-live="polite">
                 {notice && (
-                  <p role="status" className="text-sm font-medium text-neon">
-                    {notice}
+                  <p
+                    role={notice.kind === "err" ? "alert" : "status"}
+                    className={`text-sm font-medium ${
+                      notice.kind === "err" ? "text-red-400" : "text-neon"
+                    }`}
+                  >
+                    {notice.text}
                   </p>
                 )}
               </div>

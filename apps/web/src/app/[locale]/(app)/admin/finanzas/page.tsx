@@ -225,28 +225,44 @@ function FinancePanel() {
       if (v) params.set(k, v);
     }
     const qs = params.toString();
-    const res = await apiFetch(`/admin/payouts${qs ? `?${qs}` : ""}`);
-    if (!res.ok) return setTabError(true);
-    setPayouts(await res.json());
+    try {
+      const res = await apiFetch(`/admin/payouts${qs ? `?${qs}` : ""}`);
+      if (!res.ok) return setTabError(true);
+      setPayouts(await res.json());
+    } catch {
+      setTabError(true);
+    }
   }, [payoutsFilters]);
   const loadAccrual = useCallback(async () => {
-    const res = await apiFetch("/admin/finance/accrual");
-    if (!res.ok) return setTabError(true);
-    setAccrual(await res.json());
+    try {
+      const res = await apiFetch("/admin/finance/accrual");
+      if (!res.ok) return setTabError(true);
+      setAccrual(await res.json());
+    } catch {
+      setTabError(true);
+    }
   }, []);
   const loadPayments = useCallback(async () => {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(paymentsFilters)) {
       if (v) params.set(k, v);
     }
-    const res = await apiFetch(`/admin/browse/payments?${params}`);
-    if (!res.ok) return setTabError(true);
-    setPayments(await res.json());
+    try {
+      const res = await apiFetch(`/admin/browse/payments?${params}`);
+      if (!res.ok) return setTabError(true);
+      setPayments(await res.json());
+    } catch {
+      setTabError(true);
+    }
   }, [paymentsFilters]);
   const loadMrr = useCallback(async () => {
-    const res = await apiFetch("/admin/finance/mrr");
-    if (!res.ok) return setTabError(true);
-    setMrr(await res.json());
+    try {
+      const res = await apiFetch("/admin/finance/mrr");
+      if (!res.ok) return setTabError(true);
+      setMrr(await res.json());
+    } catch {
+      setTabError(true);
+    }
   }, []);
 
   useEffect(() => {

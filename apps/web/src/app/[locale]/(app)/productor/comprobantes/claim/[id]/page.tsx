@@ -123,6 +123,9 @@ function ClaimDetail() {
       setConfirmApprove(false);
       setMsg({ kind: "ok", text: tp("claimDetail.approvedMsg") });
       setTimeout(() => router.push("/productor/comprobantes"), 1200);
+    } catch {
+      setMsg({ kind: "err", text: t("error") });
+      setConfirmApprove(false);
     } finally {
       setBusy(false);
     }
@@ -144,6 +147,10 @@ function ClaimDetail() {
       }
       setMsg({ kind: "ok", text: t("rejectedMsg") });
       setTimeout(() => router.push("/productor/comprobantes"), 1200);
+    } catch {
+      // El form de rechazo queda abierto para reintentar (igual que
+      // el branch !res.ok).
+      setMsg({ kind: "err", text: t("error") });
     } finally {
       setBusy(false);
     }
