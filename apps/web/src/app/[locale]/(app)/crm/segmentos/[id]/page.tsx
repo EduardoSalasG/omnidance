@@ -16,6 +16,7 @@ import {
 import { SegmentForm } from "@/components/crm/segment-form";
 import { rulesLabel } from "@/components/crm/segment-labels";
 import { ProPaywall } from "@/components/producer/pro-paywall";
+import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
 import type {
   CrmSegment,
   CrmSegmentPeople,
@@ -113,6 +114,8 @@ export default function CrmSegmentoPage() {
         <>
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
+          ) : ctx.tierBlocked ? (
+            <AcademyTierPaywall feature="crm" />
           ) : ctx.proBlocked ? (
             <ProPaywall />
           ) : s === null && !error && !notFound ? (

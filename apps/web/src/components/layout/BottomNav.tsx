@@ -1713,7 +1713,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           </div>
 
           <div className="flex flex-1 items-center justify-center px-2">
-            {pathname === "/inicio" && me && activeRole === "DANCER" ? (
+            {pathname === "/inicio" &&
+            me &&
+            activeRole === "DANCER" &&
+            flags.social_line === true &&
+            flags.academy_line === true ? (
               <>
                 {pageLabel && !contentHasH1 && (
                   <h1 className="sr-only">{pageLabel}</h1>

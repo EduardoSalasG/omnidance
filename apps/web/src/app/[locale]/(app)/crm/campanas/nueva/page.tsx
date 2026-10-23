@@ -11,6 +11,7 @@ import {
 } from "@/components/crm/crm-context";
 import { CampaignForm } from "@/components/crm/campaign-form";
 import { ProPaywall } from "@/components/producer/pro-paywall";
+import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
 import { actorKey } from "@/components/crm/types";
 import { useRouter } from "@/i18n/navigation";
 
@@ -34,6 +35,8 @@ function NuevaCampanaInner() {
         <>
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
+          ) : ctx.tierBlocked ? (
+            <AcademyTierPaywall feature="crm" />
           ) : ctx.proBlocked ? (
             <ProPaywall />
           ) : saved ? (

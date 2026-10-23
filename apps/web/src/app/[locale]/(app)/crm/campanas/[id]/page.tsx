@@ -23,6 +23,7 @@ import {
   audienceLabel,
 } from "@/components/crm/campaign-labels";
 import { ProPaywall } from "@/components/producer/pro-paywall";
+import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
 import type { CrmCampaign } from "@/components/crm/types";
 import { useDateFmt } from "@/lib/intl";
 
@@ -181,6 +182,8 @@ export default function CrmCampanaPage() {
         <>
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
+          ) : ctx.tierBlocked ? (
+            <AcademyTierPaywall feature="crm" />
           ) : ctx.proBlocked ? (
             <ProPaywall />
           ) : c === null && !error && !notFound ? (

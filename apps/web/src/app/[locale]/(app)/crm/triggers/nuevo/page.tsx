@@ -13,6 +13,7 @@ import {
 } from "@/components/crm/crm-context";
 import { TriggerForm } from "@/components/crm/trigger-form";
 import { ProPaywall } from "@/components/producer/pro-paywall";
+import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
 import type { CrmActor, CrmTrigger } from "@/components/crm/types";
 import { actorQuery } from "@/components/crm/types";
 import { useRouter } from "@/i18n/navigation";
@@ -35,6 +36,8 @@ export default function CrmTriggerNuevoPage() {
         <>
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
+          ) : ctx.tierBlocked ? (
+            <AcademyTierPaywall feature="crm" />
           ) : ctx.proBlocked ? (
             <ProPaywall />
           ) : (

@@ -8,6 +8,7 @@ import {
 } from "@/components/crm/crm-context";
 import { CampaignList } from "@/components/crm/campaign-list";
 import { ProPaywall } from "@/components/producer/pro-paywall";
+import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
 
 // Listado de campañas del actor. El h1 de página lo provee el chrome
 // (appbar); crear = CTA → /crm/campanas/nueva (patrón de consola).
@@ -23,6 +24,8 @@ export default function CrmCampanasPage() {
         <>
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
+          ) : ctx.tierBlocked ? (
+            <AcademyTierPaywall feature="crm" />
           ) : ctx.proBlocked ? (
             // El CRM del productor es feature Producer Pro - el API
             // responde 403 pro.required en todos sus endpoints.
