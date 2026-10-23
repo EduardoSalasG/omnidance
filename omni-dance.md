@@ -583,18 +583,20 @@ Lo que se mide cada mes (el `PayoutLine` + `Payment.platformFee*` dejan todo que
 
 ### Proyecciones por escenario (CLP/mes → ARR)
 
-Supuestos: ticket ponderado ~$5.5k gestionado a tasa media 9% (~5% neto tras pasarela e IVA); mezcla SaaS academia promedio ~$90k/mes; Producer Pro promedio ~$140k/mes.
+Supuestos: ticket ponderado ~$5.5k gestionado a tasa media 9% (~5% neto tras pasarela e IVA); mezcla SaaS academia promedio ~$90k/mes; Producer Pro promedio ~$140k/mes. **Pase Social**: $15.000/mes menos pasarela (~3,2%) y menos reembolso al productor por crédito canjeado (supuesto $2.500/crédito × 4 créditos × 75% redención) → **margen ~$7k/suscriptor/mes**; la tarifa de reembolso es el supuesto que más mueve esta línea y queda por validar con productores. **Cargo puerta** (~$1.000/no-suscriptor) entra dentro del neto transaccional cuando la venta se registra por app.
 
-| Escenario | Eventos/mes | Neto ticketing | Acad. SaaS (MRR) | Producer Pro (MRR) | Total/mes | ARR run-rate |
-|---|---|---|---|---|---|---|
-| **Piloto** (1 productor + 2 academias) | 5 | ~$0,23M | ~$0,1M | ~$0,1M | **~$0,43M** | **~$5,2M** |
-| **Tracción** (3 productores + 8 academias) | 15 | ~$0,69M | ~$0,72M | ~$0,55M | **~$1,96M** | **~$23,5M** |
-| **Captura escena** (20–25 eventos + 15 academias) | 22 | ~$1,01M | ~$1,35M | ~$1,12M | **~$3,48M** | **~$42M** |
+| Escenario | Eventos/mes | Neto ticketing | Acad. SaaS (MRR) | Producer Pro (MRR) | Pase Social (margen) | Total/mes | ARR run-rate |
+|---|---|---|---|---|---|---|---|
+| **Piloto** (1 productor + 2 academias + ~30 pases) | 5 | ~$0,23M | ~$0,1M | ~$0,1M | ~$0,2M | **~$0,63M** | **~$7,6M** |
+| **Tracción** (3 productores + 8 academias + ~120 pases) | 15 | ~$0,69M | ~$0,72M | ~$0,55M | ~$0,84M | **~$2,8M** | **~$34M** |
+| **Captura escena** (20–25 eventos + 15 academias + 8 Pro + ~350 pases) | 22 | ~$1,01M | ~$1,35M | ~$1,12M | ~$2,45M | **~$5,9M** | **~$71M** |
 
 Lecturas:
 - **El SaaS pesa más que el ticketing** desde tracción — es la tesis de margen: comisión valida volumen, suscripción sostiene MRR. La comisión no puede acercarse al techo Passline porque el take total (fee + SaaS) ya es mayor.
-- A captura total de escena (~20–25 eventos/mes, ~15 academias): **~$42M ARR** sin contar venue-pro, marketplace de instructores ni otros países — la expansión multi-país/multi-gateway del rediseño de puertos es el siguiente multiplicador.
+- **El Pase Social supera a cada línea SaaS individual en captura** con ~20% de adopción sobre asistentes activos — pero depende de dos supuestos no validados: tarifa de reembolso por crédito (cada $500 mueve ~$1,4k el margen por suscriptor) y que el productor mantenga puerta > preventa (si el gap se cierra, cae el valor percibido del pase).
+- A captura total de escena (~20–25 eventos/mes, ~15 academias): **~$71M ARR** sin contar venue-pro, marketplace de instructores, suscripción-ticket de serie (`series_pass`, ~$25k/mes fallback) ni otros países — la expansión multi-país/multi-gateway del rediseño de puertos es el siguiente multiplicador.
 - Sensibilidad a la tasa: cada punto de % gestionado ≈ ±$7k/evento neto → la negociación 10→8% cuesta ~$15k/evento de neto vs lista.
+- **Stress case no modelado aquí**: churn SaaS/pase de 4–5%/mes recorta ~15–20% el ARR de captura; y el escenario Piloto depende de 1 productor — su churn borra ~50% del total del escenario.
 
 ### Comparativa de pasarelas (investigación sep-2026)
 
@@ -626,21 +628,32 @@ Omni-dance (empresa de software propia) recauda y liquida por **transferencia se
 
 ### Modelo SaaS - suscripción de academia y Producer Pro (implementado oct-2026)
 
-El cargo por venta desaparece para la academia: pasa a **suscripción mensual por tier de alumnos activos** (spec `academy-billing`, precios en `PlatformParam` - `academy_tier.*`, ajustables desde `/admin` sin deploy; referencia de mercado: BoxMagic).
+El cargo por venta desaparece para la academia en los tiers de gestión: pasa a **suscripción mensual por features** (spec `academy-billing`, precios en `PlatformParam` - `academy_tier.*`, ajustables desde `/admin` sin deploy; referencia de mercado: BoxMagic). La única excepción es el tier COBROS, donde la cobranza ES el producto y se cobra sobre lo recaudado.
 
-| Tier | Alumnos activos | Mensual | Semestral (−2%) | Anual (−4%) |
-|---|---|---|---|---|
-| STARTER | ≤50 | $49.990 | $48.990 | $47.990 |
-| PRO | ≤150 | $99.990 | $97.990 | $95.990 |
-| STUDIO | ≤400 | $189.990 | $185.990 | $181.990 |
-| ENTERPRISE | ilimitado | contratación manual | - | - |
+| Tier | Precio mensual | Alumnos activos | Incluye |
+|---|---|---|---|
+| **COBROS** (señuelo) | $39.990 | ≤150 | Cobro de membresías por nuestra pasarela + lista de alumnos al día/morosos. Sin clases, sin asistencia, sin staff. Take ~1,5× el fee real de pasarela (~4,8% all-in) — compite con cobranza pura tipo Membrezia |
+| **STUDIO** (objetivo) | $79.990 | ≤300 | + planes y membresías, clases/series, reservas, asistencia por profe, export mensual CSV, check-in. Pasarela a costo real (sin take) |
+| **PRO** (top) | $119.990 | ilimitado | + analítica, CRM (scores/segmentos/campañas), notificaciones de marketing segmentadas, videos, insights, **cuenta multi-academia** |
 
-- El precio apunta al **~8–9% de la facturación típica** de cada banda (ticket mensual $25–35k/alumno); al tope del tier el % efectivo cae → descuento por volumen implícito.
-- Cobro: suscripción recurrente Flow (`PlatformSubscription`, mismo motor que membresías de alumnos). Trial 30d; al superar el límite del tier el sistema exige subir en la próxima compra (`tier_limit` 400).
+- El medio es el plan que queremos vender (gestión completa); el señuelo existe para anclar — quien compara solo sticker no es el segmento.
+- Descuentos por ciclo: semestral **−8%**, anual **−15%** (convención 15–20%; el −2%/−4% anterior no movía decisión).
+- Cobro: suscripción recurrente Flow (`PlatformSubscription`, mismo motor que membresías de alumnos). Trial 30d; al superar el límite de alumnos del tier el sistema exige subir en la próxima compra.
 - **Mora**: renovación fallida → 5 días de gracia → día 6 bloqueo (`billingBlockedAt`): consola read-only, academia y clases fuera de explorar, sin reservas ni compras nuevas - **el alumno conserva todo su historial**. Un pago recuperado desbloquea solo (`RENEWAL_SETTLED`).
 - Los productos de la academia **no cobran cargo de servicio al alumno**; la academia absorbe la tarifa Flow como línea `GATEWAY_FEE_PASSTHROUGH` explícita en su payout.
+- Notificaciones: las **transaccionales** (recordatorio de clase, renovación, waitlist) viven en todos los tiers — son función core, no marketing. Solo las **campañas/pushes de marketing segmentadas** se gatean a PRO.
 
-**Productor**: su monetización core es la **comisión todo incluido por venta** (`platformFeePct`, default 10% / promo 8% - ver "Modelo de precio" arriba) **+ Producer Pro opcional** - suscripción por tier de facturación mensual media (90d): `PRO_STARTER ≤$2,5M → $99.990`, `PRO_GROWTH ≤$8M → $249.990` (ciclos con −2%/−4%), `PRO_BIG` manual. Pro desbloquea analítica avanzada, exports CSV/PDF, CRM y multi-staff - el ticketing base, venta y check-in **nunca se cortan** por la suscripción. Trial de lanzamiento: +90d a productores registrados.
+**Productor**: su monetización core es la **comisión todo incluido por venta** (`platformFeePct`, default 10% / promo 8% - ver "Modelo de precio" arriba) **+ Producer Pro opcional** - suscripción por tier de facturación mensual media (90d) con features gateadas:
+
+| Tier | Precio mensual | Facturación 90d | Incluye |
+|---|---|---|---|
+| **Pro** | $79.990 | ≤$2,5M | Analítica avanzada, export mensual, staff limitado |
+| **Pro Growth** | $169.990 | ≤$8M | + CRM, campañas, multi-staff, códigos avanzados |
+| **Pro Scale** | $299.990 | >$8M (manual OK) | + benchmark vs escena, soporte prioritario, exports completos/API |
+
+El ticketing base, venta y check-in **nunca se cortan** por la suscripción (el marketplace es el funnel). Trial de lanzamiento: +90d a productores registrados. Ciclos con −8% semestral/−15% anual (mismo criterio que academias).
+
+**Publicidad segmentada a bailarines (nueva línea de ingreso)**: academias PRO y productores Pro Growth/Scale pueden promocionar talleres/eventos a dancers por canal notificación in-app, con guardrails duros: **frecuencia cap** (máx. 1 push promocional/semana por persona), targeting por agregados (nivel/ciudad/estilo — nunca data individual al anunciante, cumple la regla de privacidad de scores), opt-out por usuario, y la regla de pista (~5s) se mantiene — el push es glanceable, el detalle vive en el centro. Cola de aprobación admin en v1 para cuidar el tono.
 
 **Contexto competitivo (evaluado oct-2026, decisión: no competir en precio)**:
 - **BoxMagic** (gestión deportiva): ~$39.900+IVA hasta 120 clientes - referencia del pricing de tiers.
