@@ -105,6 +105,8 @@ model Person {
   tripItems            TripItem[]
   socialPass           SocialPass?
   socialPassLedger     SocialPassLedger[]
+
+  @@index([deletedAt])
 }
 
 // Catálogo de roles vivo en DB - se administran desde /admin, no desde código.
@@ -408,6 +410,8 @@ model Event {
   rsvps          Rsvp[]
   academySaleAgreements AcademySaleAgreement[]
   tripItems      TripItem[]
+
+  @@index([cityId])
 }
 
 // RSVP "voy" (spec §8) - intención de asistencia sin ticket. Hoy lo usa
@@ -952,6 +956,8 @@ model Academy {
   paymentClaims  PaymentClaim[]
   saleAgreements AcademySaleAgreement[]
   segmentSnapshots AcademySegmentSnapshot[]
+
+  @@index([cityId])
 }
 
 model AcademyInstructor {
@@ -1603,6 +1609,9 @@ model PayoutLine {
   amount    Int    // deducción (positivo) o abono (negativo)
   meta      Json?  // {rate, gatewayFeeReal, reason...}
   createdAt DateTime @default(now())
+
+  @@index([payoutId])
+  @@index([paymentId])
 }
 
 // Documento interno de cobro (spec admin-billing-documents): nota por la
