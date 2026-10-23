@@ -407,6 +407,25 @@
           }
         },
         {
+          "name": "GET /api/me/academy/entitlements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/academy/entitlements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "academy",
+                "entitlements"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/me/role-checks",
           "request": {
             "method": "GET",
