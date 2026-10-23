@@ -35,6 +35,7 @@ const LINE_LABELS: Record<string, string> = {
   PLATFORM_FEE_NET: "Comisión de plataforma (neto)",
   OWN_METHOD_FEE_NET: "Comisión por métodos propios (neto)",
   GATEWAY_FEE_PASSTHROUGH: "Costo de pasarela (reembolso)",
+  ACADEMY_COBROS_TAKE: "Take de cobranza (plan COBROS)",
   PLATFORM_FEE_VAT: "IVA comisión de plataforma",
   OWN_METHOD_FEE_VAT: "IVA comisión métodos propios",
 };

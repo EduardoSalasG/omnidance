@@ -8,6 +8,7 @@ import { Badge, Button, Card, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { FilterBar } from "@/components/query/FilterBar";
 import { ImportCard } from "@/components/academy/import-section";
@@ -60,7 +61,7 @@ export default function AcademiaSeriesPage() {
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
-          <SeriesModule key={academy.id} academyId={academy.id} />
+          <AcademyTierGate academy={academy} feature="classes"><SeriesModule key={academy.id} academyId={academy.id} /></AcademyTierGate>
         )}
       </AcademyGate>
     </main>

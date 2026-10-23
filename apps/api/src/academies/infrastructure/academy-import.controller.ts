@@ -64,7 +64,7 @@ export class AcademyImportController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    await this.access.requireCapability(id, req.person!, "schedule");
+    await this.access.requireCapability(id, req.person!, "schedule", "classes");
     res
       .set({
         "Content-Type": "text/csv; charset=utf-8",
@@ -104,6 +104,7 @@ export class AcademyImportController {
       id,
       req.person!,
       "schedule",
+      "classes",
     );
     const objects = parseCsvFile(file, [
       "serie",

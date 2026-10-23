@@ -15,6 +15,10 @@ import {
   type AcademyContext,
   type PersonContext,
 } from "../domain/academy.service";
+import {
+  assertAcademyFeature,
+  type AcademyFeature,
+} from "../domain/academy-tiers";
 
 /**
  * Helper de infraestructura: resuelve la academia + sus instructores y aplica
@@ -69,15 +73,35 @@ export class AcademyAccess {
     return { ...person, isAdmin };
   }
 
+  /**
+   * Gate de tier (spec academy-tier-cobros): cuando el endpoint declara
+   * `feature`, la academia debe cubrirla con su suscripción → 403
+   * `{error:"tier.required", upgrade:true, requiredTier}`. ADMIN de
+   * plataforma opera por otro y nunca se gatea (mismo criterio que
+   * producer-pro); alumnos no llegan acá (endpoints de consola).
+   */
+  private assertTier(
+    person: PersonContext,
+    academy: Academy,
+    feature?: AcademyFeature,
+  ): void {
+    if (feature && !person.isAdmin) {
+      assertAcademyFeature(academy, feature);
+    }
+  }
+
   /** owner / instructor / ADMIN - detalle y registro de asistencia. */
   async requireManage(
     academyId: string,
     person: PersonContext,
+    feature?: AcademyFeature,
   ): Promise<{ academy: Academy; ctx: AcademyContext }> {
     const loaded = await this.loadContext(academyId);
-    if (!canManageAcademy(await this.withAdmin(person), loaded.ctx)) {
+    const p = await this.withAdmin(person);
+    if (!canManageAcademy(p, loaded.ctx)) {
       throw new ForbiddenException("sin acceso a esta academia");
     }
+    this.assertTier(p, loaded.academy, feature);
     return loaded;
   }
 
@@ -85,11 +109,14 @@ export class AcademyAccess {
   async requireAdminister(
     academyId: string,
     person: PersonContext,
+    feature?: AcademyFeature,
   ): Promise<{ academy: Academy; ctx: AcademyContext }> {
     const loaded = await this.loadContext(academyId);
-    if (!canAdministerAcademy(await this.withAdmin(person), loaded.ctx)) {
+    const p = await this.withAdmin(person);
+    if (!canAdministerAcademy(p, loaded.ctx)) {
       throw new ForbiddenException("requiere ser owner o ADMIN");
     }
+    this.assertTier(p, loaded.academy, feature);
     return loaded;
   }
 
@@ -103,15 +130,18 @@ export class AcademyAccess {
     academyId: string,
     person: PersonContext,
     cap: AcademyCapability,
+    feature?: AcademyFeature,
   ): Promise<{ academy: Academy; ctx: AcademyContext }> {
     const loaded = await this.loadContext(academyId);
-    if (!canAcademy(await this.withAdmin(person), loaded.ctx, cap)) {
+    const p = await this.withAdmin(person);
+    if (!canAcademy(p, loaded.ctx, cap)) {
       throw new ForbiddenException({
         error: "academy.capability",
         message: `requiere permiso de ${cap} en esta academia`,
         capability: cap,
       });
     }
+    this.assertTier(p, loaded.academy, feature);
     return loaded;
   }
 
@@ -119,11 +149,14 @@ export class AcademyAccess {
   async requireStaff(
     academyId: string,
     person: PersonContext,
+    feature?: AcademyFeature,
   ): Promise<{ academy: Academy; ctx: AcademyContext }> {
     const loaded = await this.loadContext(academyId);
-    if (!isAcademyStaff(await this.withAdmin(person), loaded.ctx)) {
+    const p = await this.withAdmin(person);
+    if (!isAcademyStaff(p, loaded.ctx)) {
       throw new ForbiddenException("requiere ser del equipo de la academia");
     }
+    this.assertTier(p, loaded.academy, feature);
     return loaded;
   }
 
@@ -150,8 +183,9 @@ export class AcademyAccess {
   async requireManageWrite(
     academyId: string,
     person: PersonContext,
+    feature?: AcademyFeature,
   ): Promise<{ academy: Academy; ctx: AcademyContext }> {
-    const loaded = await this.requireManage(academyId, person);
+    const loaded = await this.requireManage(academyId, person, feature);
     this.assertWritable(loaded.academy);
     return loaded;
   }
@@ -160,8 +194,9 @@ export class AcademyAccess {
   async requireAdministerWrite(
     academyId: string,
     person: PersonContext,
+    feature?: AcademyFeature,
   ): Promise<{ academy: Academy; ctx: AcademyContext }> {
-    const loaded = await this.requireAdminister(academyId, person);
+    const loaded = await this.requireAdminister(academyId, person, feature);
     this.assertWritable(loaded.academy);
     return loaded;
   }
@@ -171,8 +206,9 @@ export class AcademyAccess {
     academyId: string,
     person: PersonContext,
     cap: AcademyCapability,
+    feature?: AcademyFeature,
   ): Promise<{ academy: Academy; ctx: AcademyContext }> {
-    const loaded = await this.requireCapability(academyId, person, cap);
+    const loaded = await this.requireCapability(academyId, person, cap, feature);
     this.assertWritable(loaded.academy);
     return loaded;
   }

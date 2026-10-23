@@ -125,15 +125,24 @@ const PARAM_DEFAULTS: Array<{
   { key: "crm.brings_people_referrals", value: 2, description: "Referrals mínimos para segmento BRINGS_PEOPLE" },
   { key: "classes.cancel_refund_minutes", value: 60, description: "Minutos antes del inicio de la clase hasta los que cancelar devuelve el crédito de la cuota - después la reserva se puede cancelar pero la clase se pierde" },
   // ─── SaaS billing (spec academy-saas-billing) ───
-  // Tiers de academia: límite de alumnos activos por tier (ENTERPRISE = sin límite, contratación manual).
-  { key: "academy_tier.starter_max_students", value: 50, description: "Máximo de alumnos activos del tier STARTER de academia" },
-  { key: "academy_tier.pro_max_students", value: 150, description: "Máximo de alumnos activos del tier PRO de academia" },
-  { key: "academy_tier.studio_max_students", value: 400, description: "Máximo de alumnos activos del tier STUDIO de academia" },
+  // Tiers de academia por FEATURES (spec academy-tier-cobros, omni-dance.md
+  // §10): COBROS (cobranza pura) < STUDIO (operación completa) < PRO
+  // (analítica/CRM/marketing/multi-academia). STARTER queda legacy:
+  // conserva precio/tope para las suscripciones existentes pero ya no se
+  // vende (fuera de SELF_SERVE_ACADEMY_TIERS). PRO/ENTERPRISE sin tope.
+  { key: "academy_tier.cobros_max_students", value: 150, description: "Máximo de alumnos activos del tier COBROS de academia" },
+  { key: "academy_tier.studio_max_students", value: 300, description: "Máximo de alumnos activos del tier STUDIO de academia" },
+  { key: "academy_tier.starter_max_students", value: 50, description: "Máximo de alumnos activos del tier STARTER de academia (legado - ya no se vende)" },
   // Precio mensual base por tier (CLP/mes) - el cobro del ciclo se
   // calcula: semestral ×5.75, anual ×11 (meses gratis por compromiso).
-  { key: "academy_tier.starter_monthly_clp", value: 49990, description: "Precio mensual tier STARTER de academia (CLP) - semestral cobra ×5.75, anual ×11" },
-  { key: "academy_tier.pro_monthly_clp", value: 99990, description: "Precio mensual tier PRO de academia (CLP) - semestral cobra ×5.75, anual ×11" },
-  { key: "academy_tier.studio_monthly_clp", value: 189990, description: "Precio mensual tier STUDIO de academia (CLP) - semestral cobra ×5.75, anual ×11" },
+  { key: "academy_tier.cobros_monthly_clp", value: 39990, description: "Precio mensual tier COBROS de academia (CLP) - semestral cobra ×5.75, anual ×11" },
+  { key: "academy_tier.studio_monthly_clp", value: 79990, description: "Precio mensual tier STUDIO de academia (CLP) - semestral cobra ×5.75, anual ×11" },
+  { key: "academy_tier.pro_monthly_clp", value: 119990, description: "Precio mensual tier PRO de academia (CLP) - semestral cobra ×5.75, anual ×11" },
+  { key: "academy_tier.starter_monthly_clp", value: 49990, description: "Precio mensual tier STARTER de academia (CLP, legado) - semestral cobra ×5.75, anual ×11" },
+  // Take de cobranza del tier COBROS: el payout de academias COBROS
+  // descuenta take_multiplier × el fee de pasarela sobre cobros de
+  // membresías (línea ACADEMY_COBROS_TAKE tipada; 1,5× ≈ 4,8% all-in).
+  { key: "academy_cobros.take_multiplier", value: 1.5, description: "Multiplicador del fee de pasarela cobrado como take a academias tier COBROS (sobre membresías)" },
   // Ciclo de facturación de academia: trial de onboarding, grace de
   // lanzamiento para las existentes y gracia por mora antes del bloqueo.
   { key: "academy_billing.trial_days", value: 30, description: "Días de trial de onboarding para academias nuevas (sin tarjeta upfront)" },

@@ -1,0 +1,26 @@
+{
+  "academyTier": {
+    "title": "This tool is part of a higher plan",
+    "featureTitle": "{feature} is part of a higher plan",
+    "partOf": "Part of the {tier} plan",
+    "desc": "Upgrade your tier to keep using it - the change applies immediately.",
+    "cta": "See plans",
+    "tiers": {
+      "COBROS": "Cobros",
+      "STUDIO": "Studio",
+      "PRO": "Pro"
+    },
+    "features": {
+      "classes": "Classes and series",
+      "attendance": "Attendance",
+      "staff": "Team",
+      "exports": "Queries and export",
+      "presales": "Presales",
+      "analytics": "Analytics",
+      "crm": "CRM",
+      "videos": "Videos",
+      "insights": "Insights",
+      "multiAcademy": "Multi-academy"
+    }
+  }
+}

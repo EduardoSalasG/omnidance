@@ -25,6 +25,7 @@ import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
+import { assertAcademyFeature } from "../domain/academy-tiers";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import { dayRange, pageParams, whitelist } from "./list-filters";
@@ -116,7 +117,7 @@ export class PrivateLessonsController {
     @Req() req: Request,
   ) {
     // Mutación de staff - academia bloqueada por mora → 403 (S3).
-    const { academy } = await this.access.requireManageWrite(id, req.person!);
+    const { academy } = await this.access.requireManageWrite(id, req.person!, "classes");
     if (!academy.active) {
       throw new BadRequestException("la academia está inactiva");
     }
@@ -174,7 +175,7 @@ export class PrivateLessonsController {
     @Query("pageSize") pageSize?: string,
   ) {
     const me = req.person!;
-    const { academy } = await this.access.requireManage(id, me);
+    const { academy } = await this.access.requireManage(id, me, "classes");
     const statusF = whitelist(status, PRIVATE_LESSON_STATUS, "status");
     const commissionF = whitelist(commission, COMMISSION_OPTS, "commission");
     const range = dayRange(from, to);
@@ -410,7 +411,7 @@ export class PrivateLessonsController {
 
     const academy = await this.prisma.academy.findUnique({
       where: { id: lesson.academyId },
-      select: { ownerId: true, billingBlockedAt: true },
+      select: { ownerId: true, billingBlockedAt: true, tier: true },
     });
     const me = req.person!;
     const isAdmin = await roleKeysHavePermission(this.prisma, me.roles, [
@@ -421,6 +422,11 @@ export class PrivateLessonsController {
     const isStudent = lesson.personId === me.id;
     if (!isOwner && !isInstructor && !isStudent) {
       throw new ForbiddenException("sin acceso a esta clase privada");
+    }
+    // Acciones de consola (no alumno, no admin): las particulares son
+    // feature STUDIO+ (spec academy-tier-cobros).
+    if (!isStudent && !isAdmin && academy) {
+      assertAcademyFeature(academy, "classes");
     }
 
     // Academia bloqueada por mora (S3): las acciones de staff

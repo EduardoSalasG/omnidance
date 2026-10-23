@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe, type MeContextData } from "@/lib/me-context";
 import { useFeatures } from "@/lib/features-context";
+import { useAcademyEntitlements } from "@/lib/academy-entitlements-context";
 import { notificationLens } from "@/lib/notification-lens";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
@@ -306,6 +307,11 @@ type DrawerSpec = {
   // ausente → siempre visible; presente → solo si flags[flag] === true
   // (fail-closed, mismo criterio que el gate del API).
   flag?: string;
+  // Feature del tier de academia (spec academy-tier-cobros): solo aplica
+  // a la lente ACADEMY_OWNER - el ítem entra si la academia seleccionada
+  // cubre la feature (mientras los entitlements cargan se muestra; el
+  // 403 del API queda de red de seguridad).
+  academyFeature?: string;
 };
 
 type DrawerGroupSpec = {
@@ -360,20 +366,22 @@ const CRM_DRAWER_GROUP: DrawerGroupSpec = {
   labelNs: "nav",
   labelKey: "crm",
   items: [
-    { href: "/crm", ns: "crm", key: "nav.people", icon: ICONS.crm, exact: true },
+    { href: "/crm", ns: "crm", key: "nav.people", icon: ICONS.crm, exact: true, academyFeature: "crm" },
     {
       href: "/crm/segmentos",
       ns: "crm",
       key: "nav.segments",
       icon: ICONS.funnel,
+      academyFeature: "crm",
     },
     {
       href: "/crm/campanas",
       ns: "crm",
       key: "nav.campaigns",
       icon: ICONS.megaphone,
+      academyFeature: "crm",
     },
-    { href: "/crm/triggers", ns: "crm", key: "nav.triggers", icon: ICONS.zap },
+    { href: "/crm/triggers", ns: "crm", key: "nav.triggers", icon: ICONS.zap, academyFeature: "crm" },
   ],
 };
 // /analitica es la única superficie de analítica: consola de consultas
@@ -387,6 +395,9 @@ const ANALYTICS_ITEM: DrawerSpec = {
   icon: ICONS.slider,
   // exact: el admin también lista /analitica/usuarios en el mismo grupo.
   exact: true,
+  // Lente academia: la consola de consultas/export es feature STUDIO+
+  // (otras lentes ignoran el campo - producer gatea por Pro aparte).
+  academyFeature: "exports",
 };
 
 // Sheet del bailarín - módulos secundarios por lente (social/academia).
@@ -583,18 +594,21 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "academySeries",
           key: "title",
           icon: ICONS.events,
+          academyFeature: "classes",
         },
         {
           href: "/academia/particulares",
           ns: "academy",
           key: "modules.lessons",
           icon: ICONS.dances,
+          academyFeature: "classes",
         },
         {
           href: "/academia/videos",
           ns: "academy",
           key: "modules.videos",
           icon: ICONS.play,
+          academyFeature: "videos",
         },
       ],
     },
@@ -633,12 +647,14 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "academy",
           key: "modules.presales",
           icon: ICONS.tag,
+          academyFeature: "presales",
         },
         {
           href: "/academia/equipo",
           ns: "academy",
           key: "modules.team",
           icon: ICONS.users,
+          academyFeature: "staff",
         },
       ],
     },
@@ -1011,6 +1027,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // Flags de funcionalidad (spec feature-flags-admin): gatean ítems
   // de superficie (Ciudades en el sheet/sidebar del bailarín).
   const { flags } = useFeatures();
+  // Entitlements del tier de la academia seleccionada (spec
+  // academy-tier-cobros): filtra los módulos del owner por feature.
+  const { has: academyHas, loading: entLoading } = useAcademyEntitlements();
   // null = sin sesión (o fetch aún no responde con certeza) → sin badge.
   const [unread, setUnread] = useState<number | null>(null);
   // null = sin sesión → el drawer muestra solo Perfil.
@@ -1270,9 +1289,20 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           bare: g.bare,
           mobileOnly: g.mobileOnly,
           // Ítems con `flag` solo entran si el flag resolvió ON - el
-          // drawer/sidebar nunca enlazan superficies apagadas.
+          // drawer/sidebar nunca enlazan superficies apagadas. Los
+          // ítems con `academyFeature` solo aplican a la lente owner:
+          // entran si la academia seleccionada cubre la feature
+          // (mientras cargan los entitlements se muestran - el 403 del
+          // API es la red de seguridad).
           items: g.items
             .filter((spec) => !spec.flag || flags[spec.flag] === true)
+            .filter(
+              (spec) =>
+                spec.academyFeature == null ||
+                activeRole !== "ACADEMY_OWNER" ||
+                entLoading ||
+                academyHas(spec.academyFeature),
+            )
             .map((spec) => {
               const active =
                 (showTabBar ? !tabHrefs.has(spec.href) : true) &&

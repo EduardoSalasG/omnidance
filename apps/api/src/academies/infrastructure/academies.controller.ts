@@ -58,6 +58,7 @@ import {
   classEnded,
 } from "./class-card-projection";
 import { RolesGuard } from "../../common/rbac/roles.guard";
+import { assertAnyOwnedAcademyMeets } from "../../common/academy-tier";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import {
   mimeForKey,
@@ -684,6 +685,22 @@ export class AcademiesController {
     // Trial SaaS (spec academy-saas-billing): `academy_billing.trial_days`
     // días gratis desde la creación; las academias existentes recibieron
     // la grace de lanzamiento por backfill (migration_grace_days).
+    // Multi-academia = feature PRO (spec academy-tier-cobros): crear
+    // una academia adicional exige que alguna academia del owner ya
+    // tenga multiAcademy habilitado; admins pasan sin gate.
+    const isAdmin = await this.access.isPlatformAdmin(req.person!);
+    if (!isAdmin) {
+      const ownedCount = await this.prisma.academy.count({
+        where: { ownerId: req.person!.id },
+      });
+      if (ownedCount > 0) {
+        await assertAnyOwnedAcademyMeets(
+          this.prisma,
+          req.person!.id,
+          "multiAcademy",
+        );
+      }
+    }
     const trialDays = await this.params.getNumber(
       "academy_billing.trial_days",
       30,
@@ -998,7 +1015,7 @@ export class AcademiesController {
     @Body() dto: UpdateInstructorDto,
     @Req() req: Request,
   ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "team");
+    await this.access.requireCapabilityWrite(id, req.person!, "team", "staff");
     const instructor = await this.prisma.academyInstructor.findUnique({
       where: { academyId_personId: { academyId: id, personId } },
     });
@@ -1258,7 +1275,7 @@ export class AcademiesController {
     @Query("seriesId") seriesId?: string,
     @Query("month") month?: string,
   ) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireAdminister(id, req.person!, "insights");
     const surveys = await this.prisma.courseSurvey.findMany({
       where: {
         academyId: id,
@@ -1282,7 +1299,7 @@ export class AcademiesController {
     @Param("personId") personId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireAdminister(id, req.person!, "insights");
     const surveys = await this.prisma.courseSurvey.findMany({
       where: { academyId: id, instructorId: personId },
       orderBy: [{ month: "desc" }, { createdAt: "desc" }],
@@ -1809,7 +1826,7 @@ export class AcademiesController {
   @Get(":id/students/insights")
   @UseGuards(SessionGuard)
   async studentsInsights(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireManage(id, req.person!);
+    await this.access.requireManage(id, req.person!, "insights");
     // Montos detrás de la capacidad `payments` (spec academies/
     // staff-roles): el instructor lee asistencia pero nunca ve quién
     // pagó más - topPayersMonth responde [] sin la cap.
@@ -2077,7 +2094,7 @@ export class AcademiesController {
     @Req() req: Request,
     @Query("seriesId") seriesId?: string,
   ) {
-    await this.access.requireCapability(id, req.person!, "schedule");
+    await this.access.requireCapability(id, req.person!, "schedule", "classes");
     return this.prisma.classSlot.findMany({
       where: { academyId: id, ...(seriesId ? { seriesId } : {}) },
       orderBy: [{ weekday: "asc" }, { startTime: "asc" }],

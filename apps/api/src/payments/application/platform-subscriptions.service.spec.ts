@@ -31,12 +31,13 @@ const DAY = 24 * 60 * 60_000;
 // mensual base; el cobro del ciclo se calcula (semestral ×5.75, anual
 // ×11 sobre el mensual).
 const PARAMS = new Map<string, number>([
+  ["academy_tier.cobros_max_students", 30],
+  ["academy_tier.studio_max_students", 120],
   ["academy_tier.starter_max_students", 30],
-  ["academy_tier.pro_max_students", 120],
-  ["academy_tier.studio_max_students", 400],
-  ["academy_tier.starter_monthly_clp", 19990],
-  ["academy_tier.pro_monthly_clp", 39990],
+  ["academy_tier.cobros_monthly_clp", 19990],
   ["academy_tier.studio_monthly_clp", 79990],
+  ["academy_tier.pro_monthly_clp", 39990],
+  ["academy_tier.starter_monthly_clp", 19990],
   ["academy_billing.grace_days", 5],
   ["producer_tier.starter_max_monthly_clp", 2500000],
   ["producer_tier.growth_max_monthly_clp", 8000000],
@@ -66,7 +67,7 @@ function mkPlatSub(over: Partial<Row> = {}): PlatformSubscription {
     academyId: "ac1",
     producerId: null,
     personId: "p1",
-    tierCode: "STARTER",
+    tierCode: "COBROS",
     billingCycle: "MONTHLY",
     flowSubscriptionId: null,
     status: "PENDING_CARD",
@@ -461,7 +462,7 @@ function mkFlowSub(
 ): RemoteSubscription {
   return {
     subscriptionId: "fsub-1",
-    planId: "plat_academy_starter_monthly",
+    planId: "plat_academy_cobros_monthly",
     status: "ACTIVE",
     morose: false,
     cancelAtPeriodEnd: false,
@@ -524,7 +525,7 @@ describe("PlatformSubscriptionsService", () => {
 
   describe("subscribeAcademy", () => {
     const input = {
-      tier: "STARTER",
+      tier: "COBROS",
       cycle: "MONTHLY" as const,
       acceptRecurring: true,
     };
@@ -614,14 +615,14 @@ describe("PlatformSubscriptionsService", () => {
       expect(sub.kind).toBe("ACADEMY");
       expect(sub.academyId).toBe("ac1");
       expect(sub.personId).toBe("p1");
-      expect(sub.tierCode).toBe("STARTER");
+      expect(sub.tierCode).toBe("COBROS");
       expect(sub.billingCycle).toBe("MONTHLY");
 
       // Plan espejo compartido del tier: plat_academy_<tier>_<cycle>
       expect(flow.ensurePlan).toHaveBeenCalledWith(
         {
-          planId: "plat_academy_starter_monthly",
-          name: expect.stringContaining("STARTER"),
+          planId: "plat_academy_cobros_monthly",
+          name: expect.stringContaining("COBROS"),
           amount: 19990,
           intervalCount: 1,
         },
@@ -642,7 +643,7 @@ describe("PlatformSubscriptionsService", () => {
       });
       expect(flow.ensurePlan).toHaveBeenCalledWith(
         {
-          planId: "plat_academy_starter_semiannual",
+          planId: "plat_academy_cobros_semiannual",
           name: expect.any(String),
           amount: Math.round(19990 * 5.75), // medio mes gratis al año
           intervalCount: 6,
@@ -662,7 +663,7 @@ describe("PlatformSubscriptionsService", () => {
       expect(r.kind).toBe("subscribed");
       expect(flow.createSubscription).toHaveBeenCalledWith(
         {
-          planId: "plat_academy_starter_monthly",
+          planId: "plat_academy_cobros_monthly",
           customerId: "cus_p1",
           subscriptionStart: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
         },
@@ -672,7 +673,7 @@ describe("PlatformSubscriptionsService", () => {
       expect(sub.status).toBe("ACTIVE");
       expect(sub.flowSubscriptionId).toBe("fsub-1");
       expect(sub.nextInvoiceAt).toEqual(new Date("2026-11-05"));
-      expect(fx.academies.get("ac1")!.tier).toBe("STARTER");
+      expect(fx.academies.get("ac1")!.tier).toBe("COBROS");
       expect(fx.academies.get("ac1")!.billingCycle).toBe("MONTHLY");
       expect(notifications.notifySafe).toHaveBeenCalledWith(
         "p1",
@@ -691,7 +692,7 @@ describe("PlatformSubscriptionsService", () => {
     });
 
     it("PENDING_CARD fresca del mismo scope → reutiliza la fila", async () => {
-      const prev = mkPlatSub({ tierCode: "STARTER" });
+      const prev = mkPlatSub({ tierCode: "COBROS" });
       fx.platSubs.push(prev);
       const r = await svc.subscribeAcademy(
         "p1",
@@ -818,7 +819,7 @@ describe("PlatformSubscriptionsService", () => {
       const sub = mkPlatSub({
         status: "ACTIVE",
         flowSubscriptionId: "fsub-old",
-        tierCode: "STARTER",
+        tierCode: "COBROS",
         nextInvoiceAt: new Date("2026-11-05"),
       });
       fx.platSubs.push(sub);
@@ -855,12 +856,12 @@ describe("PlatformSubscriptionsService", () => {
       const updated = await svc.updateAcademySubscription(
         "p1",
         ACADEMY_ROW as never,
-        { tier: "STARTER" },
+        { tier: "COBROS" },
       );
 
       expect(updated.status).toBe("CANCEL_PENDING");
       expect(updated.tierCode).toBe("PRO"); // vigente hasta el swap
-      expect(updated.pendingTierCode).toBe("STARTER");
+      expect(updated.pendingTierCode).toBe("COBROS");
       expect(flow.cancelSubscription).toHaveBeenCalledWith(
         "fsub-old",
         expect.not.objectContaining({ immediate: true }),
@@ -909,7 +910,7 @@ describe("PlatformSubscriptionsService", () => {
         status: "CANCEL_PENDING",
         flowSubscriptionId: "fsub-old",
         tierCode: "PRO",
-        pendingTierCode: "STARTER",
+        pendingTierCode: "COBROS",
         pendingBillingCycle: "MONTHLY",
         canceledAt: new Date(),
       });
@@ -942,7 +943,7 @@ describe("PlatformSubscriptionsService", () => {
       fx.platSubs.push(sub);
       const err = await svc
         .updateAcademySubscription("p1", ACADEMY_ROW as never, {
-          tier: "STARTER",
+          tier: "COBROS",
         })
         .catch((e: unknown) => e);
       expect(errBody(err).error).toBe("tier_limit");
@@ -1183,7 +1184,7 @@ describe("PlatformSubscriptionsService", () => {
         status: "CANCEL_PENDING",
         flowSubscriptionId: "fsub-old",
         tierCode: "PRO",
-        pendingTierCode: "STARTER",
+        pendingTierCode: "COBROS",
         pendingBillingCycle: "ANNUAL",
       });
       fx.platSubs.push(sub);
@@ -1197,22 +1198,22 @@ describe("PlatformSubscriptionsService", () => {
 
       expect(flow.ensurePlan).toHaveBeenCalledWith(
         expect.objectContaining({
-          planId: "plat_academy_starter_annual",
+          planId: "plat_academy_cobros_annual",
           amount: 19990 * 11, // un mes gratis
           intervalCount: 12,
         }),
         { correlationId: expect.any(String) },
       );
       expect(flow.createSubscription).toHaveBeenCalledWith(
-        expect.objectContaining({ planId: "plat_academy_starter_annual" }),
+        expect.objectContaining({ planId: "plat_academy_cobros_annual" }),
         { correlationId: expect.any(String) },
       );
       expect(sub.status).toBe("ACTIVE");
-      expect(sub.tierCode).toBe("STARTER");
+      expect(sub.tierCode).toBe("COBROS");
       expect(sub.billingCycle).toBe("ANNUAL");
       expect(sub.pendingTierCode).toBeNull();
       expect(sub.flowSubscriptionId).not.toBe("fsub-old");
-      expect(fx.academies.get("ac1")!.tier).toBe("STARTER");
+      expect(fx.academies.get("ac1")!.tier).toBe("COBROS");
       expect(fx.academies.get("ac1")!.billingCycle).toBe("ANNUAL");
     });
 
@@ -1326,7 +1327,7 @@ describe("PlatformSubscriptionsService", () => {
       });
       expect(sub.status).toBe("ACTIVE");
       expect(sub.flowSubscriptionId).toBe("fsub-1");
-      expect(fx.academies.get("ac1")!.tier).toBe("STARTER");
+      expect(fx.academies.get("ac1")!.tier).toBe("COBROS");
       // el INBOUND quedó auditado
       expect(fx.gatewayTxs).toContainEqual(
         expect.objectContaining({
@@ -1354,11 +1355,11 @@ describe("PlatformSubscriptionsService", () => {
   describe("academyBillingView", () => {
     it("estado completo: tier, alumnos, límite, próximo cobro, invoices", async () => {
       const academy = fx.academies.get("ac1")!;
-      academy.tier = "PRO";
+      academy.tier = "STUDIO";
       academy.billingCycle = "MONTHLY";
       const sub = mkPlatSub({
         status: "ACTIVE",
-        tierCode: "PRO",
+        tierCode: "STUDIO",
         flowSubscriptionId: "fsub-1",
         nextInvoiceAt: new Date("2026-11-05"),
       });
@@ -1381,7 +1382,7 @@ describe("PlatformSubscriptionsService", () => {
       );
 
       const view = await svc.academyBillingView(academy as never);
-      expect(view.tier).toBe("PRO");
+      expect(view.tier).toBe("STUDIO");
       expect(view.status).toBe("ACTIVE");
       expect(view.activeStudents).toBe(2);
       expect(view.maxStudents).toBe(120);

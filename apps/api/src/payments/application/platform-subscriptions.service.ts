@@ -305,7 +305,7 @@ export class PlatformSubscriptionsService {
     }
     if (!SELF_SERVE_ACADEMY_TIERS.has(input.tier)) {
       throw new BadRequestException(
-        "el tier ENTERPRISE es de contratación manual - contacta a ventas",
+        "ese tier es de contratación manual o ya no se vende - contacta a ventas",
       );
     }
     const [activeStudents, max] = await Promise.all([
@@ -784,7 +784,7 @@ export class PlatformSubscriptionsService {
     const targetCycle = input.cycle ?? sub.billingCycle;
     if (!SELF_SERVE_ACADEMY_TIERS.has(targetTier)) {
       throw new BadRequestException(
-        "el tier ENTERPRISE es de contratación manual - contacta a ventas",
+        "ese tier es de contratación manual o ya no se vende - contacta a ventas",
       );
     }
     // Spec: la verificación del límite aplica al suscribir y al bajar de

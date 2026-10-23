@@ -10,6 +10,7 @@ import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "../../academies/infrastructure/academy-access.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
+import { assertAcademyFeature } from "../../academies/domain/academy-tiers";
 
 // Preventa por academias (spec academy-presale-commission): el productor
 // invita academias a vender su preventa por un % del precio de lista. La
@@ -97,9 +98,13 @@ export class AcademySalesService {
   private async assertApprovedAcademy(academyId: string) {
     const academy = await this.prisma.academy.findUnique({
       where: { id: academyId },
-      select: { id: true, name: true, active: true, ownerId: true },
+      select: { id: true, name: true, active: true, ownerId: true, tier: true },
     });
     if (!academy?.active) throw new AcademyNotApprovedError();
+    // Preventa por comisión = feature STUDIO+ (spec academy-tier-cobros):
+    // una academia COBROS no puede aceptar acuerdos - el productor lo
+    // ve como 403 tier.required.
+    assertAcademyFeature(academy, "presales");
     const ownerRole = await this.prisma.personRole.findFirst({
       where: {
         personId: academy.ownerId,
@@ -535,6 +540,7 @@ export class AcademySalesService {
         agreement.academyId,
         person,
         "payments",
+        "presales",
       );
       if (agreement.status !== "INVITED") {
         throw new ConflictException("el acuerdo ya fue respondido");
@@ -599,7 +605,7 @@ export class AcademySalesService {
 
   /** Vista academia: sus acuerdos con ventas, comisión devengada y deuda. */
   async listForAcademy(academyId: string, person: { id: string; roles: string[] }) {
-    await this.access.requireStaff(academyId, person);
+    await this.access.requireStaff(academyId, person, "presales");
     const agreements = await this.prisma.academySaleAgreement.findMany({
       where: { academyId },
       include: {
@@ -724,6 +730,7 @@ export class AcademySalesService {
       agreement.academyId,
       person,
       "payments",
+      "presales",
     );
 
     const slug = AcademySalesService.codeSlug(agreement.academy.name);
@@ -799,7 +806,7 @@ export class AcademySalesService {
     const producerId =
       agreement.event?.producerId ?? agreement.series?.producerId ?? null;
     try {
-      await this.access.requireStaff(agreement.academyId, person);
+      await this.access.requireStaff(agreement.academyId, person, "presales");
     } catch {
       await this.requireOwnerOrAdmin(producerId, person);
     }

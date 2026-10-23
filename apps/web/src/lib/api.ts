@@ -29,3 +29,23 @@ export async function isProRequired(res: Response): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * ¿La respuesta es el gateo por tier de academia? El API responde 403
+ * `{error:"tier.required", upgrade:true, requiredTier}` cuando la
+ * suscripción de la academia no cubre la feature (spec
+ * academy-tier-cobros). Lee un clone - el caller sigue pudiendo leer.
+ */
+export async function isTierRequired(res: Response): Promise<boolean> {
+  if (res.status !== 403) return false;
+  try {
+    const body: unknown = await res.clone().json();
+    return (
+      !!body &&
+      typeof body === "object" &&
+      (body as { error?: unknown }).error === "tier.required"
+    );
+  } catch {
+    return false;
+  }
+}

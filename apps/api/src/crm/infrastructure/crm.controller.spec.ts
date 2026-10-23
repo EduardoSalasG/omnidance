@@ -27,7 +27,7 @@ interface FakeRole {
 
 class FakePrisma {
   people = new Map<string, FakePersonRow>();
-  academies: { id: string; ownerId: string }[] = [];
+  academies: { id: string; ownerId: string; tier?: string | null }[] = [];
   roles: FakeRole[] = [];
 
   person = {
@@ -46,6 +46,10 @@ class FakePrisma {
       this.academies.find(
         (a) => a.id === where.id && a.ownerId === where.ownerId,
       ) ?? null,
+    // Gate de tier (academy-tier-cobros): assertAcademyTier lee el tier
+    // de la academia por findUnique.
+    findUnique: async ({ where }: { where: { id: string } }) =>
+      this.academies.find((a) => a.id === where.id) ?? null,
   };
 
   role = {
@@ -110,7 +114,8 @@ describe("CrmController - gating Producer Pro", () => {
     );
     prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
     prisma.people.set("prod-1", mkProducer("prod-1"));
-    prisma.academies.push({ id: "ac-1", ownerId: "owner-1" });
+    // El CRM de academia es feature PRO (academy-tier-cobros).
+    prisma.academies.push({ id: "ac-1", ownerId: "owner-1", tier: "PRO" });
   });
 
   const campaignDto = {
@@ -182,6 +187,18 @@ describe("CrmController - gating Producer Pro", () => {
     );
     expect(res).toEqual({ id: "camp-1" });
     expect(crm.createCampaign).toHaveBeenCalledOnce();
+  });
+
+  it("actor ACADEMY con tier COBROS → 403 tier.required (CRM es PRO)", async () => {
+    prisma.academies = [{ id: "ac-1", ownerId: "owner-1", tier: "COBROS" }];
+    const err = await ctrl
+      .createCampaign(
+        { ...campaignDto, actorType: "ACADEMY", actorId: "ac-1" },
+        reqAs("owner-1"),
+      )
+      .catch((e: unknown) => e);
+    expect(errBody(err).error).toBe("tier.required");
+    expect(errBody(err).requiredTier).toBe("PRO");
   });
 
   it("admin operando el CRM de un productor FREE → pasa sin gate", async () => {

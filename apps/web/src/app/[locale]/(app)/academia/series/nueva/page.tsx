@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, RefreshIcon, SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { SeriesForm } from "@/components/academy/series-form";
 import { ConsoleHeader } from "@/components/console/console-header";
 import type { Series } from "@/components/academy/shared";
@@ -25,7 +26,7 @@ function NuevaSerie() {
       <ConsoleHeader backHref="/academia/series" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
-          <SeriesFormLoader key={academy.id} academyId={academy.id} />
+          <AcademyTierGate academy={academy} feature="classes"><SeriesFormLoader key={academy.id} academyId={academy.id} /></AcademyTierGate>
         )}
       </AcademyGate>
     </main>

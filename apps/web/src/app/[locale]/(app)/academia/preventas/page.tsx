@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
   Badge,
@@ -159,7 +160,7 @@ export default function AcademyPresalesPage() {
       <p className="text-sm text-ink/50">{t("academyPageDesc")}</p>
       <AcademyGate>
         {({ academy }) => (
-          <PresaleDeals key={academy.id} academyId={academy.id} />
+          <AcademyTierGate academy={academy} feature="presales"><PresaleDeals key={academy.id} academyId={academy.id} /></AcademyTierGate>
         )}
       </AcademyGate>
     </main>
