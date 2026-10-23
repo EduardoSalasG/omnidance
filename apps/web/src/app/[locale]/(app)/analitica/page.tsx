@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch, isProRequired } from "@/lib/api";
+import { apiFetch, isProRequired, isTierRequired } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
 import {
@@ -15,6 +15,7 @@ import {
   Spinner,
 } from "@/components/ui";
 import { ProPaywall } from "@/components/producer/pro-paywall";
+import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
 import {
   OnboardingRunner,
   type TourStep,
@@ -50,7 +51,14 @@ import { QUERY_CATALOG, QUERY_ROLES } from "@omnidance/shared";
 
 type Role = QueryRole | "VENUE_MANAGER";
 type BootPhase = "loading" | "error" | "forbidden" | "ready";
-type CatalogPhase = "loading" | "error" | "forbidden" | "pro" | "empty" | "ready";
+type CatalogPhase =
+  | "loading"
+  | "error"
+  | "forbidden"
+  | "pro"
+  | "tier"
+  | "empty"
+  | "ready";
 type RunPhase = "idle" | "loading" | "error" | "ready";
 
 type CatalogResponse = {
@@ -142,6 +150,10 @@ export default function AnaliticaPage() {
       setCatalogPhase("loading");
       try {
         const res = await apiFetch(`/query/catalog?role=${r}`);
+        if (res.status === 403 && (await isTierRequired(res))) {
+          setCatalogPhase("tier");
+          return;
+        }
         if (res.status === 403 && (await isProRequired(res))) {
           setCatalogPhase("pro");
           return;
@@ -227,6 +239,11 @@ export default function AnaliticaPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ role, entity, filters, page: pageNum }),
         });
+        if (res.status === 403 && (await isTierRequired(res))) {
+          setRunPhase("idle");
+          setCatalogPhase("tier");
+          return;
+        }
         if (res.status === 403 && (await isProRequired(res))) {
           setRunPhase("idle");
           setCatalogPhase("pro");
@@ -380,6 +397,13 @@ export default function AnaliticaPage() {
           )}
 
           {catalogPhase === "pro" && <ProPaywall />}
+
+          {catalogPhase === "tier" && (
+            // El catálogo del actor academia respondió 403
+            // tier.required (spec academy-tier-cobros) - paywall de
+            // tier, hermano del ProPaywall del productor.
+            <AcademyTierPaywall feature="analytics" />
+          )}
 
           {catalogPhase === "forbidden" && (
             <Card className="py-6 text-center">

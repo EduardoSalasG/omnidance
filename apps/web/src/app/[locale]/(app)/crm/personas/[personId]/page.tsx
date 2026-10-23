@@ -19,6 +19,7 @@ import {
 } from "@/components/crm/crm-context";
 import { TagBadges } from "@/components/crm/tag-badges";
 import { ProPaywall } from "@/components/producer/pro-paywall";
+import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
 import type {
   CrmActor,
   CrmPersonDetail,
@@ -75,6 +76,8 @@ export default function CrmPersonPage() {
         <>
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
+          ) : ctx.tierBlocked ? (
+            <AcademyTierPaywall feature="crm" />
           ) : ctx.proBlocked ? (
             <ProPaywall />
           ) : (

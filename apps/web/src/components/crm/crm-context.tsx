@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import { useAcademyEntitlements } from "@/lib/academy-entitlements-context";
 import { Button, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import type { CrmActor } from "./types";
@@ -24,6 +25,10 @@ type CrmContextValue = {
       assertProducerPro solo cuando actorId === caller.id). Las
       páginas renderizan el paywall en vez del contenido. */
   proBlocked: boolean;
+  /** El actor resuelto es una academia cuyo tier no incluye el CRM
+      (COBROS/STUDIO - spec academy-tier-cobros): el API responde 403
+      tier.required - las páginas renderizan el paywall de tier. */
+  tierBlocked: boolean;
 };
 
 /**
@@ -149,12 +154,24 @@ export function useCrmContext(): CrmContextValue {
     actor.actorId === meId &&
     effectivePro === false;
 
+  // El CRM de academia es feature PRO del tier (spec
+  // academy-tier-cobros): el API responde 403 tier.required en todos
+  // sus endpoints - el front lo anticipa igual que proBlocked.
+  const academyEnt = useAcademyEntitlements(
+    actor?.actorType === "ACADEMY" ? actor.actorId : null,
+  );
+  const tierBlocked =
+    actor?.actorType === "ACADEMY" &&
+    !academyEnt.loading &&
+    !academyEnt.has("crm");
+
   return {
     gate,
     boot,
     actors,
     actor,
     proBlocked,
+    tierBlocked,
   };
 }
 

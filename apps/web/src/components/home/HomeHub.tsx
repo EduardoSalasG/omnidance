@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
+import { useFeatures } from "@/lib/features-context";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -416,7 +417,16 @@ export function HomeHub() {
   // Contador de reintento: el efecto de stats lo escucha para refetchear.
   const [statsRetry, setStatsRetry] = useState(0);
   const activeRole = useActiveRole(me?.roles);
-  const viewMode = useViewMode();
+  const { flags } = useFeatures();
+  const rawViewMode = useViewMode();
+  // Línea apagada por flag (spec product-line-flags): la lente cae
+  // forzada a la única línea activa - el toggle además se oculta.
+  const viewMode =
+    flags.social_line === false
+      ? "academy"
+      : flags.academy_line === false
+        ? "social"
+        : rawViewMode;
   const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
   const lensKey = `${activeRole}:${viewMode}`;
 
