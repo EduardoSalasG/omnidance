@@ -152,7 +152,7 @@ export function welcomeEmailHtml(name: string, webUrl: string): string {
 
 export function magicLinkEmailHtml(link: string, code: string): string {
   return emailShell(
-    `Tu acceso a Omnidance - código ${code} o link (válido 15 minutos).`,
+    `Tu acceso a Omnidance - código ${code} (10 min) o link (15 min).`,
     `
     <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;line-height:1.25;letter-spacing:-0.02em;text-align:center;">
       Tu acceso a Omnidance
@@ -181,7 +181,7 @@ export function magicLinkEmailHtml(link: string, code: string): string {
 
 export function verifyEmailHtml(link: string, code: string): string {
   return emailShell(
-    `Verifica tu correo Omnidance - código ${code} o link (válido 15 minutos).`,
+    `Verifica tu correo Omnidance - código ${code} (10 min) o link (15 min).`,
     `
     <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;line-height:1.25;letter-spacing:-0.02em;text-align:center;">
       Verifica tu correo
