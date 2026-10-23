@@ -307,7 +307,12 @@
       "subscribeNoPrice": "Price unavailable",
       "subscribeOk": "Producer Pro activated!",
       "subscribeError": "We couldn't start the subscription. Try again.",
-      "tierLimit": "Your revenue exceeds the self-serve plans' cap. Write to us for a custom Pro plan."
+      "tierLimit": "Your revenue exceeds the self-serve plans' cap. Write to us for a custom Pro plan.",
+      "promoBadge": "Promo {name}",
+      "promoOff": "−{pct}% per charge",
+      "promoOffFixed": "−{amount} per charge",
+      "promoUntil": "until {date}",
+      "promoCyclesLeft": "{count} discounted charges left"
     },
     "gateway": {
       "title": "My payment gateway",

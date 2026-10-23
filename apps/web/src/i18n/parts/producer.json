@@ -307,7 +307,12 @@
       "subscribeNoPrice": "Precio no disponible",
       "subscribeOk": "¡Producer Pro activado!",
       "subscribeError": "No pudimos iniciar la suscripción. Inténtalo de nuevo.",
-      "tierLimit": "Tu facturación supera el tope de los planes autogestionados. Escríbenos para contratar Pro a medida."
+      "tierLimit": "Tu facturación supera el tope de los planes autogestionados. Escríbenos para contratar Pro a medida.",
+      "promoBadge": "Promo {name}",
+      "promoOff": "−{pct}% por cobro",
+      "promoOffFixed": "−{amount} por cobro",
+      "promoUntil": "hasta el {date}",
+      "promoCyclesLeft": "quedan {count} cobros con descuento"
     },
     "gateway": {
       "title": "Mi pasarela de cobro",

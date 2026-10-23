@@ -69,6 +69,17 @@ type BillingView = {
   graceDaysLeft: number | null;
   blocked: boolean;
   blockedAt: string | null;
+  /** Promo vigente aplicable (spec platform-promos); null = precio lleno. */
+  activePromo: {
+    id: string;
+    name: string;
+    discountType: "PERCENT" | "FIXED_CLP";
+    percentOff: number | null;
+    amountOffClp: number | null;
+    validUntil: string;
+    cyclesLeft: number | null;
+    finalMonthlyClp: number | null;
+  } | null;
   invoices: {
     id: string;
     refId: string;
@@ -199,6 +210,21 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
       ? Math.round(monthly * CYCLE_BILLED_MONTHS[selCycle])
       : null;
   }, [num, selTier, selCycle]);
+
+  // Cargo efectivo con la promo vigente (spec platform-promos): mismo
+  // cálculo que promoChargeClp del API - PERCENT rebate el % del cargo,
+  // FIXED_CLP descuenta el monto fijo (piso $0).
+  const promo = view?.activePromo ?? null;
+  const promoCharge = useCallback(
+    (charge: number) =>
+      promo == null
+        ? charge
+        : promo.discountType === "PERCENT"
+          ? Math.round((charge * (100 - (promo.percentOff ?? 0))) / 100)
+          : Math.max(0, charge - (promo.amountOffClp ?? 0)),
+    [promo],
+  );
+  const chargeFinal = chargeTotal != null ? promoCharge(chargeTotal) : null;
 
   const hasLiveSub =
     view?.status === "ACTIVE" || view?.status === "CANCEL_PENDING";
@@ -590,6 +616,26 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
             {t("trialDaysLeft", { days: trialDaysLeft })}
           </p>
         )}
+        {promo && (
+          <div className="rounded-xl border border-neon/30 bg-neon/10 px-4 py-3">
+            <p className="text-sm font-medium text-neon">
+              {t("promoBadge", { name: promo.name })}
+            </p>
+            <p className="mt-0.5 text-xs text-ink/60">
+              {promo.discountType === "PERCENT"
+                ? t("promoOff", { pct: promo.percentOff ?? 0 })
+                : t("promoOffFixed", {
+                    amount: clp(locale).format(promo.amountOffClp ?? 0),
+                  })}
+              {" · "}
+              {t("promoUntil", {
+                date: planDateFmt(locale).format(new Date(promo.validUntil)),
+              })}
+              {promo.cyclesLeft != null &&
+                ` · ${t("promoCyclesLeft", { count: promo.cyclesLeft })}`}
+            </p>
+          </div>
+        )}
         {view.pendingTier && view.pendingCycle && (
           <p className="text-sm text-warn">
             {nextDate
@@ -728,10 +774,24 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           ) : (
             <>
               <p className="text-xs leading-relaxed text-ink/50">
-                {t("consent", {
-                  amount: clp(locale).format(chargeTotal),
-                  period: t(`period.${selCycle}`),
-                })}
+                {promo && chargeFinal != null ? (
+                  <>
+                    <span className="line-through">
+                      {clp(locale).format(chargeTotal)}
+                    </span>{" "}
+                    <span className="font-semibold text-neon">
+                      {t("consent", {
+                        amount: clp(locale).format(chargeFinal),
+                        period: t(`period.${selCycle}`),
+                      })}
+                    </span>
+                  </>
+                ) : (
+                  t("consent", {
+                    amount: clp(locale).format(chargeTotal),
+                    period: t(`period.${selCycle}`),
+                  })
+                )}
               </p>
               <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm text-ink/80">
                 <input
@@ -752,7 +812,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                 {busy && <Spinner size="sm" />}
                 {t("subscribeCharge", {
                   tier: t(`tiers.${selTier}`),
-                  amount: clp(locale).format(chargeTotal),
+                  amount: clp(locale).format(chargeFinal ?? chargeTotal),
                   period: t(`period.${selCycle}`),
                 })}
               </Button>

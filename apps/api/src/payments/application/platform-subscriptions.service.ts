@@ -11,6 +11,7 @@ import type {
   Academy,
   AcademyTier,
   BillingCycle,
+  PlatformPromo,
   PlatformSubscription,
   PlatformSubKind,
   Prisma,
@@ -38,6 +39,10 @@ import {
   SELF_SERVE_ACADEMY_TIERS,
   SELF_SERVE_PRODUCER_TIERS,
 } from "../domain/platform-tiers";
+import {
+  platformPromoPlanId,
+  promoChargeClp,
+} from "../domain/platform-promos";
 import {
   type PaymentGateway,
   type RemoteSubscription,
@@ -77,7 +82,25 @@ interface ChargeSpec {
   /** Monto del cargo por ciclo = mensual-equivalente × meses del ciclo. */
   amount: number;
   intervalCount: number;
+  /** Promo aplicada al monto (spec platform-promos); null = plan base. */
+  promoId: string | null;
 }
+
+/**
+ * Actor contra el que se evalúa una promo: la entidad que suscribe
+ * (academia o productor). maxCycles cuenta por actor sobre TODAS sus
+ * subs - cancelar y resuscribirse no resetea el beneficio.
+ */
+interface PromoActor {
+  kind: PlatformSubKind;
+  academyId?: string | null;
+  producerId?: string | null;
+}
+
+type PromoWithWhitelist = PlatformPromo & {
+  academies: { id: string }[];
+  producers: { id: string }[];
+};
 
 export type PlatformSubscribeResult =
   | { kind: "needs_card"; paymentUrl: string; subscriptionId: string }
@@ -244,43 +267,217 @@ export class PlatformSubscriptionsService {
   /**
    * Resuelve el plan Flow + monto del cargo para (kind, tier, ciclo) desde
    * PlatformParam. Lanza 400 si el tier no tiene precio autogestionado.
+   * Con `actor` resuelve además la promo vigente aplicable (spec
+   * platform-promos): el descuento se materializa como plan espejo
+   * propio por (promo, monto) - nunca muta el plan compartido del tier.
    */
   private async chargeSpec(
     kind: PlatformSubKind,
     tierCode: string,
     cycle: BillingCycle,
+    actor?: PromoActor,
   ): Promise<ChargeSpec> {
     const months = CYCLE_MONTHS[cycle];
     // El precio se deriva del mensual base: el ciclo factura menos
-    // meses de los que cubre (anual ×11, semestral ×5.75).
-    let monthly = 0;
-    let label: string;
-    if (kind === "ACADEMY") {
-      monthly = await this.params.getNumber(
-        `academy_tier.${tierCode.toLowerCase()}_monthly_clp`,
-        0,
-      );
-      label = `OmniDance Academia ${tierCode} (${CYCLE_LABEL[cycle]})`;
-    } else {
-      const key = producerTierParamKey(tierCode);
-      if (key) {
-        monthly = await this.params.getNumber(
-          `producer_tier.${key}_monthly_clp`,
-          0,
-        );
-      }
-      label = `OmniDance Producer Pro ${tierCode} (${CYCLE_LABEL[cycle]})`;
-    }
+    // meses de los que cubre (anual ×10.2, semestral ×5.52).
+    const monthly = await this.baseMonthlyClp(kind, tierCode);
+    const label =
+      kind === "ACADEMY"
+        ? `OmniDance Academia ${tierCode} (${CYCLE_LABEL[cycle]})`
+        : `OmniDance Producer Pro ${tierCode} (${CYCLE_LABEL[cycle]})`;
     if (monthly <= 0) {
       throw new BadRequestException(
         `el tier ${tierCode} no tiene precio autogestionado - contratación manual`,
       );
     }
+    const baseAmount = cycleChargeClp(monthly, cycle);
+    const promo = actor
+      ? await this.resolveApplicablePromo(actor, baseAmount)
+      : null;
+    if (!promo) {
+      return {
+        planId: platformPlanId(kind, tierCode, cycle),
+        name: label,
+        amount: baseAmount,
+        intervalCount: months,
+        promoId: null,
+      };
+    }
+    const amount = promoChargeClp(baseAmount, promo);
     return {
-      planId: platformPlanId(kind, tierCode, cycle),
-      name: label,
-      amount: cycleChargeClp(monthly, cycle),
+      planId: platformPromoPlanId(
+        kind,
+        tierCode,
+        cycle,
+        promo.id,
+        amount,
+      ),
+      name: `${label} · ${promo.name}`,
+      amount,
       intervalCount: months,
+      promoId: promo.id,
+    };
+  }
+
+  /** Precio mensual base del tier desde PlatformParam (0 = manual). */
+  private async baseMonthlyClp(
+    kind: PlatformSubKind,
+    tierCode: string,
+  ): Promise<number> {
+    if (kind === "ACADEMY") {
+      return this.params.getNumber(
+        `academy_tier.${tierCode.toLowerCase()}_monthly_clp`,
+        0,
+      );
+    }
+    const key = producerTierParamKey(tierCode);
+    return key
+      ? await this.params.getNumber(`producer_tier.${key}_monthly_clp`, 0)
+      : 0;
+  }
+
+  // ─── Promos de suscripción (spec platform-promos) ─────────────────
+
+  private promoActorOf(sub: PlatformSubscription): PromoActor {
+    return {
+      kind: sub.kind,
+      academyId: sub.academyId,
+      producerId: sub.producerId,
+    };
+  }
+
+  /**
+   * Cobros PAID marcados con la promo sobre TODAS las subs del actor -
+   * el conteo que agota maxCycles (cancelar y resuscribirse no lo
+   * resetea: las refId de todas sus subs cuentan).
+   */
+  private async promoUsedCycles(
+    actor: PromoActor,
+    promoId: string,
+  ): Promise<number> {
+    const actorId =
+      actor.kind === "ACADEMY" ? actor.academyId : actor.producerId;
+    if (!actorId) return 0;
+    const subIds = (
+      await this.prisma.platformSubscription.findMany({
+        where:
+          actor.kind === "ACADEMY"
+            ? { academyId: actorId }
+            : { producerId: actorId },
+        select: { id: true },
+      })
+    ).map((s) => s.id);
+    if (subIds.length === 0) return 0;
+    return this.prisma.payment.count({
+      where: {
+        platformPromoId: promoId,
+        status: "PAID",
+        OR: subIds.map((id) => ({ refId: { startsWith: `platsub_${id}_` } })),
+      },
+    });
+  }
+
+  /**
+   * Promo vigente aplicable al actor para un cargo base dado:
+   * - enabled, dentro de [validFrom, validUntil] y scope de línea
+   *   (kind exacto o null = ambas);
+   * - whitelist: ambas listas vacías = global; si no, el actor debe
+   *   estar en la lista de su línea;
+   * - maxCycles no agotado (conteo de cobros PAID marcados).
+   * Si varias califican gana la de mayor ahorro sobre el cargo;
+   * empate → la que vence antes (determinista).
+   */
+  private async resolveApplicablePromo(
+    actor: PromoActor,
+    chargeClp: number | null,
+  ): Promise<PromoWithWhitelist | null> {
+    const actorId =
+      actor.kind === "ACADEMY" ? actor.academyId : actor.producerId;
+    if (!actorId) return null;
+    const now = new Date();
+    const promos = await this.prisma.platformPromo.findMany({
+      where: {
+        enabled: true,
+        validFrom: { lte: now },
+        validUntil: { gte: now },
+        OR: [{ kind: actor.kind }, { kind: null }],
+      },
+      include: {
+        academies: { select: { id: true } },
+        producers: { select: { id: true } },
+      },
+    });
+    let best: { promo: PromoWithWhitelist; saved: number } | null = null;
+    for (const promo of promos) {
+      const globalList =
+        promo.academies.length === 0 && promo.producers.length === 0;
+      const whitelisted = globalList
+        ? true
+        : actor.kind === "ACADEMY"
+          ? promo.academies.some((a) => a.id === actorId)
+          : promo.producers.some((p) => p.id === actorId);
+      if (!whitelisted) continue;
+      if (promo.maxCycles != null) {
+        const used = await this.promoUsedCycles(actor, promo.id);
+        if (used >= promo.maxCycles) continue;
+      }
+      // Ahorro sobre el cargo dado; sin cargo (vista sin tier) se
+      // compara el descriptor nominal del descuento.
+      const saved =
+        chargeClp != null
+          ? chargeClp - promoChargeClp(chargeClp, promo)
+          : promo.discountType === "PERCENT"
+            ? (promo.percentOff ?? 0)
+            : (promo.amountOffClp ?? 0);
+      if (
+        !best ||
+        saved > best.saved ||
+        (saved === best.saved && promo.validUntil < best.promo.validUntil)
+      ) {
+        best = { promo, saved };
+      }
+    }
+    return best?.promo ?? null;
+  }
+
+  /**
+   * `activePromo` de las vistas del actor: la promo que chargeSpec
+   * aplicaría hoy + ciclos restantes. `finalMonthlyClp` es el
+   * mensual-equivalente del plan vigente ya descontado (null si no hay
+   * tier/ciclo resolvible - el front aplica el descriptor a sus
+   * precios del selector).
+   */
+  private async activePromoView(
+    actor: PromoActor,
+    tierCode: string | null,
+    cycle: BillingCycle | null,
+  ) {
+    const monthly = tierCode
+      ? await this.baseMonthlyClp(actor.kind, tierCode)
+      : 0;
+    const baseAmount =
+      monthly > 0 && cycle ? cycleChargeClp(monthly, cycle) : null;
+    const promo = await this.resolveApplicablePromo(actor, baseAmount);
+    if (!promo) return null;
+    const usedCycles =
+      promo.maxCycles != null
+        ? await this.promoUsedCycles(actor, promo.id)
+        : null;
+    return {
+      id: promo.id,
+      name: promo.name,
+      discountType: promo.discountType,
+      percentOff: promo.percentOff,
+      amountOffClp: promo.amountOffClp,
+      validUntil: promo.validUntil,
+      cyclesLeft:
+        promo.maxCycles != null && usedCycles != null
+          ? Math.max(0, promo.maxCycles - usedCycles)
+          : null,
+      finalMonthlyClp:
+        baseAmount != null && cycle
+          ? Math.round(promoChargeClp(baseAmount, promo) / CYCLE_MONTHS[cycle])
+          : null,
     };
   }
 
@@ -321,7 +518,10 @@ export class PlatformSubscriptionsService {
         tier: input.tier,
       });
     }
-    const charge = await this.chargeSpec("ACADEMY", input.tier, input.cycle);
+    const charge = await this.chargeSpec("ACADEMY", input.tier, input.cycle, {
+      kind: "ACADEMY",
+      academyId: academy.id,
+    });
     await this.provider(); // fail-fast si el gateway no tiene motor de subs
     const sub = await this.prisma.$transaction((tx) =>
       this.pickOrCreatePendingSub(tx, personId, {
@@ -362,7 +562,10 @@ export class PlatformSubscriptionsService {
         max,
       });
     }
-    const charge = await this.chargeSpec("PRODUCER", tier, input.cycle);
+    const charge = await this.chargeSpec("PRODUCER", tier, input.cycle, {
+      kind: "PRODUCER",
+      producerId: personId,
+    });
     await this.provider();
     const sub = await this.prisma.$transaction((tx) =>
       this.pickOrCreatePendingSub(tx, personId, {
@@ -542,6 +745,8 @@ export class PlatformSubscriptionsService {
 
     const { active, fs } = await this.createRemoteSubscription(sub.id, {
       flowPlanId: charge.planId,
+      promoId: charge.promoId,
+      planChargeClp: charge.amount,
       customerId,
       correlationId,
     });
@@ -569,7 +774,13 @@ export class PlatformSubscriptionsService {
    */
   private async createRemoteSubscription(
     subId: string,
-    p: { flowPlanId: string; customerId: string; correlationId: string },
+    p: {
+      flowPlanId: string;
+      promoId: string | null;
+      planChargeClp: number;
+      customerId: string;
+      correlationId: string;
+    },
   ): Promise<{ active: PlatformSubscription; fs: RemoteSubscription }> {
     const { provider } = await this.provider();
     let fs: RemoteSubscription;
@@ -618,6 +829,8 @@ export class PlatformSubscriptionsService {
           nextInvoiceAt: fs.nextInvoiceDate
             ? new Date(fs.nextInvoiceDate)
             : null,
+          promoId: p.promoId,
+          planChargeClp: p.planChargeClp,
           ...(nextStatus === "CANCELED" ? { canceledAt: new Date() } : {}),
         },
       })
@@ -706,6 +919,7 @@ export class PlatformSubscriptionsService {
       sub.kind,
       sub.tierCode,
       sub.billingCycle,
+      this.promoActorOf(sub),
     );
     await provider.ensurePlan(
       {
@@ -718,6 +932,8 @@ export class PlatformSubscriptionsService {
     );
     const { active, fs } = await this.createRemoteSubscription(sub.id, {
       flowPlanId: charge.planId,
+      promoId: charge.promoId,
+      planChargeClp: charge.amount,
       customerId: reg.customerId,
       correlationId,
     });
@@ -848,7 +1064,12 @@ export class PlatformSubscriptionsService {
   ): Promise<PlatformSubscription> {
     const { provider } = await this.provider();
     const correlationId = randomUUID();
-    const charge = await this.chargeSpec(sub.kind, targetTier, targetCycle);
+    const charge = await this.chargeSpec(
+      sub.kind,
+      targetTier,
+      targetCycle,
+      this.promoActorOf(sub),
+    );
     await provider.ensurePlan(
       {
         planId: charge.planId,
@@ -926,6 +1147,9 @@ export class PlatformSubscriptionsService {
           reminderSentFor: null,
           pendingTierCode: null,
           pendingBillingCycle: null,
+          pendingReprice: false,
+          promoId: charge.promoId,
+          planChargeClp: charge.amount,
           canceledAt: nextStatus === "CANCELED" ? new Date() : null,
         },
       })
@@ -1079,6 +1303,7 @@ export class PlatformSubscriptionsService {
     const clearPending = {
       pendingTierCode: null,
       pendingBillingCycle: null,
+      pendingReprice: false,
     } as const;
     if (!sub.flowSubscriptionId) {
       await this.prisma.platformSubscription.update({
@@ -1204,6 +1429,13 @@ export class PlatformSubscriptionsService {
     const maxStudents = effectiveTier
       ? await this.academyMaxStudents(effectiveTier)
       : null;
+    // Promo vigente aplicable a la academia (spec platform-promos): la
+    // vista la expone para mostrar precio tachado + oferta + vencimiento.
+    const activePromo = await this.activePromoView(
+      { kind: "ACADEMY", academyId: academy.id },
+      effectiveTier,
+      current?.billingCycle ?? academy.billingCycle ?? null,
+    );
     const now = Date.now();
     const graceDaysLeft =
       academy.billingGraceUntil != null &&
@@ -1230,6 +1462,7 @@ export class PlatformSubscriptionsService {
       blocked: academy.billingBlockedAt != null,
       blockedAt: academy.billingBlockedAt,
       invoices,
+      activePromo,
     };
   }
 
@@ -1284,6 +1517,12 @@ export class PlatformSubscriptionsService {
           0,
         )
       : null;
+    // Promo vigente aplicable al productor (spec platform-promos).
+    const activePromo = await this.activePromoView(
+      { kind: "PRODUCER", producerId: personId },
+      current?.tierCode ?? person.proTier ?? null,
+      current?.billingCycle ?? null,
+    );
     return {
       proTier: person.proTier,
       proTrialEndsAt: person.proTrialEndsAt,
@@ -1298,6 +1537,7 @@ export class PlatformSubscriptionsService {
       maxGross,
       nextInvoiceAt: current?.nextInvoiceAt ?? null,
       canceledAt: current?.canceledAt ?? null,
+      activePromo,
     };
   }
 
@@ -1413,6 +1653,9 @@ export class PlatformSubscriptionsService {
           amount,
           fee: 0,
           net: amount,
+          // Auditoría del cobro descontado (spec platform-promos) -
+          // base del conteo de maxCycles por actor.
+          platformPromoId: sub.promoId ?? null,
           gateway:
             (await this.subscriptionGateway())?.name ?? "UNCONFIGURED",
           gatewayRef: inv.payment?.orderRef ?? null,
@@ -1459,10 +1702,40 @@ export class PlatformSubscriptionsService {
           );
           return settled;
         }
+      } else if (sub.pendingReprice) {
+        // Reprice agendado por drift de precio (spec platform-promos):
+        // recrea la remota con el cargo vigente al fin del período -
+        // chargeSpec resuelve la promo de nuevo (expirada/agotada →
+        // plan base a precio lleno). Si falla, CANCEL_PENDING +
+        // pendingReprice → el próximo barrido reintenta.
+        try {
+          const repriced = await this.applyPendingReprice(sub, actor);
+          if (repriced) return settled;
+        } catch (e) {
+          this.logger.error(
+            `reprice platsub ${sub.id}: ${e instanceof Error ? e.message : e}`,
+          );
+          await this.prisma.platformSubscription
+            .update({
+              where: { id: sub.id },
+              data: {
+                status: "CANCEL_PENDING",
+                canceledAt: sub.canceledAt ?? new Date(),
+              },
+            })
+            .catch(() => {});
+          return settled;
+        }
       }
       status = "CANCELED";
       canceledAt ??= new Date();
-    } else if (fs.cancelAtPeriodEnd && status === "ACTIVE") {
+    } else if (
+      fs.cancelAtPeriodEnd &&
+      status === "ACTIVE" &&
+      !sub.pendingReprice
+    ) {
+      // Con reprice agendado el status se mantiene ACTIVE: la cancel de
+      // la remota la pidió el sistema para el swap, no el actor.
       status = "CANCEL_PENDING";
       canceledAt ??= new Date();
     }
@@ -1529,7 +1802,164 @@ export class PlatformSubscriptionsService {
     if (fs.morose) {
       await this.handleMorose(sub, fs, actor);
     }
+
+    // Drift de precio (spec platform-promos): la remota debe cobrar lo
+    // que chargeSpec resuelve HOY (promo vigente o precio lleno). Si
+    // difiere — promo nueva aplicable, agotada, expirada, deshabilitada,
+    // editada, o param de precio cambiado — se agenda el reprice: cancel
+    // de la remota a fin de período + recreación con el plan vigente.
+    // Con cambio de plan pendiente o cancel ya agendada no hace falta:
+    // ese swap ya reprecia. Con mora no se agenda nada (el cobro está
+    // fallando; la regularización resuelve el precio después).
+    if (
+      status === "ACTIVE" &&
+      !fs.morose &&
+      sub.flowSubscriptionId &&
+      !fs.cancelAtPeriodEnd &&
+      !sub.pendingTierCode &&
+      !sub.pendingReprice
+    ) {
+      try {
+        await this.ensureRemotePrice(sub, actor);
+      } catch (e) {
+        this.logger.error(
+          `drift-check platsub ${sub.id}: ${e instanceof Error ? e.message : e}`,
+        );
+      }
+    }
     return settled;
+  }
+
+  /**
+   * Agenda el reprice de una sub cuyo plan remoto ya no calza con lo que
+   * chargeSpec resuelve hoy: cancel de la remota a fin de período +
+   * `pendingReprice`. Cuando Flow la reporta CANCELED el reconcile la
+   * recrea con el cargo vigente (`applyPendingReprice`).
+   */
+  private async ensureRemotePrice(
+    sub: PlatformSubscription,
+    actor: string,
+  ): Promise<void> {
+    let expected: ChargeSpec;
+    try {
+      expected = await this.chargeSpec(
+        sub.kind,
+        sub.tierCode,
+        sub.billingCycle,
+        this.promoActorOf(sub),
+      );
+    } catch {
+      return; // tier "a convenir" sin param: contrato manual, nunca reprice
+    }
+    const drift =
+      (sub.promoId ?? null) !== (expected.promoId ?? null) ||
+      (sub.planChargeClp != null && sub.planChargeClp !== expected.amount);
+    if (!drift) return;
+    const { provider } = await this.provider();
+    await provider.cancelSubscription(sub.flowSubscriptionId!, {
+      correlationId: randomUUID(),
+    });
+    await this.prisma.platformSubscription.update({
+      where: { id: sub.id },
+      data: { pendingReprice: true },
+    });
+    sub.pendingReprice = true;
+    this.logger.log(
+      `reprice agendado platsub ${sub.id} (${actor}): promo ${sub.promoId ?? "-"}→${expected.promoId ?? "-"}, cargo ${sub.planChargeClp ?? "?"}→${expected.amount}`,
+    );
+  }
+
+  /**
+   * Materializa el reprice cuando la remota vieja quedó CANCELED (fin de
+   * período): recrea la sub remota sobre el plan que chargeSpec resuelve
+   * HOY - mismo tier/ciclo, plan base o promo según aplique. Espejo de
+   * `applyPendingPlanChange` sin cambio de tier ni aviso al actor (la
+   * vista de billing ya muestra el precio efectivo y la promo activa).
+   */
+  private async applyPendingReprice(
+    sub: PlatformSubscription,
+    actor: string,
+  ): Promise<boolean> {
+    const { provider } = await this.provider();
+    const correlationId = randomUUID();
+    const charge = await this.chargeSpec(
+      sub.kind,
+      sub.tierCode,
+      sub.billingCycle,
+      this.promoActorOf(sub),
+    );
+    await provider.ensurePlan(
+      {
+        planId: charge.planId,
+        name: charge.name,
+        amount: charge.amount,
+        intervalCount: charge.intervalCount,
+      },
+      { correlationId },
+    );
+    const { customerId } = await ensureFlowCustomer(
+      this.prisma,
+      provider,
+      sub.personId,
+      { correlationId },
+    );
+    const fs = await provider.createSubscription(
+      {
+        planId: charge.planId,
+        customerId,
+        subscriptionStart: new Date().toISOString().slice(0, 10),
+      },
+      { correlationId },
+    );
+    // Persistencia temprana del id remoto - el sweep de huérfanas la
+    // rastrea aunque muera el proceso antes del updateMany.
+    await this.prisma.platformSubscription
+      .update({
+        where: { id: sub.id },
+        data: { flowSubscriptionId: fs.subscriptionId },
+      })
+      .catch(() => {});
+    const transition = await this.prisma.platformSubscription
+      .updateMany({
+        where: { id: sub.id, status: sub.status },
+        data: {
+          flowSubscriptionId: fs.subscriptionId,
+          status: fs.status === "CANCELED" ? "CANCELED" : "ACTIVE",
+          nextInvoiceAt: fs.nextInvoiceDate
+            ? new Date(fs.nextInvoiceDate)
+            : null,
+          lastInvoiceId: null,
+          reminderSentFor: null,
+          pendingReprice: false,
+          promoId: charge.promoId,
+          planChargeClp: charge.amount,
+          canceledAt: null,
+        },
+      })
+      .catch(() => ({ count: 0 }));
+    if (transition.count === 0) {
+      await provider
+        .cancelSubscription(fs.subscriptionId, {
+          correlationId,
+          immediate: true,
+        })
+        .catch(() => {});
+      throw new ConflictException(
+        "la suscripción cambió de estado durante el reprice",
+      );
+    }
+    const updated =
+      await this.prisma.platformSubscription.findUniqueOrThrow({
+        where: { id: sub.id },
+      });
+    try {
+      await this.reconcileSubscription(updated, fs, actor);
+    } catch (e) {
+      this.logger.error(
+        `reconcile post-reprice platsub ${sub.id}: ${e instanceof Error ? e.message : e}`,
+      );
+    }
+    return true;
   }
 
   /**
@@ -1548,7 +1978,12 @@ export class PlatformSubscriptionsService {
     if (!tier || !cycle) return false;
     const { provider } = await this.provider();
     const correlationId = randomUUID();
-    const charge = await this.chargeSpec(sub.kind, tier, cycle);
+    const charge = await this.chargeSpec(
+      sub.kind,
+      tier,
+      cycle,
+      this.promoActorOf(sub),
+    );
     await provider.ensurePlan(
       {
         planId: charge.planId,
@@ -1595,6 +2030,9 @@ export class PlatformSubscriptionsService {
           reminderSentFor: null,
           pendingTierCode: null,
           pendingBillingCycle: null,
+          pendingReprice: false,
+          promoId: charge.promoId,
+          planChargeClp: charge.amount,
           canceledAt: null,
         },
       })
@@ -1916,6 +2354,7 @@ export class PlatformSubscriptionsService {
         sub.kind,
         sub.tierCode,
         sub.billingCycle,
+        this.promoActorOf(sub),
       );
       return charge.amount;
     } catch {

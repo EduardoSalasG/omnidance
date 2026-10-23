@@ -9511,6 +9511,96 @@
         ]
       }
     },
+    "/api/admin/platform-promos": {
+      "get": {
+        "operationId": "AdminPlatformPromosController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminPlatformPromos"
+        ]
+      },
+      "post": {
+        "operationId": "AdminPlatformPromosController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePromoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminPlatformPromos"
+        ]
+      }
+    },
+    "/api/admin/platform-promos/{id}": {
+      "get": {
+        "operationId": "AdminPlatformPromosController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminPlatformPromos"
+        ]
+      },
+      "patch": {
+        "operationId": "AdminPlatformPromosController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchPromoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminPlatformPromos"
+        ]
+      }
+    },
     "/api/crm/people": {
       "get": {
         "operationId": "CrmController_listPeople",
@@ -11364,6 +11454,14 @@
         "properties": {}
       },
       "UpdateCityGuideDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreatePromoDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PatchPromoDto": {
         "type": "object",
         "properties": {}
       },

@@ -18,7 +18,8 @@ import {
   decodeSeriesPassRef,
 } from "../../payments/domain/order-ref";
 import {
-  cycleMonthlyEquivClp,
+  CYCLE_MONTHS,
+  cycleChargeClp,
   SELF_SERVE_ACADEMY_TIERS,
   producerTierParamKey,
 } from "../../payments/domain/platform-tiers";
@@ -348,6 +349,8 @@ export class AdminFinanceController {
         billingCycle: true,
         status: true,
         nextInvoiceAt: true,
+        promoId: true,
+        planChargeClp: true,
       },
     });
 
@@ -370,13 +373,20 @@ export class AdminFinanceController {
           : null;
       const monthlyBase =
         paramKey == null ? null : (prices.get(paramKey) ?? 0);
+      // Precio efectivo (spec platform-promos): si la sub está en un plan
+      // con promo, el cargo horneado en el plan remoto (planChargeClp) es
+      // la verdad del próximo cobro; si no, el cargo del param.
+      // Subs legacy (planChargeClp null) caen al precio del param.
+      const charge =
+        s.planChargeClp != null
+          ? s.planChargeClp
+          : monthlyBase != null && monthlyBase > 0
+            ? cycleChargeClp(monthlyBase, s.billingCycle as BillingCycle)
+            : null;
       const monthly =
-        paramKey == null || monthlyBase == null || monthlyBase <= 0
+        charge == null || charge <= 0
           ? null
-          : cycleMonthlyEquivClp(
-              monthlyBase,
-              s.billingCycle as BillingCycle,
-            );
+          : Math.round(charge / CYCLE_MONTHS[s.billingCycle as BillingCycle]);
       return {
         id: s.id,
         kind: s.kind,
@@ -387,6 +397,7 @@ export class AdminFinanceController {
         status: s.status,
         monthlyAmount: monthly,
         nextInvoiceAt: s.nextInvoiceAt,
+        promoId: s.promoId,
       };
     });
 
