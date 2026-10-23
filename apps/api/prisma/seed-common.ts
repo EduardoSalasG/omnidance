@@ -130,8 +130,8 @@ const PARAM_DEFAULTS: Array<{
   // (analítica/CRM/marketing/multi-academia). STARTER queda legacy:
   // conserva precio/tope para las suscripciones existentes pero ya no se
   // vende (fuera de SELF_SERVE_ACADEMY_TIERS). PRO/ENTERPRISE sin tope.
-  { key: "academy_tier.cobros_max_students", value: 150, description: "Máximo de alumnos activos del tier COBROS de academia" },
-  { key: "academy_tier.studio_max_students", value: 300, description: "Máximo de alumnos activos del tier STUDIO de academia" },
+  { key: "academy_tier.cobros_max_students", value: 60, description: "Máximo de alumnos activos del tier COBROS de academia" },
+  { key: "academy_tier.studio_max_students", value: 150, description: "Máximo de alumnos activos del tier STUDIO de academia" },
   { key: "academy_tier.starter_max_students", value: 50, description: "Máximo de alumnos activos del tier STARTER de academia (legado - ya no se vende)" },
   // Precio mensual base por tier (CLP/mes) - el cobro del ciclo se
   // calcula: semestral ×5.52 (−8%), anual ×10.2 (−15%).
