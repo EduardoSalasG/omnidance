@@ -585,16 +585,18 @@ Lo que se mide cada mes (el `PayoutLine` + `Payment.platformFee*` dejan todo que
 
 Supuestos: ticket ponderado ~$5.5k gestionado a tasa media 9% (~5% neto tras pasarela e IVA); mezcla SaaS academia promedio ~$90k/mes; Producer Pro promedio ~$140k/mes. **Pase Social**: $15.000/mes menos pasarela (~3,2%) y menos reembolso al productor por crédito canjeado (supuesto $2.500/crédito × 4 créditos × 75% redención) → **margen ~$7k/suscriptor/mes**; la tarifa de reembolso es el supuesto que más mueve esta línea y queda por validar con productores. **Cargo puerta** (~$1.000/no-suscriptor) entra dentro del neto transaccional cuando la venta se registra por app.
 
-| Escenario | Eventos/mes | Neto ticketing | Acad. SaaS (MRR) | Producer Pro (MRR) | Pase Social (margen) | Total/mes | ARR run-rate |
-|---|---|---|---|---|---|---|---|
-| **Piloto** (1 productor + 2 academias + ~30 pases) | 5 | ~$0,23M | ~$0,1M | ~$0,1M | ~$0,2M | **~$0,63M** | **~$7,6M** |
-| **Tracción** (3 productores + 8 academias + ~120 pases) | 15 | ~$0,69M | ~$0,72M | ~$0,55M | ~$0,84M | **~$2,8M** | **~$34M** |
-| **Captura escena** (20–25 eventos + 15 academias + 8 Pro + ~350 pases) | 22 | ~$1,01M | ~$1,35M | ~$1,12M | ~$2,45M | **~$5,9M** | **~$71M** |
+**Publicidad segmentada**: el cap de 1 push promocional/semana/persona limita el inventario — con ~2.000 bailarines activos la oferta semanal es escasa y eso protege el tono (y sostiene el precio). Precio de trabajo: academia PRO y producer Pro incluyen cupos en el plan; campañas extra ~$12.990 c/u. Estimación conservadora: piloto ~$0,02M/mes, tracción ~$0,15M/mes, captura ~$0,45M/mes — y su efecto real es doble: la campaña además levanta GMV de ticketing.
+
+| Escenario | Eventos/mes | Neto ticketing | Acad. SaaS (MRR) | Producer Pro (MRR) | Pase Social (margen) | Publicidad | Total/mes | ARR run-rate |
+|---|---|---|---|---|---|---|---|---|
+| **Piloto** (1 productor + 2 academias + ~30 pases) | 5 | ~$0,23M | ~$0,1M | ~$0,1M | ~$0,2M | ~$0,02M | **~$0,65M** | **~$7,8M** |
+| **Tracción** (3 productores + 8 academias + ~120 pases) | 15 | ~$0,69M | ~$0,72M | ~$0,55M | ~$0,84M | ~$0,15M | **~$2,95M** | **~$35M** |
+| **Captura escena** (20–25 eventos + 15 academias + 8 Pro + ~350 pases) | 22 | ~$1,01M | ~$1,35M | ~$1,12M | ~$2,45M | ~$0,45M | **~$6,35M** | **~$76M** |
 
 Lecturas:
 - **El SaaS pesa más que el ticketing** desde tracción — es la tesis de margen: comisión valida volumen, suscripción sostiene MRR. La comisión no puede acercarse al techo Passline porque el take total (fee + SaaS) ya es mayor.
 - **El Pase Social supera a cada línea SaaS individual en captura** con ~20% de adopción sobre asistentes activos — pero depende de dos supuestos no validados: tarifa de reembolso por crédito (cada $500 mueve ~$1,4k el margen por suscriptor) y que el productor mantenga puerta > preventa (si el gap se cierra, cae el valor percibido del pase).
-- A captura total de escena (~20–25 eventos/mes, ~15 academias): **~$71M ARR** sin contar venue-pro, marketplace de instructores, suscripción-ticket de serie (`series_pass`, ~$25k/mes fallback) ni otros países — la expansión multi-país/multi-gateway del rediseño de puertos es el siguiente multiplicador.
+- A captura total de escena (~20–25 eventos/mes, ~15 academias): **~$76M ARR** sin contar venue-pro, marketplace de instructores, suscripción-ticket de serie (`series_pass`, ~$25k/mes fallback) ni otros países — la expansión multi-país/multi-gateway del rediseño de puertos es el siguiente multiplicador.
 - Sensibilidad a la tasa: cada punto de % gestionado ≈ ±$7k/evento neto → la negociación 10→8% cuesta ~$15k/evento de neto vs lista.
 - **Stress case no modelado aquí**: churn SaaS/pase de 4–5%/mes recorta ~15–20% el ARR de captura; y el escenario Piloto depende de 1 productor — su churn borra ~50% del total del escenario.
 
@@ -604,9 +606,12 @@ Lecturas:
 |---|---|---|---|---|
 | **Flow** | 2,89% +IVA (T+3) / 3,19% (T+1) | $0 | ~$190–210 | **MVP**: una integración → Webpay + transferencia + MACH + Servipag |
 | **Webpay Plus** | Débito 1,49% / Crédito 2,29% +IVA | mín. ~$87–135 | ~$98–150 | **Escala**: migrar tarjetas aquí cuando el volumen lo justifique. Mall = split payments; Oneclick = mensualidades |
+| **Fintoc** | A2A ~1,35% +IVA; tarjetas vía Smart Checkout (a cotizar) | $0 | ~$88 (A2A) | **Candidato a rail principal CL**: suite completa (A2A + tarjetas + Apple/Google Pay + orquestación por tasa de éxito), payouts API (el PayoutRail chileno que falta), suscripciones por débito directo, webhooks verificados contra API (sin secret). Única pega: la primera autorización bancaria pide credenciales — fricción de onboarding vs tarjeta guardada |
 | **Mercado Pago** | Link ~3,19% / QR ~2,6% +IVA | $0 | ~$170–215 | Abono inmediato, sin inicio de actividades. Sinergia: producers ya usan MP Point |
 | **Khipu** | 0,69% +IVA | **UF 0,0105 (~$410)** | ~$520 | Fee fijo mata tickets chicos. Útil para montos grandes (mensualidades, liquidaciones) |
 | **SumUp** | Link: 3,2% +IVA (3,81%) | $0 | ~$210 | Link no mejora a Flow. Su fuerza es POS físico (débito desde 1,29%+IVA) - los productores ya lo usan en puerta; integrarlo como "venta externa registrada", no como pasarela |
+
+**Efecto Fintoc en el margen** (A2A 1,35%+IVA ≈ 1,61% efectivo vs Flow ~3,8%): bajo el all-in 10% el neto omni por ticket de $5.500 sube de ~$303 a **~$388** (+28%); bajo promo 8% de ~$214 a **~$296** (+38%). Ruta sugerida: checkout ofrece débito/cuenta (Fintoc) primero y tarjeta como fallback — las cuotas no importan al bailarín (tickets chicos) pero sí a la academia/productora que paga SaaS (montos $40–300k), así que Flow queda como rail de respaldo y para billing. Prioridad de implementación: gateway A2A en checkout > `FintocPayoutRail` (desembolso automático CL) > billing por débito directo.
 
 ### Consolidaciones y liquidaciones (todos los perfiles)
 
