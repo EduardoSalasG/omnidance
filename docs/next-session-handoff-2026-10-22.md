@@ -52,3 +52,12 @@
 - `pnpm db:seed` corrido OK (params de tiers + flags ya en DB local).
 - **Dev server web zombie otra vez** (PID escuchaba :3000 sin responder → logins e2e timeouts 1.6m): fix documentado = taskkill + rm -rf .next + restart. Síntoma clásico AGENTS.
 - E2e re-run post-refactor de providers quedó corriendo al cierre de contexto — verificar su resultado antes de pushear (el commit unificado `00ed668a` toca BottomNav/providers/layout).
+
+## Addendum 3 (23-oct): REGRESIÓN PENDIENTE post-refactor
+
+- `pnpm db:seed` OK.
+- **REGRESIÓN front**: e2e post-unificación falla en los 6 logins — `/login` renderiza "Internal Server Error" (16s timeout, no 1.6m → no es throttle ni zombie, es compile/runtime). Commits involucrados: `00ed668a` (web agent borró `academy-entitlements-context.tsx`, `pro-paywall.tsx`, `academyTier.json`×4).
+- **Hipótesis más probable**: algún import vivo a módulo borrado — revisar: `grep -rn "academy-entitlements-context\|pro-paywall\|academyTier" apps/web/src` (pro-section.tsx usa `ProView.effectivePro` = tipo API, ESO ESTÁ BIEN, no es el bug) y `apps/web/src/i18n/catalogs/*.ts` — si algún catalog aún importa `academyTier.json` (borrado) webpack rompe TODO → 500 en cada página. Fix: apuntar imports a `tierGate.json` (existe) o re-crear el part faltante, `rm -rf apps/web/.next`, restart `pnpm dev:web`, `pnpm test:e2e` hasta 14/14.
+- Verificación rápida manual: `curl localhost:3000/es-CL/login` debe dar 308/200, no 500.
+- Stack actual: api :4000 OK, web :3000 corriendo (pnpm dev:web shell 827979), docker db/redis up.
+- Estado git: todo commiteado en `dev` hasta `f5fd4c69`. NO pushear hasta e2e verde.
