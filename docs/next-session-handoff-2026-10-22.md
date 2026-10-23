@@ -1,72 +1,39 @@
-# Handoff 2026-10-22 — fixes + i18n paridad + notify-register + desembolso-page
+# Handoff 2026-10-22/23 — fixes + i18n paridad + notify-register + desembolso-page + tiers COBROS
 
-## Commiteado en `dev` (5 commits, main quedó en c7732c86 — nada pusheado)
+## Commiteado en `dev` (main quedó en bfb1ba80 = release 1.9.0 — nada pusheado desde entonces)
 
-- `dca0f2cb` fix: preheader de los mails magic-link/verify decía "válido
-  15 minutos" para el código OTP — el código dura 10 min (`OTP_TTL_MS`)
-  y el link 15 (default `createMagicToken`). Ahora "código X (10 min)
-  o link (15 min)".
-- `7513aff4` feat: **aviso a admins de registro nuevo**. `AuthController.
-  notifyAdminsNewUser` → `notifySafe` OPERATIONAL `user.registered` a
-  cada `personRole{ADMIN,APPROVED}` cuando nace la Person por
-  register / GET verify / POST otp-verify con `!existed`. Claim y altas
-  admin (import/staff/demo/reactivate) NO notifican. `NotificationsModule`
-  ahora `@Global` (patrón JobsModule) — AuthController lo inyecta
-  `@Optional` para no romper specs que lo arman a mano.
-  `AuthRepo.approvedAdminIds()` nuevo. Spec: 2 tests nuevos en
-  auth.controller.spec (19 verdes).
-- `6609a620` feat: **/productor/desembolso** página propia en el grupo
-  Configuración del nav (ícono `bank` nuevo en ICONS). `/productor/pagos`
-  queda solo listado de liquidaciones y su ítem "Mis pagos" pasó del
-  grupo Configuración al grupo de módulos (tras Comprobantes). Stripe
-  Account Link `return_url`/`refresh_url` ahora → `/productor/desembolso`
-  (service + specs actualizados).
-- `1de463ed` feat: **paridad i18n** — 180 keys faltantes traducidas a
-  en/fr/pt-PT: parts nuevos cities.json/pase.json/trip.json por locale +
-  keys sueltas en navExtra/consumer/admin/profile/legal/producer +
-  catalogs/*.ts cableados (DM chain extendida). `i18n-parity`:
-  missing 0 en los 3 locales.
-- `db9df99f` docs: qa-inventory (§1 login aviso admin, §5 desembolso/
-  pagos, §9 admin return_url), architecture.md (notifications @Global +
-  wiring `user.registered` + Account Link URL), flows.md (diagrama
-  magic link corregido: upsert ocurre en verify, +nota user.registered).
+- `dca0f2cb` fix: preheader del mail OTP distinguía mal vigencias - código 10 min, link 15 min
+- `7513aff4` feat: aviso `user.registered` a admins APPROVED en cada alta real (register/verify/otp); NotificationsModule @Global
+- `6609a620` feat: `/productor/desembolso` página propia en Configuración; "Mis pagos" pasa al grupo de módulos; Stripe Account Link vuelve a la ruta nueva
+- `1de463ed` feat: paridad i18n en/fr/pt-PT - 180 keys (parts nuevos cities/pase/trip + sueltas)
+- `db9df99f` docs: qa-inventory + architecture + flows
+- `bfb1ba80` chore: release 1.9.0 (pusheado a dev y main → deploy corrido)
+- `859da84d` feat: **flags de línea de producto** `social_line`/`academy_line` (ON por default) — gatean tabs/sheet/sidebar del bailarín por lente; pensados para operar solo-academias o solo-nightlife al partir
+- `988fbd19` + `6ee718bf` docs: plan económico §10 reescrito — reestructura de tiers (academia COBROS/STUDIO/PRO 39.990/79.990/119.990 por features; Producer Pro 79.990/169.990/299.990 por facturación), descuentos −8%/−15%, Pase Social + publicidad segmentada + Fintoc en proyección (captura ~$76M ARR), fila "Tracción estresada" ($27M), métricas Concentración top-1 y Expansión de tier. Razonamiento completo en `docs/estrategia-comercial-2026-10-22.md`
+- `ec318cc6` feat: **academy-tier-cobros implementado** — `assertAcademyTier` (patrón producer-pro), matriz `TIER_FEATURES`, gates en ~10 módulos de consola, `GET /me/academy/entitlements`, `AcademyEntitlementsProvider` + `AcademyTierGate`/`AcademyTierPaywall` front, take ~4,8% (`ACADEMY_COBROS_TAKE`) en cobros de membresías de academias COBROS, migración `academy_tier_cobros` (enum + COBROS), subs existentes quedan STUDIO (no-degradación), STARTER queda legacy no-vendible
+- `bae492e5` test+docs: **e2e setup acepta banner de consentimiento** (un LegalText nuevo activo cubría CTAs fixed-bottom y rompía 6 specs); openapi.json/postman regenerados; 2 changes archivados con deltas mergeados
 
 ## Verificación
 
-- vitest `src/auth src/payments`: **613 tests, 28 archivos verdes**
-  (incluye specs ajustados a /productor/desembolso).
-- `tsc --noEmit` api + web limpios. i18n-audit `ALL_KEYS_OK`;
-  i18n-parity missing 0.
-- openspec validate verde; changes archivados con deltas mergeados:
-  `2026-10-22-admin-notify-on-register` → `specs/notifications/admin-alerts`
-  (nueva), `2026-10-22-productor-desembolso-page` → `producer-pro`
-  (1 modified + 1 added).
-- e2e playwright: revisado — `e2e/smoke.spec.ts` no referencia pagos ni
-  desembolso; nada que corregir.
-- eslint en archivos tocados: 0 errores (1 warning preexistente `type Me`
-  unused en BottomNav.tsx:37, no introducido acá).
+- vitest módulos tocados: 949 tests verdes (incl. specs nuevos de gate por tier + take COBROS)
+- tsc api + web limpios; i18n-parity missing 0 (4105 keys × 4 locales)
+- **e2e Playwright: 14/14 verdes** (chromium + mobile) tras fix del banner
+- openspec validate verde; `academy-tier-cobros` y `product-line-flags` archivados
+- Review UI del paywall nuevo: patrón console consistente (Card + Badge + CTA), a11y ok (aria-hidden icon, role=status)
 
-## Pendiente / no verificado
+## Pendiente / gaps conocidos
 
-- `impeccable detect` sobre el diff de UI quedó pendiente (superficie
-  nueva mínima: página que solo monta la sección ya existente).
-- Stack sigue corriendo (`pnpm dev`, api :4000 web :3000, docker up).
-- Sin STRIPE_SECRET_KEY el flujo Connect muestra el estado 503
-  diseñado — onboarding end-to-end no verificable local.
-- Notificación admin: sin UI de "ver todos los registros" — el aviso
-  llega al centro de notificaciones + push del admin (tour/badge
-  existentes).
-- Tasks multipaís sin tocar: 10 (packs), 11 (prácticas free), 13
-  (congresos) + parciales de currency (2) y phoneCountryCode (3).
+- `/crm/*` y `/analitica` para actor academia recaen en 403 genérico del API (no en AcademyTierPaywall) — la nav los oculta; paywall dedicado = follow-up chico
+- `/academia/alumnos`: bloque insights puede mostrar error inline en COBROS (fetch 403) — página base funciona
+- Follow-up de product-line-flags: toggle de lente en /inicio visible aunque una línea esté OFF; secciones de landing marketing no gateadas
+- Stack corre en dev (`pnpm dev:web` activo tras restart — `.next` estaba corrupto, ver AGENTS "dev server zombie")
+- Tarifa de reembolso de crédito del Pase Social SIN FIJAR — bloquea precio público del pase
+- Cotización de tarjeta de Fintoc pendiente (A2A ~1,35% confirmado público)
+- Tasks multipaís sin tocar: 10 (packs), 11 (prácticas free), 13 (congresos)
 
 ## Notas técnicas de la sesión
 
-- `openspec archive` pide confirmación interactiva → usar `-y`; propone
-  date-prefixed names (`2026-10-22-*`). Si dos archives corren seguidos
-  deja `.openspec-archive.lock` stale en changes/archive/ — borrarlo y
-  re-correr. Los headers del proposal deben ser `## Why` / `## What
-  Changes` (inglés) o el archive falla.
-- Constructor de AuthController ganó 5º param opcional
-  (`@Optional() notifications?`) — los specs que lo instancian a mano
-  sin él siguen funcionando.
-- Git en estas shells MSYS: `export PATH="/c/Program Files/Git/bin:$PATH"`.
+- `openspec archive` necesita `-y` y headers `## Why`/`## What Changes` en inglés; lock stale en `changes/archive/.openspec-archive.lock` si corre doble — borrar y reintentar.
+- AuthController: 5º param opcional `@Optional() notifications?` — specs que lo instancian a mano siguen funcionando.
+- Git en shells MSYS: `export PATH="/c/Program Files/Git/bin:$PATH"`.
+- **e2e + LegalText**: si el seed activa una versión nueva de términos, los specs mueren por banner de consentimiento — `auth.setup.ts` ya lo acepta post-login.
