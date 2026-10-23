@@ -13,6 +13,7 @@
     "configPages": {
       "defaults": "Valores por omissão",
       "payMethods": "Métodos de pagamento",
+      "disbursement": "Conta de desembolso",
       "subscription": "Assinatura",
       "appearance": "Aparência",
       "producerOnly": "Esta secção é reservada a contas produtor."
@@ -352,6 +353,33 @@
       "desc": "Documentos internos para as deduções das tuas liquidações.",
       "folio": "Nota n.º {n}",
       "openPdf": "Ver o PDF"
+    },
+    "disbursement": {
+      "title": "Conta de desembolso",
+      "desc": "A conta onde recebes as tuas liquidações por transferência automática.",
+      "empty": "Ainda não tens uma conta de desembolso. Liga-a ao Stripe para receberes as tuas liquidações por transferência automática.",
+      "rail": "Stripe Connect",
+      "country": "País da conta",
+      "countryHelper": "O país onde está a tua conta bancária. Por agora operamos nos países da lista.",
+      "otherCountry": "Outro país (ainda não disponível)",
+      "connectCta": "Ligar ao Stripe",
+      "continueCta": "Continuar no Stripe",
+      "pendingHint": "Verificação em curso: a conta é ativada quando o Stripe confirmar os teus dados. Se abandonaste o fluxo, retoma onde ficaste.",
+      "onboardedAt": "Ativa desde",
+      "lastError": "Último erro do fornecedor",
+      "forbidden": "Não tens permissão para ligar a conta de desembolso.",
+      "unavailable": "O desembolso automático ainda não está disponível; as tuas liquidações continuam a ser pagas por transferência manual.",
+      "connectError": "Não conseguimos iniciar a ligação ao Stripe. Tenta de novo.",
+      "status": {
+        "PENDING": "Pendente de completar",
+        "ACTIVE": "Ativa",
+        "DISABLED": "Desativada"
+      },
+      "actorTypes": {
+        "PRODUCER": "Produtor",
+        "ACADEMY": "Academia",
+        "VENUE": "Local"
+      }
     },
     "codeDetail": {
       "redemptions": "Utilizações do código",

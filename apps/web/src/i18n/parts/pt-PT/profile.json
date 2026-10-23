@@ -60,6 +60,14 @@
     "title": "Idioma",
     "hint": "Guardado no teu perfil e aplicado em todos os teus dispositivos."
    },
+   "jurisdiction": {
+    "title": "Região legal",
+    "hint": "Define que lei de proteção de dados se aplica a ti e o consentimento que te pedimos.",
+    "options": {
+     "CL": "Chile (Lei 19.628 / 21.719)",
+     "EU": "União Europeia (RGPD)"
+    }
+   },
    "photoError": "Não foi possível carregar a foto — tenta uma imagem mais leve (máx. 5 MB) ou JPG/PNG."
   },
   "reminder": {

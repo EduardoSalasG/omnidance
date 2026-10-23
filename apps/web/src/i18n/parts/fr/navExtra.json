@@ -1,6 +1,9 @@
 {
   "nav": {
     "account": "Compte",
+    "cities": "Villes",
+    "trip": "Mon voyage",
+    "pase": "Pass Social",
     "collapseMenu": "Réduire le menu",
     "expandMenu": "Déplier le menu",
     "theme": "Thème",

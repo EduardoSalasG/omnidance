@@ -13,6 +13,7 @@
     "configPages": {
       "defaults": "Valores por defecto",
       "payMethods": "Medios de pago",
+      "disbursement": "Cuenta de desembolso",
       "subscription": "Suscripción",
       "appearance": "Apariencia",
       "producerOnly": "Esta sección solo está disponible para cuentas de productor."

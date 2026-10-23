@@ -1,6 +1,9 @@
 {
   "nav": {
     "account": "Account",
+    "cities": "Cities",
+    "trip": "My trip",
+    "pase": "Social Pass",
     "collapseMenu": "Collapse menu",
     "expandMenu": "Expand menu",
     "theme": "Theme",

@@ -60,6 +60,14 @@
     "title": "Language",
     "hint": "Saved to your profile and applied on all your devices."
    },
+   "jurisdiction": {
+    "title": "Legal region",
+    "hint": "Determines which data protection law applies to you and the consent we ask for.",
+    "options": {
+     "CL": "Chile (Law 19.628 / 21.719)",
+     "EU": "European Union (GDPR)"
+    }
+   },
    "photoError": "Couldn't upload the photo — try a lighter image (max 5 MB) or JPG/PNG."
   },
   "reminder": {

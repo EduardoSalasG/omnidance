@@ -27,7 +27,9 @@
   },
   "sessions": {
     "refresh": "Refresh",
-    "rating": "Rating: {value} out of 5"
+    "rating": "Rating: {value} out of 5",
+    "discardedOk": "Invitation discarded",
+    "ratedOk": "Dance rated"
   },
   "notifications": {
     "unread": "Unread"
@@ -45,7 +47,12 @@
   "friends": {
     "emptyCta": "Find friends",
     "inviteError": "We couldn’t copy the link. Try again.",
-    "notFound": "We couldn’t find this person."
+    "notFound": "We couldn’t find this person.",
+    "requestSent": "Request sent",
+    "requestAccepted": "You're now friends",
+    "requestDeclined": "Request declined",
+    "requestCancelled": "Request cancelled",
+    "removed": "Friend removed"
   },
   "gamification": {
     "badgeCategory": {

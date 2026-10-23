@@ -13,6 +13,7 @@
     "configPages": {
       "defaults": "Valeurs par défaut",
       "payMethods": "Moyens de paiement",
+      "disbursement": "Compte de versement",
       "subscription": "Abonnement",
       "appearance": "Apparence",
       "producerOnly": "Cette section est réservée aux comptes producteur."
@@ -352,6 +353,33 @@
       "desc": "Documents internes pour les déductions de tes règlements.",
       "folio": "Note n° {n}",
       "openPdf": "Voir le PDF"
+    },
+    "disbursement": {
+      "title": "Compte de versement",
+      "desc": "Le compte sur lequel tu reçois tes liquidations par virement automatique.",
+      "empty": "Tu n'as pas encore de compte de versement. Connecte-le avec Stripe pour recevoir tes liquidations par virement automatique.",
+      "rail": "Stripe Connect",
+      "country": "Pays du compte",
+      "countryHelper": "Le pays où se trouve ton compte bancaire. Pour l'instant, nous opérons dans les pays de la liste.",
+      "otherCountry": "Autre pays (pas encore disponible)",
+      "connectCta": "Connecter avec Stripe",
+      "continueCta": "Continuer sur Stripe",
+      "pendingHint": "Vérification en cours : le compte s'active quand Stripe confirme tes informations. Si tu as quitté le flux, reprends où tu en étais.",
+      "onboardedAt": "Actif depuis",
+      "lastError": "Dernière erreur du fournisseur",
+      "forbidden": "Tu n'as pas la permission de connecter le compte de versement.",
+      "unavailable": "Le versement automatique n'est pas encore disponible ; tes liquidations continuent d'être payées par virement manuel.",
+      "connectError": "Impossible de lancer la connexion avec Stripe. Réessaie.",
+      "status": {
+        "PENDING": "En attente de complétion",
+        "ACTIVE": "Actif",
+        "DISABLED": "Désactivé"
+      },
+      "actorTypes": {
+        "PRODUCER": "Producteur",
+        "ACADEMY": "Académie",
+        "VENUE": "Salle"
+      }
     },
     "codeDetail": {
       "redemptions": "Utilisations du code",

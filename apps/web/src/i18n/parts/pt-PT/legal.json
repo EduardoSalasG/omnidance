@@ -2,6 +2,25 @@
   "consent": {
     "checkboxLabel": "Li e aceito os <terms>Termos e Condições</terms> e a <privacy>Política de Privacidade</privacy>.",
     "checkboxRequired": "Deves aceitar os Termos e a Política de Privacidade para continuar",
+    "countryLabel": "País",
+    "countryOther": "Outro",
+    "countries": {
+      "CL": "Chile",
+      "AR": "Argentina",
+      "PE": "Peru",
+      "CO": "Colômbia",
+      "MX": "México",
+      "ES": "Espanha",
+      "DE": "Alemanha",
+      "FR": "França",
+      "IT": "Itália",
+      "GB": "Reino Unido",
+      "US": "Estados Unidos"
+    },
+    "scope": {
+      "marketing": "Aceito receber comunicações e novidades do Omnidance (marketing). Opcional.",
+      "analytics": "Aceito a utilização dos meus dados para analítica e melhoria do produto. Opcional."
+    },
     "bannerTitle": "Atualizámos os nossos Termos e a Política de Privacidade",
     "bannerBody": "Para continuar a usar o Omnidance precisamos que aceites a versão atual.",
     "bannerAccept": "Aceito",

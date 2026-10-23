@@ -210,7 +210,11 @@
    "documents": "Documents",
    "backHome": "Home",
    "broadcast": "Broadcast",
-   "validation": "Pending validation"
+   "validation": "Pending validation",
+   "features": "Features",
+   "featuresDesc": "Feature flags by toggle",
+   "cities": "Cities",
+   "citiesDesc": "Editorial guide per city (scene, nights, tips)"
   },
   "academies": {
    "desc": "Student base health per academy: segment distribution, average score and standout or at-risk students.",
@@ -567,6 +571,16 @@
    "commercial": "Commercial",
    "platform": "Platform"
   },
+  "features": {
+   "hint": "Turn features on or off by toggle. The change applies instantly and is recorded in the audit log.",
+   "empty": "No features registered - the catalog is defined by the seed.",
+   "loadError": "Couldn't load the features catalog.",
+   "on": "On",
+   "off": "Off",
+   "updatedAt": "Updated {date}",
+   "updatedBy": "by {name}",
+   "announce": "{label} is now {state}"
+  },
   "tx": {
    "title": "Transactions",
    "desc": "Payments processed by the platform: tickets, passes, memberships and subscriptions.",
@@ -621,6 +635,42 @@
     "CANCELED": "Cancelled",
     "FAILED_CARD": "Card failed"
    }
+  },
+  "cities": {
+   "desc": "Editorial guide for each city: what to expect from the scene, where to dance and practical info. Published on the city's public landing.",
+   "empty": "No cities configured.",
+   "error": "We couldn't load the city guides.",
+   "notFound": "The city doesn't exist.",
+   "disabled": "City guides are disabled. Enable them in Features (city_guides).",
+   "editorTitle": "Guide for {city}",
+   "viewLanding": "View landing",
+   "updatedAt": "Edited {date}",
+   "neverEdited": "Never edited",
+   "discard": "Discard",
+   "unsavedHint": "Unsaved changes",
+   "counter": "{used}/{max}",
+   "status": {
+    "empty": "Empty",
+    "draft": "Draft",
+    "complete": "Complete"
+   },
+   "sections": {
+    "intro": {
+     "label": "What to expect from the scene",
+     "help": "General vibe, predominant level and what the community is like."
+    },
+    "nightlife": {
+     "label": "Where to dance each night",
+     "help": "Strong nights, venues and typical hours of the scene."
+    },
+    "practical": {
+     "label": "Getting around and what to wear",
+     "help": "Transport, areas, dress code and practical tips."
+    }
+   },
+   "unsavedTitle": "Leave without saving?",
+   "unsavedDesc": "You have unsaved changes in the guide. If you leave now they'll be lost.",
+   "leaveAnyway": "Leave without saving"
   }
  }
 }
