@@ -312,7 +312,7 @@ describe("GatewayAccountsService", () => {
     const { svc } = mkSvc(prisma);
     await expect(
       svc.upsert("p1", { provider: "STRIPE" }),
-    ).rejects.toThrow(/\/productor\/pagos/);
+    ).rejects.toThrow(/\/productor\/desembolso/);
     destinations.push(connectDest({ status: "PENDING" }));
     await expect(
       svc.upsert("p1", { provider: "STRIPE" }),

@@ -142,6 +142,8 @@ const ICONS = {
   megaphone: "m3 11 18-5v12L3 13v-2zM11.6 16.8a3 3 0 1 1-5.8-1.6",
   funnel: "M22 3H2l8 9.46V19l4 2v-8.54L22 3z",
   zap: "M13 2 3 14h9l-1 8 10-12h-9l1-8z",
+  // Banco - cuenta de desembolso del actor (spec producer-pro).
+  bank: "M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11m4-11v11m8-11v11m4-11v11",
 };
 
 const HOME_TAB: Tab = { href: "/inicio", key: "home", icon: icon(ICONS.home) };
@@ -495,6 +497,14 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.claims",
           icon: ICONS.card,
         },
+        // Mis pagos es data operativa (liquidaciones), no
+        // configuración - vive con los módulos junto a Comprobantes.
+        {
+          href: "/productor/pagos",
+          ns: "producer",
+          key: "payouts",
+          icon: ICONS.list,
+        },
         {
           href: "/productor/colaboradores",
           ns: "producer",
@@ -506,8 +516,8 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     CRM_DRAWER_GROUP,
     ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM]),
     // Configuración: una página por sección (defaults operativos,
-    // medios de pago, suscripción Pro, liquidaciones, apariencia) -
-    // encima de Cuenta, mismo patrón del owner.
+    // medios de pago, cuenta de desembolso, suscripción Pro,
+    // apariencia) - encima de Cuenta, mismo patrón del owner.
     {
       labelNs: "producer",
       labelKey: "navGroups.config",
@@ -525,16 +535,16 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.card,
         },
         {
+          href: "/productor/desembolso",
+          ns: "producer",
+          key: "configPages.disbursement",
+          icon: ICONS.bank,
+        },
+        {
           href: "/productor/suscripcion",
           ns: "producer",
           key: "configPages.subscription",
           icon: ICONS.tag,
-        },
-        {
-          href: "/productor/pagos",
-          ns: "producer",
-          key: "payouts",
-          icon: ICONS.list,
         },
         {
           href: "/productor/apariencia",

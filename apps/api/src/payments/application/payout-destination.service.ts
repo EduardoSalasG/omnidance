@@ -33,7 +33,7 @@ import {
 //   en el destino - nunca rompe el listado.
 // - create: valida ownership y crea la cuenta Connect Express
 //   (capabilities card_payments + transfers) + Account Link de
-//   onboarding apuntando a /productor/pagos. Un destino PENDING previo
+//   onboarding apuntando a /productor/desembolso. Un destino PENDING previo
 //   reutiliza su externalId (no crea segunda cuenta); ACTIVE → 409;
 //   DISABLED se reactiva con cuenta nueva sobre la misma fila (la
 //   restricción @@unique(actorType,actorId,rail) no permite otra).
@@ -210,13 +210,13 @@ export class PayoutDestinationService {
           },
         });
 
-    // El onboarding aterriza en la consola de pagos del productor
-    // (apps/web /productor/pagos) - refresh y return comparten URL.
+    // El onboarding aterriza en la página de desembolso del productor
+    // (apps/web /productor/desembolso) - refresh y return comparten URL.
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const link = await client.createAccountLink({
       account: externalId,
-      refresh_url: `${webUrl}/productor/pagos`,
-      return_url: `${webUrl}/productor/pagos`,
+      refresh_url: `${webUrl}/productor/desembolso`,
+      return_url: `${webUrl}/productor/desembolso`,
     });
     if (!link.url) {
       throw new Error("stripe account_links: respuesta sin url");

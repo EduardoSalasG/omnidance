@@ -193,15 +193,15 @@ describe("StripeConnectClient - onboarding Express", () => {
     vi.stubGlobal("fetch", fetchMock);
     const link = await client().createAccountLink({
       account: "acct_1",
-      refresh_url: "https://app/productor/pagos",
-      return_url: "https://app/productor/pagos",
+      refresh_url: "https://app/productor/desembolso",
+      return_url: "https://app/productor/desembolso",
     });
     expect(link.url).toBe("https://connect.stripe.test/l_1");
     const body = formOf(fetchMock.mock.calls[0] as unknown[]);
     expect(body.account).toBe("acct_1");
     expect(body.type).toBe("account_onboarding");
-    expect(body.refresh_url).toBe("https://app/productor/pagos");
-    expect(body.return_url).toBe("https://app/productor/pagos");
+    expect(body.refresh_url).toBe("https://app/productor/desembolso");
+    expect(body.return_url).toBe("https://app/productor/desembolso");
   });
 
   it("getAccount consulta GET /v1/accounts/:id", async () => {
