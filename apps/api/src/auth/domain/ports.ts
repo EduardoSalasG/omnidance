@@ -32,6 +32,9 @@ export interface AuthRepo {
     jurisdiction?: string,
   ): Promise<Person>;
   setPassword(personId: string, passwordHash: string): Promise<void>;
+  // Admins APPROVED que reciben el aviso de registro nuevo (spec
+  // notifications/admin-alerts).
+  approvedAdminIds(): Promise<string[]>;
   // Ajusta la jurisdicción legal de una Person existente (register
   // sobre cuenta pre-sembrada con país declarado).
   setJurisdiction(personId: string, jurisdiction: string): Promise<void>;

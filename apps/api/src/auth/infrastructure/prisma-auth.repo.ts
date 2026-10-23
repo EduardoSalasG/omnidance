@@ -91,6 +91,16 @@ export class PrismaAuthRepo implements AuthRepo {
     return this.prisma.authOtp.create({ data }).then(() => {});
   }
 
+  // Admins APPROVED - destinatarios del aviso user.registered (spec
+  // notifications/admin-alerts), mismo filtro que leads/payments.
+  async approvedAdminIds() {
+    const rows = await this.prisma.personRole.findMany({
+      where: { role: "ADMIN", status: "APPROVED" },
+      select: { personId: true },
+    });
+    return rows.map((r) => r.personId);
+  }
+
   // Registro por landing: crea el PersonRole PENDING si no existe -
   // upsert vacío en update para no pisar un estado ya resuelto por admin.
   ensurePendingRole(personId: string, role: string) {
