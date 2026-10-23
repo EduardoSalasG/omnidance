@@ -150,7 +150,7 @@ export async function seedDev(prisma: PrismaClient) {
   // no @omnidance.dev. Enseña él mismo: instructor de la casa.
   const gabriel = await ensurePerson(
     prisma,
-    "gazner3203@gmail.com",
+    "gabriel@omnidance.dev",
     "Gabriel Arias",
     [
       { role: "ACADEMY_OWNER" },
@@ -1223,7 +1223,7 @@ export async function seedDev(prisma: PrismaClient) {
 
   // ─── Mambo Madness - academia real, no catálogo genérico ───
   step("mambo madness…");
-  // Dueño real (Gabriel Arias, gazner3203@gmail.com), datos de contacto
+  // Dueño real (Gabriel Arias, gabriel@omnidance.dev), datos de contacto
   // y parrilla reales de mambomadnesscl.com. El loop de catálogo crea la
   // fila con placeholders (para no re-indexar al resto); acá se pisan
   // con los datos reales sin el backfill conservador - el seed es dueño
