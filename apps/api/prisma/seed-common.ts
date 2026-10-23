@@ -279,6 +279,18 @@ const FEATURE_FLAG_SEED: {
     description: "Landing pública de cada ciudad (marketing local)",
     enabled: true,
   },
+  {
+    key: "social_line",
+    label: "Línea Nightlife",
+    description: "Superficies sociales del bailarín (eventos, bailes, prácticas) - OFF si la operación parte solo con academias",
+    enabled: true,
+  },
+  {
+    key: "academy_line",
+    label: "Línea Academy",
+    description: "Superficies de academia del bailarín (clases, directorio) - OFF si la operación parte solo con nightlife",
+    enabled: true,
+  },
 ];
 
 /** Crea o confirma una persona con sus roles. Idempotente por email. */

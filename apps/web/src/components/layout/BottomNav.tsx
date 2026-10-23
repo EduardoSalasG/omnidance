@@ -69,6 +69,9 @@ type Tab = {
   center?: boolean;
   // Tab de acción: abre el sheet del bailarín en vez de navegar.
   sheet?: boolean;
+  // Feature flag (spec product-line-flags): ausente → siempre visible;
+  // presente → solo si el flag público resolvió ON.
+  flag?: string;
 };
 
 function icon(path: string) {
@@ -151,6 +154,7 @@ const EVENTS_TAB: Tab = {
   href: "/eventos",
   key: "events",
   icon: icon(ICONS.events),
+  flag: "social_line",
 };
 const QR_TAB: Tab = {
   href: "/qr",
@@ -167,11 +171,13 @@ const ACADEMIAS_TAB: Tab = {
   href: "/academias",
   key: "academies",
   icon: icon(ICONS.academy),
+  flag: "academy_line",
 };
 const CLASSES_TAB: Tab = {
   href: "/clases",
   key: "classes",
   icon: icon(ICONS.clock),
+  flag: "academy_line",
 };
 const FRIENDS_TAB: Tab = {
   href: "/amigos",
@@ -387,12 +393,13 @@ const ANALYTICS_ITEM: DrawerSpec = {
 // El QR va destacado dentro del sheet; estos son los ítems del grid.
 // ns/key resuelven vía labelFor como los ítems del drawer.
 const SHEET_SOCIAL_ITEMS: DrawerSpec[] = [
-  { href: "/bailes", ns: "nav", key: "dances", icon: ICONS.dances },
+  { href: "/bailes", ns: "nav", key: "dances", icon: ICONS.dances, flag: "social_line" },
   {
     href: "/practicas",
     ns: "nav",
     key: "practices",
     icon: ICONS.practices,
+    flag: "social_line",
   },
 ];
 // Directorio de ciudades (spec city-discovery): lente social del
@@ -901,14 +908,15 @@ const DANCER_SIDEBAR: Record<"social" | "academy", DrawerGroupSpec[]> = {
       labelKey: "socialSection",
       items: [
         { href: "/inicio", ns: "nav", key: "home", icon: ICONS.home },
-        { href: "/eventos", ns: "nav", key: "events", icon: ICONS.events },
+        { href: "/eventos", ns: "nav", key: "events", icon: ICONS.events, flag: "social_line" },
         { href: "/amigos", ns: "nav", key: "friends", icon: ICONS.users },
-        { href: "/bailes", ns: "nav", key: "dances", icon: ICONS.dances },
+        { href: "/bailes", ns: "nav", key: "dances", icon: ICONS.dances, flag: "social_line" },
         {
           href: "/practicas",
           ns: "nav",
           key: "practices",
           icon: ICONS.practices,
+          flag: "social_line",
         },
         { href: "/qr", ns: "nav", key: "qr", icon: ICONS.qr },
         {
@@ -926,12 +934,13 @@ const DANCER_SIDEBAR: Record<"social" | "academy", DrawerGroupSpec[]> = {
       labelKey: "academy",
       items: [
         { href: "/inicio", ns: "nav", key: "home", icon: ICONS.home },
-        { href: "/clases", ns: "nav", key: "classes", icon: ICONS.clock },
+        { href: "/clases", ns: "nav", key: "classes", icon: ICONS.clock, flag: "academy_line" },
         {
           href: "/academias",
           ns: "nav",
           key: "academies",
           icon: ICONS.academy,
+          flag: "academy_line",
         },
         { href: "/qr", ns: "nav", key: "qr", icon: ICONS.qr },
       ],
@@ -1184,9 +1193,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   const labelFor = (ns: DrawerSpec["ns"], key: string): string =>
     nsT[ns](key);
 
-  const roleTabs = dancerAcademy
-    ? DANCER_ACADEMY_TABS
-    : TABS_BY_ROLE[activeRole];
+  const roleTabs = (
+    dancerAcademy ? DANCER_ACADEMY_TABS : TABS_BY_ROLE[activeRole]
+  ).filter((tab) => !tab.flag || flags[tab.flag] === true);
   const roleDrawer = dancerAcademy
     ? DANCER_ACADEMY_DRAWER
     : DRAWER_BY_ROLE[activeRole];
