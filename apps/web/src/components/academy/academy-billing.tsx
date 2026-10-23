@@ -41,15 +41,17 @@ const CYCLE_BILLED_MONTHS: Record<BillingCycle, number> = {
   ANNUAL: 11,
 };
 
-// Tiers auto-contratables - ENTERPRISE es "a convenir" (espejo de
+// Tiers auto-contratables por features (spec academy-tier-cobros) -
+// ENTERPRISE es "a convenir" y STARTER quedó legado (espejo de
 // SELF_SERVE_ACADEMY_TIERS en apps/api/src/payments/domain/platform-tiers.ts).
-const TIERS = ["STARTER", "PRO", "STUDIO"] as const;
+const TIERS = ["COBROS", "STUDIO", "PRO"] as const;
 type TierCode = (typeof TIERS)[number];
 const TIER_RANK: Record<string, number> = {
-  STARTER: 0,
-  PRO: 1,
+  COBROS: 0,
+  STARTER: 1,
   STUDIO: 2,
-  ENTERPRISE: 3,
+  PRO: 3,
+  ENTERPRISE: 4,
 };
 
 /** GET /academies/:id/billing - vista de billing del owner (S5). */
@@ -114,7 +116,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
   >("loading");
 
   // Selección del plan (compartida por contratar y cambiar plan).
-  const [selTier, setSelTier] = useState<TierCode>("STARTER");
+  const [selTier, setSelTier] = useState<TierCode>("STUDIO");
   const [selCycle, setSelCycle] = useState<BillingCycle>("MONTHLY");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -150,7 +152,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
       const currentTier = TIERS.includes(v.tier as TierCode)
         ? (v.tier as TierCode)
         : null;
-      setSelTier(currentTier ?? "STARTER");
+      setSelTier(currentTier ?? "STUDIO");
       setSelCycle(v.cycle ?? "MONTHLY");
       setState("ready");
     } catch {

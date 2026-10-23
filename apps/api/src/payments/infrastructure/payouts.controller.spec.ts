@@ -134,6 +134,7 @@ class FakePrisma {
   series: Row[] = [];
   membershipPlans: Row[] = [];
   privateLessons: Row[] = [];
+  academies: Row[] = [];
   payments: FakePayment[] = [];
   payouts: FakePayout[] = [];
   payoutLines: Row[] = [];
@@ -175,6 +176,13 @@ class FakePrisma {
   membershipPlan = {
     findMany: async ({ where }: { where: Row }) =>
       this.membershipPlans.filter((p) => matchWhere(p, where)),
+  };
+
+  // El tier de la academia define el take COBROS de la liquidación
+  // (spec academy-tier-cobros) - null cuando el actor no es ACADEMY.
+  academy = {
+    findUnique: async ({ where }: { where: { id: string } }) =>
+      this.academies.find((a) => a.id === where.id) ?? null,
   };
 
   classes: Row[] = [];
@@ -689,6 +697,61 @@ describe("AdminPayoutsController.generate - computeSettlement", () => {
     expect(payout.gross).toBe(0);
     expect(payout.net).toBe(0);
     expect(payout.lines).toEqual([]); // sin bruto → sin líneas de descuento
+  });
+
+  it("ACADEMY tier COBROS: cobros de membresía pagan take (mult × fee pasarela) como línea tipada", async () => {
+    // Take de cobranza del tier COBROS (spec academy-tier-cobros): sobre
+    // órdenes MEMBERSHIP el payout descuenta take_multiplier × el fee de
+    // pasarela como línea ACADEMY_COBROS_TAKE - 1,5× ≈ 4,8% all-in.
+    prisma.academies.push({ id: "ac-1", tier: "COBROS" });
+    pf.numbers.set("academy_cobros.take_multiplier", 1.5);
+    prisma.membershipPlans.push({ id: "plan-1", academyId: "ac-1" });
+    prisma.payments.push(
+      mkPayment({
+        orderType: "MEMBERSHIP",
+        refId: "mem_plan-1_x",
+        amount: 10000,
+      }),
+    );
+    const payout = await ctrl.generate(
+      { actorType: "ACADEMY", actorId: "ac-1", ...DTO },
+      adminReq,
+    );
+    // membresía: gateway estimado round(10000×3.19%)=319, take round(319×0.5)=160.
+    expect(payout.gross).toBe(43000);
+    expect(payout.gatewayFee).toBe(998 + 319);
+    expect(payout.platformFee).toBe(160);
+    expect(payout.net).toBe(43000 - 998 - 319 - 160);
+    expect(payout.lines).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "ACADEMY_COBROS_TAKE",
+          amount: 160,
+          meta: expect.objectContaining({ takeMultiplier: 1.5 }),
+        }),
+      ]),
+    );
+  });
+
+  it("ACADEMY tier STUDIO no paga take de cobranza", async () => {
+    prisma.academies.push({ id: "ac-1", tier: "STUDIO" });
+    pf.numbers.set("academy_cobros.take_multiplier", 1.5);
+    prisma.membershipPlans.push({ id: "plan-1", academyId: "ac-1" });
+    prisma.payments.push(
+      mkPayment({
+        orderType: "MEMBERSHIP",
+        refId: "mem_plan-1_x",
+        amount: 10000,
+      }),
+    );
+    const payout = await ctrl.generate(
+      { actorType: "ACADEMY", actorId: "ac-1", ...DTO },
+      adminReq,
+    );
+    expect(payout.platformFee).toBe(0); // sin take fuera de COBROS
+    expect(
+      payout.lines.filter((l) => l.type === "ACADEMY_COBROS_TAKE"),
+    ).toEqual([]);
   });
 
   it("ACADEMY: el estimado usa gateway_fee.academy_passthrough_pct solo cuando no hay costo real", async () => {

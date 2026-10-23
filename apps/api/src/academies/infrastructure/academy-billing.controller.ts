@@ -18,7 +18,7 @@ import {
 } from "../../payments/application/platform-subscriptions.service";
 import { AcademyAccess } from "./academy-access.service";
 
-const ACADEMY_TIERS = ["STARTER", "PRO", "STUDIO", "ENTERPRISE"] as const;
+const ACADEMY_TIERS = ["STARTER", "COBROS", "PRO", "STUDIO", "ENTERPRISE"] as const;
 const BILLING_CYCLES: BillingCycle[] = ["MONTHLY", "SEMIANNUAL", "ANNUAL"];
 
 class SubscribeAcademyDto {

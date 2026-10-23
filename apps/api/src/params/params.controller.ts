@@ -31,12 +31,11 @@ const PUBLIC_KEYS = new Set([
   // el total del ciclo se calcula (anual ×11, semestral ×5.75).
   // academy_billing.* y gateway_fee.* quedan internos (lógica de
   // mora/payout, no pricing).
-  "academy_tier.starter_max_students",
-  "academy_tier.pro_max_students",
+  "academy_tier.cobros_max_students",
   "academy_tier.studio_max_students",
-  "academy_tier.starter_monthly_clp",
-  "academy_tier.pro_monthly_clp",
+  "academy_tier.cobros_monthly_clp",
   "academy_tier.studio_monthly_clp",
+  "academy_tier.pro_monthly_clp",
   "producer_tier.starter_max_monthly_clp",
   "producer_tier.growth_max_monthly_clp",
   "producer_tier.starter_monthly_clp",

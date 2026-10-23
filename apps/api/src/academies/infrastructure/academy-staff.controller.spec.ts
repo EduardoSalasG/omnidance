@@ -104,6 +104,7 @@ describe("AcademyStaffController - instructores", () => {
       "ac1",
       expect.objectContaining({ id: "p1" }),
       "team",
+      "staff",
     );
     expect(r.items).toHaveLength(1);
     expect(r.items[0]).toMatchObject({

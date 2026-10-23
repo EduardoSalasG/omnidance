@@ -16,6 +16,7 @@ import {
 } from "@omnidance/shared";
 import { PrismaService } from "../prisma.service";
 import { assertProducerPro } from "../common/producer-pro";
+import { assertAnyOwnedAcademyMeets } from "../common/academy-tier";
 import { ADMIN_ENTITIES } from "./entities/admin";
 import { ACADEMY_ENTITIES } from "./entities/academy";
 import { PRODUCER_ENTITIES } from "./entities/producer";
@@ -113,6 +114,11 @@ export class QueryService {
   ): Promise<QueryRole> {
     const r = await this.assertLens(personId, role);
     if (r === "PRODUCER") await assertProducerPro(this.prisma, personId);
+    // Lente academia = la consola de consultas/export (STUDIO+): basta
+    // una academia del owner que cubra la feature (multi-academia).
+    if (r === "ACADEMY_OWNER") {
+      await assertAnyOwnedAcademyMeets(this.prisma, personId, "exports");
+    }
     return r;
   }
 

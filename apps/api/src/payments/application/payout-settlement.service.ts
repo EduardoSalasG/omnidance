@@ -35,6 +35,9 @@ const FEE_LINE_TYPES = new Set([
   "PLATFORM_FEE_VAT",
   "OWN_METHOD_FEE_NET",
   "OWN_METHOD_FEE_VAT",
+  // Take de cobranza del tier COBROS (spec academy-tier-cobros): es
+  // ingreso de plataforma - suma al platformFee del payout.
+  "ACADEMY_COBROS_TAKE",
 ]);
 
 /**
@@ -172,6 +175,24 @@ export class PayoutSettlementService {
       this.params.getNumber("tax.iva_pct", 19),
       this.params.getNumber("gateway_fee.academy_passthrough_pct", 3.19),
     ]);
+    // Take del tier COBROS (spec academy-tier-cobros, omni-dance.md §10):
+    // en ese tier la cobranza ES el producto - el payout descuenta
+    // take_multiplier x el fee de pasarela (~1,5x = ~4,8% all-in) sobre
+    // cobros de membresias. El extra va como linea tipada
+    // ACADEMY_COBROS_TAKE; el GATEWAY_FEE_PASSTHROUGH sigue al costo.
+    const academyTier =
+      actorType === "ACADEMY"
+        ? (
+            await this.prisma.academy.findUnique({
+              where: { id: actorId },
+              select: { tier: true },
+            })
+          )?.tier
+        : null;
+    const cobrosTakeMult =
+      academyTier === "COBROS"
+        ? await this.params.getNumber("academy_cobros.take_multiplier", 1.5)
+        : 1;
     const unliquidated = opts?.unliquidatedOnly
       ? { payoutLines: { none: {} } }
       : {};
@@ -304,8 +325,7 @@ export class PayoutSettlementService {
           // reportó) o estimado por param - línea por orden, no agregada.
           const gateway =
             p.gatewayFeeClp ?? Math.round((p.amount * passthroughPct) / 100);
-          accrue(
-            acc,
+          const lines: SettlementLine[] =
             gateway > 0
               ? [
                   {
@@ -318,10 +338,25 @@ export class PayoutSettlementService {
                     },
                   },
                 ]
-              : [],
-            p.amount,
-            p.currency,
-          );
+              : [];
+          // Take COBROS sobre membresias: (mult-1)x el fee de pasarela
+          // como linea tipada trazable por orden.
+          if (p.orderType === "MEMBERSHIP" && cobrosTakeMult > 1) {
+            const take = Math.round(gateway * (cobrosTakeMult - 1));
+            if (take > 0) {
+              lines.push({
+                paymentId: p.id,
+                type: "ACADEMY_COBROS_TAKE",
+                amount: take,
+                meta: {
+                  orderAmount: p.amount,
+                  takeMultiplier: cobrosTakeMult,
+                  tier: "COBROS",
+                },
+              });
+            }
+          }
+          accrue(acc, lines, p.amount, p.currency);
         } else {
           // VENUE: regla legacy (fee real + platformFeePct del evento).
           const lines: SettlementLine[] = [];

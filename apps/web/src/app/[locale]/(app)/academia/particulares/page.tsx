@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { PrivateLessons } from "@/components/academy/private-lessons";
 import { ConsoleHeader } from "@/components/console/console-header";
 
@@ -20,7 +21,7 @@ export default function AcademiaParticularesPage() {
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
-          <PrivateLessons key={academy.id} academy={academy} />
+          <AcademyTierGate academy={academy} feature="classes"><PrivateLessons key={academy.id} academy={academy} /></AcademyTierGate>
         )}
       </AcademyGate>
     </main>

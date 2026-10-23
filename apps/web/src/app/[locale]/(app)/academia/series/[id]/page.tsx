@@ -15,6 +15,7 @@ import {
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { CourseSurveyResults } from "@/components/academy/survey-results";
 import {
@@ -71,11 +72,11 @@ export default function SerieDetailPage() {
       <ConsoleHeader backHref="/academia/series" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
-          <SeriesDetail
+          <AcademyTierGate academy={academy} feature="classes"><SeriesDetail
             key={`${academy.id}:${params.id}`}
             academyId={academy.id}
             seriesId={params.id}
-          />
+          /></AcademyTierGate>
         )}
       </AcademyGate>
     </main>

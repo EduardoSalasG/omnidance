@@ -54,7 +54,7 @@ export class AttendanceController {
   ) {
     // owner/instructor/admin - mutación de consola: academia bloqueada
     // por mora (billingBlockedAt) → 403 billing.blocked (S3).
-    await this.access.requireManageWrite(id, req.person!);
+    await this.access.requireManageWrite(id, req.person!, "attendance");
 
     const slot = await this.prisma.classSlot.findFirst({
       where: { id: dto.slotId, academyId: id },
@@ -137,7 +137,7 @@ export class AttendanceController {
     @Query("seriesId") seriesId?: string,
     @Query("instructorId") instructorId?: string,
   ) {
-    await this.access.requireCapability(id, req.person!, "students"); // solo owner/admin
+    await this.access.requireCapability(id, req.person!, "students", "attendance"); // solo owner/admin
     const gte = filterDate(from, "from") ?? new Date(Date.now() - 30 * 86400000);
     const lte = filterDate(to, "to") ?? new Date();
     lte.setUTCHours(23, 59, 59, 999);

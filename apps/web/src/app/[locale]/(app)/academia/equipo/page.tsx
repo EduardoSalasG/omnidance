@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { StaffSection } from "@/components/academy/staff-section";
 import { InstructorSection } from "@/components/academy/instructor-section";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -30,13 +31,13 @@ export default function AcademiaEquipoPage() {
       />
       <AcademyGate>
         {({ academy }) => (
-          <>
+          <AcademyTierGate academy={academy} feature="staff"><>
             <InstructorSection
               key={`i-${academy.id}`}
               academyId={academy.id}
             />
             <StaffSection key={`s-${academy.id}`} academyId={academy.id} />
-          </>
+          </></AcademyTierGate>
         )}
       </AcademyGate>
     </main>

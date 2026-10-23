@@ -164,7 +164,7 @@ export class AcademyStaffController {
     @Query("page") page?: string,
     @Query("pageSize") pageSize?: string,
   ) {
-    await this.access.requireCapability(id, req.person!, "team");
+    await this.access.requireCapability(id, req.person!, "team", "staff");
     const pg = pageParams(page, pageSize);
     // q filtra por nombre/email de la persona (personId FK plana -
     // join manual previo, como en students) para que pagine bien.
@@ -253,7 +253,7 @@ OR: [
     @Param("personId") personId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireCapability(id, req.person!, "team");
+    await this.access.requireCapability(id, req.person!, "team", "staff");
     const row = await this.prisma.academyStaff.findUnique({
       where: { academyId_personId: { academyId: id, personId } },
       select: {
@@ -303,6 +303,7 @@ OR: [
       id,
       req.person!,
       "team",
+      "staff",
     );
     const { person, invited, email } = await this.resolvePerson(
       dto.email,
@@ -345,7 +346,7 @@ OR: [
     @Query("page") page?: string,
     @Query("pageSize") pageSize?: string,
   ) {
-    await this.access.requireCapability(id, req.person!, "team");
+    await this.access.requireCapability(id, req.person!, "team", "staff");
     const pg = pageParams(page, pageSize);
     const [rows, total] = await Promise.all([
       this.prisma.academyInstructor.findMany({
@@ -404,7 +405,7 @@ OR: [
     @Param("personId") personId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireCapability(id, req.person!, "team");
+    await this.access.requireCapability(id, req.person!, "team", "staff");
     const instructor = await this.prisma.academyInstructor.findUnique({
       where: { academyId_personId: { academyId: id, personId } },
     });
@@ -507,6 +508,7 @@ OR: [
       id,
       req.person!,
       "team",
+      "staff",
     );
     const { person, invited, email } = await this.resolvePerson(
       dto.email,
@@ -559,6 +561,7 @@ OR: [
       id,
       req.person!,
       "team",
+      "staff",
     );
     this.assertValidTarget(personId, academy.ownerId, req.person!.id);
     const { count } = await this.prisma.academyInstructor.deleteMany({
@@ -579,6 +582,7 @@ OR: [
       id,
       req.person!,
       "team",
+      "staff",
     );
     this.assertValidTarget(personId, academy.ownerId, req.person!.id);
     const caps = capsToData(dto);
@@ -600,6 +604,7 @@ OR: [
       id,
       req.person!,
       "team",
+      "staff",
     );
     this.assertValidTarget(personId, academy.ownerId, req.person!.id);
     const { count } = await this.prisma.academyStaff.deleteMany({

@@ -1241,7 +1241,7 @@ export class ClassesController {
       },
     });
     if (!cls) throw new NotFoundException("clase no encontrada");
-    await this.access.requireManage(cls.slot.academyId, req.person!);
+    await this.access.requireManage(cls.slot.academyId, req.person!, "attendance");
 
     // Ventana de marcación [inicio-30min, inicio+30min] sobre el inicio
     // real de la clase (spec academies/class-series). Fuera de ella la
@@ -1370,7 +1370,7 @@ export class ClassesController {
     }
     // Miembro de la academia + no bloqueada por billing; luego la regla
     // de quién marca (cualquiera del plantel de la clase o admin).
-    await this.access.requireManageWrite(cls.slot.academyId, req.person!);
+    await this.access.requireManageWrite(cls.slot.academyId, req.person!, "attendance");
     const roster = new Set(
       [
         cls.instructorId,

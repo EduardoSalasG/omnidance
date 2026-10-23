@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { StaffForm } from "@/components/academy/staff-form";
 import { ConsoleHeader } from "@/components/console/console-header";
 
@@ -17,7 +18,11 @@ export default function AcademiaNuevoEquipoPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-3xl lg:px-8">
       <ConsoleHeader backHref="/academia/equipo" backLabel={t("title")} />
       <AcademyGate>
-        {({ academy }) => <StaffForm key={academy.id} academyId={academy.id} />}
+        {({ academy }) => (
+          <AcademyTierGate academy={academy} feature="staff">
+            <StaffForm key={academy.id} academyId={academy.id} />
+          </AcademyTierGate>
+        )}
       </AcademyGate>
     </main>
   );

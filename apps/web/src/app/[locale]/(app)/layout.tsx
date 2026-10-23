@@ -8,6 +8,7 @@ import { InstallPrompt } from "@/components/install/InstallPrompt";
 import { PushOptIn } from "@/components/realtime/PushOptIn";
 import { MeProvider } from "@/lib/me-context";
 import { FeaturesProvider } from "@/lib/features-context";
+import { AcademyEntitlementsProvider } from "@/lib/academy-entitlements-context";
 import { appMessages } from "@/i18n/messages";
 import { routing, type Locale } from "@/i18n/routing";
 import type { Messages } from "next-intl";
@@ -50,7 +51,13 @@ export default async function AppLayout({
               fetch de GET /features por sesión - las superficies gated
               consultan useFeatures(). */}
           <FeaturesProvider>
-            <ChromeShell>{children}</ChromeShell>
+            {/* Entitlements por tier de academia (spec
+                academy-tier-cobros): un solo fetch por sesión - la nav
+                del owner y las páginas gated consultan
+                useAcademyEntitlements(). */}
+            <AcademyEntitlementsProvider>
+              <ChromeShell>{children}</ChromeShell>
+            </AcademyEntitlementsProvider>
             {/* Aviso legal no bloqueante (spec legal-consent): visible solo
                 cuando /me reporta consentimiento ausente o de versión
                 antigua. */}

@@ -8,6 +8,7 @@ import type { AcademyTier, BillingCycle, ProducerProTier } from "@prisma/client"
 /** Tiers válidos por dominio. */
 export const ACADEMY_TIERS = new Set<string>([
   "STARTER",
+  "COBROS",
   "PRO",
   "STUDIO",
   "ENTERPRISE",
@@ -19,10 +20,12 @@ export const PRODUCER_PRO_TIERS = new Set<string>([
 ]);
 
 /** Tiers auto-contratables - ENTERPRISE/PRO_BIG son "a convenir" (manual). */
+// STARTER quedó como legado (las cuentas existentes conservan su
+// ciclo, nivel STUDIO) - ya no se vende: COBROS/STUDIO/PRO/ENTERPRISE.
 export const SELF_SERVE_ACADEMY_TIERS = new Set<string>([
-  "STARTER",
-  "PRO",
+  "COBROS",
   "STUDIO",
+  "PRO",
 ]);
 export const SELF_SERVE_PRODUCER_TIERS = new Set<string>([
   "PRO_STARTER",
@@ -31,10 +34,13 @@ export const SELF_SERVE_PRODUCER_TIERS = new Set<string>([
 
 /** Ranking para decidir upgrade (aplica ya) vs downgrade (próximo ciclo). */
 export const ACADEMY_TIER_RANK: Record<AcademyTier, number> = {
-  STARTER: 0,
-  PRO: 1,
+  COBROS: 0,
+  // STARTER legado ($49.990): entre COBROS y STUDIO en precio - subir a
+  // STUDIO es upgrade, bajar a COBROS es downgrade agendado.
+  STARTER: 1,
   STUDIO: 2,
-  ENTERPRISE: 3,
+  PRO: 3,
+  ENTERPRISE: 4,
 };
 export const PRODUCER_TIER_RANK: Record<ProducerProTier, number> = {
   FREE: -1,

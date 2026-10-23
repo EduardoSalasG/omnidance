@@ -1,6 +1,7 @@
-import { Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { effectiveCapacity } from "../academies/domain/academy.service";
+import { tierMeets } from "../academies/domain/academy-tiers";
 
 const DAY_MS = 86_400_000;
 const daysAgo = (n: number) => new Date(Date.now() - n * DAY_MS);
@@ -242,6 +243,20 @@ export class AnalyticsService {
   }
 
   private async academyOwner(personId: string): Promise<AnalyticsResult> {
+    // Analítica de academia = feature PRO (spec academy-tier-cobros):
+    // la lente agrega sobre todas las academias del owner - basta una.
+    const academies0 = await this.prisma.academy.findMany({
+      where: { ownerId: personId },
+      select: { tier: true },
+    });
+    if (academies0.length && !academies0.some((a) => tierMeets(a.tier, "analytics"))) {
+      throw new ForbiddenException({
+        error: "tier.required",
+        upgrade: true,
+        requiredTier: "PRO",
+        feature: "analytics",
+      });
+    }
     const since = daysAgo(30);
     const academies = await this.prisma.academy.findMany({
       where: { ownerId: personId, active: true },

@@ -52,6 +52,7 @@ import {
   type FileStorage,
 } from "../storage/storage.service";
 import { isProActive } from "../payments/domain/platform-tiers";
+import { featuresForTier } from "../academies/domain/academy-tiers";
 import {
   monthRange,
   prevMonthKey,
@@ -398,6 +399,29 @@ export class PeopleController {
       // Tours de onboarding ya vistos: {tourKey: ISO} - el front corre
       // el tour de una superficie solo si su clave falta.
       onboarding: (person.onboarding as Record<string, string> | null) ?? {},
+    };
+  }
+
+  /**
+   * GET /me/academy/entitlements (spec academy-tier-cobros): mapa de
+   * entitlements por academia del owner autenticado - el front filtra
+   * la nav de la consola y muestra el estado "parte del plan X" sin
+   * esperar al 403 de cada endpoint. {academies:[{id,tier,features}]}.
+   */
+  @Get("me/academy/entitlements")
+  @UseGuards(SessionGuard)
+  async academyEntitlements(@Req() req: Request) {
+    const academies = await this.prisma.academy.findMany({
+      where: { ownerId: req.person!.id },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, tier: true },
+    });
+    return {
+      academies: academies.map((a) => ({
+        id: a.id,
+        tier: a.tier,
+        features: [...featuresForTier(a.tier)],
+      })),
     };
   }
 

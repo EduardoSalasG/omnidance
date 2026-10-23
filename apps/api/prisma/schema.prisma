@@ -853,8 +853,14 @@ model HappyHourWindow {
 // Tiers SaaS de la academia (spec academy-saas-billing). Precios por ciclo
 // y límites de alumnos activos viven en PlatformParam (academy_tier.*) -
 // ENTERPRISE es "a convenir", sin params ni auto-selección.
+// Reestructura por features (spec academy-tier-cobros, omni-dance.md §10):
+// COBROS (cobranza pura) < STUDIO (operación completa) < PRO (+analítica/
+// CRM/marketing/multi-academia). STARTER queda como legado - las cuentas
+// existentes resuelven a nivel STUDIO (nadie baja a COBROS) y ya no es
+// auto-contratable (SELF_SERVE_ACADEMY_TIERS en platform-tiers.ts).
 enum AcademyTier {
   STARTER
+  COBROS
   PRO
   STUDIO
   ENTERPRISE

@@ -39,6 +39,7 @@ import {
   type CrmTriggerKey,
 } from "../domain/crm.service";
 import { assertProducerPro } from "../../common/producer-pro";
+import { assertAcademyTier } from "../../common/academy-tier";
 import { SEGMENTS } from "@omnidance/shared";
 import { pageParams } from "../../academies/infrastructure/list-filters";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
@@ -595,7 +596,12 @@ export class CrmController {
         where: { id: actorId, ownerId: caller.id },
         select: { id: true },
       });
-      if (owned) return;
+      if (owned) {
+        // El CRM de la academia es feature PRO (spec
+        // academy-tier-cobros): 403 tier.required si el tier no cubre.
+        await assertAcademyTier(this.prisma, actorId, "crm");
+        return;
+      }
     }
     if (
       await roleKeysHavePermission(this.prisma, caller.roles, ["admin.access"])

@@ -483,6 +483,7 @@ describe("AcademySalesService", () => {
       "ac-1",
       academyOwner,
       "payments",
+      "presales",
     );
     expect(notifications.notify).toHaveBeenCalledWith(
       "prod-1",
@@ -602,6 +603,7 @@ describe("AcademySalesService", () => {
       "ac-1",
       academyOwner,
       "payments",
+      "presales",
     );
     expect(code.type).toBe("ACADEMY_PRESALE");
     expect(code.percentOff).toBe(100);

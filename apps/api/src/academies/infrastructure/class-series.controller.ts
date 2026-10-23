@@ -250,7 +250,7 @@ export class ClassSeriesController {
     @Query("page") page?: string,
     @Query("pageSize") pageSize?: string,
   ) {
-    await this.access.requireCapability(id, req.person!, "schedule");
+    await this.access.requireCapability(id, req.person!, "schedule", "classes");
     const statusF = whitelist(status, ["active", "inactive"] as const, "status");
     const pg = pageParams(page, pageSize);
     const term = q?.trim();
@@ -296,7 +296,7 @@ export class ClassSeriesController {
    */
   @Get(":id/series/insights")
   async insights(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireCapability(id, req.person!, "schedule");
+    await this.access.requireCapability(id, req.person!, "schedule", "insights");
     const now = new Date();
     const todayUTC = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
@@ -392,7 +392,7 @@ export class ClassSeriesController {
     @Param("seriesId") seriesId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireCapability(id, req.person!, "schedule");
+    await this.access.requireCapability(id, req.person!, "schedule", "classes");
     const series = await this.prisma.classSeries.findFirst({
       where: { id: seriesId, academyId: id, deletedAt: null },
       include: SERIES_INCLUDE,
@@ -414,7 +414,7 @@ export class ClassSeriesController {
     @Req() req: Request,
     @Query("take") take?: string,
   ) {
-    await this.access.requireCapability(id, req.person!, "schedule");
+    await this.access.requireCapability(id, req.person!, "schedule", "classes");
     const series = await this.prisma.classSeries.findFirst({
       where: { id: seriesId, academyId: id, deletedAt: null },
       select: { id: true, instructorId: true },
@@ -540,7 +540,7 @@ export class ClassSeriesController {
     @Body() dto: CreateSeriesDto,
     @Req() req: Request,
   ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const now = new Date();
     const today = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
@@ -636,7 +636,7 @@ export class ClassSeriesController {
     @Body() dto: UpdateSeriesDto,
     @Req() req: Request,
   ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const prev = await this.findSeriesOr404(id, seriesId);
     const reactivated = dto.active === true && !prev.active;
     // Asignaciones nuevas de instructor (spec academies/class-series):
@@ -828,7 +828,7 @@ export class ClassSeriesController {
     @Param("seriesId") seriesId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     await this.findSeriesOr404(id, seriesId);
 
     return this.prisma.$transaction(async (tx) => {
@@ -869,7 +869,7 @@ export class ClassSeriesController {
     @Param("slotId") slotId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const slot = await this.prisma.classSlot.findFirst({
       where: { id: slotId, academyId: id },
     });

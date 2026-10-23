@@ -295,6 +295,8 @@
 
 ### Hub `/academia` — owner → redirect /inicio; staff/instructor ven dashboard + ModuleGrid filtrado por caps (alumnos, clases/series, particulares[no instructor puro], videos, cobros, preventas, equipo, config, CRM[owner/ADMIN], suscripción).
 
+- **Gate por tier de suscripción** (`academy-tier-cobros`): los módulos del owner se filtran por feature de su plan (`GET /me/academy/entitlements` → `useAcademyEntitlements`, `academyFeature` en el drawer). COBROS ve solo cobros/alumnos/planes/config/suscripción; STUDIO suma series, particulares, equipo, preventas, consultas/export; PRO suma CRM, videos, insights, analítica y multi-academia. Página sin feature → `AcademyTierGate` muestra estado "parte del plan X" + CTA a /academia/suscripcion; API responde 403 `{error:"tier.required", upgrade:true, requiredTier}` como red de seguridad. ADMIN operando por otro nunca se gatea; alumnos/instructores en consumo (reservar clase, mi QR) tampoco. STARTER legado y trial resuelven a nivel STUDIO.
+
 ### Alumnos `/academia/alumnos*`
 - Lista (requireManage; gestión solo no-instructor): KPIs + insights (topAttendance/topPayers); filtros q(≥2)/status(ACTIVE|PAUSED|TRIAL|FROZEN|ONLINE)/planId; cards → /alumnos/{personId} (score+segment privados academia). Import CSV (cap students): template download + upload ≤2MB → tabla por fila.
 - Nuevo (UI solo owner/ADMIN aunque backend acepta cap students): personId texto crudo*, planId*, status, startsAt/endsAt → `POST /enrollments` (409 DUPLICATE_ENROLLMENT) → lista 1200ms; sin planes → CTA crear plan.
