@@ -14,16 +14,19 @@ sequenceDiagram
 
     U->>W: ingresa email + acepta Términos/Privacidad (checkbox)
     W->>A: POST /auth/magic-link {email, consent:true}
-    A->>DB: upsert Person + crea MagicLink(token, exp)
+    A->>DB: crea MagicLink(token, exp) + AuthOtp 6 dígitos<br/>(la Person aún no se toca - nace al verificar)
     A->>M: envía link /auth/verify?token=… (consent viaja en el token)
     M-->>U: email
     U->>A: GET /auth/verify?token=…
-    A->>DB: consume token (1 uso, no expirado) + estampa consentVersion/consentAcceptedAt
+    A->>DB: consume token (1 uso, no expirado) + upsertByEmail<br/>+ estampa consentVersion/consentAcceptedAt
+    Note over A,DB: email sin cuenta → la Person nace acá y dispara<br/>notify OPERATIONAL user.registered a cada admin APPROVED<br/>(best-effort; cuenta existente = solo sesión, sin aviso)
     A->>A: mint JWT (jose) - personId
     A-->>W: Set-Cookie omnidance_session (HttpOnly)
     W->>A: GET /me → {person, roles, roleStates}
     Note over W,A: POST /auth/logout borra la cookie
 ```
+
+El mismo "nace la Person → aviso `user.registered` a admins" aplica a `POST /auth/otp/verify` (código del mismo correo) y `POST /auth/register` (password): notifica solo cuando el email no tenía cuenta - el claim de existente (password correcto → login silencioso; verify/OTP sobre email ya registrado, incluidas invites sembradas por admin como staff/alumno/lead convert) no notifica.
 
 ## Sesión de baile - escanear QR → puntuar
 
