@@ -3,6 +3,33 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.9.0] - 2026-10-22
+
+### Added
+
+- **Aviso a admins de registro nuevo**: cada alta real (register,
+  primer magic link u OTP sobre email sin cuenta) notifica
+  `user.registered` en el centro de notificaciones de cada admin
+  APPROVED. Claims y altas de admin no notifican. NotificationsModule
+  ahora @Global.
+- **/productor/desembolso**: la cuenta de desembolso (Stripe Connect)
+  pasa de sección en /productor/pagos a página propia dentro del
+  grupo Configuración del nav del productor; el onboarding de Stripe
+  vuelve a esa ruta.
+- **Paridad i18n**: en/fr/pt-PT al día - 180 keys traducidas (cities,
+  pase, trip, disbursement, features, consent). missing 0.
+
+### Fixed
+
+- Preheader de los correos de acceso/verificación: el código OTP
+  dice 10 min y el link 15 min (antes el preheader decía 15 para
+  ambos).
+
+### Changed
+
+- "Mis pagos" (/productor/pagos) sale del grupo Configuración y entra
+  al grupo de módulos del productor (data operativa, no config).
+
 ## [1.8.0] - 2026-10-21
 
 ### Added
