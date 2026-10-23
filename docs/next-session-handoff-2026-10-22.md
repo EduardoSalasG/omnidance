@@ -37,3 +37,12 @@
 - AuthController: 5º param opcional `@Optional() notifications?` — specs que lo instancian a mano siguen funcionando.
 - Git en shells MSYS: `export PATH="/c/Program Files/Git/bin:$PATH"`.
 - **e2e + LegalText**: si el seed activa una versión nueva de términos, los specs mueren por banner de consentimiento — `auth.setup.ts` ya lo acepta post-login.
+
+## Addendum 23-oct: unified-actor-entitlements (commit 00ed668a)
+
+- `pro.required` eliminado de todo el codebase → contrato único `tier.required` + `{requiredTier, feature}`.
+- API: `payments/domain/actor-entitlements.ts` (port + PRODUCER_FEATURES + adapters Producer/Academy), `common/actor-entitlements.ts` (`assertActorFeature` + resolvers), borrados `producer-pro.ts`/`academy-tier.ts`; ~15 call sites migrados con feature por endpoint (exports/multiStaff/analytics/crm); `GET /me/entitlements` nuevo (reemplaza fuente del front; `/me/academy/entitlements` delega DEPRECADO, `effectivePro` sigue en /me por compat).
+- Web: `lib/entitlements-context.tsx` (EntitlementsProvider + useActorEntitlements), `components/tier-paywall.tsx` único (CTA por actor), borrados academy-entitlements-context/pro-paywall/isProRequired/effectivePro del front; crm-context `blocked` único; analítica fases colapsadas; namespace i18n `tierGate` (bug corregido: parts academyTier nunca se habían importado a catalogs).
+- Fixtures e2e regularizados: academias de gap-*.e2e/academies.e2e ahora `tier:"PRO"` + mock `academy.findUnique` en finance.controller.spec → los 16 fallos "ambientales" quedaron en 189/189 verde.
+- Verificado: tsc api+web limpio, vitest scope 93/93 + 189/189 e2e-fixture, i18n-parity 0 (4110 keys), openspec validate + archive `2026-10-23-unified-actor-entitlements` (deltas mergeados a producer-pro y analytics/query-console), openapi.json/postman regenerados.
+- Pendiente: `pnpm db:seed` para los params nuevos; e2e smoke re-run tras el refactor de providers (último run pre-refactor fue 14/14); Producer Pro tiers nivelados (Pro/Growth/Scale) siguen mapeando a PRO hasta su change propio.
