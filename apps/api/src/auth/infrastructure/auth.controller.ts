@@ -7,6 +7,7 @@ import {
   HttpCode,
   Inject,
   Logger,
+  Optional,
   Post,
   Query,
   Req,
@@ -14,6 +15,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
+import type { Person } from "@prisma/client";
 import { IsBoolean, IsEmail, IsOptional, IsString, Matches, MinLength, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 import { Throttle } from "@nestjs/throttler";
@@ -28,6 +30,7 @@ import { resolveJurisdiction } from "../../legal/jurisdiction";
 import type { Mailer, AuthRepo } from "../domain/ports";
 import { MAILER, AUTH_REPO } from "../domain/ports";
 import { SessionGuard } from "./session.guard";
+import { NotificationsService } from "../../notifications/domain/notifications.service";
 import {
   magicLinkEmailHtml,
   verifyEmailHtml,
@@ -190,6 +193,11 @@ export class AuthController {
     // Registro auditable del consentimiento (ConsentRecord + snapshot)
     // - compartido con POST /me/consent (spec consent-por-jurisdiccion).
     private readonly consentService: ConsentService,
+    // Opcional: el módulo es @Global en la app, pero specs que arman el
+    // controller a mano pueden no inyectarlo (el alta nunca depende del
+    // aviso - spec notifications/admin-alerts).
+    @Optional()
+    private readonly notifications?: NotificationsService,
   ) {}
 
   /** Bienvenida best-effort: el alta nunca falla por el correo. */
@@ -204,6 +212,35 @@ export class AuthController {
     } catch (err) {
       this.logger.warn(
         `welcome email a ${email} falló: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * Aviso best-effort a los admins APPROVED cuando nace una cuenta real
+   * (spec notifications/admin-alerts): OPERATIONAL user.registered por
+   * el centro in-app. Un fallo del centro nunca rompe ni demora el alta.
+   */
+  private async notifyAdminsNewUser(person: Person, role?: string | null) {
+    if (!this.notifications) return;
+    try {
+      const adminIds = await this.repo.approvedAdminIds();
+      for (const id of adminIds) {
+        await this.notifications.notifySafe(id, {
+          category: "OPERATIONAL",
+          type: "user.registered",
+          title: `Nuevo registro: ${person.name}`,
+          body: person.email + (role ? ` · rol ${role}` : ""),
+          data: {
+            personId: person.id,
+            email: person.email,
+            role: role ?? null,
+          },
+        });
+      }
+    } catch (err) {
+      this.logger.warn(
+        `aviso a admins de ${person.email} falló: ${(err as Error).message}`,
       );
     }
   }
@@ -368,6 +405,7 @@ export class AuthController {
       await this.consentService.recordAcceptance(person.id, dto.scopes);
     }
     await this.sendWelcome(email, person.name);
+    await this.notifyAdminsNewUser(person, role);
     // Correo de acceso (link+OTP) = verificación de posesión del email
     // (spec auth-email-verification) - la cuenta con password nace sin
     // verifiedAt y el checklist de actores lo exige. Best-effort: el
@@ -449,7 +487,10 @@ export class AuthController {
       if (consent) await this.consentService.recordAcceptance(person.id);
       // Rol pedido desde la landing (?role= viaja en el token).
       if (role) await this.repo.ensurePendingRole(person.id, role);
-      if (!existed) await this.sendWelcome(email, person.name);
+      if (!existed) {
+        await this.sendWelcome(email, person.name);
+        await this.notifyAdminsNewUser(person, role);
+      }
       const session = await this.auth.issueSession(person.id);
       const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
       this.setSessionCookie(res, session);
@@ -478,7 +519,10 @@ export class AuthController {
       const person = await this.repo.upsertByEmail(email);
       if (consent) await this.consentService.recordAcceptance(person.id);
       if (role) await this.repo.ensurePendingRole(person.id, role);
-      if (!existed) await this.sendWelcome(email, person.name);
+      if (!existed) {
+        await this.sendWelcome(email, person.name);
+        await this.notifyAdminsNewUser(person, role);
+      }
       const session = await this.auth.issueSession(person.id);
       this.setSessionCookie(res, session);
       return { ok: true, isNew: !existed };

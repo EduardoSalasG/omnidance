@@ -32,7 +32,14 @@ interface FakePerson {
 class FakeRepo {
   people = new Map<string, FakePerson>();
   otps: AuthOtpRecord[] = [];
+  // Admins APPROVED para el aviso de registro nuevo (spec
+  // notifications/admin-alerts).
+  adminIds: string[] = [];
   private seq = 0;
+
+  async approvedAdminIds() {
+    return this.adminIds;
+  }
 
   async upsertByEmail(email: string): Promise<FakePerson> {
     const existing = this.people.get(email);
@@ -525,5 +532,69 @@ describe("AuthController - verificación de correo", () => {
     const out = await ctrl.resendVerification(req);
     expect(out).toEqual({ ok: true, alreadyVerified: true });
     expect(mailer.send).not.toHaveBeenCalled();
+  });
+});
+
+// spec notifications/admin-alerts (admin-notify-on-register): toda
+// alta real avisa a los admins APPROVED por el centro in-app.
+describe("AuthController - aviso a admins de registro nuevo", () => {
+  let auth: AuthService;
+  let repo: FakeRepo;
+  let consent: FakeConsent;
+  let mailer: { send: ReturnType<typeof vi.fn> };
+  let notifications: { notifySafe: ReturnType<typeof vi.fn> };
+  let ctrl: AuthController;
+
+  beforeEach(() => {
+    repo = new FakeRepo();
+    repo.adminIds = ["adm-1", "adm-2"];
+    auth = new AuthService(SECRET, repo as unknown as AuthRepo);
+    consent = new FakeConsent(repo);
+    mailer = { send: vi.fn(async () => {}) };
+    notifications = { notifySafe: vi.fn(async () => {}) };
+    ctrl = new AuthController(
+      auth,
+      mailer as unknown as Mailer,
+      repo as unknown as AuthRepo,
+      consent as unknown as ConsentService,
+      notifications as never,
+    );
+  });
+
+  const extractCode = (html: string) =>
+    /letter-spacing:0\.4em;[^<]*>(\d{6})</.exec(html)![1];
+
+  it("register nuevo notifica user.registered a cada admin APPROVED", async () => {
+    await ctrl.register(
+      {
+        email: "nueva@omnidance.dev",
+        name: "Nueva",
+        password: "clave-secreta-123",
+      },
+      mkRes(),
+    );
+    expect(notifications.notifySafe).toHaveBeenCalledTimes(2);
+    const [personId, input] = notifications.notifySafe.mock.calls[0] as [
+      string,
+      { category: string; type: string; body?: string },
+    ];
+    expect(personId).toBe("adm-1");
+    expect(input).toMatchObject({
+      category: "OPERATIONAL",
+      type: "user.registered",
+    });
+    expect(input.body).toContain("nueva@omnidance.dev");
+  });
+
+  it("verify/otp de cuenta existente no notifica (login o claim)", async () => {
+    await repo.upsertByEmail("vieja@omnidance.dev");
+    await ctrl.magicLink({ email: "vieja@omnidance.dev" });
+    const code = extractCode(mailer.send.mock.calls[0][2]);
+    const out = await ctrl.otpVerify(
+      { email: "vieja@omnidance.dev", code },
+      mkRes(),
+    );
+    expect(out.isNew).toBe(false);
+    expect(notifications.notifySafe).not.toHaveBeenCalled();
   });
 });

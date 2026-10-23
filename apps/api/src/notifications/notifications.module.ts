@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Global, Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { PrismaModule } from "../prisma.module";
 import { NotificationsService } from "./domain/notifications.service";
@@ -18,6 +18,11 @@ import { NotificationsGateway } from "./infrastructure/notifications.gateway";
 import { WebPushSender } from "./infrastructure/web-push.sender";
 import { PrismaNotificationsRepo } from "./infrastructure/prisma-notifications.repo";
 
+// @Global como JobsModule/StorageModule: NotificationsService se
+// inyecta transversal (auth incluido) sin que cada feature module
+// importe el módulo - y evita el ciclo AuthModule ↔ NotificationsModule
+// (éste importa AuthModule por SessionGuard).
+@Global()
 @Module({
   imports: [AuthModule, PrismaModule],
   controllers: [NotificationsController, PushTokensController],
