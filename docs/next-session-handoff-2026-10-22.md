@@ -61,3 +61,11 @@
 - Verificación rápida manual: `curl localhost:3000/es-CL/login` debe dar 308/200, no 500.
 - Stack actual: api :4000 OK, web :3000 corriendo (pnpm dev:web shell 827979), docker db/redis up.
 - Estado git: todo commiteado en `dev` hasta `f5fd4c69`. NO pushear hasta e2e verde.
+
+## Addendum 4 (23-oct): regresión resuelta — e2e 14/14 verde
+
+- **Causa real del 500**: NO era código — era `.next/prerender-manifest.json` corrupto (JSON válido + basura extra en pos 1455), patrón zombie documentado en AGENTS: procesos `next dev`/`node` huérfanos (~1GB c/u) escribían `.next` en paralelo. Fix: `taskkill` de TODOS los node dev orphen (no solo el del puerto), `rm -rf apps/web/.next`, restart. Se corrompió 2 veces hasta matar al huérfano real.
+- **La API murió 2 veces bajo carga** (ERR_PNPM exit 1, probable OOM con ~8 procesos node pesados) → proxy 500 → timeouts de login engañosos. Diagnóstico rápido: `curl localhost:4000/api/features` antes de culpar al código.
+- **Veredicto final e2e**: 14/14 verde (chromium+mobile) con stack sano y rutas compiladas. El refactor `unified-actor-entitlements` NO introdujo regresión funcional.
+- `pnpm db:seed` corrido OK.
+- Lección: ante 500s masivos en dev → verificar manifest `.next` con `node -e JSON.parse`, contar procesos node (~1GB = dev servers), y validar API antes de e2e.
