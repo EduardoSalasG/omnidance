@@ -61,8 +61,8 @@ const STATUS_VARIANT: Record<string, BadgeVariant> = {
 type LoadState = "loading" | "error" | "unavailable" | "ready";
 
 /**
- * Sección "Cuenta de desembolso" de /productor/pagos (change
- * payout-destinations-front): lista los PayoutDestination del actor
+ * Página "Cuenta de desembolso" /productor/desembolso (sección
+ * Configuración de la consola): lista los PayoutDestination del actor
  * (GET devuelve también los de academias/venues propias - se listan
  * con su actor) y da de alta el del PRODUCER vía Connect Express:
  * POST /me/payout-destinations → redirect al onboardingUrl (Account
@@ -169,7 +169,7 @@ export function DisbursementAccountSection() {
         return;
       }
       // Account Link de un solo uso: se consume al tiro; al volver a
-      // /productor/pagos el GET hace el flip PENDING→ACTIVE.
+      // /productor/desembolso el GET hace el flip PENDING→ACTIVE.
       window.location.href = body.onboardingUrl;
     } catch {
       setFormError(tc("error"));

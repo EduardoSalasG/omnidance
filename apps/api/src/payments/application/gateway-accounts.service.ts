@@ -174,7 +174,7 @@ export class GatewayAccountsService {
       });
       if (!destination || destination.status !== "ACTIVE") {
         throw new BadRequestException(
-          "conecta tu cuenta de desembolso en /productor/pagos primero",
+          "conecta tu cuenta de desembolso en /productor/desembolso primero",
         );
       }
       creds = { accountId: destination.externalId };

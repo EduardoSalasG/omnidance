@@ -177,8 +177,8 @@ describe("PayoutDestinationService.create", () => {
     expect(linkBody.account).toBe("acct_1");
     expect(linkBody.type).toBe("account_onboarding");
     // refresh/return aterrizan en la consola de pagos del productor.
-    expect(linkBody.refresh_url).toBe("https://app.test/productor/pagos");
-    expect(linkBody.return_url).toBe("https://app.test/productor/pagos");
+    expect(linkBody.refresh_url).toBe("https://app.test/productor/desembolso");
+    expect(linkBody.return_url).toBe("https://app.test/productor/desembolso");
   });
 
   it("academia propia (ownerId) crea destino igual", async () => {
