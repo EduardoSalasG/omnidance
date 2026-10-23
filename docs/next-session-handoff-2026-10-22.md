@@ -46,3 +46,9 @@
 - Fixtures e2e regularizados: academias de gap-*.e2e/academies.e2e ahora `tier:"PRO"` + mock `academy.findUnique` en finance.controller.spec → los 16 fallos "ambientales" quedaron en 189/189 verde.
 - Verificado: tsc api+web limpio, vitest scope 93/93 + 189/189 e2e-fixture, i18n-parity 0 (4110 keys), openspec validate + archive `2026-10-23-unified-actor-entitlements` (deltas mergeados a producer-pro y analytics/query-console), openapi.json/postman regenerados.
 - Pendiente: `pnpm db:seed` para los params nuevos; e2e smoke re-run tras el refactor de providers (último run pre-refactor fue 14/14); Producer Pro tiers nivelados (Pro/Growth/Scale) siguen mapeando a PRO hasta su change propio.
+
+## Addendum 2 (23-oct): verificación post-refactor
+
+- `pnpm db:seed` corrido OK (params de tiers + flags ya en DB local).
+- **Dev server web zombie otra vez** (PID escuchaba :3000 sin responder → logins e2e timeouts 1.6m): fix documentado = taskkill + rm -rf .next + restart. Síntoma clásico AGENTS.
+- E2e re-run post-refactor de providers quedó corriendo al cierre de contexto — verificar su resultado antes de pushear (el commit unificado `00ed668a` toca BottomNav/providers/layout).
