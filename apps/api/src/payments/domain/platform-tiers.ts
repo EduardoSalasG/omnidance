@@ -105,7 +105,8 @@ export function producerTierParamKey(tierCode: string): string | null {
  * vigente (`proTier !== "FREE"`, proyectado desde la PlatformSubscription
  * por el settle) **o** trial de lanzamiento vigente (`proTrialEndsAt`,
  * backfill +90d a productores registrados en la migración). FREE sin
- * trial → features Pro bloqueadas con `pro.required`.
+ * trial → features Pro bloqueadas con `tier.required` (spec
+ * unified-actor-entitlements).
  */
 export function isProActive(
   person: { proTier: string; proTrialEndsAt: Date | null },

@@ -38,8 +38,7 @@ import {
   CrmService,
   type CrmTriggerKey,
 } from "../domain/crm.service";
-import { assertProducerPro } from "../../common/producer-pro";
-import { assertAcademyTier } from "../../common/academy-tier";
+import { assertActorFeature } from "../../common/actor-entitlements";
 import { SEGMENTS } from "@omnidance/shared";
 import { pageParams } from "../../academies/infrastructure/list-filters";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
@@ -576,10 +575,11 @@ export class CrmController {
    * Acceso al CRM de un actor (además del permiso crm.manage del guard):
    * - PRODUCER → el caller es el propio productor (actorId = personId) y
    *   tiene Producer Pro vigente (S5: el CRM del productor es feature Pro
-   *   - aplica a lecturas y escrituras; 403 `pro.required` si no).
+   *   - aplica a lecturas y escrituras; 403 `tier.required` si no).
    * - ACADEMY  → el caller es owner de la academia (actorId = academyId);
    *   su billing se gatea por la suscripción de academia, no por Pro.
-   * - o rol con permiso admin.access (soporte/plataforma) - sin gate Pro.
+   * - o rol con permiso admin.access (soporte/plataforma) - sin gate de
+   *   suscripción.
    */
   private async assertActorAccess(
     req: Request,
@@ -588,7 +588,7 @@ export class CrmController {
   ): Promise<void> {
     const caller = req.person!;
     if (actorType === "PRODUCER" && caller.id === actorId) {
-      await assertProducerPro(this.prisma, actorId);
+      await assertActorFeature(this.prisma, "PRODUCER", actorId, "crm");
       return;
     }
     if (actorType === "ACADEMY") {
@@ -599,7 +599,7 @@ export class CrmController {
       if (owned) {
         // El CRM de la academia es feature PRO (spec
         // academy-tier-cobros): 403 tier.required si el tier no cubre.
-        await assertAcademyTier(this.prisma, actorId, "crm");
+        await assertActorFeature(this.prisma, "ACADEMY", actorId, "crm");
         return;
       }
     }

@@ -9,7 +9,7 @@ import {
 import type { Request } from "express";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
-import { assertProducerPro } from "../../common/producer-pro";
+import { assertActorFeature } from "../../common/actor-entitlements";
 import {
   assertProducerOrAdmin,
   EXPOSURE_THRESHOLD,
@@ -55,7 +55,12 @@ export class EventAnalyticsController {
     // el caller es el productor dueño; un admin viendo el evento de otro
     // sigue sin gate.
     if (event.producerId === req.person!.id) {
-      await assertProducerPro(this.prisma, event.producerId);
+      await assertActorFeature(
+        this.prisma,
+        "PRODUCER",
+        event.producerId,
+        "analytics",
+      );
     }
 
     const checkins = await this.prisma.checkin.findMany({

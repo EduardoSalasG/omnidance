@@ -10,7 +10,7 @@ import { StudentsInsights } from "@/components/academy/students-insights";
 import { StudentsSection } from "@/components/academy/students-section";
 import { ImportCard } from "@/components/academy/import-section";
 import { useAcademyAccess } from "@/components/academy/use-academy-access";
-import { useAcademyEntitlements } from "@/lib/academy-entitlements-context";
+import { useActorEntitlements } from "@/lib/entitlements-context";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
   OnboardingRunner,
@@ -65,6 +65,11 @@ function StudentsModule({
   // Carga masiva de alumnos embebida en el módulo (cap `students` -
   // owner/admin reportan todas; null mientras resuelve = no se muestra).
   const access = useAcademyAccess(academyId);
+  // KPIs e insights son feature PRO del tier (spec
+  // unified-actor-entitlements): ocultar el bloque evita el 403
+  // tier.required inline en COBROS/STUDIO. El hook va ANTES de los
+  // early returns (regla de hooks).
+  const ent = useActorEntitlements("ACADEMY", academyId);
 
   if (canAdminister === null) {
     return <SkeletonList />;
@@ -77,9 +82,6 @@ function StudentsModule({
   const manages =
     !instructorLens &&
     (canAdminister === true || access?.caps.students === true);
-  // KPIs e insights son feature PRO del tier (spec academy-tier-cobros):
-  // ocultar el bloque evita el 403 tier.required inline en COBROS/STUDIO.
-  const ent = useAcademyEntitlements(academyId);
   const showInsights = manages && !ent.loading && ent.has("insights");
   return (
     <div className="flex flex-col gap-6">

@@ -38,7 +38,7 @@
 - **Academy approval gate** (`Academy.reviewStatus`): nueva academia nace PENDING; se auto-publica cuando el checklist server-side completa (nombre, descripción, dirección, contacto IG/WA/web, photoUrl, serie activa, clase futura, plan activo, owner APPROVED) — sin acción admin. REJECTED la oculta aunque complete. Filtro en `GET /academies`, `/academies/public`, `/academies/:id/profile` (404 a no-managers) y `/classes/browse`. Owner ve `AcademyVisibilityCard` en su dashboard con lo que falta (links a la sección); admin tiene override en `/admin/perfiles-por-validar` → sección Academias (`GET /admin/academy-review-queue`, approve=override/reject). `photoUrl` editable en `/academia/configuracion/perfil` (URL externa).
 - Server: `SessionGuard + RolesGuard + @RequirePermissions(...)`; ADMIN bypass por `isSuperuser`.
 - **Lente activa** (`localStorage["omnidance:active-role"]`, fallback ADMIN>SUPPORT>PRODUCER>ACADEMY_OWNER>INSTRUCTOR>VENUE_MANAGER>STAFF>DJ>DANCER): condiciona lo que muestran /inicio, /perfil, /analitica, /notificaciones y la UI academia (lens INSTRUCTOR degrada privilegios reales en UI).
-- **Producer Pro:** `me.effectivePro===false` bloquea (paywall) analytics de evento, invitar staff, export CSV/PDF, CRM propio y /analitica con lens PRODUCER. Reactivo: 403 `{error:"pro.required"}`.
+- **Entitlements unificados** (`unified-actor-entitlements`): `GET /me/entitlements` → `{producer:{tier,features}|null, academies:[{id,tier,features}]}` vía `EntitlementsProvider`/`useActorEntitlements` — una sola fuente para productor y academias. Productor sin la feature (ej. `producer.features` sin "analytics"/"staff"/"crm") bloquea (TierPaywall, CTA /productor/suscripcion) analytics de evento, invitar staff, CRM propio y /analitica con lens PRODUCER. Reactivo: 403 `{error:"tier.required", upgrade:true, requiredTier, feature}` — mismo contrato para TODOS los actores (`pro.required` ya no existe; `me.effectivePro` ya no se consume).
 - **Academia bloqueada** (`billingBlockedAt`): todo `*Write` → 403 `billing.blocked`; banner global salvo /academia/suscripcion.
 
 ### Patrones UI para automatización
@@ -273,7 +273,7 @@
 
 ## 6. CRM (`/crm/*` — actor PRODUCER propio [Pro-gated] | ACADEMY propia | ADMIN manual; permiso `crm.manage`)
 
-- PickActor obligatorio; proBlocked → ProPaywall.
+- PickActor obligatorio; actor sin feature "crm" (producer sin Pro | academy COBROS/STUDIO) → `ctx.blocked` → TierPaywall con CTA de su actor.
 - `/crm` personas: `GET /crm/people?actor&q&segment&tag&sort&page`; segment-count badges; **Recompute** `POST /crm/scores/recompute`; bulk select → tag add/remove `POST /crm/people/tags/bulk` | bulkCampaign→/campanas/nueva?personIds=; card → /personas/{id}.
 - `/crm/personas/[personId]` (**privado por actor**): score+breakdown+timeline; add tag POST; remove tag DELETE (sin confirm).
 - `/crm/campanas`: lista; nueva: name*, actionType NOTIFY(título*,body)|DISCOUNT_CODE(percent XOR amount+maxUses+expiresAt), audiencia OR{segment,segmentRef,tags,personIds,academy:allStudents/enrollmentStatus/planId/seriesId}, scheduledAt → DRAFT|SCHEDULED; preview debounce `POST /campaigns/preview` → count. Detalle: métricas sent/engaged/redemptions; Send/cancel-schedule con sheet; SENT → WhatsApp `GET .../whatsapp?text=` → wa.me links (**expone teléfonos de audiencia**).
@@ -284,7 +284,7 @@
 
 ## 7. Analítica B2B (`/analitica` — permiso por lens activo)
 
-- Boot `GET /analytics/roles`; lens no-query-role → noQueries/forbidden; PRODUCER sin Pro → paywall.
+- Boot `GET /analytics/roles`; lens no-query-role → noQueries/forbidden; actor sin la feature (PRODUCER sin Pro | academia COBROS/STUDIO) → TierPaywall (403 tier.required reactivo como fallback).
 - `GET /query/catalog?role` → entidades por lens (PRODUCER: sales,checkins,guestlist,attendees,reservations,waitlist,rsvps con scopeId evento/serie; ACADEMY: students,attendance,bookings,memberships,payments,private_lessons; ADMIN: catálogo completo 13 entidades).
 - FilterBar + lazy `/query/options?source&scopeId`; Run → `POST /query/run` → tabla + summary + Pager (re-run por página); export CSV/PDF `/query/export.*`; consultas guardadas CRUD (system templates + propias; rename inline; **delete sin confirm**).
 - `/analitica/consultas` → redirect /analitica. `/analitica/usuarios` (ADMIN): búsqueda ≥2c → `GET /admin/users`; detalle `[personId]`: `GET /admin/users/:id/detail` + PillTabs por rol → `GET /admin/users/:id/analytics?role=` (secciones por rol; 400 ROLE_NOT_HELD).
@@ -295,7 +295,7 @@
 
 ### Hub `/academia` — owner → redirect /inicio; staff/instructor ven dashboard + ModuleGrid filtrado por caps (alumnos, clases/series, particulares[no instructor puro], videos, cobros, preventas, equipo, config, CRM[owner/ADMIN], suscripción).
 
-- **Gate por tier de suscripción** (`academy-tier-cobros`): los módulos del owner se filtran por feature de su plan (`GET /me/academy/entitlements` → `useAcademyEntitlements`, `academyFeature` en el drawer). COBROS ve solo cobros/alumnos/planes/config/suscripción; STUDIO suma series, particulares, equipo, preventas, consultas/export; PRO suma CRM, videos, insights, analítica y multi-academia. Página sin feature → `AcademyTierGate` muestra estado "parte del plan X" + CTA a /academia/suscripcion; API responde 403 `{error:"tier.required", upgrade:true, requiredTier}` como red de seguridad. ADMIN operando por otro nunca se gatea; alumnos/instructores en consumo (reservar clase, mi QR) tampoco. STARTER legado y trial resuelven a nivel STUDIO.
+- **Gate por tier de suscripción** (`academy-tier-cobros` + `unified-actor-entitlements`): los módulos del owner se filtran por feature de su plan (`GET /me/entitlements` → `useActorEntitlements("ACADEMY")`, `academyFeature` en el drawer). COBROS ve solo cobros/alumnos/planes/config/suscripción; STUDIO suma series, particulares, equipo, preventas, consultas/export; PRO suma CRM, videos, insights, analítica y multi-academia. Página sin feature → `AcademyTierGate` muestra TierPaywall "parte del plan X" + CTA a /academia/suscripcion; API responde 403 `{error:"tier.required", upgrade:true, requiredTier}` como red de seguridad. ADMIN operando por otro nunca se gatea; alumnos/instructores en consumo (reservar clase, mi QR) tampoco. STARTER legado y trial resuelven a nivel STUDIO.
 
 ### Alumnos `/academia/alumnos*`
 - Lista (requireManage; gestión solo no-instructor): KPIs + insights (topAttendance/topPayers); filtros q(≥2)/status(ACTIVE|PAUSED|TRIAL|FROZEN|ONLINE)/planId; cards → /alumnos/{personId} (score+segment privados academia). Import CSV (cap students): template download + upload ≤2MB → tabla por fila.

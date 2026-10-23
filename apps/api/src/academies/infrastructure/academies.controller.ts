@@ -58,7 +58,7 @@ import {
   classEnded,
 } from "./class-card-projection";
 import { RolesGuard } from "../../common/rbac/roles.guard";
-import { assertAnyOwnedAcademyMeets } from "../../common/academy-tier";
+import { assertAnyOwnedAcademyMeets } from "../../common/actor-entitlements";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import {
   mimeForKey,

@@ -15,8 +15,11 @@ import {
   type QueryRunResult,
 } from "@omnidance/shared";
 import { PrismaService } from "../prisma.service";
-import { assertProducerPro } from "../common/producer-pro";
-import { assertAnyOwnedAcademyMeets } from "../common/academy-tier";
+import {
+  assertActorFeature,
+  assertAnyOwnedAcademyMeets,
+} from "../common/actor-entitlements";
+import type { ProducerFeature } from "../payments/domain/actor-entitlements";
 import { ADMIN_ENTITIES } from "./entities/admin";
 import { ACADEMY_ENTITIES } from "./entities/academy";
 import { PRODUCER_ENTITIES } from "./entities/producer";
@@ -107,13 +110,22 @@ export class QueryService {
     return role as QueryRole;
   }
 
-  /** Lens + gate Producer Pro (catálogo/run/export/options del lente). */
-  private async assertLensWithPro(
+  /**
+   * Lens + gate de suscripción del actor (spec
+   * unified-actor-entitlements): PRODUCER exige la feature que declara
+   * la operación (analítica del console vs export) → 403 tier.required;
+   * ACADEMY_OWNER basta una academia propia que cubra "exports"
+   * (multi-academia); ADMIN sin gate de suscripción.
+   */
+  private async assertLensGated(
     personId: string,
     role: string,
+    producerFeature: ProducerFeature,
   ): Promise<QueryRole> {
     const r = await this.assertLens(personId, role);
-    if (r === "PRODUCER") await assertProducerPro(this.prisma, personId);
+    if (r === "PRODUCER") {
+      await assertActorFeature(this.prisma, "PRODUCER", personId, producerFeature);
+    }
     // Lente academia = la consola de consultas/export (STUDIO+): basta
     // una academia del owner que cubra la feature (multi-academia).
     if (r === "ACADEMY_OWNER") {
@@ -130,7 +142,7 @@ export class QueryService {
    * resueltas (scope pickers del actor; fuentes globales admin).
    */
   async catalog(personId: string, roleRaw: string) {
-    const role = await this.assertLensWithPro(personId, roleRaw);
+    const role = await this.assertLensGated(personId, roleRaw, "analytics");
     const options: Record<string, QueryOption[]> = {};
     let scopes: QueryOption[] = [];
     if (role === "PRODUCER") {
@@ -163,7 +175,7 @@ export class QueryService {
     source: string,
     scopeId?: string,
   ): Promise<{ options: QueryOption[] }> {
-    const role = await this.assertLensWithPro(personId, roleRaw);
+    const role = await this.assertLensGated(personId, roleRaw, "analytics");
     const declared = new Set(
       QUERY_CATALOG[role].flatMap((e) =>
         e.filters.map((f) => f.source).filter((s): s is FkSource => !!s),
@@ -277,7 +289,7 @@ export class QueryService {
       pageSize?: number;
     },
   ): Promise<QueryRunResult> {
-    const role = await this.assertLensWithPro(personId, input.role);
+    const role = await this.assertLensGated(personId, input.role, "analytics");
     const { def, handler } = this.resolveEntity(role, input.entity);
     const filters = validateEntityFilters(def, input.filters);
     const scope = await this.scopeFor(personId, role, filters);
@@ -310,7 +322,7 @@ export class QueryService {
     entity: string,
     rawFilters: Record<string, unknown>,
   ): Promise<{ title: string; table: ExportTable }> {
-    const role = await this.assertLensWithPro(personId, roleRaw);
+    const role = await this.assertLensGated(personId, roleRaw, "exports");
     const { def, handler } = this.resolveEntity(role, entity);
     const filters = validateEntityFilters(def, rawFilters);
     const scope = await this.scopeFor(personId, role, filters);

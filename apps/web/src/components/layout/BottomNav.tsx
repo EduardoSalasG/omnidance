@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe, type MeContextData } from "@/lib/me-context";
 import { useFeatures } from "@/lib/features-context";
-import { useAcademyEntitlements } from "@/lib/academy-entitlements-context";
+import { useActorEntitlements } from "@/lib/entitlements-context";
 import { notificationLens } from "@/lib/notification-lens";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
@@ -1027,9 +1027,10 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // Flags de funcionalidad (spec feature-flags-admin): gatean ítems
   // de superficie (Ciudades en el sheet/sidebar del bailarín).
   const { flags } = useFeatures();
-  // Entitlements del tier de la academia seleccionada (spec
-  // academy-tier-cobros): filtra los módulos del owner por feature.
-  const { has: academyHas, loading: entLoading } = useAcademyEntitlements();
+  // Entitlements de la academia seleccionada (spec
+  // unified-actor-entitlements): filtra los módulos del owner por feature.
+  const { has: academyHas, loading: entLoading } =
+    useActorEntitlements("ACADEMY");
   // null = sin sesión (o fetch aún no responde con certeza) → sin badge.
   const [unread, setUnread] = useState<number | null>(null);
   // null = sin sesión → el drawer muestra solo Perfil.

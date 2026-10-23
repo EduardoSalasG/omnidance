@@ -6,11 +6,12 @@ import { invalidateRoleCatalog } from "../../common/rbac/roles.guard";
 import { CrmController } from "./crm.controller";
 import type { CrmService } from "../domain/crm.service";
 
-// CrmController.assertActorAccess - gating Producer Pro (S5
-// academy-saas-billing): cuando el actor resuelto es PRODUCER y el caller
-// es ese productor, todas las features CRM (people, campañas, triggers,
-// scores) exigen Pro vigente → 403 {error:"pro.required", upgrade:true}.
-// Actores ACADEMY y llamadas admin pasan sin gate Pro.
+// CrmController.assertActorAccess - gating por suscripción (spec
+// unified-actor-entitlements): cuando el actor resuelto es PRODUCER y el
+// caller es ese productor, todas las features CRM (people, campañas,
+// triggers, scores) exigen Pro vigente → 403 {error:"tier.required",
+// upgrade:true, requiredTier:"PRO", feature:"crm"}. Actores ACADEMY y
+// llamadas admin pasan sin gate de suscripción.
 
 interface FakePersonRow {
   id: string;
@@ -46,7 +47,7 @@ class FakePrisma {
       this.academies.find(
         (a) => a.id === where.id && a.ownerId === where.ownerId,
       ) ?? null,
-    // Gate de tier (academy-tier-cobros): assertAcademyTier lee el tier
+    // Gate de tier (academy-tier-cobros): assertActorFeature lee el tier
     // de la academia por findUnique.
     findUnique: async ({ where }: { where: { id: string } }) =>
       this.academies.find((a) => a.id === where.id) ?? null,
@@ -126,7 +127,7 @@ describe("CrmController - gating Producer Pro", () => {
     action: { type: "NOTIFY", title: "hola" },
   };
 
-  it("productor FREE sin trial → 403 pro.required en campaigns/people/triggers/scores", async () => {
+  it("productor FREE sin trial → 403 tier.required en campaigns/people/triggers/scores", async () => {
     prisma.people.set(
       "prod-1",
       mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
@@ -136,8 +137,10 @@ describe("CrmController - gating Producer Pro", () => {
       .catch((e: unknown) => e);
     expect(err).toMatchObject({ status: 403 });
     expect(errBody(err)).toMatchObject({
-      error: "pro.required",
+      error: "tier.required",
       upgrade: true,
+      requiredTier: "PRO",
+      feature: "crm",
     });
     expect(crm.createCampaign).not.toHaveBeenCalled();
 
@@ -160,7 +163,7 @@ describe("CrmController - gating Producer Pro", () => {
         ),
     ]) {
       const e = await call().catch((x: unknown) => x);
-      expect(errBody(e).error).toBe("pro.required");
+      expect(errBody(e).error).toBe("tier.required");
     }
   });
 
@@ -214,7 +217,7 @@ describe("CrmController - gating Producer Pro", () => {
     expect(crm.listPeople).toHaveBeenCalledOnce();
   });
 
-  it("productor ajeno sin admin → 403 de acceso (no pro.required)", async () => {
+  it("productor ajeno sin admin → 403 de acceso (no tier.required)", async () => {
     const err = await ctrl
       .listPeople(
         { actorType: "PRODUCER", actorId: "prod-1" },
@@ -222,6 +225,6 @@ describe("CrmController - gating Producer Pro", () => {
       )
       .catch((e: unknown) => e);
     expect(err).toMatchObject({ status: 403 });
-    expect(errBody(err).error).not.toBe("pro.required");
+    expect(errBody(err).error).not.toBe("tier.required");
   });
 });

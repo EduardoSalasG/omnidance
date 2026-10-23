@@ -1,5 +1,5 @@
 {
-  "academyTier": {
+  "tierGate": {
     "title": "This tool is part of a higher plan",
     "featureTitle": "{feature} is part of a higher plan",
     "partOf": "Part of the {tier} plan",
@@ -8,7 +8,9 @@
     "tiers": {
       "COBROS": "Cobros",
       "STUDIO": "Studio",
-      "PRO": "Pro"
+      "PRO": "Pro",
+      "PRO_GROWTH": "Producer Pro Growth",
+      "PRO_SCALE": "Producer Pro Scale"
     },
     "features": {
       "classes": "Classes and series",
@@ -20,7 +22,15 @@
       "crm": "CRM",
       "videos": "Videos",
       "insights": "Insights",
-      "multiAcademy": "Multi-academy"
+      "multiAcademy": "Multi-academy",
+      "multiStaff": "Event staff",
+      "campaigns": "Campaigns",
+      "benchmark": "Benchmark"
+    },
+    "benefits": {
+      "analytics": "Event and attendee analytics",
+      "exports": "CSV and PDF exports",
+      "crm": "CRM of your dancers"
     }
   }
 }

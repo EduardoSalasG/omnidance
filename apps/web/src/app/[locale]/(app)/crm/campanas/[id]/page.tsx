@@ -22,8 +22,7 @@ import {
   actionLabel,
   audienceLabel,
 } from "@/components/crm/campaign-labels";
-import { ProPaywall } from "@/components/producer/pro-paywall";
-import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
+import { TierPaywall } from "@/components/tier-paywall";
 import type { CrmCampaign } from "@/components/crm/types";
 import { useDateFmt } from "@/lib/intl";
 
@@ -182,10 +181,10 @@ export default function CrmCampanaPage() {
         <>
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
-          ) : ctx.tierBlocked ? (
-            <AcademyTierPaywall feature="crm" />
-          ) : ctx.proBlocked ? (
-            <ProPaywall />
+          ) : ctx.blocked ? (
+            // El actor no cubre "crm" - el API responde 403
+            // tier.required en todos sus endpoints.
+            <TierPaywall feature="crm" actorType={ctx.actor.actorType} />
           ) : c === null && !error && !notFound ? (
             <SkeletonCard lines={4} />
           ) : notFound ? (

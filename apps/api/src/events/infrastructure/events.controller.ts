@@ -44,7 +44,8 @@ import {
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { pageParams } from "../../academies/infrastructure/list-filters";
 import { buildTablePdf } from "../../common/pdf-report";
-import { assertProducerPro } from "../../common/producer-pro";
+import { assertActorFeature } from "../../common/actor-entitlements";
+import type { ProducerFeature } from "../../payments/domain/actor-entitlements";
 import {
   assertDataset,
   DATASET_TITLES,
@@ -612,7 +613,7 @@ export class EventsController {
   ) {
     const event = await this.findEventOr404(id);
     await this.requireOwnerOrAdmin(event.producerId, req.person!);
-    await this.requireProSelf(event.producerId, req.person!);
+    await this.requireFeatureSelf(event.producerId, req.person!, "exports");
     assertDataset(dto.dataset);
 
     const filters = datasetFilters(dto.dataset, dto);
@@ -640,7 +641,7 @@ export class EventsController {
   ) {
     const event = await this.findEventOr404(id);
     await this.requireOwnerOrAdmin(event.producerId, req.person!);
-    await this.requireProSelf(event.producerId, req.person!);
+    await this.requireFeatureSelf(event.producerId, req.person!, "exports");
     assertDataset(dto.dataset);
 
     const filters = datasetFilters(dto.dataset, dto);
@@ -676,7 +677,7 @@ export class EventsController {
   ) {
     const series = await this.findSeriesOr404(seriesId);
     await this.requireOwnerOrAdmin(series.producerId, req.person!);
-    await this.requireProSelf(series.producerId, req.person!);
+    await this.requireFeatureSelf(series.producerId, req.person!, "exports");
     assertDataset(dto.dataset);
 
     const filters = datasetFilters(dto.dataset, dto);
@@ -705,7 +706,7 @@ export class EventsController {
   ) {
     const series = await this.findSeriesOr404(seriesId);
     await this.requireOwnerOrAdmin(series.producerId, req.person!);
-    await this.requireProSelf(series.producerId, req.person!);
+    await this.requireFeatureSelf(series.producerId, req.person!, "exports");
     assertDataset(dto.dataset);
 
     const filters = datasetFilters(dto.dataset, dto);
@@ -1183,7 +1184,7 @@ export class EventsController {
    * Asigna staff al evento: owner o admin. Upsert por (eventId, personId) -
    * reenviar actualiza el rol sin duplicar la asignación. La gestión
    * multi-staff es feature Producer Pro (S5): el owner sin Pro vigente
-   * recibe 403 `pro.required` (admin operando su evento no se gatea).
+   * recibe 403 `tier.required` (admin operando su evento no se gatea).
    */
   @Post(":id/staff")
   @UseGuards(SessionGuard)
@@ -1194,7 +1195,7 @@ export class EventsController {
   ) {
     const event = await this.findEventOr404(id);
     await this.requireOwnerOrAdmin(event.producerId, req.person!);
-    await this.requireProSelf(event.producerId, req.person!);
+    await this.requireFeatureSelf(event.producerId, req.person!, "multiStaff");
     const person = await this.prisma.person.findUnique({
       where: { id: dto.personId },
       select: { id: true },
@@ -1331,17 +1332,19 @@ id: { in: pool },
   }
 
   /**
-   * Gating Producer Pro (S5): aplica solo cuando el caller ES el productor
-   * dueño del recurso - un admin operando el evento de otro pasa sin gate
-   * (soporte/plataforma), y un caller ajeno ya fue rechazado por
-   * requireOwnerOrAdmin.
+   * Gating por suscripción (spec unified-actor-entitlements): aplica
+   * solo cuando el caller ES el productor dueño del recurso - un admin
+   * operando el evento de otro pasa sin gate (soporte/plataforma), y
+   * un caller ajeno ya fue rechazado por requireOwnerOrAdmin. Cada
+   * endpoint declara su feature; sin Pro vigente → 403 `tier.required`.
    */
-  private async requireProSelf(
+  private async requireFeatureSelf(
     producerId: string | null,
     person: { id: string },
+    feature: ProducerFeature,
   ): Promise<void> {
     if (producerId != null && producerId === person.id) {
-      await assertProducerPro(this.prisma, producerId);
+      await assertActorFeature(this.prisma, "PRODUCER", producerId, feature);
     }
   }
 

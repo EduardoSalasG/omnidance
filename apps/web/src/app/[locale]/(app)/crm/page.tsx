@@ -6,8 +6,7 @@ import {
   useCrmContext,
 } from "@/components/crm/crm-context";
 import { PeopleTable } from "@/components/crm/people-table";
-import { ProPaywall } from "@/components/producer/pro-paywall";
-import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
+import { TierPaywall } from "@/components/tier-paywall";
 import {
   OnboardingRunner,
   type TourStep,
@@ -26,13 +25,11 @@ export default function CrmPage() {
       {ctx.gate === "ready" && (
         <>
           {ctx.actor ? (
-            ctx.tierBlocked ? (
-            <AcademyTierPaywall feature="crm" />
-          ) : ctx.proBlocked ? (
-              // El CRM del productor es feature Producer Pro - el API
-              // responde 403 pro.required en todos sus endpoints.
-              <ProPaywall />
-            ) : (
+            ctx.blocked ? (
+            // El actor no cubre "crm" - el API responde 403
+            // tier.required en todos sus endpoints.
+            <TierPaywall feature="crm" actorType={ctx.actor.actorType} />
+          ) : (
               <>
                 <PeopleTable actor={ctx.actor} />
 

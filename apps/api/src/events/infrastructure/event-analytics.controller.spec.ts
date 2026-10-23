@@ -290,24 +290,26 @@ describe("EventAnalyticsController.analytics", () => {
     });
   };
 
-  it("owner FREE sin trial → 403 pro.required con upgrade", async () => {
+  it("owner FREE sin trial → 403 tier.required con upgrade", async () => {
     setProState("FREE", null);
     const err = await ctrl
       .analytics("ev-1", reqAs("prod-1"))
       .catch((e: unknown) => e);
     expect(err).toMatchObject({ status: 403 });
     expect(errBody(err)).toMatchObject({
-      error: "pro.required",
+      error: "tier.required",
       upgrade: true,
+      requiredTier: "PRO",
+      feature: "analytics",
     });
   });
 
-  it("owner FREE con trial vencido → 403 pro.required", async () => {
+  it("owner FREE con trial vencido → 403 tier.required", async () => {
     setProState("FREE", new Date(Date.now() - 24 * 3600 * 1000));
     const err = await ctrl
       .analytics("ev-1", reqAs("prod-1"))
       .catch((e: unknown) => e);
-    expect(errBody(err).error).toBe("pro.required");
+    expect(errBody(err).error).toBe("tier.required");
   });
 
   it("owner FREE con trial vigente → pasa", async () => {

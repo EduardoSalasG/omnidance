@@ -15,8 +15,7 @@ import {
 } from "@/components/crm/crm-context";
 import { SegmentForm } from "@/components/crm/segment-form";
 import { rulesLabel } from "@/components/crm/segment-labels";
-import { ProPaywall } from "@/components/producer/pro-paywall";
-import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
+import { TierPaywall } from "@/components/tier-paywall";
 import type {
   CrmSegment,
   CrmSegmentPeople,
@@ -114,10 +113,10 @@ export default function CrmSegmentoPage() {
         <>
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
-          ) : ctx.tierBlocked ? (
-            <AcademyTierPaywall feature="crm" />
-          ) : ctx.proBlocked ? (
-            <ProPaywall />
+          ) : ctx.blocked ? (
+            // El actor no cubre "crm" - el API responde 403
+            // tier.required en todos sus endpoints.
+            <TierPaywall feature="crm" actorType={ctx.actor.actorType} />
           ) : s === null && !error && !notFound ? (
             <SkeletonCard lines={4} />
           ) : notFound ? (

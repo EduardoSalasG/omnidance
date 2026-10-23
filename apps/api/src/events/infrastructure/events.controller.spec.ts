@@ -35,7 +35,7 @@ interface FakePerson {
   // productor dueño del recurso.
   proTier?: string;
   proTrialEndsAt?: Date | null;
-  // assertProducerPro consulta el rol PRODUCER aprobado (role pipeline):
+  // assertActorFeature consulta el rol PRODUCER aprobado (role pipeline):
   // el productor del fixture nace APPROVED salvo override explícito.
   roles?: { status: string }[];
 }
@@ -531,9 +531,10 @@ describe("EventsController.exportCsv", () => {
     expect(rows(csv)[1]).toContain('"DJ ""Nico"""');
   });
 
-  // ─── Gating Producer Pro (S5): exports son feature Pro ───
+  // ─── Gating por suscripción (unified-actor-entitlements): exports
+  //     son feature Pro ───
 
-  it("owner FREE sin trial → 403 pro.required (csv y pdf)", async () => {
+  it("owner FREE sin trial → 403 tier.required (csv y pdf)", async () => {
     prisma.people.set(
       "prod-1",
       mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
@@ -544,8 +545,10 @@ describe("EventsController.exportCsv", () => {
       .catch((e: unknown) => e);
     expect(err).toMatchObject({ status: 403 });
     expect(errBody(err)).toMatchObject({
-      error: "pro.required",
+      error: "tier.required",
       upgrade: true,
+      requiredTier: "PRO",
+      feature: "exports",
     });
     await expect(
       ctrl.exportPdf("ev-1", { dataset: "sales" }, reqAs("prod-1"), res),
@@ -716,7 +719,7 @@ describe("EventsController.exportSeriesCsv", () => {
     expect(csv.charCodeAt(0)).toBe(0xfeff);
   });
 
-  it("owner FREE sin trial → 403 pro.required también en export de serie", async () => {
+  it("owner FREE sin trial → 403 tier.required también en export de serie", async () => {
     prisma.people.set(
       "prod-1",
       mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
@@ -725,7 +728,8 @@ describe("EventsController.exportSeriesCsv", () => {
     const err = await ctrl
       .exportSeriesCsv("ser-1", { dataset: "sales" }, reqAs("prod-1"), res)
       .catch((e: unknown) => e);
-    expect(errBody(err).error).toBe("pro.required");
+    expect(errBody(err).error).toBe("tier.required");
+    expect(errBody(err).feature).toBe("exports");
   });
 });
 
@@ -902,7 +906,7 @@ describe("EventsController.detail - presaleEndsAt", () => {
 });
 
 // EventsController.addStaff - gestión multi-staff es feature Producer Pro
-// (S5): el owner FREE sin trial recibe 403 pro.required; con trial/tier
+// (S5): el owner FREE sin trial recibe 403 tier.required; con trial/tier
 // Pro o siendo admin, el upsert sigue.
 describe("EventsController.addStaff - gating Producer Pro", () => {
   let prisma: FakePrisma;
@@ -922,7 +926,7 @@ describe("EventsController.addStaff - gating Producer Pro", () => {
 
   const dto = { personId: "door", role: "DOOR" as const };
 
-  it("owner FREE sin trial → 403 pro.required", async () => {
+  it("owner FREE sin trial → 403 tier.required", async () => {
     prisma.people.set(
       "prod-1",
       mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
@@ -931,7 +935,11 @@ describe("EventsController.addStaff - gating Producer Pro", () => {
       .addStaff("ev-1", dto, reqAs("prod-1"))
       .catch((e: unknown) => e);
     expect(err).toMatchObject({ status: 403 });
-    expect(errBody(err).error).toBe("pro.required");
+    expect(errBody(err)).toMatchObject({
+      error: "tier.required",
+      requiredTier: "PRO",
+      feature: "multiStaff",
+    });
   });
 
   it("owner con trial vigente → asigna staff", async () => {
