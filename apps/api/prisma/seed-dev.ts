@@ -1919,7 +1919,9 @@ export async function seedDev(prisma: PrismaClient) {
     },
   });
   const enrichList = [
-    { academy: muvet, prefix: "mv", target: 45 },
+    // ~55 alumnos: academia mediana del set demo por tier (STUDIO ≤150).
+    { academy: muvet, prefix: "mv", target: 55 },
+    // ~30 alumnos: academia chica (COBROS ≤60).
     { academy: tumbao, prefix: "tb", target: 30 },
     ...ACADEMY_SEED.map((a, i) => ({
       academy: catalogAcademies.find((c) => c.name === a.name),
@@ -2131,6 +2133,10 @@ export async function seedDev(prisma: PrismaClient) {
   // claim-<id> - el seed replica esa forma para que el libro cuadre
   // (los claim-* no cuentan en la suma de pasarela, sin doble cargo).
   const claim = async (opts: {
+    /** academia dueña del cobro - default Muévete (su bloque original). */
+    academyId?: string;
+    /** quien aprueba en consola - default el owner de Muévete. */
+    reviewedById?: string;
     personId: string;
     planId?: string;
     amount: number;
@@ -2143,6 +2149,7 @@ export async function seedDev(prisma: PrismaClient) {
     methodLabel?: string;
     note?: string;
   }) => {
+    const academyId = opts.academyId ?? muvet.id;
     const day = Math.max(1, Math.min(opts.monthDay, now.getUTCDate()));
     const base = opts.prevMonth ? prevMonthDate : now;
     const createdAt = new Date(
@@ -2158,7 +2165,7 @@ export async function seedDev(prisma: PrismaClient) {
     );
     const found = await prisma.paymentClaim.findFirst({
       where: {
-        academyId: muvet.id,
+        academyId,
         personId: opts.personId,
         planId: opts.planId ?? null,
         status: opts.status,
@@ -2173,7 +2180,7 @@ export async function seedDev(prisma: PrismaClient) {
     }
     const created = await prisma.paymentClaim.create({
       data: {
-        academyId: muvet.id,
+        academyId,
         personId: opts.personId,
         planId: opts.planId ?? null,
         amount: opts.amount,
@@ -2181,7 +2188,10 @@ export async function seedDev(prisma: PrismaClient) {
         methodLabel: opts.methodLabel ?? "Transferencia",
         status: opts.status,
         note: opts.note ?? null,
-        reviewedById: opts.status === "APPROVED" ? muvetOwner.id : null,
+        reviewedById:
+          opts.status === "APPROVED"
+            ? (opts.reviewedById ?? muvetOwner.id)
+            : null,
         reviewedAt: opts.status === "APPROVED" ? createdAt : null,
         createdAt,
       },
@@ -2229,6 +2239,382 @@ export async function seedDev(prisma: PrismaClient) {
   await claim({ personId: josefa.id, planId: muvetPack.id, amount: 38000, status: "PENDING", monthDay: now.getUTCDate() - 2, note: "Renovación pack" });
   await claim({ personId: benjamin.id, planId: muvetMensual.id, amount: 45000, status: "PENDING", monthDay: now.getUTCDate() - 1 });
   await claim({ personId: fernanda.id, planId: muvetMensual.id, amount: 45000, status: "PENDING", monthDay: now.getUTCDate(), methodType: "CASH", methodLabel: "Efectivo en clase", note: "Paga al llegar el sábado" });
+
+  // Cobros de las academias demo por tier: la cola "por revisar" y el
+  // Facturado/comparativa del dashboard leen PaymentClaim + Payment
+  // MANUAL - se siembran sobre los propios alumnos de cada academia
+  // (el roster del relleno ya existe a esta altura del seed).
+  const seedClaimsFor = async (opts: {
+    academyId: string;
+    reviewedById: string;
+    approvedNow: number;
+    approvedPrev: number;
+    pending: number;
+  }) => {
+    const enrolled = await prisma.enrollment.findMany({
+      where: {
+        academyId: opts.academyId,
+        status: "ACTIVE",
+        plan: { is: { price: { gt: 0 } } },
+      },
+      orderBy: { personId: "asc" },
+      select: {
+        personId: true,
+        planId: true,
+        plan: { select: { price: true } },
+      },
+    });
+    if (!enrolled.length) return;
+    let i = 0;
+    const pick = () => enrolled[i % enrolled.length];
+    const daysSoFar = Math.max(1, now.getUTCDate());
+    for (let k = 0; k < opts.approvedNow; k++, i += 3) {
+      const e = pick();
+      await claim({
+        academyId: opts.academyId,
+        reviewedById: opts.reviewedById,
+        personId: e.personId,
+        planId: e.planId ?? undefined,
+        amount: e.plan!.price,
+        status: "APPROVED",
+        monthDay: 1 + ((k * 3) % daysSoFar),
+      });
+    }
+    for (let k = 0; k < opts.approvedPrev; k++, i += 3) {
+      const e = pick();
+      await claim({
+        academyId: opts.academyId,
+        reviewedById: opts.reviewedById,
+        personId: e.personId,
+        planId: e.planId ?? undefined,
+        amount: e.plan!.price,
+        status: "APPROVED",
+        monthDay: 2 + k,
+        prevMonth: true,
+      });
+    }
+    for (let k = 0; k < opts.pending; k++, i += 3) {
+      const e = pick();
+      await claim({
+        academyId: opts.academyId,
+        personId: e.personId,
+        planId: e.planId ?? undefined,
+        amount: e.plan!.price,
+        status: "PENDING",
+        monthDay: Math.max(1, daysSoFar - (opts.pending - 1 - k)),
+      });
+    }
+  };
+  // Tumbao (COBROS - la cobranza ES el producto) y Mambo Madness (PRO -
+  // Gabriel valida transferencias en /academia/cobros).
+  await seedClaimsFor({
+    academyId: tumbao.id,
+    reviewedById: tumbaoOwner.id,
+    approvedNow: 6,
+    approvedPrev: 5,
+    pending: 3,
+  });
+  await seedClaimsFor({
+    academyId: mambo.id,
+    reviewedById: gabriel.id,
+    approvedNow: 9,
+    approvedPrev: 7,
+    pending: 4,
+  });
+
+  // ─── Academias demo por tier (omni-dance.md §10) ───
+  step("tiers de academia…");
+  // Una academia por plan con dueño logueable, para mostrar las tres
+  // consolas: COBROS → Academia Tumbao (~30 alumnos ≤60, cobranza pura
+  // + lista al día/morosos), STUDIO → MuéveteOnTour (~55 ≤150,
+  // operación completa), PRO → Mambo Madness (~96, ilimitado:
+  // analítica, CRM, insights y multi-academia). El resto del catálogo
+  // queda en trial (tier null → nivel STUDIO) - escena pre-launch.
+  //
+  // La PlatformSubscription ACTIVE proyecta tier+ciclo sobre
+  // Academy.tier/billingCycle - la misma escritura que applyEntitlement
+  // del settle (espejo: sin pasar por Flow, flowSubscriptionId queda
+  // null y el refresh del billing view no reconcilia nada).
+  const BILLED_MONTHS = {
+    MONTHLY: 1,
+    SEMIANNUAL: 5.52,
+    ANNUAL: 10.2,
+  } as const;
+  const ensureAcademySub = async (opts: {
+    academy: { id: string };
+    payerId: string;
+    tier: "COBROS" | "STUDIO" | "PRO";
+    cycle: "MONTHLY" | "SEMIANNUAL" | "ANNUAL";
+    /** meses desde la contratación - ubica createdAt y nextInvoiceAt. */
+    monthsAgo: number;
+    /** invoices adicionales a la del inicio (mensual renueva cada mes). */
+    extraInvoices?: number;
+  }) => {
+    const monthly = Number(
+      (
+        await prisma.platformParam.findUnique({
+          where: {
+            key: `academy_tier.${opts.tier.toLowerCase()}_monthly_clp`,
+          },
+          select: { value: true },
+        })
+      )?.value ?? 0,
+    );
+    // cycleChargeClp(monthly, cycle) del dominio - los params viven en
+    // DB y /admin puede ajustarlos, por eso se leen y no se repiten.
+    const amount = Math.round(monthly * BILLED_MONTHS[opts.cycle]);
+    const cycleMonths = { MONTHLY: 1, SEMIANNUAL: 6, ANNUAL: 12 }[
+      opts.cycle
+    ];
+    const startedAt = new Date(
+      Date.now() - opts.monthsAgo * 30 * 86_400_000,
+    );
+    const nextInvoiceAt = new Date(
+      Date.now() +
+        Math.max(7, (cycleMonths - opts.monthsAgo) * 30) * 86_400_000,
+    );
+    const existing = await prisma.platformSubscription.findFirst({
+      where: { kind: "ACADEMY", academyId: opts.academy.id },
+      orderBy: { createdAt: "desc" },
+    });
+    const subData = {
+      personId: opts.payerId,
+      tierCode: opts.tier,
+      billingCycle: opts.cycle,
+      status: "ACTIVE",
+      nextInvoiceAt,
+      canceledAt: null,
+      pendingTierCode: null,
+      pendingBillingCycle: null,
+    };
+    const sub = existing
+      ? await prisma.platformSubscription.update({
+          where: { id: existing.id },
+          data: subData,
+        })
+      : await prisma.platformSubscription.create({
+          data: {
+            kind: "ACADEMY",
+            academyId: opts.academy.id,
+            ...subData,
+            createdAt: startedAt,
+          },
+        });
+    // Proyección del entitlement (misma escritura que applyEntitlement);
+    // una sub pagada al día limpia mora/bloqueo como RENEWAL_SETTLED.
+    await prisma.academy.update({
+      where: { id: opts.academy.id },
+      data: {
+        tier: opts.tier,
+        billingCycle: opts.cycle,
+        billingBlockedAt: null,
+        billingGraceUntil: null,
+      },
+    });
+    // Invoice(s) del billing view - Payment PLATFORM_SUB con el refId
+    // que usa el reconcile (platsub_<sub>_<invoiceId>), PAID por Flow.
+    const invoiceCount = 1 + (opts.extraInvoices ?? 0);
+    for (let i = 0; i < invoiceCount; i++) {
+      const paidAt = new Date(
+        startedAt.getTime() + i * cycleMonths * 30 * 86_400_000,
+      );
+      await prisma.payment.upsert({
+        where: { refId: `platsub_${sub.id}_seed-${i + 1}` },
+        update: {
+          amount,
+          status: "PAID",
+          createdAt: paidAt,
+          gatewayPaidAt: paidAt,
+        },
+        create: {
+          orderType: "PLATFORM_SUB",
+          refId: `platsub_${sub.id}_seed-${i + 1}`,
+          personId: opts.payerId,
+          amount,
+          fee: 0,
+          net: amount,
+          gateway: "FLOW",
+          gatewayMedia: "credit_card",
+          status: "PAID",
+          createdAt: paidAt,
+          gatewayPaidAt: paidAt,
+        },
+      });
+    }
+  };
+  await ensureAcademySub({
+    academy: tumbao,
+    payerId: tumbaoOwner.id,
+    tier: "COBROS",
+    cycle: "MONTHLY",
+    monthsAgo: 2,
+    extraInvoices: 1, // 2 mensualidades cobradas → historial visible
+  });
+  await ensureAcademySub({
+    academy: muvet,
+    payerId: muvetOwner.id,
+    tier: "STUDIO",
+    cycle: "SEMIANNUAL",
+    monthsAgo: 1,
+  });
+  await ensureAcademySub({
+    academy: mambo,
+    payerId: gabriel.id,
+    tier: "PRO",
+    cycle: "ANNUAL",
+    monthsAgo: 1,
+  });
+
+  // Alumnos al día vs morosos - el split que COBROS vende: una cuota de
+  // los vigentes con plan mensual queda con endsAt vencido ("plan
+  // vencido" en rojo del listado). Subset determinístico; el relleno
+  // re-siembra endsAt futuro en cada corrida, así el pick se recalcula
+  // idempotente. Las cuentas reales/curadas quedan fuera.
+  const seedMorosos = async (
+    academyId: string,
+    every: number,
+    cap: number,
+    exclude: string[] = [],
+  ) => {
+    const rows = await prisma.enrollment.findMany({
+      where: {
+        academyId,
+        status: "ACTIVE",
+        plan: { is: { type: "MONTHLY" } },
+        personId: { notIn: exclude },
+      },
+      orderBy: { personId: "asc" },
+      select: { id: true },
+    });
+    for (const [k, e] of rows
+      .filter((_, i) => i % every === 0)
+      .slice(0, cap)
+      .entries()) {
+      await prisma.enrollment.update({
+        where: { id: e.id },
+        data: { endsAt: new Date(Date.now() - (2 + k * 2) * 86_400_000) },
+      });
+    }
+  };
+  await seedMorosos(tumbao.id, 6, 5, [camila.id, antonia.id]);
+  await seedMorosos(mambo.id, 11, 8, [maria.id, eduardo.id]);
+
+  // Cumpleaños dentro de la ventana de insights (30d) - el panel del
+  // dashboard tiene data en las academias demo, no solo en Muévete.
+  const seedBirthdays = async (
+    academyId: string,
+    every: number,
+    cap: number,
+  ) => {
+    const rows = await prisma.enrollment.findMany({
+      where: { academyId, status: "ACTIVE" },
+      orderBy: { personId: "asc" },
+      select: { personId: true },
+    });
+    const days = [4, 9, 15, 21, 27];
+    for (const [k, e] of rows
+      .filter((_, i) => i % every === 0)
+      .slice(0, cap)
+      .entries()) {
+      const d = new Date(Date.now() + days[k % days.length] * 86_400_000);
+      d.setUTCFullYear(1990 + ((k * 3) % 12));
+      await prisma.person.update({
+        where: { id: e.personId },
+        data: { birthDate: d },
+      });
+    }
+  };
+  await seedBirthdays(tumbao.id, 7, 4);
+  await seedBirthdays(mambo.id, 19, 5);
+
+  // Extras PRO de Mambo Madness: la consola muestra videos (feature
+  // PRO), una campaña enviada en el CRM y tags de alumnos - las
+  // superficies que el tier desbloquea no pueden verse vacías en demo.
+  const mmVideoClasses = await prisma.class.findMany({
+    where: { slot: { academyId: mambo.id }, date: { lt: todayUTC } },
+    orderBy: { date: "desc" },
+    take: 3,
+    select: { id: true },
+  });
+  const mmVideos = [
+    { title: "Ronda de partnerwork - figuras intermedias", classIdx: 0 },
+    { title: "Lady style: líneas y brazos en mambo", classIdx: 1 },
+    { title: "Shines sueltos - rutina de la semana", classIdx: 2 },
+  ];
+  for (const [i, v] of mmVideos.entries()) {
+    await ensure(
+      () => prisma.video.findFirst({ where: { academyId: mambo.id, title: v.title } }),
+      () =>
+        prisma.video.create({
+          data: {
+            academyId: mambo.id,
+            title: v.title,
+            url: `https://youtu.be/mambo-seed-${i + 1}`,
+            classId: mmVideoClasses[v.classIdx]?.id ?? null,
+            restrictedToAttended: true,
+          },
+        }),
+    );
+  }
+  // Campaña SENT con audiencia persistida (misma forma que
+  // sendCampaign: result {sent, at, audienceIds}) - el CRM lista el
+  // historial con su métrica en vez de quedar en blanco.
+  const mmAudience = (
+    await prisma.enrollment.findMany({
+      where: { academyId: mambo.id, status: "ACTIVE" },
+      orderBy: { personId: "asc" },
+      take: 24,
+      select: { personId: true },
+    })
+  ).map((e) => e.personId);
+  await ensure(
+    () =>
+      prisma.campaign.findFirst({
+        where: {
+          actorType: "ACADEMY",
+          actorId: mambo.id,
+          name: "Práctica social de noviembre",
+        },
+      }),
+    () =>
+      prisma.campaign.create({
+        data: {
+          actorType: "ACADEMY",
+          actorId: mambo.id,
+          name: "Práctica social de noviembre",
+          segment: { segment: "CORE" },
+          action: {
+            type: "NOTIFY",
+            title: "Práctica social este viernes",
+            body: "Trae a un amigo - cover con código en recepción",
+          },
+          status: "SENT",
+          result: {
+            sent: mmAudience.length,
+            audienceIds: mmAudience,
+            at: new Date(Date.now() - 12 * 86_400_000).toISOString(),
+          },
+          createdAt: new Date(Date.now() - 12 * 86_400_000),
+        },
+      }),
+  );
+  // Tags del CRM sobre alumnos concretos ("VIP" en los de mayor score).
+  for (const [i, personId] of mmAudience.slice(0, 4).entries()) {
+    const tag = i === 0 ? "VIP" : i < 3 ? "Trae gente" : "Nuevo";
+    const exists = await prisma.actorTag.findFirst({
+      where: { actorType: "ACADEMY", actorId: mambo.id, personId, tag },
+    });
+    if (!exists) {
+      await prisma.actorTag.create({
+        data: {
+          actorType: "ACADEMY",
+          actorId: mambo.id,
+          personId,
+          tag,
+        },
+      });
+    }
+  }
 
   // Clases particulares - bandeja del instructor y del alumno.
   const lesson = (
@@ -5057,6 +5443,14 @@ export async function seedDev(prisma: PrismaClient) {
     await prisma.academy.deleteMany({ where: { id: { in: testAcademyIds } } });
   }
 
+  // PlatformSubscriptions huérfanas: academyId queda null cuando la
+  // academia cae por SET NULL (academias E2E borradas en corridas
+  // previas o pruebas manuales de /academia/billing). Una sub sin
+  // academia no alimenta nada - se barre con el resto del residuo.
+  await prisma.platformSubscription.deleteMany({
+    where: { kind: "ACADEMY", academyId: null },
+  });
+
   // Venues de test - sus series/eventos ya cayeron arriba.
   if (testVenueIds.length) {
     await prisma.venueMenu.deleteMany({
@@ -5356,6 +5750,13 @@ export async function seedDev(prisma: PrismaClient) {
   const passwordHash = `scrypt$16384$8$1$${salt.toString("hex")}$${key.toString("hex")}`;
   await prisma.person.updateMany({
     where: { email: { endsWith: `@${DEV_DOMAIN}` } },
+    data: { passwordHash },
+  });
+  // Gabriel (Mambo Madness, academia PRO del set demo) también entra
+  // por password - su email real igual funciona por magic link, pero
+  // en demo no hay que abrir el correo para mostrar su consola.
+  await prisma.person.update({
+    where: { id: gabriel.id },
     data: { passwordHash },
   });
   // Mónica entra con password propio (cuenta real de prueba - el seed
