@@ -580,6 +580,8 @@ Lo que se mide cada mes (el `PayoutLine` + `Payment.platformFee*` dejan todo que
 | **MRR** | SaaS recurrente del mes (academias + Producer Pro) | La base estable, separada del transactional |
 | **ARR run-rate** | MRR × 12 (+ transactional anualizado si se quiere "revenue run-rate") | El número de conversación con inversores |
 | **NRR / churn / LTV / CAC** | Retención neta por actor, bajas, valor de vida, costo de adquisición | Salud del modelo SaaS - medir desde el día 1 |
+| **Concentración top-1** | % del neto mensual aportado por el actor más grande | Alerta si >40% - el Piloto nace concentrado y es el riesgo #1 |
+| **Expansión de tier** | MRR ganado por upgrades automáticos de cap (alumnos/facturación), sin venta nueva | El upside no modelado: producer que cruza $2,5M→$8M pasa Pro→Growth solo |
 
 ### Proyecciones por escenario (CLP/mes → ARR)
 
@@ -591,6 +593,7 @@ Supuestos: ticket ponderado ~$5.5k gestionado a tasa media 9% (~5% neto tras pas
 |---|---|---|---|---|---|---|---|---|
 | **Piloto** (1 productor + 2 academias + ~30 pases) | 5 | ~$0,23M | ~$0,1M | ~$0,1M | ~$0,2M | ~$0,02M | **~$0,65M** | **~$7,8M** |
 | **Tracción** (3 productores + 8 academias + ~120 pases) | 15 | ~$0,69M | ~$0,72M | ~$0,55M | ~$0,84M | ~$0,15M | **~$2,95M** | **~$35M** |
+| **Tracción estresada** (churn 4,5%/mes ≈ −15% recurrente + solo 50% de preventa migrada) | 15 | ~$0,35M | ~$0,61M | ~$0,47M | ~$0,71M | ~$0,13M | **~$2,27M** | **~$27M** |
 | **Captura escena** (20–25 eventos + 15 academias + 8 Pro + ~350 pases) | 22 | ~$1,01M | ~$1,35M | ~$1,12M | ~$2,45M | ~$0,45M | **~$6,35M** | **~$76M** |
 
 Lecturas:
@@ -598,7 +601,7 @@ Lecturas:
 - **El Pase Social supera a cada línea SaaS individual en captura** con ~20% de adopción sobre asistentes activos — pero depende de dos supuestos no validados: tarifa de reembolso por crédito (cada $500 mueve ~$1,4k el margen por suscriptor) y que el productor mantenga puerta > preventa (si el gap se cierra, cae el valor percibido del pase).
 - A captura total de escena (~20–25 eventos/mes, ~15 academias): **~$76M ARR** sin contar venue-pro, marketplace de instructores, suscripción-ticket de serie (`series_pass`, ~$25k/mes fallback) ni otros países — la expansión multi-país/multi-gateway del rediseño de puertos es el siguiente multiplicador.
 - Sensibilidad a la tasa: cada punto de % gestionado ≈ ±$7k/evento neto → la negociación 10→8% cuesta ~$15k/evento de neto vs lista.
-- **Stress case no modelado aquí**: churn SaaS/pase de 4–5%/mes recorta ~15–20% el ARR de captura; y el escenario Piloto depende de 1 productor — su churn borra ~50% del total del escenario.
+- **Fila "Tracción estresada"** modela churn 4,5%/mes + migración de preventa al 50%: ~$27M ARR — el escenario que hay que vender internamente como el piso razonable. El Piloto sigue concentrado (1 productor ≈ 50% del total) — la métrica `Concentración top-1` dispara alerta >40%.
 
 ### Comparativa de pasarelas (investigación sep-2026)
 
