@@ -52,7 +52,10 @@ import {
   type FileStorage,
 } from "../storage/storage.service";
 import { isProActive } from "../payments/domain/platform-tiers";
-import { featuresForTier } from "../academies/domain/academy-tiers";
+import {
+  resolveAcademyEntitlements,
+  resolveProducerEntitlement,
+} from "../common/actor-entitlements";
 import {
   monthRange,
   prevMonthKey,
@@ -403,25 +406,38 @@ export class PeopleController {
   }
 
   /**
-   * GET /me/academy/entitlements (spec academy-tier-cobros): mapa de
-   * entitlements por academia del owner autenticado - el front filtra
-   * la nav de la consola y muestra el estado "parte del plan X" sin
-   * esperar al 403 de cada endpoint. {academies:[{id,tier,features}]}.
+   * GET /me/entitlements (spec unified-actor-entitlements): entitlements
+   * de suscripción del actor autenticado - `producer` (null si no es
+   * productor aprobado) + `academias` propias. Es la fuente única del
+   * front para gating (reemplaza a effectivePro y a
+   * /me/academy/entitlements): {producer:{tier,features}|null,
+   * academies:[{id,tier,features}]}.
+   */
+  @Get("me/entitlements")
+  @UseGuards(SessionGuard)
+  async entitlements(@Req() req: Request) {
+    const personId = req.person!.id;
+    const [producer, academies] = await Promise.all([
+      resolveProducerEntitlement(this.prisma, personId),
+      resolveAcademyEntitlements(this.prisma, personId),
+    ]);
+    return { producer, academies };
+  }
+
+  /**
+   * GET /me/academy/entitlements - DEPRECADO (spec
+   * unified-actor-entitlements): subconjunto academia de
+   * GET /me/entitlements, mismo shape {academies:[{id,tier,features}]}.
+   * Se mantiene mientras el front migra al endpoint unificado.
    */
   @Get("me/academy/entitlements")
   @UseGuards(SessionGuard)
   async academyEntitlements(@Req() req: Request) {
-    const academies = await this.prisma.academy.findMany({
-      where: { ownerId: req.person!.id },
-      orderBy: { createdAt: "asc" },
-      select: { id: true, tier: true },
-    });
     return {
-      academies: academies.map((a) => ({
-        id: a.id,
-        tier: a.tier,
-        features: [...featuresForTier(a.tier)],
-      })),
+      academies: await resolveAcademyEntitlements(
+        this.prisma,
+        req.person!.id,
+      ),
     };
   }
 

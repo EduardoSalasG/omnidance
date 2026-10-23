@@ -110,7 +110,7 @@ describe("academies e2e", () => {
     adminSession = await auth.issueSession(admin.id);
 
     const academy = await prisma.academy.create({
-      data: { name: "Academia Test", ownerId: owner.id, reviewStatus: "APPROVED" },
+      data: { name: "Academia Test", ownerId: owner.id, reviewStatus: "APPROVED", tier: "PRO" },
     });
     ids.academyId = academy.id;
 

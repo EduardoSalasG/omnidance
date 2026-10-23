@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
-import { useAcademyEntitlements } from "@/lib/academy-entitlements-context";
+import { useActorEntitlements } from "@/lib/entitlements-context";
 import { Button, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import type { CrmActor } from "./types";
@@ -20,15 +20,12 @@ type CrmContextValue = {
   boot: () => Promise<void>;
   actors: CrmActor[];
   actor: CrmActor | null;
-  /** El actor resuelto es el propio CRM del productor y no tiene
-      Pro efectivo - espejo del gateo del API (assertActorAccess →
-      assertProducerPro solo cuando actorId === caller.id). Las
-      páginas renderizan el paywall en vez del contenido. */
-  proBlocked: boolean;
-  /** El actor resuelto es una academia cuyo tier no incluye el CRM
-      (COBROS/STUDIO - spec academy-tier-cobros): el API responde 403
-      tier.required - las páginas renderizan el paywall de tier. */
-  tierBlocked: boolean;
+  /** El actor resuelto no cubre la feature "crm" en su plan (productor
+      sin Pro, academia COBROS/STUDIO - contrato unificado del spec
+      unified-actor-entitlements): el API responde 403 tier.required en
+      todos sus endpoints - las páginas renderizan el TierPaywall en vez
+      del contenido. */
+  blocked: boolean;
 };
 
 /**
@@ -54,7 +51,6 @@ export function useCrmContext(): CrmContextValue {
     refresh: refreshMe,
   } = useMe();
   const meId = me?.id ?? "";
-  const effectivePro = me?.effectivePro ?? null;
 
   const [myAcademies, setMyAcademies] = useState<
     { id: string; name: string; ownerId: string }[] | null
@@ -147,31 +143,33 @@ export function useCrmContext(): CrmContextValue {
     await refreshMe();
   }, [refreshMe]);
 
-  // El CRM del productor propio es feature Pro (S5): el API responde
-  // 403 pro.required en todos sus endpoints - el front lo anticipa.
-  const proBlocked =
-    actor?.actorType === "PRODUCER" &&
-    actor.actorId === meId &&
-    effectivePro === false;
-
-  // El CRM de academia es feature PRO del tier (spec
-  // academy-tier-cobros): el API responde 403 tier.required en todos
-  // sus endpoints - el front lo anticipa igual que proBlocked.
-  const academyEnt = useAcademyEntitlements(
+  // Gateo anticipado por feature (contrato unificado, spec
+  // unified-actor-entitlements): el API responde 403 tier.required en
+  // todos los endpoints del CRM cuando el actor no cubre "crm" - el
+  // front lo anticipa con los entitlements de la sesión (productor sin
+  // Pro ↔ academia COBROS/STUDIO). Mientras cargan no se bloquea: el
+  // 403 queda como fallback.
+  const producerEnt = useActorEntitlements("PRODUCER");
+  const academyEnt = useActorEntitlements(
+    "ACADEMY",
     actor?.actorType === "ACADEMY" ? actor.actorId : null,
   );
-  const tierBlocked =
-    actor?.actorType === "ACADEMY" &&
-    !academyEnt.loading &&
-    !academyEnt.has("crm");
+  const actorEnt = actor
+    ? actor.actorType === "PRODUCER" && actor.actorId === meId
+      ? producerEnt
+      : actor.actorType === "ACADEMY"
+        ? academyEnt
+        : null
+    : null;
+  const blocked =
+    actorEnt != null && !actorEnt.loading && !actorEnt.has("crm");
 
   return {
     gate,
     boot,
     actors,
     actor,
-    proBlocked,
-    tierBlocked,
+    blocked,
   };
 }
 

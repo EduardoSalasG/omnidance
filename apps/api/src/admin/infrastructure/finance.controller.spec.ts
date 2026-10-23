@@ -116,7 +116,12 @@ class FakePrisma {
   class = { findMany: this.findAll(this.classes) };
   privateLesson = { findMany: this.findAll(this.privateLessons) };
   platformSubscription = { findMany: this.findAll(this.subscriptions) };
-  academy = { findMany: this.findAll(this.academies) };
+  academy = {
+    findMany: this.findAll(this.academies),
+    findUnique: async (args?: { where?: Row }) =>
+      this.academies.find((r) => matchWhere(r, args?.where ?? {})) ??
+      null,
+  };
   person = { findMany: this.findAll(this.people) };
   venue = { findMany: this.findAll(this.venues) };
 }

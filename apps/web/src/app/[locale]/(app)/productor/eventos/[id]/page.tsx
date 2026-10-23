@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, use } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import { useActorEntitlements } from "@/lib/entitlements-context";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import {
   Badge,
@@ -65,10 +66,10 @@ export default function ProducerEventDetailPage(
   } = useMe();
   const meId = me?.id ?? "";
   const isAdmin = me?.roles.includes("ADMIN") ?? false;
-  // Producer Pro (S6): effectivePro de /me gatea proactivamente las
-  // features Pro (analítica/exports/staff) - el 403 pro.required queda
-  // como fallback dentro de cada sección.
-  const effectivePro = me?.effectivePro ?? null;
+  // Entitlements del productor (spec unified-actor-entitlements): las
+  // features del plan gatean proactivamente (analítica/staff) - el 403
+  // tier.required queda como fallback dentro de cada sección.
+  const producerEnt = useActorEntitlements("PRODUCER");
   const [eventState, setEventState] = useState<EventState>("loading");
   const [event, setEvent] = useState<EventDetail | null>(null);
 
@@ -183,12 +184,15 @@ export default function ProducerEventDetailPage(
       event.producerId === null ||
       event.producerId === meId);
 
-  // Gate Pro del API: aplica solo cuando el caller ES el productor dueño
-  // (requireProSelf - un admin operando evento ajeno no se gatea).
-  const proLocked =
-    event != null &&
-    event.producerId === meId &&
-    effectivePro === false;
+  // Gate por feature: aplica solo cuando el caller ES el productor
+  // dueño (requireProSelf - un admin operando evento ajeno no se
+  // gatea). Cada sección declara su feature del plan (espejo de
+  // PRODUCER_FEATURES del API: multiStaff, analytics…).
+  const isOwnEvent = event != null && event.producerId === meId;
+  const staffLocked =
+    isOwnEvent && !producerEnt.loading && !producerEnt.has("multiStaff");
+  const analyticsLocked =
+    isOwnEvent && !producerEnt.loading && !producerEnt.has("analytics");
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-4xl lg:px-8">
@@ -315,7 +319,7 @@ export default function ProducerEventDetailPage(
 
           {canManage && <LiveSection eventId={eventId} status={event.status} />}
 
-          <StaffSection eventId={eventId} proLocked={proLocked} />
+          <StaffSection eventId={eventId} tierLocked={staffLocked} />
           <PassesSection eventId={eventId} />
           {/* Ventas del evento - se oculta sola ante 403/404 (no-owner). */}
           <PaymentsSection eventId={eventId} />
@@ -334,9 +338,9 @@ export default function ProducerEventDetailPage(
           {canManage && <EventListsSection eventId={eventId} />}
           <RatingsSection eventId={eventId} />
           {/* Analítica de asistencia/encuesta - se oculta sola ante
-              403/404 (no-owner); pro.required → paywall (feature Pro).
-              Splits k-anónimos ≥3 asistentes. */}
-          <AnalyticsSection eventId={eventId} proLocked={proLocked} />
+              403/404 (no-owner); tier.required → paywall (feature del
+              plan). Splits k-anónimos ≥3 asistentes. */}
+          <AnalyticsSection eventId={eventId} tierLocked={analyticsLocked} />
           {/* Los exports CSV/PDF migraron a /analitica
               (spec analytics/query-console). */}
 

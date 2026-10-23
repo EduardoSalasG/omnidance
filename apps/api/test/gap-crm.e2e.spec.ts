@@ -247,7 +247,7 @@ describe("gap-closure: CRM transversal e2e", () => {
 
     // academia del owner + enrollment de newcomer
     const academy = await prisma.academy.create({
-      data: { name: `CRM Academy ${suffix}`, ownerId: academyOwner.id, reviewStatus: "APPROVED" },
+      data: { name: `CRM Academy ${suffix}`, ownerId: academyOwner.id, reviewStatus: "APPROVED", tier: "PRO" },
     });
     ids.academyId = academy.id;
     await prisma.enrollment.create({

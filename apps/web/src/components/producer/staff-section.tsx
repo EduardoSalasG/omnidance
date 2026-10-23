@@ -5,23 +5,25 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
-import { ProPaywall } from "./pro-paywall";
+import { TierPaywall } from "@/components/tier-paywall";
 import { type StaffEntry } from "./shared";
 
 type Props = {
   eventId: string;
-  /** Owner sin Pro efectivo - el alta de staff responde 403 pro.required
-      (la lista sigue siendo legible: el gateo es de la mutación). */
-  proLocked?: boolean;
+  /** Owner sin la feature "multiStaff" en su plan - el alta de staff
+      responde 403 tier.required (la lista sigue siendo legible: el
+      gateo es de la mutación). */
+  tierLocked?: boolean;
 };
 
 /**
  * Staff del evento (GET /events/:id/staff). El alta vive en
  * /productor/eventos/[id]/staff/nuevo (POST upsert por personId) - aquí
- * quedan la lista y las acciones por fila. Sin Pro el CTA se reemplaza
- * por el paywall (la lista de staff ya asignado sigue visible).
+ * quedan la lista y las acciones por fila. Sin la feature el CTA se
+ * reemplaza por el paywall (la lista de staff ya asignado sigue
+ * visible).
  */
-export function StaffSection({ eventId, proLocked = false }: Props) {
+export function StaffSection({ eventId, tierLocked = false }: Props) {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
 
@@ -52,7 +54,7 @@ export function StaffSection({ eventId, proLocked = false }: Props) {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("sections.staff")}
         </h2>
-        {!proLocked && (
+        {!tierLocked && (
           <Button
             size="sm"
             variant="secondary"
@@ -105,7 +107,9 @@ export function StaffSection({ eventId, proLocked = false }: Props) {
         </ul>
       )}
 
-      {proLocked && <ProPaywall />}
+      {tierLocked && (
+        <TierPaywall actorType="PRODUCER" feature="multiStaff" />
+      )}
     </section>
   );
 }

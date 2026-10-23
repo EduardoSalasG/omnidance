@@ -254,9 +254,6 @@
       }
     },
     "pro": {
-      "title": "Esta función es parte de Producer Pro",
-      "featureTitle": "{feature} es parte de Producer Pro",
-      "cta": "Ver planes",
       "benefits": {
         "analytics": "Analítica de eventos y asistentes",
         "exports": "Exportaciones CSV y PDF",

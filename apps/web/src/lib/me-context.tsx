@@ -57,8 +57,9 @@ export type MeContextData = {
   // magic link → la sección Seguridad ofrece "establecer" sin pedir la
   // actual. El hash nunca viaja en /me.
   hasPassword?: boolean;
-  // Producer Pro efectivo (suscripción o trial vigente) - gates Pro.
-  effectivePro?: boolean;
+  // Los entitlements del productor/academias ya no viajan en /me: los
+  // gates de tier consultan GET /me/entitlements vía
+  // EntitlementsProvider (spec unified-actor-entitlements).
   // Tours de primera visita ya vistos (POST /me/onboarding los marca).
   onboarding?: Record<string, string>;
   // Idioma preferido persistido (spec i18n-multi-locale) - si difiere

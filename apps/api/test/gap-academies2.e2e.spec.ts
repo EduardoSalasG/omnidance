@@ -120,7 +120,7 @@ describe("academies gap: private lessons + videos e2e", () => {
     outsiderSession = await auth.issueSession(outsider.id);
 
     const academy = await prisma.academy.create({
-      data: { name: "Academia PL Test", ownerId: owner.id, reviewStatus: "APPROVED" },
+      data: { name: "Academia PL Test", ownerId: owner.id, reviewStatus: "APPROVED", tier: "PRO" },
     });
     ids.academyId = academy.id;
 

@@ -373,7 +373,7 @@ describe("QueryService - lentes y scope", () => {
     ).rejects.toMatchObject({ status: 403 });
   });
 
-  it("PRODUCER sin Pro vigente → 403 pro.required en run/catalog", async () => {
+  it("PRODUCER sin Pro vigente → 403 tier.required en run/catalog", async () => {
     prisma.people.set(
       "prod-1",
       mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
@@ -382,9 +382,13 @@ describe("QueryService - lentes y scope", () => {
       svc.run("prod-1", { role: "PRODUCER", entity: "sales" }),
     ).rejects.toMatchObject({
       status: 403,
-      response: expect.objectContaining({ error: "pro.required" }),
+      response: expect.objectContaining({
+        error: "tier.required",
+        requiredTier: "PRO",
+        feature: "analytics",
+      }),
     });
-    // pero el CRUD de consultas guardadas NO gatea Pro
+    // pero el CRUD de consultas guardadas NO gatea la suscripción
     const saved = await svc.listSaved("prod-1", "PRODUCER");
     expect(saved.system.length).toBeGreaterThan(0);
   });

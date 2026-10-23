@@ -104,10 +104,29 @@ export function requiredTierFor(
 }
 
 /**
- * Gate de consola por tier (mismo patrón que `pro.required` de
- * producer-pro): 403 `{error:"tier.required", upgrade:true, requiredTier}`
- * - el front muestra el estado "parte del plan X" con CTA a
- * /academia/suscripcion. Trabaja sobre la academia ya cargada (sin query
+ * 403 del contrato unificado de suscripción (spec
+ * unified-actor-entitlements): `{error:"tier.required", upgrade:true,
+ * requiredTier, feature}` - única fuente del body para TODOS los
+ * actores (academia y productor; `pro.required` ya no existe). El
+ * front muestra el estado "parte del plan X" con CTA al checkout del
+ * actor correspondiente.
+ */
+export function tierRequiredError(
+  requiredTier: string,
+  feature: string,
+): ForbiddenException {
+  return new ForbiddenException({
+    error: "tier.required",
+    upgrade: true,
+    requiredTier,
+    feature,
+    message: `esta herramienta es parte del plan ${requiredTier} - sube de tier para seguir usándola`,
+  });
+}
+
+/**
+ * Gate de consola por tier: 403 `tierRequiredError` cuando la academia
+ * no cubre la feature. Trabaja sobre la academia ya cargada (sin query
  * extra); el bypass de ADMIN queda en el caller (AcademyAccess).
  */
 export function assertAcademyFeature(
@@ -115,12 +134,5 @@ export function assertAcademyFeature(
   feature: AcademyFeature,
 ): void {
   if (tierMeets(academy.tier, feature)) return;
-  const requiredTier = requiredTierFor(feature);
-  throw new ForbiddenException({
-    error: "tier.required",
-    upgrade: true,
-    requiredTier,
-    feature,
-    message: `esta herramienta es parte del plan ${requiredTier} - sube de tier para seguir usándola`,
-  });
+  throw tierRequiredError(requiredTierFor(feature), feature);
 }

@@ -32,12 +32,13 @@ inicialmente: analítica avanzada del evento, CRM del productor,
 exports CSV/PDF y gestión multi-staff/listas. Las features FREE SHALL
 seguir siendo: publicar eventos, vender, check-in, dashboard básico.
 Acceder a una feature Pro sin suscripción SHALL responder 402/403 con
-copy que invite a contratar.
+el contrato unificado `tier.required` y copy que invite a contratar.
 
 #### Scenario: CRM sin Pro
 
 - **GIVEN** productor FREE **WHEN** llama `POST /crm/campaigns`
-  **THEN** 403 con `pro.required` y el CTA de upgrade.
+  **THEN** 403 con `tier.required` (requiredTier PRO, feature crm) y
+  el CTA de upgrade.
 
 ### Requirement: Mora de la suscripción Pro
 
@@ -49,7 +50,7 @@ SHALL restaurar el tier.
 
 - **GIVEN** productor Pro con invoice impaga **THEN** sus eventos
   siguen publicados y vendiendo; solo CRM/analítica/exports responden
-  `pro.required`.
+  `tier.required`.
 
 ### Requirement: Cuenta de desembolso en la consola del productor
 

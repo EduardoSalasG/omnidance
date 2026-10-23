@@ -8,8 +8,7 @@ import {
   useCrmContext,
 } from "@/components/crm/crm-context";
 import { SegmentList } from "@/components/crm/segment-list";
-import { ProPaywall } from "@/components/producer/pro-paywall";
-import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
+import { TierPaywall } from "@/components/tier-paywall";
 
 // Segmentos dinámicos del actor (spec crm-dynamic-segments). Crear =
 // CTA → /crm/segmentos/nuevo; cada card → ficha /crm/segmentos/[id].
@@ -26,12 +25,10 @@ export default function CrmSegmentosPage() {
         <>
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
-          ) : ctx.tierBlocked ? (
-            <AcademyTierPaywall feature="crm" />
-          ) : ctx.proBlocked ? (
-            // El CRM del productor es feature Producer Pro - el API
-            // responde 403 pro.required en todos sus endpoints.
-            <ProPaywall />
+          ) : ctx.blocked ? (
+            // El actor no cubre "crm" - el API responde 403
+            // tier.required en todos sus endpoints.
+            <TierPaywall feature="crm" actorType={ctx.actor.actorType} />
           ) : (
             <>
               <div className="flex justify-end">

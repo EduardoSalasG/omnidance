@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch, isProRequired, isTierRequired } from "@/lib/api";
+import { apiFetch, isTierRequired } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import { useActorEntitlements } from "@/lib/entitlements-context";
 import { useActiveRole } from "@/lib/active-role";
 import {
   Button,
@@ -14,8 +15,7 @@ import {
   SkeletonText,
   Spinner,
 } from "@/components/ui";
-import { ProPaywall } from "@/components/producer/pro-paywall";
-import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
+import { TierPaywall } from "@/components/tier-paywall";
 import {
   OnboardingRunner,
   type TourStep,
@@ -44,8 +44,9 @@ import { QUERY_CATALOG, QUERY_ROLES } from "@omnidance/shared";
  * <a download> (preserva cookie por el proxy same-origin; `download` no
  * dispara NavPendingOverlay) → guardar/reusar consultas. Solo lectura.
  * La lente es SIEMPRE el rol activo (se cambia desde Perfil/el drawer -
- * no hay selector acá). Lente PRODUCER: gate Pro - effectivePro===false
- * o 403 pro.required → paywall. Lentes sin entidades (VENUE_MANAGER) →
+ * no hay selector acá). Lente PRODUCER: el entitlement del productor sin
+ * la feature o 403 tier.required → paywall (contrato unificado). Lentes
+ * sin entidades (VENUE_MANAGER) →
  * estado muted.
  */
 
@@ -55,7 +56,6 @@ type CatalogPhase =
   | "loading"
   | "error"
   | "forbidden"
-  | "pro"
   | "tier"
   | "empty"
   | "ready";
@@ -76,7 +76,9 @@ export default function AnaliticaPage() {
   const tt = useTranslations("tours.analitica");
 
   const { me } = useMe();
-  const effectivePro = me?.effectivePro ?? null;
+  // Entitlement del productor propio (spec unified-actor-entitlements):
+  // sin la feature de analítica la lente PRODUCER va directo al paywall.
+  const producerEnt = useActorEntitlements("PRODUCER");
   const activeRole = useActiveRole(me?.roles);
   // El drill por usuario (/analitica/usuarios) es solo ADMIN - el paso
   // del tour que lo explica se incluye solo cuando el rol está.
@@ -137,9 +139,13 @@ export default function AnaliticaPage() {
   }, [boot]);
 
   // ── Catálogo del lente activo ────────────────────────────────────────
-  // Gate Pro proactivo: effectivePro===false en lente PRODUCER salta
-  // directo al paywall sin fetch; el 403 pro.required queda de fallback.
-  const proLocked = role === "PRODUCER" && effectivePro === false;
+  // Gate proactivo por feature: el entitlement del productor sin
+  // "analytics" en lente PRODUCER salta directo al paywall sin fetch;
+  // el 403 tier.required queda de fallback.
+  const tierLocked =
+    role === "PRODUCER" &&
+    !producerEnt.loading &&
+    !producerEnt.has("analytics");
 
   const loadCatalog = useCallback(
     async (r: Role) => {
@@ -152,10 +158,6 @@ export default function AnaliticaPage() {
         const res = await apiFetch(`/query/catalog?role=${r}`);
         if (res.status === 403 && (await isTierRequired(res))) {
           setCatalogPhase("tier");
-          return;
-        }
-        if (res.status === 403 && (await isProRequired(res))) {
-          setCatalogPhase("pro");
           return;
         }
         if (res.status === 401 || res.status === 403) {
@@ -202,13 +204,13 @@ export default function AnaliticaPage() {
   // tarde.
   useEffect(() => {
     if (!role) return;
-    if (proLocked) {
-      setCatalogPhase("pro");
+    if (tierLocked) {
+      setCatalogPhase("tier");
       return;
     }
     void loadCatalog(role);
     if (isQueryRole(role)) void loadSaved(role);
-  }, [role, proLocked, loadCatalog, loadSaved]);
+  }, [role, tierLocked, loadCatalog, loadSaved]);
 
   // Opciones de fuentes scope-dependientes (planId/seriesId/listId…).
   const loadScopeOptions = useCallback(
@@ -242,11 +244,6 @@ export default function AnaliticaPage() {
         if (res.status === 403 && (await isTierRequired(res))) {
           setRunPhase("idle");
           setCatalogPhase("tier");
-          return;
-        }
-        if (res.status === 403 && (await isProRequired(res))) {
-          setRunPhase("idle");
-          setCatalogPhase("pro");
           return;
         }
         if (!res.ok) {
@@ -396,13 +393,14 @@ export default function AnaliticaPage() {
             </Card>
           )}
 
-          {catalogPhase === "pro" && <ProPaywall />}
-
           {catalogPhase === "tier" && (
-            // El catálogo del actor academia respondió 403
-            // tier.required (spec academy-tier-cobros) - paywall de
-            // tier, hermano del ProPaywall del productor.
-            <AcademyTierPaywall feature="analytics" />
+            // El catálogo respondió 403 tier.required (contrato
+            // unificado: productor y academia por el mismo error) -
+            // paywall con el CTA de suscripción del actor.
+            <TierPaywall
+              feature="analytics"
+              actorType={role === "PRODUCER" ? "PRODUCER" : "ACADEMY"}
+            />
           )}
 
           {catalogPhase === "forbidden" && (

@@ -10,8 +10,7 @@ import {
   useCrmContext,
 } from "@/components/crm/crm-context";
 import { CampaignForm } from "@/components/crm/campaign-form";
-import { ProPaywall } from "@/components/producer/pro-paywall";
-import { AcademyTierPaywall } from "@/components/academy/academy-tier-gate";
+import { TierPaywall } from "@/components/tier-paywall";
 import { actorKey } from "@/components/crm/types";
 import { useRouter } from "@/i18n/navigation";
 
@@ -35,10 +34,10 @@ function NuevaCampanaInner() {
         <>
           {!ctx.actor ? (
             <p className="text-ink/60">{t("pickActor")}</p>
-          ) : ctx.tierBlocked ? (
-            <AcademyTierPaywall feature="crm" />
-          ) : ctx.proBlocked ? (
-            <ProPaywall />
+          ) : ctx.blocked ? (
+            // El actor no cubre "crm" - el API responde 403
+            // tier.required en todos sus endpoints.
+            <TierPaywall feature="crm" actorType={ctx.actor.actorType} />
           ) : saved ? (
             <p role="status" className="text-sm text-neon">
               {t("campaigns.created")}

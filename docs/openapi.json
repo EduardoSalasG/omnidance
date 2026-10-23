@@ -296,6 +296,20 @@
         ]
       }
     },
+    "/api/me/entitlements": {
+      "get": {
+        "operationId": "PeopleController_entitlements",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "People"
+        ]
+      }
+    },
     "/api/me/academy/entitlements": {
       "get": {
         "operationId": "PeopleController_academyEntitlements",

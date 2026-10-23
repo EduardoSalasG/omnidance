@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useState, use } from "react";
 
 import { useTranslations } from "next-intl";
-import { apiFetch, isProRequired } from "@/lib/api";
+import { apiFetch, isTierRequired } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import { useActorEntitlements } from "@/lib/entitlements-context";
 import { Button, Card, RefreshIcon, SkeletonCard } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
-import { ProPaywall } from "@/components/producer/pro-paywall";
+import { TierPaywall } from "@/components/tier-paywall";
 import {
   STAFF_ROLES,
   inputCls,
@@ -25,14 +26,15 @@ type Candidate = { id: string; name: string | null; email: string | null };
  * /productor/eventos/[id]/staff/nuevo - alta de staff de puerta
  * (POST /events/:id/staff upsert por personId). Los toggles de rol/estado
  * por fila quedan en el detalle del evento (acción por fila).
- * Multi-staff es feature Producer Pro: si /me dice que el owner no tiene
- * Pro (o el POST responde 403 pro.required) se muestra el paywall.
+ * Multi-staff es feature del plan del productor: si su entitlement no
+ * la cubre (o el POST responde 403 tier.required) se muestra el paywall.
  */
 function NewEventStaff({ eventId }: { eventId: string }) {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
   const router = useRouter();
   const { me } = useMe();
+  const producerEnt = useActorEntitlements("PRODUCER");
 
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [eventState, setEventState] = useState<EventState>("loading");
@@ -51,8 +53,8 @@ function NewEventStaff({ eventId }: { eventId: string }) {
   const [role, setRole] = useState<StaffRole>("DOOR");
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  // Lock detectado en el POST (403 pro.required) - complementa el gateo
-  // proactivo por si /me quedó stale.
+  // Lock detectado en el POST (403 tier.required) - complementa el
+  // gateo proactivo por si los entitlements quedaron stale.
   const [serverLocked, setServerLocked] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -119,7 +121,8 @@ function NewEventStaff({ eventId }: { eventId: string }) {
     serverLocked ||
     (event != null &&
       event.producerId === me?.id &&
-      me?.effectivePro === false);
+      !producerEnt.loading &&
+      !producerEnt.has("multiStaff"));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -133,7 +136,7 @@ function NewEventStaff({ eventId }: { eventId: string }) {
         body: JSON.stringify({ personId: selected!.id, role }),
       });
       if (!res.ok) {
-        if (await isProRequired(res)) {
+        if (await isTierRequired(res)) {
           setServerLocked(true);
           return;
         }
@@ -198,7 +201,7 @@ function NewEventStaff({ eventId }: { eventId: string }) {
         {!added &&
           eventState === "ok" &&
           (locked ? (
-            <ProPaywall />
+            <TierPaywall actorType="PRODUCER" feature="staff" />
           ) : (
             <Card>
               <form onSubmit={submit} className="flex flex-col gap-4">

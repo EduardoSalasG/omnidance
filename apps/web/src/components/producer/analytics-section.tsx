@@ -2,17 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch, isProRequired } from "@/lib/api";
+import { apiFetch, isTierRequired } from "@/lib/api";
 import { Button, Card, RefreshIcon, StarIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
-import { ProPaywall } from "./pro-paywall";
+import { TierPaywall } from "@/components/tier-paywall";
 
 type Props = {
   eventId: string;
-  /** effectivePro de /me dice que el owner no tiene Pro - no se pide
-      analytics: el endpoint responde 403 pro.required y el paywall se
-      muestra directo (la página lo calcula una sola vez). */
-  proLocked?: boolean;
+  /** El entitlement del owner no cubre la feature - no se pide
+      analytics: el endpoint respondería 403 tier.required y el
+      paywall se muestra directo (la página lo calcula una sola vez). */
+  tierLocked?: boolean;
 };
 
 type Analytics = {
@@ -93,26 +93,26 @@ function SplitRow({
  * Analítica del evento (GET /events/:id/analytics) para owner/admin:
  * asistencia por check-in, composición género/rol y promedios de la
  * encuesta. 403/404 → la sección se oculta (no-owner); 403
- * `pro.required` (S5: feature Producer Pro) → paywall con CTA a la
- * sección Pro. La API devuelve splits/ratings null bajo 3 asistentes
+ * `tier.required` (feature del plan del productor) → TierPaywall con
+ * CTA a la suscripción. La API devuelve splits/ratings null bajo 3 asistentes
  * (k-anonymity) → mensaje discreto de datos insuficientes; nunca hay
  * filas individuales que exponer.
  */
-export function AnalyticsSection({ eventId, proLocked = false }: Props) {
+export function AnalyticsSection({ eventId, tierLocked = false }: Props) {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
 
   const [data, setData] = useState<Analytics | null>(null);
   const [state, setState] = useState<
-    "loading" | "error" | "hidden" | "pro" | "ready"
+    "loading" | "error" | "hidden" | "tier" | "ready"
   >("loading");
 
   const load = useCallback(async () => {
     setState("loading");
     try {
       const res = await apiFetch(`/events/${eventId}/analytics`);
-      if (res.status === 403 && (await isProRequired(res))) {
-        setState("pro");
+      if (res.status === 403 && (await isTierRequired(res))) {
+        setState("tier");
         return;
       }
       if (res.status === 401 || res.status === 403 || res.status === 404) {
@@ -131,21 +131,21 @@ export function AnalyticsSection({ eventId, proLocked = false }: Props) {
   }, [eventId]);
 
   useEffect(() => {
-    if (proLocked) {
-      setState("pro");
+    if (tierLocked) {
+      setState("tier");
       return;
     }
     void load();
-  }, [load, proLocked]);
+  }, [load, tierLocked]);
 
   if (state === "hidden") return null;
-  if (state === "pro") {
+  if (state === "tier") {
     return (
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("sections.analytics")}
         </h2>
-        <ProPaywall />
+        <TierPaywall actorType="PRODUCER" feature="analytics" />
       </section>
     );
   }

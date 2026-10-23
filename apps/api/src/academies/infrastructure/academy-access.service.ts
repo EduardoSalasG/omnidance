@@ -77,8 +77,9 @@ export class AcademyAccess {
    * Gate de tier (spec academy-tier-cobros): cuando el endpoint declara
    * `feature`, la academia debe cubrirla con su suscripción → 403
    * `{error:"tier.required", upgrade:true, requiredTier}`. ADMIN de
-   * plataforma opera por otro y nunca se gatea (mismo criterio que
-   * producer-pro); alumnos no llegan acá (endpoints de consola).
+   * plataforma opera por otro y nunca se gatea (mismo criterio que el
+   * gate del productor en common/actor-entitlements); alumnos no llegan
+   * acá (endpoints de consola).
    */
   private assertTier(
     person: PersonContext,
