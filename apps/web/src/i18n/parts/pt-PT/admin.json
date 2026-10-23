@@ -210,7 +210,11 @@
    "documents": "Documentos",
    "backHome": "Início",
    "broadcast": "Difusão",
-   "validation": "Por validar"
+   "validation": "Por validar",
+   "features": "Funcionalidades",
+   "featuresDesc": "Flags de funcionalidade por toggle",
+   "cities": "Cidades",
+   "citiesDesc": "Guia editorial por cidade (cena, noites, dicas)"
   },
   "academies": {
    "desc": "Saúde da base de alunos por academia: distribuição de segmentos, score médio e alunos notáveis ou em risco.",
@@ -567,6 +571,16 @@
    "commercial": "Comercial",
    "platform": "Plataforma"
   },
+  "features": {
+   "hint": "Ativa ou desativa funcionalidades por toggle. A alteração aplica-se de imediato e fica registada na auditoria.",
+   "empty": "Sem funcionalidades registadas - o catálogo é definido pelo seed.",
+   "loadError": "Não foi possível carregar o catálogo de funcionalidades.",
+   "on": "Ativa",
+   "off": "Desativada",
+   "updatedAt": "Atualizado {date}",
+   "updatedBy": "por {name}",
+   "announce": "{label} ficou {state}"
+  },
   "tx": {
    "title": "Transações",
    "desc": "Pagamentos processados pela plataforma: bilhetes, passes, memberships e subscrições.",
@@ -621,6 +635,42 @@
     "CANCELED": "Cancelada",
     "FAILED_CARD": "Cartão recusado"
    }
+  },
+  "cities": {
+   "desc": "Guia editorial de cada cidade: o que esperar da cena, onde se dança e informação prática. É publicado na landing pública da cidade.",
+   "empty": "Não há cidades configuradas.",
+   "error": "Não foi possível carregar os guias de cidade.",
+   "notFound": "A cidade não existe.",
+   "disabled": "Os guias de cidade estão desativados. Ativa-os em Funcionalidades (city_guides).",
+   "editorTitle": "Guia de {city}",
+   "viewLanding": "Ver landing",
+   "updatedAt": "Editada {date}",
+   "neverEdited": "Nunca editada",
+   "discard": "Descartar",
+   "unsavedHint": "Alterações por guardar",
+   "counter": "{used}/{max}",
+   "status": {
+    "empty": "Vazio",
+    "draft": "Rascunho",
+    "complete": "Completo"
+   },
+   "sections": {
+    "intro": {
+     "label": "O que esperar da cena",
+     "help": "Ambiente geral, nível predominante e como é a comunidade."
+    },
+    "nightlife": {
+     "label": "Onde se dança cada noite",
+     "help": "Noites fortes, locais e horários típicos da cena."
+    },
+    "practical": {
+     "label": "Como te deslocar e o que vestir",
+     "help": "Transporte, zonas, dress code e dicas práticas."
+    }
+   },
+   "unsavedTitle": "Sair sem guardar?",
+   "unsavedDesc": "Tens alterações por guardar no guia. Se saíres agora perdem-se.",
+   "leaveAnyway": "Sair sem guardar"
   }
  }
 }

@@ -1,0 +1,27 @@
+{
+  "trip": {
+    "title": "Mon voyage",
+    "subtitle": "Les événements que tu as gardés, triés par ville et date.",
+    "disabled": "Mon voyage est désactivé pour l'instant.",
+    "loadError": "Impossible de charger ton voyage.",
+    "empty": "Tu n'as pas encore gardé d'événements dans ton voyage.",
+    "emptyDesc": "Garde ceux qui t'intéressent dans n'importe quelle ville et construis ton itinéraire ici.",
+    "emptyCta": "Explorer les villes",
+    "emptyCtaEvents": "Voir la programmation",
+    "save": "Garder dans Mon voyage",
+    "saved": "Dans ton voyage",
+    "added": "Événement gardé dans ton voyage",
+    "removed": "Événement retiré de ton voyage",
+    "toggleError": "Impossible de mettre à jour ton voyage. Réessaie.",
+    "actionError": "Impossible de retirer l'événement. Réessaie.",
+    "signIn": "Connecte-toi",
+    "signInToSave": "Connecte-toi pour le garder dans ton voyage",
+    "notePlaceholder": "Note privée : hôtel, vol, avec qui tu y vas…",
+    "noteLabel": "Note pour {event}",
+    "noteSaved": "Note enregistrée",
+    "noteError": "Impossible d'enregistrer la note.",
+    "remove": "Retirer",
+    "removeLabel": "Retirer {event} de ton voyage",
+    "noCity": "Sans ville"
+  }
+}

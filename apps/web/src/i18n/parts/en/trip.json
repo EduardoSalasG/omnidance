@@ -1,0 +1,27 @@
+{
+  "trip": {
+    "title": "My trip",
+    "subtitle": "The events you saved, sorted by city and date.",
+    "disabled": "My trip is turned off for now.",
+    "loadError": "We couldn't load your trip.",
+    "empty": "You haven't saved events to your trip yet.",
+    "emptyDesc": "Save the ones you're interested in from any city and build your itinerary here.",
+    "emptyCta": "Explore cities",
+    "emptyCtaEvents": "See the lineup",
+    "save": "Save to My trip",
+    "saved": "In your trip",
+    "added": "Event saved to your trip",
+    "removed": "Event removed from your trip",
+    "toggleError": "We couldn't update your trip. Try again.",
+    "actionError": "We couldn't remove the event. Try again.",
+    "signIn": "Sign in",
+    "signInToSave": "Sign in to save it to your trip",
+    "notePlaceholder": "Private note: hotel, flight, who you're going with…",
+    "noteLabel": "Note for {event}",
+    "noteSaved": "Note saved",
+    "noteError": "We couldn't save the note.",
+    "remove": "Remove",
+    "removeLabel": "Remove {event} from your trip",
+    "noCity": "No city"
+  }
+}

@@ -13,6 +13,7 @@
     "configPages": {
       "defaults": "Default values",
       "payMethods": "Payment methods",
+      "disbursement": "Disbursement account",
       "subscription": "Subscription",
       "appearance": "Appearance",
       "producerOnly": "This section is only available for producer accounts."
@@ -352,6 +353,33 @@
       "desc": "Internal documents for the deductions of your settlements.",
       "folio": "Note No. {n}",
       "openPdf": "View PDF"
+    },
+    "disbursement": {
+      "title": "Disbursement account",
+      "desc": "The account where you receive your payouts by automatic transfer.",
+      "empty": "You don't have a disbursement account yet. Connect it with Stripe to receive your payouts by automatic transfer.",
+      "rail": "Stripe Connect",
+      "country": "Account country",
+      "countryHelper": "The country where your bank account is. For now we operate in the countries listed.",
+      "otherCountry": "Other country (not available yet)",
+      "connectCta": "Connect with Stripe",
+      "continueCta": "Continue on Stripe",
+      "pendingHint": "Verification in progress: the account activates when Stripe confirms your details. If you left the flow, pick up where you left off.",
+      "onboardedAt": "Active since",
+      "lastError": "Last provider error",
+      "forbidden": "You don't have permission to connect the disbursement account.",
+      "unavailable": "Automatic disbursement isn't available yet; your payouts are still paid by manual transfer.",
+      "connectError": "We couldn't start the Stripe connection. Try again.",
+      "status": {
+        "PENDING": "Pending completion",
+        "ACTIVE": "Active",
+        "DISABLED": "Disabled"
+      },
+      "actorTypes": {
+        "PRODUCER": "Producer",
+        "ACADEMY": "Academy",
+        "VENUE": "Venue"
+      }
     },
     "codeDetail": {
       "redemptions": "Code redemptions",

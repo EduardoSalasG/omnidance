@@ -210,7 +210,11 @@
    "documents": "Documents",
    "backHome": "Accueil",
    "broadcast": "Diffusion",
-   "validation": "À valider"
+   "validation": "À valider",
+   "features": "Fonctionnalités",
+   "featuresDesc": "Flags de fonctionnalité par toggle",
+   "cities": "Villes",
+   "citiesDesc": "Guide éditorial par ville (scène, soirs, astuces)"
   },
   "academies": {
    "desc": "Santé de la base d'élèves par académie : distribution des segments, score moyen et élèves remarquables ou à risque.",
@@ -567,6 +571,16 @@
    "commercial": "Commercial",
    "platform": "Plateforme"
   },
+  "features": {
+   "hint": "Active ou désactive les fonctionnalités par toggle. Le changement s'applique instantanément et est consigné dans l'audit.",
+   "empty": "Aucune fonctionnalité enregistrée - le catalogue est défini par le seed.",
+   "loadError": "Impossible de charger le catalogue de fonctionnalités.",
+   "on": "Active",
+   "off": "Désactivée",
+   "updatedAt": "Mis à jour {date}",
+   "updatedBy": "par {name}",
+   "announce": "{label} est maintenant {state}"
+  },
   "tx": {
    "title": "Transactions",
    "desc": "Paiements traités par la plateforme : billets, pass, abonnements et memberships.",
@@ -621,6 +635,42 @@
     "CANCELED": "Annulé",
     "FAILED_CARD": "Carte refusée"
    }
+  },
+  "cities": {
+   "desc": "Guide éditorial de chaque ville : à quoi s'attendre de la scène, où danser et infos pratiques. Publié sur la landing publique de la ville.",
+   "empty": "Aucune ville configurée.",
+   "error": "Impossible de charger les guides de ville.",
+   "notFound": "La ville n'existe pas.",
+   "disabled": "Les guides de ville sont désactivés. Active-les dans Fonctionnalités (city_guides).",
+   "editorTitle": "Guide de {city}",
+   "viewLanding": "Voir la landing",
+   "updatedAt": "Modifiée {date}",
+   "neverEdited": "Jamais modifiée",
+   "discard": "Abandonner",
+   "unsavedHint": "Modifications non enregistrées",
+   "counter": "{used}/{max}",
+   "status": {
+    "empty": "Vide",
+    "draft": "Brouillon",
+    "complete": "Complet"
+   },
+   "sections": {
+    "intro": {
+     "label": "À quoi s'attendre de la scène",
+     "help": "Ambiance générale, niveau prédominant et à quoi ressemble la communauté."
+    },
+    "nightlife": {
+     "label": "Où danser chaque soir",
+     "help": "Les gros soirs, les lieux et les horaires typiques de la scène."
+    },
+    "practical": {
+     "label": "Comment te déplacer et quoi porter",
+     "help": "Transport, quartiers, dress code et astuces pratiques."
+    }
+   },
+   "unsavedTitle": "Quitter sans enregistrer ?",
+   "unsavedDesc": "Tu as des modifications non enregistrées dans le guide. Si tu pars maintenant, elles seront perdues.",
+   "leaveAnyway": "Quitter sans enregistrer"
   }
  }
 }

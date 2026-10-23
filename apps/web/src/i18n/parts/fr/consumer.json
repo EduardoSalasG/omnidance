@@ -27,7 +27,9 @@
   },
   "sessions": {
     "refresh": "Actualiser",
-    "rating": "Note : {value} sur 5"
+    "rating": "Note : {value} sur 5",
+    "discardedOk": "Invitation écartée",
+    "ratedOk": "Danse notée"
   },
   "notifications": {
     "unread": "Non lu"
@@ -45,7 +47,12 @@
   "friends": {
     "emptyCta": "Chercher des amis",
     "inviteError": "Impossible de copier le lien. Réessaie.",
-    "notFound": "Impossible de trouver cette personne."
+    "notFound": "Impossible de trouver cette personne.",
+    "requestSent": "Demande envoyée",
+    "requestAccepted": "Vous êtes maintenant amis",
+    "requestDeclined": "Demande refusée",
+    "requestCancelled": "Demande annulée",
+    "removed": "Amitié supprimée"
   },
   "gamification": {
     "badgeCategory": {
