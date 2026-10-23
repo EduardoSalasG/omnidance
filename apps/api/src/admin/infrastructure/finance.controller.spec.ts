@@ -385,8 +385,8 @@ describe("AdminFinanceController", () => {
 
     it("MRR = precio del tier normalizado a mensual por ciclo; ENTERPRISE va a customContracts", async () => {
       const m = await ctrl.mrr();
-      // anual = round(19980×11/12) = 18315 + 19980 (mensual) + 29990 (producer).
-      expect(m.mrr).toBe(18315 + 19980 + 29990);
+      // anual academia = round(19980×10.2/12) = 16983 + 19980 (mensual) + 29990 (producer).
+      expect(m.mrr).toBe(16983 + 19980 + 29990);
       expect(m.arr).toBe(m.mrr * 12);
       expect(m.customContracts).toBe(1); // ENTERPRISE a convenir
     });
@@ -397,14 +397,14 @@ describe("AdminFinanceController", () => {
       expect(m.funnel.CANCEL_PENDING).toBe(1);
       expect(m.funnel.FAILED_CARD).toBe(1);
       // CANCEL_PENDING y FAILED_CARD no suman MRR.
-      expect(m.mrr).toBe(68285);
+      expect(m.mrr).toBe(66953);
     });
 
     it("subscriptions listadas con nombre del actor y mensual normalizado", async () => {
       const m = await ctrl.mrr();
       const annual = m.subscriptions.find((s) => s.id === "sub-1")!;
       expect(annual.actorName).toBe("Academia Uno");
-      expect(annual.monthlyAmount).toBe(18315); // 19980 × 11 / 12
+      expect(annual.monthlyAmount).toBe(16983); // 19980 × 10.2 / 12
       const prod = m.subscriptions.find((s) => s.id === "sub-3")!;
       expect(prod.actorName).toBe("Productora Uno");
       expect(prod.monthlyAmount).toBe(29990);

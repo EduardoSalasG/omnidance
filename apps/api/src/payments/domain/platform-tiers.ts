@@ -62,13 +62,15 @@ export const CYCLE_MONTHS: Record<BillingCycle, number> = {
 /**
  * Meses facturados por cobro: el descuento por compromiso es meses
  * gratis sobre el precio mensual base (param `*_monthly_clp`), ya no
- * hay params por ciclo. Anual cobra 11 de 12 (un mes gratis); semestral
- * cobra 5.75 de 6 (medio mes gratis al año → ×11.5/año vs ×12 mensual).
+ * hay params por ciclo. Política única para ambas líneas
+ * (omni-dance.md §10): semestral −8% (cobra 5.52 de 6); anual −15%
+ * (cobra 10.2 de 12) - ancla el anual como elección obvia para
+ * retención.
  */
 const CYCLE_BILLED_MONTHS: Record<BillingCycle, number> = {
   MONTHLY: 1,
-  SEMIANNUAL: 5.75,
-  ANNUAL: 11,
+  SEMIANNUAL: 5.52,
+  ANNUAL: 10.2,
 };
 
 /** Monto del cobro del ciclo en CLP enteros (el cargo real de Flow). */

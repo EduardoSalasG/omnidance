@@ -31,14 +31,14 @@ const CYCLE_MONTHS: Record<BillingCycle, number> = {
   SEMIANNUAL: 6,
   ANNUAL: 12,
 };
-// Meses facturados por cobro (espejo de CYCLE_BILLED_MONTHS en
-// apps/api/src/payments/domain/platform-tiers.ts): el precio se deriva
-// del mensual base - anual cobra 11 (mes gratis), semestral 5.75
-// (medio mes gratis al año).
+// Meses facturados por cobro (espejo de CYCLE_BILLED_MONTHS[ACADEMY]
+// en apps/api/src/payments/domain/platform-tiers.ts): el precio se
+// deriva del mensual base - semestral −8% (cobra 5.52 de 6), anual
+// −15% (cobra 10.2 de 12).
 const CYCLE_BILLED_MONTHS: Record<BillingCycle, number> = {
   MONTHLY: 1,
-  SEMIANNUAL: 5.75,
-  ANNUAL: 11,
+  SEMIANNUAL: 5.52,
+  ANNUAL: 10.2,
 };
 
 // Tiers auto-contratables por features (spec academy-tier-cobros) -

@@ -28,8 +28,8 @@ type Row = Record<string, unknown>;
 const DAY = 24 * 60 * 60_000;
 
 // Params del dominio (mismos valores que seed-common) - solo el precio
-// mensual base; el cobro del ciclo se calcula (semestral ×5.75, anual
-// ×11 sobre el mensual).
+// mensual base; el cobro del ciclo se calcula (semestral ×5.52, anual ×10.2
+// sobre el mensual - política única omni-dance.md §10).
 const PARAMS = new Map<string, number>([
   ["academy_tier.cobros_max_students", 30],
   ["academy_tier.studio_max_students", 120],
@@ -636,7 +636,7 @@ describe("PlatformSubscriptionsService", () => {
       expect(flow.createSubscription).not.toHaveBeenCalled();
     });
 
-    it("ciclo SEMIANNUAL → plan plat_*_semiannual, amount = mensual × 5.75", async () => {
+    it("ciclo SEMIANNUAL → plan plat_*_semiannual, amount = mensual × 5.52", async () => {
       await svc.subscribeAcademy("p1", ACADEMY_ROW as never, {
         ...input,
         cycle: "SEMIANNUAL",
@@ -645,7 +645,7 @@ describe("PlatformSubscriptionsService", () => {
         {
           planId: "plat_academy_cobros_semiannual",
           name: expect.any(String),
-          amount: Math.round(19990 * 5.75), // medio mes gratis al año
+          amount: Math.round(19990 * 5.52), // academia semestral -8%
           intervalCount: 6,
         },
         { correlationId: expect.any(String) },
@@ -1199,7 +1199,7 @@ describe("PlatformSubscriptionsService", () => {
       expect(flow.ensurePlan).toHaveBeenCalledWith(
         expect.objectContaining({
           planId: "plat_academy_cobros_annual",
-          amount: 19990 * 11, // un mes gratis
+          amount: Math.round(19990 * 10.2), // anual academia -15%
           intervalCount: 12,
         }),
         { correlationId: expect.any(String) },
