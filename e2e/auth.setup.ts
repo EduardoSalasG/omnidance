@@ -36,6 +36,18 @@ for (const [role, email] of Object.entries(USERS)) {
       }
       await page.waitForTimeout(65_000);
     }
+    // Banner de consentimiento legal (ConsentBanner): cuando hay un
+    // LegalText nuevo activo cubre los CTAs (fixed bottom) y bloquea
+    // clicks en todos los specs. Aceptar persiste ConsentRecord en DB
+    // - una vez basta, los tests no lo vuelven a ver. Best-effort: si
+    // no aparece no se bloquea el setup.
+    const consent = page
+      .getByRole("region", { name: /términos|terms|privacidad/i })
+      .getByRole("button", { name: /acepto|accept/i });
+    await consent
+      .waitFor({ timeout: 8_000 })
+      .then(() => consent.click())
+      .catch(() => {});
     await page.context().storageState({ path: statePath(role as Role) });
   });
 }
