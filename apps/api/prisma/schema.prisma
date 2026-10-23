@@ -87,6 +87,9 @@ model Person {
   rsvps          Rsvp[]
   platformSubscriptionsPayer      PlatformSubscription[] @relation("PlatformSubscriptionPayer")
   platformSubscriptionsAsProducer PlatformSubscription[] @relation("PlatformSubscriptionProducer")
+  // Whitelist de promos Producer Pro + promos creadas por este admin.
+  platformPromosWhitelisted PlatformPromo[] @relation("PlatformPromoProducers")
+  platformPromosCreated     PlatformPromo[] @relation("PlatformPromoCreator")
   paymentClaims  PaymentClaim[]
   claimsReviewed PaymentClaim[] @relation("ClaimReviewer")
   gatewayAccounts ProducerGatewayAccount[] @relation("ProducerGatewayAccounts")
@@ -891,6 +894,13 @@ enum PlatformSubKind {
   PRODUCER
 }
 
+// Tipo de descuento de una PlatformPromo (spec platform-promos): porcentaje
+// o monto fijo CLP, ambos aplicados sobre el cargo del ciclo.
+enum PlatformPromoDiscountType {
+  PERCENT
+  FIXED_CLP
+}
+
 model Academy {
   id        String  @id @default(cuid())
   name      String
@@ -937,6 +947,7 @@ model Academy {
   classSeries  ClassSeries[]
   enrollments  Enrollment[]
   platformSubscriptions PlatformSubscription[]
+  platformPromos       PlatformPromo[]
   paymentMethods AcademyPaymentMethod[]
   paymentClaims  PaymentClaim[]
   saleAgreements AcademySaleAgreement[]
@@ -1453,6 +1464,11 @@ model Payment {
   // (unitListPrice − academyCommissionClp). NO toca producerNetClp.
   soldByAcademyId      String?
   academyCommissionClp Int?
+  // Promo de suscripción aplicada a este cobro (spec platform-promos) -
+  // solo en orderType PLATFORM_SUB; auditoría del ciclo descontado y
+  // base del conteo de maxCycles por actor.
+  platformPromo   PlatformPromo? @relation(fields: [platformPromoId], references: [id], onDelete: SetNull)
+  platformPromoId String?
   status    PaymentStatus @default(PENDING)
   createdAt DateTime      @default(now())
 
@@ -1461,6 +1477,7 @@ model Payment {
   ticketClaims TicketClaim[]
 
   @@index([soldByAcademyId])
+  @@index([platformPromoId])
 }
 
 // Canal de preventa atribuido a academias (spec academy-presale-commission):
@@ -2034,6 +2051,19 @@ model PlatformSubscription {
   // pendiente (upgrade aplica inmediato, no usa estos campos).
   pendingTierCode      String?
   pendingBillingCycle  BillingCycle?
+  // Reprice agendado (spec platform-promos): el reconcile canceló la
+  // remota a fin de período para recrearla con el precio vigente
+  // (promo agotada/expirada/editada o param cambiado). A diferencia de
+  // pendingTier* NO es un cambio pedido por el actor - el status sigue
+  // ACTIVE para el usuario hasta que el swap se materializa.
+  pendingReprice       Boolean @default(false)
+  // Promo del plan remoto vigente: null = plan base del tier.
+  // planChargeClp = monto horneado en el plan espejo remoto (la verdad
+  // del próximo cobro) - alimenta MRR y el drift-check que agenda el
+  // reprice cuando deja de calzar con lo que chargeSpec resuelve hoy.
+  promo          PlatformPromo? @relation(fields: [promoId], references: [id], onDelete: SetNull)
+  promoId        String?
+  planChargeClp  Int?
   flowSubscriptionId String?       @unique
   // Mismo ciclo de vida que MembershipSubscription:
   // PENDING_CARD → ACTIVATING → ACTIVE → CANCEL_PENDING → CANCELED (+ FAILED_CARD)
@@ -2047,6 +2077,41 @@ model PlatformSubscription {
   @@index([kind, academyId])
   @@index([kind, producerId])
   @@index([personId])
+}
+
+/// Promo de suscripción de plataforma (spec platform-promos): descuento
+/// gestionado por admin sobre el cargo del ciclo de una PlatformSubscription.
+/// `kind` null = aplica a ambas líneas; whitelist (academies+producers)
+/// vacía = global. El descuento se materializa como plan espejo propio en
+/// el proveedor (`plat_<scope>_<tier>_<cycle>_prm_<promoId>_<amount>`) -
+/// nunca muta el plan compartido del tier. `maxCycles` cuenta cobros
+/// descontados PAID por actor (Payment.platformPromoId); agotado o
+/// vencida la ventana, el reconcile agenda el reprice a precio lleno.
+model PlatformPromo {
+  id           String   @id @default(cuid())
+  name         String
+  // Línea a la que aplica; null = ambas.
+  kind         PlatformSubKind?
+  discountType PlatformPromoDiscountType
+  // PERCENT → percentOff 1-100; FIXED_CLP → amountOffClp descontado del
+  // cargo del ciclo (piso $0).
+  percentOff   Int?
+  amountOffClp Int?
+  validFrom    DateTime
+  validUntil   DateTime
+  // Cobros descontados por actor; null = ilimitado dentro de la ventana.
+  maxCycles    Int?
+  enabled      Boolean  @default(true)
+  // Whitelist de actores - ambas listas vacías = promo global.
+  academies    Academy[]
+  producers    Person[]   @relation("PlatformPromoProducers")
+  createdBy    Person?    @relation("PlatformPromoCreator", fields: [createdById], references: [id])
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subscriptions PlatformSubscription[]
+  payments      Payment[]
 }
 
 // ═══════════════════ JOBS PROGRAMADOS + CAMPAÑAS DE MAIL ═══════════════════

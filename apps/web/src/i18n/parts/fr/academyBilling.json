@@ -82,6 +82,11 @@
       "PENDING": "En attente",
       "FAILED": "Échoué",
       "REFUNDED": "Remboursé"
-    }
+    },
+    "promoBadge": "Promo {name}",
+    "promoOff": "−{pct}% par prélèvement",
+    "promoOffFixed": "−{amount} par prélèvement",
+    "promoUntil": "jusqu'au {date}",
+    "promoCyclesLeft": "{count} prélèvements réduits restants"
   }
 }

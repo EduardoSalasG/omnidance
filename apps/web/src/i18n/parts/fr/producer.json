@@ -307,7 +307,12 @@
       "subscribeNoPrice": "Prix indisponible",
       "subscribeOk": "Producer Pro activé !",
       "subscribeError": "Impossible de lancer l'abonnement. Réessaie.",
-      "tierLimit": "Ton chiffre dépasse le plafond des plans en libre-service. Écris-nous pour un Pro sur mesure."
+      "tierLimit": "Ton chiffre dépasse le plafond des plans en libre-service. Écris-nous pour un Pro sur mesure.",
+      "promoBadge": "Promo {name}",
+      "promoOff": "−{pct}% par prélèvement",
+      "promoOffFixed": "−{amount} par prélèvement",
+      "promoUntil": "jusqu'au {date}",
+      "promoCyclesLeft": "{count} prélèvements réduits restants"
     },
     "gateway": {
       "title": "Ma passerelle de paiement",

@@ -23,6 +23,7 @@ import { AdminJobsController } from "./infrastructure/jobs.controller";
 import { AdminFeatureFlagsController } from "./infrastructure/feature-flags.controller";
 import { AdminCityGuidesController } from "./infrastructure/city-guides.controller";
 import { AdminCityGuidesService } from "./application/city-guides.service";
+import { AdminPlatformPromosController } from "./infrastructure/platform-promos.controller";
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { AdminCityGuidesService } from "./application/city-guides.service";
     AdminJobsController,
     AdminFeatureFlagsController,
     AdminCityGuidesController,
+    AdminPlatformPromosController,
   ],
   providers: [AdminBillingService, AdminCityGuidesService],
 })

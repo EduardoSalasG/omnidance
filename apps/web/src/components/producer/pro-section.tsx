@@ -46,6 +46,17 @@ type ProView = {
   maxGross: number | null;
   nextInvoiceAt: string | null;
   canceledAt: string | null;
+  /** Promo vigente aplicable (spec platform-promos); null = precio lleno. */
+  activePromo: {
+    id: string;
+    name: string;
+    discountType: "PERCENT" | "FIXED_CLP";
+    percentOff: number | null;
+    amountOffClp: number | null;
+    validUntil: string;
+    cyclesLeft: number | null;
+    finalMonthlyClp: number | null;
+  } | null;
 };
 
 /** POST /producers/:id/pro/subscribe - needs_card → disclaimer Flow. */
@@ -154,6 +165,16 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
     monthlyBase != null
       ? Math.round(monthlyBase * CYCLE_BILLED_MONTHS[cycle])
       : null;
+
+  // Cargo efectivo con la promo vigente (spec platform-promos) - mismo
+  // cálculo que promoChargeClp del API.
+  const promo = view?.activePromo ?? null;
+  const chargeFinal =
+    chargeTotal != null && promo != null
+      ? promo.discountType === "PERCENT"
+        ? Math.round((chargeTotal * (100 - (promo.percentOff ?? 0))) / 100)
+        : Math.max(0, chargeTotal - (promo.amountOffClp ?? 0))
+      : chargeTotal;
 
   async function subscribe() {
     if (busy || !consent) return;
@@ -302,6 +323,26 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
             {t("activatingHint")}
           </p>
         )}
+        {promo && (
+          <div className="rounded-xl border border-neon/30 bg-neon/10 px-4 py-3">
+            <p className="text-sm font-medium text-neon">
+              {t("promoBadge", { name: promo.name })}
+            </p>
+            <p className="mt-0.5 text-xs text-ink/60">
+              {promo.discountType === "PERCENT"
+                ? t("promoOff", { pct: promo.percentOff ?? 0 })
+                : t("promoOffFixed", {
+                    amount: clp(locale).format(promo.amountOffClp ?? 0),
+                  })}
+              {" · "}
+              {t("promoUntil", {
+                date: planDateFmt(locale).format(new Date(promo.validUntil)),
+              })}
+              {promo.cyclesLeft != null &&
+                ` · ${t("promoCyclesLeft", { count: promo.cyclesLeft })}`}
+            </p>
+          </div>
+        )}
 
         {/* Facturación media 90d - el tier Pro se calcula con ella. */}
         <dl className="flex flex-col gap-1 border-t border-line pt-3 text-sm">
@@ -440,10 +481,24 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                 <>
                   <p className="text-xs leading-relaxed text-ink/50">
                     {chargeTotal != null &&
-                      t("consent", {
-                        amount: clp(locale).format(chargeTotal),
-                        period: t(`period.${cycle}`),
-                      })}
+                      (promo && chargeFinal != null ? (
+                        <>
+                          <span className="line-through">
+                            {clp(locale).format(chargeTotal)}
+                          </span>{" "}
+                          <span className="font-semibold text-neon">
+                            {t("consent", {
+                              amount: clp(locale).format(chargeFinal),
+                              period: t(`period.${cycle}`),
+                            })}
+                          </span>
+                        </>
+                      ) : (
+                        t("consent", {
+                          amount: clp(locale).format(chargeTotal),
+                          period: t(`period.${cycle}`),
+                        })
+                      ))}
                   </p>
                   <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm text-ink/80">
                     <input
@@ -464,7 +519,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                     {busy && <Spinner size="sm" />}
                     {chargeTotal != null
                       ? t("subscribe", {
-                          amount: clp(locale).format(chargeTotal),
+                          amount: clp(locale).format(chargeFinal ?? chargeTotal),
                           period: t(`period.${cycle}`),
                         })
                       : t("subscribeNoPrice")}

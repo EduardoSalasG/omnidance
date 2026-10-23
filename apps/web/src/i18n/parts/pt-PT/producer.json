@@ -307,7 +307,12 @@
       "subscribeNoPrice": "Preço indisponível",
       "subscribeOk": "Producer Pro ativado!",
       "subscribeError": "Não foi possível iniciar a assinatura. Tenta de novo.",
-      "tierLimit": "A tua faturação ultrapassa o teto dos planos self-service. Escreve-nos para um Pro à medida."
+      "tierLimit": "A tua faturação ultrapassa o teto dos planos self-service. Escreve-nos para um Pro à medida.",
+      "promoBadge": "Promo {name}",
+      "promoOff": "−{pct}% por cobrança",
+      "promoOffFixed": "−{amount} por cobrança",
+      "promoUntil": "até {date}",
+      "promoCyclesLeft": "restam {count} cobranças com desconto"
     },
     "gateway": {
       "title": "A minha gateway de pagamento",

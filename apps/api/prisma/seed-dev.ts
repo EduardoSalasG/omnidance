@@ -2465,6 +2465,38 @@ export async function seedDev(prisma: PrismaClient) {
     monthsAgo: 1,
   });
 
+  // Promo de suscripción (spec platform-promos): ejemplo con whitelist -
+  // solo Academia Tumbao la ve en /academia/suscripcion y la aplicaría al
+  // suscribir o renovar (−20% sobre el cargo del ciclo, máx. 3 cobros).
+  // Idempotente por nombre: re-correr actualiza ventana/whitelist sin
+  // duplicar ni pisar edits hechos en /admin.
+  step("promo de plataforma…");
+  const promoName = "Lanzamiento COBROS −20% ×3 (Tumbao)";
+  const existingPromo = await prisma.platformPromo.findFirst({
+    where: { name: promoName },
+  });
+  const promoData = {
+    kind: "ACADEMY" as const,
+    discountType: "PERCENT" as const,
+    percentOff: 20,
+    amountOffClp: null,
+    validFrom: new Date(Date.now() - 7 * 86_400_000),
+    validUntil: new Date(Date.now() + 90 * 86_400_000),
+    maxCycles: 3,
+    enabled: true,
+    academies: { set: [{ id: tumbao.id }] },
+  };
+  if (existingPromo) {
+    await prisma.platformPromo.update({
+      where: { id: existingPromo.id },
+      data: promoData,
+    });
+  } else {
+    await prisma.platformPromo.create({
+      data: { name: promoName, ...promoData },
+    });
+  }
+
   // Alumnos al día vs morosos - el split que COBROS vende: una cuota de
   // los vigentes con plan mensual queda con endsAt vencido ("plan
   // vencido" en rojo del listado). Subset determinístico; el relleno

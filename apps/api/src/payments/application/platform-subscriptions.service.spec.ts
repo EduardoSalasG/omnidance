@@ -76,10 +76,35 @@ function mkPlatSub(over: Partial<Row> = {}): PlatformSubscription {
     reminderSentFor: null,
     pendingTierCode: null,
     pendingBillingCycle: null,
+    pendingReprice: false,
+    promoId: null,
+    planChargeClp: null,
     createdAt: new Date(),
     canceledAt: null,
     ...over,
   } as PlatformSubscription;
+}
+
+/** Promo vigente por defecto (whitelist vacía = global). */
+function mkPromo(over: Partial<Row> = {}): Row {
+  return {
+    id: `prm-${Math.random().toString(36).slice(2, 8)}`,
+    name: "Promo test",
+    kind: null,
+    discountType: "PERCENT",
+    percentOff: 20,
+    amountOffClp: null,
+    validFrom: new Date(Date.now() - DAY),
+    validUntil: new Date(Date.now() + 30 * DAY),
+    maxCycles: null,
+    enabled: true,
+    academies: [],
+    producers: [],
+    createdById: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...over,
+  };
 }
 
 /** Filtro Prisma-like recursivo: in/not/lt/lte/gte/startsWith/OR/AND/path+equals. */
@@ -136,6 +161,7 @@ function mkPrisma() {
   const payments = new Map<string, Row>();
   const events: Row[] = [];
   const platSubs: Row[] = [];
+  const promos: Row[] = [];
   const persons = new Map<string, Row>();
   const academies = new Map<string, Row>();
   const enrollments: Row[] = [];
@@ -167,6 +193,9 @@ function mkPrisma() {
           reminderSentFor: null,
           pendingTierCode: null,
           pendingBillingCycle: null,
+          pendingReprice: false,
+          promoId: null,
+          planChargeClp: null,
           createdAt: new Date(),
           canceledAt: null,
           flowSubscriptionId: null,
@@ -294,6 +323,11 @@ function mkPrisma() {
         },
       ),
     },
+    platformPromo: {
+      findMany: vi.fn(async ({ where }: { where?: Row }) =>
+        promos.filter((p) => !where || matchWhere(p, where)),
+      ),
+    },
     payment: {
       create: vi.fn(async ({ data }: { data: Row }) => {
         const row: Row = {
@@ -305,6 +339,12 @@ function mkPrisma() {
         payments.set(row.id as string, row);
         return row;
       }),
+      count: vi.fn(
+        async ({ where }: { where?: Row }) =>
+          [...payments.values()].filter(
+            (p) => !where || matchWhere(p, where),
+          ).length,
+      ),
       findUnique: vi.fn(async ({ where }: { where: { id: string } }) => {
         const p = payments.get(where.id);
         return p ? { ...p } : null;
@@ -380,6 +420,7 @@ function mkPrisma() {
     payments,
     events,
     platSubs,
+    promos,
     persons,
     academies,
     enrollments,
@@ -1503,6 +1544,224 @@ describe("PlatformSubscriptionsService", () => {
       expect(
         fx.sentNotifs.filter((n) => n.type === "academy.billing_blocked"),
       ).toHaveLength(1);
+    });
+  });
+
+  describe("promos de suscripción (platform-promos)", () => {
+    const input = {
+      tier: "COBROS",
+      cycle: "MONTHLY" as const,
+      acceptRecurring: true,
+    };
+
+    /** ensurePlan recibió el plan espejo de la promo con el cargo descontado. */
+    function expectPromoPlan(amount: number, promoId: string) {
+      expect(flow.ensurePlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          planId: `plat_academy_cobros_monthly_prm_${promoId}_${amount}`,
+          amount,
+        }),
+        { correlationId: expect.any(String) },
+      );
+    }
+
+    it("PERCENT: el cargo del ciclo se descuenta y la sub queda en el plan de la promo", async () => {
+      fx.promos.push(mkPromo({ id: "prm-20", percentOff: 20 }));
+      const r = await svc.subscribeAcademy("p1", ACADEMY_ROW as never, input);
+      expect(r.kind).toBe("needs_card");
+      // 19990 − 20% = 15992 en el plan prm_*, nunca en el plan del tier.
+      expectPromoPlan(15992, "prm-20");
+
+      // Al activar (customer-return con tarjeta) la sub persiste el plan
+      // de la promo: promoId + cargo horneado.
+      flow.getRegisterStatus.mockResolvedValueOnce({
+        registered: true,
+        customerId: "cus_p1",
+      });
+      fx.persons.get("p1")!.flowCustomerId = "cus_p1";
+      const back = await svc.customerReturn("tok-1");
+      expect(back.ok).toBe(true);
+      const sub = fx.platSubs[0]!;
+      expect(sub.status).toBe("ACTIVE");
+      expect(sub.promoId).toBe("prm-20");
+      expect(sub.planChargeClp).toBe(15992);
+    });
+
+    it("FIXED_CLP: descuenta el monto fijo del cargo del ciclo", async () => {
+      fx.promos.push(
+        mkPromo({
+          id: "prm-fijo",
+          discountType: "FIXED_CLP",
+          percentOff: null,
+          amountOffClp: 5000,
+        }),
+      );
+      await svc.subscribeAcademy("p1", ACADEMY_ROW as never, input);
+      expectPromoPlan(14990, "prm-fijo");
+    });
+
+    it("whitelist: aplica solo al actor listado", async () => {
+      fx.promos.push(
+        mkPromo({ id: "prm-wl", academies: [{ id: "otra-ac" }] }),
+      );
+      await svc.subscribeAcademy("p1", ACADEMY_ROW as never, input);
+      // ac1 no está en la whitelist → plan base a precio lleno.
+      expect(flow.ensurePlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          planId: "plat_academy_cobros_monthly",
+          amount: 19990,
+        }),
+        { correlationId: expect.any(String) },
+      );
+      expect(fx.platSubs[0]!.promoId).toBeNull();
+
+      // La academia listada sí la recibe.
+      fx.academies.set("ac2", mkAcademy({ id: "ac2", name: "Academia Y" }));
+      await svc.subscribeAcademy(
+        "p1",
+        { ...ACADEMY_ROW, id: "ac2" } as never,
+        input,
+      );
+      expect(fx.platSubs[1]!.promoId).toBeNull(); // ac2 tampoco está
+    });
+
+    it("whitelist match: la academia listada suscribe con descuento", async () => {
+      fx.promos.push(mkPromo({ id: "prm-wl2", academies: [{ id: "ac1" }] }));
+      await svc.subscribeAcademy("p1", ACADEMY_ROW as never, input);
+      expectPromoPlan(15992, "prm-wl2");
+    });
+
+    it("maxCycles agotado por cobros PAID del actor → precio lleno", async () => {
+      fx.promos.push(mkPromo({ id: "prm-3", maxCycles: 1 }));
+      // Ya cobró un ciclo con la promo en otra sub anterior del actor.
+      const oldSub = mkPlatSub({ id: "sub-old", status: "CANCELED" });
+      fx.platSubs.push(oldSub);
+      fx.payments.set("pay-old", {
+        id: "pay-old",
+        orderType: "PLATFORM_SUB",
+        refId: `platsub_${oldSub.id}_inv-1`,
+        personId: "p1",
+        amount: 15992,
+        status: "PAID",
+        platformPromoId: "prm-3",
+        createdAt: new Date(Date.now() - 40 * DAY),
+      });
+      await svc.subscribeAcademy("p1", ACADEMY_ROW as never, input);
+      expect(flow.ensurePlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          planId: "plat_academy_cobros_monthly",
+          amount: 19990,
+        }),
+        { correlationId: expect.any(String) },
+      );
+      expect(fx.platSubs.at(-1)!.promoId).toBeNull();
+    });
+
+    it("expirada por fecha o aún no vigente → precio lleno", async () => {
+      fx.promos.push(
+        mkPromo({ id: "prm-old", validUntil: new Date(Date.now() - DAY) }),
+        mkPromo({ id: "prm-new", validFrom: new Date(Date.now() + DAY) }),
+      );
+      await svc.subscribeAcademy("p1", ACADEMY_ROW as never, input);
+      expect(fx.platSubs[0]!.promoId).toBeNull();
+      expect(flow.ensurePlan).toHaveBeenCalledWith(
+        expect.objectContaining({ planId: "plat_academy_cobros_monthly" }),
+        { correlationId: expect.any(String) },
+      );
+    });
+
+    it("enabled=false no aplica", async () => {
+      fx.promos.push(mkPromo({ id: "prm-off", enabled: false }));
+      await svc.subscribeAcademy("p1", ACADEMY_ROW as never, input);
+      expect(fx.platSubs[0]!.promoId).toBeNull();
+    });
+
+    it("kind distinto no aplica (promo PRODUCER no descuenta academia)", async () => {
+      fx.promos.push(mkPromo({ id: "prm-prod", kind: "PRODUCER" }));
+      await svc.subscribeAcademy("p1", ACADEMY_ROW as never, input);
+      expect(fx.platSubs[0]!.promoId).toBeNull();
+    });
+
+    it("invoice pagada bajo promo queda marcada con platformPromoId", async () => {
+      const sub = mkPlatSub({
+        id: "sub-p",
+        status: "ACTIVE",
+        flowSubscriptionId: "fsub-p",
+        promoId: "prm-20",
+        planChargeClp: 15992,
+      });
+      fx.platSubs.push(sub);
+      fx.promos.push(mkPromo({ id: "prm-20" }));
+      await svc.reconcileSubscription(
+        sub as PlatformSubscription,
+        mkFlowSub({
+          subscriptionId: "fsub-p",
+          invoices: [{ id: 501, amount: 15992, paid: true }],
+        }),
+      );
+      const payment = [...fx.payments.values()].find(
+        (p) => p.refId === `platsub_${sub.id}_501`,
+      )!;
+      expect(payment.platformPromoId).toBe("prm-20");
+    });
+
+    it("drift-check: promo ya no aplicable → agenda reprice (cancel a fin de período)", async () => {
+      const sub = mkPlatSub({
+        id: "sub-p",
+        status: "ACTIVE",
+        flowSubscriptionId: "fsub-p",
+        promoId: "prm-gone",
+        planChargeClp: 15992,
+      });
+      fx.platSubs.push(sub);
+      // La promo ya no existe/expiró → la remota debe volver al plan base.
+      await svc.reconcileSubscription(
+        sub as PlatformSubscription,
+        mkFlowSub({ subscriptionId: "fsub-p" }),
+      );
+      expect(flow.cancelSubscription).toHaveBeenCalledWith(
+        "fsub-p",
+        expect.objectContaining({ correlationId: expect.any(String) }),
+      );
+      expect(sub.pendingReprice).toBe(true);
+      // El status queda ACTIVE para el usuario (la cancel la pidió el sistema).
+      expect(sub.status).toBe("ACTIVE");
+    });
+
+    it("reprice materializa: remota CANCELED + pendingReprice → recrea a precio lleno", async () => {
+      const sub = mkPlatSub({
+        id: "sub-p",
+        status: "ACTIVE",
+        flowSubscriptionId: "fsub-old",
+        promoId: "prm-gone",
+        planChargeClp: 15992,
+        pendingReprice: true,
+      });
+      fx.platSubs.push(sub);
+      await svc.reconcileSubscription(
+        sub as PlatformSubscription,
+        mkFlowSub({ subscriptionId: "fsub-old", status: "CANCELED" }),
+      );
+      // Crea la sub en el plan base del tier (sin promo aplicable).
+      expect(flow.createSubscription).toHaveBeenCalledWith(
+        expect.objectContaining({ planId: "plat_academy_cobros_monthly" }),
+        { correlationId: expect.any(String) },
+      );
+      const updated = fx.platSubs.find((s) => s.id === "sub-p")!;
+      expect(updated.status).toBe("ACTIVE");
+      expect(updated.pendingReprice).toBe(false);
+      expect(updated.promoId).toBeNull();
+      expect(updated.planChargeClp).toBe(19990);
+    });
+
+    it("billing view expone activePromo con ciclos restantes", async () => {
+      fx.promos.push(mkPromo({ id: "prm-v", maxCycles: 3 }));
+      const view = await svc.academyBillingView(ACADEMY_ROW as never);
+      const promo = (view as { activePromo?: Row }).activePromo!;
+      expect(promo.id).toBe("prm-v");
+      expect(promo.cyclesLeft).toBe(3);
+      expect(promo.discountType).toBe("PERCENT");
+      expect(promo.percentOff).toBe(20);
     });
   });
 });

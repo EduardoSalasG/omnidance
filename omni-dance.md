@@ -661,6 +661,8 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 
 El ticketing base, venta y check-in **nunca se cortan** por la suscripción (el marketplace es el funnel). Trial de lanzamiento: +90d a productores registrados. Ciclos con −8% semestral/−15% anual (mismo criterio que academias).
 
+**Promos de suscripción** (spec `platform-promos`): el admin gestiona `PlatformPromo` desde `/admin/facturacion/promos` — descuento PERCENT o FIXED_CLP sobre el cargo del ciclo, scope por línea (ACADEMY/PRODUCER/ambas), ventana validFrom/validUntil, `maxCycles` por actor (cobros PAID marcados `Payment.platformPromoId`), whitelist opcional y flag enabled. Se materializa como **plan espejo propio** (`plat_*_prm_<promoId>_<monto>`) — nunca muta el plan compartido del tier; al agotarse ciclos/vencer/deshabilitarse, el reconcile agenda `pendingReprice` (cancel remota a fin de período + recreación con el cargo vigente). La vista del actor muestra `activePromo` (tachado + oferta + vencimiento) y el MRR usa el cargo efectivo (`planChargeClp`).
+
 **Publicidad segmentada a bailarines (nueva línea de ingreso)**: academias PRO y productores Pro Growth/Scale pueden promocionar talleres/eventos a dancers por canal notificación in-app, con guardrails duros: **frecuencia cap** (máx. 1 push promocional/semana por persona), targeting por agregados (nivel/ciudad/estilo — nunca data individual al anunciante, cumple la regla de privacidad de scores), opt-out por usuario, y la regla de pista (~5s) se mantiene — el push es glanceable, el detalle vive en el centro. Cola de aprobación admin en v1 para cuidar el tono.
 
 **Contexto competitivo (evaluado oct-2026, decisión: no competir en precio)**:

@@ -787,6 +787,14 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.subscriptions",
           icon: ICONS.tag,
         },
+        // Promos de suscripción (spec platform-promos) - descuentos
+        // admin-managed sobre el cargo del ciclo.
+        {
+          href: "/admin/facturacion/promos",
+          ns: "admin",
+          key: "modules.promos",
+          icon: ICONS.tag,
+        },
         {
           href: "/admin/facturacion",
           ns: "admin",

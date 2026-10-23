@@ -82,6 +82,11 @@
       "PENDING": "Pending",
       "FAILED": "Failed",
       "REFUNDED": "Refunded"
-    }
+    },
+    "promoBadge": "Promo {name}",
+    "promoOff": "−{pct}% per charge",
+    "promoOffFixed": "−{amount} per charge",
+    "promoUntil": "until {date}",
+    "promoCyclesLeft": "{count} discounted charges left"
   }
 }
