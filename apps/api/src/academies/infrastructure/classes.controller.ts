@@ -41,6 +41,7 @@ import {
 } from "./class-card-projection";
 import { filterDate } from "./list-filters";
 import { buildClassIcs } from "./class-ics";
+import { tierMeets } from "../domain/academy-tiers";
 import { ApiQuery } from "@nestjs/swagger";
 
 // Inscripción vigente: la que habilita ver la academia como "mía" en
@@ -642,9 +643,14 @@ export class ClassesController {
       select: {
         startedAt: true,
         endsAt: true,
-        academy: { select: { id: true, name: true } },
+        academy: { select: { id: true, name: true, tier: true } },
         plan: {
-          select: { type: true, weeklyClasses: true, classCount: true },
+          select: {
+            name: true,
+            type: true,
+            weeklyClasses: true,
+            classCount: true,
+          },
         },
       },
     });
@@ -660,9 +666,11 @@ export class ClassesController {
     const rows: {
       academyId: string;
       academyName: string;
-      kind: "WEEKLY" | "PACK" | "UNLIMITED";
+      kind: "WEEKLY" | "PACK" | "UNLIMITED" | "MEMBERSHIP";
       used: number | null;
       limit: number | null;
+      planName: string | null;
+      endsAt: Date | null;
     }[] = [];
 
     for (const e of enrollments) {
@@ -672,8 +680,20 @@ export class ClassesController {
         );
         if (now > graceEnd) continue;
       }
-      const base = { academyId: e.academy.id, academyName: e.academy.name };
+      const base = {
+        academyId: e.academy.id,
+        academyName: e.academy.name,
+        planName: e.plan?.name ?? null,
+        endsAt: e.endsAt,
+      };
       const plan = e.plan;
+      // Academia sin clases (tier COBROS): la inscripción es de
+      // membresía/cobranza - no hay cuota que agendar, solo info del
+      // plan y su vigencia (spec academy-tier-v2).
+      if (!tierMeets(e.academy.tier, "classes")) {
+        rows.push({ ...base, kind: "MEMBERSHIP", used: null, limit: null });
+        continue;
+      }
       if (plan?.weeklyClasses != null) {
         rows.push({
           ...base,

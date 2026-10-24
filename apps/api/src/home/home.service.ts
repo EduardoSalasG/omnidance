@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { clMonthStart } from "../common/cl-time";
+import { tierMeets } from "../academies/domain/academy-tiers";
 import {
   CLASS_CARD_SELECT,
   classCardItem,
@@ -375,12 +376,23 @@ export class HomeService {
   private async dancerAcademyStats(personId: string): Promise<HomeStats> {
     const enrollments = await this.prisma.enrollment.findMany({
       where: { personId, status: { in: ["ACTIVE", "TRIAL", "ONLINE"] } },
-      select: { academyId: true, academy: { select: { name: true } } },
+      select: {
+        academyId: true,
+        academy: { select: { name: true, tier: true } },
+      },
     });
     if (enrollments.length === 0) {
       return { kpis: [], needsAcademy: true };
     }
     const academyIds = enrollments.map((e) => e.academyId);
+    // Academias con clases (spec academy-tier-v2): una academia COBROS
+    // no tiene clases que mostrar - el KPI "clases este mes", la
+    // próxima clase sugerida y las reservas solo aplican a academias
+    // con la feature `classes` (STUDIO+). Una asistencia real (clase
+    // suelta en otra academia) sí re-habilita el KPI.
+    const classAcademyIds = enrollments
+      .filter((e) => tierMeets(e.academy.tier, "classes"))
+      .map((e) => e.academyId);
     // "Clases tomadas este mes" = asistencias del mes calendario en curso
     // (el learner piensa en meses, no en ventanas rolling de 30d).
     const monthStart = new Date();
@@ -395,7 +407,7 @@ export class HomeService {
           cancelled: false,
           date: { gte: new Date() },
           slot: {
-            academyId: { in: academyIds },
+            academyId: { in: classAcademyIds },
             // Sugerencia "próxima clase": academia bloqueada por mora no
             // es reservable (S3) - no se sugiere; las reservas ya hechas
             // (myBookings) sí siguen listándose con su flag.
@@ -427,7 +439,12 @@ export class HomeService {
     return {
       kpis: [
         { key: "enrollments", value: enrollments.length },
-        { key: "classesMonth", value: classesMonth },
+        // KPI "clases este mes": academia con clases (STUDIO+) o
+        // actividad real de clase este mes (p.ej. clase suelta en una
+        // academia STUDIO aunque su inscripción sea COBROS).
+        ...(classAcademyIds.length > 0 || classesMonth > 0
+          ? [{ key: "classesMonth", value: classesMonth }]
+          : []),
       ],
       nextClass: nextClassRow
         ? this.toClassCard(nextClassRow, personId, enrolledIds, instructorName)
