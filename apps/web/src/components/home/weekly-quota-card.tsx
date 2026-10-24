@@ -11,9 +11,13 @@ import { Link } from "@/i18n/navigation";
 type QuotaRow = {
   academyId: string;
   academyName: string;
-  kind: "WEEKLY" | "PACK" | "UNLIMITED";
+  // MEMBERSHIP: academia sin clases (tier COBROS) - se muestra la
+  // membresía y su vigencia, no cuota reservable.
+  kind: "WEEKLY" | "PACK" | "UNLIMITED" | "MEMBERSHIP";
   used: number | null;
   limit: number | null;
+  planName?: string | null;
+  endsAt?: string | null;
 };
 
 /**
@@ -66,12 +70,19 @@ function QuotaLine({ q }: { q: QuotaRow }) {
   // resto (incluido el semanal agotado - la próxima semana ya es
   // reservable) lleva a agendar en /clases.
   const packEmpty = q.kind === "PACK" && used >= limit;
-  const href = packEmpty
+  const isMembership = q.kind === "MEMBERSHIP";
+  const href = packEmpty || isMembership
     ? `/academias/${q.academyId}`
     : "/clases?scope=mias";
 
   let text: string;
-  if (q.kind === "WEEKLY") {
+  if (isMembership) {
+    // Academia COBROS (sin clases): info del plan y su vigencia - el
+    // "qué hacer" es ver/renovar la membresía, no agendar.
+    text = q.planName
+      ? t("quota.membershipPlan", { plan: q.planName })
+      : t("quota.membership");
+  } else if (q.kind === "WEEKLY") {
     text =
       used === 0
         ? t("quota.weeklyZero", { limit })
@@ -98,7 +109,18 @@ function QuotaLine({ q }: { q: QuotaRow }) {
           {q.academyName}
         </span>
         <span className="mt-0.5 block text-sm text-ink/80">{text}</span>
-        {q.kind !== "UNLIMITED" && limit > 0 && (
+        {isMembership && q.endsAt && (
+          <span className="mt-0.5 block text-xs text-ink/50">
+            {t("quota.validUntil", {
+              date: new Date(q.endsAt).toLocaleDateString(undefined, {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              }),
+            })}
+          </span>
+        )}
+        {!isMembership && q.kind !== "UNLIMITED" && limit > 0 && (
           <span className="mt-2 flex items-center gap-2">
             <span
               role="progressbar"
@@ -122,7 +144,11 @@ function QuotaLine({ q }: { q: QuotaRow }) {
         href={href}
         className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-neon transition-colors hover:text-neon-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
       >
-        {packEmpty ? t("quota.renew") : t("quota.book")}
+        {isMembership
+          ? t("quota.viewPlan")
+          : packEmpty
+            ? t("quota.renew")
+            : t("quota.book")}
         <ChevronRightIcon className="h-3.5 w-3.5" />
       </Link>
     </li>

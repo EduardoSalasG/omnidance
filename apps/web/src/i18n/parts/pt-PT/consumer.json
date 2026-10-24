@@ -74,7 +74,11 @@
       "weeklyFull": "{limit, plural, one {Esgotaste a tua aula semanal — até à próxima!} other {Esgotaste as tuas # aulas semanais — até à próxima!}}",
       "packLeft": "{count, plural, one {Resta-te # aula do teu pack} other {Restam-te # aulas do teu pack}}",
       "packEmpty": "Esgotaste o teu pack de aulas",
-      "unlimited": "Plano ilimitado — agenda quando quiseres"
+      "unlimited": "Plano ilimitado — agenda quando quiseres",
+      "membership": "Membresia ativa",
+      "membershipPlan": "Plano {plan}",
+      "validUntil": "Válido até {date}",
+      "viewPlan": "Ver plano"
     }
   },
   "profile": {

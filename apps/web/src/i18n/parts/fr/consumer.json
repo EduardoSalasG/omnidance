@@ -74,7 +74,11 @@
       "weeklyFull": "{limit, plural, one {Tu as épuisé ton cours hebdomadaire — à la semaine prochaine !} other {Tu as épuisé tes # cours hebdomadaires — à la semaine prochaine !}}",
       "packLeft": "{count, plural, one {Il te reste # cours dans ton pack} other {Il te reste # cours dans ton pack}}",
       "packEmpty": "Tu as épuisé ton pack de cours",
-      "unlimited": "Plan illimité — réserve quand tu veux"
+      "unlimited": "Plan illimité — réserve quand tu veux",
+      "membership": "Adhésion active",
+      "membershipPlan": "Plan {plan}",
+      "validUntil": "Valide jusqu'au {date}",
+      "viewPlan": "Voir le plan"
     }
   },
   "profile": {

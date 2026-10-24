@@ -74,7 +74,11 @@
       "weeklyFull": "{limit, plural, one {You've used your weekly class — see you next week!} other {You've used your # weekly classes — see you next week!}}",
       "packLeft": "{count, plural, one {# class left in your pack} other {# classes left in your pack}}",
       "packEmpty": "You've used up your class pack",
-      "unlimited": "Unlimited plan — book anytime"
+      "unlimited": "Unlimited plan — book anytime",
+      "membership": "Active membership",
+      "membershipPlan": "{plan} plan",
+      "validUntil": "Valid until {date}",
+      "viewPlan": "View plan"
     }
   },
   "profile": {
