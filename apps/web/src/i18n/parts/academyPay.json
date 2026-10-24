@@ -113,6 +113,15 @@
     "methodSaved": "Medio de pago guardado.",
     "methodNotFound": "Medio de pago no encontrado.",
     "activeLabel": "Medio activo (visible para los alumnos)",
-    "editMethod": "Editar medio de pago"
+    "editMethod": "Editar medio de pago",
+    "report": {
+      "link": "Reporte",
+      "billed": "Facturado en el período",
+      "payers": "Alumnos que pagaron",
+      "topPlan": "Plan más vendido",
+      "topPlanMeta": "{count, plural, one {# cobro} other {# cobros}} · {amount}",
+      "empty": "Sin cobros en el período o con estos filtros.",
+      "forbidden": "No tienes acceso a esta sección."
+    }
   }
 }

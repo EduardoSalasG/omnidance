@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
+import { academyTierHas } from "@/lib/academy-features";
 import { Badge, Button, Card, EventDate, Pager, type BadgeVariant, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
@@ -23,6 +24,9 @@ import { Link } from "@/i18n/navigation";
 
 type Props = {
   academyId: string;
+  /** Tier de la academia (viene en /academies/mine) - gatea los campos
+      de CRM del card según la matriz de entitlements. */
+  tier?: string | null;
   /** Instructor: ve la lista y fichas, pero no crea enrollments ni cambia status. */
   readOnly?: boolean;
 };
@@ -66,6 +70,7 @@ const SEGMENT_VARIANT: Record<string, BadgeVariant> = {
  */
 export function StudentsSection({
   academyId,
+  tier,
   readOnly = false,
 }: Props) {
   const locale = useLocale();
@@ -83,6 +88,14 @@ export function StudentsSection({
   // Opciones del filtro planId: GET plans (cap "plans") + cosecha del
   // listado como fallback cuando el rol no alcanza ese endpoint.
   const [planOptions, setPlanOptions] = useState<FilterOption[]>([]);
+
+  // Gating fino por tier (spec academy-tier-v2): score y clasificación
+  // CRM del card son feature PRO (`crm`) - COBROS/STUDIO no los ven.
+  const canCrm = academyTierHas(tier, "crm");
+
+  // Corte "al día/moroso" del chip de plan: endsAt ("pagado hasta") por
+  // debajo de hoy = vigencia vencida. Se compara por día (YYYY-MM-DD).
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -209,22 +222,52 @@ export function StudentsSection({
                     <Badge variant={STATUS_VARIANT[s.status]}>
                       {t(`status.${s.status}`)}
                     </Badge>
-                    {/* Score de relación (spec academy-score-refine):
-                        privado de la academia; "—" si aún no se computó. */}
-                    <span
-                      className="text-xs tabular-nums text-ink/60"
-                      title={t("studentProfile.score")}
-                    >
-                      {s.score !== null ? Math.round(s.score) : "—"}
-                    </span>
-                    {s.segment && (
-                      <Badge variant={SEGMENT_VARIANT[s.segment] ?? "muted"}>
-                        {tcrm(`segments.${s.segment}`)}
-                      </Badge>
+                    {/* Score + segmento CRM: solo con la feature `crm`
+                        (PRO) - spec academy-tier-v2. */}
+                    {canCrm && (
+                      <>
+                        {/* Score de relación (spec academy-score-refine):
+                            privado de la academia; "—" si aún no se computó. */}
+                        <span
+                          className="text-xs tabular-nums text-ink/60"
+                          title={t("studentProfile.score")}
+                        >
+                          {s.score !== null ? Math.round(s.score) : "—"}
+                        </span>
+                        {s.segment && (
+                          <Badge variant={SEGMENT_VARIANT[s.segment] ?? "muted"}>
+                            {tcrm(`segments.${s.segment}`)}
+                          </Badge>
+                        )}
+                      </>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-ink/50">
-                    <span className="truncate">{s.plan?.name ?? "-"}</span>
+                    {/* Chip del plan actual (spec academy-tier-v2): el
+                        plan no tiene color propio en el modelo, así que
+                        el color comunica el estado de pago - al día
+                        (neon), moroso/vencido (live), sin vigencia
+                        registrada (outline). */}
+                    {s.plan ? (
+                      <Badge
+                        variant={
+                          s.endsAt && s.endsAt.slice(0, 10) < todayStr
+                            ? "live"
+                            : s.endsAt
+                              ? "neon"
+                              : "outline"
+                        }
+                        title={
+                          s.endsAt
+                            ? `${tp("endsAt")}: ${planDateFmt(locale).format(new Date(s.endsAt))}`
+                            : s.plan.name
+                        }
+                      >
+                        {s.plan.name}
+                      </Badge>
+                    ) : (
+                      <span className="truncate">-</span>
+                    )}
                     {s.startsAt && <EventDate start={s.startsAt} />}
                     {s.endsAt && (
                       <span>

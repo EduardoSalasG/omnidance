@@ -10,6 +10,7 @@ import { AcademyAccessModule } from "./academy-access.module";
 import { AcademyBillingController } from "./infrastructure/academy-billing.controller";
 import { AcademyClaimsController } from "./infrastructure/academy-claims.controller";
 import { AcademyClaimsService } from "./infrastructure/academy-claims.service";
+import { AcademyPromosController } from "./infrastructure/academy-promos.controller";
 import { AcademyImportController } from "./infrastructure/academy-import.controller";
 import { AcademyImportService } from "./infrastructure/academy-import.service";
 import { AcademyRemindersService } from "./infrastructure/academy-reminders.service";
@@ -44,6 +45,7 @@ import { VideosController } from "./infrastructure/videos.controller";
     AcademiesController,
     AcademyBillingController,
     AcademyClaimsController,
+    AcademyPromosController,
     AcademyImportController,
     AcademyStaffController,
     EnrollmentsController,

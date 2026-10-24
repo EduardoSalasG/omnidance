@@ -240,6 +240,10 @@ export async function seedDev(prisma: PrismaClient) {
   const matiasb = await alumno("matiasb", "Matías Bravo", Gender.M);
   const fernanda = await alumno("fernanda", "Fernanda Araya", Gender.F);
   const vicente = await alumno("vicente", "Vicente Lagos", Gender.M);
+  // Alumna logueable del demo COBROS (Academia Tumbao): entra con el
+  // password dev y su vista muestra membresía/cobros de una sola
+  // academia - no está inscrita en ninguna otra.
+  const martina = await alumno("martina", "Martina Aguilera", Gender.F);
 
   // Cumpleaños demo relativos a hoy - la lista "Cumpleaños próximos"
   // del dashboard de academia siempre tiene data (spec
@@ -370,8 +374,8 @@ export async function seedDev(prisma: PrismaClient) {
     data: { defaultQuorum: 15 },
   });
 
-  // Segunda academia - Valeska enseña en ambas (/classes/teaching es
-  // cross-academia) y el owner tiene gate multi-academia propio.
+  // Segunda academia - demo del tier COBROS (cobranza pura: alumnos,
+  // planes y cobros; sin parrilla de clases ni plantel docente).
   const tumbaoData = {
     name: "Academia Tumbao",
     ownerId: tumbaoOwner.id,
@@ -414,7 +418,7 @@ export async function seedDev(prisma: PrismaClient) {
     // El dueño también dicta (la serie "Cubano" de abajo es suya) - su
     // cuenta sirve para refinar la consola del instructor.
     [muvet.id, muvetOwner.id, null],
-    [tumbao.id, vale.id, null],
+    // Tumbao (COBROS) no lleva instructores: su consola es solo cobranza.
   ] as const) {
     await prisma.academyInstructor.upsert({
       where: { academyId_personId: { academyId, personId } },
@@ -717,6 +721,8 @@ export async function seedDev(prisma: PrismaClient) {
   await enroll(muvet.id, vicente.id, muvetPack.id, "TRIAL", 6);
   await enroll(tumbao.id, camila.id, tumbaoMensual.id, "ACTIVE", 40, 21);
   await enroll(tumbao.id, antonia.id, tumbaoMensual.id, "TRIAL", 8, 2);
+  // La alumna logueable del demo: membresía activa y al día.
+  await enroll(tumbao.id, martina.id, tumbaoMensual.id, "ACTIVE", 30, 20);
 
   // ─── Series + slots + clases materializadas ───
   step("series/slots/clases…");
@@ -1002,18 +1008,8 @@ export async function seedDev(prisma: PrismaClient) {
     slots: [{ weekday: 6, startTime: "12:00", endTime: "13:00" }],
   });
 
-  // Serie de la segunda academia (sin defaultQuorum propio en serie → 12
-  // de Tumbao; si Tumbao no declarara, caería al fallback 20).
-  await mkClassSeries({
-    academyId: tumbao.id,
-    name: "Casino",
-    styleName: "Salsa cubana (casino)",
-    levelName: "Intermedio",
-    typeNames: ["Shines"],
-    instructorId: vale.id,
-    dropInPrice: 8000,
-    slots: [{ weekday: 3, startTime: "21:00", endTime: "22:00" }],
-  });
+  // Academia Tumbao (tier COBROS) no siembra series ni clases: el demo
+  // muestra una consola de cobranza limpia, sin parrilla ni asistencias.
 
   // ─── Academias de la escena - catálogo Santiago ───
   step("academias catálogo…");
@@ -2314,6 +2310,17 @@ export async function seedDev(prisma: PrismaClient) {
     approvedPrev: 5,
     pending: 3,
   });
+  // Cobro aprobado de la alumna logueable - su vista /cobros muestra el
+  // pago de su mensualidad, no una lista vacía.
+  await claim({
+    academyId: tumbao.id,
+    reviewedById: tumbaoOwner.id,
+    personId: martina.id,
+    planId: tumbaoMensual.id,
+    amount: 40000,
+    status: "APPROVED",
+    monthDay: 4,
+  });
   await seedClaimsFor({
     academyId: mambo.id,
     reviewedById: gabriel.id,
@@ -2484,16 +2491,20 @@ export async function seedDev(prisma: PrismaClient) {
     validUntil: new Date(Date.now() + 90 * 86_400_000),
     maxCycles: 3,
     enabled: true,
-    academies: { set: [{ id: tumbao.id }] },
   };
   if (existingPromo) {
     await prisma.platformPromo.update({
       where: { id: existingPromo.id },
-      data: promoData,
+      data: { ...promoData, academies: { set: [{ id: tumbao.id }] } },
     });
   } else {
+    // En create la m-n solo acepta connect (set es de update).
     await prisma.platformPromo.create({
-      data: { name: promoName, ...promoData },
+      data: {
+        name: promoName,
+        ...promoData,
+        academies: { connect: [{ id: tumbao.id }] },
+      },
     });
   }
 
@@ -2528,7 +2539,7 @@ export async function seedDev(prisma: PrismaClient) {
       });
     }
   };
-  await seedMorosos(tumbao.id, 6, 5, [camila.id, antonia.id]);
+  await seedMorosos(tumbao.id, 6, 5, [camila.id, antonia.id, martina.id]);
   await seedMorosos(mambo.id, 11, 8, [maria.id, eduardo.id]);
 
   // Cumpleaños dentro de la ventana de insights (30d) - el panel del
@@ -3229,7 +3240,8 @@ export async function seedDev(prisma: PrismaClient) {
   // solo lleva el nombre de texto.
   const academyIds: Record<string, string> = {
     MuéveteOnTour: muvet.id,
-    "Academia Tumbao": tumbao.id,
+    // "Academia Tumbao" NO se vincula (academyId null → team de texto
+    // libre): la academia COBROS del demo no exhibe shows en su perfil.
   };
   const pubEvents = await prisma.event.findMany({
     where: { status: "PUBLISHED" },
@@ -5095,7 +5107,7 @@ export async function seedDev(prisma: PrismaClient) {
     );
   await rental("REQUESTED", 14, muvet.id);
   await rental("CONFIRMED", 7, undefined, juevesCubano.id);
-  await rental("CANCELLED", -7, tumbao.id);
+  await rental("CANCELLED", -7, mambo.id);
 
   // Notificaciones in-app - el badge de la campana muestra pendientes.
   const notif = (personId: string, type: string, title: string, body?: string) =>

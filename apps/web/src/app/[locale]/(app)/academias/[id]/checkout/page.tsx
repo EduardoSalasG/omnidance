@@ -24,6 +24,17 @@ export type MembershipQuote = {
   };
   academy: { id: string; name: string };
   totalClp: number;
+  /** Promo de la academia vigente para este alumno/plan (spec member-promos). */
+  promo: {
+    id: string;
+    name: string;
+    discountType: "PERCENT" | "FIXED_CLP";
+    percentOff: number | null;
+    amountOffClp: number | null;
+    validUntil: string;
+    cyclesLeft: number | null;
+    finalClp: number;
+  } | null;
   recurring: boolean;
   vigenciaEndsAt: string | null;
   /** Fin de la vigencia vigente (la compra extiende desde ahí). */

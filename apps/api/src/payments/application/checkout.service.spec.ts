@@ -5,6 +5,7 @@ import type { ProducerFeeDefaults } from "../../params/params.service";
 import type { PaymentGateway } from "../domain/ports";
 import { GatewayRegistry } from "../domain/gateway-registry";
 import { PricingService } from "../domain/pricing.service";
+import { AcademyPromosService } from "./academy-promos.service";
 import {
   decodeClassRef,
   decodePrivateRef,
@@ -139,6 +140,9 @@ function mkPrisma() {
       ),
     },
     membershipPlan: { findUnique: vi.fn() },
+    // Sin promos por defecto (spec member-promos) - los tests de promo
+    // siembran vía mockResolvedValue.
+    academyPromo: { findMany: vi.fn(async () => [] as never[]) },
     enrollment: {
       findFirst: vi.fn(
         async (): Promise<{ endsAt: Date | null } | null> => null,
@@ -321,6 +325,7 @@ describe("CheckoutService.purchaseTicket", () => {
       accountsStub as never,
       academySalesStub as never,
       featuresStub as never,
+      new AcademyPromosService(fx.prisma as unknown as PrismaService),
     );
   });
 
@@ -1133,6 +1138,7 @@ describe("CheckoutService.purchaseTicket", () => {
       accountsStub as never,
       academySalesStub as never,
       featuresStub as never,
+      new AcademyPromosService(fx.prisma as unknown as PrismaService),
     );
     const res = await svc2.purchaseTicket("per-1", { eventId: "evt-1" });
     expect(stripeish.createOrder).toHaveBeenCalledTimes(1);
@@ -1328,6 +1334,7 @@ describe("CheckoutService.discountQuote", () => {
       accountsStub as never,
       academySalesStub as never,
       featuresStub as never,
+      new AcademyPromosService(fx.prisma as unknown as PrismaService),
     );
   });
 
@@ -1440,6 +1447,7 @@ describe("CheckoutService.purchaseSeriesPass", () => {
       accountsStub as never,
       academySalesStub as never,
       featuresStub as never,
+      new AcademyPromosService(fx.prisma as unknown as PrismaService),
     );
   });
 
@@ -1575,6 +1583,7 @@ describe("CheckoutService.membershipQuote", () => {
       accountsStub as never,
       academySalesStub as never,
       featuresStub as never,
+      new AcademyPromosService(fx.prisma as unknown as PrismaService),
     );
   });
 
@@ -1708,6 +1717,7 @@ describe("CheckoutService.purchaseMembership", () => {
       accountsStub as never,
       academySalesStub as never,
       featuresStub as never,
+      new AcademyPromosService(fx.prisma as unknown as PrismaService),
     );
   });
 
@@ -1844,6 +1854,7 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
       accountsStub as never,
       academySalesStub as never,
       featuresStub as never,
+      new AcademyPromosService(fx.prisma as unknown as PrismaService),
     );
   });
 
@@ -1967,6 +1978,7 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
       accountsStub as never,
       academySalesStub as never,
       featuresStub as never,
+      new AcademyPromosService(fx.prisma as unknown as PrismaService),
     );
   });
 
@@ -2078,6 +2090,7 @@ describe("CheckoutService - Pase Social", () => {
       accountsStub as never,
       academySalesStub as never,
       featuresStub as never,
+      new AcademyPromosService(fx.prisma as unknown as PrismaService),
     );
   });
 

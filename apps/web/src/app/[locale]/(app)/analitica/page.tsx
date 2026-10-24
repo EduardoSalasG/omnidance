@@ -4,7 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch, isTierRequired } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
-import { useActorEntitlements } from "@/lib/entitlements-context";
+import {
+  useActorEntitlements,
+  useEntitlements,
+} from "@/lib/entitlements-context";
 import { useActiveRole } from "@/lib/active-role";
 import {
   Button,
@@ -79,6 +82,10 @@ export default function AnaliticaPage() {
   // Entitlement del productor propio (spec unified-actor-entitlements):
   // sin la feature de analítica la lente PRODUCER va directo al paywall.
   const producerEnt = useActorEntitlements("PRODUCER");
+  // Lente academia: basta que ALGUNA academia propia cubra la feature
+  // (misma regla que assertAnyOwnedAcademyMeets del API - la consola
+  // agrega sobre todas las academias del owner).
+  const academyEnt = useEntitlements();
   const activeRole = useActiveRole(me?.roles);
   // El drill por usuario (/analitica/usuarios) es solo ADMIN - el paso
   // del tour que lo explica se incluye solo cuando el rol está.
@@ -141,11 +148,16 @@ export default function AnaliticaPage() {
   // ── Catálogo del lente activo ────────────────────────────────────────
   // Gate proactivo por feature: el entitlement del productor sin
   // "analytics" en lente PRODUCER salta directo al paywall sin fetch;
-  // el 403 tier.required queda de fallback.
+  // en lente ACADEMY_OWNER la consola de consultas es feature
+  // `analytics` (PRO) de alguna academia propia (spec academy-tier-v2).
+  // El 403 tier.required queda de fallback.
   const tierLocked =
-    role === "PRODUCER" &&
-    !producerEnt.loading &&
-    !producerEnt.has("analytics");
+    (role === "PRODUCER" &&
+      !producerEnt.loading &&
+      !producerEnt.has("analytics")) ||
+    (role === "ACADEMY_OWNER" &&
+      !academyEnt.loading &&
+      !academyEnt.academies.some((a) => a.features.includes("analytics")));
 
   const loadCatalog = useCallback(
     async (r: Role) => {

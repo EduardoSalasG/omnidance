@@ -8,6 +8,7 @@ import { useActiveRole } from "@/lib/active-role";
 import { Badge, Button, Card, type BadgeVariant, PriceTag, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { academyTierHas } from "@/lib/academy-features";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
   classDayFmt,
@@ -98,6 +99,13 @@ function ProfileModule({
   const { me, loading: meLoading } = useMe();
   const instructorLens =
     useActiveRole(me?.roles) === "INSTRUCTOR" && !meLoading;
+
+  // Gating fino por tier (spec academy-tier-v2): score/clasificación son
+  // `crm` (PRO); el historial de asistencia es `attendance` y las
+  // próximas reservas `classes` (STUDIO+) - COBROS solo ve cobranza.
+  const canCrm = academyTierHas(academy.tier, "crm");
+  const canAttendance = academyTierHas(academy.tier, "attendance");
+  const canClasses = academyTierHas(academy.tier, "classes");
 
   // Edición del enrollment vigente - solo visible si el caller tiene la
   // capacidad "students" (canEdit del endpoint: owner/ADMIN/staff; el
@@ -233,18 +241,22 @@ function ProfileModule({
             {tp("plan")}: {profile.plan?.name ?? "·"}
           </span>
           {/* Score de relación academia↔alumno (CRM): privado de la
-              academia - solo se muestra en su consola. */}
-          <Badge variant="muted">
-            {tp("score")}:{" "}
-            {profile.score !== null
-              ? `${Math.round(profile.score)}${profile.segment ? ` · ${tcrm(`segments.${profile.segment}`)}` : ""}`
-              : tp("scoreNone")}
-          </Badge>
+              academia - solo se muestra en su consola. Feature `crm`
+              (PRO): COBROS/STUDIO no ven score ni clasificación (spec
+              academy-tier-v2). */}
+          {canCrm && (
+            <Badge variant="muted">
+              {tp("score")}:{" "}
+              {profile.score !== null
+                ? `${Math.round(profile.score)}${profile.segment ? ` · ${tcrm(`segments.${profile.segment}`)}` : ""}`
+                : tp("scoreNone")}
+            </Badge>
+          )}
         </div>
         {/* Desglose por componente (spec academy-score-refine): explica
             el número. Scores previos al cambio traen breakdown null →
             solo se muestra el badge. */}
-        {profile.scoreBreakdown?.points && (
+        {canCrm && profile.scoreBreakdown?.points && (
           <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
             {(
               [
@@ -388,6 +400,9 @@ function ProfileModule({
           (display:contents en móvil preserva el stack con gap-6 del
           padre - el DOM no cambia bajo lg). */}
       <div className="contents lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+      {/* Historial de asistencia: feature `attendance` (STUDIO+) -
+          spec academy-tier-v2. */}
+      {canAttendance && (
       <section
         aria-label={tp("history")}
         className="flex flex-col gap-2"
@@ -423,7 +438,11 @@ function ProfileModule({
           </ul>
         )}
       </section>
+      )}
 
+      {/* Próximas reservas de clases: feature `classes` (STUDIO+) -
+          spec academy-tier-v2. */}
+      {canClasses && (
       <section
         aria-label={tp("upcoming")}
         className="flex flex-col gap-2"
@@ -460,6 +479,7 @@ function ProfileModule({
           </ul>
         )}
       </section>
+      )}
       </div>
     </div>
   );

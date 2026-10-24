@@ -21,6 +21,11 @@
     "cardRedirectCta": "Continuar para a Flow",
     "planUnavailable": "Este plano não está disponível agora",
     "alreadySubscribed": "Já tens uma assinatura deste plano",
-    "backToAcademy": "Voltar à academia"
+    "backToAcademy": "Voltar à academia",
+    "promoBadge": "Promo: {name}",
+    "promoOff": "−{pct}% em cada cobrança",
+    "promoOffFixed": "−{amount} em cada cobrança",
+    "promoUntil": "até {date}",
+    "promoCyclesLeft": "{count, plural, one {# cobrança com desconto} other {# cobranças com desconto}} restantes"
   }
 }

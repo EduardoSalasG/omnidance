@@ -113,6 +113,15 @@
     "methodSaved": "Moyen de paiement enregistré.",
     "methodNotFound": "Moyen de paiement introuvable.",
     "activeLabel": "Moyen actif (visible pour les élèves)",
-    "editMethod": "Modifier le moyen de paiement"
+    "editMethod": "Modifier le moyen de paiement",
+    "report": {
+      "link": "Rapport",
+      "billed": "Facturé sur la période",
+      "payers": "Élèves ayant payé",
+      "topPlan": "Plan le plus vendu",
+      "topPlanMeta": "{count, plural, one {# encaissement} other {# encaissements}} · {amount}",
+      "empty": "Aucun encaissement sur la période ou avec ces filtres.",
+      "forbidden": "Vous n'avez pas accès à cette section."
+    }
   }
 }

@@ -46,6 +46,20 @@ const CLAIM_STATUSES: ClaimStatus[] = [
   "REJECTED",
 ];
 
+// Whitelist del filtro `status` del billing-report (spec
+// academy-tier-v2): unión de los vocabularios nativos - Payment
+// (PENDING|PAID|FAILED|REFUNDED) y PaymentClaim (PENDING|AWAITING|
+// APPROVED|REJECTED). Cada fuente aplica el filtro a sus propios valores.
+const BILLING_REPORT_STATUSES = [
+  "PENDING",
+  "AWAITING",
+  "APPROVED",
+  "REJECTED",
+  "PAID",
+  "FAILED",
+  "REFUNDED",
+] as const;
+
 class CreateMethodDto {
   @IsIn([...CLAIM_METHOD_TYPES])
   type!: string;
@@ -274,6 +288,49 @@ export class AcademyClaimsController {
       dayRange(from, to),
       pageParams(page, pageSize, 200),
     );
+  }
+
+  /**
+   * GET /academies/:id/billing-report - reporte de cobranza por período
+   * (spec academy-tier-v2, piso COBROS - sin gate de feature: va por la
+   * capacidad `payments` como el resto del libro). Sin from/to → mes
+   * calendario en curso (mismo default que /cobros/kpis). Filtros:
+   * planId y status (whitelist unión de ambas fuentes - inválido → 400).
+   */
+  @Get(":id/billing-report")
+  @ApiQuery({ name: "from", required: false })
+  @ApiQuery({ name: "to", required: false })
+  @ApiQuery({ name: "planId", required: false })
+  @ApiQuery({ name: "status", required: false })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
+  async billingReport(
+    @Param("id") id: string,
+    @Query("from") from: string | undefined,
+    @Query("to") to: string | undefined,
+    @Query("planId") planId: string | undefined,
+    @Query("status") status: string | undefined,
+    @Query("page") page: string | undefined,
+    @Query("pageSize") pageSize: string | undefined,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "payments");
+    const statusF = whitelist(status, BILLING_REPORT_STATUSES, "status");
+    // Default: mes calendario en curso (UTC) - el reporte es "por mes".
+    let range = dayRange(from, to);
+    if (!range) {
+      const now = new Date();
+      range = {
+        gte: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)),
+      };
+    }
+    const pid = planId?.trim() || undefined;
+    return this.claims.billingReport(id, {
+      createdAt: range,
+      planId: pid,
+      status: statusF,
+      pg: pageParams(page, pageSize, 200),
+    });
   }
 
   /** Claims propios del alumno en esta academia. */

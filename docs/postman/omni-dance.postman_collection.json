@@ -7791,6 +7791,63 @@
           }
         },
         {
+          "name": "GET /api/academies/{id}/billing-report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/billing-report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "billing-report"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "planId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/academies/{id}/claims/mine",
           "request": {
             "method": "GET",
@@ -7911,6 +7968,186 @@
                 {
                   "key": "claimId",
                   "value": ":claimId"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AcademyPromos",
+      "item": [
+        {
+          "name": "GET /api/academies/{id}/promos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/promos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "promos"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/academies/{id}/promos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/promos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "promos"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/promos/people-search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/promos/people-search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "promos",
+                "people-search"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/promos/{promoId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/promos/{promoId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "promos",
+                "{promoId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "promoId",
+                  "value": ":promoId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/academies/{id}/promos/{promoId}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/promos/{promoId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "promos",
+                "{promoId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "promoId",
+                  "value": ":promoId"
                 }
               ],
               "query": []

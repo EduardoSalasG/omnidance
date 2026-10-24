@@ -6325,6 +6325,65 @@
         ]
       }
     },
+    "/api/academies/{id}/billing-report": {
+      "get": {
+        "operationId": "AcademyClaimsController_billingReport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "planId",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
+      }
+    },
     "/api/academies/{id}/claims/mine": {
       "get": {
         "operationId": "AcademyClaimsController_myClaims",
@@ -6448,6 +6507,161 @@
         },
         "tags": [
           "AcademyClaims"
+        ]
+      }
+    },
+    "/api/academies/{id}/promos": {
+      "get": {
+        "operationId": "AcademyPromosController_list",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyPromos"
+        ]
+      },
+      "post": {
+        "operationId": "AcademyPromosController_create",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAcademyPromoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyPromos"
+        ]
+      }
+    },
+    "/api/academies/{id}/promos/people-search": {
+      "get": {
+        "operationId": "AcademyPromosController_peopleSearch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyPromos"
+        ]
+      }
+    },
+    "/api/academies/{id}/promos/{promoId}": {
+      "get": {
+        "operationId": "AcademyPromosController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "promoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyPromos"
+        ]
+      },
+      "patch": {
+        "operationId": "AcademyPromosController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "promoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchAcademyPromoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyPromos"
         ]
       }
     },
@@ -11366,6 +11580,14 @@
         "properties": {}
       },
       "IntentClaimDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateAcademyPromoDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PatchAcademyPromoDto": {
         "type": "object",
         "properties": {}
       },
