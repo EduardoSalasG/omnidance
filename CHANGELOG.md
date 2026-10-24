@@ -3,7 +3,48 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
-## [1.9.0] - 2026-10-22
+## [1.10.0] - 2026-10-24
+
+### Added
+
+- **Entitlements unificados por actor** (`unified-actor-entitlements`):
+  un solo contrato `403 tier.required {requiredTier, feature}` para
+  academia y productor (`pro.required` eliminado); puerto
+  `ActorEntitlements` + `assertActorFeature`, `GET /me/entitlements`,
+  provider `useEntitlements` y `TierPaywall` único en web.
+- **PlatformPromo**: promos de suscripción gestionadas por admin
+  (`/admin/facturacion/promos`) - % o CLP fijo, ventana, maxCycles por
+  cobros, whitelist de actores; reprice automático al expirar. Precio
+  tachado + oferta en la suscripción del actor; MRR efectivo.
+- **AcademyPromo**: becas/descuentos de la academia sobre sus planes
+  (`/academia/promos`) - % o CLP fijo, ventana, maxCycles, scope por
+  planes, whitelist de personas (admite no inscritos → preventa).
+  Audita en `Payment.academyPromoId`.
+- **Reporte de cobranza** (`/academia/cobros/reporte`): facturación
+  mensual, quién pagó, plan top, filtros - disponible en todos los
+  tiers (piso de COBROS).
+- **Academias demo por tier** (seed): Tumbao (COBROS/30),
+  MuéveteOnTour (STUDIO/55), Mambo Madness (PRO/96) con data completa;
+  alumna demo `martina@omnidance.dev` inscrita en Tumbao.
+
+### Changed
+
+- **Precios/tier de academia corregidos**: COBROS 39.990/≤60 alumnos,
+  STUDIO 79.990/≤150, PRO 119.990/ilimitado; descuentos de ciclo
+  unificados semestral −8% (×5.52) / anual −15% (×10.2).
+- **Gating fino por features** (academy-tier-v2): score/clasificación
+  CRM solo con `crm`, asistencia en detalle con `attendance`, insights
+  de audiencia con `insights`, clases de hoy con `classes`; consultas
+  rápidas y crear academia solo en PRO (`analytics`/`multiAcademy`).
+  El home del bailarín respeta el tier: `my-quota` devuelve fila de
+  membresía (plan + vigencia) para academias COBROS; KPI clases del
+  mes solo con actividad real.
+- Chip de plan (nombre + estado) en las cards de alumno.
+
+### Fixed
+
+- Drift de índices redeclarado en schema (`@@index`) + migración
+  `IF NOT EXISTS`; `migrate diff` schema↔DB ahora vacío.
 
 ### Added
 
