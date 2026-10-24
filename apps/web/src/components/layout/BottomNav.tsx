@@ -395,9 +395,10 @@ const ANALYTICS_ITEM: DrawerSpec = {
   icon: ICONS.slider,
   // exact: el admin también lista /analitica/usuarios en el mismo grupo.
   exact: true,
-  // Lente academia: la consola de consultas/export es feature STUDIO+
-  // (otras lentes ignoran el campo - producer gatea por Pro aparte).
-  academyFeature: "exports",
+  // Lente academia: la consola de consultas es feature `analytics`
+  // (PRO - spec academy-tier-v2; otras lentes ignoran el campo -
+  // producer gatea por Pro aparte).
+  academyFeature: "analytics",
 };
 
 // Sheet del bailarín - módulos secundarios por lente (social/academia).
@@ -633,6 +634,14 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "academy",
           key: "modules.plans",
           icon: ICONS.card,
+        },
+        // Promos de membresía (spec member-promos): herramienta de
+        // precio/becas en TODOS los tiers - sin academyFeature gate.
+        {
+          href: "/academia/promos",
+          ns: "academy",
+          key: "modules.promos",
+          icon: ICONS.tag,
         },
         {
           href: "/academia/cobros",

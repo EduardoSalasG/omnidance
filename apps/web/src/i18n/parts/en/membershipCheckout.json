@@ -21,6 +21,11 @@
     "cardRedirectCta": "Continue to Flow",
     "planUnavailable": "This plan is unavailable right now",
     "alreadySubscribed": "You already have a subscription to this plan",
-    "backToAcademy": "Back to academy"
+    "backToAcademy": "Back to academy",
+    "promoBadge": "Promo: {name}",
+    "promoOff": "−{pct}% off each charge",
+    "promoOffFixed": "−{amount} off each charge",
+    "promoUntil": "until {date}",
+    "promoCyclesLeft": "{count, plural, one {# discounted charge} other {# discounted charges}} left"
   }
 }

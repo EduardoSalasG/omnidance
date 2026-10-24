@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { academyTierHas } from "@/lib/academy-features";
 import { Card } from "@/components/ui";
 import { AcademyKpiCards } from "./academy-kpi-strip";
 import { AcademyVisibilityCard } from "./academy-visibility-card";
@@ -35,6 +36,15 @@ const lessonWhenFmt = (locale: string) => getDateFmt(locale, {
 
 // Tope de filas por lista de insight - más allá, footer "Ver todos".
 const LIST_CAP = 6;
+
+// KPIs del home gateados por feature del tier (spec academy-tier-v2):
+// clases/sem es operación (STUDIO `classes`), asistencia/clase es el
+// insight de audiencia (PRO `insights`). El resto (alumnos activos,
+// planes, facturado, ticket) es piso COBROS - billing/students.
+const KPI_FEATURE: Record<string, string> = {
+  weeklyClasses: "classes",
+  avgAttendance: "insights",
+};
 
 ;
 ;
@@ -117,6 +127,30 @@ export function AcademyDashboard({
   const pendingLessons = dashboard?.pendingLessons;
   const birthdays = dashboard?.upcomingBirthdays ?? [];
 
+  // Gating fino por tier (spec academy-tier-v2): la operación de clases
+  // (hoy, particulares pendientes, KPI clases/sem) es `classes`; la
+  // asistencia marcada del día es `attendance`; el insight de
+  // audiencia/clase es `insights`. Todo se deriva de `academy.tier`
+  // (viaja en /academies/mine para cualquier lente del equipo).
+  const canClasses = academyTierHas(academy.tier, "classes");
+  const canAttendance = academyTierHas(academy.tier, "attendance");
+  const canFeature = (f: string) => academyTierHas(academy.tier, f);
+
+  // KPIs visibles según features: COBROS conserva los de cobranza
+  // (alumnos, planes, facturado, ticket); STUDIO suma los operativos;
+  // el de audiencia queda en PRO.
+  const kpiKeys = [
+    "activeStudents",
+    "purchasablePlans",
+    "weeklyClasses",
+    "avgAttendance",
+    "billedMonth",
+    "avgTicket",
+  ].filter((k) => {
+    const f = KPI_FEATURE[k];
+    return f == null || canFeature(f);
+  });
+
   // Checklist de activación: 5 pasos de puesta en marcha, persistente
   // hasta completarlos todos (no hasta el primer alumno). El orden es
   // el flujo natural: horario → qué cobrar → cómo cobrar → quién ayuda
@@ -179,15 +213,9 @@ export function AcademyDashboard({
         error={dashError}
         onRetry={() => void refresh()}
         // Sin el split de género: en inicio no es accionable (el
-        // detalle demográfico vive en alumnos/analítica).
-        keys={[
-          "activeStudents",
-          "purchasablePlans",
-          "weeklyClasses",
-          "avgAttendance",
-          "billedMonth",
-          "avgTicket",
-        ]}
+        // detalle demográfico vive en alumnos/analítica). El subset se
+        // filtra por feature del tier (spec academy-tier-v2).
+        keys={kpiKeys}
       />
 
       {/* Checklist de activación: persiste hasta completar los 5 pasos
@@ -239,12 +267,14 @@ export function AcademyDashboard({
           {/* Hoy - clases del día + asistencia marcada (spec §13). Las
               filas llevan al roster de la clase (marcar presente es del
               instructor en su consola); sin clases el día se muestra
-              vacío en vez de ocultarse. */}
-          {dashboard && (
+              vacío en vez de ocultarse. Toda la sección es feature
+              `classes` (STUDIO+) y el contador `attendance` - COBROS no
+              opera clases (spec academy-tier-v2). */}
+          {dashboard && canClasses && (
             <section aria-label={t("today.title")} data-tour="academy-today">
               <div className="mb-3 flex items-baseline justify-between gap-3">
                 <h3 className={sectionTitleCls}>{t("today.title")}</h3>
-                {dashboard.todayClasses.length > 0 && (
+                {canAttendance && dashboard.todayClasses.length > 0 && (
                   <p className="text-xs tabular-nums text-ink/50">
                     {t("today.attendance", {
                       count: dashboard.attendanceToday,
@@ -367,8 +397,9 @@ export function AcademyDashboard({
 
           {/* Particulares REQUESTED esperando asignación o confirmación -
               segunda cola operativa del home; cada fila navega al módulo
-              (no hay ficha por lección - la acción vive en el card). */}
-          {pendingLessons && pendingLessons.count > 0 && (
+              (no hay ficha por lección - la acción vive en el card).
+              Cola de clases: feature `classes` (spec academy-tier-v2). */}
+          {canClasses && pendingLessons && pendingLessons.count > 0 && (
             <section
               aria-label={t("insights.pendingLessonsTitle")}
               data-tour="academy-pending"

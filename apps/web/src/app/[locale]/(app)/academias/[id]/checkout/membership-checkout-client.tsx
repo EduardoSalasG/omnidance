@@ -342,13 +342,44 @@ export function MembershipCheckoutClient({
         />
       )}
 
+      {/* Promo de la academia vigente (spec member-promos): el descuento
+          se ve antes del breakdown - precio tachado + oferta + expiración. */}
+      {quote.promo && (
+        <Card>
+          <div className="flex flex-col gap-1">
+            <Badge variant="neon">
+              {t("promoBadge", { name: quote.promo.name })}
+            </Badge>
+            <p className="text-sm text-ink/70">
+              {quote.promo.discountType === "PERCENT"
+                ? t("promoOff", { pct: quote.promo.percentOff ?? 0 })
+                : t("promoOffFixed", {
+                    amount: clp.format(quote.promo.amountOffClp ?? 0),
+                  })}
+              {" · "}
+              {t("promoUntil", {
+                date: planDateFmt(locale).format(new Date(quote.promo.validUntil)),
+              })}
+            </p>
+            {quote.promo.cyclesLeft != null && (
+              <p className="text-xs text-ink/50">
+                {t("promoCyclesLeft", { count: quote.promo.cyclesLeft })}
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
+
       {/* Breakdown - el total mostrado es EXACTAMENTE lo que se cobra. */}
       <Card>
         <dl className="flex flex-col gap-2">
           <div className="flex items-center justify-between text-sm">
             <dt className="text-ink/70">{t("plan")}</dt>
             <dd>
-              <PriceTag amount={quote.plan.price} />
+              <PriceTag
+                amount={quote.plan.price}
+                className={quote.promo ? "opacity-60 line-through" : undefined}
+              />
             </dd>
           </div>
           <div className="flex items-center justify-between border-t border-line pt-3">

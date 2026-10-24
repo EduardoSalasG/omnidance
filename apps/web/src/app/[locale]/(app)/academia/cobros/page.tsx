@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ClaimsQueue } from "@/components/academy/claims-queue";
 import { CobrosExpiring } from "@/components/academy/cobros-expiring";
@@ -24,7 +25,17 @@ export default function AcademiaCobrosPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8">
-      <ConsoleHeader backHref="/academia" backLabel={t("detailBack")} />
+      <ConsoleHeader
+        backHref="/academia"
+        backLabel={t("detailBack")}
+        actions={
+          // Reporte de cobranza por período (spec academy-tier-v2) -
+          // el libro filtrable con agregados; mismo gate que el módulo.
+          <Button href="/academia/cobros/reporte" variant="secondary" size="sm">
+            {t("report.link")}
+          </Button>
+        }
+      />
       <AcademyGate>
         {({ academy }) => (
           <>

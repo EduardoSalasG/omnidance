@@ -38,6 +38,7 @@ import {
 } from "../../common/fee-breakdown";
 import { GatewayAccountsService } from "./gateway-accounts.service";
 import { AcademySalesService } from "./academy-sales.service";
+import { AcademyPromosService } from "./academy-promos.service";
 import { emitPaymentEvent } from "../domain/payment-ledger";
 import { FeatureFlagsService } from "../../features/feature-flags.service";
 import {
@@ -372,6 +373,7 @@ export class CheckoutService {
     private readonly accounts: GatewayAccountsService,
     private readonly academySales: AcademySalesService,
     private readonly features: FeatureFlagsService,
+    private readonly academyPromos: AcademyPromosService,
   ) {}
 
   /**
@@ -1294,6 +1296,7 @@ export class CheckoutService {
       where: { id: input.planId },
       select: {
         id: true,
+        academyId: true,
         active: true,
         type: true,
         price: true,
@@ -1313,11 +1316,29 @@ export class CheckoutService {
       );
     }
 
+    // Promo de la academia vigente para este alumno/plan (spec
+    // member-promos): el descuento sale del precio de lista - la
+    // pasarela cobra el total ya descontado y el Payment queda marcado
+    // (auditoría + conteo de maxCycles).
+    const promo = await this.academyPromos.resolveApplicable(
+      plan.academyId,
+      personId,
+      plan.id,
+      plan.price,
+    );
+
     // Precio del plan desde DB (nunca del cliente) = total exacto: modelo
     // SaaS (spec academy-saas-billing) - la academia paga su suscripción y
     // vende sin comisión; el costo Flow se liquida en su payout (línea
     // GATEWAY_FEE_PASSTHROUGH). feeMode ACADEMY lo marca en el libro.
-    const quote = this.pricing.quote({ listPrice: plan.price, discount: null });
+    const quote = this.pricing.quote({
+      listPrice: plan.price,
+      discount: promo
+        ? promo.discountType === "PERCENT"
+          ? { percentOff: promo.percentOff }
+          : { amountOff: promo.amountOffClp }
+        : null,
+    });
 
     // refId = mem_<planId>_<uuid>: Payment no tiene columna para el plan,
     // así que el contexto viaja aquí - el webhook lo decodifica al PAID.
@@ -1337,6 +1358,7 @@ export class CheckoutService {
         personId,
         eventId: null,
         discountCodeId: null,
+        academyPromoId: promo?.id ?? null,
         amount: quote.total,
         fee: 0, // costo pasarela: desconocido hasta la liquidación
         net: quote.total,
@@ -1405,6 +1427,16 @@ export class CheckoutService {
       );
     }
 
+    // Promo de la academia vigente para este alumno/plan (spec
+    // member-promos): la quote expone descriptor + total ya descontado
+    // para el precio tachado + oferta del checkout.
+    const promo = await this.academyPromos.applicableView(
+      plan.academy.id,
+      personId,
+      plan.id,
+      plan.price,
+    );
+
     // TRIAL nunca extiende la vigencia vigente - se materializa como
     // enrollment independiente desde now; sin lookups de vigencia/suscripción.
     if (plan.type === "TRIAL") {
@@ -1419,7 +1451,8 @@ export class CheckoutService {
           description: plan.description,
         },
         academy: { id: plan.academy.id, name: plan.academy.name },
-        totalClp: plan.price,
+        totalClp: promo?.finalClp ?? plan.price,
+        promo,
         recurring: false,
         vigenciaEndsAt:
           membershipEndsAt(plan, new Date())?.toISOString() ?? null,
@@ -1469,7 +1502,8 @@ export class CheckoutService {
         description: plan.description,
       },
       academy: { id: plan.academy.id, name: plan.academy.name },
-      totalClp: plan.price,
+      totalClp: promo?.finalClp ?? plan.price,
+      promo,
       recurring: RECURRING_PLAN_TYPES.has(plan.type),
       vigenciaEndsAt: vigenciaEndsAt?.toISOString() ?? null,
       // Fin de la vigencia vigente - el checkout la muestra cuando la

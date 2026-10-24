@@ -25,6 +25,12 @@ import {
 import { PaymentSettlementService } from "./payment-settlement.service";
 import { GatewayTransactionsService } from "../infrastructure/gateway-transactions.service";
 import { ensureFlowCustomer } from "./flow-customer";
+import { AcademyPromosService } from "./academy-promos.service";
+import {
+  academyPromoPlanId,
+  membershipBasePlanId,
+  promoChargeClp,
+} from "../domain/academy-promos";
 
 // PlanType recurrente → interval_count de Flow (interval=3 mensual fijo):
 // MONTHLY cobra cada mes, QUARTERLY cada 3, SEMIANNUAL cada 6.
@@ -124,6 +130,7 @@ export class SubscriptionsService {
     private readonly settlement: PaymentSettlementService,
     private readonly notifications: NotificationsService,
     private readonly gatewayTx: GatewayTransactionsService,
+    private readonly academyPromos: AcademyPromosService,
     @Inject(PAYMENT_GATEWAYS)
     private readonly gateways: GatewayRegistry,
   ) {}
@@ -176,7 +183,7 @@ export class SubscriptionsService {
    * llamada queda auditada en GatewayTransaction igual).
    */
   async syncMirrorPlan(
-    plan: { flowPlanId: string | null; academy: { name: string } },
+    plan: { id?: string; flowPlanId: string | null; academy: { name: string } },
     next: { name: string; price: number },
   ): Promise<void> {
     const gw = await this.subscriptionGateway();
@@ -192,6 +199,79 @@ export class SubscriptionsService {
       },
       { correlationId: randomUUID() },
     );
+    // El precio del espejo base ya cambió in-place (spec member-promos):
+    // se actualiza planChargeClp en las subs que cobran por ese espejo
+    // para que el drift-check no agenda un reprice redundante. Las subs
+    // bajo espejo de promo quedan intactas - su reprice aplica al nuevo
+    // precio resuelto (promo sobre el plan editado).
+    if (plan.id) {
+      await this.prisma.membershipSubscription
+        .updateMany({
+          where: {
+            planId: plan.id,
+            academyPromoId: null,
+            pendingReprice: false,
+            status: { in: ["ACTIVE", "CANCEL_PENDING"] },
+          },
+          data: { planChargeClp: next.price },
+        })
+        .catch(() => {});
+    }
+  }
+
+  /**
+   * Cargo de la sub recurrente de un plan para un alumno (spec
+   * member-promos): precio del plan resuelto contra las AcademyPromo
+   * vigentes (enabled + ventana + plan scope + whitelist + maxCycles).
+   * El espejo remoto es el propio de la promo
+   * (`omni_<planId>_prm_<promoId>_<amount>`) cuando aplica - nunca se
+   * muta el plan espejo base ni MembershipPlan.price. Es la única
+   * resolución que comparten subscribe, customerReturn, el drift-check
+   * y el reprice.
+   */
+  private async memberChargeSpec(
+    plan: {
+      id: string;
+      name: string;
+      price: number;
+      type: string;
+      flowPlanId: string | null;
+      academy: { name: string };
+    },
+    academyId: string,
+    personId: string,
+  ): Promise<{
+    planId: string;
+    name: string;
+    amount: number;
+    intervalCount: number;
+    promoId: string | null;
+  }> {
+    const intervalCount = INTERVAL_COUNT[plan.type] ?? 1;
+    const label = `${plan.academy.name} - ${plan.name}`;
+    const promo = await this.academyPromos.resolveApplicable(
+      academyId,
+      personId,
+      plan.id,
+      plan.price,
+    );
+    if (!promo) {
+      return {
+        planId: plan.flowPlanId ?? membershipBasePlanId(plan.id),
+        name: label,
+        amount: plan.price,
+        intervalCount,
+        promoId: null,
+      };
+    }
+    const amount = promoChargeClp(plan.price, promo);
+    return {
+      planId: academyPromoPlanId(plan.id, promo.id, amount),
+      name: `${label} · ${promo.name}`,
+      amount,
+      intervalCount,
+      promoId: promo.id,
+    };
   }
 
   /**
@@ -333,25 +413,35 @@ export class SubscriptionsService {
 
     const correlationId = randomUUID();
 
-    // Plan espejo en Flow - lazy create en el primer subscribe.
-    let flowPlanId = plan.flowPlanId;
-    if (!flowPlanId) {
-      flowPlanId = `omni_${plan.id}`;
+    // Plan espejo en Flow - lazy create en el primer subscribe. Con
+    // promo vigente (spec member-promos) el espejo es el propio de la
+    // promo (omni_<plan>_prm_<promo>_<amount>): nunca se muta el espejo
+    // base ni MembershipPlan.price.
+    const charge = await this.memberChargeSpec(plan, plan.academyId, personId);
+    const flowPlanId = charge.planId;
+    if (flowPlanId !== plan.flowPlanId) {
       // Sin cargo de servicio en el monto espejo (modelo SaaS - spec
-      // academy-saas-billing): Flow cobra al alumno solo plan.price.
+      // academy-saas-billing): Flow cobra al alumno solo el monto del
+      // cargo (precio del plan, ya descontado si hay promo).
       await provider.ensurePlan(
         {
           planId: flowPlanId,
-          name: `${plan.academy.name} - ${plan.name}`,
-          amount: plan.price,
-          intervalCount,
+          name: charge.name,
+          amount: charge.amount,
+          intervalCount: charge.intervalCount,
         },
         { correlationId },
       );
-      await this.prisma.membershipPlan.update({
-        where: { id: plan.id },
-        data: { flowPlanId },
-      });
+      // Solo se marca flowPlanId cuando el espejo BASE quedó
+      // materializado - con promo el espejo asegurado es el de la promo
+      // y el base sigue lazy (lo crea el primer cobro a precio lleno o
+      // el reprice al expirar).
+      if (charge.promoId === null) {
+        await this.prisma.membershipPlan.update({
+          where: { id: plan.id },
+          data: { flowPlanId },
+        });
+      }
     }
 
     // Customer en Flow - lazy create (helper compartido con las subs de
@@ -404,6 +494,8 @@ export class SubscriptionsService {
 
     const { active, fs } = await this.createRemoteSubscription(sub.id, {
       flowPlanId,
+      academyPromoId: charge.promoId,
+      planChargeClp: charge.amount,
       customerId,
       correlationId,
     });
@@ -457,7 +549,15 @@ export class SubscriptionsService {
    */
   private async createRemoteSubscription(
     subId: string,
-    p: { flowPlanId: string; customerId: string; correlationId: string },
+    p: {
+      flowPlanId: string;
+      /** Promo materializada en el plan remoto (spec member-promos). */
+      academyPromoId: string | null;
+      /** Monto horneado en el plan remoto - la verdad del próximo cobro. */
+      planChargeClp: number;
+      customerId: string;
+      correlationId: string;
+    },
   ): Promise<{ active: MembershipSubscription; fs: RemoteSubscription }> {
     const { provider } = await this.provider();
     let fs: RemoteSubscription;
@@ -513,6 +613,8 @@ export class SubscriptionsService {
           nextInvoiceAt: fs.nextInvoiceDate
             ? new Date(fs.nextInvoiceDate)
             : null,
+          academyPromoId: p.academyPromoId,
+          planChargeClp: p.planChargeClp,
           ...(nextStatus === "CANCELED" ? { canceledAt: new Date() } : {}),
         },
       })
@@ -577,15 +679,14 @@ export class SubscriptionsService {
           select: {
             flowPlanId: true,
             name: true,
+            type: true,
+            price: true,
             academy: { select: { name: true } },
           },
         },
       },
     });
     if (!sub) return { ok: false, academyId: null };
-    if (!sub.plan.flowPlanId) {
-      return { ok: false, academyId: sub.academyId };
-    }
 
     // Claim atómico PENDING_CARD → ACTIVATING (I1): un segundo return
     // del browser o un subscribe concurrente con tarjeta no puede
@@ -605,8 +706,36 @@ export class SubscriptionsService {
         : { ok: false, academyId: sub.academyId };
     }
 
+    // El cargo se re-resuelve al volver del disclaimer (spec
+    // member-promos): la promo pudo aparecer, editarse o expirar entre
+    // el intento y el retorno. El espejo se asegura acá (idempotente);
+    // si el resuelto es el base y aún no estaba materializado, se marca.
+    const charge = await this.memberChargeSpec(
+      { ...sub.plan, id: sub.planId },
+      sub.academyId,
+      person.id,
+    );
+    await provider.ensurePlan(
+      {
+        planId: charge.planId,
+        name: charge.name,
+        amount: charge.amount,
+        intervalCount: charge.intervalCount,
+      },
+      { correlationId },
+    );
+    if (charge.promoId === null && !sub.plan.flowPlanId) {
+      await this.prisma.membershipPlan
+        .update({
+          where: { id: sub.planId },
+          data: { flowPlanId: charge.planId },
+        })
+        .catch(() => {});
+    }
     const { active, fs } = await this.createRemoteSubscription(sub.id, {
-      flowPlanId: sub.plan.flowPlanId,
+      flowPlanId: charge.planId,
+      academyPromoId: charge.promoId,
+      planChargeClp: charge.amount,
       customerId: reg.customerId,
       correlationId,
     });
@@ -1014,6 +1143,9 @@ export class SubscriptionsService {
             amount,
             fee: 0, // costo pasarela: lo persiste el settle (paymentData.fee)
             net: amount,
+            // Auditoría del cobro descontado (spec member-promos) - base
+            // del conteo de maxCycles por alumno.
+            academyPromoId: sub.academyPromoId ?? null,
             gateway:
               (await this.subscriptionGateway())?.name ?? "UNCONFIGURED",
             gatewayRef: inv.payment?.orderRef ?? null,
@@ -1047,9 +1179,40 @@ export class SubscriptionsService {
     // subscription-port-generic): CANCELED es terminal; UNKNOWN se
     // trata como vigente (igual que antes un código ≠4).
     if (fs.status === "CANCELED") {
+      if (sub.pendingReprice) {
+        // Reprice agendado por drift de precio (spec member-promos):
+        // recrea la remota con el cargo vigente al fin del período - la
+        // resolución vuelve a correr (promo expirada/agotada → plan base
+        // a precio lleno). Si falla, CANCEL_PENDING + pendingReprice →
+        // el próximo barrido reintenta.
+        try {
+          const repriced = await this.applyPendingReprice(sub, actor);
+          if (repriced) return settled;
+        } catch (e) {
+          this.logger.error(
+            `reprice sub ${sub.id}: ${e instanceof Error ? e.message : e}`,
+          );
+          await this.prisma.membershipSubscription
+            .update({
+              where: { id: sub.id },
+              data: {
+                status: "CANCEL_PENDING",
+                canceledAt: sub.canceledAt ?? new Date(),
+              },
+            })
+            .catch(() => {});
+          return settled;
+        }
+      }
       status = "CANCELED";
       canceledAt ??= new Date();
-    } else if (fs.cancelAtPeriodEnd && status === "ACTIVE") {
+    } else if (
+      fs.cancelAtPeriodEnd &&
+      status === "ACTIVE" &&
+      !sub.pendingReprice
+    ) {
+      // Con reprice agendado el status se mantiene ACTIVE: la cancel de
+      // la remota la pidió el sistema para el swap, no el alumno.
       status = "CANCEL_PENDING";
       canceledAt ??= new Date();
     }
@@ -1165,7 +1328,168 @@ export class SubscriptionsService {
         });
       }
     }
+
+    // Drift de precio (spec member-promos): la remota debe cobrar lo que
+    // la resolución de promos da HOY (promo vigente o precio lleno). Si
+    // difiere — promo nueva aplicable, agotada, expirada, deshabilitada,
+    // editada, o precio del plan cambiado — se agenda el reprice: cancel
+    // de la remota a fin de período + recreación con el cargo vigente.
+    // Con mora no se agenda nada (el cobro está fallando; la
+    // regularización resuelve el precio después).
+    if (
+      status === "ACTIVE" &&
+      !fs.morose &&
+      sub.flowSubscriptionId &&
+      !fs.cancelAtPeriodEnd &&
+      !sub.pendingReprice
+    ) {
+      try {
+        await this.ensureRemotePrice(sub, actor);
+      } catch (e) {
+        this.logger.error(
+          `drift-check sub ${sub.id}: ${e instanceof Error ? e.message : e}`,
+        );
+      }
+    }
     return settled;
+  }
+
+  /**
+   * Agenda el reprice de una sub cuyo plan remoto ya no calza con lo que
+   * memberChargeSpec resuelve hoy: cancel de la remota a fin de período
+   * + `pendingReprice`. Cuando Flow la reporta CANCELED el reconcile la
+   * recrea con el cargo vigente (`applyPendingReprice`).
+   */
+  private async ensureRemotePrice(
+    sub: MembershipSubscription,
+    actor: string,
+  ): Promise<void> {
+    const plan = await this.prisma.membershipPlan.findUnique({
+      where: { id: sub.planId },
+      include: { academy: { select: { name: true } } },
+    });
+    if (!plan) return;
+    const expected = await this.memberChargeSpec(
+      plan,
+      sub.academyId,
+      sub.personId,
+    );
+    const drift =
+      (sub.academyPromoId ?? null) !== (expected.promoId ?? null) ||
+      (sub.planChargeClp != null && sub.planChargeClp !== expected.amount);
+    if (!drift) return;
+    const { provider } = await this.provider();
+    await provider.cancelSubscription(sub.flowSubscriptionId!, {
+      correlationId: randomUUID(),
+    });
+    await this.prisma.membershipSubscription.update({
+      where: { id: sub.id },
+      data: { pendingReprice: true },
+    });
+    sub.pendingReprice = true;
+    this.logger.log(
+      `reprice agendado sub ${sub.id} (${actor}): promo ${sub.academyPromoId ?? "-"}→${expected.promoId ?? "-"}, cargo ${sub.planChargeClp ?? "?"}→${expected.amount}`,
+    );
+  }
+
+  /**
+   * Materializa el reprice cuando la remota vieja quedó CANCELED (fin de
+   * período): recrea la sub remota sobre el plan que memberChargeSpec
+   * resuelve HOY - espejo base o promo según aplique. El primer cobro de
+   * la remota nueva es el del ciclo que empieza (la invoice pagada la
+   * liquida el reconcile recursivo).
+   */
+  private async applyPendingReprice(
+    sub: MembershipSubscription,
+    actor: string,
+  ): Promise<boolean> {
+    const plan = await this.prisma.membershipPlan.findUnique({
+      where: { id: sub.planId },
+      include: { academy: { select: { name: true } } },
+    });
+    if (!plan) return false;
+    const { provider } = await this.provider();
+    const correlationId = randomUUID();
+    const charge = await this.memberChargeSpec(plan, sub.academyId, sub.personId);
+    await provider.ensurePlan(
+      {
+        planId: charge.planId,
+        name: charge.name,
+        amount: charge.amount,
+        intervalCount: charge.intervalCount,
+      },
+      { correlationId },
+    );
+    if (charge.promoId === null && !plan.flowPlanId) {
+      await this.prisma.membershipPlan
+        .update({
+          where: { id: plan.id },
+          data: { flowPlanId: charge.planId },
+        })
+        .catch(() => {});
+    }
+    const { customerId } = await ensureFlowCustomer(
+      this.prisma,
+      provider,
+      sub.personId,
+      { correlationId },
+    );
+    const fs = await provider.createSubscription(
+      {
+        planId: charge.planId,
+        customerId,
+        subscriptionStart: new Date().toISOString().slice(0, 10),
+      },
+      { correlationId },
+    );
+    // Persistencia temprana del id remoto - el sweep de huérfanas la
+    // rastrea aunque muera el proceso antes del updateMany.
+    await this.prisma.membershipSubscription
+      .update({
+        where: { id: sub.id },
+        data: { flowSubscriptionId: fs.subscriptionId },
+      })
+      .catch(() => {});
+    const transition = await this.prisma.membershipSubscription
+      .updateMany({
+        where: { id: sub.id, status: sub.status },
+        data: {
+          flowSubscriptionId: fs.subscriptionId,
+          status: fs.status === "CANCELED" ? "CANCELED" : "ACTIVE",
+          nextInvoiceAt: fs.nextInvoiceDate
+            ? new Date(fs.nextInvoiceDate)
+            : null,
+          lastInvoiceId: null,
+          reminderSentFor: null,
+          pendingReprice: false,
+          academyPromoId: charge.promoId,
+          planChargeClp: charge.amount,
+          canceledAt: null,
+        },
+      })
+      .catch(() => ({ count: 0 }));
+    if (transition.count === 0) {
+      await provider
+        .cancelSubscription(fs.subscriptionId, {
+          correlationId,
+          immediate: true,
+        })
+        .catch(() => {});
+      throw new ConflictException(
+        "la suscripción cambió de estado durante el reprice",
+      );
+    }
+    const updated = await this.prisma.membershipSubscription.findUniqueOrThrow({
+      where: { id: sub.id },
+    });
+    try {
+      await this.reconcileSubscription(updated, fs, actor);
+    } catch (e) {
+      this.logger.error(
+        `reconcile post-reprice sub ${sub.id}: ${e instanceof Error ? e.message : e}`,
+      );
+    }
+    return true;
   }
 
   private async markInvoice(

@@ -90,6 +90,10 @@ model Person {
   // Whitelist de promos Producer Pro + promos creadas por este admin.
   platformPromosWhitelisted PlatformPromo[] @relation("PlatformPromoProducers")
   platformPromosCreated     PlatformPromo[] @relation("PlatformPromoCreator")
+  // Whitelist de promos de membresía de academias (preventa incluida) +
+  // promos de academia creadas por esta persona (staff/owner).
+  academyPromosWhitelisted  AcademyPromo[] @relation("AcademyPromoPersons")
+  academyPromosCreated      AcademyPromo[] @relation("AcademyPromoCreator")
   paymentClaims  PaymentClaim[]
   claimsReviewed PaymentClaim[] @relation("ClaimReviewer")
   gatewayAccounts ProducerGatewayAccount[] @relation("ProducerGatewayAccounts")
@@ -952,6 +956,7 @@ model Academy {
   enrollments  Enrollment[]
   platformSubscriptions PlatformSubscription[]
   platformPromos       PlatformPromo[]
+  academyPromos        AcademyPromo[]
   paymentMethods AcademyPaymentMethod[]
   paymentClaims  PaymentClaim[]
   saleAgreements AcademySaleAgreement[]
@@ -1037,6 +1042,8 @@ model MembershipPlan {
   // plan espejo en Flow (lazy create al primer subscribe - interval 3 mensual,
   // interval_count según tipo). null = aún no sincronizado.
   flowPlanId    String?
+  // Planes dentro del scope de una promo de la academia (vacío = todos).
+  academyPromos AcademyPromo[]
 }
 
 enum EnrollmentStatus {
@@ -1126,6 +1133,11 @@ model PaymentClaim {
   reviewedAt   DateTime?
   reviewNote   String? // motivo del rechazo / nota del owner
   paymentId    String? // Payment MANUAL creado al aprobar
+  // Promo de academia bajo la que se declaró el monto (spec
+  // member-promos): snapshot del intento - al aprobar, el Payment
+  // MANUAL hereda academyPromoId para el conteo de maxCycles.
+  academyPromo   AcademyPromo? @relation(fields: [academyPromoId], references: [id], onDelete: SetNull)
+  academyPromoId String?
 
   createdAt    DateTime @default(now())
 
@@ -1475,6 +1487,12 @@ model Payment {
   // base del conteo de maxCycles por actor.
   platformPromo   PlatformPromo? @relation(fields: [platformPromoId], references: [id], onDelete: SetNull)
   platformPromoId String?
+  // Promo de academia aplicada a este cobro (spec member-promos) - en
+  // orderType MEMBERSHIP (checkout, claim manual aprobado y renovación
+  // recurrente). Auditoría del cobro descontado y base del conteo de
+  // maxCycles por alumno.
+  academyPromo   AcademyPromo? @relation(fields: [academyPromoId], references: [id], onDelete: SetNull)
+  academyPromoId String?
   status    PaymentStatus @default(PENDING)
   createdAt DateTime      @default(now())
 
@@ -1484,6 +1502,7 @@ model Payment {
 
   @@index([soldByAcademyId])
   @@index([platformPromoId])
+  @@index([academyPromoId])
 }
 
 // Canal de preventa atribuido a academias (spec academy-presale-commission):
@@ -2022,6 +2041,18 @@ model MembershipSubscription {
   nextInvoiceAt      DateTime?      // de Flow next_invoice_date - alimenta el reminder
   lastInvoiceId      String?        // dedup de renovaciones ya liquidadas
   reminderSentFor    DateTime?      // nextInvoiceAt ya recordado (dedup alerta)
+  // Reprice agendado (spec member-promos): el reconcile canceló la remota
+  // a fin de período para recrearla con el cargo vigente (promo agotada/
+  // expirada/editada o precio del plan cambiado). El status sigue ACTIVE
+  // para el alumno hasta que el swap se materializa.
+  pendingReprice     Boolean        @default(false)
+  // Promo del plan remoto vigente: null = espejo base omni_<planId>.
+  // planChargeClp = monto horneado en el plan remoto (la verdad del
+  // próximo cobro) - alimenta el drift-check que agenda el reprice
+  // cuando deja de calzar con lo que la resolución de promos da hoy.
+  academyPromo       AcademyPromo?  @relation(fields: [academyPromoId], references: [id], onDelete: SetNull)
+  academyPromoId     String?
+  planChargeClp      Int?
   createdAt          DateTime       @default(now())
   canceledAt         DateTime?
 
@@ -2121,6 +2152,47 @@ model PlatformPromo {
 
   subscriptions PlatformSubscription[]
   payments      Payment[]
+}
+
+/// Promo de membresía de academia (spec member-promos): descuento
+/// gestionado por la academia (becas/preventa) sobre el cobro de sus
+/// MembershipPlan - % o CLP fijo por cobro, ventana de vigencia,
+/// maxCycles por alumno (conteo de Payment PAID marcados), scope a
+/// planes (vacío = todos los de la academia) y whitelist de personas
+/// (vacía = todos; admite personas no inscritas → preventa).
+/// El descuento en suscripción recurrente se materializa como plan
+/// espejo propio (`omni_<planId>_prm_<promoId>_<amount>`) - nunca muta
+/// el espejo base del plan ni MembershipPlan.price. Sin delete: baja =
+/// enabled=false (los Payment ya descontados quedan auditados).
+model AcademyPromo {
+  id           String   @id @default(cuid())
+  academy      Academy  @relation(fields: [academyId], references: [id])
+  academyId    String
+  name         String
+  discountType PlatformPromoDiscountType
+  // PERCENT → percentOff 1-100; FIXED_CLP → amountOffClp descontado del
+  // cobro del plan (piso $0).
+  percentOff   Int?
+  amountOffClp Int?
+  validFrom    DateTime
+  validUntil   DateTime
+  // Cobros descontados por alumno; null = ilimitado dentro de la ventana.
+  maxCycles    Int?
+  enabled      Boolean  @default(true)
+  // Scope a planes (vacío = todos los de la academia) y whitelist de
+  // personas (vacía = cualquier persona - inscrita o no).
+  plans        MembershipPlan[]
+  persons      Person[]         @relation("AcademyPromoPersons")
+  createdBy    Person?          @relation("AcademyPromoCreator", fields: [createdById], references: [id])
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subscriptions MembershipSubscription[]
+  payments      Payment[]
+  claims        PaymentClaim[]
+
+  @@index([academyId])
 }
 
 // ═══════════════════ JOBS PROGRAMADOS + CAMPAÑAS DE MAIL ═══════════════════

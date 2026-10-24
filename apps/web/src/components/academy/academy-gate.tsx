@@ -9,6 +9,7 @@ import { useRouter } from "@/i18n/navigation";
 import { PageLoading } from "@/components/ui/spinner";
 import { AcademyBillingBanner } from "./academy-billing-banner";
 import { CreateAcademyForm } from "./create-academy-form";
+import { academyTierHas } from "@/lib/academy-features";
 import { ACADEMY_STORAGE_KEY, inputCls, type Academy } from "./shared";
 
 type Gate = "loading" | "unauth" | "empty" | "ready" | "error";
@@ -109,6 +110,20 @@ export function AcademyGate({
 
   const selected = academies.find((a) => a.id === selectedId) ?? null;
 
+  // Multi-academia = feature PRO (spec academy-tier-v2): la opción
+  // "Nueva academia" del selector solo aparece si alguna academia
+  // PROPIA del owner la cubre (misma regla que POST /academies:
+  // assertAnyOwnedAcademyMeets solo cuando ya posee ≥1). El admin de
+  // plataforma pasa sin gate (bypass del server). Academias donde es
+  // instructor/staff no cuentan - el gate mira las owned.
+  const isPlatformAdmin = me?.roles.includes("ADMIN") ?? false;
+  const owned = academies.filter((a) => a.ownerId === me?.id);
+  const canAddAcademy =
+    canCreate &&
+    (isPlatformAdmin ||
+      owned.length === 0 ||
+      owned.some((a) => academyTierHas(a.tier, "multiAcademy")));
+
   return (
     <>
       {gate === "loading" && <PageLoading />}
@@ -170,7 +185,7 @@ export function AcademyGate({
                       {a.name}
                     </option>
                   ))}
-                  {canCreate && (
+                  {canAddAcademy && (
                     <option value="__new">＋ {t("newAcademy")}</option>
                   )}
                 </select>

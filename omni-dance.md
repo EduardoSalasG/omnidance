@@ -640,9 +640,9 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 
 | Tier | Precio mensual | Alumnos activos | Incluye |
 |---|---|---|---|
-| **COBROS** (señuelo) | $39.990 |  ≤60 | Cobro de membresías por nuestra pasarela + lista de alumnos al día/morosos. Sin clases, sin asistencia, sin staff. Take ~1,5× el fee real de pasarela (~4,8% all-in) — compite con cobranza pura tipo Membrezia |
-| **STUDIO** (objetivo) | $79.990 | ≤150 | + planes y membresías, clases/series, reservas, asistencia por profe, export mensual CSV, check-in. Pasarela a costo real (sin take) |
-| **PRO** (top) | $119.990 | ilimitado | + analítica, CRM (scores/segmentos/campañas), notificaciones de marketing segmentadas, videos, insights, **cuenta multi-academia** |
+| **COBROS** (señuelo) | $39.990 |  ≤60 | Cobro de membresías por nuestra pasarela + lista de alumnos al día/morosos + **reporte de cobranza** (facturación mensual, quién pagó, plan top, filtros). Sin clases, sin asistencia, sin staff, sin scores/clasificación CRM en superficies de alumnos. Take ~1,5× el fee real de pasarela (~4,8% all-in) — compite con cobranza pura tipo Membrezia |
+| **STUDIO** (objetivo) | $79.990 | ≤150 | + planes y membresías, clases/series, reservas, asistencia por profe, export mensual CSV, check-in, KPIs operacionales (ocupación, asistencia del día). Pasarela a costo real (sin take). Sin consultas rápidas ni analítica estratégica |
+| **PRO** (top) | $119.990 | ilimitado | + analítica completa (consultas rápidas, insights, audiencia), CRM (scores/segmentos/campañas), notificaciones de marketing segmentadas, videos, **cuenta multi-academia** |
 
 - El medio es el plan que queremos vender (gestión completa); el señuelo existe para anclar — quien compara solo sticker no es el segmento.
 - Descuentos por ciclo: semestral **−8%**, anual **−15%** (convención 15–20%; el −2%/−4% anterior no movía decisión).
@@ -662,6 +662,10 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 El ticketing base, venta y check-in **nunca se cortan** por la suscripción (el marketplace es el funnel). Trial de lanzamiento: +90d a productores registrados. Ciclos con −8% semestral/−15% anual (mismo criterio que academias).
 
 **Promos de suscripción** (spec `platform-promos`): el admin gestiona `PlatformPromo` desde `/admin/facturacion/promos` — descuento PERCENT o FIXED_CLP sobre el cargo del ciclo, scope por línea (ACADEMY/PRODUCER/ambas), ventana validFrom/validUntil, `maxCycles` por actor (cobros PAID marcados `Payment.platformPromoId`), whitelist opcional y flag enabled. Se materializa como **plan espejo propio** (`plat_*_prm_<promoId>_<monto>`) — nunca muta el plan compartido del tier; al agotarse ciclos/vencer/deshabilitarse, el reconcile agenda `pendingReprice` (cancel remota a fin de período + recreación con el cargo vigente). La vista del actor muestra `activePromo` (tachado + oferta + vencimiento) y el MRR usa el cargo efectivo (`planChargeClp`).
+
+**Promos de membresía** (spec `academy-tier-v2` / `member-promos`): la academia gestiona `AcademyPromo` sobre sus planes — beca o descuento por alumno con la misma mecánica (% o CLP fijo, ventana, maxCycles, whitelist de personas, scope a planes). La whitelist admite personas no inscritas → la beca funciona como **preventa** (el descuento aplica al primer cobro aunque el alumno se inscriba recién). Nunca muta el precio del plan; audita en `Payment.academyPromoId`.
+
+**Corte de analítica por tier**: STUDIO conserva analítica *operacional* (KPIs del día, asistencia por clase, ocupación, reservas) — lo que una academia usa a diario; PRO suma la *estratégica* (consultas rápidas, insights de audiencia, cohortes/retención, benchmark, marketing). COBROS solo tiene su analítica de cobranza. Los campos de features en superficies compartidas se ocultan (no 403): score/clasificación CRM sin `crm`, asistencia en detalle sin `attendance`, insight de audiencia sin `insights`, clases de hoy sin `classes`.
 
 **Publicidad segmentada a bailarines (nueva línea de ingreso)**: academias PRO y productores Pro Growth/Scale pueden promocionar talleres/eventos a dancers por canal notificación in-app, con guardrails duros: **frecuencia cap** (máx. 1 push promocional/semana por persona), targeting por agregados (nivel/ciudad/estilo — nunca data individual al anunciante, cumple la regla de privacidad de scores), opt-out por usuario, y la regla de pista (~5s) se mantiene — el push es glanceable, el detalle vive en el centro. Cola de aprobación admin en v1 para cuidar el tono.
 

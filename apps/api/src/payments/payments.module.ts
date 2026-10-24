@@ -41,6 +41,7 @@ import { ProducerClaimsService } from "./infrastructure/producer-claims.service"
 import { ProducerProController } from "./infrastructure/producer-pro.controller";
 import { AcademySalesController } from "./infrastructure/academy-sales.controller";
 import { AcademySalesService } from "./application/academy-sales.service";
+import { AcademyPromosService } from "./application/academy-promos.service";
 import { SubscriptionsScheduler } from "./infrastructure/subscriptions.scheduler";
 import { TicketsScheduler } from "./infrastructure/tickets.scheduler";
 import { WalletController } from "./infrastructure/wallet.controller";
@@ -95,6 +96,7 @@ import { SocialPassController } from "./infrastructure/social-pass.controller";
     TicketDayOfService,
     WalletService,
     AcademySalesService,
+    AcademyPromosService,
     SocialPassService,
     GatewayTransactionsService,
     { provide: PricingService, useFactory: () => new PricingService() },
@@ -126,6 +128,7 @@ import { SocialPassController } from "./infrastructure/social-pass.controller";
     PayoutDestinationService,
     SubscriptionsService,
     PlatformSubscriptionsService,
+    AcademyPromosService,
   ],
 })
 export class PaymentsModule {}

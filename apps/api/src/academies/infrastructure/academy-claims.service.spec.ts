@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { AcademyClaimsService } from "./academy-claims.service";
+import { AcademyPromosService } from "../../payments/application/academy-promos.service";
 import type { StoredFile } from "../../storage/storage.service";
 import type { PrismaService } from "../../prisma.service";
 import type { NotificationsService } from "../../notifications/domain/notifications.service";
@@ -179,6 +180,9 @@ function mkPrisma() {
             : null,
         ),
       },
+      // Sin promos por defecto (spec member-promos) - el test de promo
+      // siembra vía mockResolvedValue.
+      academyPromo: { findMany: vi.fn(async () => [] as Row[]) },
     },
   };
 }
@@ -194,6 +198,7 @@ function mkService() {
     fx.prisma as unknown as PrismaService,
     notifications as unknown as NotificationsService,
     storage as never,
+    new AcademyPromosService(fx.prisma as unknown as PrismaService),
   );
   return { fx, service, storage, notifications };
 }

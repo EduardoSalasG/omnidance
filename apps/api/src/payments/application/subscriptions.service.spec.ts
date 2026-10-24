@@ -14,6 +14,7 @@ import { PaymentSettlementService } from "./payment-settlement.service";
 import { GatewayTransactionsService } from "../infrastructure/gateway-transactions.service";
 import { StubGateway } from "../infrastructure/stub.gateway";
 import { SubscriptionsService } from "./subscriptions.service";
+import { AcademyPromosService } from "./academy-promos.service";
 
 // SubscriptionsService - fake SubscriptionProvider (name "FLOW" para pasar
 // el check del puerto) + fake prisma stateful (mismo patrón que
@@ -74,6 +75,12 @@ function matchWhere(row: Row, where: Row): boolean {
           v.getTime() > (c.lte as Date).getTime()
         )
           return false;
+      } else if ("gte" in c) {
+        if (
+          !(v instanceof Date) ||
+          v.getTime() < (c.gte as Date).getTime()
+        )
+          return false;
       } else if ("startsWith" in c) {
         if (typeof v !== "string" || !v.startsWith(c.startsWith as string))
           return false;
@@ -94,6 +101,7 @@ function mkPrisma() {
   const subs: Row[] = [];
   const persons = new Map<string, Row>();
   const plans = new Map<string, Row>();
+  const promos: Row[] = [];
   const gatewayTxs: Row[] = [];
   // Notificaciones "enviadas" - el spy de notifySafe las registra acá
   // (beforeEach) y notification.findFirst las consulta: así el dedup de
@@ -288,6 +296,18 @@ function mkPrisma() {
           return { count: 1 };
         },
       ),
+      // Conteo de cobros marcados con una promo (spec member-promos -
+      // base de maxCycles por alumno).
+      count: vi.fn(async ({ where }: { where: Row }) =>
+        [...payments.values()].filter((p) => matchWhere(p, where)).length,
+      ),
+    },
+    // AcademyPromo (spec member-promos): store stateful - los tests de
+    // promo siembran filas con plans/persons ya materializados.
+    academyPromo: {
+      findMany: vi.fn(async ({ where }: { where: Row }) =>
+        promos.filter((p) => matchWhere(p, where)),
+      ),
     },
     paymentEvent: {
       findFirst: vi.fn(async ({ where }: { where: { paymentId: string } }) =>
@@ -379,6 +399,7 @@ function mkPrisma() {
     subs,
     persons,
     plans,
+    promos,
     gatewayTxs,
     sentNotifs,
   };
@@ -507,6 +528,7 @@ describe("SubscriptionsService", () => {
       new PaymentSettlementService(prisma, paramsSvc, notif),
       notif,
       new GatewayTransactionsService(prisma),
+      new AcademyPromosService(prisma),
       new GatewayRegistry([flow as unknown as PaymentGateway], "FLOW"),
     );
   });
@@ -566,6 +588,7 @@ describe("SubscriptionsService", () => {
         ),
         notif,
         new GatewayTransactionsService(prisma),
+        new AcademyPromosService(prisma),
         new GatewayRegistry(
           [stubGw as unknown as PaymentGateway],
           "STUB",
@@ -1604,6 +1627,7 @@ describe("SubscriptionsService", () => {
         ),
         notif,
         new GatewayTransactionsService(prisma),
+        new AcademyPromosService(prisma),
         new GatewayRegistry(
           [stubGw as unknown as PaymentGateway],
           "STUB",
@@ -1645,6 +1669,7 @@ describe("SubscriptionsService", () => {
         new PaymentSettlementService(prisma, paramsSvc, notif),
         notif,
         new GatewayTransactionsService(prisma),
+        new AcademyPromosService(prisma),
         new GatewayRegistry([stub as unknown as PaymentGateway], "STUB"),
       );
     });
@@ -1750,6 +1775,130 @@ describe("SubscriptionsService", () => {
       const r = await stubSvc.reconcileAll();
       expect(r.checked).toBe(1);
       expect(fx.subs[0]!.status).toBe("CANCELED");
+    });
+  });
+
+  // ── Promos de membresía (spec member-promos) ──────────────────────
+  // El descuento se materializa como plan espejo propio
+  // (omni_<plan>_prm_<promo>_<amount>) y queda auditado en la sub
+  // (academyPromoId/planChargeClp) + cada Payment de renovación.
+  describe("academy promos", () => {
+    const PROMO = {
+      id: "prm-1",
+      academyId: "ac1",
+      name: "Beca 50%",
+      discountType: "PERCENT",
+      percentOff: 50,
+      amountOffClp: null,
+      validFrom: new Date(Date.now() - 86_400_000),
+      validUntil: new Date(Date.now() + 30 * 86_400_000),
+      maxCycles: null as number | null,
+      enabled: true,
+      plans: [] as Row[],
+      persons: [] as Row[],
+    };
+
+    it("subscribe con promo vigente → espejo de promo + sub marcada", async () => {
+      fx.promos.push({ ...PROMO });
+      flow.getCustomer.mockResolvedValue({ hasCard: true });
+      const r = await svc.subscribe("p1", "plan1", true);
+
+      expect(r.kind).toBe("subscribed");
+      // ensurePlan sobre el espejo de la promo con el monto descontado;
+      // el espejo base omni_plan1 NO se creó ni se estampó.
+      expect(flow.ensurePlan).toHaveBeenCalledWith(
+        {
+          planId: "omni_plan1_prm_prm-1_5000",
+          name: "Academia X - Mensual · Beca 50%",
+          amount: 5000,
+          intervalCount: 1,
+        },
+        { correlationId: expect.any(String) },
+      );
+      expect(fx.plans.get("plan1")!.flowPlanId).toBeNull();
+      expect(flow.createSubscription).toHaveBeenCalledWith(
+        expect.objectContaining({ planId: "omni_plan1_prm_prm-1_5000" }),
+        expect.anything(),
+      );
+      const sub = fx.subs[0]!;
+      expect(sub.academyPromoId).toBe("prm-1");
+      expect(sub.planChargeClp).toBe(5000);
+    });
+
+    it("promo expirada → espejo base a precio lleno (sin marca)", async () => {
+      fx.promos.push({
+        ...PROMO,
+        validUntil: new Date(Date.now() - 60_000),
+      });
+      flow.getCustomer.mockResolvedValue({ hasCard: true });
+      await svc.subscribe("p1", "plan1", true);
+      expect(flow.ensurePlan).toHaveBeenCalledWith(
+        expect.objectContaining({ planId: "omni_plan1", amount: 10000 }),
+        expect.anything(),
+      );
+      expect(fx.subs[0]!.academyPromoId).toBeNull();
+      expect(fx.subs[0]!.planChargeClp).toBe(10000);
+    });
+
+    it("renovación liquida Payment marcado con la promo de la sub", async () => {
+      fx.subs.push(
+        mkSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "fsub-promo",
+          academyPromoId: "prm-1",
+          planChargeClp: 5000,
+        }),
+      );
+      const fs = {
+        subscriptionId: "fsub-promo",
+        planId: "omni_plan1_prm_prm-1_5000",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        nextInvoiceDate: "2026-11-24",
+        invoices: [
+          {
+            id: "inv-9",
+            amount: 5000,
+            paid: true,
+          },
+        ],
+      } as unknown as RemoteSubscription;
+      await svc.reconcileSubscription(fx.subs[0]! as never, fs, "spec");
+      const pay = [...fx.payments.values()][0]!;
+      expect(pay.amount).toBe(5000);
+      expect(pay.academyPromoId).toBe("prm-1");
+      expect(pay.status).toBe("PAID");
+    });
+
+    it("promo expirada en sub vigente → drift agenda reprice", async () => {
+      // Sub cobrando bajo la promo; la promo ya expiró → la resolución
+      // da precio lleno y el reconcile cancela la remota a fin de período.
+      fx.subs.push(
+        mkSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "fsub-exp",
+          academyPromoId: "prm-1",
+          planChargeClp: 5000,
+        }),
+      );
+      const fs = {
+        subscriptionId: "fsub-exp",
+        planId: "omni_plan1_prm_prm-1_5000",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        nextInvoiceDate: "2026-11-24",
+        invoices: [],
+      } as unknown as RemoteSubscription;
+      await svc.reconcileSubscription(fx.subs[0]! as never, fs, "spec");
+      expect(flow.cancelSubscription).toHaveBeenCalledWith(
+        "fsub-exp",
+        expect.objectContaining({ correlationId: expect.any(String) }),
+      );
+      expect(fx.subs[0]!.pendingReprice).toBe(true);
+      // El status visible sigue ACTIVE: la cancel es del sistema.
+      expect(fx.subs[0]!.status).toBe("ACTIVE");
     });
   });
 });

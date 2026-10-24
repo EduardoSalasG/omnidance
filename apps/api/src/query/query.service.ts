@@ -20,6 +20,7 @@ import {
   assertAnyOwnedAcademyMeets,
 } from "../common/actor-entitlements";
 import type { ProducerFeature } from "../payments/domain/actor-entitlements";
+import type { AcademyFeature } from "../academies/domain/academy-tiers";
 import { ADMIN_ENTITIES } from "./entities/admin";
 import { ACADEMY_ENTITIES } from "./entities/academy";
 import { PRODUCER_ENTITIES } from "./entities/producer";
@@ -112,10 +113,12 @@ export class QueryService {
 
   /**
    * Lens + gate de suscripción del actor (spec
-   * unified-actor-entitlements): PRODUCER exige la feature que declara
-   * la operación (analítica del console vs export) → 403 tier.required;
-   * ACADEMY_OWNER basta una academia propia que cubra "exports"
-   * (multi-academia); ADMIN sin gate de suscripción.
+   * unified-actor-entitlements + academy-tier-v2): PRODUCER exige la
+   * feature que declara la operación (analítica del console vs export)
+   * → 403 tier.required; ACADEMY_OWNER exige la feature homónima en
+   * alguna academia propia (multi-academia - "analytics"/"exports"
+   * existen en ambas matrices; consultas pasaron a ser PRO); ADMIN sin
+   * gate de suscripción.
    */
   private async assertLensGated(
     personId: string,
@@ -126,10 +129,15 @@ export class QueryService {
     if (r === "PRODUCER") {
       await assertActorFeature(this.prisma, "PRODUCER", personId, producerFeature);
     }
-    // Lente academia = la consola de consultas/export (STUDIO+): basta
-    // una academia del owner que cubra la feature (multi-academia).
+    // Lente academia: basta una academia del owner que cubra la misma
+    // feature que pide el endpoint (consultas → "analytics" PRO,
+    // export → "exports" STUDIO).
     if (r === "ACADEMY_OWNER") {
-      await assertAnyOwnedAcademyMeets(this.prisma, personId, "exports");
+      await assertAnyOwnedAcademyMeets(
+        this.prisma,
+        personId,
+        producerFeature as AcademyFeature,
+      );
     }
     return r;
   }

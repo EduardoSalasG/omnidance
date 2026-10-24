@@ -24,6 +24,9 @@ import { useRouter } from "@/i18n/navigation";
 const MODULES = [
   { href: "/academia/clases", key: "myClasses" },
   { href: "/academia/planes", key: "plans", cap: "plans" },
+  // Promos de membresía (spec member-promos): misma cap que planes -
+  // herramienta de precio en todos los tiers, sin gate de feature.
+  { href: "/academia/promos", key: "promos", cap: "plans" },
   { href: "/academia/alumnos", key: "students" },
   { href: "/academia/series", key: "series", cap: "schedule" },
   // Particulares sale de la navegación del instructor puro (spec

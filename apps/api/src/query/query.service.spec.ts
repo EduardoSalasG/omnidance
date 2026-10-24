@@ -41,6 +41,10 @@ interface FakeAcademy {
   id: string;
   ownerId: string;
   name: string;
+  // Tier de suscripción SaaS - las consultas del lente ACADEMY_OWNER
+  // exigen la feature `analytics` (PRO) en alguna academia propia
+  // (spec academy-tier-v2). null/omiso = nivel STUDIO.
+  tier?: string | null;
 }
 
 interface FakeTicket {
@@ -503,8 +507,10 @@ describe("QueryService - lentes y scope", () => {
 
   it("run ACADEMY_OWNER: academia ajena → vacío; propia → filas", async () => {
     prisma.academies.push(
-      { id: "ac-1", ownerId: "acad-1", name: "Mía" },
-      { id: "ac-ajena", ownerId: "otro", name: "Ajena" },
+      // PRO = cubre `analytics` - la consola de consultas del lente
+      // academia quedó como feature PRO (spec academy-tier-v2).
+      { id: "ac-1", ownerId: "acad-1", name: "Mía", tier: "PRO" },
+      { id: "ac-ajena", ownerId: "otro", name: "Ajena", tier: "PRO" },
     );
     prisma.enrollments.push(
       {
@@ -548,6 +554,31 @@ describe("QueryService - lentes y scope", () => {
     });
     expect(foreign.total).toBe(0);
     expect(foreign.rows).toEqual([]);
+  });
+
+  // Consultas del lente academia = feature `analytics` (PRO) desde
+  // academy-tier-v2 - antes bastaba `exports` (STUDIO).
+  it("run ACADEMY_OWNER sin analytics (STUDIO) → 403 tier.required", async () => {
+    prisma.academies.push({
+      id: "ac-1",
+      ownerId: "acad-1",
+      name: "Studio",
+      tier: "STUDIO",
+    });
+    await expect(
+      svc.run("acad-1", {
+        role: "ACADEMY_OWNER",
+        entity: "students",
+        filters: {},
+      }),
+    ).rejects.toMatchObject({
+      status: 403,
+      response: expect.objectContaining({
+        error: "tier.required",
+        requiredTier: "PRO",
+        feature: "analytics",
+      }),
+    });
   });
 
   it("run pagina el preview: page/pageSize con total real", async () => {

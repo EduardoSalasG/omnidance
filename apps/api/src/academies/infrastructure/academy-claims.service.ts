@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import type { ClaimStatus, PlanType } from "@prisma/client";
+import type { ClaimStatus, PlanType, Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import {
   extForMime,
@@ -18,6 +18,8 @@ import {
   membershipBase,
   membershipEndsAt,
 } from "../../payments/domain/membership-vigency";
+import { AcademyPromosService } from "../../payments/application/academy-promos.service";
+import { promoChargeClp } from "../../payments/domain/academy-promos";
 
 const CLAIM_FOLDER = "claims";
 export const CLAIM_MAX_BYTES = 5 * 1024 * 1024; // 5MB
@@ -41,6 +43,7 @@ export class AcademyClaimsService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     @Inject(STORAGE) private readonly storage: FileStorage,
+    private readonly academyPromos: AcademyPromosService,
   ) {}
 
   // ── Medios de pago ─────────────────────────────────────────────────
@@ -173,6 +176,17 @@ export class AcademyClaimsService {
       select: { id: true },
     });
 
+    // Promo vigente de la academia para este alumno/plan (spec
+    // member-promos): el intento declara el precio con descuento y
+    // queda marcado - el Payment MANUAL al aprobar hereda la promo para
+    // el conteo de maxCycles.
+    const promo = await this.academyPromos.resolveApplicable(
+      academyId,
+      personId,
+      plan.id,
+      plan.price,
+    );
+
     return this.prisma.paymentClaim.create({
       data: {
         academyId,
@@ -181,7 +195,8 @@ export class AcademyClaimsService {
         planId: plan.id,
         // Snapshot del precio vigente: el intento declara pagar el
         // plan, no un monto libre (a diferencia del claim "suelto").
-        amount: plan.price,
+        amount: promo ? promoChargeClp(plan.price, promo) : plan.price,
+        academyPromoId: promo?.id ?? null,
         methodId: method.id,
         methodType: method.type,
         methodLabel: method.label,
@@ -413,6 +428,217 @@ export class AcademyClaimsService {
     };
   }
 
+  /**
+   * GET /academies/:id/billing-report - reporte de cobranza (spec
+   * academy-tier-v2): el piso del tier COBROS, disponible en todos los
+   * tiers. Une las dos fuentes del libro de la academia - claims de
+   * pago directo (cualquier estado) y pagos PAID/pasarela atribuidos
+   * por refId (mem_<planId>_ membresías, wks_<classId>_ clases
+   * sueltas/talleres, pvt_<academyId>_ particulares; los `claim-*` de
+   * claims aprobados NO entran: ya están representados por su claim).
+   *
+   * Filtros del contrato compartido: from/to por día sobre createdAt,
+   * planId (claims por columna; pagos solo membresía por refId) y
+   * status por vocabulario nativo de cada fuente (el caller valida la
+   * whitelist). Agregados `billed`/`payers`/`topPlan` describen lo
+   * COBRADO del subconjunto filtrado (Payment PAID + claim APPROVED);
+   * `items` respeta todos los filtros y pagina el merge por fecha.
+   */
+  async billingReport(
+    academyId: string,
+    opts: {
+      createdAt?: { gte?: Date; lte?: Date };
+      planId?: string;
+      status?: string;
+      pg: { page: number; pageSize: number; skip: number; take: number };
+    },
+  ) {
+    const [plans, classes] = await Promise.all([
+      this.prisma.membershipPlan.findMany({
+        where: { academyId },
+        select: { id: true, name: true },
+      }),
+      this.prisma.class.findMany({
+        where: { slot: { academyId } },
+        select: { id: true },
+      }),
+    ]);
+    const planName = new Map(plans.map((p) => [p.id, p.name]));
+
+    // Pagos por pasarela adjudicados a la academia por prefijo de refId
+    // (mismo decode+belongs que /payments/by-academy y cobrosKpis).
+    const PAYMENT_STATUSES = ["PENDING", "PAID", "FAILED", "REFUNDED"];
+    const payWhere: Prisma.PaymentWhereInput = {
+      orderType: { in: ["MEMBERSHIP", "WORKSHOP", "PRIVATE"] },
+      ...(opts.createdAt ? { createdAt: opts.createdAt } : {}),
+      // Con filtro de plan solo las membresías llevan planId en el refId.
+      OR: opts.planId
+        ? [
+            {
+              orderType: "MEMBERSHIP",
+              refId: { startsWith: `mem_${opts.planId}_` },
+            },
+          ]
+        : [
+            ...plans.map((p) => ({
+              orderType: "MEMBERSHIP" as const,
+              refId: { startsWith: `mem_${p.id}_` },
+            })),
+            ...classes.map((c) => ({
+              orderType: "WORKSHOP" as const,
+              refId: { startsWith: `wks_${c.id}_` },
+            })),
+            {
+              orderType: "PRIVATE" as const,
+              refId: { startsWith: `pvt_${academyId}_` },
+            },
+          ],
+      ...(opts.status && PAYMENT_STATUSES.includes(opts.status)
+        ? { status: opts.status as "PENDING" | "PAID" | "FAILED" | "REFUNDED" }
+        : {}),
+    };
+    const CLAIM_STATUSES = ["PENDING", "AWAITING", "APPROVED", "REJECTED"];
+    const claimWhere: Prisma.PaymentClaimWhereInput = {
+      academyId,
+      ...(opts.createdAt ? { createdAt: opts.createdAt } : {}),
+      ...(opts.planId ? { planId: opts.planId } : {}),
+      ...(opts.status && CLAIM_STATUSES.includes(opts.status)
+        ? { status: opts.status as ClaimStatus }
+        : {}),
+    };
+
+    const [payments, claims] = await Promise.all([
+      this.prisma.payment.findMany({
+        where: payWhere,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          personId: true,
+          amount: true,
+          status: true,
+          orderType: true,
+          refId: true,
+          gateway: true,
+          gatewayMedia: true,
+          methodLabel: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.paymentClaim.findMany({
+        where: claimWhere,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          personId: true,
+          amount: true,
+          status: true,
+          methodLabel: true,
+          createdAt: true,
+          person: { select: { id: true, name: true } },
+          plan: { select: { id: true, name: true } },
+        },
+      }),
+    ]);
+
+    // Nombres de pagantes de la vía pasarela (claims traen el join).
+    const personIds = [
+      ...new Set([
+        ...payments.map((p) => p.personId),
+        ...claims.map((c) => c.personId),
+      ]),
+    ];
+    const people = personIds.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: personIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameOf = new Map(people.map((p) => [p.id, p.name]));
+
+    type Row = {
+      id: string;
+      kind: "PAYMENT" | "CLAIM";
+      personId: string;
+      personName: string | null;
+      planId: string | null;
+      planName: string | null;
+      amount: number;
+      status: string;
+      method: string | null;
+      createdAt: string;
+    };
+    const rows: Row[] = [
+      ...payments.map((p) => {
+        // mem_<planId>_<ref> - decodifica el plan de la membresía.
+        const planId = p.refId.startsWith("mem_")
+          ? p.refId.split("_")[1]
+          : null;
+        return {
+          id: p.id,
+          kind: "PAYMENT" as const,
+          personId: p.personId,
+          personName: nameOf.get(p.personId) ?? null,
+          planId,
+          planName: planId ? (planName.get(planId) ?? null) : null,
+          amount: p.amount,
+          status: p.status,
+          method: p.gatewayMedia ?? p.methodLabel ?? p.gateway,
+          createdAt: p.createdAt.toISOString(),
+        };
+      }),
+      ...claims.map((c) => ({
+        id: c.id,
+        kind: "CLAIM" as const,
+        personId: c.personId,
+        personName: c.person.name ?? nameOf.get(c.personId) ?? null,
+        planId: c.plan?.id ?? null,
+        planName: c.plan?.name ?? null,
+        amount: c.amount,
+        status: c.status,
+        method: c.methodLabel,
+        createdAt: c.createdAt.toISOString(),
+      })),
+    ].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    // Agregados sobre lo efectivamente cobrado del subconjunto filtrado.
+    const collected = rows.filter((r) =>
+      r.kind === "PAYMENT" ? r.status === "PAID" : r.status === "APPROVED",
+    );
+    const billed = collected.reduce((a, r) => a + r.amount, 0);
+    const payers = new Set(collected.map((r) => r.personId)).size;
+    const byPlan = new Map<string, { name: string; count: number; amount: number }>();
+    for (const r of collected) {
+      if (!r.planId) continue;
+      const cur = byPlan.get(r.planId) ?? {
+        name: r.planName ?? "",
+        count: 0,
+        amount: 0,
+      };
+      cur.count += 1;
+      cur.amount += r.amount;
+      byPlan.set(r.planId, cur);
+    }
+    const top =
+      [...byPlan.entries()].sort(
+        (a, b) => b[1].count - a[1].count || b[1].amount - a[1].amount,
+      )[0] ?? null;
+
+    return {
+      billed,
+      payers,
+      topPlan: top
+        ? { planId: top[0], name: top[1].name, count: top[1].count, amount: top[1].amount }
+        : null,
+      items: rows.slice(opts.pg.skip, opts.pg.skip + opts.pg.take),
+      total: rows.length,
+      page: opts.pg.page,
+      pageSize: opts.pg.pageSize,
+    };
+  }
+
   /** Detalle de un claim de la cola (owner/staff con capacidad payments). */
   async getClaim(academyId: string, claimId: string) {
     const claim = await this.prisma.paymentClaim.findFirst({
@@ -503,6 +729,9 @@ export class AcademyClaimsService {
           refId: `claim-${claim.id}`,
           personId: claim.personId,
           amount: claim.amount,
+          // Promo declarada en el intento (spec member-promos) - marca
+          // el cobro descontado para auditoría y conteo de maxCycles.
+          academyPromoId: claim.academyPromoId ?? null,
           fee: 0,
           net: claim.amount,
           gateway: "MANUAL",

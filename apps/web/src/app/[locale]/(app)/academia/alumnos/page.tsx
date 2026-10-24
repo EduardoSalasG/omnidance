@@ -10,7 +10,7 @@ import { StudentsInsights } from "@/components/academy/students-insights";
 import { StudentsSection } from "@/components/academy/students-section";
 import { ImportCard } from "@/components/academy/import-section";
 import { useAcademyAccess } from "@/components/academy/use-academy-access";
-import { useActorEntitlements } from "@/lib/entitlements-context";
+import { academyTierHas } from "@/lib/academy-features";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
   OnboardingRunner,
@@ -34,6 +34,7 @@ export default function AcademiaAlumnosPage() {
             key={academy.id}
             academyId={academy.id}
             ownerId={academy.ownerId}
+            tier={academy.tier}
           />
         )}
       </AcademyGate>
@@ -44,9 +45,11 @@ export default function AcademiaAlumnosPage() {
 function StudentsModule({
   academyId,
   ownerId,
+  tier,
 }: {
   academyId: string;
   ownerId: string;
+  tier?: string | null;
 }) {
   // Permiso desde el /me compartido - null mientras resuelve (el
   // skeleton espera), false si no es admin/owner → readOnly.
@@ -66,10 +69,11 @@ function StudentsModule({
   // owner/admin reportan todas; null mientras resuelve = no se muestra).
   const access = useAcademyAccess(academyId);
   // KPIs e insights son feature PRO del tier (spec
-  // unified-actor-entitlements): ocultar el bloque evita el 403
-  // tier.required inline en COBROS/STUDIO. El hook va ANTES de los
-  // early returns (regla de hooks).
-  const ent = useActorEntitlements("ACADEMY", academyId);
+  // unified-actor-entitlements + academy-tier-v2): ocultar el bloque
+  // evita el 403 tier.required inline en COBROS/STUDIO. Se deriva del
+  // `tier` que ya viaja en /academies/mine - funciona igual para owner,
+  // staff e instructor (los entitlements solo cubren al owner).
+  const canInsights = academyTierHas(tier, "insights");
 
   if (canAdminister === null) {
     return <SkeletonList />;
@@ -82,7 +86,7 @@ function StudentsModule({
   const manages =
     !instructorLens &&
     (canAdminister === true || access?.caps.students === true);
-  const showInsights = manages && !ent.loading && ent.has("insights");
+  const showInsights = manages && canInsights;
   return (
     <div className="flex flex-col gap-6">
       {showInsights && (
@@ -100,6 +104,7 @@ function StudentsModule({
       )}
       <StudentsSection
         academyId={academyId}
+        tier={tier}
         readOnly={canAdminister !== true}
       />
       {!instructorLens && access?.caps.students === true && (

@@ -113,6 +113,15 @@
     "methodSaved": "Payment method saved.",
     "methodNotFound": "Payment method not found.",
     "activeLabel": "Active method (visible to students)",
-    "editMethod": "Edit payment method"
+    "editMethod": "Edit payment method",
+    "report": {
+      "link": "Report",
+      "billed": "Billed in period",
+      "payers": "Students who paid",
+      "topPlan": "Best-selling plan",
+      "topPlanMeta": "{count, plural, one {# charge} other {# charges}} · {amount}",
+      "empty": "No charges in the period or with these filters.",
+      "forbidden": "You don't have access to this section."
+    }
   }
 }
