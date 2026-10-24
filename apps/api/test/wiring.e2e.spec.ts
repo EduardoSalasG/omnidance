@@ -25,6 +25,7 @@ import { SocialPassService } from "../src/payments/application/social-pass.servi
 import { FeatureFlagsService } from "../src/features/feature-flags.service";
 import { GatewayAccountsService } from "../src/payments/application/gateway-accounts.service";
 import { SubscriptionsService } from "../src/payments/application/subscriptions.service";
+import { AcademyPromosService } from "../src/payments/application/academy-promos.service";
 import { PlatformSubscriptionsService } from "../src/payments/application/platform-subscriptions.service";
 import { GatewayTransactionsService } from "../src/payments/infrastructure/gateway-transactions.service";
 import { encodeTicketOrderRef } from "../src/payments/domain/order-ref";
@@ -103,6 +104,7 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
             new GatewayRegistry([new StubGateway()], "STUB"),
         },
         PaymentSettlementService,
+        AcademyPromosService,
         SubscriptionsService,
         PlatformSubscriptionsService,
         GatewayTransactionsService,
