@@ -1725,6 +1725,8 @@ describe("GET /classes/my-quota", () => {
         kind: "WEEKLY",
         used: 1, // BOOKED sin pago; la segunda fila es pagada → no cuenta
         limit: 3,
+        planName: null,
+        endsAt: null,
       },
     ]);
   });
@@ -1769,6 +1771,8 @@ describe("GET /classes/my-quota", () => {
         kind: "PACK",
         used: 1,
         limit: 5,
+        planName: null,
+        endsAt: null,
       },
     ]);
   });
@@ -1788,6 +1792,8 @@ describe("GET /classes/my-quota", () => {
         kind: "UNLIMITED",
         used: null,
         limit: null,
+        planName: null,
+        endsAt: null,
       },
       {
         academyId: "acad-2",
@@ -1795,6 +1801,8 @@ describe("GET /classes/my-quota", () => {
         kind: "UNLIMITED",
         used: null,
         limit: null,
+        planName: null,
+        endsAt: null,
       },
     ]);
   });
