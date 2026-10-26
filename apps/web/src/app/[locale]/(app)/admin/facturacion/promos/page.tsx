@@ -29,7 +29,7 @@ type Promo = {
   discountedPayments: number;
 };
 
-export function promoState(p: Promo): "active" | "scheduled" | "expired" | "disabled" {
+function promoState(p: Promo): "active" | "scheduled" | "expired" | "disabled" {
   if (!p.enabled) return "disabled";
   const now = Date.now();
   if (new Date(p.validUntil).getTime() < now) return "expired";
