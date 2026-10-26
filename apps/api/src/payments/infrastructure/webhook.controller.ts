@@ -24,6 +24,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import {
   PAYMENT_GATEWAY,
+  type BillingWebhookEvent,
   type PaymentGateway,
   type WebhookContext,
 } from "../domain/ports";
@@ -35,7 +36,10 @@ import { PaymentSettlementService } from "../application/payment-settlement.serv
 import { GatewayAccountsService } from "../application/gateway-accounts.service";
 import { SubscriptionsService } from "../application/subscriptions.service";
 import { PlatformSubscriptionsService } from "../application/platform-subscriptions.service";
-import { SocialPassService } from "../application/social-pass.service";
+import {
+  isSocialPassBillingEvent,
+  SocialPassService,
+} from "../application/social-pass.service";
 import {
   decodeClassRef,
   decodePrivateRef,
@@ -164,11 +168,12 @@ export class PaymentsController {
       throw new BadRequestException("webhook inválido");
     }
 
-    // Evento de billing de suscripción (spec pase-social): invoice.* /
-    // customer.subscription.* / Checkout mode=subscription - sin Payment
-    // asociado, va al SocialPassService y no al settle de órdenes.
+    // Evento de billing de suscripción (spec pase-social +
+    // stripe-subs-webhook): invoice.* / customer.subscription.* /
+    // Checkout mode=subscription - sin Payment asociado, el dispatcher
+    // lo rutea a UN consumidor por target y no al settle de órdenes.
     if (result.billing) {
-      await this.socialPass.handleBillingEvent(result.billing);
+      await this.dispatchBilling(result.billing);
       return { ok: true, billing: result.billing.type };
     }
 
@@ -197,6 +202,31 @@ export class PaymentsController {
       actor: "webhook",
       gatewayData: result.gatewayData,
     });
+  }
+
+  /**
+   * Dispatcher de billing events (spec stripe-subs-webhook) - un evento
+   * firmado va a UN consumidor según su target:
+   * 1. Marcado como Pase Social (metadata.socialPass / planId del tier)
+   *    → SocialPassService (aislado por metadata - una membresía o sub
+   *    de plataforma del mismo customer jamás resetea créditos).
+   * 2. `subscriptionId` = remoteId de una MembershipSubscription →
+   *    SubscriptionsService (reconcile puntual de esa sub).
+   * 3. `subscriptionId` = remoteId de una PlatformSubscription →
+   *    PlatformSubscriptionsService (misma semántica).
+   * 4. Sin match por remoteId → SocialPassService igual: cubre eventos
+   *    del pase sin marca (findPass resuelve por stripeSubId /
+   *    customer / personId); si tampoco calza es no-op y el webhook
+   *    responde 200 ignorando el evento.
+   */
+  private async dispatchBilling(ev: BillingWebhookEvent): Promise<void> {
+    if (isSocialPassBillingEvent(ev)) {
+      await this.socialPass.handleBillingEvent(ev);
+      return;
+    }
+    if (await this.subscriptions.handleBillingEvent(ev)) return;
+    if (await this.platformSubs.handleBillingEvent(ev)) return;
+    await this.socialPass.handleBillingEvent(ev);
   }
 
   /**

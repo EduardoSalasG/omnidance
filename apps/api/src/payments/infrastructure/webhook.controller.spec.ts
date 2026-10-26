@@ -779,35 +779,141 @@ describe("PaymentsController - webhook por cuenta propia", () => {
   });
 });
 
-// ─── Routing billing del pase (spec pase-social, task 4) ───
-describe("PaymentsController - billing STRIPE (pase social)", () => {
-  it("verifyWebhook con billing → rutea a SocialPassService y no busca Payment", async () => {
+// ─── Routing billing (spec pase-social + stripe-subs-webhook) ───
+// El dispatcher enruta por target: marcado pase → SocialPass; remoteId
+// de MembershipSubscription → SubscriptionsService; remoteId de
+// PlatformSubscription → PlatformSubscriptionsService; sin match →
+// fallback SocialPass (cubre pases sin marca; no-op → ack ignorado).
+describe("PaymentsController - billing STRIPE", () => {
+  function mkBillingCtrl(opts: {
+    billing: Row;
+    memberships?: { handleBillingEvent: ReturnType<typeof vi.fn> };
+    platformSubs?: { handleBillingEvent: ReturnType<typeof vi.fn> };
+    socialPass?: { handleBillingEvent: ReturnType<typeof vi.fn> };
+  }) {
     const prisma = new FakePrisma();
-    const billing = {
-      type: "invoice.paid",
-      customerId: "cus_1",
-      subscriptionId: "sub_1",
-    };
     const stripeGw = {
       name: "STRIPE",
       createOrder: vi.fn(),
-      verifyWebhook: vi.fn(async () => ({ billing })),
+      verifyWebhook: vi.fn(async () => ({ billing: opts.billing })),
     };
-    const socialPass = { handleBillingEvent: vi.fn(async () => {}) };
+    const memberships = opts.memberships ?? {
+      handleBillingEvent: vi.fn(async () => false),
+    };
+    const platformSubs = opts.platformSubs ?? {
+      handleBillingEvent: vi.fn(async () => false),
+    };
+    const socialPass = opts.socialPass ?? {
+      handleBillingEvent: vi.fn(async () => {}),
+    };
     const ctrl = new PaymentsController(
       prisma as unknown as PrismaService,
       {} as unknown as PaymentGateway,
       {} as unknown as PaymentSettlementService,
-      {} as unknown as SubscriptionsService,
-      {} as unknown as PlatformSubscriptionsService,
+      memberships as unknown as SubscriptionsService,
+      platformSubs as unknown as PlatformSubscriptionsService,
       {} as never,
       new GatewayRegistry([stripeGw as never], "STRIPE"),
       {} as never,
       socialPass as never,
     );
-    const res = await ctrl.webhookByProvider("STRIPE", undefined, {}, {
+    return { ctrl, memberships, platformSubs, socialPass, prisma };
+  }
+
+  const call = (ctrl: PaymentsController) =>
+    ctrl.webhookByProvider("STRIPE", undefined, {}, {
       headers: {},
     } as never);
+
+  it("evento sin marca → despacha por cadena y SocialPass resuelve (comportamiento previo)", async () => {
+    const billing = {
+      type: "invoice.paid",
+      customerId: "cus_1",
+      subscriptionId: "sub_1",
+    };
+    const { ctrl, memberships, platformSubs, socialPass } =
+      mkBillingCtrl({ billing });
+    const res = await call(ctrl);
+    expect(res).toEqual({ ok: true, billing: "invoice.paid" });
+    // Sin marca: prueba membresía → plataforma → fallback al pase.
+    expect(memberships.handleBillingEvent).toHaveBeenCalledWith(billing);
+    expect(platformSubs.handleBillingEvent).toHaveBeenCalledWith(billing);
+    expect(socialPass.handleBillingEvent).toHaveBeenCalledWith(billing);
+  });
+
+  it("marcado socialPass → solo SocialPassService (nunca toca subs)", async () => {
+    const billing = {
+      type: "invoice.paid",
+      customerId: "cus_1",
+      subscriptionId: "sub_1",
+      socialPass: true,
+    };
+    const { ctrl, memberships, platformSubs, socialPass } =
+      mkBillingCtrl({ billing });
+    await call(ctrl);
+    expect(socialPass.handleBillingEvent).toHaveBeenCalledWith(billing);
+    expect(memberships.handleBillingEvent).not.toHaveBeenCalled();
+    expect(platformSubs.handleBillingEvent).not.toHaveBeenCalled();
+  });
+
+  it("planId SOCIAL_PASS en metadata → solo SocialPassService", async () => {
+    const billing = {
+      type: "invoice.paid",
+      subscriptionId: "sub_1",
+      raw: { metadata: { planId: "SOCIAL_PASS" } },
+    };
+    const { ctrl, memberships, platformSubs, socialPass } =
+      mkBillingCtrl({ billing });
+    await call(ctrl);
+    expect(socialPass.handleBillingEvent).toHaveBeenCalledWith(billing);
+    expect(memberships.handleBillingEvent).not.toHaveBeenCalled();
+    expect(platformSubs.handleBillingEvent).not.toHaveBeenCalled();
+  });
+
+  it("remoteId de MembershipSubscription → SubscriptionsService y corta", async () => {
+    const billing = {
+      type: "invoice.paid",
+      subscriptionId: "sub_mem_1",
+    };
+    const memberships = { handleBillingEvent: vi.fn(async () => true) };
+    const { ctrl, platformSubs, socialPass } = mkBillingCtrl({
+      billing,
+      memberships,
+    });
+    const res = await call(ctrl);
+    expect(res).toEqual({ ok: true, billing: "invoice.paid" });
+    expect(memberships.handleBillingEvent).toHaveBeenCalledWith(billing);
+    // Claimed → ni plataforma ni pase reciben el evento.
+    expect(platformSubs.handleBillingEvent).not.toHaveBeenCalled();
+    expect(socialPass.handleBillingEvent).not.toHaveBeenCalled();
+  });
+
+  it("remoteId de PlatformSubscription → PlatformSubscriptionsService y corta", async () => {
+    const billing = {
+      type: "customer.subscription.deleted",
+      subscriptionId: "sub_plat_1",
+    };
+    const memberships = { handleBillingEvent: vi.fn(async () => false) };
+    const platformSubs = { handleBillingEvent: vi.fn(async () => true) };
+    const { ctrl, socialPass } = mkBillingCtrl({
+      billing,
+      memberships,
+      platformSubs,
+    });
+    await call(ctrl);
+    expect(memberships.handleBillingEvent).toHaveBeenCalledWith(billing);
+    expect(platformSubs.handleBillingEvent).toHaveBeenCalledWith(billing);
+    expect(socialPass.handleBillingEvent).not.toHaveBeenCalled();
+  });
+
+  it("sin match en ningún dominio → 200 ack ignorado", async () => {
+    const billing = {
+      type: "invoice.paid",
+      subscriptionId: "sub_desconocida",
+    };
+    const { ctrl, socialPass } = mkBillingCtrl({ billing });
+    const res = await call(ctrl);
+    // El fallback al pase es no-op sin pass que calce → ack igual.
     expect(res).toEqual({ ok: true, billing: "invoice.paid" });
     expect(socialPass.handleBillingEvent).toHaveBeenCalledWith(billing);
   });
