@@ -55,14 +55,22 @@ mergeadas — `platform-multicountry` ahora es spec propia.
   mergeados; openapi.json + postman regenerados (349 paths);
   qa-flows-inventory y architecture actualizados.
 
-## Pendientes / gaps honestos
+## Cierre de gaps (sesión continuación)
 
-- **E2e no corrido**: `gap-checkins.e2e` quedó con generadores válidos
-  pero no se ejecutó (esperaba la migración de customer_ids — ya
-  aplicada). Correr `pnpm test:e2e` con stack vivo.
-- **Stripe webhook → membresías/platform subs**: no cableado (solo
-  social-pass consume billing events). `customerReturn` adoption +
-  polling de reconcile cubren el camino; paridad webhook = follow-up.
+- **promoState build**: fix `962cd7e3` (export removido de la page).
+- **Webhook Stripe** (`a537fd7c`, change `stripe-subs-webhook`
+  archivado): `webhook.controller` despacha billing events por target —
+  socialPass→Pase, remoteId MembershipSubscription→reconcile puntual,
+  remoteId PlatformSubscription→RENEWAL_SETTLED/gracia/CANCELED;
+  `customer.subscription.updated` cubierto; dedup estructural por
+  invoice/refId (webhook+polling no doble-liquidan). vitest 637 verde.
+- **E2e**: NO se pudo correr — `next dev` falla `EACCES` en :3000 y
+  :3100 (rango de puertos excluidos de Windows en esta máquina). Los
+  generadores de teléfono e2e quedan arreglados; correr
+  `pnpm test:e2e` cuando el puerto se libere
+  (`netsh interface ipv4 show excludedportrange protocol=tcp`).
+
+## Pendientes / gaps honestos
 - **Academias fuera de CL no tienen onboarding de país todavía**:
   academy.city → currency resuelve, pero crear una academia en otro
   país requiere la fila TierPrice + gateway de ese mercado configurado.
