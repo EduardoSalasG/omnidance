@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import {
@@ -26,7 +26,7 @@ import {
 } from "@/components/academy/shared";
 import { PAYMENT_STATUS_VARIANT } from "@/components/payments/shared";
 import { Link } from "@/i18n/navigation";
-import { useNumFmt, useDateFmt } from "@/lib/intl";
+import { formatMoney, useNumFmt, useDateFmt } from "@/lib/intl";
 
 type ReportRow = {
   id: string;
@@ -36,6 +36,8 @@ type ReportRow = {
   planId: string | null;
   planName: string | null;
   amount: number;
+  /** ISO-4217 del cobro (spec multipais-currency). */
+  currency?: string;
   status: string;
   method: string | null;
   createdAt: string;
@@ -119,6 +121,7 @@ export default function CobrosReportePage() {
 }
 
 function ReportModule({ academyId }: { academyId: string }) {
+  const locale = useLocale();
   const t = useTranslations("academyPay");
   const tc = useTranslations("common");
   const tp = useTranslations("payments");
@@ -324,7 +327,7 @@ function ReportModule({ academyId }: { academyId: string }) {
                     </span>
                   </span>
                   <span className="shrink-0 text-sm font-semibold tabular-nums">
-                    {clpFmt.format(r.amount)}
+                    {formatMoney(r.amount, r.currency, locale)}
                   </span>
                   <Badge variant={STATUS_VARIANT[r.status] ?? "muted"}>
                     {statusLabel(r)}

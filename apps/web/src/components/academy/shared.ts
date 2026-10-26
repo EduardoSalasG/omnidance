@@ -241,6 +241,8 @@ export type MembershipPlan = {
   name: string;
   type: PlanType;
   price: number;
+  /** ISO-4217 del precio (spec multipais-currency); ausente en filas legacy = CLP. */
+  currency?: string;
   classCount: number | null;
   // Cuota semanal del plan (planes por tiempo); null = ilimitado.
   weeklyClasses: number | null;

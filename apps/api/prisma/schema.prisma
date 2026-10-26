@@ -45,7 +45,11 @@ model Person {
   verifiedAt    DateTime?
   onboarding    Json?   // {tourKey: ISO timestamp} - tours de primera visita ya vistos
   language      String  @default("es-CL") // locale preferido (spec i18n-multi-locale): es-CL|en|fr|pt-PT
-  flowCustomerId String? // customerId en Flow - se crea on-demand al suscribirse
+  flowCustomerId String? // customerId en Flow - se crea on-demand al suscribirse (legacy, espejo de gatewayCustomerIds["FLOW"])
+  // Customer remoto por proveedor de suscripciones (spec
+  // multipais-currency): mapa {"<GATEWAY>": customerId} - FLOW/CLP
+  // convive con STRIPE/USD sin colisionar en la columna única.
+  gatewayCustomerIds Json?
   // Tier Producer Pro (spec academy-saas-billing) - solo aplica a personas
   // con rol PRODUCER; no hay tabla Producer, el productor es esta Person.
   proTier       ProducerProTier @default(FREE)
@@ -245,10 +249,13 @@ model Friendship {
 
 // ═══ Geografía (spec multipais-foundation) ═══
 model Country {
-  id     String @id @default(cuid())
-  code   String @unique // ISO-3166 alpha-2: "CL", "ES"
-  name   String
-  cities City[]
+  id       String @id @default(cuid())
+  code     String @unique // ISO-3166 alpha-2: "CL", "ES"
+  name     String
+  // Moneda de cobro del mercado (spec multipais-currency, ISO-4217): la
+  // academia/evento/productor resuelven su moneda por su país.
+  currency String @default("CLP")
+  cities   City[]
 }
 
 model City {
@@ -1042,6 +1049,15 @@ model MembershipPlan {
   // plan espejo en Flow (lazy create al primer subscribe - interval 3 mensual,
   // interval_count según tipo). null = aún no sincronizado.
   flowPlanId    String?
+  // Moneda del plan (spec multipais-currency, ISO-4217): snapshot de la
+  // moneda de la academia al crear - no editable (un plan no cambia de
+  // moneda: se crea otro). `price` se interpreta en su unidad menor.
+  currency      String   @default("CLP")
+  // Espejos remotos por gateway+moneda (spec multipais-currency):
+  // mapa "<GATEWAY>:<CURRENCY>" → remoteId para los proveedores no-Flow
+  // (Stripe: el adaptador resuelve el Price por lookup_key
+  // omni_<planId>_<currency>). El espejo Flow/CLP sigue en flowPlanId.
+  remoteRefs    Json?
   // Planes dentro del scope de una promo de la academia (vacío = todos).
   academyPromos AcademyPromo[]
 }
@@ -1119,7 +1135,10 @@ model PaymentClaim {
   enrollmentId String?
   plan         MembershipPlan? @relation(fields: [planId], references: [id])
   planId       String? // lo que declara haber pagado (null = otro/suelta)
-  amount       Int     // CLP declarados por el alumno
+  amount       Int     // monto declarado por el alumno (unidad menor)
+  // Moneda del claim (spec multipais-currency): snapshot de la moneda
+  // de la academia al declarar - `amount` se interpreta en ella.
+  currency     String  @default("CLP")
   methodId     String? // AcademyPaymentMethod elegido (reanuda el intento)
   methodType   String  // snapshot del método usado al momento del claim
   methodLabel  String  // snapshot - el método pudo editarse o borrarse
@@ -2033,6 +2052,9 @@ model MembershipSubscription {
   plan               MembershipPlan @relation(fields: [planId], references: [id])
   planId             String
   academyId          String
+  // Moneda del cobro (spec multipais-currency): snapshot del plan al
+  // suscribir - decide qué provider procesa la suscripción.
+  currency           String         @default("CLP")
   flowSubscriptionId String?        @unique
   // PENDING_CARD → ACTIVATING → ACTIVE → CANCEL_PENDING → CANCELED (+ FAILED_CARD)
   // ACTIVATING = claim transitorio entre el registro de tarjeta y el
@@ -2084,6 +2106,11 @@ model PlatformSubscription {
   // duplicar los dos dominios; precios/límites en PlatformParam.
   tierCode           String
   currency           String @default("CLP") // ISO-4217 (spec multipais-foundation)
+  // País de cobro (spec multipais-currency, ISO-3166 alpha-2): ACADEMY lo
+  // deriva de academy.city.country (null→CL); PRODUCER lo declara al
+  // suscribir (billingCountry). Es la clave del price book TierPrice -
+  // no confundir con Person.jurisdiction (legal, no país de cobro).
+  countryCode        String @default("CL")
   billingCycle       BillingCycle
   // Cambio de plan pendiente (downgrade/cambio de ciclo): se aplica al
   // iniciarse el próximo ciclo - el reconcile cancela la Flow sub al fin de

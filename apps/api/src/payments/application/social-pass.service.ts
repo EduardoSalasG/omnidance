@@ -494,7 +494,18 @@ export class SocialPassService {
     }
   }
 
-  /** Lookup del pass por sub → customer → personId (metadata). */
+  /**
+   * Lookup del pass por sub → customer → personId (metadata).
+   *
+   * Contaminación cruzada (spec multipais-currency): el customer de
+   * Stripe puede compartirse entre el pase y una membresía/sub de
+   * plataforma del mismo actor (mismo email → mismo customer). Solo un
+   * evento MARCADO como pase (`metadata.socialPass` en la
+   * sesión/sub/invoice, o `metadata.planId` del tier del pase) puede
+   * resolver por customer/personId - una invoice de membresía del
+   * mismo actor jamás resetea sus créditos. El match por
+   * `stripeSubId` siempre aplica: es el id remoto persistido del pase.
+   */
   private async findPass(ev: BillingWebhookEvent) {
     if (ev.subscriptionId) {
       const bySub = await this.prisma.socialPass.findUnique({
@@ -502,6 +513,12 @@ export class SocialPassService {
       });
       if (bySub) return bySub;
     }
+    const rawMeta =
+      (ev.raw as { metadata?: Record<string, unknown> } | undefined)
+        ?.metadata ?? {};
+    const marked =
+      ev.socialPass === true || rawMeta["planId"] === PASS_TIER;
+    if (!marked) return null;
     if (ev.customerId) {
       const byCustomer = await this.prisma.socialPass.findFirst({
         where: { stripeCustomerId: ev.customerId },

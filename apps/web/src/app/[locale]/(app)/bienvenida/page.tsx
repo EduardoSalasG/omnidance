@@ -8,6 +8,8 @@ import { useMe } from "@/lib/me-context";
 import { Button, Card } from "@/components/ui";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
 import { GenderGroup, type Gender } from "@/components/profile/GenderGroup";
+import { PhoneInput } from "@/components/people/phone-input";
+import { formatPhoneNational } from "@omnidance/shared";
 import { inputCls } from "@/components/academy/shared";
 import { isProfileStyleVisible } from "@/lib/profile-styles";
 import { safeInternalPath } from "@/lib/safe-next";
@@ -49,6 +51,9 @@ function BienvenidaForm() {
   const { me, loading: meLoading, refresh: refreshMe } = useMe();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  // Spec multipais-phone: selector de país + E.164 validado en cliente.
+  const [phoneCountry, setPhoneCountry] = useState("CL");
+  const [phoneE164, setPhoneE164] = useState<string | null>(null);
   const [instagram, setInstagram] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
   const [styles, setStyles] = useState<StyleItem[] | null>(null);
@@ -99,7 +104,11 @@ function BienvenidaForm() {
     if (!prefilled.current) {
       prefilled.current = true;
       setName(me.name);
-      setPhone(me.phone ?? "");
+      // El phone viene E.164: el input muestra formato nacional y el
+      // selector arranca en el país derivado que ya tiene la cuenta.
+      setPhone(me.phone ? formatPhoneNational(me.phone) : "");
+      setPhoneCountry(me.phoneCountryCode ?? "CL");
+      setPhoneE164(me.phone ?? null);
       setInstagram(me.instagram ?? "");
       setGender(me.gender ?? null);
     }
@@ -145,7 +154,10 @@ function BienvenidaForm() {
         gender,
       };
       const digits = phone.replace(/[\s()-]/g, "");
-      if (digits) body.phone = digits;
+      if (digits) {
+        body.phone = phoneE164 ?? digits;
+        body.phoneCountryCode = phoneCountry;
+      }
       const res = await apiFetch("/me", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
@@ -222,15 +234,17 @@ function BienvenidaForm() {
             <span className="text-xs font-medium text-ink/60">
               {t("phone")}
             </span>
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
+            <PhoneInput
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              defaultCountry={phoneCountry}
+              onChange={({ phone: p, e164, countryCode }) => {
+                setPhone(p);
+                setPhoneE164(e164);
+                setPhoneCountry(countryCode);
+              }}
               disabled={saving}
               placeholder={t("phonePlaceholder")}
-              className={inputCls}
+              inputClassName={inputCls}
             />
           </label>
 

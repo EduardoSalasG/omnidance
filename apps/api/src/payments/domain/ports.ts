@@ -59,6 +59,13 @@ export interface BillingWebhookEvent {
     periodEnd?: string;
     paid: boolean;
   };
+  /**
+   * `metadata.socialPass` del objeto (spec multipais-currency): marca
+   * que la suscripción/factura pertenece al Pase Social. Sin ella el
+   * evento NO es del pase aunque el personId coincida - una membresía
+   * o sub de plataforma del mismo actor jamás debe resetear créditos.
+   */
+  socialPass?: boolean;
   /** Payload crudo del objeto del evento - evidencia. */
   raw?: unknown;
 }
@@ -293,7 +300,18 @@ export interface SubscriptionProvider {
   ): Promise<RemoteSubscription[]>;
 
   createSubscription(
-    p: { planId: string; customerId: string; subscriptionStart: string },
+    p: {
+      planId: string;
+      customerId: string;
+      subscriptionStart: string;
+      /**
+       * ISO 4217 del cargo (spec multipais-currency): Stripe resuelve
+       * el Price espejo por `omni_<planId>_<currency>` - sin ella un
+       * planId compartido entre monedas cobraría en la equivocada.
+       * Flow (CLP-only) y Stub la ignoran.
+       */
+      currency?: string;
+    },
     opts?: SubscriptionCallOpts,
   ): Promise<RemoteSubscription>;
 

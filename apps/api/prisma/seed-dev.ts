@@ -189,7 +189,7 @@ export async function seedDev(prisma: PrismaClient) {
   if (!eduardo.phone) {
     await prisma.person.update({
       where: { id: eduardo.id },
-      data: { phone: "+56982439041" },
+      data: { phone: "+56982439041", phoneCountryCode: "CL" },
     });
   }
   // Jorge Camacho - cuenta real (magic link): bailarín alumno de Erick
@@ -4087,7 +4087,7 @@ export async function seedDev(prisma: PrismaClient) {
   // Teléfono real de Gabriel (contacto del owner de Mambo Madness).
   await prisma.person.update({
     where: { id: gabriel.id },
-    data: { phone: "+56959372339" },
+    data: { phone: "+56959372339", phoneCountryCode: "CL" },
   });
 
   // ─── Prácticas - Event type=PRACTICA, hostId=creador bailarín ───
@@ -5637,7 +5637,7 @@ export async function seedDev(prisma: PrismaClient) {
   const spain = await prisma.country.upsert({
     where: { code: "ES" },
     update: {},
-    create: { code: "ES", name: "España" },
+    create: { code: "ES", name: "España", currency: "EUR" },
   });
   const ensureCity = async (c: {
     slug: string;

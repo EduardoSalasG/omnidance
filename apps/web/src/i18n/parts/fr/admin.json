@@ -725,6 +725,31 @@
       "disable": "Désactiver la promo",
       "enable": "Activer la promo",
       "disableHint": "Désactivée, elle ne s'applique plus aux nouveaux prélèvements ; les abonnements repassent au plein tarif au prochain cycle."
+    },
+    "tierPrices": {
+      "title": "Prix des tiers",
+      "subtitle": "Grille de prix par pays et cycle (TierPrice)",
+      "country": "Pays",
+      "kind": "Ligne",
+      "tier": "Tier",
+      "cycle": "Cycle",
+      "price": "Prix",
+      "currency": "Devise",
+      "new": "Nouveau prix",
+      "save": "Enregistrer",
+      "saved": "Enregistré",
+      "create": "Créer le prix",
+      "created": "Prix créé",
+      "exists": "Ce prix existe déjà pour tier/cycle/pays",
+      "empty": "Aucun prix",
+      "edit": "Modifier",
+      "actions": "Actions",
+      "academy": "Académie",
+      "producer": "Producteur",
+      "cycleMonthly": "Mensuel",
+      "cycleSemiannual": "Semestriel",
+      "cycleAnnual": "Annuel",
+      "retry": "Réessayer"
     }
   }
 }

@@ -13,8 +13,8 @@ import type {
 export class PrismaCheckinsRepo implements CheckinsRepo {
   constructor(private readonly prisma: PrismaService) {}
 
-  findEventById(id: string) {
-    return this.prisma.event.findUnique({
+  async findEventById(id: string) {
+    const event = await this.prisma.event.findUnique({
       where: { id },
       select: {
         id: true,
@@ -22,9 +22,21 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
         doorPrice: true,
         doorCap: true,
         producerId: true,
+        currency: true,
         seriesId: true,
+        // País del venue (spec multipais-phone): defaultCountry de los
+        // teléfonos capturados en puerta. Venue/City opcionales → null.
+        venue: {
+          select: { city: { select: { country: { select: { code: true } } } } },
+        },
       },
     });
+    if (!event) return null;
+    const { venue, ...rest } = event;
+    return {
+      ...rest,
+      venueCountryCode: venue?.city?.country.code ?? null,
+    };
   }
 
   findPersonById(id: string) {
@@ -271,11 +283,16 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
     });
   }
 
-  createLightPerson(input: { name: string; phone: string }) {
+  createLightPerson(input: {
+    name: string;
+    phone: string;
+    phoneCountryCode?: string | null;
+  }) {
     return this.prisma.person.create({
       data: {
         name: input.name,
         phone: input.phone,
+        phoneCountryCode: input.phoneCountryCode ?? null,
         isLightAccount: true,
         roles: { create: { role: "DANCER", status: "APPROVED" } },
       },
@@ -292,6 +309,7 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
           buyerId: input.personId,
           listPrice: input.listPrice,
           serviceFee: input.serviceFee,
+          currency: input.currency,
           status: "USED",
         },
       });

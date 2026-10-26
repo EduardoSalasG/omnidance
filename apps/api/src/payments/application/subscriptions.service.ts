@@ -21,6 +21,7 @@ import {
 import {
   GatewayRegistry,
   PAYMENT_GATEWAYS,
+  supportsCurrency,
 } from "../domain/gateway-registry";
 import { PaymentSettlementService } from "./payment-settlement.service";
 import { GatewayTransactionsService } from "../infrastructure/gateway-transactions.service";
@@ -71,6 +72,7 @@ type CustomerReturnResult =
 const SUB_SELECT = {
   id: true,
   status: true,
+  currency: true,
   nextInvoiceAt: true,
   canceledAt: true,
   createdAt: true,
@@ -80,6 +82,7 @@ const SUB_SELECT = {
       name: true,
       type: true,
       price: true,
+      currency: true,
       academy: { select: { id: true, name: true } },
     },
   },
@@ -93,6 +96,7 @@ function toPublicSub(s: SubRow) {
   return {
     id: s.id,
     status: s.status,
+    currency: s.currency,
     nextInvoiceAt: s.nextInvoiceAt,
     canceledAt: s.canceledAt,
     createdAt: s.createdAt,
@@ -101,6 +105,7 @@ function toPublicSub(s: SubRow) {
       name: s.plan.name,
       type: s.plan.type,
       price: s.plan.price,
+      currency: s.plan.currency,
     },
     academy: s.plan.academy,
   };
@@ -145,30 +150,102 @@ export class SubscriptionsService {
    * (p.ej. MercadoPago): los flujos fallan explícito, jamás caen en
    * silencio a otro provider.
    */
-  private async subscriptionGateway(): Promise<PaymentGateway | null> {
-    const name = await this.params.get("payments.subscription_gateway");
-    const gw = this.gateways.resolve(typeof name === "string" ? name : null);
-    return typeof (gw as Partial<SubscriptionProvider>)
-      .createSubscription === "function"
-      ? gw
-      : null;
+  private async subscriptionGateway(
+    currency = "CLP",
+  ): Promise<PaymentGateway | null> {
+    const cur = currency.toUpperCase();
+    if (cur === "CLP") {
+      const name = await this.params.get("payments.subscription_gateway");
+      const gw = this.gateways.resolve(
+        typeof name === "string" ? name : null,
+      );
+      return typeof (gw as Partial<SubscriptionProvider>)
+        .createSubscription === "function"
+        ? gw
+        : null;
+    }
+    // Otra moneda (spec multipais-currency): se ignora el param - el
+    // primer adaptador registrado con motor de suscripciones que
+    // soporte la moneda gana. Ninguno → error explícito, jamás caer en
+    // silencio a un provider de CLP.
+    for (const name of this.gateways.names()) {
+      const gw = this.gateways.get(name);
+      if (
+        gw &&
+        typeof (gw as Partial<SubscriptionProvider>).createSubscription ===
+          "function" &&
+        supportsCurrency(gw, cur)
+      ) {
+        return gw;
+      }
+    }
+    return null;
   }
 
   /** Provider resuelto + su nombre (para auditoría y Payment.gateway). */
-  private async provider(): Promise<{
+  private async provider(currency = "CLP"): Promise<{
     provider: SubscriptionProvider;
     name: string;
   }> {
-    const gw = await this.subscriptionGateway();
+    const gw = await this.subscriptionGateway(currency);
     if (!gw) {
       throw new BadRequestException(
-        "el proveedor de suscripciones configurado no tiene motor de suscripciones",
+        currency.toUpperCase() === "CLP"
+          ? "el proveedor de suscripciones configurado no tiene motor de suscripciones"
+          : `la moneda ${currency.toUpperCase()} no tiene proveedor de suscripciones registrado`,
       );
     }
     return {
       provider: gw as unknown as SubscriptionProvider,
       name: gw.name,
     };
+  }
+
+  /**
+   * Clave del espejo remoto por gateway+moneda (spec multipais-currency):
+   * `remoteRefs` guarda "<GATEWAY>:<CURRENCY>" → planId remoto para los
+   * proveedores no-Flow; el espejo Flow/CLP sigue en `flowPlanId`.
+   */
+  private remoteRefKey(gateway: string, currency: string): string {
+    return `${gateway.toUpperCase()}:${currency.toUpperCase()}`;
+  }
+
+  private remotePlanId(
+    plan: { flowPlanId: string | null; remoteRefs?: unknown },
+    gateway: string,
+    currency: string,
+  ): string | null {
+    if (currency.toUpperCase() === "CLP") return plan.flowPlanId;
+    const refs = (plan.remoteRefs ?? null) as Record<string, unknown> | null;
+    const id = refs?.[this.remoteRefKey(gateway, currency)];
+    return typeof id === "string" && id ? id : null;
+  }
+
+  /**
+   * Persiste el id del espejo base materializado: CLP → flowPlanId
+   * (compat); otra moneda → remoteRefs["<GW>:<CUR>"] (merge del mapa).
+   */
+  private async markBaseMirror(
+    planId: string,
+    gateway: string,
+    currency: string,
+    remotePlanId: string,
+  ): Promise<void> {
+    if (currency.toUpperCase() === "CLP") {
+      await this.prisma.membershipPlan
+        .update({ where: { id: planId }, data: { flowPlanId: remotePlanId } })
+        .catch(() => {});
+      return;
+    }
+    const cur = await this.prisma.membershipPlan.findUnique({
+      where: { id: planId },
+      select: { remoteRefs: true },
+    });
+    const refs = { ...((cur?.remoteRefs as Record<string, string>) ?? {}) };
+    refs[this.remoteRefKey(gateway, currency)] = remotePlanId;
+    await this.prisma.membershipPlan
+      .update({ where: { id: planId }, data: { remoteRefs: refs } })
+      .catch(() => {});
   }
 
   /**
@@ -236,14 +313,20 @@ export class SubscriptionsService {
       price: number;
       type: string;
       flowPlanId: string | null;
+      currency?: string;
+      remoteRefs?: unknown;
       academy: { name: string };
     },
     academyId: string,
     personId: string,
+    /** Provider+moneda del cobro (spec multipais-currency). */
+    providerName = "FLOW",
+    currency = "CLP",
   ): Promise<{
     planId: string;
     name: string;
     amount: number;
+    currency: string;
     intervalCount: number;
     promoId: string | null;
   }> {
@@ -254,12 +337,16 @@ export class SubscriptionsService {
       personId,
       plan.id,
       plan.price,
+      currency,
     );
     if (!promo) {
       return {
-        planId: plan.flowPlanId ?? membershipBasePlanId(plan.id),
+        planId:
+          this.remotePlanId(plan, providerName, currency) ??
+          membershipBasePlanId(plan.id),
         name: label,
         amount: plan.price,
+        currency,
         intervalCount,
         promoId: null,
       };
@@ -269,6 +356,7 @@ export class SubscriptionsService {
       planId: academyPromoPlanId(plan.id, promo.id, amount),
       name: `${label} · ${promo.name}`,
       amount,
+      currency,
       intervalCount,
       promoId: promo.id,
     };
@@ -326,9 +414,11 @@ export class SubscriptionsService {
     if (!intervalCount) {
       throw new BadRequestException("este plan no admite cobro recurrente");
     }
-    // Capability check ANTES de la tx: con un gateway sin motor de
-    // suscripciones no se crea una fila PENDING_CARD muerta.
-    const { provider } = await this.provider();
+    // Moneda del plan (spec multipais-currency): fija el provider del
+    // cobro y el snapshot de la sub. Capability check ANTES de la tx:
+    // sin motor para la moneda no se crea una PENDING_CARD muerta.
+    const planCurrency = plan.currency ?? "CLP";
+    const { provider, name: providerName } = await this.provider(planCurrency);
 
     // Sección crítica (serializada por advisory lock): re-check de sub
     // viva + elección de la PENDING_CARD. Una PENDING_CARD FRESCA del
@@ -407,7 +497,12 @@ export class SubscriptionsService {
       }
       if (reuse) return reuse;
       return tx.membershipSubscription.create({
-        data: { personId, planId: plan.id, academyId: plan.academyId },
+        data: {
+          personId,
+          planId: plan.id,
+          academyId: plan.academyId,
+          currency: planCurrency,
+        },
       });
     });
 
@@ -417,30 +512,38 @@ export class SubscriptionsService {
     // promo vigente (spec member-promos) el espejo es el propio de la
     // promo (omni_<plan>_prm_<promo>_<amount>): nunca se muta el espejo
     // base ni MembershipPlan.price.
-    const charge = await this.memberChargeSpec(plan, plan.academyId, personId);
+    const charge = await this.memberChargeSpec(
+      plan,
+      plan.academyId,
+      personId,
+      providerName,
+      planCurrency,
+    );
     const flowPlanId = charge.planId;
-    if (flowPlanId !== plan.flowPlanId) {
+    const baseMirrorId = this.remotePlanId(plan, providerName, planCurrency);
+    if (flowPlanId !== baseMirrorId) {
       // Sin cargo de servicio en el monto espejo (modelo SaaS - spec
-      // academy-saas-billing): Flow cobra al alumno solo el monto del
-      // cargo (precio del plan, ya descontado si hay promo).
+      // academy-saas-billing): el proveedor cobra al alumno solo el
+      // monto del cargo (precio del plan, ya descontado si hay promo).
       await provider.ensurePlan(
         {
           planId: flowPlanId,
           name: charge.name,
           amount: charge.amount,
           intervalCount: charge.intervalCount,
+          currency: planCurrency,
         },
         { correlationId },
       );
-      // Solo se marca flowPlanId cuando el espejo BASE quedó
-      // materializado - con promo el espejo asegurado es el de la promo
-      // y el base sigue lazy (lo crea el primer cobro a precio lleno o
-      // el reprice al expirar).
+      // Solo se marca el espejo base cuando quedó materializado - con
+      // promo el asegurado es el de la promo y el base sigue lazy.
       if (charge.promoId === null) {
-        await this.prisma.membershipPlan.update({
-          where: { id: plan.id },
-          data: { flowPlanId },
-        });
+        await this.markBaseMirror(
+          plan.id,
+          providerName,
+          planCurrency,
+          flowPlanId,
+        );
       }
     }
 
@@ -449,6 +552,7 @@ export class SubscriptionsService {
     const { customerId } = await ensureFlowCustomer(
       this.prisma,
       provider,
+      providerName,
       personId,
       { correlationId },
     );
@@ -459,6 +563,11 @@ export class SubscriptionsService {
         {
           customerId,
           returnUrl: `${this.apiUrl}/api/payments/flow/customer-return`,
+          // Stripe Checkout mode=subscription resuelve el Price por
+          // (planId, currency) - Flow/Stub ignoran los campos extra.
+          planId: flowPlanId,
+          currency: planCurrency,
+          metadata: { personId },
         },
         { correlationId },
       );
@@ -496,6 +605,7 @@ export class SubscriptionsService {
       flowPlanId,
       academyPromoId: charge.promoId,
       planChargeClp: charge.amount,
+      currency: planCurrency,
       customerId,
       correlationId,
     });
@@ -555,11 +665,13 @@ export class SubscriptionsService {
       academyPromoId: string | null;
       /** Monto horneado en el plan remoto - la verdad del próximo cobro. */
       planChargeClp: number;
+      /** Moneda del cobro - resuelve el provider (multipais-currency). */
+      currency: string;
       customerId: string;
       correlationId: string;
     },
   ): Promise<{ active: MembershipSubscription; fs: RemoteSubscription }> {
-    const { provider } = await this.provider();
+    const { provider } = await this.provider(p.currency);
     let fs: RemoteSubscription;
     try {
       fs = await provider.createSubscription(
@@ -567,6 +679,7 @@ export class SubscriptionsService {
           planId: p.flowPlanId,
           customerId: p.customerId,
           subscriptionStart: new Date().toISOString().slice(0, 10),
+          currency: p.currency,
         },
         { correlationId: p.correlationId },
       );
@@ -644,6 +757,60 @@ export class SubscriptionsService {
   }
 
   /**
+   * Adopción de una sub remota ya creada por el registro de tarjeta
+   * (Stripe Checkout mode=subscription - spec multipais-currency): la
+   * fila ACTIVATING pasa a ACTIVE con el id remoto devuelto por
+   * getRegisterStatus; el estado real lo confirma el getSubscription
+   * inmediato (si falla queda ACTIVE y el reconcile corrige).
+   */
+  private async adoptRemoteSubscription(
+    subId: string,
+    p: {
+      remoteId: string;
+      academyPromoId: string | null;
+      planChargeClp: number;
+      currency: string;
+      correlationId: string;
+    },
+  ): Promise<{ active: MembershipSubscription; fs: RemoteSubscription }> {
+    const { provider } = await this.provider(p.currency);
+    const fs = await provider
+      .getSubscription(p.remoteId, { correlationId: p.correlationId })
+      .catch(() => null);
+    const transition = await this.prisma.membershipSubscription.updateMany({
+      where: { id: subId, status: "ACTIVATING" },
+      data: {
+        flowSubscriptionId: p.remoteId,
+        status: fs?.status === "CANCELED" ? "CANCELED" : "ACTIVE",
+        nextInvoiceAt: fs?.nextInvoiceDate
+          ? new Date(fs.nextInvoiceDate)
+          : null,
+        academyPromoId: p.academyPromoId,
+        planChargeClp: p.planChargeClp,
+        ...(fs?.status === "CANCELED" ? { canceledAt: new Date() } : {}),
+      },
+    });
+    if (transition.count === 0) {
+      throw new ConflictException(
+        "la suscripción cambió de estado durante la activación",
+      );
+    }
+    const active = await this.prisma.membershipSubscription.findUniqueOrThrow({
+      where: { id: subId },
+    });
+    return {
+      active,
+      fs: fs ?? {
+        subscriptionId: p.remoteId,
+        planId: "",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+      },
+    };
+  }
+
+  /**
    * Retorno del disclaimer de registro de tarjeta (Flow hace POST del
    * browser a url_return con {token}). Público: registra el inbound en
    * GatewayTransaction y, si el registro quedó OK, reanuda la
@@ -661,13 +828,72 @@ export class SubscriptionsService {
       requestBody: { token },
       ok: true,
     });
-    const { provider } = await this.provider();
-    const reg = await provider.getRegisterStatus(token, { correlationId });
+    // El token del retorno no trae moneda ni provider: se prueba el
+    // provider del param (CLP) primero y luego el resto de los
+    // adaptadores con motor de suscripciones (spec multipais-currency,
+    // mismo patrón que PlatformSubscriptionsService.customerReturn) -
+    // el que reconozca el registro gana. Un token cs_… de Stripe
+    // Checkout mode=subscription nunca lo entiende Flow.
+    const primary = await this.subscriptionGateway();
+    const candidates: PaymentGateway[] = [];
+    if (primary) candidates.push(primary);
+    for (const name of this.gateways.names()) {
+      const gw = this.gateways.get(name);
+      if (
+        gw &&
+        gw !== primary &&
+        typeof (gw as Partial<SubscriptionProvider>).createSubscription ===
+          "function"
+      ) {
+        candidates.push(gw);
+      }
+    }
+    if (candidates.length === 0) {
+      throw new BadRequestException(
+        "el proveedor de suscripciones configurado no tiene motor de suscripciones",
+      );
+    }
+    let provider = candidates[0] as unknown as SubscriptionProvider;
+    let providerName = candidates[0].name;
+    let reg: {
+      registered: boolean;
+      customerId?: string;
+      subscriptionId?: string;
+    } = { registered: false };
+    for (const gw of candidates) {
+      try {
+        const r = await (
+          gw as unknown as SubscriptionProvider
+        ).getRegisterStatus(token, { correlationId });
+        if (r.registered && r.customerId) {
+          provider = gw as unknown as SubscriptionProvider;
+          providerName = gw.name;
+          reg = r;
+          break;
+        }
+      } catch {
+        // El token no pertenece a este proveedor - probar el siguiente.
+      }
+    }
     if (!reg.registered || !reg.customerId) {
       return { ok: false, academyId: null };
     }
+    // Customer → person: mapa por proveedor (gatewayCustomerIds) con
+    // fallback a la columna legacy flowCustomerId para FLOW.
     const person = await this.prisma.person.findFirst({
-      where: { flowCustomerId: reg.customerId },
+      where: {
+        OR: [
+          {
+            gatewayCustomerIds: {
+              path: [providerName.toUpperCase()],
+              equals: reg.customerId,
+            },
+          },
+          ...(providerName.toUpperCase() === "FLOW"
+            ? [{ flowCustomerId: reg.customerId }]
+            : []),
+        ],
+      },
       select: { id: true },
     });
     if (!person) return { ok: false, academyId: null };
@@ -678,6 +904,8 @@ export class SubscriptionsService {
         plan: {
           select: {
             flowPlanId: true,
+            remoteRefs: true,
+            currency: true,
             name: true,
             type: true,
             price: true,
@@ -710,10 +938,16 @@ export class SubscriptionsService {
     // member-promos): la promo pudo aparecer, editarse o expirar entre
     // el intento y el retorno. El espejo se asegura acá (idempotente);
     // si el resuelto es el base y aún no estaba materializado, se marca.
+    // El provider ya quedó resuelto por el token (multi-provider): no
+    // se re-deriva por moneda - un mismatch moneda↔provider fallaría
+    // en ensurePlan/createSubscription, no en una resolución silenciosa.
+    const subCurrency = sub.plan.currency ?? "CLP";
     const charge = await this.memberChargeSpec(
       { ...sub.plan, id: sub.planId },
       sub.academyId,
       person.id,
+      providerName,
+      subCurrency,
     );
     await provider.ensurePlan(
       {
@@ -721,24 +955,39 @@ export class SubscriptionsService {
         name: charge.name,
         amount: charge.amount,
         intervalCount: charge.intervalCount,
+        currency: subCurrency,
       },
       { correlationId },
     );
-    if (charge.promoId === null && !sub.plan.flowPlanId) {
-      await this.prisma.membershipPlan
-        .update({
-          where: { id: sub.planId },
-          data: { flowPlanId: charge.planId },
-        })
-        .catch(() => {});
+    if (
+      charge.promoId === null &&
+      !this.remotePlanId(sub.plan, providerName, subCurrency)
+    ) {
+      await this.markBaseMirror(
+        sub.planId,
+        providerName,
+        subCurrency,
+        charge.planId,
+      );
     }
-    const { active, fs } = await this.createRemoteSubscription(sub.id, {
-      flowPlanId: charge.planId,
-      academyPromoId: charge.promoId,
-      planChargeClp: charge.amount,
-      customerId: reg.customerId,
-      correlationId,
-    });
+    // La sesión de Stripe (Checkout mode=subscription) ya creó la sub
+    // remota - su id viene en getRegisterStatus; Flow no lo emite.
+    const { active, fs } = reg.subscriptionId
+      ? await this.adoptRemoteSubscription(sub.id, {
+          remoteId: reg.subscriptionId,
+          academyPromoId: charge.promoId,
+          planChargeClp: charge.amount,
+          currency: subCurrency,
+          correlationId,
+        })
+      : await this.createRemoteSubscription(sub.id, {
+          flowPlanId: charge.planId,
+          academyPromoId: charge.promoId,
+          planChargeClp: charge.amount,
+          currency: subCurrency,
+          customerId: reg.customerId,
+          correlationId,
+        });
     try {
       await this.reconcileSubscription(active, fs, "system");
     } catch (e) {
@@ -811,9 +1060,12 @@ export class SubscriptionsService {
     if (!sub || sub.personId !== personId) {
       throw new NotFoundException("suscripción no encontrada");
     }
-    if (sub.flowSubscriptionId && (await this.subscriptionGateway())) {
+    if (
+      sub.flowSubscriptionId &&
+      (await this.subscriptionGateway(sub.currency))
+    ) {
       try {
-        const { provider } = await this.provider();
+        const { provider } = await this.provider(sub.currency);
         const fs = await provider.getSubscription(sub.flowSubscriptionId, {
           correlationId: randomUUID(),
         });
@@ -856,7 +1108,7 @@ export class SubscriptionsService {
       return { ok: true, status: "CANCELED", subscriptionId: sub.id };
     }
 
-    const { provider } = await this.provider();
+    const { provider } = await this.provider(sub.currency);
     await provider.cancelSubscription(sub.flowSubscriptionId, {
       correlationId: randomUUID(),
     });
@@ -921,17 +1173,56 @@ export class SubscriptionsService {
   async reconcileAll(
     actor = "reconcile",
   ): Promise<{ checked: number; settled: number }> {
-    const resolved = await this.provider().catch(() => null);
-    if (!resolved) return { checked: 0, settled: 0 };
-    const { provider } = resolved;
     const subs = await this.prisma.membershipSubscription.findMany({
       where: {
         flowSubscriptionId: { not: null },
         status: { in: ["ACTIVE", "CANCEL_PENDING"] },
       },
     });
+    // Provider por moneda de cada sub (spec multipais-currency) - lazy
+    // por currency; una moneda sin proveedor solo salta sus subs.
+    const providers = new Map<string, SubscriptionProvider | null>();
+    const providerFor = async (currency: string) => {
+      const cur = currency.toUpperCase();
+      if (!providers.has(cur)) {
+        providers.set(
+          cur,
+          (await this.provider(cur).catch(() => null))?.provider ?? null,
+        );
+      }
+      return providers.get(cur) ?? null;
+    };
     let settled = 0;
+    const orphanProviders = new Map<
+      string,
+      { provider: SubscriptionProvider; name: string }
+    >();
+    // El barrido de huérfanas corre siempre sobre el provider del param
+    // (CLP) además de los providers de otras monedas con subs vivas.
+    const primary = await this.provider("CLP").catch(() => null);
+    if (primary) {
+      orphanProviders.set(primary.name, {
+        provider: primary.provider,
+        name: primary.name,
+      });
+    }
     for (const sub of subs) {
+      const provider = await providerFor(sub.currency ?? "CLP");
+      if (!provider) {
+        this.logger.warn(
+          `reconcile sub ${sub.id}: moneda ${sub.currency} sin proveedor de suscripciones`,
+        );
+        continue;
+      }
+      const resolved = await this.provider(sub.currency ?? "CLP").catch(
+        () => null,
+      );
+      if (resolved && !orphanProviders.has(resolved.name)) {
+        orphanProviders.set(resolved.name, {
+          provider: resolved.provider,
+          name: resolved.name,
+        });
+      }
       try {
         const fs = await provider.getSubscription(sub.flowSubscriptionId!, {
           correlationId: randomUUID(),
@@ -943,7 +1234,9 @@ export class SubscriptionsService {
         );
       }
     }
-    await this.sweepOrphanSubscriptions(provider);
+    for (const p of orphanProviders.values()) {
+      await this.sweepOrphanSubscriptions(p.provider, p.name);
+    }
     return { checked: subs.length, settled };
   }
 
@@ -968,11 +1261,14 @@ export class SubscriptionsService {
    */
   private async sweepOrphanSubscriptions(
     provider: SubscriptionProvider,
+    providerName: string,
   ): Promise<void> {
     const txs = await this.prisma.gatewayTransaction.findMany({
       where: {
-        provider:
-          (await this.subscriptionGateway())?.name ?? "UNCONFIGURED",
+        // Se filtra por el provider BARRIDO (spec multipais-currency):
+        // el create auditado de otra pasarela no se cancela con este
+        // adaptador - los ids remotos no son intercambiables.
+        provider: providerName,
         direction: "OUTBOUND",
         endpoint: "subscription/create",
         ok: true,
@@ -1146,8 +1442,10 @@ export class SubscriptionsService {
             // Auditoría del cobro descontado (spec member-promos) - base
             // del conteo de maxCycles por alumno.
             academyPromoId: sub.academyPromoId ?? null,
+            currency: sub.currency ?? "CLP",
             gateway:
-              (await this.subscriptionGateway())?.name ?? "UNCONFIGURED",
+              (await this.subscriptionGateway(sub.currency))?.name ??
+              "UNCONFIGURED",
             gatewayRef: inv.payment?.orderRef ?? null,
             ...academyFeeBreakdown(amount, cardPct),
           },
@@ -1369,16 +1667,20 @@ export class SubscriptionsService {
       include: { academy: { select: { name: true } } },
     });
     if (!plan) return;
+    const cur = sub.currency ?? plan.currency ?? "CLP";
+    const { name: gwName } = await this.provider(cur);
     const expected = await this.memberChargeSpec(
       plan,
       sub.academyId,
       sub.personId,
+      gwName,
+      cur,
     );
     const drift =
       (sub.academyPromoId ?? null) !== (expected.promoId ?? null) ||
       (sub.planChargeClp != null && sub.planChargeClp !== expected.amount);
     if (!drift) return;
-    const { provider } = await this.provider();
+    const { provider } = await this.provider(cur);
     await provider.cancelSubscription(sub.flowSubscriptionId!, {
       correlationId: randomUUID(),
     });
@@ -1408,29 +1710,36 @@ export class SubscriptionsService {
       include: { academy: { select: { name: true } } },
     });
     if (!plan) return false;
-    const { provider } = await this.provider();
+    const cur = sub.currency ?? plan.currency ?? "CLP";
+    const { provider, name: providerName } = await this.provider(cur);
     const correlationId = randomUUID();
-    const charge = await this.memberChargeSpec(plan, sub.academyId, sub.personId);
+    const charge = await this.memberChargeSpec(
+      plan,
+      sub.academyId,
+      sub.personId,
+      providerName,
+      cur,
+    );
     await provider.ensurePlan(
       {
         planId: charge.planId,
         name: charge.name,
         amount: charge.amount,
         intervalCount: charge.intervalCount,
+        currency: cur,
       },
       { correlationId },
     );
-    if (charge.promoId === null && !plan.flowPlanId) {
-      await this.prisma.membershipPlan
-        .update({
-          where: { id: plan.id },
-          data: { flowPlanId: charge.planId },
-        })
-        .catch(() => {});
+    if (
+      charge.promoId === null &&
+      !this.remotePlanId(plan, providerName, cur)
+    ) {
+      await this.markBaseMirror(plan.id, providerName, cur, charge.planId);
     }
     const { customerId } = await ensureFlowCustomer(
       this.prisma,
       provider,
+      providerName,
       sub.personId,
       { correlationId },
     );
@@ -1439,6 +1748,7 @@ export class SubscriptionsService {
         planId: charge.planId,
         customerId,
         subscriptionStart: new Date().toISOString().slice(0, 10),
+        currency: cur,
       },
       { correlationId },
     );

@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import type { Academy } from "@prisma/client";
+import { InvalidPhoneError, normalizePhone } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
 import { AuthService } from "../../auth/domain/auth.service";
 import { MAILER, type Mailer } from "../../auth/domain/ports";
@@ -85,6 +86,17 @@ export class AcademyImportService {
     });
     const planByName = new Map(plans.map((p) => [normLabel(p.name), p]));
 
+    // País de la academia (spec multipais-phone): defaultCountry para
+    // normalizar la columna `telefono` a E.164. Sin ciudad → CL.
+    const academyCountry = academy.cityId
+      ? ((
+          await this.prisma.city.findUnique({
+            where: { id: academy.cityId },
+            select: { country: { select: { code: true } } },
+          })
+        )?.country.code ?? "CL")
+      : "CL";
+
     const results: StudentRowResult[] = [];
     for (const [i, r] of rows.entries()) {
       const row = i + 2; // header es la fila 1 del CSV
@@ -106,10 +118,26 @@ export class AcademyImportService {
         });
         const isNewPerson = !person;
         if (!person) {
-          const phone = r.telefono?.trim() || null;
+          // Spec multipais-phone: `telefono` se normaliza a E.164 con el
+          // país de la academia; fila inválida = error de fila.
+          let phone: string | null = null;
+          let phoneCountryCode: string | null = null;
+          const rawPhone = r.telefono?.trim() ?? "";
+          if (rawPhone) {
+            try {
+              const normalized = normalizePhone(rawPhone, academyCountry);
+              phone = normalized?.e164 ?? null;
+              phoneCountryCode = normalized?.countryCode ?? null;
+            } catch (e) {
+              if (e instanceof InvalidPhoneError) {
+                throw new RowError("teléfono inválido");
+              }
+              throw e;
+            }
+          }
           try {
             person = await this.prisma.person.create({
-              data: { email, name, phone },
+              data: { email, name, phone, phoneCountryCode },
               select: { id: true, name: true },
             });
           } catch (e) {

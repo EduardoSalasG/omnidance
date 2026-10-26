@@ -7,11 +7,13 @@ import { Badge, Button, Card, PriceTag, RefreshIcon, Skeleton, SkeletonList, Spi
 import { planDateFmt, readError } from "@/components/academy/shared";
 import { getNumFmt, useNumFmt } from "@/lib/intl";
 
-const clp = (locale: string) => getNumFmt(locale, {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
+const money = (locale: string, currency: string) =>
+  getNumFmt(locale, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  });
+const clp = (locale: string) => money(locale, "CLP");
 
 type BillingCycle = "MONTHLY" | "SEMIANNUAL" | "ANNUAL";
 
@@ -57,6 +59,8 @@ type ProView = {
     cyclesLeft: number | null;
     finalMonthlyClp: number | null;
   } | null;
+  /** Price book del país de cobro (spec multipais-currency): tier×ciclo → cargo + moneda. */
+  prices?: Record<string, Record<string, { price: number; currency: string } | null>>;
 };
 
 /** POST /producers/:id/pro/subscribe - needs_card → disclaimer Flow. */
@@ -146,25 +150,31 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
     return null;
   }, [view, prices]);
 
-  // Precio mensual base del tier autogestionado; el cargo real de Flow
-  // es monthly × meses facturados del ciclo (chargeSpec: anual ×11,
-  // semestral ×5.75). El mensual-equivalente mostrado lo descuenta.
+  // Cargo del tier×ciclo del price book del país de cobro (spec
+  // multipais-currency): la vista trae {price, currency} por celda -
+  // ya no se deriva del param CLP `producer_tier.*_monthly_clp`
+  // (anual cobra 10.2 de 12 meses, semestral 5.52 de 6).
+  const tierCode =
+    selfServeTier === "starter"
+      ? "PRO_STARTER"
+      : selfServeTier === "growth"
+        ? "PRO_GROWTH"
+        : null;
+  const priceCell = (c: BillingCycle) =>
+    tierCode ? (view?.prices?.[tierCode]?.[c] ?? null) : null;
+  const chargeCurrency = priceCell(cycle)?.currency ?? "CLP";
   const monthlyBase = useMemo(() => {
+    // Fallback al param CLP solo si el price book no vino (compat).
     if (!selfServeTier) return null;
     const v = prices[`producer_tier.${selfServeTier}_monthly_clp`];
     return v != null && v > 0 ? v : null;
   }, [prices, selfServeTier]);
 
-  const monthlyPrice =
-    monthlyBase != null
-      ? Math.round(
-          (monthlyBase * CYCLE_BILLED_MONTHS[cycle]) / CYCLE_MONTHS[cycle],
-        )
-      : null;
   const chargeTotal =
-    monthlyBase != null
+    priceCell(cycle)?.price ??
+    (monthlyBase != null
       ? Math.round(monthlyBase * CYCLE_BILLED_MONTHS[cycle])
-      : null;
+      : null);
 
   // Cargo efectivo con la promo vigente (spec platform-promos) - mismo
   // cálculo que promoChargeClp del API.
@@ -441,13 +451,16 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                 </legend>
                 <div className="grid grid-cols-3 gap-2">
                   {CYCLES.map((c) => {
+                    const cell = priceCell(c);
                     const price =
-                      monthlyBase != null
-                        ? Math.round(
-                            (monthlyBase * CYCLE_BILLED_MONTHS[c]) /
-                              CYCLE_MONTHS[c],
-                          )
-                        : null;
+                      cell != null
+                        ? Math.round(cell.price / CYCLE_MONTHS[c])
+                        : monthlyBase != null
+                          ? Math.round(
+                              (monthlyBase * CYCLE_BILLED_MONTHS[c]) /
+                                CYCLE_MONTHS[c],
+                            )
+                          : null;
                     const selected = cycle === c;
                     return (
                       <button
@@ -464,7 +477,12 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                         <span className="font-medium">{t(`cycle.${c}`)}</span>
                         {price != null && price > 0 && (
                           <span className="text-xs tabular-nums opacity-80">
-                            {t("perMonth", { amount: clp(locale).format(price) })}
+                            {t("perMonth", {
+                              amount: money(
+                                locale,
+                                cell?.currency ?? "CLP",
+                              ).format(price),
+                            })}
                           </span>
                         )}
                       </button>
@@ -484,18 +502,18 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                       (promo && chargeFinal != null ? (
                         <>
                           <span className="line-through">
-                            {clp(locale).format(chargeTotal)}
+                            {money(locale, chargeCurrency).format(chargeTotal)}
                           </span>{" "}
                           <span className="font-semibold text-neon">
                             {t("consent", {
-                              amount: clp(locale).format(chargeFinal),
+                              amount: money(locale, chargeCurrency).format(chargeFinal),
                               period: t(`period.${cycle}`),
                             })}
                           </span>
                         </>
                       ) : (
                         t("consent", {
-                          amount: clp(locale).format(chargeTotal),
+                          amount: money(locale, chargeCurrency).format(chargeTotal),
                           period: t(`period.${cycle}`),
                         })
                       ))}
@@ -519,7 +537,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                     {busy && <Spinner size="sm" />}
                     {chargeTotal != null
                       ? t("subscribe", {
-                          amount: clp(locale).format(chargeFinal ?? chargeTotal),
+                          amount: money(locale, chargeCurrency).format(chargeFinal ?? chargeTotal),
                           period: t(`period.${cycle}`),
                         })
                       : t("subscribeNoPrice")}

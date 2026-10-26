@@ -9,7 +9,7 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsBoolean, IsIn } from "class-validator";
+import { IsBoolean, IsIn, IsOptional, IsString } from "class-validator";
 import type { Request } from "express";
 import type { BillingCycle } from "@prisma/client";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
@@ -29,6 +29,11 @@ class SubscribeProducerProDto {
   /** Consentimiento de cargo recurrente (mismo contrato que membresías). */
   @IsBoolean()
   acceptRecurring!: boolean;
+
+  /** Pais de cobro (spec multipais-currency, ISO-2, default CL). */
+  @IsOptional()
+  @IsString()
+  billingCountry?: string;
 }
 
 /** Shape uniforme del subscribe: la URL del disclaimer o "ya activa". */
@@ -80,6 +85,7 @@ export class ProducerProController {
     const r = await this.platformSubs.subscribeProducer(id, {
       cycle: dto.cycle,
       acceptRecurring: dto.acceptRecurring,
+      billingCountry: dto.billingCountry,
     });
     return subscribeResponse(r);
   }

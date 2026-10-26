@@ -24,6 +24,7 @@ import {
 } from "class-validator";
 import type { Request } from "express";
 import type { Prisma, RoleStatus } from "@prisma/client";
+import { normalizePhoneOrNull } from "@omnidance/shared";
 import { Inject } from "@nestjs/common";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { AuthService } from "../../auth/domain/auth.service";
@@ -850,9 +851,15 @@ export class AdminController {
       // otra cuenta, el create explotaría en 500. 409 para que el admin
       // resuelva el choque manualmente (no auto-fusionamos identidades).
       // (lead.phone puede ser null en intent DEMO.)
-      if (lead.phone) {
+      // Spec multipais-phone: leads legados (pre-spec) pueden tener el
+      // teléfono en formato nacional - el lookup y el create operan
+      // sobre el E.164 canónico cuando parsea (verbatim si no, como
+      // antes). Default CL: la escena de origen de los leads legados.
+      const leadPhone = normalizePhoneOrNull(lead.phone, "CL");
+      const phoneE164 = leadPhone?.e164 ?? lead.phone;
+      if (phoneE164) {
         const phoneTaken = await this.prisma.person.findUnique({
-          where: { phone: lead.phone },
+          where: { phone: phoneE164 },
           select: { id: true },
         });
         if (phoneTaken) {
@@ -863,7 +870,10 @@ export class AdminController {
         data: {
           name: lead.name,
           email: lead.email,
-          phone: lead.phone,
+          phone: phoneE164,
+          // Spec multipais-phone: país derivado del número parseado
+          // (null si el valor legado no parsea).
+          phoneCountryCode: leadPhone?.countryCode ?? null,
           isDemoAccount: true,
           pendingProfileAt: new Date(),
           roles: {

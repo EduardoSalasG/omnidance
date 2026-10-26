@@ -24,6 +24,7 @@ import { AdminFeatureFlagsController } from "./infrastructure/feature-flags.cont
 import { AdminCityGuidesController } from "./infrastructure/city-guides.controller";
 import { AdminCityGuidesService } from "./application/city-guides.service";
 import { AdminPlatformPromosController } from "./infrastructure/platform-promos.controller";
+import { AdminTierPricesController } from "./infrastructure/tier-prices.controller";
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { AdminPlatformPromosController } from "./infrastructure/platform-promos.
     AdminFeatureFlagsController,
     AdminCityGuidesController,
     AdminPlatformPromosController,
+    AdminTierPricesController,
   ],
   providers: [AdminBillingService, AdminCityGuidesService],
 })

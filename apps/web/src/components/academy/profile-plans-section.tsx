@@ -9,6 +9,7 @@ type Plan = {
   name: string;
   type: string;
   price: number;
+  currency?: string;
   classCount: number | null;
   weeklyClasses: number | null;
   periodDays: number | null;
@@ -139,7 +140,7 @@ export function ProfilePlansSection({
                     SaaS: la academia vende sin comisión), mismo total
                     que el breakdown del checkout. */}
                 <div className="shrink-0 text-right">
-                  <PriceTag amount={p.price} />
+                  <PriceTag amount={p.price} currency={p.currency} />
                 </div>
               </div>
               {p.description.length > 0 && (

@@ -725,6 +725,31 @@
       "disable": "Deshabilitar promo",
       "enable": "Habilitar promo",
       "disableHint": "Al deshabilitarla deja de aplicar a nuevos cobros; las suscripciones bajo ella vuelven a precio lleno al próximo ciclo."
+    },
+    "tierPrices": {
+      "title": "Precios de tiers",
+      "subtitle": "Libro de precios por país y ciclo (TierPrice)",
+      "country": "País",
+      "kind": "Línea",
+      "tier": "Tier",
+      "cycle": "Ciclo",
+      "price": "Precio",
+      "currency": "Moneda",
+      "new": "Nuevo precio",
+      "save": "Guardar",
+      "saved": "Guardado",
+      "create": "Crear precio",
+      "created": "Precio creado",
+      "exists": "Ya existe ese precio para tier/ciclo/país",
+      "empty": "Sin precios cargados",
+      "edit": "Editar",
+      "actions": "Acciones",
+      "academy": "Academia",
+      "producer": "Productor",
+      "cycleMonthly": "Mensual",
+      "cycleSemiannual": "Semestral",
+      "cycleAnnual": "Anual",
+      "retry": "Reintentar"
     }
   }
 }

@@ -725,6 +725,31 @@
       "disable": "Disable promo",
       "enable": "Enable promo",
       "disableHint": "Disabling stops new discounted charges; subscriptions under it return to full price next cycle."
+    },
+    "tierPrices": {
+      "title": "Tier prices",
+      "subtitle": "Price book by country and cycle (TierPrice)",
+      "country": "Country",
+      "kind": "Line",
+      "tier": "Tier",
+      "cycle": "Cycle",
+      "price": "Price",
+      "currency": "Currency",
+      "new": "New price",
+      "save": "Save",
+      "saved": "Saved",
+      "create": "Create price",
+      "created": "Price created",
+      "exists": "Price already exists for tier/cycle/country",
+      "empty": "No prices yet",
+      "edit": "Edit",
+      "actions": "Actions",
+      "academy": "Academy",
+      "producer": "Producer",
+      "cycleMonthly": "Monthly",
+      "cycleSemiannual": "Semiannual",
+      "cycleAnnual": "Annual",
+      "retry": "Retry"
     }
   }
 }

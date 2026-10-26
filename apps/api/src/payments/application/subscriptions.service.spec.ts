@@ -62,10 +62,21 @@ function mkSub(over: Partial<Row> = {}): MembershipSubscription {
 
 function matchWhere(row: Row, where: Row): boolean {
   for (const [k, cond] of Object.entries(where)) {
+    if (k === "OR" && Array.isArray(cond)) {
+      if (!(cond as Row[]).some((w) => matchWhere(row, w))) return false;
+      continue;
+    }
     const v = row[k];
     if (cond != null && typeof cond === "object" && !Array.isArray(cond)) {
       const c = cond as Row;
-      if ("in" in c) {
+      if ("equals" in c && "path" in c) {
+        // Filtro JSON path (gatewayCustomerIds["<GW>"]): navega el mapa.
+        let cur: unknown = v;
+        for (const seg of c.path as string[]) {
+          cur = (cur as Row | null)?.[seg];
+        }
+        if (cur !== c.equals) return false;
+      } else if ("in" in c) {
         if (!(c.in as unknown[]).includes(v)) return false;
       } else if ("not" in c) {
         if (c.not === null ? v === null : v === c.not) return false;
@@ -620,6 +631,7 @@ describe("SubscriptionsService", () => {
           name: "Academia X - Mensual",
           amount: 10000,
           intervalCount: 1,
+          currency: "CLP",
         },
         { correlationId: expect.any(String) },
       );
@@ -656,6 +668,7 @@ describe("SubscriptionsService", () => {
           planId: "omni_plan1",
           customerId: "cus_p1",
           subscriptionStart: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+          currency: "CLP",
         },
         { correlationId: expect.any(String) },
       );
@@ -943,6 +956,69 @@ describe("SubscriptionsService", () => {
       const r = await svc.customerReturn("tok-bad");
       expect(r).toEqual({ ok: false, academyId: null });
       expect(flow.createSubscription).not.toHaveBeenCalled();
+    });
+
+    it("token no reconocido por el param-provider → itera el resto de adaptadores (spec multipais-currency)", async () => {
+      // El token cs_… de Stripe Checkout nunca lo entiende Flow: el
+      // customerReturn prueba cada SubscriptionProvider registrado y el
+      // que reconoce el registro gana (adopción por subscriptionId).
+      flow.getRegisterStatus.mockResolvedValue({ registered: false });
+      const stripe = mkFlow() as unknown as PaymentGateway & {
+        name: string;
+        getRegisterStatus: ReturnType<typeof vi.fn>;
+        ensurePlan: ReturnType<typeof vi.fn>;
+        getSubscription: ReturnType<typeof vi.fn>;
+      };
+      stripe.name = "STRIPE";
+      stripe.getRegisterStatus.mockResolvedValue({
+        registered: true,
+        customerId: "cus_s1",
+        subscriptionId: "sub_s1",
+      });
+      stripe.getSubscription.mockResolvedValue({
+        subscriptionId: "sub_s1",
+        planId: "omni_plan1",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+      });
+      const prisma = fx.prisma as unknown as PrismaService;
+      const params = mkParams() as unknown as ParamsService;
+      const notif = notifications as unknown as NotificationsService;
+      const svc2 = new SubscriptionsService(
+        prisma,
+        params,
+        new PaymentSettlementService(prisma, params, notif),
+        notif,
+        new GatewayTransactionsService(prisma),
+        new AcademyPromosService(prisma),
+        new GatewayRegistry(
+          [flow as unknown as PaymentGateway, stripe as unknown as PaymentGateway],
+          "FLOW",
+        ),
+      );
+      // El person lookup pasa por gatewayCustomerIds["STRIPE"] - el fake
+      // no evalúa el path JSON, así que se resuelve el mock directo.
+      (
+        fx.prisma.person.findFirst as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce({ id: "p1" });
+      const pending = mkSub({ status: "PENDING_CARD" });
+      fx.subs.push(pending);
+      fx.plans.get("plan1")!.flowPlanId = "omni_plan1";
+
+      const r = await svc2.customerReturn("cs_tok");
+
+      expect(r).toEqual({ ok: true, academyId: "ac1" });
+      expect(stripe.getRegisterStatus).toHaveBeenCalledWith(
+        "cs_tok",
+        { correlationId: expect.any(String) },
+      );
+      // ensurePlan + adopción corrieron sobre el adaptador que reconoció
+      // el token, no sobre el del param.
+      expect(stripe.ensurePlan).toHaveBeenCalled();
+      const row = fx.subs.find((s) => s.id === pending.id)!;
+      expect(row.status).toBe("ACTIVE");
+      expect(row.flowSubscriptionId).toBe("sub_s1");
     });
   });
 
@@ -1812,6 +1888,7 @@ describe("SubscriptionsService", () => {
           name: "Academia X - Mensual · Beca 50%",
           amount: 5000,
           intervalCount: 1,
+          currency: "CLP",
         },
         { correlationId: expect.any(String) },
       );
@@ -1899,6 +1976,26 @@ describe("SubscriptionsService", () => {
       expect(fx.subs[0]!.pendingReprice).toBe(true);
       // El status visible sigue ACTIVE: la cancel es del sistema.
       expect(fx.subs[0]!.status).toBe("ACTIVE");
+    });
+  });
+
+  // ─── multipais-currency: snapshot + remoteRefs ───────────────────
+  describe("multipais-currency", () => {
+    it("plan USD → sub.currency snapshot + espejo en remoteRefs (flowPlanId intacto)", async () => {
+      fx.plans.get("plan1")!.currency = "USD";
+      const r = await svc.subscribe("p1", "plan1", true);
+      const sub = fx.subs[0]!;
+      expect(sub.currency).toBe("USD");
+      // El espejo no-CLP queda en remoteRefs "<GATEWAY>:<CUR>" - nunca
+      // en flowPlanId (que sigue siendo el espejo Flow/CLP).
+      const refs = fx.plans.get("plan1")!.remoteRefs as Row;
+      expect(refs["FLOW:USD"]).toBe("omni_plan1");
+      expect(fx.plans.get("plan1")!.flowPlanId).toBeNull();
+      expect(flow.ensurePlan).toHaveBeenCalledWith(
+        expect.objectContaining({ currency: "USD" }),
+        { correlationId: expect.any(String) },
+      );
+      void r;
     });
   });
 });

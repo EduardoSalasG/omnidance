@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import { PhoneInput } from "@/components/people/phone-input";
 import { Button, Card, RefreshIcon } from "@/components/ui";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
 import { inputCls } from "@/components/academy/shared";
@@ -34,6 +35,10 @@ export default function CompletarPerfilPage() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  // Spec multipais-phone: país del selector + E.164 validado (null si
+  // aún no parsea - el API re-valida igual).
+  const [phoneCountry, setPhoneCountry] = useState("CL");
+  const [phoneE164, setPhoneE164] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +68,7 @@ export default function CompletarPerfilPage() {
     if (phase === "form" && !prefilled.current) {
       prefilled.current = true;
       setName(me?.name ?? "");
+      setPhoneCountry(me?.phoneCountryCode ?? "CL");
     }
   }, [phase, me]);
 
@@ -82,7 +88,8 @@ export default function CompletarPerfilPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          phone: phone.trim(),
+          phone: phoneE164 ?? phone.trim(),
+          phoneCountryCode: phoneCountry,
           ...(password ? { password } : {}),
         }),
       });
@@ -167,15 +174,17 @@ export default function CompletarPerfilPage() {
                 <span className="text-xs font-medium text-ink/60">
                   {t("complete.phone")}
                 </span>
-                <input
+                <PhoneInput
                   required
-                  type="tel"
-                  minLength={6}
-                  autoComplete="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  defaultCountry={phoneCountry}
+                  onChange={({ phone: p, e164, countryCode }) => {
+                    setPhone(p);
+                    setPhoneE164(e164);
+                    setPhoneCountry(countryCode);
+                  }}
                   disabled={saving}
-                  className={inputCls}
+                  inputClassName={inputCls}
                 />
               </label>
               <label className="flex flex-col gap-1.5">

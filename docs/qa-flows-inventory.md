@@ -70,9 +70,9 @@
 ### Landings pro `/pro`, `/para-academias`, `/para-productores`
 - `/pro`: cards → landings por rol; sección "otros roles" con `ProLeadForm` (roles DJ|VENUE_MANAGER).
 - `/para-*`: la invitación es registro directo — header "Crear cuenta", hero primario y CTA final → `/login?mode=register&role=ACADEMY_OWNER|PRODUCER`; secundario exploratorio → `/academias` (academy) o `/eventos` (producer) con bounce anon a `/login?next=`.
-- **Lead form (solo hub /pro, DJ|VENUE):** name≥2, email regex, phone obligatorio, role pills → `POST /leads` intent CONTACT → 200 `{id, accountExists}`.
+- **Lead form (solo hub /pro, DJ|VENUE):** name≥2, email regex, phone obligatorio (contexto CL, `+` = internacional → E.164 + `phoneCountryCode`), role pills → `POST /leads` intent CONTACT → 200 `{id, accountExists}`.
   - `accountExists` → estado de éxito con link /login.
-  - Negativos: campos faltantes (inline `#lead-error`), throttle 403, teléfono duplicado 409.
+  - Negativos: campos faltantes (inline `#lead-error`), throttle 403, teléfono inválido 400 `telefono_invalido`, teléfono duplicado 409 (sobre E.164).
 
 ### Login `/login` (+`?mode=register`, `?next=`)
 - Modos: password (default) | magic | register. `/login` NO es anon-only.
@@ -93,11 +93,11 @@
 ### Onboarding `/bienvenida` (app; sesión)
 - Guard: `me.onboarding["profile-setup"]` ya marcado → redirect next|/inicio.
 - Form: nombre*(≥2), teléfono, instagram, género (radiogroup des-seleccionable), estilos → por estilo rol (LEADER/FOLLOWER/SWITCH) + nivel.
-- Submit: `PATCH /me` (409 phoneTaken) → `PUT /me/style-roles` → `POST /me/onboarding` → next|/inicio. "Ahora no" = solo onboarding + redirect.
+- Submit: `PATCH /me` (400 teléfono inválido, 409 phoneTaken sobre E.164; `PhoneInput` con selector de país) → `PUT /me/style-roles` → `POST /me/onboarding` → next|/inicio. "Ahora no" = solo onboarding + redirect.
 - Edge: cuenta demo → PATCH /me 403 demo_mode.
 
 ### Completar perfil `/perfil/completar` (lead convertido)
-- Guard: `!me.pendingProfile` → /perfil. Form nombre*/teléfono*/password opcional(≥8) → `POST /me/complete-profile` → done → /inicio (1200ms). 409 phoneTaken.
+- Guard: `!me.pendingProfile` → /perfil. Form nombre*/teléfono* (selector de país → E.164)/password opcional(≥8) → `POST /me/complete-profile` → done → /inicio (1200ms). 400 teléfono inválido; 409 phoneTaken sobre E.164.
 
 ---
 
@@ -214,7 +214,7 @@
 
 ### Perfil `/perfil`, `/perfil/datos`, `/perfil/pagos`
 - Hub: `?sub=error` alert; identidad→datos; badges de roles; ProfileReminder (dismiss→`POST /me/onboarding`); "Interactuar como" radiogroup (lens); KPIs DANCER; streak+badges por modo; ThemeToggle; link pagos; **logout** `POST /auth/logout`→`/`。
-- Datos: PATCH /me {name*,phone,instagram,gender,birthDate} (409 phoneTaken); selector idioma → PATCH /me {language} + router.replace locale; sección por modo (academy→enrollments; otro→editor styleRoles PUT /me/style-roles); sección Seguridad: cambiar contraseña (hasPassword→pide actual) o establecer (magic-link-only) → PUT /me/password (400 password.incorrect|password.same; nueva ≥8 + confirmación).
+- Datos: PATCH /me {name*,phone,instagram,gender,birthDate} — phone normaliza a E.164 + `phoneCountryCode` (selector de país en `PhoneInput`; 400 inválido, 409 phoneTaken); selector idioma → PATCH /me {language} + router.replace locale; sección por modo (academy→enrollments; otro→editor styleRoles PUT /me/style-roles); sección Seguridad: cambiar contraseña (hasPassword→pide actual) o establecer (magic-link-only) → PUT /me/password (400 password.incorrect|password.same; nueva ≥8 + confirmación).
 - Pagos: `GET /payments/mine` + `/subscriptions/mine` (CANCELED fuera); cancel sub → 2-pasos → `POST /subscriptions/:id/cancel`; filas expanden ledger `GET /payments/:id/events`.
 
 ---
@@ -372,6 +372,7 @@
 - `/admin/facturacion/transacciones`: KPIs del mes `finance/summary` (ingreso plataforma, GMV tx, costo pasarela, por transferir) + desglose segmento + FilterBar `payments` + lista `browse/payments` (default PAID; KPIs del período no siguen el filtro).
 - `/admin/facturacion/suscripciones`: KPIs `finance/mrr` (MRR/ARR/activas/a convenir) + byTier + funnel de estados clickeable (filtro client-side) + lista suscripciones (kind, actor, tier, ciclo, status, monto mensual, próximo cobro).
 - `/admin/facturacion/promos` (`platform-promos`): lista `GET /admin/platform-promos` → crear `/nueva` (POST) → ficha `/[id]` (PATCH: todos los campos + toggle enabled). Form: nombre, línea (ambas/ACADEMY/PRODUCER), tipo PERCENT|FIXED_CLP, valor, ventana, maxCycles, whitelist con pickers de academias/productores (`browse/academies` + `browse/people?role=PRODUCER`). Estados vigente/programada/expirada/deshabilitada. Sin delete.
+- `/admin/facturacion/precios` (price book `TierPrice`, spec multipais-currency): lista por kind/tier × país + crear fila + editar precio inline → `GET/POST /admin/tier-prices`, `PUT /admin/tier-prices/:id`. Abrir un mercado = crear filas del país — sin deploy.
 - `activePromo` en vistas del actor: `/academia/suscripcion` y `/productor` (sección Pro) muestran badge promo (−%/−$ + vencimiento + ciclos restantes) y precio lista tachado + precio oferta en consentimiento/botón de suscripción.
 - `/admin/jobs` ⚠️: pause/resume PATCH sin confirm; edit cron PATCH; **Run now** ConfirmSheet `POST /:key/run` (efectos reales: mails, payouts); runs list.
 - `/admin/campanas` ⚠️: lista; Edit (DRAFT|SCHEDULED); **Test** send sin confirm; **Run now** ConfirmSheet (audiencia completa real); Cancel ConfirmSheet. Form: audiencia ALL|ROLE|EVENT|lifecycle+days; audience-count debounce; schedule ONCE|CRON.
@@ -389,7 +390,7 @@
   - Manual: con manifest → búsqueda offline ≤8 → `POST /checkins/manual`; sin manifest → personId crudo.
   - Offline: decode JWT local (expired→error), dup check local, encola IndexedDB → overlay con sello offline; banner pending+edad manifest.
   - Sync `POST /checkins/sync` (online/30s/mount/post-scan): synced→dequeue; duplicate/invalid/error→badges conflict/failed (resolución humana, sin UI).
-  - **Sin UI pero en API:** check-out `/checkins/:id/out`, void (requiere assignment), door-sale `POST /checkins/door-sale` (crea cuenta light + ticket USED + check-in atómico, doorCap).
+  - **Sin UI pero en API:** check-out `/checkins/:id/out`, void (requiere assignment), door-sale `POST /checkins/door-sale` (crea cuenta light + ticket USED + check-in atómico, doorCap; phone normaliza a E.164 con país del venue como default y `+` override; ticket hereda `event.currency`).
   - Autorización solo a nivel permiso — cualquier `checkins.write` registra en cualquier evento.
 
 ## 12. Venue `/venue` (VENUE_MANAGER → `venues.manage`)

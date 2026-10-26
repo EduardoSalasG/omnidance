@@ -10,6 +10,8 @@ import { useViewMode } from "@/lib/view-mode";
 import { useActiveRole } from "@/lib/active-role";
 import { GenderGroup, type Gender } from "@/components/profile/GenderGroup";
 import { PasswordSection } from "@/components/profile/PasswordSection";
+import { PhoneInput } from "@/components/people/phone-input";
+import { formatPhoneNational } from "@omnidance/shared";
 import { isProfileStyleVisible } from "@/lib/profile-styles";
 import {
   Badge,
@@ -258,6 +260,10 @@ export default function DatosPage() {
   const [personalEditing, setPersonalEditing] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [phoneInput, setPhoneInput] = useState("");
+  // País del selector + E.164 ya validado del PhoneInput (spec
+  // multipais-phone): e164 null = aún no parsea, el API re-valida.
+  const [phoneCountry, setPhoneCountry] = useState("CL");
+  const [phoneE164, setPhoneE164] = useState<string | null>(null);
   const [igInput, setIgInput] = useState("");
   const [genderDraft, setGenderDraft] = useState<Gender | null>(null);
   const [birthDraft, setBirthDraft] = useState("");
@@ -286,7 +292,11 @@ export default function DatosPage() {
   function startPersonalEdit() {
     if (!me) return;
     setNameInput(me.name);
-    setPhoneInput(me.phone ?? "");
+    // El phone persistido es E.164 - el input se pre-carga en formato
+    // nacional (más legible) y el selector con su país persistido.
+    setPhoneInput(me.phone ? formatPhoneNational(me.phone) : "");
+    setPhoneCountry(me.phoneCountryCode ?? "CL");
+    setPhoneE164(me.phone ?? null);
     setIgInput(me.instagram ?? "");
     setGenderDraft(me.gender ?? null);
     setBirthDraft(meBirth);
@@ -296,7 +306,9 @@ export default function DatosPage() {
 
   function cancelPersonalEdit() {
     setNameInput(me?.name ?? "");
-    setPhoneInput(me?.phone ?? "");
+    setPhoneInput(me?.phone ? formatPhoneNational(me.phone) : "");
+    setPhoneCountry(me?.phoneCountryCode ?? "CL");
+    setPhoneE164(me?.phone ?? null);
     setIgInput(me?.instagram ?? "");
     setGenderDraft(me?.gender ?? null);
     setBirthDraft(meBirth);
@@ -311,8 +323,10 @@ export default function DatosPage() {
       return;
     }
     const ig = igInput.trim().replace(/^@+/, "");
-    // Misma normalización del server: separadores fuera, "+" se conserva.
-    const phone = phoneInput.replace(/[\s()-]/g, "");
+    // E.164 validado por el PhoneInput cuando parsea; si no, va el
+    // texto crudo y el API responde 400 teléfono inválido.
+    const phone =
+      phoneInput.trim() === "" ? "" : (phoneE164 ?? phoneInput.trim());
     if (
       name === me?.name &&
       ig === (me?.instagram ?? "") &&
@@ -331,6 +345,7 @@ export default function DatosPage() {
         body: JSON.stringify({
           name,
           phone,
+          phoneCountryCode: phoneCountry,
           instagram: ig,
           gender: genderDraft,
           // "" limpia la fecha (el server lo mapea a null).
@@ -501,22 +516,35 @@ export default function DatosPage() {
                 onEscape={cancelPersonalEdit}
                 autoFocus
               />
-              <EditField
-                id="phone-input"
-                label={t("datos.phone")}
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                disabled={personalState === "saving"}
-                value={phoneInput}
-                onChange={(v) => {
-                  setPhoneInput(v);
-                  setPersonalState("idle");
-                }}
-                onEnter={() => void savePersonal()}
-                onEscape={cancelPersonalEdit}
-                placeholder={t("datos.phonePlaceholder")}
-              />
+              {/* Teléfono con selector de país (spec multipais-phone):
+                  misma geometría de fila que EditField, el combo
+                  país+número ocupa el lado derecho. */}
+              <div className="flex items-baseline justify-between gap-4 py-1">
+                <label
+                  htmlFor="phone-input"
+                  className="shrink-0 text-xs uppercase tracking-wide text-ink/50"
+                >
+                  {t("datos.phone")}
+                </label>
+                <div className="min-w-0 max-w-64 flex-1">
+                  <PhoneInput
+                    id="phone-input"
+                    value={phoneInput}
+                    defaultCountry={phoneCountry}
+                    disabled={personalState === "saving"}
+                    onChange={({ phone, e164, countryCode }) => {
+                      setPhoneInput(phone);
+                      setPhoneE164(e164);
+                      setPhoneCountry(countryCode);
+                      setPersonalState("idle");
+                    }}
+                    onEnter={() => void savePersonal()}
+                    onEscape={cancelPersonalEdit}
+                    placeholder={t("datos.phonePlaceholder")}
+                    inputClassName="min-h-9 w-full rounded-lg border border-neon/60 bg-surface px-2 py-1 text-sm text-ink placeholder:text-ink/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-neon/50"
+                  />
+                </div>
+              </div>
             </>
           ) : (
             <>

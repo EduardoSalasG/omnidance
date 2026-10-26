@@ -430,3 +430,20 @@ describe("AcademyClaimsService.listClaims", () => {
     ).toEqual(["c-apr"]);
   });
 });
+
+describe("AcademyClaimsService.createIntent - moneda (spec multipais-currency)", () => {
+  it("snapshot de moneda: academy en MXN → claim.currency = MXN", async () => {
+    const { service, fx } = mkService();
+    fx.prisma.academy.findUnique.mockResolvedValue({
+      id: ACADEMY,
+      name: "Academia",
+      ownerId: "owner-1",
+      city: { country: { currency: "MXN" } },
+    } as never);
+    const claim = await service.createIntent(ACADEMY, PERSON, {
+      planId: PLAN,
+      methodId: METHOD,
+    });
+    expect(claim.currency).toBe("MXN");
+  });
+});

@@ -5,10 +5,11 @@
 
 - [x] 1. Schema: `Country`, `City` (slug, geohash, timezone IANA) +
   `Venue.cityId` + backfill Santiago
-- [~] 2. `currency` en Event (done; falta Ticket/suscripciones/
-  membresías) + price book `tier × country`
-- [~] 3. `Person.phoneCountryCode` (campo done; falta formatos
-  por país en UI/validación)
+- [x] 2. `currency` en Event (done; falta Ticket/suscripciones/
+  membresías) + price book `tier × country` — hecho en
+  `multipais-currency`
+- [x] 3. `Person.phoneCountryCode` (campo done; falta formatos
+  por país en UI/validación) — hecho en `multipais-phone`
 - [x] 4. Adapter Stripe en `gateway-registry` (MP ya existía) +
   port `PayoutRail` (MANUAL/STRIPE_CONNECT; Chile sigue manual,
   rail Fintoc pendiente) — hecho en `stripe-gateway-payout-rail`

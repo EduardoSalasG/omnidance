@@ -23,6 +23,17 @@ import { promoChargeClp } from "../../payments/domain/academy-promos";
 
 const CLAIM_FOLDER = "claims";
 export const CLAIM_MAX_BYTES = 5 * 1024 * 1024; // 5MB
+
+/**
+ * Monto para copy de notificaciones (spec multipais-currency): CLP
+ * sigue con el `$` de siempre; otra moneda se rotula con su código
+ * ("EUR 12.000") para no confundir el símbolo con pesos.
+ */
+function claimMoney(amount: number, currency: string | null | undefined) {
+  const cur = currency && currency.length === 3 ? currency : "CLP";
+  const out = `$${amount.toLocaleString("es-CL")}`;
+  return cur === "CLP" ? out : `${out} ${cur}`;
+}
 export const CLAIM_METHOD_TYPES = [
   "TRANSFER",
   "PAYMENT_LINK",
@@ -134,6 +145,20 @@ export class AcademyClaimsService {
   // ── Claims del alumno ──────────────────────────────────────────────
 
   /**
+   * Moneda de la academia (spec multipais-currency): la del país de su
+   * ciudad; sin ciudad → CLP. El claim la snapshottea al declarar.
+   */
+  private async academyCurrency(academyId: string): Promise<string> {
+    const a = await this.prisma.academy.findUnique({
+      where: { id: academyId },
+      select: {
+        city: { select: { country: { select: { currency: true } } } },
+      },
+    });
+    return a?.city?.country?.currency ?? "CLP";
+  }
+
+  /**
    * Intento de pago del checkout (spec academy-checkout-manual-pay):
    * el alumno elige el medio de la academia y el intento queda
    * registrado como claim AWAITING - sin comprobante todavía. Si sale
@@ -151,7 +176,7 @@ export class AcademyClaimsService {
     if (!method) throw new NotFoundException("método no encontrado");
     const plan = await this.prisma.membershipPlan.findFirst({
       where: { id: dto.planId, academyId, active: true },
-      select: { id: true, name: true, price: true },
+      select: { id: true, name: true, price: true, currency: true },
     });
     if (!plan) throw new NotFoundException("plan no encontrado");
 
@@ -185,6 +210,7 @@ export class AcademyClaimsService {
       personId,
       plan.id,
       plan.price,
+      plan.currency ?? "CLP",
     );
 
     return this.prisma.paymentClaim.create({
@@ -196,6 +222,7 @@ export class AcademyClaimsService {
         // Snapshot del precio vigente: el intento declara pagar el
         // plan, no un monto libre (a diferencia del claim "suelto").
         amount: promo ? promoChargeClp(plan.price, promo) : plan.price,
+        currency: plan.currency ?? "CLP",
         academyPromoId: promo?.id ?? null,
         methodId: method.id,
         methodType: method.type,
@@ -257,7 +284,7 @@ export class AcademyClaimsService {
         category: "TRANSACTIONAL",
         type: "payment_claim_new",
         title: `Comprobante por validar: ${person?.name ?? "un alumno"}`,
-        body: `${academy.name} · $${claim.amount.toLocaleString("es-CL")}`,
+        body: `${academy.name} · ${claimMoney(claim.amount, claim.currency)}`,
         data: { academyId, claimId: claim.id },
       });
     }
@@ -355,6 +382,7 @@ export class AcademyClaimsService {
         enrollmentId: enrollment?.id ?? null,
         planId: plan?.id ?? null,
         amount: dto.amount,
+        currency: await this.academyCurrency(academyId),
         methodId,
         methodType: methodType ?? "TRANSFER",
         methodLabel,
@@ -371,7 +399,7 @@ export class AcademyClaimsService {
       category: "TRANSACTIONAL",
       type: "payment_claim_new",
       title: `Comprobante por validar: ${person?.name ?? "un alumno"}`,
-      body: `${academy.name} · $${dto.amount.toLocaleString("es-CL")}`,
+      body: `${academy.name} · ${claimMoney(dto.amount, claim.currency)}`,
       data: { academyId, claimId: claim.id },
     });
 
@@ -401,6 +429,7 @@ export class AcademyClaimsService {
       select: {
         id: true,
         amount: true,
+        currency: true,
         methodType: true,
         methodLabel: true,
         status: true,
@@ -515,6 +544,7 @@ export class AcademyClaimsService {
           id: true,
           personId: true,
           amount: true,
+          currency: true,
           status: true,
           orderType: true,
           refId: true,
@@ -531,6 +561,7 @@ export class AcademyClaimsService {
           id: true,
           personId: true,
           amount: true,
+          currency: true,
           status: true,
           methodLabel: true,
           createdAt: true,
@@ -563,6 +594,8 @@ export class AcademyClaimsService {
       planId: string | null;
       planName: string | null;
       amount: number;
+      /** ISO-4217 del cobro (spec multipais-currency). */
+      currency: string;
       status: string;
       method: string | null;
       createdAt: string;
@@ -581,6 +614,7 @@ export class AcademyClaimsService {
           planId,
           planName: planId ? (planName.get(planId) ?? null) : null,
           amount: p.amount,
+          currency: p.currency,
           status: p.status,
           method: p.gatewayMedia ?? p.methodLabel ?? p.gateway,
           createdAt: p.createdAt.toISOString(),
@@ -594,6 +628,7 @@ export class AcademyClaimsService {
         planId: c.plan?.id ?? null,
         planName: c.plan?.name ?? null,
         amount: c.amount,
+        currency: c.currency,
         status: c.status,
         method: c.methodLabel,
         createdAt: c.createdAt.toISOString(),
@@ -646,6 +681,7 @@ export class AcademyClaimsService {
       select: {
         id: true,
         amount: true,
+        currency: true,
         methodType: true,
         methodLabel: true,
         status: true,
@@ -686,6 +722,7 @@ export class AcademyClaimsService {
       select: {
         id: true,
         amount: true,
+        currency: true,
         methodType: true,
         methodLabel: true,
         status: true,
@@ -734,6 +771,7 @@ export class AcademyClaimsService {
           academyPromoId: claim.academyPromoId ?? null,
           fee: 0,
           net: claim.amount,
+          currency: claim.currency ?? "CLP",
           gateway: "MANUAL",
           status: "PAID",
           // Modelo SaaS (spec producer-fee-model): sin comisión y sin
