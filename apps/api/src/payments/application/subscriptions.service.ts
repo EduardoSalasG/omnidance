@@ -14,10 +14,12 @@ import { academyFeeBreakdown } from "../../common/fee-breakdown";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { emitPaymentEvent } from "../domain/payment-ledger";
 import {
+  type BillingWebhookEvent,
   type PaymentGateway,
   type RemoteSubscription,
   type SubscriptionProvider,
 } from "../domain/ports";
+import { remoteFromBillingEvent } from "../domain/billing-event";
 import {
   GatewayRegistry,
   PAYMENT_GATEWAYS,
@@ -1035,6 +1037,39 @@ export class SubscriptionsService {
         `reconcileAll post-webhook falló: ${e instanceof Error ? e.message : e}`,
       ),
     );
+  }
+
+  /**
+   * Evento de billing del webhook firmado del proveedor (spec
+   * stripe-subs-webhook): si `ev.subscriptionId` es el remoteId
+   * persistido de una MembershipSubscription (`flowSubscriptionId` -
+   * Stripe lo guarda ahí igual que Flow), lo traduce a un
+   * RemoteSubscription sintético y corre el MISMO reconcile puntual:
+   * `invoice.paid` → settle de renovación (extiende vigencia, emite
+   * Payment), `invoice.payment_failed` → mora (renewal_failed +
+   * RENEWAL_FAILED), `customer.subscription.deleted|.updated` → sync
+   * de estado (CANCELED / CANCEL_PENDING). Dedup por
+   * `lastInvoiceId`/refId `mem_<planId>_<invoiceId>` - la misma invoice
+   * por webhook y por polling liquida una sola vez.
+   *
+   * `true` = el evento pertenece a este dominio (target resuelto -
+   * también cuando el tipo no tiene efecto local); `false` = ninguna
+   * sub usa ese remoteId y el dispatcher prueba el siguiente
+   * consumidor.
+   */
+  async handleBillingEvent(ev: BillingWebhookEvent): Promise<boolean> {
+    if (!ev.subscriptionId) return false;
+    const sub = await this.prisma.membershipSubscription.findUnique({
+      where: { flowSubscriptionId: ev.subscriptionId },
+    });
+    if (!sub) return false;
+    const fs = remoteFromBillingEvent(ev, {
+      subscriptionId: sub.flowSubscriptionId!,
+      planId: sub.planId,
+      nextInvoiceAt: sub.nextInvoiceAt,
+    });
+    if (fs) await this.reconcileSubscription(sub, fs, "webhook");
+    return true;
   }
 
   /** Suscripciones del usuario autenticado (más reciente primero). */

@@ -197,8 +197,11 @@ function mkPrisma() {
             orderBy,
           ),
       ),
-      findUnique: vi.fn(async ({ where }: { where: { id: string } }) => {
-        const row = subs.find((s) => s.id === where.id);
+      // findUnique matchea cualquier campo único (id o
+      // flowSubscriptionId - el lookup del webhook de billing es por
+      // remoteId).
+      findUnique: vi.fn(async ({ where }: { where: Row }) => {
+        const row = subs.find((s) => matchWhere(s, where));
         return row
           ? { ...row, plan: plans.get(row.planId as string) }
           : null;
@@ -1437,6 +1440,215 @@ describe("SubscriptionsService", () => {
         actor: "reconcile",
         payload: { subscriptionId: sub.id, invoiceId: "55" },
       });
+    });
+  });
+
+  // Billing events firmados del webhook STRIPE (spec
+  // stripe-subs-webhook): el dispatcher del controller resuelve el
+  // target por subscriptionId → acá se ejerce el handleBillingEvent
+  // puntual, que reusa el mismo reconcile del polling.
+  describe("handleBillingEvent (webhook Stripe)", () => {
+    const inv = (id: string, paid = true) => ({
+      id,
+      amount: 10500,
+      currency: "USD",
+      periodStart: "2026-10-01T00:00:00.000Z",
+      periodEnd: "2026-11-01T00:00:00.000Z",
+      paid,
+    });
+    const billing = (type: string, over: Row = {}) => ({
+      type,
+      subscriptionId: "sub_stripe_1",
+      customerId: "cus_1",
+      ...over,
+    });
+
+    it("invoice.paid → settle de renovación igual que reconcile (Payment + enrollment + lastInvoiceId)", async () => {
+      const sub = mkSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "sub_stripe_1",
+        currency: "USD",
+      });
+      fx.subs.push(sub);
+
+      const claimed = await svc.handleBillingEvent(
+        billing("invoice.paid", { invoice: inv("in_100") }) as never,
+      );
+
+      expect(claimed).toBe(true);
+      const payment = [...fx.payments.values()][0]!;
+      expect(payment.refId).toBe("mem_plan1_in_100");
+      expect(payment.orderType).toBe("MEMBERSHIP");
+      expect(payment.status).toBe("PAID");
+      expect(fx.enrollments).toHaveLength(1);
+      expect(fx.enrollments[0]).toMatchObject({
+        academyId: "ac1",
+        personId: "p1",
+        planId: "plan1",
+        status: "ACTIVE",
+      });
+      // actor webhook en el ledger - mismo settle del reconcile.
+      const types = fx.events.map((e) => `${e.type}:${e.actor}`);
+      expect(types).toEqual([
+        "ORDER_CREATED:webhook",
+        "STATUS_CONFIRMED:webhook",
+        "RENEWAL_SETTLED:webhook",
+      ]);
+      const row = fx.subs.find((s) => s.id === sub.id)!;
+      expect(row.lastInvoiceId).toBe("in_100");
+      expect(row.nextInvoiceAt).toEqual(
+        new Date("2026-11-01T00:00:00.000Z"),
+      );
+    });
+
+    it("invoice.payment_failed → mora (renewal_failed + RENEWAL_FAILED), sub sigue ACTIVE", async () => {
+      const sub = mkSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "sub_stripe_1",
+        nextInvoiceAt: new Date("2026-11-01T00:00:00.000Z"),
+      });
+      fx.subs.push(sub);
+      // Pago previo = anchor del evento RENEWAL_FAILED.
+      fx.payments.set("pay-prev", {
+        id: "pay-prev",
+        refId: "mem_plan1_in_1",
+        orderType: "MEMBERSHIP",
+        personId: "p1",
+        status: "PAID",
+        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60_000),
+      });
+
+      const claimed = await svc.handleBillingEvent(
+        billing("invoice.payment_failed", {
+          invoice: inv("in_200", false),
+        }) as never,
+      );
+
+      expect(claimed).toBe(true);
+      // La impaga no crea Payment - solo queda el previo.
+      expect(fx.payments.size).toBe(1);
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "p1",
+        expect.objectContaining({
+          type: "membership.renewal_failed",
+          data: expect.objectContaining({
+            subscriptionId: sub.id,
+            invoiceId: "in_200",
+          }),
+        }),
+      );
+      const failed = fx.events.find((e) => e.type === "RENEWAL_FAILED");
+      expect(failed).toMatchObject({
+        actor: "webhook",
+        payload: { subscriptionId: sub.id, invoiceId: "in_200" },
+      });
+      const row = fx.subs.find((s) => s.id === sub.id)!;
+      // Sin grace ni CANCELED: el proveedor reintenta el cobro.
+      expect(row.status).toBe("ACTIVE");
+      // nextInvoiceAt conservado (el evento no informa nueva fecha).
+      expect(row.nextInvoiceAt).toEqual(
+        new Date("2026-11-01T00:00:00.000Z"),
+      );
+    });
+
+    it("customer.subscription.deleted → CANCELED", async () => {
+      const sub = mkSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "sub_stripe_1",
+      });
+      fx.subs.push(sub);
+
+      const claimed = await svc.handleBillingEvent(
+        billing("customer.subscription.deleted") as never,
+      );
+
+      expect(claimed).toBe(true);
+      const row = fx.subs.find((s) => s.id === sub.id)!;
+      expect(row.status).toBe("CANCELED");
+      expect(row.canceledAt).toBeInstanceOf(Date);
+    });
+
+    it("customer.subscription.updated con cancel_at_period_end → CANCEL_PENDING", async () => {
+      const sub = mkSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "sub_stripe_1",
+      });
+      fx.subs.push(sub);
+
+      const claimed = await svc.handleBillingEvent(
+        billing("customer.subscription.updated", {
+          raw: { status: "active", cancel_at_period_end: true },
+        }) as never,
+      );
+
+      expect(claimed).toBe(true);
+      const row = fx.subs.find((s) => s.id === sub.id)!;
+      expect(row.status).toBe("CANCEL_PENDING");
+      expect(row.canceledAt).toBeInstanceOf(Date);
+    });
+
+    it("subscriptionId sin match (o ausente) → false, sin efectos", async () => {
+      const claimed = await svc.handleBillingEvent(
+        billing("invoice.paid", { invoice: inv("in_1") }) as never,
+      );
+      expect(claimed).toBe(false);
+      expect(await svc.handleBillingEvent({ type: "invoice.paid" } as never))
+        .toBe(false);
+      expect(fx.payments.size).toBe(0);
+      expect(fx.events).toHaveLength(0);
+    });
+
+    it("tipo sin efecto local (invoice.draft) → claimed pero no-op", async () => {
+      const sub = mkSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "sub_stripe_1",
+      });
+      fx.subs.push(sub);
+      const claimed = await svc.handleBillingEvent(
+        billing("invoice.draft") as never,
+      );
+      expect(claimed).toBe(true);
+      expect(fx.payments.size).toBe(0);
+      expect(fx.events).toHaveLength(0);
+    });
+
+    it("dedup webhook+polling: la misma invoice no liquida dos veces", async () => {
+      const sub = mkSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "sub_stripe_1",
+        currency: "USD",
+      });
+      fx.subs.push(sub);
+
+      await svc.handleBillingEvent(
+        billing("invoice.paid", { invoice: inv("in_300") }) as never,
+      );
+      expect(fx.payments.size).toBe(1);
+
+      // Polling posterior con la misma invoice → dedup por
+      // lastInvoiceId (y por refId si la marca se perdiera).
+      const row = fx.subs.find((s) => s.id === sub.id)!;
+      const settled = await svc.reconcileSubscription(
+        { ...row } as MembershipSubscription,
+        {
+          subscriptionId: "sub_stripe_1",
+          planId: "omni_plan1",
+          status: "ACTIVE",
+          morose: false,
+          cancelAtPeriodEnd: false,
+          invoices: [{ id: "in_300", amount: 10500, paid: true }],
+        } as never,
+      );
+      expect(settled).toBe(0);
+      expect(fx.payments.size).toBe(1);
+
+      // Reintento del mismo webhook → dedup igual.
+      await svc.handleBillingEvent(
+        billing("invoice.paid", { invoice: inv("in_300") }) as never,
+      );
+      expect(fx.payments.size).toBe(1);
+      // Un solo enrollment materializado.
+      expect(fx.enrollments).toHaveLength(1);
     });
   });
 

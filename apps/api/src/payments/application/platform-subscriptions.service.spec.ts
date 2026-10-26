@@ -241,8 +241,11 @@ function mkPrisma() {
             orderBy,
           ),
       ),
-      findUnique: vi.fn(async ({ where }: { where: { id: string } }) => {
-        const row = platSubs.find((s) => s.id === where.id);
+      // findUnique matchea cualquier campo único (id o
+      // flowSubscriptionId - el lookup del webhook de billing es por
+      // remoteId).
+      findUnique: vi.fn(async ({ where }: { where: Row }) => {
+        const row = platSubs.find((s) => matchWhere(s, where));
         if (!row) return null;
         // settlePlatformSub pide include:{academy:{select:{...}}}.
         const academy = academies.get(row.academyId as string) ?? null;
@@ -1379,6 +1382,185 @@ describe("PlatformSubscriptionsService", () => {
         fx.sentNotifs.filter((n) => n.type === "producer.pro_renewal_failed"),
       ).toHaveLength(1);
       expect(fx.academies.get("ac1")!.billingGraceUntil).toBeNull();
+    });
+  });
+
+  // Billing events firmados del webhook STRIPE (spec
+  // stripe-subs-webhook): mismo remoteFromBillingEvent + reconcile
+  // puntual que membresías - acá sobre PlatformSubscription.
+  describe("handleBillingEvent (webhook Stripe)", () => {
+    const inv = (id: string, paid = true) => ({
+      id,
+      amount: 39990,
+      currency: "USD",
+      periodStart: "2026-10-01T00:00:00.000Z",
+      periodEnd: "2026-11-01T00:00:00.000Z",
+      paid,
+    });
+    const billing = (type: string, over: Row = {}) => ({
+      type,
+      subscriptionId: "sub_stripe_1",
+      customerId: "cus_1",
+      ...over,
+    });
+
+    it("invoice.paid → Payment PLATFORM_SUB + RENEWAL_SETTLED + limpia gracia/bloqueo", async () => {
+      const academy = fx.academies.get("ac1")!;
+      academy.billingGraceUntil = new Date(Date.now() + 3 * DAY);
+      academy.billingBlockedAt = new Date(Date.now() - DAY);
+      const sub = mkPlatSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "sub_stripe_1",
+        tierCode: "PRO",
+        currency: "USD",
+      });
+      fx.platSubs.push(sub);
+
+      const claimed = await svc.handleBillingEvent(
+        billing("invoice.paid", { invoice: inv("in_100") }) as never,
+      );
+
+      expect(claimed).toBe(true);
+      const payment = [...fx.payments.values()].find(
+        (p) => p.orderType === "PLATFORM_SUB",
+      )!;
+      expect(payment.refId).toBe(`platsub_${sub.id}_in_100`);
+      expect(payment.status).toBe("PAID");
+      const types = fx.events
+        .filter((e) => e.paymentId === payment.id)
+        .map((e) => `${e.type}:${e.actor}`);
+      expect(types).toEqual([
+        "ORDER_CREATED:webhook",
+        "STATUS_CONFIRMED:webhook",
+        "RENEWAL_SETTLED:webhook",
+      ]);
+      // RENEWAL_SETTLED: desbloqueo + tier restaurado.
+      expect(academy.billingGraceUntil).toBeNull();
+      expect(academy.billingBlockedAt).toBeNull();
+      expect(academy.tier).toBe("PRO");
+      expect(sub.lastInvoiceId).toBe("in_100");
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "p1",
+        expect.objectContaining({ type: "academy.billing_settled" }),
+      );
+    });
+
+    it("invoice.payment_failed → abre gracia (academy.billing_grace) + RENEWAL_FAILED", async () => {
+      const academy = fx.academies.get("ac1")!;
+      const sub = mkPlatSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "sub_stripe_1",
+      });
+      fx.platSubs.push(sub);
+      fx.payments.set("pay-prev", {
+        id: "pay-prev",
+        orderType: "PLATFORM_SUB",
+        refId: `platsub_${sub.id}_in_1`,
+        personId: "p1",
+        amount: 19990,
+        status: "PAID",
+        createdAt: new Date(Date.now() - 30 * DAY),
+      });
+      const before = Date.now();
+
+      const claimed = await svc.handleBillingEvent(
+        billing("invoice.payment_failed", {
+          invoice: inv("in_200", false),
+        }) as never,
+      );
+
+      expect(claimed).toBe(true);
+      const grace = academy.billingGraceUntil as Date;
+      expect(grace).toBeInstanceOf(Date);
+      expect(grace.getTime()).toBeGreaterThanOrEqual(before + 5 * DAY - 500);
+      expect(grace.getTime()).toBeLessThanOrEqual(before + 5 * DAY + 5000);
+      expect(fx.sentNotifs).toContainEqual(
+        expect.objectContaining({
+          personId: "p1",
+          type: "academy.billing_grace",
+        }),
+      );
+      const failed = fx.events.find((e) => e.type === "RENEWAL_FAILED");
+      expect(failed).toMatchObject({
+        actor: "webhook",
+        payload: { subscriptionId: sub.id, invoiceId: "in_200" },
+      });
+      // La impaga no crea Payment - solo queda el previo.
+      expect(
+        [...fx.payments.values()].filter(
+          (p) => p.orderType === "PLATFORM_SUB",
+        ),
+      ).toHaveLength(1);
+    });
+
+    it("customer.subscription.deleted → CANCELED", async () => {
+      const sub = mkPlatSub({
+        status: "CANCEL_PENDING",
+        flowSubscriptionId: "sub_stripe_1",
+      });
+      fx.platSubs.push(sub);
+
+      const claimed = await svc.handleBillingEvent(
+        billing("customer.subscription.deleted") as never,
+      );
+
+      expect(claimed).toBe(true);
+      expect(sub.status).toBe("CANCELED");
+      expect(flow.createSubscription).not.toHaveBeenCalled();
+    });
+
+    it("subscriptionId sin match (o ausente) → false, sin efectos", async () => {
+      const claimed = await svc.handleBillingEvent(
+        billing("invoice.paid", { invoice: inv("in_1") }) as never,
+      );
+      expect(claimed).toBe(false);
+      expect(await svc.handleBillingEvent({ type: "invoice.paid" } as never))
+        .toBe(false);
+      expect(fx.payments.size).toBe(0);
+      expect(fx.events).toHaveLength(0);
+    });
+
+    it("dedup webhook+polling: la misma invoice no liquida dos veces", async () => {
+      const sub = mkPlatSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "sub_stripe_1",
+        currency: "USD",
+      });
+      fx.platSubs.push(sub);
+
+      await svc.handleBillingEvent(
+        billing("invoice.paid", { invoice: inv("in_300") }) as never,
+      );
+      expect(
+        [...fx.payments.values()].filter(
+          (p) => p.refId === `platsub_${sub.id}_in_300`,
+        ),
+      ).toHaveLength(1);
+
+      // Polling posterior con la misma invoice → dedup por lastInvoiceId.
+      const settled = await svc.reconcileSubscription(
+        { ...sub } as PlatformSubscription,
+        mkFlowSub({
+          subscriptionId: "sub_stripe_1",
+          invoices: [{ id: "in_300", amount: 39990, paid: true }],
+        }),
+      );
+      expect(settled).toBe(0);
+      expect(
+        [...fx.payments.values()].filter(
+          (p) => p.refId === `platsub_${sub.id}_in_300`,
+        ),
+      ).toHaveLength(1);
+
+      // Reintento del mismo webhook → dedup igual.
+      await svc.handleBillingEvent(
+        billing("invoice.paid", { invoice: inv("in_300") }) as never,
+      );
+      expect(
+        [...fx.payments.values()].filter(
+          (p) => p.refId === `platsub_${sub.id}_in_300`,
+        ),
+      ).toHaveLength(1);
     });
   });
 

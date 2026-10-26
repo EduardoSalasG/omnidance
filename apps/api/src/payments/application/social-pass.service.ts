@@ -53,6 +53,21 @@ export class SocialPassConflictError extends Error {
 }
 
 /**
+ * ¿El evento de billing está MARCADO como Pase Social? (spec
+ * multipais-currency + stripe-subs-webhook): `metadata.socialPass` del
+ * objeto (el adaptador la propaga al flag `ev.socialPass`) o
+ * `metadata.planId` del tier. El dispatcher del webhook la usa para
+ * rutear sin tocar filas - un evento marcado va solo al pase aunque el
+ * customer se comparta con membresías/subs de plataforma.
+ */
+export function isSocialPassBillingEvent(ev: BillingWebhookEvent): boolean {
+  const rawMeta =
+    (ev.raw as { metadata?: Record<string, unknown> } | undefined)
+      ?.metadata ?? {};
+  return ev.socialPass === true || rawMeta["planId"] === PASS_TIER;
+}
+
+/**
  * ¿El pase otorga beneficios ahora? CANCEL_PENDING también tiene acceso:
  * la cancelación es al fin del período ya pagado (cancel_at_period_end).
  */
@@ -513,12 +528,8 @@ export class SocialPassService {
       });
       if (bySub) return bySub;
     }
-    const rawMeta =
-      (ev.raw as { metadata?: Record<string, unknown> } | undefined)
-        ?.metadata ?? {};
-    const marked =
-      ev.socialPass === true || rawMeta["planId"] === PASS_TIER;
-    if (!marked) return null;
+    // Marca del pase - misma regla que el dispatcher del webhook.
+    if (!isSocialPassBillingEvent(ev)) return null;
     if (ev.customerId) {
       const byCustomer = await this.prisma.socialPass.findFirst({
         where: { stripeCustomerId: ev.customerId },

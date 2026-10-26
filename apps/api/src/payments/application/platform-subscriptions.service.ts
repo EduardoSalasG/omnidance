@@ -44,10 +44,12 @@ import {
   promoChargeClp,
 } from "../domain/platform-promos";
 import {
+  type BillingWebhookEvent,
   type PaymentGateway,
   type RemoteSubscription,
   type SubscriptionProvider,
 } from "../domain/ports";
+import { remoteFromBillingEvent } from "../domain/billing-event";
 import {
   GatewayRegistry,
   PAYMENT_GATEWAYS,
@@ -1901,6 +1903,38 @@ export class PlatformSubscriptionsService {
         `reconcileAll platsub post-webhook falló: ${e instanceof Error ? e.message : e}`,
       ),
     );
+  }
+
+  /**
+   * Evento de billing del webhook firmado (spec stripe-subs-webhook) -
+   * espejo de `SubscriptionsService.handleBillingEvent` sobre
+   * PlatformSubscription: si `ev.subscriptionId` matchea el
+   * `flowSubscriptionId` persistido (remoteId - Stripe lo guarda ahí
+   * igual que Flow), traduce el evento y corre el MISMO reconcile
+   * puntual: `invoice.paid` → `settlePlatformSub` (RENEWAL_SETTLED -
+   * restaura tier, limpia `billingGraceUntil`/`billingBlockedAt`),
+   * `invoice.payment_failed` → gracia/aviso de mora (handleMorose),
+   * `customer.subscription.deleted` → CANCELED. Dedup por
+   * `lastInvoiceId`/refId `platsub_<subId>_<invoiceId>` - webhook y
+   * polling no duplican la liquidación.
+   *
+   * `true` = target resuelto (también cuando el tipo no tiene efecto
+   * local); `false` = sin match - el dispatcher sigue con el próximo
+   * consumidor.
+   */
+  async handleBillingEvent(ev: BillingWebhookEvent): Promise<boolean> {
+    if (!ev.subscriptionId) return false;
+    const sub = await this.prisma.platformSubscription.findUnique({
+      where: { flowSubscriptionId: ev.subscriptionId },
+    });
+    if (!sub) return false;
+    const fs = remoteFromBillingEvent(ev, {
+      subscriptionId: sub.flowSubscriptionId!,
+      planId: sub.tierCode,
+      nextInvoiceAt: sub.nextInvoiceAt,
+    });
+    if (fs) await this.reconcileSubscription(sub, fs, "webhook");
+    return true;
   }
 
   /**
