@@ -66,7 +66,7 @@ export function PlansSection({ plans }: Props) {
                     <p className="min-w-0 font-medium leading-snug">
                       {p.name}
                     </p>
-                    <PriceTag amount={p.price} className="shrink-0" />
+                    <PriceTag amount={p.price} currency={p.currency} className="shrink-0" />
                   </div>
                   <div className="flex flex-col">
                     {p.classCount != null && (

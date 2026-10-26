@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
+import { formatMoney } from "@/lib/intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PriceTag, Segmented, Spinner } from "@/components/ui";
 import { planDateFmt } from "@/components/academy/shared";
@@ -303,8 +304,10 @@ export function MembershipCheckoutClient({
       </Card>
 
       {/* Elección pago único vs suscripción - solo planes recurrentes
-          con pasarela real (stub no implementa SubscriptionProvider). */}
-      {quote.recurring && quote.gateway === "FLOW" && (
+          cuando el provider de la moneda del plan tiene motor de
+          suscripciones (spec multipais-currency: la quote lo resuelve
+          por currency, no por name). */}
+      {quote.recurring && quote.supportsSubscription && (
         <Card>
           <h2 className="text-base font-semibold">{t("modeTitle")}</h2>
           <div className="mt-3">
@@ -378,6 +381,7 @@ export function MembershipCheckoutClient({
             <dd>
               <PriceTag
                 amount={quote.plan.price}
+              currency={quote.currency}
                 className={quote.promo ? "opacity-60 line-through" : undefined}
               />
             </dd>
@@ -385,7 +389,7 @@ export function MembershipCheckoutClient({
           <div className="flex items-center justify-between border-t border-line pt-3">
             <dt className="text-base font-semibold">{tco("total")}</dt>
             <dd>
-              <PriceTag amount={quote.totalClp} className="text-2xl" />
+              <PriceTag amount={quote.totalClp} currency={quote.currency} className="text-2xl" />
             </dd>
           </div>
         </dl>
@@ -397,7 +401,7 @@ export function MembershipCheckoutClient({
         <Card>
           <p className="text-xs leading-relaxed text-ink/60">
             {ts("consent", {
-              amount: clp.format(quote.totalClp),
+              amount: formatMoney(quote.totalClp, quote.currency, locale),
               period: ts(`period.${quote.plan.type}`),
             })}
           </p>
@@ -532,8 +536,8 @@ export function MembershipCheckoutClient({
             {phase.kind === "processing"
               ? tco("processing")
               : isSub
-                ? `${ts("subscribe")} · ${clp.format(quote.totalClp)}/${ts(`period.${quote.plan.type}`)}`
-                : t("payTotal", { total: clp.format(quote.totalClp) })}
+                ? `${ts("subscribe")} · ${formatMoney(quote.totalClp, quote.currency, locale)}/${ts(`period.${quote.plan.type}`)}`
+                : t("payTotal", { total: formatMoney(quote.totalClp, quote.currency, locale) })}
           </Button>
           <p className="text-center text-xs text-ink/40">
             {t("trustFlow")}

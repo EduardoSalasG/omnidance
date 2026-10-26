@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import type {
   Checkin,
   EntryPass,
@@ -15,6 +15,7 @@ import {
   EventNotFoundError,
   PersonNotFoundError,
 } from "./checkins.service";
+import { InvalidPhoneError } from "@omnidance/shared";
 import type {
   CheckinsRepo,
   CreateCheckinData,
@@ -30,7 +31,13 @@ class FakeCheckinsRepo implements CheckinsRepo {
   events = new Map<string, EventDoorInfo>();
   people = new Map<
     string,
-    { id: string; name: string; photoUrl: string | null; phone?: string }
+    {
+      id: string;
+      name: string;
+      photoUrl: string | null;
+      phone?: string;
+      phoneCountryCode?: string | null;
+    }
   >();
   checkins: Checkin[] = [];
   tickets: Ticket[] = [];
@@ -49,6 +56,8 @@ class FakeCheckinsRepo implements CheckinsRepo {
       doorPrice: null,
       doorCap: null,
       producerId: null,
+      currency: "CLP",
+      venueCountryCode: null,
       ...over,
     });
   }
@@ -122,13 +131,18 @@ class FakeCheckinsRepo implements CheckinsRepo {
     return null;
   }
 
-  async createLightPerson(input: { name: string; phone: string }) {
+  async createLightPerson(input: {
+    name: string;
+    phone: string;
+    phoneCountryCode?: string | null;
+  }) {
     const id = `per-${this.people.size + 1}`;
     this.people.set(id, {
       id,
       name: input.name,
       photoUrl: null,
       phone: input.phone,
+      phoneCountryCode: input.phoneCountryCode ?? null,
     });
     return { id, name: input.name };
   }
@@ -142,7 +156,7 @@ class FakeCheckinsRepo implements CheckinsRepo {
       buyerId: input.personId,
       listPrice: input.listPrice,
       serviceFee: input.serviceFee,
-      currency: "CLP",
+      currency: input.currency,
       status: "USED",
       giftedFromId: null,
       discountCodeId: null,
@@ -655,7 +669,7 @@ describe("CheckinsService.doorSale", () => {
         eventId: "evt-1",
         channel: "CASH",
         name: "Puerta Nuevo",
-        phone: "010-1111-2222",
+        phone: "912340001",
       },
       { id: "admin-1" },
     );
@@ -670,7 +684,7 @@ describe("CheckinsService.doorSale", () => {
 
   it("APP tampoco cobra fee al comprador (producer-fee-model)", async () => {
     const res = await svc.doorSale(
-      { eventId: "evt-1", channel: "APP", name: "App Buyer", phone: "010-3" },
+      { eventId: "evt-1", channel: "APP", name: "App Buyer", phone: "912340002" },
       { id: "admin-1" },
     );
     expect(res.ticket.serviceFee).toBe(0);
@@ -681,10 +695,15 @@ describe("CheckinsService.doorSale", () => {
       id: "per-9",
       name: "Ya Existe",
       photoUrl: null,
-      phone: "010-9",
+      phone: "+56912340009",
     });
     const res = await svc.doorSale(
-      { eventId: "evt-1", channel: "CASH", name: "Otro Nombre", phone: "010-9" },
+      {
+        eventId: "evt-1",
+        channel: "CASH",
+        name: "Otro Nombre",
+        phone: "9 1234 0009",
+      },
       { id: "admin-1" },
     );
     expect(res.person.id).toBe("per-9");
@@ -696,7 +715,7 @@ describe("CheckinsService.doorSale", () => {
     repo.permissions.set("staff-5", new Set(["checkins.write"]));
     repo.staffAssignments.add("evt-1:staff-5");
     const res = await svc.doorSale(
-      { eventId: "evt-1", channel: "CASH", name: "N", phone: "010-5" },
+      { eventId: "evt-1", channel: "CASH", name: "N", phone: "912340003" },
       { id: "staff-5" },
     );
     expect(res.checkin.staffId).toBe("staff-5");
@@ -706,7 +725,7 @@ describe("CheckinsService.doorSale", () => {
     repo.permissions.set("staff-6", new Set(["checkins.write"]));
     await expect(
       svc.doorSale(
-        { eventId: "evt-1", channel: "CASH", name: "N", phone: "010-6" },
+        { eventId: "evt-1", channel: "CASH", name: "N", phone: "912340004" },
         { id: "staff-6" },
       ),
     ).rejects.toBeInstanceOf(CheckinForbiddenError);
@@ -714,16 +733,16 @@ describe("CheckinsService.doorSale", () => {
 
   it("doorCap alcanzado → DoorCapReachedError", async () => {
     await svc.doorSale(
-      { eventId: "evt-1", channel: "CASH", name: "A", phone: "010-a" },
+      { eventId: "evt-1", channel: "CASH", name: "A", phone: "912340005" },
       { id: "admin-1" },
     );
     await svc.doorSale(
-      { eventId: "evt-1", channel: "CASH", name: "B", phone: "010-b" },
+      { eventId: "evt-1", channel: "CASH", name: "B", phone: "912340006" },
       { id: "admin-1" },
     );
     await expect(
       svc.doorSale(
-        { eventId: "evt-1", channel: "CASH", name: "C", phone: "010-c" },
+        { eventId: "evt-1", channel: "CASH", name: "C", phone: "912340007" },
         { id: "admin-1" },
       ),
     ).rejects.toBeInstanceOf(DoorCapReachedError);
@@ -732,10 +751,96 @@ describe("CheckinsService.doorSale", () => {
   it("evento inexistente → EventNotFoundError", async () => {
     await expect(
       svc.doorSale(
-        { eventId: "no-hay", channel: "CASH", name: "N", phone: "010-x" },
+        { eventId: "no-hay", channel: "CASH", name: "N", phone: "912340008" },
         { id: "admin-1" },
       ),
     ).rejects.toBeInstanceOf(EventNotFoundError);
+  });
+
+  // Spec multipais-phone: la cuenta ligera persiste phone E.164 +
+  // phoneCountryCode; el lookup de duplicado opera sobre el E.164.
+  it("número nacional normaliza a E.164 + CL por defecto", async () => {
+    const res = await svc.doorSale(
+      { eventId: "evt-1", channel: "CASH", name: "N", phone: "9 1234 0010" },
+      { id: "admin-1" },
+    );
+    const created = repo.people.get(res.person.id)!;
+    expect(created.phone).toBe("+56912340010");
+    expect(created.phoneCountryCode).toBe("CL");
+  });
+
+  it("país del venue como defaultCountry del nacional", async () => {
+    repo.addEvent("evt-ar", { venueCountryCode: "AR" });
+    const res = await svc.doorSale(
+      { eventId: "evt-ar", channel: "CASH", name: "N", phone: "11 5555 1234" },
+      { id: "admin-1" },
+    );
+    const created = repo.people.get(res.person.id)!;
+    expect(created.phone).toBe("+541155551234");
+    expect(created.phoneCountryCode).toBe("AR");
+  });
+
+  it("phoneCountryCode del body gana al país del venue", async () => {
+    repo.addEvent("evt-ar", { venueCountryCode: "AR" });
+    const res = await svc.doorSale(
+      {
+        eventId: "evt-ar",
+        channel: "CASH",
+        name: "N",
+        phone: "912340011",
+        phoneCountryCode: "CL",
+      },
+      { id: "admin-1" },
+    );
+    const created = repo.people.get(res.person.id)!;
+    expect(created.phone).toBe("+56912340011");
+    expect(created.phoneCountryCode).toBe("CL");
+  });
+
+  it("'+' tipeado overridea cualquier default → E.164 con país derivado", async () => {
+    const res = await svc.doorSale(
+      { eventId: "evt-1", channel: "CASH", name: "N", phone: "+34612345678" },
+      { id: "admin-1" },
+    );
+    const created = repo.people.get(res.person.id)!;
+    expect(created.phone).toBe("+34612345678");
+    expect(created.phoneCountryCode).toBe("ES");
+  });
+
+  it("dedup sobre E.164: variante de formato encuentra la misma Person", async () => {
+    // El segundo ingreso del mismo número en otro formato resuelve a la
+    // Person ya creada (lookup por E.164) - no se duplica la cuenta y el
+    // conflicto sale por check-in abierto, como siempre.
+    const spyFind = vi.spyOn(repo, "findPersonByPhone");
+    await svc.doorSale(
+      { eventId: "evt-1", channel: "CASH", name: "Uno", phone: "912340012" },
+      { id: "admin-1" },
+    );
+    expect(spyFind).toHaveBeenLastCalledWith("+56912340012");
+    await expect(
+      svc.doorSale(
+        {
+          eventId: "evt-1",
+          channel: "CASH",
+          name: "Otro",
+          phone: "+56 9 1234 0012",
+        },
+        { id: "admin-1" },
+      ),
+    ).rejects.toBeInstanceOf(DuplicateCheckinError);
+    expect(spyFind).toHaveBeenLastCalledWith("+56912340012");
+    expect(repo.people.size).toBe(1);
+  });
+
+  it("teléfono inválido → InvalidPhoneError sin crear Person ni ticket", async () => {
+    await expect(
+      svc.doorSale(
+        { eventId: "evt-1", channel: "CASH", name: "N", phone: "123" },
+        { id: "admin-1" },
+      ),
+    ).rejects.toBeInstanceOf(InvalidPhoneError);
+    expect(repo.people.size).toBe(0);
+    expect(repo.tickets).toHaveLength(0);
   });
 });
 
@@ -875,5 +980,20 @@ describe("CheckinsService.syncCheckin", () => {
     }
     const r = await svc.syncCheckin(item({ clientRef: "uuid-2" }));
     expect(r.result).toBe("synced");
+  });
+});
+
+describe("CheckinsService.doorSale - moneda (spec multipais-currency)", () => {
+  it("evento USD → ticket.currency = USD (precio de puerta del evento)", async () => {
+    const repo = new FakeCheckinsRepo();
+    repo.addEvent("evt-usd", { doorPrice: 2500, doorCap: 2, currency: "USD" });
+    repo.superusers.add("admin-1");
+    const svc = new CheckinsService(repo);
+    const res = await svc.doorSale(
+      { eventId: "evt-usd", channel: "CASH", name: "N", phone: "912340006" },
+      { id: "admin-1" },
+    );
+    expect(res.ticket.currency).toBe("USD");
+    expect(res.ticket.listPrice).toBe(2500);
   });
 });

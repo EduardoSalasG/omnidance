@@ -12,6 +12,7 @@ import { inputCls } from "@/components/academy/shared";
 import { FilterBar } from "@/components/query/FilterBar";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
+import { Link } from "@/i18n/navigation";
 
 // Consola de facturación (spec admin-billing-documents): emisión de la
 // nota de cobro interna por liquidación (idempotente - candidates sin
@@ -87,6 +88,7 @@ function BillingPanel() {
   maximumFractionDigits: 0,
 });
   const t = useTranslations("admin.billing");
+  const tp = useTranslations("admin.tierPrices");
   const tc = useTranslations("common");
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [docs, setDocs] = useState<BillingDoc[] | null>(null);
@@ -188,6 +190,14 @@ function BillingPanel() {
       <section className="flex flex-col gap-3">
         <h1 className="text-lg font-semibold">{t("title")}</h1>
         <p className="text-sm text-ink/60">{t("desc")}</p>
+        {/* Price book TierPrice (spec multipais-currency) - la consola
+            de precios por país vive en /admin/facturacion/precios. */}
+        <Link
+          href="/admin/facturacion/precios"
+          className="min-h-11 self-start rounded-lg py-1 text-sm font-medium text-cyan-300 underline underline-offset-4 hover:text-cyan-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+        >
+          {tp("title")}
+        </Link>
         {error && (
           <Card className="flex items-center justify-between gap-3 border-red-500/40 p-3 text-sm text-red-300">
             <span>{error}</span>

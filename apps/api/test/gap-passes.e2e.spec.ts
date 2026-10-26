@@ -10,8 +10,10 @@ import { PrismaService } from "../src/prisma.service";
 import { EventEntryPassesController } from "../src/social/infrastructure/entry-passes.controller";
 import { deletePeople } from "./helpers";
 
+// Person.phone se persiste en E.164 (spec multipais-phone): móvil CL
+// válido "+569XXXXXXXX" para que el seed refleje la forma canónica.
 const phone = () =>
-  `010${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
+  `+569${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
 
 describe("gap-passes e2e (list pass / event passes)", () => {
   let app: INestApplication;

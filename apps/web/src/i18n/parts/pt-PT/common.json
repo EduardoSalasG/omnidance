@@ -16,6 +16,10 @@
       "status": "Estado",
       "all": "Todos",
       "noResults": "Sem resultados"
+    },
+    "phone": {
+      "country": "País",
+      "contextHint": "Assumimos {country} · antepõe + se for de outro país"
     }
   }
 }

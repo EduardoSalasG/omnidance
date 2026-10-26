@@ -1,9 +1,14 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
-import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
+import {
+  PAYMENT_GATEWAY,
+  type PaymentGateway,
+  type SubscriptionProvider,
+} from "../domain/ports";
 import {
   GatewayRegistry,
   PAYMENT_GATEWAYS,
+  supportsCurrency,
 } from "../domain/gateway-registry";
 import { PricingService, type Quote } from "../domain/pricing.service";
 import {
@@ -390,6 +395,41 @@ export class CheckoutService {
       typeof name === "string" ? name : null,
       currency,
     );
+  }
+
+  /**
+   * ¿Hay motor de suscripciones para la moneda del plan? (spec
+   * multipais-currency) - misma regla que
+   * `SubscriptionsService.subscriptionGateway`: CLP por el param
+   * `payments.subscription_gateway`, otra moneda por el primer
+   * adaptador con `createSubscription` que la soporte. La quote de
+   * membresía la expone para que el checkout solo ofrezca el modo
+   * suscripción cuando el cobro real puede darse.
+   */
+  private async subscriptionCapable(currency: string): Promise<boolean> {
+    const cur = currency.toUpperCase();
+    if (cur === "CLP") {
+      const name = await this.params.get("payments.subscription_gateway");
+      const gw = this.gateways.resolve(
+        typeof name === "string" ? name : null,
+      );
+      return (
+        typeof (gw as Partial<SubscriptionProvider>).createSubscription ===
+        "function"
+      );
+    }
+    for (const name of this.gateways.names()) {
+      const gw = this.gateways.get(name);
+      if (
+        gw &&
+        typeof (gw as Partial<SubscriptionProvider>).createSubscription ===
+          "function" &&
+        supportsCurrency(gw, cur)
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -1300,6 +1340,7 @@ export class CheckoutService {
         active: true,
         type: true,
         price: true,
+        currency: true,
         academy: { select: { active: true, billingBlockedAt: true } },
       },
     });
@@ -1320,11 +1361,13 @@ export class CheckoutService {
     // member-promos): el descuento sale del precio de lista - la
     // pasarela cobra el total ya descontado y el Payment queda marcado
     // (auditoría + conteo de maxCycles).
+    const planCurrency = plan.currency ?? "CLP";
     const promo = await this.academyPromos.resolveApplicable(
       plan.academyId,
       personId,
       plan.id,
       plan.price,
+      planCurrency,
     );
 
     // Precio del plan desde DB (nunca del cliente) = total exacto: modelo
@@ -1348,9 +1391,8 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    // MembershipPlan no declara moneda - la orden es CLP (default del
-    // schema), la misma que se persiste en Payment.currency.
-    const gateway = await this.resolveGateway("CLP");
+    // Moneda de la orden = la del plan (spec multipais-currency).
+    const gateway = await this.resolveGateway(planCurrency);
     const payment = await this.createAssessedPayment(
       {
         orderType: "MEMBERSHIP",
@@ -1359,6 +1401,7 @@ export class CheckoutService {
         eventId: null,
         discountCodeId: null,
         academyPromoId: promo?.id ?? null,
+        currency: planCurrency,
         amount: quote.total,
         fee: 0, // costo pasarela: desconocido hasta la liquidación
         net: quote.total,
@@ -1406,6 +1449,7 @@ export class CheckoutService {
         active: true,
         type: true,
         price: true,
+        currency: true,
         classCount: true,
         periodDays: true,
         description: true,
@@ -1435,6 +1479,7 @@ export class CheckoutService {
       personId,
       plan.id,
       plan.price,
+      plan.currency ?? "CLP",
     );
 
     // TRIAL nunca extiende la vigencia vigente - se materializa como
@@ -1452,13 +1497,15 @@ export class CheckoutService {
         },
         academy: { id: plan.academy.id, name: plan.academy.name },
         totalClp: promo?.finalClp ?? plan.price,
+        currency: plan.currency ?? "CLP",
         promo,
         recurring: false,
         vigenciaEndsAt:
           membershipEndsAt(plan, new Date())?.toISOString() ?? null,
         currentEndsAt: null,
         subscription: null,
-        gateway: (await this.resolveGateway("CLP")).name,
+        gateway: (await this.resolveGateway(plan.currency ?? "CLP")).name,
+        supportsSubscription: false,
       };
     }
 
@@ -1503,6 +1550,7 @@ export class CheckoutService {
       },
       academy: { id: plan.academy.id, name: plan.academy.name },
       totalClp: promo?.finalClp ?? plan.price,
+      currency: plan.currency ?? "CLP",
       promo,
       recurring: RECURRING_PLAN_TYPES.has(plan.type),
       vigenciaEndsAt: vigenciaEndsAt?.toISOString() ?? null,
@@ -1510,7 +1558,10 @@ export class CheckoutService {
       // compra extiende ("vence el X - la nueva vigencia parte después").
       currentEndsAt: enrollment?.endsAt?.toISOString() ?? null,
       subscription: subscription ?? null,
-      gateway: (await this.resolveGateway("CLP")).name,
+      gateway: (await this.resolveGateway(plan.currency ?? "CLP")).name,
+      supportsSubscription: await this.subscriptionCapable(
+        plan.currency ?? "CLP",
+      ),
     };
   }
 
@@ -1542,7 +1593,15 @@ export class CheckoutService {
               },
             },
             academy: {
-              select: { id: true, name: true, defaultQuorum: true, billingBlockedAt: true },
+              select: {
+                id: true,
+                name: true,
+                defaultQuorum: true,
+                billingBlockedAt: true,
+                city: {
+                  select: { country: { select: { currency: true } } },
+                },
+              },
             },
           },
         },
@@ -1607,7 +1666,12 @@ export class CheckoutService {
       },
       series: { id: cls.slot.series.id, name: cls.slot.series.name },
       academy: { id: cls.slot.academy.id, name: cls.slot.academy.name },
-      gateway: (await this.resolveGateway("CLP")).name,
+      currency: cls.slot.academy.city?.country?.currency ?? "CLP",
+      gateway: (
+        await this.resolveGateway(
+          cls.slot.academy.city?.country?.currency ?? "CLP",
+        )
+      ).name,
     };
   }
 
@@ -1659,8 +1723,11 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    // Sin moneda declarada en la entidad - la orden es CLP (default).
-    const gateway = await this.resolveGateway("CLP");
+    // Moneda de la orden (spec multipais-currency): la del pais de la
+    // academia duena de la clase (fallback CLP).
+    const orderCurrency =
+      cls.slot.academy.city?.country?.currency ?? "CLP";
+    const gateway = await this.resolveGateway(orderCurrency);
     const payment = await this.createAssessedPayment(
       {
         orderType: "WORKSHOP",
@@ -1668,6 +1735,7 @@ export class CheckoutService {
         personId,
         eventId: null,
         discountCodeId: null,
+        currency: orderCurrency,
         amount: quote.total,
         fee: 0, // costo pasarela: desconocido hasta la liquidación
         net: quote.total,

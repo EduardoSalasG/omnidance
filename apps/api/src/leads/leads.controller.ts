@@ -12,6 +12,11 @@ import {
   Res,
 } from "@nestjs/common";
 import { randomBytes, timingSafeEqual } from "crypto";
+import {
+  InvalidPhoneError,
+  normalizePhone,
+  normalizePhoneOrNull,
+} from "@omnidance/shared";
 import type { Request, Response } from "express";
 import { PrismaService } from "../prisma.service";
 import { NotificationsService } from "../notifications/domain/notifications.service";
@@ -49,6 +54,8 @@ type LeadBody = {
   name?: unknown;
   email?: unknown;
   phone?: unknown;
+  /** Hint ISO-2 para formato nacional (spec multipais-phone) - default CL. */
+  phoneCountryCode?: unknown;
   roles?: unknown;
   intent?: unknown;
 };
@@ -81,6 +88,10 @@ export class LeadsController {
       typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const phone =
       typeof body?.phone === "string" ? body.phone.trim() : "";
+    const phoneCountryHint =
+      typeof body?.phoneCountryCode === "string"
+        ? body.phoneCountryCode.trim()
+        : "CL";
     const roles = Array.isArray(body?.roles)
       ? body.roles.filter(
           (r): r is string =>
@@ -105,6 +116,20 @@ export class LeadsController {
     if (roles.length === 0) {
       throw new BadRequestException("roles: elige al menos uno");
     }
+    // Spec multipais-phone: lead.phone persiste E.164 (el hint ISO-2
+    // solo interpreta formato nacional; "+" en el número lo ignora).
+    let e164Phone: string | null = null;
+    if (phone) {
+      try {
+        e164Phone = normalizePhone(phone, phoneCountryHint)?.e164 ?? null;
+      } catch (e) {
+        if (e instanceof InvalidPhoneError) {
+          throw new BadRequestException("teléfono inválido");
+        }
+        throw e;
+      }
+      if (!e164Phone) throw new BadRequestException("teléfono inválido");
+    }
     const emailTaken = !!(await this.prisma.person.findUnique({
       where: { email },
       select: { id: true },
@@ -123,12 +148,12 @@ export class LeadsController {
       create: {
         name,
         email,
-        phone: phone || null,
+        phone: e164Phone,
         roles,
         intent,
         demoToken: randomBytes(24).toString("hex"),
       },
-      update: { name, phone: phone || null, roles, intent },
+      update: { name, phone: e164Phone, roles, intent },
       select: { id: true, demoToken: true },
     });
 
@@ -201,9 +226,15 @@ export class LeadsController {
       // Person.phone es unique: si el teléfono ya está en otra cuenta,
       // crear la demo tiraría un 500 de unique constraint. 409 explícito.
       // (lead.phone puede ser null en intent DEMO.)
-      if (lead.phone) {
+      // Spec multipais-phone: leads legados (pre-spec) pueden tener el
+      // teléfono en formato nacional - el lookup y el create operan
+      // sobre el E.164 canónico cuando parsea (verbatim si no, como
+      // antes). Default CL: la escena de origen de los leads legados.
+      const leadPhone = normalizePhoneOrNull(lead.phone, "CL");
+      const phoneE164 = leadPhone?.e164 ?? lead.phone;
+      if (phoneE164) {
         const phoneTaken = await this.prisma.person.findUnique({
-          where: { phone: lead.phone },
+          where: { phone: phoneE164 },
           select: { id: true },
         });
         if (phoneTaken) {
@@ -220,7 +251,10 @@ export class LeadsController {
         data: {
           name: lead.name,
           email: lead.email,
-          phone: lead.phone,
+          phone: phoneE164,
+          // País derivado del número parseado; null si el valor legado
+          // no parsea (cuentas pre-spec).
+          phoneCountryCode: leadPhone?.countryCode ?? null,
           isDemoAccount: true,
           roles: {
             create: known.map((r) => ({ role: r.key, status: "APPROVED" })),

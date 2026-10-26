@@ -35,6 +35,9 @@ export type MeContextData = {
   name: string;
   email: string | null;
   phone?: string | null;
+  // ISO-2 derivado del phone E.164 (spec multipais-phone) - prefill
+  // del selector de país del PhoneInput.
+  phoneCountryCode?: string | null;
   photoUrl: string | null;
   instagram?: string | null;
   birthDate?: string | null;

@@ -24,6 +24,8 @@ export type MembershipQuote = {
   };
   academy: { id: string; name: string };
   totalClp: number;
+  /** ISO-4217 del cargo (spec multipais-currency). */
+  currency: string;
   /** Promo de la academia vigente para este alumno/plan (spec member-promos). */
   promo: {
     id: string;
@@ -45,6 +47,8 @@ export type MembershipQuote = {
     nextInvoiceAt: string | null;
   } | null;
   gateway: string;
+  /** Hay motor de suscripciones para la moneda del plan (multipais-currency). */
+  supportsSubscription: boolean;
 };
 
 async function getQuote(

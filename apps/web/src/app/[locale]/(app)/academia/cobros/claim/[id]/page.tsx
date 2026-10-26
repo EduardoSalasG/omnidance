@@ -3,17 +3,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { Link, useRouter } from "@/i18n/navigation";
-import { useDateFmt, useNumFmt } from "@/lib/intl";
+import { formatMoney, useDateFmt, useNumFmt } from "@/lib/intl";
 
 type ClaimDetail = {
   id: string;
   amount: number;
+  currency?: string;
   methodType: string;
   methodLabel: string;
   status: "AWAITING" | "PENDING" | "APPROVED" | "REJECTED";
@@ -69,6 +70,7 @@ function ClaimDetail({
   academyId: string;
   claimId: string;
 }) {
+  const locale = useLocale();
   const clp = useNumFmt({
   style: "currency",
   currency: "CLP",
@@ -216,7 +218,7 @@ function ClaimDetail({
             <div>
               <dt className="text-xs text-ink/50">{t("fieldAmount")}</dt>
               <dd className="font-medium tabular-nums">
-                {clp.format(claim.amount)}
+                {formatMoney(claim.amount, claim.currency, locale)}
               </dd>
             </div>
             <div>

@@ -1937,6 +1937,22 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
     expect(ref?.classId).toBe("cls-1");
   });
 
+  it("orden WORKSHOP hereda la moneda del país de la academia (spec multipais-currency)", async () => {
+    const cls = mkClass();
+    (cls.slot.academy as Record<string, unknown>).city = {
+      country: { currency: "MXN" },
+    };
+    fx.prisma.class.findUnique.mockResolvedValue(cls);
+    fx.prisma.academy.findUnique.mockResolvedValue({
+      city: { country: { currency: "MXN" } },
+    });
+    const res = await buy();
+    const p = fx.payments[0];
+    expect(p.orderType).toBe("WORKSHOP");
+    expect(p.currency).toBe("MXN");
+    void res;
+  });
+
   it("classQuote: precio exacto + spotsLeft + alreadyBooked sin crear orden", async () => {
     fx.prisma.classBooking.count.mockResolvedValue(3);
     const q = await svc.classQuote("per-1", "cls-1");

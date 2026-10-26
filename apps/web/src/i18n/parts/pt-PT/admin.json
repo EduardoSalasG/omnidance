@@ -725,6 +725,31 @@
       "disable": "Desativar promoção",
       "enable": "Ativar promoção",
       "disableHint": "Ao desativar deixa de aplicar em novas cobranças; as assinaturas voltam ao preço cheio no próximo ciclo."
+    },
+    "tierPrices": {
+      "title": "Preços dos tiers",
+      "subtitle": "Tabela de preços por país e ciclo (TierPrice)",
+      "country": "País",
+      "kind": "Linha",
+      "tier": "Tier",
+      "cycle": "Ciclo",
+      "price": "Preço",
+      "currency": "Moeda",
+      "new": "Novo preço",
+      "save": "Guardar",
+      "saved": "Guardado",
+      "create": "Criar preço",
+      "created": "Preço criado",
+      "exists": "Já existe esse preço para tier/ciclo/país",
+      "empty": "Sem preços",
+      "edit": "Editar",
+      "actions": "Ações",
+      "academy": "Academia",
+      "producer": "Produtor",
+      "cycleMonthly": "Mensal",
+      "cycleSemiannual": "Semestral",
+      "cycleAnnual": "Anual",
+      "retry": "Tentar novamente"
     }
   }
 }

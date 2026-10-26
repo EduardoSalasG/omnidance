@@ -9,7 +9,10 @@ import { QrModule } from "../src/qr/qr.module";
 import { QrService } from "../src/qr/domain/qr.service";
 import { deletePeople } from "./helpers";
 
-const phone = () => `010${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
+// Móvil CL válido en formato nacional ("9" + 8 dígitos): el door-sale
+// lo normaliza a E.164 (+569XXXXXXXX) vía libphonenumber - números
+// inventados como "010…" hoy pegan 400 teléfono inválido.
+const phone = () => `9${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
 
 describe("gap-checkins e2e (out / void / door-sale)", () => {
   let app: INestApplication;
@@ -434,7 +437,10 @@ describe("gap-checkins e2e (out / void / door-sale)", () => {
         where: { id: ids.attendeeId },
       });
       const withPhone = await prisma.person.create({
-        data: { name: "Ya Tenía Cuenta", phone: phone() },
+        // Person.phone se persiste en E.164 (spec multipais-phone):
+        // el seed usa la forma canónica "+56" para que el dedup del
+        // door-sale encuentre la misma Person.
+        data: { name: "Ya Tenía Cuenta", phone: `+56${phone()}` },
       });
       ids.lightPersonIds.push(withPhone.id);
 

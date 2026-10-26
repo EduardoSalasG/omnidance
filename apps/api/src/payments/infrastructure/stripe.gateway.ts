@@ -160,6 +160,8 @@ interface StripePrice {
   unit_amount?: number | null;
   currency?: string;
   active?: boolean;
+  lookup_key?: string | null;
+  metadata?: Record<string, string | undefined>;
 }
 
 interface StripeList<T> {
@@ -239,6 +241,12 @@ function billingFromInvoice(
     personId:
       inv.parent?.subscription_details?.metadata?.personId ??
       inv.metadata?.personId,
+    // Marca del pase (spec multipais-currency): subscription_details.
+    // metadata es la metadata de la suscripción - la invoice propia
+    // también se respeta por si el caller la seteó.
+    socialPass:
+      inv.parent?.subscription_details?.metadata?.socialPass === "1" ||
+      inv.metadata?.socialPass === "1",
     customerId: idOf(inv.customer),
     subscriptionId:
       idOf(inv.subscription) ??
@@ -460,6 +468,7 @@ export class StripeGateway implements PaymentGateway, SubscriptionProvider {
           personId: sub.metadata?.personId,
           customerId: idOf(sub.customer),
           subscriptionId: sub.id,
+          socialPass: sub.metadata?.socialPass === "1",
           raw: obj,
         } satisfies BillingWebhookEvent,
       };
@@ -474,6 +483,11 @@ export class StripeGateway implements PaymentGateway, SubscriptionProvider {
               s.subscription_data?.metadata?.personId ?? s.metadata?.personId,
             customerId: idOf(s.customer),
             subscriptionId: idOf(s.subscription),
+            // La metadata de subscription_data es la que Stripe copia a
+            // la sub creada - la marca del pase vive ahí, no en la de
+            // la sesión (metadata[socialPass] ya no se setea siempre).
+            socialPass:
+              s.subscription_data?.metadata?.socialPass === "1",
             raw: obj,
           } satisfies BillingWebhookEvent,
         };
@@ -744,8 +758,11 @@ export class StripeGateway implements PaymentGateway, SubscriptionProvider {
       cancel_url: p.returnUrl,
       "payment_method_types[0]": "card",
       "payment_method_types[1]": "link",
-      "metadata[socialPass]": "1",
     };
+    // La marca del pase (`socialPass`) la aporta el caller en
+    // p.metadata cuando corresponde - nunca se setea de fábrica:
+    // una sesión de membresía/plataforma no es del Pase Social (spec
+    // multipais-currency, contaminación cruzada de credits).
     for (const [k, v] of Object.entries(p.metadata ?? {})) {
       params[`subscription_data[metadata][${k}]`] = v;
       params[`metadata[${k}]`] = v;
@@ -794,15 +811,21 @@ export class StripeGateway implements PaymentGateway, SubscriptionProvider {
    * aplica (Stripe inicia el ciclo ya - el caller no lo usa en v1).
    */
   async createSubscription(
-    p: { planId: string; customerId: string; subscriptionStart: string },
+    p: {
+      planId: string;
+      customerId: string;
+      subscriptionStart: string;
+      currency?: string;
+    },
     opts?: SubscriptionCallOpts,
   ): Promise<RemoteSubscription> {
-    // La moneda del plan se descubre por prefix-match del lookup_key:
-    // el port no trae currency y el planId del pase es único por moneda
-    // solo si el caller la embebe - se lista por lookup_key exacta del
-    // par (planId, CLP) como default y luego cualquier price cuyo
-    // metadata.planId calce.
-    let price = await this.priceByLookup(p.planId, "CLP", opts);
+    // El Price espejo se resuelve por lookup_key omni_<planId>_<cur> de
+    // la moneda del cargo (spec multipais-currency): un planId
+    // compartido entre mercados tiene un Price por moneda y el CLP no
+    // puede ganar por default. Fallback: cualquier Price activo cuyo
+    // metadata.planId y moneda calcen (espejo creado fuera de ensurePlan).
+    const currency = (p.currency ?? "CLP").toUpperCase();
+    let price = await this.priceByLookup(p.planId, currency, opts);
     if (!price?.id) {
       const list = await this.call<StripeList<StripePrice>>(
         "v1/prices?active=true&limit=100",
@@ -813,13 +836,13 @@ export class StripeGateway implements PaymentGateway, SubscriptionProvider {
         list.data?.find(
           (pr) =>
             pr.id != null &&
-            planLookupKey(p.planId, (pr.currency ?? "clp").toUpperCase()) ===
-              `omni_${p.planId}_${(pr.currency ?? "clp").toLowerCase()}`,
+            pr.metadata?.planId === p.planId &&
+            (pr.currency ?? "").toUpperCase() === currency,
         ) ?? null;
     }
     if (!price?.id) {
       throw new Error(
-        `stripe createSubscription: sin Price espejo para ${p.planId}`,
+        `stripe createSubscription: sin Price espejo para ${p.planId} (${currency})`,
       );
     }
     const data = await this.call<StripeSubscription>(

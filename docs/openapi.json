@@ -9815,6 +9815,92 @@
         ]
       }
     },
+    "/api/admin/tier-prices": {
+      "get": {
+        "operationId": "AdminTierPricesController_list",
+        "parameters": [
+          {
+            "name": "countryCode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminTierPrices"
+        ]
+      },
+      "post": {
+        "operationId": "AdminTierPricesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTierPriceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminTierPrices"
+        ]
+      }
+    },
+    "/api/admin/tier-prices/{id}": {
+      "put": {
+        "operationId": "AdminTierPricesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTierPriceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminTierPrices"
+        ]
+      }
+    },
     "/api/crm/people": {
       "get": {
         "operationId": "CrmController_listPeople",
@@ -11684,6 +11770,14 @@
         "properties": {}
       },
       "PatchPromoDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateTierPriceDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateTierPriceDto": {
         "type": "object",
         "properties": {}
       },

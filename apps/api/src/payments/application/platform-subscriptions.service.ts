@@ -51,6 +51,7 @@ import {
 import {
   GatewayRegistry,
   PAYMENT_GATEWAYS,
+  supportsCurrency,
 } from "../domain/gateway-registry";
 import { PaymentSettlementService } from "./payment-settlement.service";
 import { GatewayTransactionsService } from "../infrastructure/gateway-transactions.service";
@@ -81,6 +82,8 @@ interface ChargeSpec {
   name: string;
   /** Monto del cargo por ciclo = mensual-equivalente × meses del ciclo. */
   amount: number;
+  /** ISO-4217 del cargo (spec multipais-currency) - del price book o CLP. */
+  currency: string;
   intervalCount: number;
   /** Promo aplicada al monto (spec platform-promos); null = plan base. */
   promoId: string | null;
@@ -168,30 +171,65 @@ export class PlatformSubscriptionsService {
    * - los flujos fallan explícito, jamás caen en silencio a otro
    * provider.
    */
-  private async subscriptionGateway(): Promise<PaymentGateway | null> {
-    const name = await this.params.get("payments.subscription_gateway");
-    const gw = this.gateways.resolve(typeof name === "string" ? name : null);
-    return typeof (gw as Partial<SubscriptionProvider>)
-      .createSubscription === "function"
-      ? gw
-      : null;
+  private async subscriptionGateway(
+    currency = "CLP",
+  ): Promise<PaymentGateway | null> {
+    const cur = currency.toUpperCase();
+    if (cur === "CLP") {
+      const name = await this.params.get("payments.subscription_gateway");
+      const gw = this.gateways.resolve(
+        typeof name === "string" ? name : null,
+      );
+      return typeof (gw as Partial<SubscriptionProvider>)
+        .createSubscription === "function"
+        ? gw
+        : null;
+    }
+    // Otra moneda (spec multipais-currency): se ignora el param - el
+    // primer adaptador registrado con motor de suscripciones que declare
+    // la moneda en `currencies` (sin declaración = sin restricción)
+    // gana. Ninguno → null → error explícito, jamás caer en silencio a
+    // un provider de CLP.
+    for (const name of this.gateways.names()) {
+      const gw = this.gateways.get(name);
+      if (
+        gw &&
+        typeof (gw as Partial<SubscriptionProvider>).createSubscription ===
+          "function" &&
+        supportsCurrency(gw, cur)
+      ) {
+        return gw;
+      }
+    }
+    return null;
   }
 
   /** Provider resuelto + su nombre (para auditoría y Payment.gateway). */
-  private async provider(): Promise<{
+  private async provider(currency = "CLP"): Promise<{
     provider: SubscriptionProvider;
     name: string;
   }> {
-    const gw = await this.subscriptionGateway();
+    const gw = await this.subscriptionGateway(currency);
     if (!gw) {
       throw new BadRequestException(
-        "el proveedor de suscripciones configurado no tiene motor de suscripciones",
+        currency.toUpperCase() === "CLP"
+          ? "el proveedor de suscripciones configurado no tiene motor de suscripciones"
+          : `la moneda ${currency.toUpperCase()} no tiene proveedor de suscripciones registrado`,
       );
     }
     return {
       provider: gw as unknown as SubscriptionProvider,
       name: gw.name,
     };
+  }
+
+  /** País de cobro de la academia (spec multipais-currency): null → CL. */
+  private async countryOfAcademy(academyId: string): Promise<string> {
+    const a = await this.prisma.academy.findUnique({
+      where: { id: academyId },
+      select: { city: { select: { country: { select: { code: true } } } } },
+    });
+    return a?.city?.country?.code?.toUpperCase() ?? "CL";
   }
 
   // ─── Catálogo (params) ────────────────────────────────────────────
@@ -275,30 +313,37 @@ export class PlatformSubscriptionsService {
     kind: PlatformSubKind,
     tierCode: string,
     cycle: BillingCycle,
+    countryCode: string | null | undefined,
     actor?: PromoActor,
   ): Promise<ChargeSpec> {
     const months = CYCLE_MONTHS[cycle];
-    // El precio se deriva del mensual base: el ciclo factura menos
-    // meses de los que cubre (anual ×10.2, semestral ×5.52).
-    const monthly = await this.baseMonthlyClp(kind, tierCode);
     const label =
       kind === "ACADEMY"
         ? `OmniDance Academia ${tierCode} (${CYCLE_LABEL[cycle]})`
         : `OmniDance Producer Pro ${tierCode} (${CYCLE_LABEL[cycle]})`;
-    if (monthly <= 0) {
+    // Price book por país (spec multipais-currency): la fila TierPrice
+    // del país del actor es la fuente; sin ella cae a la fila CL y
+    // luego al param legacy *_monthly_clp (con el factor del ciclo).
+    const { amount: baseAmount, currency } = await this.priceBook(
+      kind,
+      tierCode,
+      cycle,
+      countryCode,
+    );
+    if (baseAmount <= 0) {
       throw new BadRequestException(
         `el tier ${tierCode} no tiene precio autogestionado - contratación manual`,
       );
     }
-    const baseAmount = cycleChargeClp(monthly, cycle);
     const promo = actor
-      ? await this.resolveApplicablePromo(actor, baseAmount)
+      ? await this.resolveApplicablePromo(actor, baseAmount, currency)
       : null;
     if (!promo) {
       return {
         planId: platformPlanId(kind, tierCode, cycle),
         name: label,
         amount: baseAmount,
+        currency,
         intervalCount: months,
         promoId: null,
       };
@@ -314,9 +359,77 @@ export class PlatformSubscriptionsService {
       ),
       name: `${label} · ${promo.name}`,
       amount,
+      currency,
       intervalCount: months,
       promoId: promo.id,
     };
+  }
+
+  /**
+   * Cargo del ciclo por país (spec multipais-currency):
+   * TierPrice(tierCode, kind, cycle, countryCode) → fila CL → param
+   * legacy `*_monthly_clp` × factor del ciclo. La fila del price book
+   * ya trae el cargo del ciclo y su moneda; el fallback param es CLP.
+   */
+  private async priceBook(
+    kind: PlatformSubKind,
+    tierCode: string,
+    cycle: BillingCycle,
+    countryCode: string | null | undefined,
+  ): Promise<{ amount: number; currency: string }> {
+    const cc = (countryCode ?? "CL").toUpperCase();
+    const where = { tierCode, kind, billingCycle: cycle };
+    const row =
+      (await this.prisma.tierPrice.findFirst({
+        where: { ...where, countryCode: cc },
+      })) ??
+      (cc !== "CL"
+        ? await this.prisma.tierPrice.findFirst({
+            where: { ...where, countryCode: "CL" },
+          })
+        : null);
+    if (row) return { amount: row.price, currency: row.currency };
+    const monthly = await this.baseMonthlyClp(kind, tierCode);
+    return { amount: cycleChargeClp(monthly, cycle), currency: "CLP" };
+  }
+
+  /**
+   * Mapa tier×ciclo → cargo del price book del país (spec
+   * multipais-currency): lo consumen los selectores de billing/pro del
+   * front en vez de derivar del param `*_monthly_clp` CLP. `price` es
+   * el cargo TOTAL del ciclo en unidad menor (la fila TierPrice ya
+   * trae el factor del ciclo); `currency` es la de la fila. null =
+   * tier sin precio autogestionado para ese ciclo.
+   */
+  private async priceBookMap(
+    kind: PlatformSubKind,
+    tierCodes: string[],
+    countryCode: string,
+  ): Promise<
+    Record<string, Record<string, { price: number; currency: string } | null>>
+  > {
+    const out: Record<
+      string,
+      Record<string, { price: number; currency: string } | null>
+    > = {};
+    for (const tier of tierCodes) {
+      out[tier] = {};
+      for (const cycle of Object.keys(CYCLE_MONTHS) as BillingCycle[]) {
+        try {
+          const { amount, currency } = await this.priceBook(
+            kind,
+            tier,
+            cycle,
+            countryCode,
+          );
+          out[tier][cycle] =
+            amount > 0 ? { price: amount, currency } : null;
+        } catch {
+          out[tier][cycle] = null;
+        }
+      }
+    }
+    return out;
   }
 
   /** Precio mensual base del tier desde PlatformParam (0 = manual). */
@@ -390,6 +503,7 @@ export class PlatformSubscriptionsService {
   private async resolveApplicablePromo(
     actor: PromoActor,
     chargeClp: number | null,
+    currency = "CLP",
   ): Promise<PromoWithWhitelist | null> {
     const actorId =
       actor.kind === "ACADEMY" ? actor.academyId : actor.producerId;
@@ -409,6 +523,15 @@ export class PlatformSubscriptionsService {
     });
     let best: { promo: PromoWithWhitelist; saved: number } | null = null;
     for (const promo of promos) {
+      // Alcance por moneda (spec multipais-currency): una promo de monto
+      // fijo en CLP nunca descuenta un cargo en otra moneda; PERCENT
+      // aplica a cualquier moneda.
+      if (
+        promo.discountType === "FIXED_CLP" &&
+        currency.toUpperCase() !== "CLP"
+      ) {
+        continue;
+      }
       const globalList =
         promo.academies.length === 0 && promo.producers.length === 0;
       const whitelisted = globalList
@@ -451,13 +574,13 @@ export class PlatformSubscriptionsService {
     actor: PromoActor,
     tierCode: string | null,
     cycle: BillingCycle | null,
+    countryCode: string | null = null,
   ) {
-    const monthly = tierCode
-      ? await this.baseMonthlyClp(actor.kind, tierCode)
-      : 0;
-    const baseAmount =
-      monthly > 0 && cycle ? cycleChargeClp(monthly, cycle) : null;
-    const promo = await this.resolveApplicablePromo(actor, baseAmount);
+    const { amount: baseAmount, currency } =
+      tierCode && cycle
+        ? await this.priceBook(actor.kind, tierCode, cycle, countryCode)
+        : { amount: null, currency: "CLP" };
+    const promo = await this.resolveApplicablePromo(actor, baseAmount, currency);
     if (!promo) return null;
     const usedCycles =
       promo.maxCycles != null
@@ -518,17 +641,28 @@ export class PlatformSubscriptionsService {
         tier: input.tier,
       });
     }
-    const charge = await this.chargeSpec("ACADEMY", input.tier, input.cycle, {
-      kind: "ACADEMY",
-      academyId: academy.id,
-    });
-    await this.provider(); // fail-fast si el gateway no tiene motor de subs
+    // País de cobro de la academia (spec multipais-currency): deriva de
+    // su ciudad → país (null → CL); fija la moneda del cargo.
+    const countryCode = await this.countryOfAcademy(academy.id);
+    const charge = await this.chargeSpec(
+      "ACADEMY",
+      input.tier,
+      input.cycle,
+      countryCode,
+      {
+        kind: "ACADEMY",
+        academyId: academy.id,
+      },
+    );
+    await this.provider(charge.currency); // fail-fast si no hay motor de subs
     const sub = await this.prisma.$transaction((tx) =>
       this.pickOrCreatePendingSub(tx, personId, {
         kind: "ACADEMY",
         academyId: academy.id,
         tierCode: input.tier,
         billingCycle: input.cycle,
+        countryCode,
+        currency: charge.currency,
       }),
     );
     return this.runSubscribeFlow(sub, charge, randomUUID(), academy.name);
@@ -542,10 +676,25 @@ export class PlatformSubscriptionsService {
    */
   async subscribeProducer(
     personId: string,
-    input: { cycle: BillingCycle; acceptRecurring?: boolean },
+    input: {
+      cycle: BillingCycle;
+      acceptRecurring?: boolean;
+      billingCountry?: string;
+    },
   ): Promise<PlatformSubscribeResult> {
     if (input.acceptRecurring !== true) {
       throw new BadRequestException("debes aceptar el cobro recurrente");
+    }
+    // País de cobro declarado por el productor (spec multipais-currency,
+    // ISO-2, default CL - no tiene venue del que derivarlo); se valida
+    // contra el catálogo Country.
+    const countryCode = (input.billingCountry ?? "CL").toUpperCase();
+    const country = await this.prisma.country.findUnique({
+      where: { code: countryCode },
+      select: { code: true },
+    });
+    if (!country) {
+      throw new BadRequestException("billingCountry no es un país válido");
     }
     const monthlyGross = await this.producerMonthlyGross(personId);
     const tier = await this.producerTierForGross(monthlyGross);
@@ -562,17 +711,25 @@ export class PlatformSubscriptionsService {
         max,
       });
     }
-    const charge = await this.chargeSpec("PRODUCER", tier, input.cycle, {
-      kind: "PRODUCER",
-      producerId: personId,
-    });
-    await this.provider();
+    const charge = await this.chargeSpec(
+      "PRODUCER",
+      tier,
+      input.cycle,
+      countryCode,
+      {
+        kind: "PRODUCER",
+        producerId: personId,
+      },
+    );
+    await this.provider(charge.currency);
     const sub = await this.prisma.$transaction((tx) =>
       this.pickOrCreatePendingSub(tx, personId, {
         kind: "PRODUCER",
         producerId: personId,
         tierCode: tier,
         billingCycle: input.cycle,
+        countryCode,
+        currency: charge.currency,
       }),
     );
     return this.runSubscribeFlow(sub, charge, randomUUID(), "Producer Pro");
@@ -599,6 +756,8 @@ export class PlatformSubscriptionsService {
       producerId?: string;
       tierCode: string;
       billingCycle: BillingCycle;
+      countryCode: string;
+      currency: string;
     },
   ): Promise<PlatformSubscription> {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`platsub:${personId}`}))`;
@@ -653,13 +812,17 @@ export class PlatformSubscriptionsService {
     if (reuse) {
       if (
         reuse.tierCode !== create.tierCode ||
-        reuse.billingCycle !== create.billingCycle
+        reuse.billingCycle !== create.billingCycle ||
+        reuse.countryCode !== create.countryCode ||
+        reuse.currency !== create.currency
       ) {
         return tx.platformSubscription.update({
           where: { id: reuse.id },
           data: {
             tierCode: create.tierCode,
             billingCycle: create.billingCycle,
+            countryCode: create.countryCode,
+            currency: create.currency,
           },
         });
       }
@@ -673,6 +836,8 @@ export class PlatformSubscriptionsService {
         personId,
         tierCode: create.tierCode,
         billingCycle: create.billingCycle,
+        countryCode: create.countryCode,
+        currency: create.currency,
       },
     });
   }
@@ -690,19 +855,23 @@ export class PlatformSubscriptionsService {
     correlationId: string,
     scopeName: string,
   ): Promise<PlatformSubscribeResult> {
-    const { provider } = await this.provider();
+    const { provider, name: providerName } = await this.provider(
+      charge.currency,
+    );
     await provider.ensurePlan(
       {
         planId: charge.planId,
         name: charge.name,
         amount: charge.amount,
         intervalCount: charge.intervalCount,
+        currency: charge.currency,
       },
       { correlationId },
     );
     const { customerId } = await ensureFlowCustomer(
       this.prisma,
       provider,
+      providerName,
       sub.personId,
       { correlationId },
     );
@@ -712,6 +881,11 @@ export class PlatformSubscriptionsService {
         {
           customerId,
           returnUrl: `${this.apiUrl}/api/payments/flow/platform-customer-return`,
+          // El registro de Stripe ES el Checkout mode=subscription - el
+          // Price espejo se resuelve por (planId, currency) allá.
+          planId: charge.planId,
+          currency: charge.currency,
+          metadata: { personId: sub.personId },
         },
         { correlationId },
       );
@@ -747,6 +921,7 @@ export class PlatformSubscriptionsService {
       flowPlanId: charge.planId,
       promoId: charge.promoId,
       planChargeClp: charge.amount,
+      currency: charge.currency,
       customerId,
       correlationId,
     });
@@ -778,11 +953,13 @@ export class PlatformSubscriptionsService {
       flowPlanId: string;
       promoId: string | null;
       planChargeClp: number;
+      /** Moneda del cargo - resuelve el provider (spec multipais-currency). */
+      currency: string;
       customerId: string;
       correlationId: string;
     },
   ): Promise<{ active: PlatformSubscription; fs: RemoteSubscription }> {
-    const { provider } = await this.provider();
+    const { provider } = await this.provider(p.currency);
     let fs: RemoteSubscription;
     try {
       fs = await provider.createSubscription(
@@ -790,6 +967,7 @@ export class PlatformSubscriptionsService {
           planId: p.flowPlanId,
           customerId: p.customerId,
           subscriptionStart: new Date().toISOString().slice(0, 10),
+          currency: p.currency,
         },
         { correlationId: p.correlationId },
       );
@@ -860,6 +1038,63 @@ export class PlatformSubscriptionsService {
   }
 
   /**
+   * Adopción de una sub remota ya creada por el registro de tarjeta
+   * (Stripe Checkout mode=subscription - spec multipais-currency): la
+   * fila ACTIVATING pasa a ACTIVE con el id remoto; el estado real lo
+   * confirma el getSubscription inmediato (si falla, queda ACTIVE y el
+   * reconcile corrige - la sub existe, cobrará).
+   */
+  private async adoptRemoteSubscription(
+    subId: string,
+    p: {
+      remoteId: string;
+      promoId: string | null;
+      planChargeClp: number;
+      correlationId: string;
+    },
+  ): Promise<{ active: PlatformSubscription; fs: RemoteSubscription }> {
+    const sub = await this.prisma.platformSubscription.findUniqueOrThrow({
+      where: { id: subId },
+    });
+    const { provider } = await this.provider(sub.currency);
+    const fs = await provider
+      .getSubscription(p.remoteId, { correlationId: p.correlationId })
+      .catch(() => null);
+    const transition = await this.prisma.platformSubscription.updateMany({
+      where: { id: subId, status: "ACTIVATING" },
+      data: {
+        flowSubscriptionId: p.remoteId,
+        status: fs?.status === "CANCELED" ? "CANCELED" : "ACTIVE",
+        nextInvoiceAt: fs?.nextInvoiceDate
+          ? new Date(fs.nextInvoiceDate)
+          : null,
+        promoId: p.promoId,
+        planChargeClp: p.planChargeClp,
+        ...(fs?.status === "CANCELED" ? { canceledAt: new Date() } : {}),
+      },
+    });
+    if (transition.count === 0) {
+      throw new ConflictException(
+        "la suscripción cambió de estado durante la activación",
+      );
+    }
+    const active =
+      await this.prisma.platformSubscription.findUniqueOrThrow({
+        where: { id: subId },
+      });
+    return {
+      active,
+      fs: fs ?? {
+        subscriptionId: p.remoteId,
+        planId: "",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+      },
+    };
+  }
+
+  /**
    * Retorno del disclaimer de tarjeta para subs de plataforma -
    * `POST /api/payments/flow/platform-customer-return` (Flow POSTea el
    * browser con {token}). Endpoint propio porque el token de
@@ -878,13 +1113,75 @@ export class PlatformSubscriptionsService {
       requestBody: { token },
       ok: true,
     });
-    const { provider } = await this.provider();
-    const reg = await provider.getRegisterStatus(token, { correlationId });
+    // El token del retorno no trae moneda: se prueba el provider del
+    // param (CLP) primero y luego el resto de los adaptadores con motor
+    // de suscripciones (spec multipais-currency) - el que reconozca el
+    // registro gana. Así una sub no-CLP (Stripe Checkout) también
+    // resuelve su provider correcto.
+    let provider: SubscriptionProvider;
+    let reg: {
+      registered: boolean;
+      customerId?: string;
+      subscriptionId?: string;
+    };
+    const primary = await this.subscriptionGateway();
+    const candidates: PaymentGateway[] = [];
+    if (primary) candidates.push(primary);
+    for (const name of this.gateways.names()) {
+      const gw = this.gateways.get(name);
+      if (
+        gw &&
+        gw !== primary &&
+        typeof (gw as Partial<SubscriptionProvider>).createSubscription ===
+          "function"
+      ) {
+        candidates.push(gw);
+      }
+    }
+    if (candidates.length === 0) {
+      throw new BadRequestException(
+        "el proveedor de suscripciones configurado no tiene motor de suscripciones",
+      );
+    }
+    provider = candidates[0] as unknown as SubscriptionProvider;
+    let providerName = candidates[0].name;
+    reg = { registered: false };
+    for (const gw of candidates) {
+      try {
+        const r = await (
+          gw as unknown as SubscriptionProvider
+        ).getRegisterStatus(token, { correlationId });
+        if (r.registered && r.customerId) {
+          provider = gw as unknown as SubscriptionProvider;
+          providerName = gw.name;
+          reg = r;
+          break;
+        }
+      } catch {
+        // El token no pertenece a este proveedor - probar el siguiente.
+      }
+    }
     if (!reg.registered || !reg.customerId) {
       return { ok: false };
     }
+    // Customer → person por el mapa multi-provider
+    // (gatewayCustomerIds["<GW>"]) con fallback a la columna legacy
+    // para FLOW - el customerId devuelto pertenece al provider que
+    // reconoció el token.
     const person = await this.prisma.person.findFirst({
-      where: { flowCustomerId: reg.customerId },
+      where: {
+        OR: [
+          {
+            gatewayCustomerIds: {
+              path: [providerName.toUpperCase()],
+              equals: reg.customerId,
+            },
+          },
+          ...(providerName.toUpperCase() === "FLOW"
+            ? [{ flowCustomerId: reg.customerId }]
+            : []),
+        ],
+      },
       select: { id: true },
     });
     if (!person) return { ok: false };
@@ -919,6 +1216,7 @@ export class PlatformSubscriptionsService {
       sub.kind,
       sub.tierCode,
       sub.billingCycle,
+      sub.countryCode,
       this.promoActorOf(sub),
     );
     await provider.ensurePlan(
@@ -927,16 +1225,28 @@ export class PlatformSubscriptionsService {
         name: charge.name,
         amount: charge.amount,
         intervalCount: charge.intervalCount,
+        currency: charge.currency,
       },
       { correlationId },
     );
-    const { active, fs } = await this.createRemoteSubscription(sub.id, {
-      flowPlanId: charge.planId,
-      promoId: charge.promoId,
-      planChargeClp: charge.amount,
-      customerId: reg.customerId,
-      correlationId,
-    });
+    // La sesión de Stripe (Checkout mode=subscription) ya creó la sub
+    // remota - su id viene en getRegisterStatus; Flow no lo emite y sigue
+    // por subscription/create.
+    const { active, fs } = reg.subscriptionId
+      ? await this.adoptRemoteSubscription(sub.id, {
+          remoteId: reg.subscriptionId,
+          promoId: charge.promoId,
+          planChargeClp: charge.amount,
+          correlationId,
+        })
+      : await this.createRemoteSubscription(sub.id, {
+          flowPlanId: charge.planId,
+          promoId: charge.promoId,
+          planChargeClp: charge.amount,
+          currency: charge.currency,
+          customerId: reg.customerId,
+          correlationId,
+        });
     try {
       await this.reconcileSubscription(active, fs, "system");
     } catch (e) {
@@ -1062,13 +1372,16 @@ export class PlatformSubscriptionsService {
     targetCycle: BillingCycle,
     scopeName: string,
   ): Promise<PlatformSubscription> {
-    const { provider } = await this.provider();
     const correlationId = randomUUID();
     const charge = await this.chargeSpec(
       sub.kind,
       targetTier,
       targetCycle,
+      sub.countryCode,
       this.promoActorOf(sub),
+    );
+    const { provider, name: providerName } = await this.provider(
+      charge.currency,
     );
     await provider.ensurePlan(
       {
@@ -1076,12 +1389,14 @@ export class PlatformSubscriptionsService {
         name: charge.name,
         amount: charge.amount,
         intervalCount: charge.intervalCount,
+        currency: charge.currency,
       },
       { correlationId },
     );
     const { customerId } = await ensureFlowCustomer(
       this.prisma,
       provider,
+      providerName,
       sub.personId,
       { correlationId },
     );
@@ -1095,6 +1410,7 @@ export class PlatformSubscriptionsService {
         planId: charge.planId,
         customerId,
         subscriptionStart: new Date().toISOString().slice(0, 10),
+        currency: charge.currency,
       },
       { correlationId },
     );
@@ -1149,7 +1465,10 @@ export class PlatformSubscriptionsService {
           pendingBillingCycle: null,
           pendingReprice: false,
           promoId: charge.promoId,
+          // planChargeClp guarda el cargo EN LA MONEDA de la sub (el
+          // nombre quedó legacy CLP - renombrar la columna es invasivo).
           planChargeClp: charge.amount,
+          currency: charge.currency,
           canceledAt: nextStatus === "CANCELED" ? new Date() : null,
         },
       })
@@ -1212,7 +1531,7 @@ export class PlatformSubscriptionsService {
     targetCycle: BillingCycle,
   ): Promise<PlatformSubscription> {
     if (sub.status === "ACTIVE" && sub.flowSubscriptionId) {
-      const { provider } = await this.provider();
+      const { provider } = await this.provider(sub.currency);
       await provider.cancelSubscription(sub.flowSubscriptionId, {
         correlationId: randomUUID(),
       });
@@ -1312,7 +1631,7 @@ export class PlatformSubscriptionsService {
       });
       return { ok: true, status: "CANCELED", subscriptionId: sub.id };
     }
-    const { provider } = await this.provider();
+    const { provider } = await this.provider(sub.currency);
     await provider.cancelSubscription(sub.flowSubscriptionId, {
       correlationId: randomUUID(),
     });
@@ -1383,10 +1702,10 @@ export class PlatformSubscriptionsService {
     if (
       current?.flowSubscriptionId &&
       (current.status === "ACTIVE" || current.status === "CANCEL_PENDING") &&
-      (await this.subscriptionGateway())
+      (await this.subscriptionGateway(current.currency))
     ) {
       try {
-        const { provider } = await this.provider();
+        const { provider } = await this.provider(current.currency);
         const fs = await provider.getSubscription(current.flowSubscriptionId, {
           correlationId: randomUUID(),
         });
@@ -1417,6 +1736,7 @@ export class PlatformSubscriptionsService {
               id: true,
               refId: true,
               amount: true,
+              currency: true,
               status: true,
               createdAt: true,
               gatewayRef: true,
@@ -1429,12 +1749,22 @@ export class PlatformSubscriptionsService {
     const maxStudents = effectiveTier
       ? await this.academyMaxStudents(effectiveTier)
       : null;
+    const academyCountry = await this.countryOfAcademy(academy.id);
     // Promo vigente aplicable a la academia (spec platform-promos): la
     // vista la expone para mostrar precio tachado + oferta + vencimiento.
     const activePromo = await this.activePromoView(
       { kind: "ACADEMY", academyId: academy.id },
       effectiveTier,
       current?.billingCycle ?? academy.billingCycle ?? null,
+      academyCountry,
+    );
+    // Selector de tier/ciclo con los precios del price book del país
+    // de la academia (spec multipais-currency) - el front NO deriva de
+    // los params CLP: cada celda trae el cargo del ciclo + su moneda.
+    const prices = await this.priceBookMap(
+      "ACADEMY",
+      [...SELF_SERVE_ACADEMY_TIERS],
+      academyCountry,
     );
     const now = Date.now();
     const graceDaysLeft =
@@ -1447,6 +1777,8 @@ export class PlatformSubscriptionsService {
     return {
       tier: academy.tier,
       cycle: academy.billingCycle,
+      currency: current?.currency ?? "CLP",
+      countryCode: current?.countryCode ?? "CL",
       status: current?.status ?? null,
       subscriptionId: current?.id ?? null,
       pendingTier: current?.pendingTierCode ?? null,
@@ -1463,6 +1795,7 @@ export class PlatformSubscriptionsService {
       blockedAt: academy.billingBlockedAt,
       invoices,
       activePromo,
+      prices,
     };
   }
 
@@ -1489,10 +1822,10 @@ export class PlatformSubscriptionsService {
     if (
       current?.flowSubscriptionId &&
       (current.status === "ACTIVE" || current.status === "CANCEL_PENDING") &&
-      (await this.subscriptionGateway())
+      (await this.subscriptionGateway(current.currency))
     ) {
       try {
-        const { provider } = await this.provider();
+        const { provider } = await this.provider(current.currency);
         const fs = await provider.getSubscription(current.flowSubscriptionId, {
           correlationId: randomUUID(),
         });
@@ -1518,15 +1851,26 @@ export class PlatformSubscriptionsService {
         )
       : null;
     // Promo vigente aplicable al productor (spec platform-promos).
+    const producerCountry = current?.countryCode ?? "CL";
     const activePromo = await this.activePromoView(
       { kind: "PRODUCER", producerId: personId },
       current?.tierCode ?? person.proTier ?? null,
       current?.billingCycle ?? null,
+      producerCountry,
+    );
+    // Precios del price book del país de cobro (spec
+    // multipais-currency) para el selector de ciclo del front.
+    const prices = await this.priceBookMap(
+      "PRODUCER",
+      [...SELF_SERVE_PRODUCER_TIERS],
+      producerCountry,
     );
     return {
       proTier: person.proTier,
       proTrialEndsAt: person.proTrialEndsAt,
       effectivePro: isProActive(person),
+      currency: current?.currency ?? "CLP",
+      countryCode: current?.countryCode ?? "CL",
       status: current?.status ?? null,
       subscriptionId: current?.id ?? null,
       tier: current?.tierCode ?? null,
@@ -1538,6 +1882,7 @@ export class PlatformSubscriptionsService {
       nextInvoiceAt: current?.nextInvoiceAt ?? null,
       canceledAt: current?.canceledAt ?? null,
       activePromo,
+      prices,
     };
   }
 
@@ -1568,17 +1913,32 @@ export class PlatformSubscriptionsService {
   async reconcileAll(
     actor = "reconcile",
   ): Promise<{ checked: number; settled: number }> {
-    const resolved = await this.provider().catch(() => null);
-    if (!resolved) return { checked: 0, settled: 0 };
-    const { provider } = resolved;
     const subs = await this.prisma.platformSubscription.findMany({
       where: {
         flowSubscriptionId: { not: null },
         status: { in: ["ACTIVE", "CANCEL_PENDING"] },
       },
     });
+    // Provider por moneda de cada sub (spec multipais-currency) -
+    // resuelto lazy por currency para no fallar el barrido completo si
+    // una moneda no tiene proveedor (esa sub se salta con log).
+    const providers = new Map<string, SubscriptionProvider | null>();
     let settled = 0;
     for (const sub of subs) {
+      const cur = sub.currency ?? "CLP";
+      if (!providers.has(cur)) {
+        providers.set(
+          cur,
+          (await this.provider(cur).catch(() => null))?.provider ?? null,
+        );
+      }
+      const provider = providers.get(cur);
+      if (!provider) {
+        this.logger.warn(
+          `reconcile platsub ${sub.id}: moneda ${cur} sin proveedor de suscripciones`,
+        );
+        continue;
+      }
       try {
         const fs = await provider.getSubscription(sub.flowSubscriptionId!, {
           correlationId: randomUUID(),
@@ -1656,8 +2016,10 @@ export class PlatformSubscriptionsService {
           // Auditoría del cobro descontado (spec platform-promos) -
           // base del conteo de maxCycles por actor.
           platformPromoId: sub.promoId ?? null,
+          currency: sub.currency ?? "CLP",
           gateway:
-            (await this.subscriptionGateway())?.name ?? "UNCONFIGURED",
+            (await this.subscriptionGateway(sub.currency))?.name ??
+            "UNCONFIGURED",
           gatewayRef: inv.payment?.orderRef ?? null,
         },
       });
@@ -1846,6 +2208,7 @@ export class PlatformSubscriptionsService {
         sub.kind,
         sub.tierCode,
         sub.billingCycle,
+        sub.countryCode,
         this.promoActorOf(sub),
       );
     } catch {
@@ -1853,9 +2216,10 @@ export class PlatformSubscriptionsService {
     }
     const drift =
       (sub.promoId ?? null) !== (expected.promoId ?? null) ||
+      (sub.currency ?? "CLP") !== expected.currency ||
       (sub.planChargeClp != null && sub.planChargeClp !== expected.amount);
     if (!drift) return;
-    const { provider } = await this.provider();
+    const { provider } = await this.provider(sub.currency);
     await provider.cancelSubscription(sub.flowSubscriptionId!, {
       correlationId: randomUUID(),
     });
@@ -1880,13 +2244,16 @@ export class PlatformSubscriptionsService {
     sub: PlatformSubscription,
     actor: string,
   ): Promise<boolean> {
-    const { provider } = await this.provider();
     const correlationId = randomUUID();
     const charge = await this.chargeSpec(
       sub.kind,
       sub.tierCode,
       sub.billingCycle,
+      sub.countryCode,
       this.promoActorOf(sub),
+    );
+    const { provider, name: providerName } = await this.provider(
+      charge.currency,
     );
     await provider.ensurePlan(
       {
@@ -1894,12 +2261,14 @@ export class PlatformSubscriptionsService {
         name: charge.name,
         amount: charge.amount,
         intervalCount: charge.intervalCount,
+        currency: charge.currency,
       },
       { correlationId },
     );
     const { customerId } = await ensureFlowCustomer(
       this.prisma,
       provider,
+      providerName,
       sub.personId,
       { correlationId },
     );
@@ -1908,6 +2277,7 @@ export class PlatformSubscriptionsService {
         planId: charge.planId,
         customerId,
         subscriptionStart: new Date().toISOString().slice(0, 10),
+        currency: charge.currency,
       },
       { correlationId },
     );
@@ -1932,7 +2302,9 @@ export class PlatformSubscriptionsService {
           reminderSentFor: null,
           pendingReprice: false,
           promoId: charge.promoId,
+          // Cargo en la moneda de la sub (nombre legacy CLP).
           planChargeClp: charge.amount,
+          currency: charge.currency,
           canceledAt: null,
         },
       })
@@ -1976,13 +2348,16 @@ export class PlatformSubscriptionsService {
     const tier = sub.pendingTierCode;
     const cycle = sub.pendingBillingCycle;
     if (!tier || !cycle) return false;
-    const { provider } = await this.provider();
     const correlationId = randomUUID();
     const charge = await this.chargeSpec(
       sub.kind,
       tier,
       cycle,
+      sub.countryCode,
       this.promoActorOf(sub),
+    );
+    const { provider, name: providerName } = await this.provider(
+      charge.currency,
     );
     await provider.ensurePlan(
       {
@@ -1990,12 +2365,14 @@ export class PlatformSubscriptionsService {
         name: charge.name,
         amount: charge.amount,
         intervalCount: charge.intervalCount,
+        currency: charge.currency,
       },
       { correlationId },
     );
     const { customerId } = await ensureFlowCustomer(
       this.prisma,
       provider,
+      providerName,
       sub.personId,
       { correlationId },
     );
@@ -2004,6 +2381,7 @@ export class PlatformSubscriptionsService {
         planId: charge.planId,
         customerId,
         subscriptionStart: new Date().toISOString().slice(0, 10),
+        currency: charge.currency,
       },
       { correlationId },
     );
@@ -2032,7 +2410,9 @@ export class PlatformSubscriptionsService {
           pendingBillingCycle: null,
           pendingReprice: false,
           promoId: charge.promoId,
+          // Cargo en la moneda de la sub (nombre legacy CLP).
           planChargeClp: charge.amount,
+          currency: charge.currency,
           canceledAt: null,
         },
       })
@@ -2121,7 +2501,7 @@ export class PlatformSubscriptionsService {
         data: { pendingTierCode: required, pendingBillingCycle: cycle },
       });
       if (sub.flowSubscriptionId) {
-        const { provider } = await this.provider();
+        const { provider } = await this.provider(sub.currency);
         await provider
           .cancelSubscription(sub.flowSubscriptionId, {
             correlationId: randomUUID(),
@@ -2354,6 +2734,7 @@ export class PlatformSubscriptionsService {
         sub.kind,
         sub.tierCode,
         sub.billingCycle,
+        sub.countryCode,
         this.promoActorOf(sub),
       );
       return charge.amount;

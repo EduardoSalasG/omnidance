@@ -37,6 +37,7 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Gender } from "@prisma/client";
+import { InvalidPhoneError, normalizePhone } from "@omnidance/shared";
 import type { Request } from "express";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
 import { ConsentService } from "../legal/consent.service";
@@ -69,6 +70,13 @@ class CompleteProfileDto {
   @IsString()
   @MinLength(6)
   phone!: string;
+
+  // Hint ISO-2 para interpretar `phone` en formato nacional (spec
+  // multipais-phone); un "+" inicial en phone lo ignora. Default "CL".
+  @IsOptional()
+  @IsString()
+  @MaxLength(2)
+  phoneCountryCode?: string;
 
   // Opcional: la cuenta también puede operar solo por magic link.
   @IsOptional()
@@ -105,11 +113,20 @@ export class UpdateMeDto {
   @MaxLength(80)
   name?: string;
 
-  // Teléfono de contacto - "" o null limpia. Se normaliza a "+ dígitos".
+  // Teléfono de contacto - "" o null limpia. Se normaliza a E.164 con
+  // "+" vía libphonenumber (spec multipais-phone).
   @IsOptional()
   @IsString()
   @MaxLength(20)
   phone?: string | null;
+
+  // Hint ISO-2 del país para interpretar `phone` en formato nacional
+  // (spec multipais-phone). No se persiste: el que se guarda sale del
+  // número parseado. Un "+" inicial en phone lo ignora.
+  @IsOptional()
+  @IsString()
+  @MaxLength(2)
+  phoneCountryCode?: string;
 
   // Género autodeclarado - solo alimenta analítica agregada (k-anonymity
   // en /events/:id/analytics). null limpia (no declarar).
@@ -141,6 +158,22 @@ export class UpdateMeDto {
 // elegidos en /perfil/datos ("Tu baile").
 const DANCE_LEVELS = ["iniciacion", "basico", "intermedio", "avanzado"] as const;
 const DANCE_ROLES = ["LEADER", "FOLLOWER", "SWITCH"] as const;
+
+/** Normaliza a E.164 (spec multipais-phone) traduciendo el error
+ * tipado de shared al 400 del contrato vigente. `hint` es el país por
+ * defecto para formato nacional (default CL). */
+function normalizePhoneOr400(raw: string, hint?: string) {
+  try {
+    const normalized = normalizePhone(raw, hint ?? "CL");
+    if (!normalized) throw new InvalidPhoneError(raw);
+    return normalized;
+  } catch (e) {
+    if (e instanceof InvalidPhoneError) {
+      throw new BadRequestException("teléfono inválido");
+    }
+    throw e;
+  }
+}
 
 // Ventana de encuesta post-evento - la misma de POST /events/:id/ratings.
 const SURVEY_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -356,6 +389,7 @@ export class PeopleController {
       name: person.name,
       email: person.email,
       phone: person.phone,
+      phoneCountryCode: person.phoneCountryCode,
       photoUrl: person.photoUrl,
       instagram: person.instagram,
       gender: person.gender,
@@ -495,6 +529,7 @@ export class PeopleController {
       instagram?: string | null;
       name?: string;
       phone?: string | null;
+      phoneCountryCode?: string | null;
       gender?: Gender | null;
       birthDate?: Date | null;
       language?: string;
@@ -519,23 +554,26 @@ export class PeopleController {
       data.name = name;
     }
     if (dto.phone !== undefined) {
-      const digits = (dto.phone ?? "").replace(/[\s()-]/g, "");
-      if (digits === "" || digits === "+") {
+      const raw = (dto.phone ?? "").trim();
+      if (raw === "" || raw === "+") {
         data.phone = null;
+        data.phoneCountryCode = null;
       } else {
-        if (!/^\+?[0-9]{8,15}$/.test(digits)) {
-          throw new BadRequestException("teléfono inválido");
-        }
+        // Spec multipais-phone: normaliza a E.164 con el país declarado
+        // como hint (default CL); el phoneCountryCode persistido sale
+        // del número parseado, nunca del body.
+        const normalized = normalizePhoneOr400(raw, dto.phoneCountryCode);
         // Person.phone es unique - sin el check el update explotaba en
         // 500 (P2002). Mismo contrato que POST /me/complete-profile.
         const phoneTaken = await this.prisma.person.findUnique({
-          where: { phone: digits },
+          where: { phone: normalized.e164 },
           select: { id: true },
         });
         if (phoneTaken && phoneTaken.id !== personId) {
           throw new ConflictException("phone_exists");
         }
-        data.phone = digits;
+        data.phone = normalized.e164;
+        data.phoneCountryCode = normalized.countryCode;
       }
     }
     if (dto.language !== undefined) {
@@ -931,14 +969,16 @@ export class PeopleController {
       throw new ForbiddenException("nada que completar");
     }
     const name = dto.name.trim();
-    const phone = dto.phone.trim();
-    if (name.length < 2 || !phone) {
+    if (name.length < 2 || !dto.phone.trim()) {
       throw new BadRequestException("datos inválidos");
     }
+    // Spec multipais-phone: E.164 + país derivado del número (el
+    // phoneCountryCode del body es solo el hint para formato nacional).
+    const normalized = normalizePhoneOr400(dto.phone, dto.phoneCountryCode);
     // Person.phone es unique - si el teléfono ya está en otra cuenta el
     // update explotaría en 500. 409 explícito para el frontend.
     const phoneTaken = await this.prisma.person.findUnique({
-      where: { phone },
+      where: { phone: normalized.e164 },
       select: { id: true },
     });
     if (phoneTaken && phoneTaken.id !== personId) {
@@ -948,7 +988,8 @@ export class PeopleController {
       where: { id: personId },
       data: {
         name,
-        phone,
+        phone: normalized.e164,
+        phoneCountryCode: normalized.countryCode,
         pendingProfileAt: null,
         isDemoAccount: false,
         ...(dto.password

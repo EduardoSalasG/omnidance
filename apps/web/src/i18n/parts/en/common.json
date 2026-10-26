@@ -16,6 +16,10 @@
       "status": "Status",
       "all": "All",
       "noResults": "No results"
+    },
+    "phone": {
+      "country": "Country",
+      "contextHint": "We assume {country} · prefix + if it's from another country"
     }
   }
 }

@@ -458,7 +458,12 @@ export async function seedCommon(prisma: PrismaClient) {
   await prisma.country.upsert({
     where: { code: "CL" },
     update: {},
-    create: { id: "country-cl", code: "CL", name: "Chile" },
+    create: {
+      id: "country-cl",
+      code: "CL",
+      name: "Chile",
+      currency: "CLP",
+    },
   });
   await prisma.city.upsert({
     where: { slug: "santiago-cl" },
@@ -539,6 +544,51 @@ export async function seedCommon(prisma: PrismaClient) {
       currency: "CLP",
     },
   });
+
+  // ─── Price book de tiers SaaS (spec multipais-currency): filas CL
+  // derivadas de los params *_monthly_clp vigentes para que el price
+  // book converja con la resolución legacy (cobro del ciclo = mensual ×
+  // 1 / ×5.52 semestral / ×10.2 anual - misma política que
+  // cycleChargeClp). update:{} no pisa precios editados por admin.
+  // ENTERPRISE/PRO_BIG son "a convenir" (sin param) → no se siembran.
+  const CYCLE_FACTOR = { MONTHLY: 1, SEMIANNUAL: 5.52, ANNUAL: 10.2 } as const;
+  const paramVal = (key: string) =>
+    PARAM_DEFAULTS.find((p) => p.key === key)?.value as number;
+  const tierPriceSeed: {
+    tierCode: string;
+    kind: "ACADEMY" | "PRODUCER";
+    monthlyKey: string;
+  }[] = [
+    { tierCode: "COBROS", kind: "ACADEMY", monthlyKey: "academy_tier.cobros_monthly_clp" },
+    { tierCode: "STUDIO", kind: "ACADEMY", monthlyKey: "academy_tier.studio_monthly_clp" },
+    { tierCode: "PRO", kind: "ACADEMY", monthlyKey: "academy_tier.pro_monthly_clp" },
+    { tierCode: "PRO_STARTER", kind: "PRODUCER", monthlyKey: "producer_tier.starter_monthly_clp" },
+    { tierCode: "PRO_GROWTH", kind: "PRODUCER", monthlyKey: "producer_tier.growth_monthly_clp" },
+  ];
+  for (const t of tierPriceSeed) {
+    const monthly = paramVal(t.monthlyKey);
+    for (const cycle of ["MONTHLY", "SEMIANNUAL", "ANNUAL"] as const) {
+      await prisma.tierPrice.upsert({
+        where: {
+          tierCode_kind_billingCycle_countryCode: {
+            tierCode: t.tierCode,
+            kind: t.kind,
+            billingCycle: cycle,
+            countryCode: "CL",
+          },
+        },
+        update: {},
+        create: {
+          tierCode: t.tierCode,
+          kind: t.kind,
+          billingCycle: cycle,
+          countryCode: "CL",
+          price: Math.round(monthly * CYCLE_FACTOR[cycle]),
+          currency: "CLP",
+        },
+      });
+    }
+  }
 
   console.log(
     `  baseline: ${ROLE_CATALOG.length} roles, ${PERMISSION_CATALOG.length} permisos, ${STYLE_CATALOG.length} estilos, ${BADGE_CATALOG.length} badges, ${PARAM_DEFAULTS.length} params`,

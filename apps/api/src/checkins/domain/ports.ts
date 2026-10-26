@@ -51,8 +51,15 @@ export interface EventDoorInfo {
   doorPrice: number | null;
   doorCap: number | null;
   producerId: string | null;
+  /** Moneda del evento - la hereda el ticket de puerta. */
+  currency: string;
   /** Serie a la que pertenece (para resolver SeriesPass en check-in). */
   seriesId?: string | null;
+  /**
+   * País ISO-2 del venue (city → country - spec multipais-phone): es el
+   * defaultCountry para normalizar teléfonos de puerta. null → "CL".
+   */
+  venueCountryCode?: string | null;
 }
 
 export interface VoidCheckinInput {
@@ -68,6 +75,7 @@ export interface DoorSaleTxInput {
   staffId: string;
   listPrice: number;
   serviceFee: number;
+  currency: string;
 }
 
 export interface DoorSaleTxResult {
@@ -149,10 +157,13 @@ export interface CheckinsRepo {
   findPersonByPhone(
     phone: string,
   ): Promise<{ id: string; name: string } | null>;
-  /** Cuenta ligera de puerta: Person{isLightAccount} + rol DANCER APPROVED. */
+  /** Cuenta ligera de puerta: Person{isLightAccount} + rol DANCER APPROVED.
+   * `phone` llega ya normalizado a E.164; `phoneCountryCode` es el ISO-2
+   * derivado del parseo (spec multipais-phone). */
   createLightPerson(input: {
     name: string;
     phone: string;
+    phoneCountryCode?: string | null;
   }): Promise<{ id: string; name: string }>;
   /** Ticket USED + Checkin MANUAL en una transacción (venta de puerta). */
   createDoorSale(input: DoorSaleTxInput): Promise<DoorSaleTxResult>;

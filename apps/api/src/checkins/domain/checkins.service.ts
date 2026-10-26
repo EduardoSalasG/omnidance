@@ -1,4 +1,5 @@
 import type { Checkin, EventStatus, Ticket } from "@prisma/client";
+import { InvalidPhoneError, normalizePhone } from "@omnidance/shared";
 import type {
   CheckinMethod,
   CheckinPassType,
@@ -135,6 +136,9 @@ interface DoorSaleInput {
   channel: DoorSaleChannel;
   name: string;
   phone: string;
+  /** Hint ISO-2 del cliente para formato nacional (spec multipais-phone);
+   * default real: país del venue del evento, luego "CL". */
+  phoneCountryCode?: string;
 }
 
 interface DoorSaleResult {
@@ -384,11 +388,22 @@ export class CheckinsService {
       }
     }
 
-    let person = await this.repo.findPersonByPhone(input.phone);
+    // Spec multipais-phone: el teléfono se normaliza a E.164 ANTES del
+    // lookup - el dedup por Person.phone (@unique) opera sobre la forma
+    // canónica, no sobre el formato que tipeó el staff. País por
+    // defecto: hint del cliente → país del venue → CL.
+    const normalized = normalizePhone(
+      input.phone,
+      input.phoneCountryCode ?? event.venueCountryCode ?? "CL",
+    );
+    if (!normalized) throw new InvalidPhoneError(input.phone);
+
+    let person = await this.repo.findPersonByPhone(normalized.e164);
     if (!person) {
       person = await this.repo.createLightPerson({
         name: input.name,
-        phone: input.phone,
+        phone: normalized.e164,
+        phoneCountryCode: normalized.countryCode,
       });
     }
 
@@ -405,6 +420,7 @@ export class CheckinsService {
       staffId: actor.id,
       listPrice: event.doorPrice ?? 0,
       serviceFee: 0,
+      currency: event.currency,
     });
 
     return { person, ticket, checkin };

@@ -17,11 +17,16 @@ import { planDateFmt, type Academy } from "./shared";
 import { Link } from "@/i18n/navigation";
 import { getNumFmt, useNumFmt } from "@/lib/intl";
 
-const clp = (locale: string) => getNumFmt(locale, {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
+// La vista ya trae la moneda real de la suscripción (spec
+// multipais-currency): los cargos se formatean en ella; promos fijas
+// siguen siendo CLP por diseño.
+const money = (locale: string, currency: string) =>
+  getNumFmt(locale, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  });
+const clp = (locale: string) => money(locale, "CLP");
 
 type BillingCycle = "MONTHLY" | "SEMIANNUAL" | "ANNUAL";
 
@@ -59,6 +64,8 @@ type BillingView = {
   tier: string | null;
   cycle: BillingCycle | null;
   status: string | null;
+  /** Moneda del cargo vigente (spec multipais-currency). */
+  currency?: string;
   subscriptionId: string | null;
   pendingTier: string | null;
   pendingCycle: BillingCycle | null;
@@ -84,11 +91,18 @@ type BillingView = {
     id: string;
     refId: string;
     amount: number;
+    currency?: string;
     status: string;
     createdAt: string;
     gatewayRef: string | null;
     gatewayMedia: string | null;
   }[];
+  /**
+   * Price book del país de la academia (spec multipais-currency):
+   * tier×ciclo → cargo total del ciclo en unidad menor + moneda.
+   * El selector NO deriva de los params CLP.
+   */
+  prices?: Record<string, Record<string, { price: number; currency: string } | null>>;
 };
 
 /** POST /academies/:id/subscribe - needs_card → disclaimer Flow. */
@@ -190,10 +204,19 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
     (tier: string) => num(`academy_tier.${tier.toLowerCase()}_max_students`),
     [num],
   );
-  // Precio mensual-equivalente del tier en el ciclo: derivado del
-  // mensual base × meses facturados / meses del ciclo.
+  // Precio del tier×ciclo del price book del país de la academia (spec
+  // multipais-currency): la vista trae el cargo TOTAL del ciclo y su
+  // moneda; el mensual-equivalente se deriva dividiendo por los meses
+  // del ciclo. Fallback al param CLP solo si el libro no vino.
+  const priceCell = useCallback(
+    (tier: string, cycle: BillingCycle) =>
+      view?.prices?.[tier]?.[cycle] ?? null,
+    [view],
+  );
   const tierPrice = useCallback(
     (tier: string, cycle: BillingCycle) => {
+      const cell = priceCell(tier, cycle);
+      if (cell) return Math.round(cell.price / CYCLE_MONTHS[cycle]);
       const monthly = num(`academy_tier.${tier.toLowerCase()}_monthly_clp`);
       return monthly != null
         ? Math.round(
@@ -201,15 +224,20 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           )
         : null;
     },
-    [num],
+    [priceCell, num],
   );
 
   const chargeTotal = useMemo(() => {
+    const cell = priceCell(selTier, selCycle);
+    if (cell) return cell.price;
     const monthly = num(`academy_tier.${selTier.toLowerCase()}_monthly_clp`);
     return monthly != null
       ? Math.round(monthly * CYCLE_BILLED_MONTHS[selCycle])
       : null;
-  }, [num, selTier, selCycle]);
+  }, [priceCell, num, selTier, selCycle]);
+  // Moneda del cargo seleccionado: la de la fila del price book.
+  const chargeCurrency =
+    priceCell(selTier, selCycle)?.currency ?? view?.currency ?? "CLP";
 
   // Cargo efectivo con la promo vigente (spec platform-promos): mismo
   // cálculo que promoChargeClp del API - PERCENT rebate el % del cargo,
@@ -474,7 +502,12 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
               </span>
               {price != null && (
                 <span className="text-sm font-semibold text-neon tabular-nums">
-                  {t("perMonth", { amount: clp(locale).format(price) })}
+                  {t("perMonth", {
+                    amount: money(
+                      locale,
+                      priceCell(tier, selCycle)?.currency ?? "CLP",
+                    ).format(price),
+                  })}
                 </span>
               )}
             </button>
@@ -519,7 +552,12 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                 <span className="font-medium">{t(`cycles.${c}`)}</span>
                 {price != null ? (
                   <span className="text-xs tabular-nums opacity-80">
-                    {t("perMonth", { amount: clp(locale).format(price) })}
+                    {t("perMonth", {
+                      amount: money(
+                        locale,
+                        priceCell(selTier, c)?.currency ?? "CLP",
+                      ).format(price),
+                    })}
                     {pct != null && pct > 0
                       ? ` · ${t("cycleDiscount", { pct })}`
                       : ""}
@@ -777,18 +815,18 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                 {promo && chargeFinal != null ? (
                   <>
                     <span className="line-through">
-                      {clp(locale).format(chargeTotal)}
+                      {money(locale, chargeCurrency).format(chargeTotal)}
                     </span>{" "}
                     <span className="font-semibold text-neon">
                       {t("consent", {
-                        amount: clp(locale).format(chargeFinal),
+                        amount: money(locale, chargeCurrency).format(chargeFinal),
                         period: t(`period.${selCycle}`),
                       })}
                     </span>
                   </>
                 ) : (
                   t("consent", {
-                    amount: clp(locale).format(chargeTotal),
+                    amount: money(locale, chargeCurrency).format(chargeTotal),
                     period: t(`period.${selCycle}`),
                   })
                 )}
@@ -812,7 +850,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                 {busy && <Spinner size="sm" />}
                 {t("subscribeCharge", {
                   tier: t(`tiers.${selTier}`),
-                  amount: clp(locale).format(chargeFinal ?? chargeTotal),
+                  amount: money(locale, chargeCurrency).format(chargeFinal ?? chargeTotal),
                   period: t(`period.${selCycle}`),
                 })}
               </Button>
@@ -839,7 +877,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                   {planDateFmt(locale).format(new Date(inv.createdAt))}
                 </span>
                 <span className="flex items-center gap-3">
-                  <PriceTag amount={inv.amount} />
+                  <PriceTag amount={inv.amount} currency={inv.currency} />
                   <Badge
                     variant={PAYMENT_STATUS_VARIANT[inv.status] ?? "muted"}
                   >

@@ -73,8 +73,10 @@ export class GatewayRegistry {
  * ¿El adaptador soporta la moneda? `currencies` sin declarar = sin
  * restricción (soporta todo lo que su API acepte - así una orden USD
  * rutea a STRIPE o al stub de dev aunque no la listen explícitamente).
+ * Exportada: la selección de provider de suscripciones por moneda
+ * (spec multipais-currency) la usa para exigir soporte explícito.
  */
-function supportsCurrency(g: PaymentGateway, currency: string): boolean {
+export function supportsCurrency(g: PaymentGateway, currency: string): boolean {
   return (
     g.currencies === undefined ||
     g.currencies.some((c) => c.toUpperCase() === currency)

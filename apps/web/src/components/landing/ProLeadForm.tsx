@@ -4,6 +4,7 @@ import { useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { Spinner } from "@/components/ui/spinner";
 import { ChevronRightIcon } from "@/components/ui";
+import { PhoneInput } from "@/components/people/phone-input";
 import { useMessages } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type landingParts from "@/i18n/parts/landing.json";
@@ -45,6 +46,10 @@ export function ProLeadForm({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  // Spec multipais-phone: modo contexto - asume CL sin selector; "+"
+  // cambia a internacional. e164 null = aún no parsea.
+  const [phoneCountry, setPhoneCountry] = useState("CL");
+  const [phoneE164, setPhoneE164] = useState<string | null>(null);
   const [roles, setRoles] = useState<string[]>(
     fixedRole ? [fixedRole] : [],
   );
@@ -109,7 +114,8 @@ export function ProLeadForm({
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
-          phone: phone.trim() || null,
+          phone: phoneE164 ?? (phone.trim() || null),
+          phoneCountryCode: phoneCountry,
           roles,
           intent: "CONTACT",
         }),
@@ -178,17 +184,23 @@ export function ProLeadForm({
             {t.fieldPhone}{" "}
             <span className="text-ink/50">({t.fieldPhoneHint})</span>
           </span>
-          <input
-            type="tel"
-            autoComplete="tel"
+          <PhoneInput
             required
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            defaultCountry="CL"
+            showCountrySelector={false}
+            onChange={({ phone: p, e164, countryCode }) => {
+              setPhone(p);
+              setPhoneE164(e164);
+              setPhoneCountry(countryCode);
+            }}
             aria-invalid={missing.includes("phone")}
             aria-describedby={
               missing.includes("phone") ? "lead-error" : undefined
             }
-            className={missing.includes("phone") ? inputErrorClass : inputClass}
+            inputClassName={
+              missing.includes("phone") ? inputErrorClass : inputClass
+            }
           />
         </label>
       </div>

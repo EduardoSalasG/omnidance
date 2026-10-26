@@ -731,3 +731,38 @@ describe("StripeGateway.verifyWebhook - billing (pase social)", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe("StripeGateway.createSubscription - price por moneda (multipais-currency)", () => {
+  const sub = { id: "sub_1", status: "active" };
+
+  it.each([
+    ["USD", "omni_plan_x_usd"],
+    ["MXN", "omni_plan_x_mxn"],
+    ["CLP", "omni_plan_x_clp"],
+  ])("currency %s → lookup_key %s (no siempre CLP)", async (cur, lookup) => {
+    const fetchMock = mockFetch({
+      "v1/prices": {
+        data: [
+          {
+            id: `price_${lookup}`,
+            lookup_key: lookup,
+            unit_amount: 1234,
+            currency: cur.toLowerCase(),
+          },
+        ],
+      },
+      "v1/subscriptions": sub,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await gw().createSubscription({
+      planId: "plan_x",
+      customerId: "cus_1",
+      subscriptionStart: "2026-01-01",
+      currency: cur,
+    });
+    const pricesCall = fetchMock.mock.calls.find((c) =>
+      String(c[0]).includes("/v1/prices?"),
+    );
+    expect(String(pricesCall![0])).toContain(`lookup_key=${lookup}`);
+  });
+});

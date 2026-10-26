@@ -2,14 +2,14 @@
 
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { Card, Pager, SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { filterQuery } from "./shared";
 import { Link } from "@/i18n/navigation";
-import { useDateFmt, useNumFmt } from "@/lib/intl";
+import { formatMoney, useDateFmt } from "@/lib/intl";
 
 // Los claims no son una entidad del catálogo ACADEMY_OWNER: EntityDef
 // local con las mismas claves del contrato (spec analytics/query-console)
@@ -31,6 +31,8 @@ const CLAIMS_ENTITY: EntityDef = {
 export type QueueClaim = {
   id: string;
   amount: number;
+  /** ISO-4217 del claim (spec multipais-currency). */
+  currency?: string;
   methodType: string;
   methodLabel: string;
   status: "AWAITING" | "PENDING" | "APPROVED" | "REJECTED";
@@ -56,11 +58,7 @@ const PAGE_SIZE = 20;
  * acotada); con un status elegido se pagina ese listado.
  */
 export function ClaimsQueue({ academyId }: { academyId: string }) {
-  const clp = useNumFmt({
-    style: "currency",
-    currency: "CLP",
-    maximumFractionDigits: 0,
-  });
+  const locale = useLocale();
   const claimDateFmt = useDateFmt({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const t = useTranslations("academyPay");
 
@@ -139,7 +137,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span className="font-semibold">{c.person.name}</span>
                       <span className="text-ink/60">
-                        {c.plan?.name ?? c.methodLabel} · {clp.format(c.amount)}
+                        {c.plan?.name ?? c.methodLabel} · {formatMoney(c.amount, c.currency, locale)}
                       </span>
                       <span className="ml-auto text-xs text-ink/40">
                         {claimDateFmt.format(new Date(c.createdAt))}
@@ -176,7 +174,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
               >
                 <span className="font-semibold">{c.person.name}</span>
                 <span className="text-ink/60">
-                  {c.plan?.name ?? c.methodLabel} · {clp.format(c.amount)}
+                  {c.plan?.name ?? c.methodLabel} · {formatMoney(c.amount, c.currency, locale)}
                 </span>
                 <span className="ml-auto text-xs text-ink/40">
                   {claimDateFmt.format(new Date(c.createdAt))}
@@ -208,7 +206,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
                   <div className="flex flex-wrap items-center gap-2 text-sm">
                     <span className="font-semibold">{c.person.name}</span>
                     <span className="text-ink/60">
-                      {c.plan?.name ?? c.methodLabel} · {clp.format(c.amount)}
+                      {c.plan?.name ?? c.methodLabel} · {formatMoney(c.amount, c.currency, locale)}
                     </span>
                     <span className="ml-auto text-xs text-ink/40">
                       {claimDateFmt.format(new Date(c.createdAt))}

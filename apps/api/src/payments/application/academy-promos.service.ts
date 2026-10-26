@@ -59,6 +59,7 @@ export class AcademyPromosService {
     personId: string,
     planId: string,
     chargeClp: number | null,
+    currency = "CLP",
   ): Promise<AcademyPromoWithScope | null> {
     const now = new Date();
     const promos = await this.prisma.academyPromo.findMany({
@@ -72,6 +73,14 @@ export class AcademyPromosService {
     });
     let best: { promo: AcademyPromoWithScope; saved: number } | null = null;
     for (const promo of promos) {
+      // Alcance por moneda (spec multipais-currency): FIXED_CLP solo
+      // descuenta cargos CLP; PERCENT aplica a cualquier moneda.
+      if (
+        promo.discountType === "FIXED_CLP" &&
+        currency.toUpperCase() !== "CLP"
+      ) {
+        continue;
+      }
       if (promo.plans.length > 0 && !promo.plans.some((p) => p.id === planId)) {
         continue;
       }
@@ -112,12 +121,14 @@ export class AcademyPromosService {
     personId: string,
     planId: string,
     chargeClp: number,
+    currency = "CLP",
   ) {
     const promo = await this.resolveApplicable(
       academyId,
       personId,
       planId,
       chargeClp,
+      currency,
     );
     if (!promo) return null;
     const used =

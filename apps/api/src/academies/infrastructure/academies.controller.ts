@@ -779,6 +779,7 @@ export class AcademiesController {
             name: true,
             type: true,
             price: true,
+            currency: true,
             classCount: true,
             weeklyClasses: true,
             periodDays: true,
@@ -1039,9 +1040,18 @@ export class AcademiesController {
     @Req() req: Request,
   ) {
     await this.access.requireCapabilityWrite(id, req.person!, "plans");
+    // Moneda del plan (spec multipais-currency): snapshot de la moneda
+    // del pais de la academia al crear - no editable despues.
+    const academy = await this.prisma.academy.findUnique({
+      where: { id },
+      select: {
+        city: { select: { country: { select: { currency: true } } } },
+      },
+    });
     return this.prisma.membershipPlan.create({
       data: {
         academyId: id,
+        currency: academy?.city?.country?.currency ?? "CLP",
         name: dto.name,
         type: dto.type,
         price: dto.price,

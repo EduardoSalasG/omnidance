@@ -169,6 +169,8 @@ function mkPrisma() {
   const producerSeries: Row[] = [];
   const gatewayTxs: Row[] = [];
   const sentNotifs: Row[] = [];
+  const tierPrices: Row[] = [];
+  const countries = new Map<string, Row>([["CL", { code: "CL", currency: "CLP" }]]);
   let seq = 0;
   const nid = () => `id-${++seq}`;
 
@@ -256,6 +258,10 @@ function mkPrisma() {
       ),
     },
     academy: {
+      findUnique: vi.fn(
+        async ({ where }: { where: { id: string } }) =>
+          academies.get(where.id) ?? null,
+      ),
       findMany: vi.fn(async ({ where }: { where?: Row }) =>
         [...academies.values()].filter(
           (a) => !where || matchWhere(a, where),
@@ -326,6 +332,16 @@ function mkPrisma() {
     platformPromo: {
       findMany: vi.fn(async ({ where }: { where?: Row }) =>
         promos.filter((p) => !where || matchWhere(p, where)),
+      ),
+    },
+    tierPrice: {
+      findFirst: vi.fn(async ({ where }: { where: Row }) =>
+        tierPrices.find((t) => matchWhere(t, where)) ?? null,
+      ),
+    },
+    country: {
+      findUnique: vi.fn(async ({ where }: { where: { code: string } }) =>
+        countries.get(where.code) ?? null,
       ),
     },
     payment: {
@@ -428,6 +444,8 @@ function mkPrisma() {
     producerSeries,
     gatewayTxs,
     sentNotifs,
+    tierPrices,
+    countries,
   };
 }
 
@@ -437,6 +455,9 @@ function mkFlow() {
   let subSeq = 0;
   const flow = {
     name: "FLOW",
+    // Flow real declara currencies:["CLP"] - la selección por moneda
+    // (multipais-currency) necesita la restricción explícita.
+    currencies: ["CLP"],
     createOrder: vi.fn(),
     verifyWebhook: vi.fn(),
     ensurePlan: vi.fn(async () => undefined),
@@ -497,6 +518,7 @@ function mkNotifications() {
 }
 
 const ACADEMY_ROW = mkAcademy();
+ACADEMY_ROW.city = { country: { code: "CL", currency: "CLP" } };
 
 function mkFlowSub(
   over: Partial<RemoteSubscription> = {},
@@ -537,7 +559,11 @@ describe("PlatformSubscriptionsService", () => {
         fx.sentNotifs.push({ personId, ...input });
       },
     );
-    fx.academies.set("ac1", { ...ACADEMY_ROW });
+    fx.academies.set("ac1", {
+      ...ACADEMY_ROW,
+      // La academia vive en Santiago CL - countryOfAcademy la resuelve.
+      city: { country: { code: "CL", currency: "CLP" } },
+    });
     fx.persons.set("p1", {
       id: "p1",
       name: "Owner Uno",
@@ -666,6 +692,7 @@ describe("PlatformSubscriptionsService", () => {
           name: expect.stringContaining("COBROS"),
           amount: 19990,
           intervalCount: 1,
+          currency: "CLP",
         },
         { correlationId: expect.any(String) },
       );
@@ -688,6 +715,7 @@ describe("PlatformSubscriptionsService", () => {
           name: expect.any(String),
           amount: Math.round(19990 * 5.52), // academia semestral -8%
           intervalCount: 6,
+          currency: "CLP",
         },
         { correlationId: expect.any(String) },
       );
@@ -707,6 +735,7 @@ describe("PlatformSubscriptionsService", () => {
           planId: "plat_academy_cobros_monthly",
           customerId: "cus_p1",
           subscriptionStart: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+          currency: "CLP",
         },
         { correlationId: expect.any(String) },
       );
@@ -1764,4 +1793,225 @@ describe("PlatformSubscriptionsService", () => {
       expect(promo.percentOff).toBe(20);
     });
   });
+
+
+// ─── multipais-currency: price book + provider por moneda ──────────
+// chargeSpec resuelve TierPrice (país → CL → param legacy); el provider
+// de suscripciones se elige por la moneda del cargo (nunca CLP en
+// silencio para una moneda sin soporte).
+describe("multipais-currency", () => {
+  const input = {
+    tier: "COBROS",
+    cycle: "MONTHLY" as const,
+    acceptRecurring: true,
+  };
+
+  /** Provider no-CLP con motor de suscripciones (patrón Stripe). */
+  function mkStripeLike(currencies: string[]) {
+    let seq = 0;
+    return {
+      name: "STRIPE",
+      currencies,
+      createOrder: vi.fn(),
+      verifyWebhook: vi.fn(),
+      ensurePlan: vi.fn(async () => undefined),
+      syncPlan: vi.fn(async () => undefined),
+      createCustomer: vi.fn(
+        async (p: { email: string; externalId: string }) => ({
+          customerId: `scus_${p.externalId}`,
+        }),
+      ),
+      getCustomer: vi.fn(async () => ({ hasCard: false })),
+      registerCustomerCard: vi.fn(async () => ({
+        registerUrl: "https://stripe.example/checkout/cs_1",
+      })),
+      getRegisterStatus: vi.fn(async () => ({ registered: false })),
+      createSubscription: vi.fn(async () => ({
+        subscriptionId: `ssub-${++seq}`,
+        planId: "x",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+      })),
+      getSubscription: vi.fn(async () => ({})),
+      cancelSubscription: vi.fn(async () => undefined),
+    };
+  }
+
+  function svcWith(...extra: PaymentGateway[]) {
+    const prisma = fx.prisma as unknown as PrismaService;
+    const paramsSvc = {
+      get: vi.fn(async () => null),
+      getNumber: vi.fn(
+        async (k: string, f: number) => PARAMS.get(k) ?? f,
+      ),
+    } as unknown as ParamsService;
+    const notif = notifications as unknown as NotificationsService;
+    return new PlatformSubscriptionsService(
+      prisma,
+      paramsSvc,
+      new PaymentSettlementService(prisma, paramsSvc, notif),
+      notif,
+      new GatewayTransactionsService(prisma),
+      new GatewayRegistry(
+        [flow as unknown as PaymentGateway, ...extra],
+        "FLOW",
+      ),
+    );
+  }
+
+  function setAcademyCountry(code: string, currency: string) {
+    fx.academies.get("ac1")!.city = {
+      country: { code, currency },
+    };
+  }
+
+  it("academia en MX con fila TierPrice MX → cobra en MXN vía provider no-CLP", async () => {
+    const stripe = mkStripeLike(["USD", "EUR", "MXN"]);
+    const svc = svcWith(stripe as unknown as PaymentGateway);
+    setAcademyCountry("MX", "MXN");
+    fx.tierPrices.push({
+      tierCode: "COBROS",
+      kind: "ACADEMY",
+      billingCycle: "MONTHLY",
+      countryCode: "MX",
+      price: 49900,
+      currency: "MXN",
+    });
+    const r = await svc.subscribeAcademy("p1", ACADEMY_ROW as never, input);
+    expect(r.kind).toBe("needs_card");
+    expect(stripe.ensurePlan).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 49900, currency: "MXN" }),
+      { correlationId: expect.any(String) },
+    );
+    expect(flow.ensurePlan).not.toHaveBeenCalled();
+    const sub = fx.platSubs[0]!;
+    expect(sub.currency).toBe("MXN");
+    expect(sub.countryCode).toBe("MX");
+  });
+
+  it("país sin fila propia → cae a la fila CL (CLP) y al provider del param", async () => {
+    const stripe = mkStripeLike(["USD"]);
+    const svc = svcWith(stripe as unknown as PaymentGateway);
+    setAcademyCountry("MX", "MXN");
+    fx.tierPrices.push({
+      tierCode: "COBROS",
+      kind: "ACADEMY",
+      billingCycle: "MONTHLY",
+      countryCode: "CL",
+      price: 19990,
+      currency: "CLP",
+    });
+    await svc.subscribeAcademy("p1", ACADEMY_ROW as never, input);
+    expect(flow.ensurePlan).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 19990 }),
+      { correlationId: expect.any(String) },
+    );
+    const sub = fx.platSubs[0]!;
+    expect(sub.currency).toBe("CLP");
+    expect(sub.countryCode).toBe("MX");
+  });
+
+  it("sin price book → fallback al param legacy *_monthly_clp (CLP)", async () => {
+    const svc = svcWith();
+    setAcademyCountry("MX", "MXN");
+    await svc.subscribeAcademy("p1", ACADEMY_ROW as never, input);
+    expect(flow.ensurePlan).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 19990 }),
+      { correlationId: expect.any(String) },
+    );
+    expect(fx.platSubs[0]!.currency).toBe("CLP");
+  });
+
+  it("moneda sin proveedor de suscripciones → 400 explícito (nunca CLP)", async () => {
+    const svc = svcWith(); // solo FLOW CLP registrado
+    setAcademyCountry("BR", "BRL");
+    fx.tierPrices.push({
+      tierCode: "COBROS",
+      kind: "ACADEMY",
+      billingCycle: "MONTHLY",
+      countryCode: "BR",
+      price: 10000,
+      currency: "BRL",
+    });
+    await expect(
+      svc.subscribeAcademy("p1", ACADEMY_ROW as never, input),
+    ).rejects.toThrow(/BRL|moneda/i);
+    expect(fx.platSubs).toHaveLength(0);
+    expect(flow.ensurePlan).not.toHaveBeenCalled();
+  });
+
+  it("promo FIXED_CLP no aplica a cargo no-CLP; PERCENT sí", async () => {
+    const stripe = mkStripeLike(["MXN"]);
+    const svc = svcWith(stripe as unknown as PaymentGateway);
+    setAcademyCountry("MX", "MXN");
+    fx.tierPrices.push({
+      tierCode: "COBROS",
+      kind: "ACADEMY",
+      billingCycle: "MONTHLY",
+      countryCode: "MX",
+      price: 40000,
+      currency: "MXN",
+    });
+    fx.promos.push(mkPromo({ discountType: "FIXED_CLP", amountOffClp: 5000 }));
+    await svc.subscribeAcademy("p1", ACADEMY_ROW as never, input);
+    expect(stripe.ensurePlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        planId: "plat_academy_cobros_monthly", // sin espejo de promo
+        amount: 40000,
+      }),
+      { correlationId: expect.any(String) },
+    );
+    expect(fx.platSubs[0]!.promoId).toBeNull();
+  });
+
+  it("producer billingCountry declara el país de cobro (validado vs Country)", async () => {
+    fx.persons.set("p2", {
+      id: "p2",
+      name: "Productor Dos",
+      email: "prod@example.cl",
+      flowCustomerId: "cus_p2",
+      proTier: "FREE",
+    });
+    fx.producerEvents.push({ id: "ev-1", producerId: "p2" });
+    fx.payments.set("pay-1", {
+      id: "pay-1",
+      orderType: "TICKET",
+      eventId: "ev-1",
+      refId: "tkt",
+      personId: "x",
+      amount: 100000,
+      status: "PAID",
+      createdAt: new Date(),
+    });
+    const stripe = mkStripeLike(["MXN"]);
+    const svc = svcWith(stripe as unknown as PaymentGateway);
+    fx.countries.set("MX", { code: "MX", currency: "MXN" });
+    fx.tierPrices.push({
+      tierCode: "PRO_STARTER",
+      kind: "PRODUCER",
+      billingCycle: "MONTHLY",
+      countryCode: "MX",
+      price: 9900,
+      currency: "MXN",
+    });
+    const r = await svc.subscribeProducer("p2", {
+      cycle: "MONTHLY",
+      acceptRecurring: true,
+      billingCountry: "MX",
+    });
+    expect(r.kind).toBe("needs_card");
+    const sub = fx.platSubs.find((s) => s.kind === "PRODUCER")!;
+    expect(sub.countryCode).toBe("MX");
+    expect(sub.currency).toBe("MXN");
+    await expect(
+      svc.subscribeProducer("p2", {
+        cycle: "MONTHLY",
+        acceptRecurring: true,
+        billingCountry: "ZZ",
+      }),
+    ).rejects.toThrow(/país|billingCountry/i);
+  });
+});
+
 });

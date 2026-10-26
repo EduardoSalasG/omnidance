@@ -22,6 +22,7 @@ interface FakePerson {
   name: string;
   email: string | null;
   phone: string | null;
+  phoneCountryCode: string | null;
   photoUrl: string | null;
   instagram: string | null;
   gender: string | null;
@@ -252,6 +253,11 @@ class FakePrisma {
     },
   };
 
+  // POST /me/complete-profile marca los leads ligados como CONVERTED.
+  lead = {
+    updateMany: async () => ({ count: 0 }),
+  };
+
   $transaction = async (ops: Promise<unknown>[]) => Promise.all(ops);
 }
 
@@ -260,6 +266,7 @@ const mkPerson = (id: string, gender: string | null = null): FakePerson => ({
   name: `Persona ${id}`,
   email: null,
   phone: null,
+  phoneCountryCode: null,
   photoUrl: null,
   instagram: null,
   gender,
@@ -416,15 +423,133 @@ describe("PeopleController", () => {
       expect(prisma.personUpdates).toHaveLength(0);
     });
 
+    // Spec multipais-phone: el 409 también salta cuando la otra cuenta
+    // guardó el E.164 y esta manda el formato nacional equivalente.
+    it("mismo E.164 en formato nacional → phone_exists igual", async () => {
+      prisma.people.set("otra", {
+        ...mkPerson("otra"),
+        phone: "+56911111111",
+      });
+      await expect(
+        ctrl.updateMe(reqAs("me"), {
+          phone: "9 1111 1111",
+          phoneCountryCode: "CL",
+        }),
+      ).rejects.toThrow("phone_exists");
+      expect(prisma.personUpdates).toHaveLength(0);
+    });
+
     it("su propio teléfono ya registrado → guarda sin conflicto", async () => {
       prisma.people.get("me")!.phone = "+56911111111";
       await ctrl.updateMe(reqAs("me"), { phone: "+56 9 1111-1111" });
-      expect(prisma.personUpdates.at(-1)).toEqual({ phone: "+56911111111" });
+      expect(prisma.personUpdates.at(-1)).toEqual({
+        phone: "+56911111111",
+        phoneCountryCode: "CL",
+      });
     });
 
-    it("teléfono libre → normaliza y persiste", async () => {
+    it("teléfono libre → normaliza a E.164 y persiste país derivado", async () => {
       await ctrl.updateMe(reqAs("me"), { phone: "+56 9 8765 4321" });
-      expect(prisma.personUpdates.at(-1)).toEqual({ phone: "+56987654321" });
+      expect(prisma.personUpdates.at(-1)).toEqual({
+        phone: "+56987654321",
+        phoneCountryCode: "CL",
+      });
+    });
+
+    it("nacional con phoneCountryCode hint → E.164 del país declarado", async () => {
+      await ctrl.updateMe(reqAs("me"), {
+        phone: "11 5555 1234",
+        phoneCountryCode: "AR",
+      });
+      expect(prisma.personUpdates.at(-1)).toEqual({
+        phone: "+541155551234",
+        phoneCountryCode: "AR",
+      });
+    });
+
+    it("'+' inicial ignora el hint y deriva el país del número", async () => {
+      await ctrl.updateMe(reqAs("me"), {
+        phone: "+34 612 345 678",
+        phoneCountryCode: "CL",
+      });
+      expect(prisma.personUpdates.at(-1)).toEqual({
+        phone: "+34612345678",
+        phoneCountryCode: "ES",
+      });
+    });
+
+    it("teléfono inválido → 400 teléfono inválido sin mutar", async () => {
+      await expect(
+        ctrl.updateMe(reqAs("me"), { phone: "123" }),
+      ).rejects.toThrow("teléfono inválido");
+      expect(prisma.personUpdates).toHaveLength(0);
+    });
+
+    it("limpiar teléfono también limpia el código de país", async () => {
+      const me = prisma.people.get("me")!;
+      me.phone = "+56912345678";
+      me.phoneCountryCode = "CL";
+      await ctrl.updateMe(reqAs("me"), { phone: "" });
+      expect(prisma.personUpdates.at(-1)).toEqual({
+        phone: null,
+        phoneCountryCode: null,
+      });
+      expect(me.phoneCountryCode).toBeNull();
+    });
+  });
+
+  // Spec multipais-phone: POST /me/complete-profile normaliza igual que
+  // PATCH /me (E.164 + país derivado, 409 sobre el E.164).
+  describe("POST /me/complete-profile phone", () => {
+    beforeEach(() => {
+      // El endpoint exige cuenta pendiente (lead convertido o demo).
+      prisma.people.get("me")!.pendingProfileAt = new Date();
+    });
+
+    it("normaliza nacional a E.164 + persiste el país derivado", async () => {
+      await ctrl.completeProfile(reqAs("me"), {
+        name: "Nombre Real",
+        phone: "9 1234 5678",
+        phoneCountryCode: "CL",
+      });
+      const last = prisma.personUpdates.at(-1)!;
+      expect(last.phone).toBe("+56912345678");
+      expect(last.phoneCountryCode).toBe("CL");
+      expect(last.pendingProfileAt).toBeNull();
+      expect(last.isDemoAccount).toBe(false);
+    });
+
+    it("'+' en el número ignora el hint → país derivado del número", async () => {
+      await ctrl.completeProfile(reqAs("me"), {
+        name: "Nombre Real",
+        phone: "+34612345678",
+        phoneCountryCode: "CL",
+      });
+      expect(prisma.personUpdates.at(-1)).toMatchObject({
+        phone: "+34612345678",
+        phoneCountryCode: "ES",
+      });
+    });
+
+    it("teléfono inválido → 400 teléfono inválido", async () => {
+      await expect(
+        ctrl.completeProfile(reqAs("me"), { name: "Nombre Real", phone: "abc" }),
+      ).rejects.toThrow("teléfono inválido");
+      expect(prisma.personUpdates).toHaveLength(0);
+    });
+
+    it("E.164 de otra cuenta → ConflictException phone_exists", async () => {
+      prisma.people.set("otra", {
+        ...mkPerson("otra"),
+        phone: "+56911111111",
+      });
+      await expect(
+        ctrl.completeProfile(reqAs("me"), {
+          name: "Nombre Real",
+          phone: "911111111",
+        }),
+      ).rejects.toThrow("phone_exists");
+      expect(prisma.personUpdates).toHaveLength(0);
     });
   });
 
@@ -434,6 +559,17 @@ describe("PeopleController", () => {
       const res = await ctrl.me(reqAs("me"));
       expect(res.gender).toBe("OTHER");
       expect(res.styleRoles).toEqual([]);
+    });
+
+    // Spec multipais-phone: el front pre-carga el selector de país con
+    // el ISO-2 persistido.
+    it("expone phoneCountryCode junto al phone E.164", async () => {
+      const me = prisma.people.get("me")!;
+      me.phone = "+34612345678";
+      me.phoneCountryCode = "ES";
+      const res = await ctrl.me(reqAs("me"));
+      expect(res.phone).toBe("+34612345678");
+      expect(res.phoneCountryCode).toBe("ES");
     });
 
     // Estado Producer Pro (S5): solo personas con rol PRODUCER APPROVED

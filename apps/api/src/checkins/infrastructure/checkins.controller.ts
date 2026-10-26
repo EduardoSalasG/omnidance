@@ -22,9 +22,11 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MaxLength,
   ValidateNested,
 } from "class-validator";
 import type { Request } from "express";
+import { InvalidPhoneError } from "@omnidance/shared";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { QrService } from "../../qr/domain/qr.service";
 import {
@@ -87,10 +89,18 @@ class DoorSaleDto {
   @IsNotEmpty()
   name!: string;
 
-  /** Llave de la cuenta ligera - Person.phone es único. */
+  /** Llave de la cuenta ligera - Person.phone es único (E.164 tras
+   * normalizar, spec multipais-phone). */
   @IsString()
   @IsNotEmpty()
   phone!: string;
+
+  /** Hint ISO-2 para formato nacional; el default real lo resuelve el
+   * servicio desde el país del venue del evento (null → CL). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2)
+  phoneCountryCode?: string;
 }
 
 class SyncItemDto {
@@ -126,6 +136,10 @@ class SyncCheckinsDto {
 }
 
 function mapDomainError(e: unknown): never {
+  if (e instanceof InvalidPhoneError) {
+    // Spec multipais-phone - mismo contrato 400 de los otros write paths.
+    throw new BadRequestException("teléfono inválido");
+  }
   if (
     e instanceof EventNotFoundError ||
     e instanceof PersonNotFoundError ||
@@ -325,6 +339,7 @@ export class CheckinsController {
           channel: dto.channel,
           name: dto.name,
           phone: dto.phone,
+          phoneCountryCode: dto.phoneCountryCode,
         },
         { id: req.person!.id },
       );
