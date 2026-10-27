@@ -110,9 +110,9 @@ Pendientes reales + deuda técnica de currency/phone, cerrados:
 
 
 ## Pendientes / gaps honestos
-- **Academias fuera de CL no tienen onboarding de país todavía**:
-  academy.city → currency resuelve, pero crear una academia en otro
-  país requiere la fila TierPrice + gateway de ese mercado configurado.
+- **Academias fuera de CL: alta ya resuelta** (multipais-polish), pero
+  operar en un país nuevo requiere fila TierPrice del país + gateway de
+  ese mercado configurado (Stripe activo fuera de CLP).
 - `PayoutRail` Fintoc sigue pendiente; tarifa Pase Social sin fijar.
 - Web `next build` tiene error PRE-EXISTENTE ajeno a este cambio:
   `.next/types` rechaza export `promoState` en
