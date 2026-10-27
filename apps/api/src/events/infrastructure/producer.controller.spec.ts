@@ -13,6 +13,12 @@ import type { ParamsService } from "../../params/params.service";
 const req = (id: string, roles: string[] = []) =>
   ({ person: { id, roles } }) as unknown as Request;
 
+const errBody = (e: unknown): Record<string, unknown> =>
+  ((e as { getResponse?: () => unknown }).getResponse?.() ?? {}) as Record<
+    string,
+    unknown
+  >;
+
 function mk(over: {
   producer?: boolean;
   admin?: boolean;
@@ -37,6 +43,12 @@ function mk(over: {
     email: string | null;
     photoUrl: string | null;
   } | null;
+  /** proTier del caller "prod-1" (default FREE + trial vigente). */
+  meTier?: string;
+  /** trial del caller "prod-1"; undefined → +90d, null → sin trial. */
+  meTrial?: Date | null;
+  /** Nómina ProducerStaff del productor (para el cupo por tier). */
+  roster?: { personId: string }[];
 }) {
   const prisma = {
     personRole: {
@@ -88,9 +100,27 @@ function mk(over: {
       findMany: vi.fn(async () => over.claims ?? []),
     },
     // Colaboradores: findUnique resuelve persona existente; create arma
-    // el stub; $transaction ejecuta los upserts en paralelo.
+    // el stub; $transaction ejecuta los upserts en paralelo. El caller
+    // "prod-1" devuelve su propia fila con proTier/proTrialEndsAt/roles
+    // (gate de suscripción + cupo de la nómina, spec producer-pro).
     person: {
-      findUnique: vi.fn(async () => over.existingPerson ?? null),
+      findUnique: vi.fn(
+        async ({ where }: { where: { id?: string; email?: string } }) =>
+          where.id === "prod-1"
+            ? {
+                id: "prod-1",
+                name: "Prod",
+                email: "prod@omnidance.dev",
+                photoUrl: null,
+                proTier: over.meTier ?? "FREE",
+                proTrialEndsAt:
+                  over.meTrial === undefined
+                    ? new Date(Date.now() + 90 * 24 * 3600 * 1000)
+                    : over.meTrial,
+                roles: over.producer ? [{ status: "APPROVED" }] : [],
+              }
+            : (over.existingPerson ?? null),
+      ),
       create: vi.fn(
         async (args: { data: { email: string; name: string } }) => ({
           id: "stub-1",
@@ -102,7 +132,7 @@ function mk(over: {
       findMany: vi.fn(async () => []),
     },
     producerStaff: {
-      findMany: vi.fn(async () => []),
+      findMany: vi.fn(async () => over.roster ?? []),
       upsert: vi.fn(async () => ({ id: "ps-1" })),
       deleteMany: vi.fn(async () => ({})),
     },
@@ -290,5 +320,108 @@ describe("ProducerController.addStaff", () => {
     await expect(ctl.addStaff({}, req("prod-1"))).rejects.toMatchObject({
       status: 400,
     });
+  });
+
+  // Cupo de la nómina por tier (spec producer-pro): STARTER 1, GROWTH 2,
+  // BIG ilimitado; el gate multiStaff exige Pro (trial → PRO_STARTER).
+  it("FREE sin trial ni Pro → 403 tier.required (multiStaff)", async () => {
+    const { ctl } = mk({ producer: true, meTrial: null });
+    const err = await ctl
+      .addStaff({ personId: "per-9" }, req("prod-1"))
+      .catch((e: unknown) => e);
+    expect(err).toMatchObject({ status: 403 });
+    expect(errBody(err)).toMatchObject({
+      error: "tier.required",
+      requiredTier: "PRO_STARTER",
+      feature: "multiStaff",
+    });
+  });
+
+  it("PRO_STARTER con cupo libre → agrega", async () => {
+    const { ctl } = mk({
+      producer: true,
+      meTier: "PRO_STARTER",
+      meTrial: null,
+      roster: [],
+      existingPerson: existing,
+    });
+    const res = await ctl.addStaff({ personId: "per-9" }, req("prod-1"));
+    expect(res.person.id).toBe("per-9");
+  });
+
+  it("PRO_STARTER con 1 en nómina → el 2do recibe 403 staff_quota", async () => {
+    const { ctl } = mk({
+      producer: true,
+      meTier: "PRO_STARTER",
+      meTrial: null,
+      roster: [{ personId: "otro" }],
+      existingPerson: existing,
+    });
+    const err = await ctl
+      .addStaff({ personId: "per-9" }, req("prod-1"))
+      .catch((e: unknown) => e);
+    expect(err).toMatchObject({ status: 403 });
+    expect(errBody(err)).toMatchObject({
+      error: "staff_quota",
+      limit: 1,
+      used: 1,
+    });
+  });
+
+  it("PRO_GROWTH con 2 en nómina → el 3ro recibe 403 staff_quota", async () => {
+    const { ctl } = mk({
+      producer: true,
+      meTier: "PRO_GROWTH",
+      meTrial: null,
+      roster: [{ personId: "a" }, { personId: "b" }],
+      existingPerson: existing,
+    });
+    const err = await ctl
+      .addStaff({ personId: "per-9" }, req("prod-1"))
+      .catch((e: unknown) => e);
+    expect(errBody(err)).toMatchObject({ error: "staff_quota", limit: 2 });
+  });
+
+  it("re-agregar a quien ya está en nómina no consume cupo", async () => {
+    const { ctl } = mk({
+      producer: true,
+      meTier: "PRO_STARTER",
+      meTrial: null,
+      roster: [{ personId: "per-9" }],
+      existingPerson: existing,
+    });
+    const res = await ctl.addStaff({ personId: "per-9" }, req("prod-1"));
+    expect(res.person.id).toBe("per-9");
+  });
+
+  it("PRO_BIG sin cupo → agrega aunque la nómina sea grande", async () => {
+    const { ctl } = mk({
+      producer: true,
+      meTier: "PRO_BIG",
+      meTrial: null,
+      roster: [
+        { personId: "a" },
+        { personId: "b" },
+        { personId: "c" },
+        { personId: "d" },
+      ],
+      existingPerson: existing,
+    });
+    const res = await ctl.addStaff({ personId: "per-9" }, req("prod-1"));
+    expect(res.person.id).toBe("per-9");
+  });
+
+  it("admin soporte no se gatea ni consume cupo", async () => {
+    const { ctl } = mk({
+      producer: false,
+      admin: true,
+      roster: [{ personId: "a" }, { personId: "b" }],
+      existingPerson: existing,
+    });
+    const res = await ctl.addStaff(
+      { personId: "per-9" },
+      req("adm-1", ["ADMIN"]),
+    );
+    expect(res.person.id).toBe("per-9");
   });
 });

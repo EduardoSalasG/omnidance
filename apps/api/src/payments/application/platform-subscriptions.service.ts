@@ -44,6 +44,10 @@ import {
   promoChargeClp,
 } from "../domain/platform-promos";
 import {
+  PRODUCER_TIER_STAFF_LIMIT,
+  producerEntitlement,
+} from "../domain/actor-entitlements";
+import {
   type BillingWebhookEvent,
   type PaymentGateway,
   type RemoteSubscription,
@@ -1870,6 +1874,12 @@ export class PlatformSubscriptionsService {
     // muestra el desglose completo, nunca una suma cruzada.
     const viewCurrency = (current?.currency ?? "CLP").toUpperCase();
     const monthlyGross = grossByCurrency[viewCurrency] ?? 0;
+    // Uso de la nómina vs cupo del tier efectivo + features habilitadas
+    // (spec producer-pro): trial → PRO_STARTER, null si no hay Pro.
+    const entitlement = producerEntitlement(person);
+    const staffUsed = await this.prisma.producerStaff.count({
+      where: { producerId: personId },
+    });
     const tierKey = producerTierParamKey(
       current?.tierCode ?? person.proTier,
     );
@@ -1909,6 +1919,12 @@ export class PlatformSubscriptionsService {
       monthlyGross,
       monthlyGrossByCurrency: grossByCurrency,
       maxGross,
+      staffUsed,
+      staffLimit:
+        entitlement.tier != null
+          ? (PRODUCER_TIER_STAFF_LIMIT[entitlement.tier] ?? null)
+          : null,
+      enabledFeatures: entitlement.features,
       nextInvoiceAt: current?.nextInvoiceAt ?? null,
       canceledAt: current?.canceledAt ?? null,
       activePromo,

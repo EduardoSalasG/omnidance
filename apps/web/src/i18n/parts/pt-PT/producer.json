@@ -313,7 +313,11 @@
       "promoOff": "−{pct}% por cobrança",
       "promoOffFixed": "−{amount} por cobrança",
       "promoUntil": "até {date}",
-      "promoCyclesLeft": "restam {count} cobranças com desconto"
+      "promoCyclesLeft": "restam {count} cobranças com desconto",
+      "staffLabel": "Colaboradores",
+      "staffUsage": "{used} de {limit}",
+      "staffUnlimited": "{used} · sem limite",
+      "featuresLabel": "Inclui"
     },
     "gateway": {
       "title": "A minha gateway de pagamento",
@@ -448,7 +452,8 @@
       "invited": "Convite enviado — recebeu um e-mail com acesso",
       "added": "Colaborador adicionado",
       "removeTitle": "Remover {name}?",
-      "removeDesc": "Deixará de aparecer como candidato a staff nos teus eventos."
+      "removeDesc": "Deixará de aparecer como candidato a staff nos teus eventos.",
+      "quotaFull": "O teu plano cobre até {limit} colaborador(es) — sobe de tier para adicionar mais."
     }
   }
 }

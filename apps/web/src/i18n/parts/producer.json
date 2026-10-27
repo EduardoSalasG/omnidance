@@ -313,7 +313,11 @@
       "promoOff": "−{pct}% por cobro",
       "promoOffFixed": "−{amount} por cobro",
       "promoUntil": "hasta el {date}",
-      "promoCyclesLeft": "quedan {count} cobros con descuento"
+      "promoCyclesLeft": "quedan {count} cobros con descuento",
+      "staffLabel": "Colaboradores",
+      "staffUsage": "{used} de {limit}",
+      "staffUnlimited": "{used} · sin tope",
+      "featuresLabel": "Incluye"
     },
     "gateway": {
       "title": "Mi pasarela de cobro",
@@ -448,7 +452,8 @@
       "invited": "Invitación enviada — le llegó un correo con acceso",
       "added": "Colaborador agregado",
       "removeTitle": "¿Quitar a {name}?",
-      "removeDesc": "Dejará de aparecer como candidato de staff en tus eventos."
+      "removeDesc": "Dejará de aparecer como candidato de staff en tus eventos.",
+      "quotaFull": "Tu plan cubre hasta {limit} colaborador(es) — sube de tier para sumar más."
     }
   }
 }

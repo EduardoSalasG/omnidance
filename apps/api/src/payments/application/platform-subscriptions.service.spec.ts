@@ -167,6 +167,7 @@ function mkPrisma() {
   const enrollments: Row[] = [];
   const producerEvents: Row[] = [];
   const producerSeries: Row[] = [];
+  const producerStaffRows: Row[] = [];
   const gatewayTxs: Row[] = [];
   const sentNotifs: Row[] = [];
   const tierPrices: Row[] = [];
@@ -310,6 +311,12 @@ function mkPrisma() {
           .map((s) => ({ id: s.id })),
       ),
     },
+    producerStaff: {
+      count: vi.fn(
+        async ({ where }: { where: Row }) =>
+          producerStaffRows.filter((r) => matchWhere(r, where)).length,
+      ),
+    },
     person: {
       findUniqueOrThrow: vi.fn(async ({ where }: { where: { id: string } }) => {
         const p = persons.get(where.id);
@@ -445,6 +452,7 @@ function mkPrisma() {
     enrollments,
     producerEvents,
     producerSeries,
+    producerStaffRows,
     gatewayTxs,
     sentNotifs,
     tierPrices,
@@ -1380,6 +1388,81 @@ describe("PlatformSubscriptionsService", () => {
       );
     });
 
+    // Enforcement de tier al renovar (spec producer-pro): la media de
+    // 90d en la moneda de la sub supera el tope → upgrade exigido como
+    // pendingTierCode + aviso una vez por tier requerido; nunca baja
+    // las features en curso ni corta la venta.
+    it("renovación con gross sobre el tope → pendingTierCode al tier requerido", async () => {
+      fx.producerEvents.push({ id: "ev-1", producerId: "p1" });
+      // 90d bruto 8M CLP → media mensual ~2,67M > tope STARTER (2,5M).
+      fx.payments.set("pay-g1", {
+        id: "pay-g1",
+        orderType: "TICKET",
+        refId: "tk-1",
+        personId: "asist",
+        eventId: "ev-1",
+        amount: 8_000_000,
+        currency: "CLP",
+        status: "PAID",
+        createdAt: new Date(),
+      });
+      const sub = mkPlatSub({
+        kind: "PRODUCER",
+        academyId: null,
+        producerId: "p1",
+        tierCode: "PRO_STARTER",
+        billingCycle: "MONTHLY",
+        status: "ACTIVE",
+        flowSubscriptionId: "fsub-1",
+        currency: "CLP",
+        countryCode: "CL",
+      });
+      fx.platSubs.push(sub);
+      const fs = mkFlowSub({
+        invoices: [{ id: 710, amount: 9990, paid: true }],
+      });
+      await svc.reconcileSubscription(sub, fs);
+      // El settle restaura el tier vigente; la facturación agenda el
+      // superior para el próximo ciclo (nunca downgrade en curso).
+      expect(fx.persons.get("p1")!.proTier).toBe("PRO_STARTER");
+      expect(sub.pendingTierCode).toBe("PRO_GROWTH");
+      expect(sub.pendingBillingCycle).toBe("MONTHLY");
+      expect(flow.cancelSubscription).toHaveBeenCalledWith(
+        "fsub-1",
+        expect.anything(),
+      );
+      expect(
+        fx.sentNotifs.filter(
+          (n) => n.type === "producer.pro_upgrade_required",
+        ),
+      ).toHaveLength(1);
+    });
+
+    it("renovación dentro del tope → no agenda upgrade", async () => {
+      const sub = mkPlatSub({
+        kind: "PRODUCER",
+        academyId: null,
+        producerId: "p1",
+        tierCode: "PRO_STARTER",
+        billingCycle: "MONTHLY",
+        status: "ACTIVE",
+        flowSubscriptionId: "fsub-1",
+        currency: "CLP",
+        countryCode: "CL",
+      });
+      fx.platSubs.push(sub);
+      const fs = mkFlowSub({
+        invoices: [{ id: 711, amount: 9990, paid: true }],
+      });
+      await svc.reconcileSubscription(sub, fs);
+      expect(sub.pendingTierCode).toBeNull();
+      expect(
+        fx.sentNotifs.filter(
+          (n) => n.type === "producer.pro_upgrade_required",
+        ),
+      ).toHaveLength(0);
+    });
+
     it("mora de productor → notify pro_renewal_failed (sin gracia de academia)", async () => {
       const sub = mkPlatSub({
         kind: "PRODUCER",
@@ -1701,6 +1784,44 @@ describe("PlatformSubscriptionsService", () => {
       p.proTrialEndsAt = new Date(Date.now() - DAY);
       const view = await svc.producerProView("p1");
       expect(view.effectivePro).toBe(true);
+    });
+
+    // Superficie del tier (spec producer-pro): cupo de la nómina +
+    // features habilitadas del tier efectivo (trial → PRO_STARTER).
+    it("expone staffUsed/staffLimit y enabledFeatures del tier efectivo", async () => {
+      fx.producerStaffRows.push(
+        { id: "ps-1", producerId: "p1", personId: "s1" },
+        { id: "ps-2", producerId: "p1", personId: "s2" },
+      );
+      const p = fx.persons.get("p1")!;
+      p.proTier = "PRO_STARTER";
+      const view = await svc.producerProView("p1");
+      expect(view.staffUsed).toBe(2);
+      expect(view.staffLimit).toBe(1);
+      expect(view.enabledFeatures).toEqual([
+        "analytics",
+        "exports",
+        "multiStaff",
+      ]);
+    });
+
+    it("trial vigente → cupo PRO_STARTER; PRO_BIG → staffLimit null (sin tope)", async () => {
+      const p = fx.persons.get("p1")!;
+      p.proTrialEndsAt = new Date(Date.now() + 30 * DAY);
+      let view = await svc.producerProView("p1");
+      expect(view.staffLimit).toBe(1);
+      p.proTier = "PRO_BIG";
+      p.proTrialEndsAt = null;
+      view = await svc.producerProView("p1");
+      expect(view.staffLimit).toBeNull();
+      expect(view.enabledFeatures).toContain("campaigns");
+    });
+
+    it("FREE sin Pro → staffLimit null y sin features", async () => {
+      const view = await svc.producerProView("p1");
+      expect(view.staffUsed).toBe(0);
+      expect(view.staffLimit).toBeNull();
+      expect(view.enabledFeatures).toEqual([]);
     });
   });
 

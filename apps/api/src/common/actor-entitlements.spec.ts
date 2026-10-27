@@ -73,7 +73,7 @@ describe("assertActorFeature - PRODUCER", () => {
     prisma.people.set("prod-1", mkProducer("prod-1"));
   });
 
-  it("productor FREE sin trial → 403 tier.required con requiredTier PRO y la feature", async () => {
+  it("productor FREE sin trial → 403 tier.required con requiredTier del mínimo y la feature", async () => {
     prisma.people.set(
       "prod-1",
       mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
@@ -88,7 +88,7 @@ describe("assertActorFeature - PRODUCER", () => {
     expect(errBody(err)).toMatchObject({
       error: "tier.required",
       upgrade: true,
-      requiredTier: "PRO",
+      requiredTier: "PRO_STARTER",
       feature: "exports",
     });
   });
@@ -117,7 +117,58 @@ describe("assertActorFeature - PRODUCER", () => {
     expect(errBody(err).error).toBe("tier.required");
   });
 
-  it("trial vigente o tier pago → pasa todas las features", async () => {
+  it("matriz por tier (spec producer-pro): STARTER base, GROWTH +crm, BIG todo", async () => {
+    // Trial vigente → PRO_STARTER efectivo (analytics/exports/multiStaff).
+    for (const feature of ["analytics", "exports", "multiStaff"] as const) {
+      await expect(
+        assertActorFeature(
+          prisma as unknown as PrismaService,
+          "PRODUCER",
+          "prod-1",
+          feature,
+        ),
+      ).resolves.toBeUndefined();
+    }
+    for (const feature of ["crm", "campaigns", "benchmark"] as const) {
+      const err = await assertActorFeature(
+        prisma as unknown as PrismaService,
+        "PRODUCER",
+        "prod-1",
+        feature,
+      ).catch((e: unknown) => e);
+      expect(errBody(err).error).toBe("tier.required");
+    }
+
+    // PRO_GROWTH pago: suma crm pero no campaigns/benchmark.
+    prisma.people.set(
+      "prod-1",
+      mkProducer("prod-1", { proTier: "PRO_GROWTH", proTrialEndsAt: null }),
+    );
+    await expect(
+      assertActorFeature(
+        prisma as unknown as PrismaService,
+        "PRODUCER",
+        "prod-1",
+        "crm",
+      ),
+    ).resolves.toBeUndefined();
+    const err = await assertActorFeature(
+      prisma as unknown as PrismaService,
+      "PRODUCER",
+      "prod-1",
+      "campaigns",
+    ).catch((e: unknown) => e);
+    expect(errBody(err)).toMatchObject({
+      error: "tier.required",
+      requiredTier: "PRO_BIG",
+      feature: "campaigns",
+    });
+
+    // PRO_BIG pago: la matriz completa.
+    prisma.people.set(
+      "prod-1",
+      mkProducer("prod-1", { proTier: "PRO_BIG", proTrialEndsAt: null }),
+    );
     for (const feature of [
       "analytics",
       "crm",
@@ -135,18 +186,6 @@ describe("assertActorFeature - PRODUCER", () => {
         ),
       ).resolves.toBeUndefined();
     }
-    prisma.people.set(
-      "prod-1",
-      mkProducer("prod-1", { proTier: "PRO_GROWTH", proTrialEndsAt: null }),
-    );
-    await expect(
-      assertActorFeature(
-        prisma as unknown as PrismaService,
-        "PRODUCER",
-        "prod-1",
-        "analytics",
-      ),
-    ).resolves.toBeUndefined();
   });
 });
 
@@ -219,22 +258,16 @@ describe("resolveProducerEntitlement / resolveAcademyEntitlements", () => {
     prisma = new FakePrisma();
   });
 
-  it("productor aprobado con Pro → {tier:'PRO', features}; FREE sin trial → tier null", async () => {
+  it("productor aprobado con Pro → {tier, features del nivel}; FREE sin trial → tier null", async () => {
     prisma.people.set("prod-1", mkProducer("prod-1"));
     const pro = await resolveProducerEntitlement(
       prisma as unknown as PrismaService,
       "prod-1",
     );
+    // Trial vigente → PRO_STARTER efectivo (spec producer-pro).
     expect(pro).toEqual({
-      tier: "PRO",
-      features: expect.arrayContaining([
-        "analytics",
-        "crm",
-        "exports",
-        "multiStaff",
-        "campaigns",
-        "benchmark",
-      ]),
+      tier: "PRO_STARTER",
+      features: ["analytics", "exports", "multiStaff"],
     });
 
     prisma.people.set(
@@ -286,12 +319,19 @@ describe("resolveProducerEntitlement / resolveAcademyEntitlements", () => {
 });
 
 describe("dominio puro", () => {
-  it("producerEntitlement: Pro activo → PRO; FREE/trial vencido → null", () => {
+  it("producerEntitlement: tierCode real del Pro; FREE/trial vencido → null", () => {
     const now = new Date("2026-10-23T00:00:00Z");
     expect(
-      producerEntitlement({ proTier: "PRO_STARTER", proTrialEndsAt: null }, now)
+      producerEntitlement({ proTier: "PRO_GROWTH", proTrialEndsAt: null }, now)
         .tier,
-    ).toBe("PRO");
+    ).toBe("PRO_GROWTH");
+    // Trial vigente (FREE + proTrialEndsAt futuro) → PRO_STARTER.
+    expect(
+      producerEntitlement(
+        { proTier: "FREE", proTrialEndsAt: new Date("2026-11-01") },
+        now,
+      ).tier,
+    ).toBe("PRO_STARTER");
     expect(
       producerEntitlement({ proTier: "FREE", proTrialEndsAt: null }, now),
     ).toEqual({ tier: null, features: [] });
@@ -303,8 +343,14 @@ describe("dominio puro", () => {
     ).toBeNull();
   });
 
-  it("producerRequiredTierFor: hoy todo requiere PRO", () => {
-    expect(producerRequiredTierFor("crm")).toBe("PRO");
-    expect(producerRequiredTierFor("exports")).toBe("PRO");
+  it("producerRequiredTierFor: mínimo que cubre la feature (matriz acumulativa)", () => {
+    expect(producerRequiredTierFor("analytics")).toBe("PRO_STARTER");
+    expect(producerRequiredTierFor("exports")).toBe("PRO_STARTER");
+    expect(producerRequiredTierFor("multiStaff")).toBe("PRO_STARTER");
+    expect(producerRequiredTierFor("crm")).toBe("PRO_GROWTH");
+    expect(producerRequiredTierFor("campaigns")).toBe("PRO_BIG");
+    expect(producerRequiredTierFor("benchmark")).toBe("PRO_BIG");
+    // Feature no mapeada → piso comercial.
+    expect(producerRequiredTierFor("desconocida")).toBe("PRO_STARTER");
   });
 });

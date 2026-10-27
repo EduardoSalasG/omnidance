@@ -547,7 +547,7 @@ describe("EventsController.exportCsv", () => {
     expect(errBody(err)).toMatchObject({
       error: "tier.required",
       upgrade: true,
-      requiredTier: "PRO",
+      requiredTier: "PRO_STARTER",
       feature: "exports",
     });
     await expect(
@@ -937,7 +937,7 @@ describe("EventsController.addStaff - gating Producer Pro", () => {
     expect(err).toMatchObject({ status: 403 });
     expect(errBody(err)).toMatchObject({
       error: "tier.required",
-      requiredTier: "PRO",
+      requiredTier: "PRO_STARTER",
       feature: "multiStaff",
     });
   });

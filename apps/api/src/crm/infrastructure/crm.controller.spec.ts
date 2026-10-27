@@ -9,9 +9,10 @@ import type { CrmService } from "../domain/crm.service";
 // CrmController.assertActorAccess - gating por suscripción (spec
 // unified-actor-entitlements): cuando el actor resuelto es PRODUCER y el
 // caller es ese productor, todas las features CRM (people, campañas,
-// triggers, scores) exigen Pro vigente → 403 {error:"tier.required",
-// upgrade:true, requiredTier:"PRO", feature:"crm"}. Actores ACADEMY y
-// llamadas admin pasan sin gate de suscripción.
+// triggers, scores) exigen Pro vigente con la feature crm (matriz
+// producer-pro: arranca en PRO_GROWTH) → 403 {error:"tier.required",
+// upgrade:true, requiredTier:"PRO_GROWTH", feature:"crm"}. Actores ACADEMY
+// y llamadas admin pasan sin gate de suscripción.
 
 interface FakePersonRow {
   id: string;
@@ -139,7 +140,7 @@ describe("CrmController - gating Producer Pro", () => {
     expect(errBody(err)).toMatchObject({
       error: "tier.required",
       upgrade: true,
-      requiredTier: "PRO",
+      requiredTier: "PRO_GROWTH",
       feature: "crm",
     });
     expect(crm.createCampaign).not.toHaveBeenCalled();
@@ -167,11 +168,18 @@ describe("CrmController - gating Producer Pro", () => {
     }
   });
 
-  it("productor FREE con trial vigente → pasa al servicio", async () => {
-    // mkProducer default: trial vigente
-    const res = await ctrl.createCampaign(campaignDto, reqAs("prod-1"));
-    expect(res).toEqual({ id: "camp-1" });
-    expect(crm.createCampaign).toHaveBeenCalledOnce();
+  it("productor FREE con trial vigente (PRO_STARTER efectivo) → 403 tier.required PRO_GROWTH", async () => {
+    // mkProducer default: trial vigente → el trial vende el piso Pro
+    // (spec producer-pro) - crm arranca en PRO_GROWTH.
+    const err = await ctrl
+      .createCampaign(campaignDto, reqAs("prod-1"))
+      .catch((e: unknown) => e);
+    expect(errBody(err)).toMatchObject({
+      error: "tier.required",
+      requiredTier: "PRO_GROWTH",
+      feature: "crm",
+    });
+    expect(crm.createCampaign).not.toHaveBeenCalled();
   });
 
   it("productor PRO_GROWTH sin trial → pasa", async () => {

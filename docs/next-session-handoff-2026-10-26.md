@@ -98,6 +98,31 @@ Pendientes reales + deuda técnica de currency/phone, cerrados:
 - 3 specs nuevos/extendidos (89 tests verdes), openapi.json + postman
   regenerados (350 paths), i18n 0/0, `next build` verde.
 
+## Cierre 2026-10-27b: producer-pro-tiers (archivado)
+
+Producer Pro nivelado implementado:
+
+- **Matriz real por tier** (`actor-entitlements.ts`, keys del enum):
+  `PRO_STARTER`=analytics+exports+staff≤1 · `PRO_GROWTH`=+crm,staff≤2 ·
+  `PRO_BIG`=todo+staff ilimitado. `producerEffectiveTier` devuelve el
+  tierCode real — `assertActorFeature` quedó tier-aware sin tocar
+  endpoints. `requiredTier` = tier mínimo que cubre la feature.
+- **Trial = PRO_STARTER** (decisión en design.md): el trial de
+  lanzamiento vende el piso Pro — pierde crm/campaigns/benchmark.
+- **Cupo staff**: `POST /producer/staff` ahora exige feature
+  `multiStaff` (¡el roster no tenía gate Pro — FREE tenía nómina
+  ilimitada; quedó cerrado) + cupo por tier → 403 `{error:"staff_quota"}`.
+  Re-agregar nómina existente no consume cupo; admin bypassa.
+- **Renovación→upgrade**: `enforceProducerTier` ya existía — evalúa
+  gross 90d en moneda de la sub y fija `pendingTierCode` + notifica.
+  Solo se agregó spec coverage (2 tests). Caveat conocido: su dedup por
+  notificación enviada no re-fija pending si se limpió por otro flujo.
+- **Vista Pro**: `staffUsed`/`staffLimit`/`enabledFeatures`; UI muestra
+  tier + cupo + features incluidas.
+- 173 tests verdes en specs tocados, i18n 0/0, builds limpios.
+  (Nota: `pnpm --filter api build` OOMeó 2 veces por presión de
+  commit del SO — reintentar con `--maxWorkers=2` en vitest si pasa.)
+
 ### Gaps que quedan (honestos)
 
 - **impeccable detect**: sigue sin correrse — el binario/skill no está

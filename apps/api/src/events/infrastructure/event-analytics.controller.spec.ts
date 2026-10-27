@@ -299,7 +299,7 @@ describe("EventAnalyticsController.analytics", () => {
     expect(errBody(err)).toMatchObject({
       error: "tier.required",
       upgrade: true,
-      requiredTier: "PRO",
+      requiredTier: "PRO_STARTER",
       feature: "analytics",
     });
   });

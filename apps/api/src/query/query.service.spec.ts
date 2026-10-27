@@ -388,7 +388,7 @@ describe("QueryService - lentes y scope", () => {
       status: 403,
       response: expect.objectContaining({
         error: "tier.required",
-        requiredTier: "PRO",
+        requiredTier: "PRO_STARTER",
         feature: "analytics",
       }),
     });
