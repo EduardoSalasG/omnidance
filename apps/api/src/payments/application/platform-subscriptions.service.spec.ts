@@ -791,15 +791,16 @@ describe("PlatformSubscriptionsService", () => {
   describe("subscribeProducer", () => {
     const input = { cycle: "MONTHLY" as const, acceptRecurring: true };
 
-    function addSale(amount: number, daysAgo = 10) {
-      fx.producerEvents.push({ id: `ev-${amount}`, producerId: "p2" });
+    function addSale(amount: number, daysAgo = 10, currency = "CLP") {
+      fx.producerEvents.push({ id: `ev-${amount}-${currency}`, producerId: "p2" });
       const payment = {
         id: `pay-${Math.random().toString(36).slice(2, 8)}`,
         orderType: "TICKET",
-        eventId: `ev-${amount}`,
+        eventId: `ev-${amount}-${currency}`,
         refId: `tkt_x`,
         personId: "someone",
         amount,
+        currency,
         status: "PAID",
         createdAt: new Date(Date.now() - daysAgo * DAY),
       };
@@ -872,6 +873,23 @@ describe("PlatformSubscriptionsService", () => {
       expect(err).toBeInstanceOf(BadRequestException);
       expect(errBody(err).error).toBe("tier_limit");
       expect(fx.platSubs).toHaveLength(0);
+    });
+
+    it("el tope se evalúa en la moneda de cobro - ventas en otra moneda no cuentan", async () => {
+      // 30M en USD (no CLP) → la media CLP es 0 → PRO_STARTER, nunca
+      // suma cruzada (spec platform-multicountry).
+      addSale(30000000, 10, "USD");
+      const r = await svc.subscribeProducer("p2", input);
+      expect(r.kind).toBe("needs_card");
+      const sub = fx.platSubs.find((s) => s.kind === "PRODUCER")!;
+      expect(sub.tierCode).toBe("PRO_STARTER");
+    });
+
+    it("producerMonthlyGross agrupa por moneda (desglose, no suma)", async () => {
+      addSale(3000000); // 1M/mes CLP
+      addSale(9000, 10, "USD"); // 3.000/mes USD
+      const gross = await svc.producerMonthlyGross("p2");
+      expect(gross).toEqual({ CLP: 1000000, USD: 3000 });
     });
 
     it("con tarjeta → ACTIVE + Person.proTier restaurado", async () => {
@@ -1660,6 +1678,7 @@ describe("PlatformSubscriptionsService", () => {
         effectivePro: false,
         status: null,
         monthlyGross: 0,
+        monthlyGrossByCurrency: {},
       });
     });
 

@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
 import {
   EVENT_TYPES,
   inputCls,
   toLocalInput,
   toOptionalInt,
+  type CountryCatalog,
   type EventDetail,
   type EventPayload,
   type Style,
@@ -116,6 +118,29 @@ export function EventForm({
   const [happyHour, setHappyHour] = useState(
     initial?.happyHourMinutes != null ? String(initial.happyHourMinutes) : "",
   );
+  // Moneda del evento (spec platform-multicountry): default = moneda del
+  // país del venue elegido; si el productor la cambia a mano el dirty
+  // flag conserva su elección al cambiar de venue.
+  const [currency, setCurrency] = useState(initial?.currency ?? "CLP");
+  const [currencyDirty, setCurrencyDirty] = useState(false);
+  const [currencies, setCurrencies] = useState<string[]>([]);
+
+  // Opciones de moneda = monedas del catálogo geográfico (Country.currency
+  // del API - mismo criterio que valida POST/PATCH /events).
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/cities/catalog")
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const countries = (await res.json()) as CountryCatalog[];
+        const list = [...new Set(countries.map((c) => c.currency))].sort();
+        if (!cancelled && list.length) setCurrencies(list);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Bloques: pre-cargados del detalle. style llega solo con nombre → se
   // resuelve el id contra el catálogo /styles (match por nombre exacto).
@@ -203,6 +228,9 @@ export function EventForm({
       endsAt: new Date(endsAt).toISOString(),
       ...(venueId ? { venueId } : {}),
       ...(seriesId ? { seriesId } : {}),
+      ...(currency.trim() !== ""
+        ? { currency: currency.trim().toUpperCase() }
+        : {}),
       ...(toOptionalInt(capacity) !== undefined
         ? { capacity: toOptionalInt(capacity) }
         : {}),
@@ -272,6 +300,8 @@ export function EventForm({
         setEndsAt("");
         setVenueId("");
         setSeriesId("");
+        setCurrency("CLP");
+        setCurrencyDirty(false);
         setCapacity("");
         setPresalePrice("");
         setDoorPrice("");
@@ -347,13 +377,40 @@ export function EventForm({
           <span className="text-sm text-ink/70">{t("form.venue")}</span>
           <select
             value={venueId}
-            onChange={(e) => setVenueId(e.target.value)}
+            onChange={(e) => {
+              const vid = e.target.value;
+              setVenueId(vid);
+              // El venue propone la moneda de su país mientras el
+              // productor no haya elegido una a mano.
+              if (!currencyDirty) {
+                const cur = venues.find((v) => v.id === vid)?.city?.country
+                  ?.currency;
+                if (cur) setCurrency(cur);
+              }
+            }}
             className={inputCls}
           >
             <option value="">{t("form.noVenue")}</option>
             {venues.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-2">
+          <span className="text-sm text-ink/70">{t("form.currency")}</span>
+          <select
+            value={currency}
+            onChange={(e) => {
+              setCurrencyDirty(true);
+              setCurrency(e.target.value);
+            }}
+            className={inputCls}
+          >
+            {[...new Set([currency, ...currencies])].map((c) => (
+              <option key={c} value={c}>
+                {c}
               </option>
             ))}
           </select>

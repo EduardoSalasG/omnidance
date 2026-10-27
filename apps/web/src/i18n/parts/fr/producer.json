@@ -98,7 +98,8 @@
       "tableSeatMax": "Personnes max par table",
       "tableSeatsTotal": "Personnes assises aux tables",
       "inheritsDefault": "Valeur par défaut du producteur",
-      "tablesHint": "La capacité assise est la capacité réelle des tables : différente de la jauge générale, en général plus petite. Vide hérite de ta valeur par défaut de Paramètres."
+      "tablesHint": "La capacité assise est la capacité réelle des tables : différente de la jauge générale, en général plus petite. Vide hérite de ta valeur par défaut de Paramètres.",
+      "currency": "Devise"
     },
     "sections": {
       "staff": "Staff de porte",

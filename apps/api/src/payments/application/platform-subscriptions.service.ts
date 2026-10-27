@@ -256,9 +256,13 @@ export class PlatformSubscriptionsService {
   /**
    * Media de ventas brutas del productor en los últimos 90 días
    * (TICKET con eventId propio + SERIES_PASS de sus series - la misma
-   * definición de devengo que usan los payouts) ÷ 3 = mensual.
+   * definición de devengo que usan los payouts) ÷ 3 = mensual, agrupada
+   * por moneda (spec platform-multicountry): nunca suma monedas
+   * distintas - el caller elige el monto en la moneda relevante.
    */
-  async producerMonthlyGross(producerId: string): Promise<number> {
+  async producerMonthlyGross(
+    producerId: string,
+  ): Promise<Record<string, number>> {
     const since = new Date(Date.now() - 90 * 24 * 60 * 60_000);
     const [events, series] = await Promise.all([
       this.prisma.event.findMany({
@@ -278,17 +282,30 @@ export class PlatformSubscriptionsService {
         orderType: { in: ["TICKET", "SERIES_PASS"] },
         createdAt: { gte: since },
       },
-      select: { orderType: true, eventId: true, refId: true, amount: true },
+      select: {
+        orderType: true,
+        eventId: true,
+        refId: true,
+        amount: true,
+        currency: true,
+      },
     });
-    let gross = 0;
+    const byCurrency = new Map<string, number>();
     for (const p of payments) {
       const belongs =
         p.orderType === "TICKET"
           ? p.eventId != null && eventIds.has(p.eventId)
           : seriesIds.has(decodeSeriesPassRef(p.refId)?.seriesId ?? "");
-      if (belongs) gross += p.amount;
+      if (belongs) {
+        const cur = (p.currency ?? "CLP").toUpperCase();
+        byCurrency.set(cur, (byCurrency.get(cur) ?? 0) + p.amount);
+      }
     }
-    return Math.round(gross / 3);
+    const gross: Record<string, number> = {};
+    for (const [cur, sum] of byCurrency) {
+      gross[cur] = Math.round(sum / 3);
+    }
+    return gross;
   }
 
   /** Tier Pro que califica una facturación mensual (null = PRO_BIG manual). */
@@ -693,12 +710,17 @@ export class PlatformSubscriptionsService {
     const countryCode = (input.billingCountry ?? "CL").toUpperCase();
     const country = await this.prisma.country.findUnique({
       where: { code: countryCode },
-      select: { code: true },
+      select: { code: true, currency: true },
     });
     if (!country) {
       throw new BadRequestException("billingCountry no es un país válido");
     }
-    const monthlyGross = await this.producerMonthlyGross(personId);
+    const grossByCurrency = await this.producerMonthlyGross(personId);
+    // El tope de tier se evalúa en la moneda del país de cobro declarado
+    // (es la moneda del price book que cobrará la suscripción) - nunca
+    // una suma cruzada de monedas (spec platform-multicountry).
+    const monthlyGross =
+      grossByCurrency[(country.currency ?? "CLP").toUpperCase()] ?? 0;
     const tier = await this.producerTierForGross(monthlyGross);
     if (!tier || !SELF_SERVE_PRODUCER_TIERS.has(tier)) {
       const max = await this.params.getNumber(
@@ -1842,7 +1864,12 @@ export class PlatformSubscriptionsService {
         );
       }
     }
-    const monthlyGross = await this.producerMonthlyGross(personId);
+    const grossByCurrency = await this.producerMonthlyGross(personId);
+    // Facturación para el tope del tier: en la moneda de la suscripción
+    // (spec platform-multicountry; sin suscripción → CLP). El front
+    // muestra el desglose completo, nunca una suma cruzada.
+    const viewCurrency = (current?.currency ?? "CLP").toUpperCase();
+    const monthlyGross = grossByCurrency[viewCurrency] ?? 0;
     const tierKey = producerTierParamKey(
       current?.tierCode ?? person.proTier,
     );
@@ -1880,6 +1907,7 @@ export class PlatformSubscriptionsService {
       pendingTier: current?.pendingTierCode ?? null,
       pendingCycle: current?.pendingBillingCycle ?? null,
       monthlyGross,
+      monthlyGrossByCurrency: grossByCurrency,
       maxGross,
       nextInvoiceAt: current?.nextInvoiceAt ?? null,
       canceledAt: current?.canceledAt ?? null,
@@ -2506,7 +2534,11 @@ export class PlatformSubscriptionsService {
     sub: PlatformSubscription,
   ): Promise<void> {
     if (!sub.producerId) return;
-    const monthlyGross = await this.producerMonthlyGross(sub.producerId);
+    const grossByCurrency = await this.producerMonthlyGross(sub.producerId);
+    // Tope del tier en la moneda de la suscripción (spec
+    // platform-multicountry) - fallback CLP para filas legacy.
+    const monthlyGross =
+      grossByCurrency[(sub.currency ?? "CLP").toUpperCase()] ?? 0;
     const required = await this.producerTierForGross(monthlyGross);
     const requiredRank = required
       ? PRODUCER_TIER_RANK[required]

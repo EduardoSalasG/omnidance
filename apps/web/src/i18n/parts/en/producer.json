@@ -98,7 +98,8 @@
       "tableSeatMax": "Max people per table",
       "tableSeatsTotal": "People seatable at tables",
       "inheritsDefault": "Producer default",
-      "tablesHint": "Seatable capacity is the real capacity of tables: different from general capacity, usually smaller. Empty inherits your Parameters default."
+      "tablesHint": "Seatable capacity is the real capacity of tables: different from general capacity, usually smaller. Empty inherits your Parameters default.",
+      "currency": "Currency"
     },
     "sections": {
       "staff": "Door staff",

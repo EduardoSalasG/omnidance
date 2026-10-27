@@ -898,6 +898,20 @@
         ]
       }
     },
+    "/api/cities/catalog": {
+      "get": {
+        "operationId": "CitiesController_catalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Cities"
+        ]
+      }
+    },
     "/api/cities": {
       "get": {
         "operationId": "CitiesController_list",

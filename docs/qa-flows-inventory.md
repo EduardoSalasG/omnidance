@@ -34,7 +34,7 @@
 
 ### Gates de cliente (cada consola)
 - **Registro por landing**: CTAs de /para-academias y /para-productores → /login?mode=register&role=ACADEMY_OWNER|PRODUCER; el rol viaja en magic link/OTP/register y crea PersonRole PENDING (usable en su consola, invisible al público) hasta aprobación admin. SANDBOX eliminado del enum.
-- `ProducerGate` (`me.roles` ∩ {PRODUCER, ADMIN}); `AcademyGate` (`GET /academies/mine` → selector si >1, persiste en `localStorage["omnidance:academy-id"]`; CTA "Nueva academia" → `/academia/nueva` solo si `me.roleStates` tiene ACADEMY_OWNER APPROVED/SANDBOX — crear usa `POST /academies`, la nueva queda seleccionada y vuelve al hub; deep-link sin rol → estado sin-acceso); `AdminGate` (`me.roles` ADMIN); `CrmGateScreen` (`useCrmContext` + `ActorPicker`); soporte deriva gate de respuestas API; `/venue` gatea por `GET /venues/mine`.
+- `ProducerGate` (`me.roles` ∩ {PRODUCER, ADMIN}); `AcademyGate` (`GET /academies/mine` → selector si >1, persiste en `localStorage["omnidance:academy-id"]`; CTA "Nueva academia" → `/academia/nueva` solo si `me.roleStates` tiene ACADEMY_OWNER APPROVED/SANDBOX — crear usa `POST /academies` (nombre + select país→ciudad del catálogo `GET /cities/catalog` — la ciudad define Country.currency de planes/facturación), la nueva queda seleccionada y vuelve al hub; deep-link sin rol → estado sin-acceso); `AdminGate` (`me.roles` ADMIN); `CrmGateScreen` (`useCrmContext` + `ActorPicker`); soporte deriva gate de respuestas API; `/venue` gatea por `GET /venues/mine`.
 - **Academy approval gate** (`Academy.reviewStatus`): nueva academia nace PENDING; se auto-publica cuando el checklist server-side completa (nombre, descripción, dirección, contacto IG/WA/web, photoUrl, serie activa, clase futura, plan activo, owner APPROVED) — sin acción admin. REJECTED la oculta aunque complete. Filtro en `GET /academies`, `/academies/public`, `/academies/:id/profile` (404 a no-managers) y `/classes/browse`. Owner ve `AcademyVisibilityCard` en su dashboard con lo que falta (links a la sección); admin tiene override en `/admin/perfiles-por-validar` → sección Academias (`GET /admin/academy-review-queue`, approve=override/reject). `photoUrl` editable en `/academia/configuracion/perfil` (URL externa).
 - Server: `SessionGuard + RolesGuard + @RequirePermissions(...)`; ADMIN bypass por `isSuperuser`.
 - **Lente activa** (`localStorage["omnidance:active-role"]`, fallback ADMIN>SUPPORT>PRODUCER>ACADEMY_OWNER>INSTRUCTOR>VENUE_MANAGER>STAFF>DJ>DANCER): condiciona lo que muestran /inicio, /perfil, /analitica, /notificaciones y la UI academia (lens INSTRUCTOR degrada privilegios reales en UI).
@@ -230,9 +230,10 @@
 
 ### Crear/editar evento `/productor/eventos/nuevo` (+`?edit={id}`)
 - Boot paralelo: `/venues`, `/styles`, `/events/mine?pageSize=100` (series propias; oculto si no hay). Edit: `GET /events/:id`.
-- Campos: nombre*, startsAt*/endsAt* (fin>inicio), venueId select (edit pre-selecciona por match de nombre), type (disabled en edit), seriesId, presalePrice/doorPrice, capacity, presaleCap/doorCap, presaleCutoff (HH:MM→minutos; >1439 post-medianoche solo vía API/dirty-flag), tablesTotal, tableSeatMax, tableSeatsTotal, primeThreshold, happyHourMinutes, scheduleBlocks[] (blockStart/End/style/dj; end≤start inválido; edit solo si dirty), djs (texto personIds separados; edit solo si dirty).
+- Campos: nombre*, startsAt*/endsAt* (fin>inicio), venueId select (edit pre-selecciona por match de nombre), type (disabled en edit), seriesId, currency select (ISO-4217 del catálogo `GET /cities/catalog`; default = moneda del país del venue mientras no se toque a mano), presalePrice/doorPrice, capacity, presaleCap/doorCap, presaleCutoff (HH:MM→minutos; >1439 post-medianoche solo vía API/dirty-flag), tablesTotal, tableSeatMax, tableSeatsTotal, primeThreshold, happyHourMinutes, scheduleBlocks[] (blockStart/End/style/dj; end≤start inválido; edit solo si dirty), djs (texto personIds separados; edit solo si dirty).
 - Create `POST /events` → siempre DRAFT → banner → /productor/eventos 1200ms. Edit `PATCH /events/:id` (409 no-editable) → ficha.
-- Negativos: 400 class-validator, 403 serie ajena/fee, 409, no-editable screen, notFound.
+- Moneda (spec platform-multicountry): default = `venue.city.country.currency` (sin venue/país → CLP); código fuera del catálogo `Country.currency` → 400; en PATCH queda congelada si el evento tiene ≥1 Payment (409).
+- Negativos: 400 class-validator/moneda no soportada, 403 serie ajena/fee, 409 (no-editable / moneda con ventas), no-editable screen, notFound.
 
 ### Ficha evento `/productor/eventos/[id]` (consola operativa)
 - `GET /events/:id` + `useMe`; canManage = producerId===me.id||admin.
@@ -343,7 +344,7 @@
 - `/configuracion` → redirect general.
 - General: defaultQuorum (∅→20; **client acepta 0 pero server @Min(1) → 400**), privateLessonPrice (∅→no vende) → PATCH /settings.
 - Apariencia: ThemeToggle (tema del visor, sin gate ni API).
-- Perfil público: description/address/lat-lng (valida rango)/instagram/whatsapp/website → PATCH /settings (normalización server; 400 inválidos).
+- Perfil público: description/address/lat-lng (valida rango)/instagram/whatsapp/website → PATCH /settings (normalización server; 400 inválidos). Whatsapp = `normalizePhone` con país de la academia (city→country, fallback CL) → E.164 sin "+" listo para wa.me.
 - Pagos: lista métodos admin (incluye inactivos) → /{methodId}; nuevo: type TRANSFER|PAYMENT_LINK|CASH + label*≤60 + details por tipo + order → POST (errores genéricos sin server msg); [methodId]: PATCH label/details/order/active; delete ConfirmSheet.
 
 ### Videos `/academia/videos*` (lectura amplia; escritura cap schedule + canAdminister UI)
@@ -372,7 +373,7 @@
 - `/admin/facturacion/transacciones`: KPIs del mes `finance/summary` (ingreso plataforma, GMV tx, costo pasarela, por transferir) + desglose segmento + FilterBar `payments` + lista `browse/payments` (default PAID; KPIs del período no siguen el filtro).
 - `/admin/facturacion/suscripciones`: KPIs `finance/mrr` (MRR/ARR/activas/a convenir) + byTier + funnel de estados clickeable (filtro client-side) + lista suscripciones (kind, actor, tier, ciclo, status, monto mensual, próximo cobro).
 - `/admin/facturacion/promos` (`platform-promos`): lista `GET /admin/platform-promos` → crear `/nueva` (POST) → ficha `/[id]` (PATCH: todos los campos + toggle enabled). Form: nombre, línea (ambas/ACADEMY/PRODUCER), tipo PERCENT|FIXED_CLP, valor, ventana, maxCycles, whitelist con pickers de academias/productores (`browse/academies` + `browse/people?role=PRODUCER`). Estados vigente/programada/expirada/deshabilitada. Sin delete.
-- `/admin/facturacion/precios` (price book `TierPrice`, spec multipais-currency): lista por kind/tier × país + crear fila + editar precio inline → `GET/POST /admin/tier-prices`, `PUT /admin/tier-prices/:id`. Abrir un mercado = crear filas del país — sin deploy.
+- `/admin/facturacion/precios` (price book `TierPrice`, spec multipais-currency): lista por kind/tier × país; crear = CTA → `/nuevo` (POST), fila → ficha `/[id]` (dl + edición precio/moneda → PUT). `GET/POST /admin/tier-prices`, `PUT /admin/tier-prices/:id`. Abrir un mercado = crear filas del país — sin deploy.
 - `activePromo` en vistas del actor: `/academia/suscripcion` y `/productor` (sección Pro) muestran badge promo (−%/−$ + vencimiento + ciclos restantes) y precio lista tachado + precio oferta en consentimiento/botón de suscripción.
 - `/admin/jobs` ⚠️: pause/resume PATCH sin confirm; edit cron PATCH; **Run now** ConfirmSheet `POST /:key/run` (efectos reales: mails, payouts); runs list.
 - `/admin/campanas` ⚠️: lista; Edit (DRAFT|SCHEDULED); **Test** send sin confirm; **Run now** ConfirmSheet (audiencia completa real); Cancel ConfirmSheet. Form: audiencia ALL|ROLE|EVENT|lifecycle+days; audience-count debounce; schedule ONCE|CRON.

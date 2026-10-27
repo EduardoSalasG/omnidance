@@ -98,7 +98,8 @@
       "tableSeatMax": "Pessoas máx. por mesa",
       "tableSeatsTotal": "Pessoas sentadas nas mesas",
       "inheritsDefault": "Valor por omissão do produtor",
-      "tablesHint": "A capacidade sentada é a capacidade real das mesas: diferente da lotação geral, normalmente menor. Vazio herda o teu valor por omissão de Definições."
+      "tablesHint": "A capacidade sentada é a capacidade real das mesas: diferente da lotação geral, normalmente menor. Vazio herda o teu valor por omissão de Definições.",
+      "currency": "Moeda"
     },
     "sections": {
       "staff": "Staff de porta",

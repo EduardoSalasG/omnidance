@@ -183,6 +183,8 @@ export type EventDetail = {
   presaleCap?: number | null;
   doorCap?: number | null;
   happyHourMinutes?: number | null;
+  /** Moneda del evento (spec platform-multicountry, ISO-4217). */
+  currency?: string;
   producerId?: string | null;
   venueId?: string | null;
   seriesId?: string | null;
@@ -223,6 +225,8 @@ export type EventPayload = {
   doorPrice?: number;
   presaleCap?: number;
   doorCap?: number;
+  /** Moneda del evento (ISO-4217, catálogo Country.currency). */
+  currency?: string;
   /** Corte preventa (minutos del día del evento); null = vuelve a heredar. */
   presaleCutoffMinutes?: number | null;
   primeThreshold?: number;
@@ -241,6 +245,19 @@ export type Venue = {
   name: string;
   address?: string | null;
   capacity?: number | null;
+  /** Ciudad/país del venue (GET /venues) - moneda default del evento. */
+  city?: {
+    name: string;
+    country: { code: string; currency: string } | null;
+  } | null;
+};
+
+/** GET /cities/catalog - país del catálogo geográfico con sus ciudades. */
+export type CountryCatalog = {
+  code: string;
+  name: string;
+  currency: string;
+  cities: { id: string; name: string }[];
 };
 
 export type Style = { id: string; name: string; genre?: string | null };

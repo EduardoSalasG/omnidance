@@ -244,7 +244,10 @@
     "seriesTopAttendanceTitle": "Mayor asistencia a la fecha",
     "seriesLowAttendanceTitle": "Menor asistencia a la fecha",
     "seriesWeeklyAvgHint": "Clases semanales por alumno en promedio",
-    "seriesWeeklyAvgTitle": "Clases/semana por alumno"
+    "seriesWeeklyAvgTitle": "Clases/semana por alumno",
+    "country": "País",
+    "city": "Ciudad",
+    "noCity": "Sin ciudad"
   },
   "academySeries": {
     "addSlotHint": "Se crean las clases futuras en ese día dentro de la ventana de programación.",

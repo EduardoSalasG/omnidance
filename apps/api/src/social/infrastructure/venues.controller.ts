@@ -33,6 +33,14 @@ export class VenuesController {
         lng: true,
         logoUrl: true,
         hours: true,
+        // País/moneda del venue (spec platform-multicountry): el form de
+        // evento lo usa para proponer la moneda del evento.
+        city: {
+          select: {
+            name: true,
+            country: { select: { code: true, currency: true } },
+          },
+        },
       },
     });
     // Orden en JS (localeCompare) - Postgres collation y JS difieren en

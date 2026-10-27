@@ -132,6 +132,27 @@ export class CitiesService {
   }
 
   /**
+   * GET /cities/catalog - catálogo país→ciudades para selects de
+   * formularios (spec platform-multicountry). Sin gate de flag: los
+   * nombres de país/ciudad no son datos sensibles y el alta de academia
+   * los necesita aunque el descubrimiento esté apagado.
+   */
+  async catalog() {
+    return this.prisma.country.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        code: true,
+        name: true,
+        currency: true,
+        cities: {
+          orderBy: { name: "asc" },
+          select: { id: true, name: true },
+        },
+      },
+    });
+  }
+
+  /**
    * GET /cities/:slug - ficha de ciudad: coordenadas, próximos eventos
    * (shape del feed público), venues activos y la guía editorial
    * (spec city-guides): `guide` viaja solo si el flag city_guides está

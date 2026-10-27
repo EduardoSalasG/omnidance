@@ -64,11 +64,50 @@ mergeadas — `platform-multicountry` ahora es spec propia.
   remoteId PlatformSubscription→RENEWAL_SETTLED/gracia/CANCELED;
   `customer.subscription.updated` cubierto; dedup estructural por
   invoice/refId (webhook+polling no doble-liquidan). vitest 637 verde.
-- **E2e**: NO se pudo correr — `next dev` falla `EACCES` en :3000 y
-  :3100 (rango de puertos excluidos de Windows en esta máquina). Los
-  generadores de teléfono e2e quedan arreglados; correr
-  `pnpm test:e2e` cuando el puerto se libere
-  (`netsh interface ipv4 show excludedportrange protocol=tcp`).
+- **E2e**: RESUELTO 2026-10-27 — el bloqueo era el rango de puertos
+  excluidos de Windows (2809-3208, 3307-3506). `next dev -p 3600` +
+  `QA_BASE_URL=http://localhost:3600 pnpm test:e2e` funciona: 11/14 en
+  el run completo y los 2 tests restantes (cartelera, ciclo-evento)
+  pasan en retry — flakes de timing en dev, no regresiones. Ojo: si el
+  suite cae con "Internal Server Error" fijo, es `.next` corrupto
+  (mata next, `rm -rf apps/web/.next`, reinicia — documentado en
+  AGENTS). Segundo fix de build: `promoDiscountLabel` también estaba
+  exportado en promos/page (mismo patrón que promoState).
+
+## Cierre 2026-10-27: multipais-polish (archivado)
+
+Pendientes reales + deuda técnica de currency/phone, cerrados:
+
+- **Event.currency declarativa**: `POST/PATCH /events` acepta currency
+  ISO-4217 validada contra `Country.currency`; default = moneda del
+  país del venue → CLP. Con pagos registrados la moneda queda congelada
+  (409). Form del productor con select de moneda que propone la del
+  venue. Nuevo `GET /cities/catalog` (países+moneda+ciudades) que alimenta
+  ese select y el de academias.
+- **Academy.whatsapp**: ahora pasa por `normalizePhone` (país de la
+  academia) y persiste E.164 sin `+` listo para wa.me; inválido → 400.
+- **producerMonthlyGross por moneda**: devuelve `Record<currency,amount>`,
+  nunca suma cruzada; el tope de tier se evalúa en la moneda del país de
+  cobro / de la suscripción; la vista Pro muestra el desglose.
+- **Onboarding academia no-CL**: `CreateAcademyDto.cityId` + form con
+  select país→ciudad (default CL). Con fila TierPrice del país + gateway
+  del mercado, el alta queda self-service.
+- **precios console-patterns**: lista read-only + CTA → `/nuevo` + ficha
+  `/[id]` con edición precio/moneda.
+- **Backfill phone verificado**: dev limpio (3 phones, todos E.164 + CL).
+- 3 specs nuevos/extendidos (89 tests verdes), openapi.json + postman
+  regenerados (350 paths), i18n 0/0, `next build` verde.
+
+### Gaps que quedan (honestos)
+
+- **impeccable detect**: sigue sin correrse — el binario/skill no está
+  instalado en este entorno. Si se instala, correr sobre PhoneInput,
+  precios/*, event-form, create-academy-form, pro-section.
+- **E2e flake**: `dancer cartelera` y `productor ciclo-evento` son
+  sensibles a timing del dev server (ver comentarios en el spec).
+- **Roadmap foundation sin tocar**: tasks 10 (packs), 11 (prácticas),
+  13 (congresos); Producer Pro nivelado; Fintoc payout; tarifa Pase.
+
 
 ## Pendientes / gaps honestos
 - **Academias fuera de CL no tienen onboarding de país todavía**:
