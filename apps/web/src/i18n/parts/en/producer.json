@@ -313,7 +313,11 @@
       "promoOff": "−{pct}% per charge",
       "promoOffFixed": "−{amount} per charge",
       "promoUntil": "until {date}",
-      "promoCyclesLeft": "{count} discounted charges left"
+      "promoCyclesLeft": "{count} discounted charges left",
+      "staffLabel": "Collaborators",
+      "staffUsage": "{used} of {limit}",
+      "staffUnlimited": "{used} · unlimited",
+      "featuresLabel": "Includes"
     },
     "gateway": {
       "title": "My payment gateway",
@@ -448,7 +452,8 @@
       "invited": "Invite sent — they got an email with access",
       "added": "Collaborator added",
       "removeTitle": "Remove {name}?",
-      "removeDesc": "They will no longer appear as a staff candidate for your events."
+      "removeDesc": "They will no longer appear as a staff candidate for your events.",
+      "quotaFull": "Your plan covers up to {limit} collaborator(s) — upgrade to add more."
     }
   }
 }

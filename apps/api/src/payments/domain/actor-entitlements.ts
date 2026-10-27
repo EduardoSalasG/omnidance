@@ -27,11 +27,11 @@ export interface ActorEntitlement {
 }
 
 // ─── Productor ─────────────────────────────────────────────────────
-// Features Producer Pro (spec producer-pro): un solo nivel efectivo
-// hoy - todo Pro (tier pago o trial de lanzamiento vigente) cubre la
-// lista completa. PRO_GROWTH/PRO_SCALE quedan en la matriz con las
-// mismas features para cuando el spec nivele los tiers sin tocar call
-// sites (cada endpoint declara su feature, no el tier nominal).
+// Features Producer Pro (spec producer-pro): matriz acumulativa por
+// tier - PRO_STARTER vende analítica + exports + staff (cupo 1),
+// PRO_GROWTH suma el CRM (cupo 2) y PRO_BIG lo habilita todo (staff
+// ilimitado). Cada endpoint declara su feature; el tier efectivo es el
+// tierCode real del Pro vigente.
 
 export const PRODUCER_FEATURES = [
   "analytics",
@@ -43,29 +43,55 @@ export const PRODUCER_FEATURES = [
 ] as const;
 export type ProducerFeature = (typeof PRODUCER_FEATURES)[number];
 
-/** Tier (código lógico) → features habilitadas del productor. */
+const PRO_STARTER_FEATURES = [
+  "analytics",
+  "exports",
+  "multiStaff",
+] as const satisfies readonly ProducerFeature[];
+
+/** Tier (código del enum ProducerProTier) → features habilitadas. */
 export const PRODUCER_TIER_FEATURES: Record<
   string,
   readonly ProducerFeature[]
 > = {
-  PRO: PRODUCER_FEATURES,
-  PRO_GROWTH: PRODUCER_FEATURES,
-  PRO_SCALE: PRODUCER_FEATURES,
+  PRO_STARTER: PRO_STARTER_FEATURES,
+  PRO_GROWTH: [...PRO_STARTER_FEATURES, "crm"],
+  PRO_BIG: PRODUCER_FEATURES,
 };
 
 /** Orden de tiers del productor para "tier mínimo que cubre la feature". */
-const PRODUCER_TIER_ORDER = ["PRO", "PRO_GROWTH", "PRO_SCALE"] as const;
+const PRODUCER_TIER_ORDER = ["PRO_STARTER", "PRO_GROWTH", "PRO_BIG"] as const;
 
 /**
- * Tier efectivo del productor (spec unified-actor-entitlements): hoy
- * binario → "PRO" cuando `isProActive` (tier pago o trial vigente);
- * null si no hay Pro efectivo.
+ * Cupo de la nómina de colaboradores por tier (spec producer-pro):
+ * staff pasa de booleano a tope numérico - PRO_BIG no tiene entrada
+ * (sin cupo). Sin tier efectivo tampoco hay entrada: el alta ya quedó
+ * bloqueada por el gate de `multiStaff`.
+ */
+export const PRODUCER_TIER_STAFF_LIMIT: Record<string, number> = {
+  PRO_STARTER: 1,
+  PRO_GROWTH: 2,
+};
+
+/**
+ * Tier efectivo del productor (spec unified-actor-entitlements +
+ * producer-pro): el `tierCode` real del Pro vigente
+ * (Person.proTier lo proyecta la PlatformSubscription vía
+ * applyEntitlement/settlePlatformSub).
+ *
+ * Trial de lanzamiento (proTier FREE + proTrialEndsAt vigente) →
+ * PRO_STARTER: el trial vende el piso Pro (analytics + exports +
+ * staff ≤1), no el tope de la matriz. Decisión del change
+ * producer-pro-tiers: documentada acá porque proTrialEndsAt no guarda
+ * tier - el trial nunca tuvo tierCode propio.
  */
 export function producerEffectiveTier(
   person: { proTier: string; proTrialEndsAt: Date | null },
   now: Date = new Date(),
 ): string | null {
-  return isProActive(person, now) ? "PRO" : null;
+  if (!isProActive(person, now)) return null;
+  if (person.proTier === "FREE") return "PRO_STARTER"; // trial vigente
+  return person.proTier;
 }
 
 /** ¿El tier del productor cubre la feature? */
@@ -86,8 +112,8 @@ export function producerRequiredTierFor(feature: string): string {
       return tier;
     }
   }
-  // Feature aún no mapeada en la matriz: el piso comercial es PRO.
-  return "PRO";
+  // Feature aún no mapeada en la matriz: el piso comercial es PRO_STARTER.
+  return "PRO_STARTER";
 }
 
 /** Entitlements del productor sobre la persona ya cargada (puro). */
@@ -98,7 +124,8 @@ export function producerEntitlement(
   const tier = producerEffectiveTier(person, now);
   return {
     tier,
-    features: tier == null ? [] : [...PRODUCER_TIER_FEATURES[tier]],
+    // Código no mapeado en la matriz → [] (fail-closed, nunca TypeError).
+    features: tier == null ? [] : [...(PRODUCER_TIER_FEATURES[tier] ?? [])],
   };
 }
 

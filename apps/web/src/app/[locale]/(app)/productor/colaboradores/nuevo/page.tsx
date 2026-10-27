@@ -42,6 +42,19 @@ function NewCollaborator() {
 
   const backHref = "/productor/colaboradores";
 
+  // 403 {error:"staff_quota"} del cupo por tier (spec producer-pro) →
+  // copy i18n; cualquier otro error usa el message del API o el fallback.
+  async function staffError(res: Response): Promise<string> {
+    const body = (await res.clone().json().catch(() => null)) as {
+      error?: string;
+      limit?: number;
+    } | null;
+    if (body?.error === "staff_quota") {
+      return t("collaborators.quotaFull", { limit: body.limit ?? 1 });
+    }
+    return (await readError(res)) ?? tc("error");
+  }
+
   useEffect(() => {
     const term = query.trim();
     if (term.length < 2) {
@@ -70,7 +83,7 @@ function NewCollaborator() {
         body: JSON.stringify({ personId }),
       });
       if (!res.ok) {
-        setError((await readError(res)) ?? tc("error"));
+        setError(await staffError(res));
         return;
       }
       setDone("added");
@@ -98,7 +111,7 @@ function NewCollaborator() {
         }),
       });
       if (!res.ok) {
-        setError((await readError(res)) ?? tc("error"));
+        setError(await staffError(res));
         return;
       }
       const body = (await res.json()) as { invited?: boolean };

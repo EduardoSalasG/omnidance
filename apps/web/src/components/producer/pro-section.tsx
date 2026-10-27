@@ -51,6 +51,12 @@ type ProView = {
   /** Media 90d por moneda (spec platform-multicountry) - nunca suma cruzada. */
   monthlyGrossByCurrency?: Record<string, number>;
   maxGross: number | null;
+  /** Nómina de colaboradores en uso y cupo del tier (spec producer-pro;
+      null = sin cupo o sin Pro efectivo). */
+  staffUsed: number;
+  staffLimit: number | null;
+  /** Features habilitadas del tier efectivo (matriz PRODUCER_TIER_FEATURES). */
+  enabledFeatures: string[];
   nextInvoiceAt: string | null;
   canceledAt: string | null;
   /** Promo vigente aplicable (spec platform-promos); null = precio lleno. */
@@ -103,6 +109,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
   const t = useTranslations("producer.pro");
   const ts = useTranslations("subscriptions");
   const tc = useTranslations("common");
+  const tg = useTranslations("tierGate");
 
   const [view, setView] = useState<ProView | null>(null);
   const [prices, setPrices] = useState<Record<string, number>>({});
@@ -387,6 +394,34 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                 <PriceTag amount={view.maxGross} />
               </dd>
             </div>
+          )}
+          {/* Qué incluye el tier vigente + uso del cupo de la nómina
+              (spec producer-pro): staff es cupo numérico por tier -
+              PRO_BIG/sin cupo → "sin tope". */}
+          {view.effectivePro && (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-ink/60">{t("staffLabel")}</dt>
+                <dd className="tabular-nums">
+                  {view.staffLimit != null
+                    ? t("staffUsage", {
+                        used: view.staffUsed,
+                        limit: view.staffLimit,
+                      })
+                    : t("staffUnlimited", { used: view.staffUsed })}
+                </dd>
+              </div>
+              {view.enabledFeatures.length > 0 && (
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="shrink-0 text-ink/60">{t("featuresLabel")}</dt>
+                  <dd className="text-right text-ink/80">
+                    {view.enabledFeatures
+                      .map((f) => (tg.has(`features.${f}`) ? tg(`features.${f}`) : f))
+                      .join(" · ")}
+                  </dd>
+                </div>
+              )}
+            </>
           )}
         </dl>
 

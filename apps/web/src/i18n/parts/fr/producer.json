@@ -313,7 +313,11 @@
       "promoOff": "−{pct}% par prélèvement",
       "promoOffFixed": "−{amount} par prélèvement",
       "promoUntil": "jusqu'au {date}",
-      "promoCyclesLeft": "{count} prélèvements réduits restants"
+      "promoCyclesLeft": "{count} prélèvements réduits restants",
+      "staffLabel": "Collaborateurs",
+      "staffUsage": "{used} sur {limit}",
+      "staffUnlimited": "{used} · illimité",
+      "featuresLabel": "Inclus"
     },
     "gateway": {
       "title": "Ma passerelle de paiement",
@@ -448,7 +452,8 @@
       "invited": "Invitation envoyée — il a reçu un e-mail avec accès",
       "added": "Collaborateur ajouté",
       "removeTitle": "Retirer {name} ?",
-      "removeDesc": "Il n'apparaîtra plus comme candidat staff pour tes événements."
+      "removeDesc": "Il n'apparaîtra plus comme candidat staff pour tes événements.",
+      "quotaFull": "Ton plan couvre jusqu'à {limit} collaborateur(s) — passe au tier supérieur pour en ajouter."
     }
   }
 }

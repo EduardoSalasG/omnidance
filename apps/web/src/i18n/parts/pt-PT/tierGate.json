@@ -9,8 +9,9 @@
       "COBROS": "Cobros",
       "STUDIO": "Studio",
       "PRO": "Pro",
+      "PRO_STARTER": "Producer Pro",
       "PRO_GROWTH": "Producer Pro Growth",
-      "PRO_SCALE": "Producer Pro Scale"
+      "PRO_BIG": "Producer Pro à medida"
     },
     "features": {
       "classes": "Aulas e séries",

@@ -27,6 +27,11 @@ import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
+import {
+  assertActorFeature,
+  resolveProducerEntitlement,
+} from "../../common/actor-entitlements";
+import { PRODUCER_TIER_STAFF_LIMIT } from "../../payments/domain/actor-entitlements";
 import { ParamsService } from "../../params/params.service";
 import { PRESALE_CUTOFF_MAX_MINUTES } from "../../common/presale-cutoff";
 import { AuthService } from "../../auth/domain/auth.service";
@@ -383,9 +388,20 @@ export class ProducerController {
   @Post("staff")
   async addStaff(@Body() dto: AddCollaboratorDto, @Req() req: Request) {
     const me = req.person!;
-    await this.assertProducerOrAdmin(me.id, me.roles);
+    const admin = await this.assertProducerOrAdmin(me.id, me.roles);
     if (!dto.personId && !dto.email) {
       throw new BadRequestException("envía personId o email");
+    }
+
+    // La nómina es parte de multiStaff (matriz producer-pro): FREE sin
+    // Pro → 403 tier.required; un admin soporte nunca se gatea (misma
+    // regla que requireFeatureSelf en eventos). Con gate superado se
+    // resuelve el cupo del tier para el alta.
+    let staffLimit: number | null = null;
+    if (!admin) {
+      await assertActorFeature(this.prisma, "PRODUCER", me.id, "multiStaff");
+      const entitlement = await resolveProducerEntitlement(this.prisma, me.id);
+      staffLimit = PRODUCER_TIER_STAFF_LIMIT[entitlement?.tier ?? ""] ?? null;
     }
 
     let invited = false;
@@ -407,21 +423,44 @@ export class ProducerController {
         where: { email },
         select: { id: true, name: true, email: true, photoUrl: true },
       });
-      if (!person) {
-        person = await this.prisma.person.create({
-          data: {
-            email,
-            name: dto.name?.trim() || email.split("@")[0],
-          },
-          select: { id: true, name: true, email: true, photoUrl: true },
-        });
-        invited = true;
-      }
     }
-    if (!person) throw new NotFoundException("persona no encontrada");
-    if (person.id === me.id) {
+    if (person?.id === me.id) {
       throw new BadRequestException("no puedes agregarte como colaborador");
     }
+
+    // Cupo de la nómina por tier (spec producer-pro): re-agregar a
+    // alguien que ya está en nómina es idempotente y no consume cupo;
+    // al llegar al tope → 403 staff_quota ANTES de crear el stub (un
+    // alta rechazada no deja Person huérfana).
+    if (staffLimit != null) {
+      const roster = await this.prisma.producerStaff.findMany({
+        where: { producerId: me.id },
+        select: { personId: true },
+      });
+      const pid = person?.id ?? null;
+      const alreadyIn =
+        pid != null && roster.some((r) => r.personId === pid);
+      if (!alreadyIn && roster.length >= staffLimit) {
+        throw new ForbiddenException({
+          error: "staff_quota",
+          message: `tu plan cubre hasta ${staffLimit} colaborador(es) - sube de tier para sumar más`,
+          limit: staffLimit,
+          used: roster.length,
+        });
+      }
+    }
+
+    if (!person && !dto.personId) {
+      person = await this.prisma.person.create({
+        data: {
+          email,
+          name: dto.name?.trim() || email.split("@")[0],
+        },
+        select: { id: true, name: true, email: true, photoUrl: true },
+      });
+      invited = true;
+    }
+    if (!person) throw new NotFoundException("persona no encontrada");
 
     const [, row] = await this.prisma.$transaction([
       this.prisma.personRole.upsert({
@@ -490,7 +529,10 @@ export class ProducerController {
   }
 
   /** productor APPROVED o admin.access - permiso desde DB, nunca rol literal. */
-  private async assertProducerOrAdmin(personId: string, roles: string[]) {
+  private async assertProducerOrAdmin(
+    personId: string,
+    roles: string[],
+  ): Promise<boolean> {
     const [isProducer, isAdmin] = await Promise.all([
       this.prisma.personRole.findUnique({
         where: { personId_role: { personId, role: "PRODUCER" } },
@@ -500,5 +542,6 @@ export class ProducerController {
     if (!isAdmin && isProducer?.status !== "APPROVED") {
       throw new ForbiddenException("requiere rol de productor aprobado");
     }
+    return isAdmin;
   }
 }
