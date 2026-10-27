@@ -244,7 +244,10 @@
     "seriesTopAttendanceTitle": "Top présence à ce jour",
     "seriesLowAttendanceTitle": "Plus faible présence à ce jour",
     "seriesWeeklyAvgHint": "Cours hebdomadaires par élève en moyenne",
-    "seriesWeeklyAvgTitle": "Cours/sem par élève"
+    "seriesWeeklyAvgTitle": "Cours/sem par élève",
+    "country": "Pays",
+    "city": "Ville",
+    "noCity": "Pas de ville"
   },
   "academySeries": {
     "addSlotHint": "Les cours futurs sont créés ce jour-là dans la fenêtre de programmation.",

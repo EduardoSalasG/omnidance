@@ -44,7 +44,12 @@ type ProView = {
   cycle: BillingCycle | null;
   pendingTier: string | null;
   pendingCycle: BillingCycle | null;
+  /** Moneda de la suscripción (spec multipais-currency); fallback CLP. */
+  currency?: string;
+  /** Media 90d en `currency` - la que evalúa el tope del tier. */
   monthlyGross: number;
+  /** Media 90d por moneda (spec platform-multicountry) - nunca suma cruzada. */
+  monthlyGrossByCurrency?: Record<string, number>;
   maxGross: number | null;
   nextInvoiceAt: string | null;
   canceledAt: string | null;
@@ -358,8 +363,21 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
         <dl className="flex flex-col gap-1 border-t border-line pt-3 text-sm">
           <div className="flex items-center justify-between gap-3">
             <dt className="text-ink/60">{t("gross")}</dt>
-            <dd>
-              <PriceTag amount={view.monthlyGross} />
+            <dd className="flex flex-wrap justify-end gap-x-3">
+              {/* Desglose por moneda (spec platform-multicountry) - cada
+                  monto con su ISO-4217, nunca una suma cruzada. */}
+              {Object.keys(view.monthlyGrossByCurrency ?? {}).length > 0 ? (
+                Object.entries(view.monthlyGrossByCurrency!).map(
+                  ([cur, amount]) => (
+                    <PriceTag key={cur} amount={amount} currency={cur} />
+                  ),
+                )
+              ) : (
+                <PriceTag
+                  amount={view.monthlyGross}
+                  currency={view.currency ?? "CLP"}
+                />
+              )}
             </dd>
           </div>
           {view.maxGross != null && view.maxGross > 0 && (

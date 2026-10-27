@@ -244,7 +244,10 @@
     "seriesTopAttendanceTitle": "Top assiduidade até agora",
     "seriesLowAttendanceTitle": "Assiduidade mais baixa até agora",
     "seriesWeeklyAvgHint": "Aulas semanais por aluno em média",
-    "seriesWeeklyAvgTitle": "Aulas/sem por aluno"
+    "seriesWeeklyAvgTitle": "Aulas/sem por aluno",
+    "country": "País",
+    "city": "Cidade",
+    "noCity": "Sem cidade"
   },
   "academySeries": {
     "addSlotHint": "As aulas futuras são criadas nesse dia dentro da janela de agendamento.",

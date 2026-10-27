@@ -244,7 +244,10 @@
     "seriesTopAttendanceTitle": "Top attendance to date",
     "seriesLowAttendanceTitle": "Lowest attendance to date",
     "seriesWeeklyAvgHint": "Weekly classes per student on average",
-    "seriesWeeklyAvgTitle": "Classes/week per student"
+    "seriesWeeklyAvgTitle": "Classes/week per student",
+    "country": "Country",
+    "city": "City",
+    "noCity": "No city"
   },
   "academySeries": {
     "addSlotHint": "Future classes are created on that day within the scheduling window.",

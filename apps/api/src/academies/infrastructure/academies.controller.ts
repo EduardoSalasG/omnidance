@@ -35,6 +35,7 @@ import {
 } from "class-validator";
 import type { Request } from "express";
 import type { EnrollmentStatus, PlanType, Prisma } from "@prisma/client";
+import { normalizePhone } from "@omnidance/shared";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { ParamsService } from "../../params/params.service";
@@ -89,6 +90,12 @@ const ENROLLMENT_STATUSES: EnrollmentStatus[] = [
 class CreateAcademyDto {
   @IsString()
   name!: string;
+
+  /** Ciudad del catálogo (spec platform-multicountry) - resuelve el
+      país → moneda de planes/facturación de la academia. Opcional. */
+  @IsOptional()
+  @IsString()
+  cityId?: string;
 }
 
 class CreatePlanDto {
@@ -318,17 +325,25 @@ function cleanInstagram(
   return h;
 }
 
-/** Teléfono de contacto → dígitos E.164 sin "+" (wa.me); "" → null. */
-function cleanWhatsapp(
+/**
+ * Teléfono de contacto → E.164 sin "+" (wa.me); "" → null (spec
+ * platform-multicountry). `defaultCountry` = país de la academia para
+ * interpretar números nacionales; un "+" inicial lo ignora. Inválido
+ * → 400 (mismo mensaje de siempre).
+ */
+export function cleanWhatsapp(
   v: string | null | undefined,
+  defaultCountry: string,
 ): string | null | undefined {
   if (v === undefined) return undefined;
-  const d = (v ?? "").replace(/[\s\-()+]/g, "");
-  if (d === "") return null;
-  if (!/^[0-9]{8,15}$/.test(d)) {
+  let normalized;
+  try {
+    normalized = normalizePhone(v, defaultCountry);
+  } catch {
     throw new BadRequestException("whatsapp inválido");
   }
-  return d;
+  if (normalized === null) return null;
+  return normalized.e164.replace(/^\+/, "");
 }
 
 /** URL del sitio web → normalizada a http(s) absoluta; "" → null. */
@@ -705,10 +720,22 @@ export class AcademiesController {
       "academy_billing.trial_days",
       30,
     );
+    // Ciudad del catálogo (spec platform-multicountry): define el país
+    // → Country.currency de planes y facturación. Inexistente → 400.
+    if (dto.cityId !== undefined) {
+      const city = await this.prisma.city.findUnique({
+        where: { id: dto.cityId },
+        select: { id: true },
+      });
+      if (!city) throw new BadRequestException("ciudad no encontrada");
+    }
     return this.prisma.academy.create({
       data: {
         name: dto.name,
         ownerId: req.person!.id,
+        ...(dto.cityId !== undefined
+          ? { city: { connect: { id: dto.cityId } } }
+          : {}),
         trialEndsAt: new Date(Date.now() + trialDays * 24 * 60 * 60_000),
       },
     });
@@ -916,6 +943,16 @@ export class AcademiesController {
     @Req() req: Request,
   ) {
     await this.access.requireCapabilityWrite(id, req.person!, "profile");
+    // País de la academia para normalizar el whatsapp nacional (spec
+    // platform-multicountry): academia → ciudad → país; sin ciudad → CL.
+    let whatsappCountry = "CL";
+    if (dto.whatsapp !== undefined) {
+      const academy = await this.prisma.academy.findUnique({
+        where: { id },
+        select: { city: { select: { country: { select: { code: true } } } } },
+      });
+      whatsappCountry = academy?.city?.country?.code ?? "CL";
+    }
     const data: Prisma.AcademyUpdateInput = {
       // undefined = no enviado → no toca; null explícito limpia el override.
       defaultQuorum: dto.defaultQuorum,
@@ -925,7 +962,7 @@ export class AcademiesController {
       lat: dto.lat,
       lng: dto.lng,
       instagram: cleanInstagram(dto.instagram),
-      whatsapp: cleanWhatsapp(dto.whatsapp),
+      whatsapp: cleanWhatsapp(dto.whatsapp, whatsappCountry),
       website: cleanWebsite(dto.website),
       photoUrl: cleanPhotoUrl(dto.photoUrl),
       privateLessonPrice: dto.privateLessonPrice,

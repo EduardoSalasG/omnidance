@@ -64,6 +64,18 @@ export class EventsNearController {
 export class CitiesController {
   constructor(private readonly cities: CitiesService) {}
 
+  /**
+   * GET /cities/catalog - catálogo geográfico completo para selects de
+   * formularios (alta de academia, moneda del evento): países con su
+   * moneda y sus ciudades. Sin flag city_landing - es catálogo de
+   * formulario, no la superficie de descubrimiento.
+   * Debe declararse antes de @Get(":slug").
+   */
+  @Get("catalog")
+  catalog() {
+    return this.cities.catalog();
+  }
+
   /** GET /cities - ciudades con actividad próxima, ordenadas por count. */
   @Get()
   list() {

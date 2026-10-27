@@ -25,6 +25,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -177,6 +178,15 @@ class CreateEventDto {
   capacity?: number;
 
   /**
+   * Moneda del evento (spec platform-multicountry, ISO-4217). Se valida
+   * contra el catálogo Country.currency; ausente = moneda del país del
+   * venue (venue sin país → CLP).
+   */
+  @IsOptional()
+  @Matches(/^[A-Z]{3}$/)
+  currency?: string;
+
+  /**
    * Mesas reservables de la noche. Ausente = hereda el default del
    * productor; null explícito = este evento no ofrece mesas.
    */
@@ -285,6 +295,14 @@ class UpdateEventDto {
   @IsOptional()
   @IsInt()
   capacity?: number;
+
+  /**
+   * Moneda del evento (spec platform-multicountry, ISO-4217, catálogo
+   * Country.currency). Solo cambia mientras el evento no tiene Payment.
+   */
+  @IsOptional()
+  @Matches(/^[A-Z]{3}$/)
+  currency?: string;
 
   /** Mesas reservables - null apaga el servicio de mesas. */
   @IsOptional()
@@ -844,6 +862,7 @@ export class EventsController {
         doorPrice: true,
         presaleCap: true,
         doorCap: true,
+        currency: true,
         presaleCutoffMinutes: true,
         platformFeePct: true,
         primeThreshold: true,
@@ -999,6 +1018,12 @@ export class EventsController {
       dto.tablesTotal !== undefined
         ? dto.tablesTotal
         : (pd?.tablesTotal ?? null);
+    // Moneda (spec platform-multicountry): la declarada se valida contra
+    // el catálogo; sin ella se hereda del país del venue → CLP.
+    const currency =
+      dto.currency !== undefined
+        ? await this.assertCatalogCurrency(dto.currency)
+        : await this.venueCurrency(dto.venueId ?? null);
     const djIds = [...new Set(dto.djIds ?? [])];
     return this.prisma.event.create({
       data: {
@@ -1006,6 +1031,7 @@ export class EventsController {
         venueId: dto.venueId ?? null,
         seriesId: dto.seriesId ?? null,
         academyId: dto.academyId ?? null,
+        currency,
         type: dto.type ?? "SOCIAL",
         status: "DRAFT",
         startsAt: new Date(dto.startsAt),
@@ -1117,6 +1143,22 @@ export class EventsController {
       data.primeThreshold = dto.primeThreshold;
     if (dto.happyHourMinutes !== undefined)
       data.happyHourMinutes = dto.happyHourMinutes;
+    if (dto.currency !== undefined) {
+      const currency = await this.assertCatalogCurrency(dto.currency);
+      if (currency !== event.currency) {
+        // Con pagos registrados la moneda queda congelada - cambiarla
+        // corrompería la lectura histórica de los montos.
+        const payments = await this.prisma.payment.count({
+          where: { eventId: id },
+        });
+        if (payments > 0) {
+          throw new ConflictException(
+            "la moneda no se puede cambiar con ventas registradas",
+          );
+        }
+        data.currency = currency;
+      }
+    }
 
     return this.prisma.$transaction(async (tx) => {
       if (dto.scheduleBlocks !== undefined) {
@@ -1315,6 +1357,31 @@ id: { in: pool },
     const event = await this.prisma.event.findUnique({ where: { id } });
     if (!event) throw new NotFoundException("evento no encontrado");
     return event;
+  }
+
+  /**
+   * Moneda ISO-4217 contra el catálogo (spec platform-multicountry): solo
+   * se aceptan códigos presentes como `Country.currency` - una moneda
+   * sin país registrado → 400.
+   */
+  private async assertCatalogCurrency(raw: string): Promise<string> {
+    const currency = raw.trim().toUpperCase();
+    const row = await this.prisma.country.findFirst({
+      where: { currency },
+      select: { id: true },
+    });
+    if (!row) throw new BadRequestException("moneda no soportada");
+    return currency;
+  }
+
+  /** Moneda default del evento: la del país del venue → CLP. */
+  private async venueCurrency(venueId: string | null): Promise<string> {
+    if (!venueId) return "CLP";
+    const venue = await this.prisma.venue.findUnique({
+      where: { id: venueId },
+      select: { city: { select: { country: { select: { currency: true } } } } },
+    });
+    return venue?.city?.country?.currency?.toUpperCase() ?? "CLP";
   }
 
   /** owner (event.producerId === caller) o admin.access - nunca roles literales. */

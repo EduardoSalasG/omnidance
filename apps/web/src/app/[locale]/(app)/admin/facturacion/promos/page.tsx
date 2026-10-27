@@ -37,7 +37,7 @@ function promoState(p: Promo): "active" | "scheduled" | "expired" | "disabled" {
   return "active";
 }
 
-export function promoDiscountLabel(
+function promoDiscountLabel(
   p: Pick<Promo, "discountType" | "percentOff" | "amountOffClp">,
   clp: Intl.NumberFormat,
 ): string {

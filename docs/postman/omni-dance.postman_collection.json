@@ -1231,6 +1231,24 @@
       "name": "Cities",
       "item": [
         {
+          "name": "GET /api/cities/catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/catalog",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                "catalog"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/cities",
           "request": {
             "method": "GET",
