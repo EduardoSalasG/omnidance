@@ -184,57 +184,46 @@
     "ctaEvents": "Explorar eventos",
     "pricing": {
       "title": "Planos e preços",
-      "lead": "Grátis para começar. Pro quando a tua operação cresce.",
+      "lead": "A bilheteira base está sempre ativa — Pro soma staff, analíticas e CRM.",
       "perMonth": "/mês",
       "free": "Grátis",
       "custom": "Sob consulta",
       "recommended": "Recomendado",
       "cta": "Criar a minha conta",
       "ctaCustom": "Vamos conversar",
-      "note": "Os planos Pro somam multi-staff, analíticas, exportações e CRM.\nPagamento semestral −8% · anual −15%.",
+      "note": "A bilheteira base nunca é cortada: é o funil do marketplace.\nPagamento semestral −8% · anual −15%.",
       "tiers": [
         {
-          "name": "Base",
-          "priceMonthly": 0,
-          "limit": "Para começar",
+          "name": "Pro",
+          "priceMonthly": 79700,
+          "limit": "Até $2,5 M em vendas por mês",
           "recommended": false,
           "features": [
-            "Bilhética online",
-            "Porta com check-in QR",
-            "Liquidação por evento"
+            "Bilhética online + porta QR",
+            "Multi-staff (1 membro)",
+            "Analíticas e exportações"
           ]
         },
         {
-          "name": "Pro Starter",
-          "priceMonthly": 99700,
-          "limit": "Até 2,5 M$ de vendas por mês",
+          "name": "Growth",
+          "priceMonthly": 169500,
+          "limit": "Até $8 M em vendas por mês",
           "recommended": true,
           "features": [
-            "Tudo do plano Base",
-            "Multi-staff e funções",
-            "Analíticas e exportações",
-            "CRM do teu público"
+            "Tudo de Pro",
+            "CRM do teu público",
+            "Multi-staff (até 2)"
           ]
         },
         {
-          "name": "Pro Growth",
-          "priceMonthly": 250200,
-          "limit": "Até 8 M$ de vendas por mês",
-          "recommended": false,
-          "features": [
-            "Tudo do Pro Starter",
-            "Multi-staff, analíticas, exportações e CRM"
-          ]
-        },
-        {
-          "name": "Pro Big",
-          "priceMonthly": null,
+          "name": "Scale",
+          "priceMonthly": 300200,
           "limit": "Sem teto de faturação",
           "recommended": false,
           "features": [
-            "Tudo do Pro Growth",
-            "Condições a combinar",
-            "Acompanhamento dedicado"
+            "Tudo de Growth",
+            "Campanhas e benchmark da cena",
+            "Staff ilimitado"
           ]
         }
       ]
