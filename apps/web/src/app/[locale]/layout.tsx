@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
+import { ClarityScript } from "@/components/clarity";
 import { GtmNoScript, GtmScript } from "@/components/gtm";
 import { PageLoadingHost } from "@/components/ui/page-loading-host";
 import { commonMessages } from "@/i18n/messages";
@@ -105,6 +106,7 @@ export default async function RootLayout({
     >
       <head>
         <GtmScript />
+        <ClarityScript />
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body className="bg-canvas text-ink min-h-dvh antialiased">
