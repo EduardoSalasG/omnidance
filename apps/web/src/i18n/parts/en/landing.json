@@ -112,7 +112,7 @@
       "ctaCustom": "Talk to us",
       "cycleLabel": "Billing period",
       "priceBefore": "was {price}",
-      "note": "Semi-annual −8% · annual −15%.\nStudio includes card and bank transfer payments via gateway at real cost (today ~3.2%).\nLaunch price: 50% off your plan for the first 6 months.",
+      "note": "Semi-annual −8% · annual −15%.\nStudio includes card and bank transfer payments via gateway at real cost (today ~3.2%).\nLaunch price: 50% off for the first 6 months and 25% off for the next 6.",
       "tiers": [
         {
           "name": "Starter",
@@ -217,7 +217,7 @@
       "ctaCustom": "Talk to us",
       "cycleLabel": "Billing period",
       "priceBefore": "was {price}",
-      "note": "Commission: 5% + VAT + payment gateway (~9.1% all-in) per managed sale.\nDeducted from your settlement; attendees pay the exact price.\nLaunch price: 50% off your plan for the first 6 months.",
+      "note": "Commission: 5% + VAT + payment gateway (~9.1% all-in) per managed sale.\nDeducted from your settlement; attendees pay the exact price.\nLaunch price: 50% off for the first 6 months and 25% off for the next 6.",
       "tiers": [
         {
           "name": "Starter",
