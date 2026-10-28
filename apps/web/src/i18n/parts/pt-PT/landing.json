@@ -112,7 +112,7 @@
       "ctaCustom": "Vamos conversar",
       "cycleLabel": "Período de faturação",
       "priceBefore": "antes de {price}",
-      "note": "Pagamento semestral −8% · anual −15%.\nStudio inclui pagamento com cartão e transferência via gateway, a custo real (hoje ~3,2%).\nPreço de lançamento: 50% de desconto nos primeiros 6 meses e 25% nos 6 seguintes.",
+      "note": "Pagamento semestral −8% · anual −15%.\nStudio inclui pagamento com cartão e transferência via gateway, a custo real (hoje ~3,2%).",
       "tiers": [
         {
           "name": "Starter",
@@ -217,7 +217,7 @@
       "ctaCustom": "Vamos conversar",
       "cycleLabel": "Período de faturação",
       "priceBefore": "antes de {price}",
-      "note": "Comissão: 5% + IVA + gateway de pagamento (~9,1% tudo incluído) por venda gerida.\nDeduzida da tua liquidação; o assistente paga o preço exato.\nPreço de lançamento: 50% de desconto nos primeiros 6 meses e 25% nos 6 seguintes.",
+      "note": "Comissão: 5% + IVA + gateway de pagamento (~9,1% tudo incluído) por venda gerida.\nDeduzida da tua liquidação; o assistente paga o preço exato.",
       "tiers": [
         {
           "name": "Starter",
