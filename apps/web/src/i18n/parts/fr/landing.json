@@ -184,57 +184,46 @@
     "ctaEvents": "Explorer les événements",
     "pricing": {
       "title": "Plans et prix",
-      "lead": "Gratuit pour commencer. Pro quand ton opération grandit.",
+      "lead": "La billetterie de base reste toujours active — Pro ajoute staff, analytiques et CRM.",
       "perMonth": "/mois",
       "free": "Gratuit",
       "custom": "Sur devis",
       "recommended": "Recommandé",
       "cta": "Créer mon compte",
       "ctaCustom": "Parlons-en",
-      "note": "Les plans Pro ajoutent multi-staff, analytiques, exports et CRM.\nSemestriel −8 % · annuel −15 %.",
+      "note": "La billetterie de base n'est jamais coupée : c'est l'entonnoir du marketplace.\nSemestriel −8 % · annuel −15 %.",
       "tiers": [
         {
-          "name": "Base",
-          "priceMonthly": 0,
-          "limit": "Pour démarrer",
+          "name": "Pro",
+          "priceMonthly": 79700,
+          "limit": "Jusqu'à 2,5 M$ de ventes par mois",
           "recommended": false,
           "features": [
-            "Billetterie en ligne",
-            "Porte avec check-in QR",
-            "Règlement par événement"
+            "Billetterie en ligne + porte QR",
+            "Multi-staff (1 membre)",
+            "Analytiques et exports"
           ]
         },
         {
-          "name": "Pro Starter",
-          "priceMonthly": 99700,
-          "limit": "Jusqu'à 2,5 M$ de ventes par mois",
+          "name": "Growth",
+          "priceMonthly": 169500,
+          "limit": "Jusqu'à 8 M$ de ventes par mois",
           "recommended": true,
           "features": [
-            "Tout le plan Base",
-            "Multi-staff et rôles",
-            "Analytiques et exports",
-            "CRM de ton public"
+            "Tout de Pro",
+            "CRM de votre public",
+            "Multi-staff (jusqu'à 2)"
           ]
         },
         {
-          "name": "Pro Growth",
-          "priceMonthly": 250200,
-          "limit": "Jusqu'à 8 M$ de ventes par mois",
-          "recommended": false,
-          "features": [
-            "Tout Pro Starter",
-            "Multi-staff, analytiques, exports et CRM"
-          ]
-        },
-        {
-          "name": "Pro Big",
-          "priceMonthly": null,
+          "name": "Scale",
+          "priceMonthly": 300200,
           "limit": "Sans plafond de facturation",
           "recommended": false,
           "features": [
-            "Tout Pro Growth",
-            "Conditions à convenir",
-            "Accompagnement dédié"
+            "Tout de Growth",
+            "Campagnes & benchmark de la scène",
+            "Staff illimité"
           ]
         }
       ]
