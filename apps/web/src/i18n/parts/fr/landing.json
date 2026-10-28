@@ -112,7 +112,7 @@
       "ctaCustom": "Parlons-en",
       "cycleLabel": "Période de facturation",
       "priceBefore": "avant {price}",
-      "note": "Semestriel −8 % · annuel −15 %.\nLa passerelle de paiement est déduite de tes encaissements, au coût réel (~3,2 % aujourd'hui). Sur Starter, le prélèvement de collecte est 1,5× les frais de passerelle.",
+      "note": "Semestriel −8 % · annuel −15 %.\nStudio inclut le paiement par carte et virement via passerelle, au coût réel (~3,2 % aujourd'hui).",
       "tiers": [
         {
           "name": "Starter",
@@ -121,7 +121,7 @@
           "recommended": false,
           "ctaLabel": "Commencer avec Starter",
           "features": [
-            "Encaissement par la passerelle de paiement",
+            "Encaissement par justificatif validé",
             "Élèves à jour et en retard en un coup d'œil"
           ]
         },
@@ -166,19 +166,19 @@
       "items": [
         {
           "q": "Comment mes élèves paient-ils ?",
-          "a": "Chaque élève paie son plan par la passerelle de paiement, par carte, et tu peux aussi enregistrer virements ou espèces. Tu vois qui est à jour et à qui rappeler."
+          "a": "Ils s'inscrivent à ton forfait ou cours et paient depuis l'app avec leur moyen habituel. Tu vois qui est à jour sans courir après ni vérifier de justificatifs."
         },
         {
-          "q": "La passerelle facture-t-elle un supplément à l'élève ?",
-          "a": "Non. L'élève paie le prix exact du plan ; les frais de passerelle sont déduits de tes encaissements."
+          "q": "Puis-je enregistrer des paiements en espèces ou par virement ?",
+          "a": "Oui. Tu l'enregistres depuis ta console et l'élève est à jour pareil ; l'app est ton contrôle des paiements, pas seulement la passerelle."
         },
         {
-          "q": "Que se passe-t-il si je dépasse le nombre d'élèves de mon plan ?",
-          "a": "On te prévient avant d'atteindre le plafond pour que tu passes au plan supérieur. Tes élèves et ton opération continuent de fonctionner entre-temps."
+          "q": "Que se passe-t-il si je dépasse le plafond d'élèves ?",
+          "a": "On t'avertit pour passer au forfait supérieur ; ton activité ne s'arrête pas du jour au lendemain."
         },
         {
           "q": "Y a-t-il un engagement minimum ?",
-          "a": "Non. Tu peux annuler quand tu veux ; le plan reste actif jusqu'à la fin de la période déjà payée."
+          "a": "Non. Le mensuel s'annule quand tu veux ; le semestriel et l'annuel courent jusqu'à la fin de la période avec leur remise."
         }
       ]
     }
@@ -270,23 +270,28 @@
       "title": "Questions fréquentes",
       "items": [
         {
-          "q": "L'assistant paie-t-il des frais de service ?",
-          "a": "Non. L'assistant paie le prix exact du billet ; la commission est déduite de ton règlement."
+          "q": "Combien coûte la vente de billets ?",
+          "a": "Une commission par vente gérée : 5 % + TVA + passerelle de paiement (~9,1 % tout compris), déduite de ton règlement. L'assistant paie le prix exact et la vente à la porte en espèces ne comporte aucune commission."
         },
         {
-          "q": "Puis-je utiliser mon propre lien de paiement ?",
-          "a": "Les QR d'entrée ne naissent que d'une vente gérée sur la plateforme, pour que le check-in et le règlement concordent toujours."
+          "q": "Ai-je besoin d'un abonnement pour vendre ?",
+          "a": "Non. Tu peux publier ton événement et vendre des billets à tout moment. L'abonnement ajoute multi-staff, analyses, CRM et campagnes marketing."
         },
         {
-          "q": "Que se passe-t-il quand ma facturation augmente ?",
-          "a": "Ton plan monte de tier automatiquement selon tes ventes du mois. Tu n'as rien à gérer."
+          "q": "Quand est-ce que je reçois l'argent de mes ventes ?",
+          "a": "À la clôture de l'événement, le règlement est prêt avec la commission déjà déduite ; le versement suit le cycle configuré."
         },
         {
-          "q": "Puis-je annuler ?",
-          "a": "Oui, quand tu veux. L'abonnement reste actif jusqu'à la fin du cycle déjà payé."
+          "q": "Mon public doit-il installer une app ?",
+          "a": "Non. Il achète sur le web, reçoit son billet avec QR et toi ou ton staff le validez à la porte depuis le téléphone."
+        },
+        {
+          "q": "Puis-je annuler mon abonnement ?",
+          "a": "Oui, le mensuel quand tu veux ; le semestriel et l'annuel courent jusqu'à la fin de la période avec leur remise."
         }
       ]
-    }
+    },
+    "weekEmpty": "Les événements de la scène se publient dans une seule carte"
   },
   "landingProHub": {
     "metaTitle": "Omnidance pour les entreprises",

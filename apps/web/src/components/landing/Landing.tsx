@@ -20,6 +20,10 @@ import { SITE_URL } from "@/lib/site-url";
 // true cuando las academias registradas sean de pago.
 const SHOW_ACADEMY_PROOF = false;
 
+// Ídem productores: el conteo de eventos y la lista muestran la cartelera
+// seedeada; se reactiva cuando los productores pagos existan.
+const SHOW_PRODUCER_PROOF = false;
+
 // Acento de marca via token `neon` (#a78bfa violeta en :root) - icon.svg,
 // og-image e íconos PWA comparten el mismo valor. La atmósfera del hero es
 // el utility `glow-neon` (globals.css), que ya lee el token: cero JS.
@@ -101,9 +105,13 @@ export async function Landing({
   const weekLabel =
     variant === "academy"
       ? m.landingAcademy.academyEmpty
-      : weeklyEvents > 0
-        ? t.weekCount.replace("{count}", String(weeklyEvents))
-        : t.weekEmpty;
+      : variant === "producer"
+        ? SHOW_PRODUCER_PROOF && weeklyEvents > 0
+          ? t.weekCount.replace("{count}", String(weeklyEvents))
+          : t.weekEmpty
+        : weeklyEvents > 0
+          ? t.weekCount.replace("{count}", String(weeklyEvents))
+          : t.weekEmpty;
 
   // Las landings de actor van al registro normal con su rol adjunto
   // (?role= → PersonRole PENDING, usable pero invisible hasta que el
@@ -300,7 +308,7 @@ export async function Landing({
                 ))}
               </ul>
             )}
-            {variant !== "academy" && weekEvents.length > 0 && (
+            {variant !== "academy" && (variant !== "producer" || SHOW_PRODUCER_PROOF) && weekEvents.length > 0 && (
               <ul className="flex flex-col items-center gap-1 lg:flex-row lg:flex-wrap lg:justify-center lg:gap-x-3">
                 {weekEvents.map((event) => (
                   <li key={event.id}>
@@ -393,7 +401,7 @@ export async function Landing({
             // Prueba social junto al punto de decisión: el mismo claim
             // del strip de arriba. En academias queda oculto hasta que
             // haya clientes reales que respalden el número.
-            proof={variant === "academy" ? undefined : weekLabel}
+            proof={variant === "academy" || variant === "producer" ? undefined : weekLabel}
           />
         )}
         {productLd && (

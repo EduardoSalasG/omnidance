@@ -112,7 +112,7 @@
       "ctaCustom": "Conversemos",
       "cycleLabel": "Período de facturación",
       "priceBefore": "antes {price}",
-      "note": "Pago semestral −8% · pago anual −15%.\nLa pasarela de pago se descuenta de lo recaudado, a costo real (hoy ~3,2%). En Starter el take de cobranza es 1,5× el fee de pasarela.",
+      "note": "Pago semestral −8% · pago anual −15%.\nStudio incluye pago con tarjeta y transferencia vía pasarela, a costo real (hoy ~3,2%).",
       "tiers": [
         {
           "name": "Starter",
@@ -121,7 +121,7 @@
           "recommended": false,
           "ctaLabel": "Empezar con Starter",
           "features": [
-            "Cobranza por pasarela de pago",
+            "Cobranza por comprobante validado",
             "Alumnos al día y morosos a la vista"
           ]
         },
@@ -166,19 +166,19 @@
       "items": [
         {
           "q": "¿Cómo pagan mis alumnos?",
-          "a": "Cada alumno paga su plan por la pasarela de pago con tarjeta, y también puedes registrar pagos por transferencia o efectivo. Tú ves quién está al día y a quién recordar."
+          "a": "Se inscriben a tu plan o clase y pagan desde la app con su medio habitual. Tú ves quién está al día sin perseguir ni revisar comprobantes."
         },
         {
-          "q": "¿La pasarela le cobra extra al alumno?",
-          "a": "No. El alumno paga el precio exacto del plan; el costo de la pasarela se descuenta de lo recaudado."
+          "q": "¿Puedo registrar pagos en efectivo o transferencia?",
+          "a": "Sí. Lo registras desde tu consola y el alumno queda al día igual; la app es tu control de pagos, no solo la pasarela."
         },
         {
           "q": "¿Qué pasa si supero los alumnos de mi plan?",
-          "a": "Te avisamos antes de llegar al tope para que subas de plan. Tus alumnos y tu operación siguen funcionando mientras tanto."
+          "a": "Te avisamos para subir de plan; tu operación no se corta de un día para otro."
         },
         {
           "q": "¿Hay permanencia mínima?",
-          "a": "No. Puedes cancelar cuando quieras; el plan se mantiene activo hasta el fin del período ya pagado."
+          "a": "No. El mensual se cancela cuando quieras; el semestral y el anual corren hasta el final del período con su descuento."
         }
       ]
     }
@@ -270,23 +270,28 @@
       "title": "Preguntas frecuentes",
       "items": [
         {
-          "q": "¿El asistente paga cargo de servicio?",
-          "a": "No. El asistente paga el precio exacto de la entrada; la comisión se descuenta de tu liquidación."
+          "q": "¿Cuánto me cuesta vender entradas?",
+          "a": "Una comisión por venta gestionada: 5% + IVA + pasarela de pago (~9,1% todo incluido), descontada de tu liquidación. El asistente paga el precio exacto y la venta en puerta en efectivo no lleva comisión."
         },
         {
-          "q": "¿Puedo usar mi propio link de pago?",
-          "a": "Los QR de entrada solo nacen de una venta gestionada en la plataforma, así el check-in y la liquidación siempre cuadran."
+          "q": "¿Necesito un plan para vender?",
+          "a": "No. Puedes publicar tu evento y vender entradas siempre. El plan suma multi-staff, analíticas, CRM y campañas de marketing."
         },
         {
-          "q": "¿Qué pasa cuando subo de facturación?",
-          "a": "El plan sube de tier automáticamente según tus ventas del mes. No tienes que gestionar nada."
+          "q": "¿Cuándo recibo la plata de mis ventas?",
+          "a": "Al cerrar el evento la liquidación queda lista con la comisión ya descontada y el desembolso corre según el ciclo configurado."
         },
         {
-          "q": "¿Puedo cancelar?",
-          "a": "Sí, cuando quieras. La suscripción se mantiene activa hasta el fin del ciclo ya pagado."
+          "q": "¿Mi público tiene que instalar una app?",
+          "a": "No. Compra en la web, recibe su entrada con QR y tú o tu staff la validan en la puerta desde el teléfono."
+        },
+        {
+          "q": "¿Puedo cancelar el plan?",
+          "a": "Sí, el mensual cuando quieras; el semestral y el anual corren hasta el final del período con su descuento."
         }
       ]
-    }
+    },
+    "weekEmpty": "Los eventos de la escena se publican en una sola cartelera"
   },
   "landingProHub": {
     "metaTitle": "Omnidance para negocios",
