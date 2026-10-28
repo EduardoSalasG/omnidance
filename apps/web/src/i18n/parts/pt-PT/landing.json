@@ -233,25 +233,15 @@
           "ctaLabel": "Vender agora"
         },
         {
-          "name": "Starter",
-          "priceMonthly": 79700,
-          "limit": "Até $2,5 M em vendas por mês",
-          "recommended": false,
-          "ctaLabel": "Começar com Starter",
-          "features": [
-            "Analíticas de vendas e audiência",
-            "Exportações"
-          ]
-        },
-        {
           "name": "Standard",
           "priceMonthly": 169500,
           "limit": "Até $8 M em vendas por mês",
           "recommended": true,
           "ctaLabel": "Escolher Standard",
           "features": [
-            "Tudo o do Starter",
-            "CRM do teu público"
+            "Analíticas de vendas e audiência",
+            "CRM do teu público",
+            "Exportações"
           ]
         },
         {
