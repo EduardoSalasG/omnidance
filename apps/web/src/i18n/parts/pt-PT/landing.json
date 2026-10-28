@@ -123,7 +123,8 @@
           "features": [
             "Cobrança por comprovativo validado",
             "Alunos em dia e em atraso num relance"
-          ]
+          ],
+          "promoPriceMonthly": 19750
         },
         {
           "name": "Studio",

@@ -27,6 +27,9 @@ const DISCOUNT_LABEL: Partial<Record<Cycle, string>> = {
 export type PricingTier = {
   name: string;
   priceMonthly: number | null;
+  /** Precio promo permanente (ej. Starter academias −50%): se muestra
+   *  como precio vigente con el de lista tachado. */
+  promoPriceMonthly?: number | null;
   limit: string;
   recommended: boolean;
   features: string[];
@@ -147,7 +150,8 @@ export function PricingSection({
                   </span>
                 ) : (
                   <span className="flex flex-wrap items-baseline gap-x-2">
-                    {cycle !== "monthly" && (
+                    {(tier.promoPriceMonthly != null ||
+                      cycle !== "monthly") && (
                       <>
                         {/* El tachado no se anuncia: el precio anterior
                             va como texto sr-only para no leer dos
@@ -167,15 +171,31 @@ export function PricingSection({
                       </>
                     )}
                     <span className="text-2xl font-extrabold">
-                      {formatClp(equiv(tier.priceMonthly), locale)}
+                      {formatClp(
+                        equiv(
+                          tier.promoPriceMonthly ?? tier.priceMonthly,
+                        ),
+                        locale,
+                      )}
                     </span>
                     <span className="text-sm text-ink/50">
                       {pricing.perMonth}
                     </span>
-                    {cycle !== "monthly" && (
+                    {tier.promoPriceMonthly != null ? (
                       <span className="rounded-full bg-neon/15 px-2 py-0.5 text-xs font-semibold text-neon">
-                        {DISCOUNT_LABEL[cycle]}
+                        −
+                        {Math.round(
+                          (1 - tier.promoPriceMonthly / tier.priceMonthly) *
+                            100,
+                        )}
+                        %
                       </span>
+                    ) : (
+                      cycle !== "monthly" && (
+                        <span className="rounded-full bg-neon/15 px-2 py-0.5 text-xs font-semibold text-neon">
+                          {DISCOUNT_LABEL[cycle]}
+                        </span>
+                      )
                     )}
                   </span>
                 )}
@@ -185,7 +205,12 @@ export function PricingSection({
                 cycle !== "monthly" && (
                   <p className="mt-0.5 text-xs text-ink/60">
                     {pricing.billedPer[cycle]}:{" "}
-                    {formatClp(billed(tier.priceMonthly), locale)}
+                    {formatClp(
+                      billed(
+                        tier.promoPriceMonthly ?? tier.priceMonthly,
+                      ),
+                      locale,
+                    )}
                   </p>
                 )}
               <p className="mt-1 text-xs text-ink/60">{tier.limit}</p>

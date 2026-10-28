@@ -429,3 +429,18 @@ cobranza online les cuesta casi una mensualidad de alumna extra.
   Studio = tarjeta + transferencia vía Flow + operación completa.
   Cuando la academia quiera que el alumno pague sin mandar
   comprobante, el upgrade se vende solo.
+
+## 7. Promo permanente Starter academias (−50%)
+
+- Landing muestra Starter $39.500 tachado → **$19.750** con chip −50%
+  (campo `promoPriceMonthly` en `PricingTier`, solo catálogo).
+- **Campaña real**: crear `PlatformPromo` PERCENT 50, scope ACADEMY,
+  **sin ventana ni maxCycles** (permanente) — la intención es que el
+  precio de captura quede; cuando el plan deje de convenir como ancla
+  se revisa (es config `/admin/facturacion/promos`, no precio de
+  lista).
+- **Cutoff de upgrade** (cuándo le conviene a la academia subir):
+  Starter→Studio al superar **60 alumnos** (cap hard del tier) o al
+  querer cobro online gestionado — el comprobante solo escala hasta
+  ~40-50 validaciones/mes manual. Studio→Pro: **>150 alumnos** o al
+  necesitar CRM/campañas/multi-academia.
