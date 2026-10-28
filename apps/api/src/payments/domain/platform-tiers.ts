@@ -27,10 +27,11 @@ export const SELF_SERVE_ACADEMY_TIERS = new Set<string>([
   "STUDIO",
   "PRO",
 ]);
-// ENTERPRISE queda como único "a convenir": los 3 tiers Pro de
-// productor (Pro/Growth/Scale en la UI) son autogestionados y pagos.
+// ENTERPRISE queda como único "a convenir": los 2 tiers Pro de
+// productor (Standard/Pro en la UI) son autogestionados y pagos.
+// PRO_STARTER sale de venta (el plan de entrada es el ticketing
+// transaccional sin mensualidad) - el código queda para subs vigentes.
 export const SELF_SERVE_PRODUCER_TIERS = new Set<string>([
-  "PRO_STARTER",
   "PRO_GROWTH",
   "PRO_BIG",
 ]);

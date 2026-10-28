@@ -233,25 +233,15 @@
           "ctaLabel": "Vender ahora"
         },
         {
-          "name": "Starter",
-          "priceMonthly": 79700,
-          "limit": "Hasta $2,5 M de ventas al mes",
-          "recommended": false,
-          "ctaLabel": "Empezar con Starter",
-          "features": [
-            "Analíticas de ventas y audiencia",
-            "Exportaciones"
-          ]
-        },
-        {
           "name": "Standard",
           "priceMonthly": 169500,
           "limit": "Hasta $8 M de ventas al mes",
           "recommended": true,
           "ctaLabel": "Elegir Standard",
           "features": [
-            "Todo lo de Starter",
-            "CRM de tu público"
+            "Analíticas de ventas y audiencia",
+            "CRM de tu público",
+            "Exportaciones"
           ]
         },
         {
@@ -262,7 +252,7 @@
           "ctaLabel": "Ir a Pro",
           "features": [
             "Todo lo de Standard",
-            "Campañas segmentadas y benchmark"
+            "Campañas segmentadas y benchmark de la escena"
           ]
         }
       ],
