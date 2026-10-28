@@ -181,6 +181,7 @@ describe("social endpoints e2e", () => {
           [
             "address",
             "capacity",
+            "city",
             "hours",
             "id",
             "lat",
