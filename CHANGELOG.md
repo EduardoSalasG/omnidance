@@ -3,6 +3,17 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.12.1] - 2026-10-28
+
+### Changed
+
+- **Seed baseline en todos los deploys**: el workflow ya no omite el
+  seed cuando la DB tiene baseline - es idempotente y es la única vía
+  por la que params/valores nuevos de cada release llegan a prod
+  (los params nuevos de 1.12.0 quedaron sin crear por este gap).
+   solo se exige en el primer boot (sin ADMIN
+  aprobado).
+
 ## [1.12.0] - 2026-10-28
 
 ### Added
