@@ -375,3 +375,44 @@ La decisión es **fijo vs solo-transaccional**, y depende del volumen:
 - Param global ya actualizado: `fees.managed_allin_pct` = **9,14**
   (5% + 19% IVA + 3,19% pasarela — la descomposición por línea es la
   misma de siempre).
+
+## 6. Análisis competitivo — Starter vs Membrezia (academias)
+
+Datos reales del tarifario Membrezia (membrezia.com, oct-2026):
+
+| Plan | Precio | Cap | Cobranza online |
+|---|---|---|---|
+| Básico | 0,6 UF + IVA ≈ **$28.200** | 150 activos | Sí (1 medio) + automatización + portal + ranking morosos |
+| Corporativo | 1 UF + IVA ≈ **$47.000** | 300 activos | Sí (3 medios) + facturación SII + API |
+| Enterprise | a medida | ilimitado | +0,5 UF por cada 150 extra |
+
+### Costo total real (academia típica: 50 alumnos × $15.000 ≈ $750K recaudados)
+
+| | Membrezia Básico | Starter Omnidance |
+|---|---|---|
+| Fee plataforma | ~$28.200 | $19.750 en promo (−50% de $39.500) |
+| Costo de cobrar online (~3,2% × $750K) | ~$24.000 | $0 (comprobante manual) |
+| **Total/mes** | **~$52.200** | **$19.750** |
+| Por alumno/mes | ~$1.044 | ~$395 |
+
+El "Básico barato" de Membrezia es ilusión: su fee se ve chico pero la
+cobranza online les cuesta casi una mensualidad de alumna extra.
+
+### Veredicto
+
+- **En cobranza pura gana Membrezia**: automatización desde el Básico,
+  triple cap, portal. Si el cliente compara solo esa columna, perdemos.
+- **Donde somos irremplazables**: ecosistema (los alumnos ya usan la app
+  para eventos/QR), la operación completa vive en Studio+, y aun con
+  comprobante manual el costo total es ~60% menor.
+- **Posicionamiento correcto**: Starter no compite como "cobranza
+  barata"; es la entrada al orden completo. El pitch: "por menos de lo
+  que te cuesta cobrar online, ordenas tu academia entera — y cuando
+  quieras cobro automático subes a Studio".
+- **Decisión de precio**: lista $39.500 intacta (ancla calculada);
+  adquisición vía promo de lanzamiento −50% (m1-6) → −25% (m7-12) →
+  efectivo $19.750. Nunca mostrar el precio promo como "el precio".
+- **Upgrade trigger claro**: Starter = validación por comprobante;
+  Studio = tarjeta + transferencia vía Flow + operación completa.
+  Cuando la academia quiera que el alumno pague sin mandar
+  comprobante, el upgrade se vende solo.
