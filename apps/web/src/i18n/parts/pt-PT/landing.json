@@ -182,14 +182,14 @@
     "ctaEvents": "Explorar eventos",
     "pricing": {
       "title": "Planos e preços",
-      "lead": "A bilheteira base está sempre ativa — Pro soma staff, analíticas e CRM.",
+      "lead": "",
       "perMonth": "/mês",
       "free": "Grátis",
       "custom": "Sob consulta",
       "recommended": "Recomendado",
       "cta": "Criar a minha conta",
       "ctaCustom": "Vamos conversar",
-      "note": "A bilheteira base nunca é cortada: é o funil do marketplace.\nPagamento semestral −8% · anual −15%.",
+      "note": "Comissão tudo incluído de 10% por venda gerida (gateway + taxa + IVA):\ndeduzida da tua liquidação — o assistente paga o preço exato.",
       "tiers": [
         {
           "name": "Starter",

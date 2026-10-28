@@ -182,14 +182,14 @@
     "footerAlt": "Para bailarines",
     "pricing": {
       "title": "Planes y precios",
-      "lead": "El ticketing base siempre activo — Pro suma staff, analíticas y CRM.",
+      "lead": "",
       "perMonth": "/mes",
       "free": "Gratis",
       "custom": "A convenir",
       "recommended": "Recomendado",
       "cta": "Crear mi cuenta",
       "ctaCustom": "Conversemos",
-      "note": "Ticketing base nunca se corta: es el funnel del marketplace.\nPago semestral −8% · pago anual −15%.",
+      "note": "Comisión todo incluido del 10% por venta gestionada (pasarela + fee + IVA):\nse descuenta de tu liquidación — el asistente paga el precio exacto.",
       "tiers": [
         {
           "name": "Starter",
