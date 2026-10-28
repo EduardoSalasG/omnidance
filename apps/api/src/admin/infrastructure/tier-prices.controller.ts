@@ -15,6 +15,7 @@ import {
   IsInt,
   IsISO4217CurrencyCode,
   IsOptional,
+  IsString,
   Matches,
   Min,
 } from "class-validator";
@@ -63,6 +64,11 @@ class CreateTierPriceDto {
 
   @IsISO4217CurrencyCode()
   currency!: string;
+
+  /** Nombre público del tier (desacoplado del tierCode persistido). */
+  @IsOptional()
+  @IsString()
+  displayName?: string;
 }
 
 class UpdateTierPriceDto {
@@ -75,6 +81,10 @@ class UpdateTierPriceDto {
   @IsOptional()
   @IsISO4217CurrencyCode()
   currency?: string;
+
+  @IsOptional()
+  @IsString()
+  displayName?: string;
 }
 
 @Controller("admin/tier-prices")
@@ -139,6 +149,7 @@ export class AdminTierPricesController {
         countryCode: dto.countryCode,
         price: dto.price,
         currency: dto.currency.toUpperCase(),
+        ...(dto.displayName ? { displayName: dto.displayName } : {}),
       },
     });
   }
@@ -156,6 +167,9 @@ export class AdminTierPricesController {
       data: {
         ...(dto.price !== undefined ? { price: dto.price } : {}),
         ...(dto.currency ? { currency: dto.currency.toUpperCase() } : {}),
+        ...(dto.displayName !== undefined
+          ? { displayName: dto.displayName || null }
+          : {}),
       },
     });
   }

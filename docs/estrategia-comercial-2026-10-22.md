@@ -360,3 +360,18 @@ La decisión es **fijo vs solo-transaccional**, y depende del volumen:
 5. **El ingreso sigue al hábito, no al precio**: año 1 con subsidio
    (~$12M) compra la posición; los años 2-3 (~$47M/$64M) se cobran
    con el fee full + tiers altos por auto-upgrade de facturación.
+
+### Runbook promo de lanzamiento (config /admin, sin deploy)
+
+- **Planes** (suscripción): `PlatformPromo` PERCENT 50, scope ambas
+  líneas, `maxCycles=6` por actor, ventana de lanzamiento; al expirar
+  crear la segunda PERCENT 25 `maxCycles=6`. El reconcile agenda
+  `pendingReprice` solo — nunca editar el plan del tier.
+- **Fee de comisión** (por productor): override
+  `ProducerParams.platformFeePct` — m1-6 = **6,17** (2,5% fee + IVA +
+  pasarela), m7-12 = **7,65** (3,75% + IVA + pasarela), luego quitar
+  el override (vuelve al default 9,14). La pasarela nunca entra al
+  descuento.
+- Param global ya actualizado: `fees.managed_allin_pct` = **9,14**
+  (5% + 19% IVA + 3,19% pasarela — la descomposición por línea es la
+  misma de siempre).

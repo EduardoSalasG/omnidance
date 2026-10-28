@@ -489,31 +489,32 @@ Micro-encuentros de baile **creados por cualquier bailarín** - no requieren aca
 
 | Tier comercial | % todo incluido | Uso |
 |---|---|---|
-| **Precio de lista** | **10%** | Default de `platformFeePct` - conversación inicial |
-| **Promo de cierre** | **8%** | Override por productor (`ProducerParams.platformFeePct`) - "oferta" para convencerlo; es el objetivo económico real |
+| **Precio de lista** | **9,14%** | `fees.managed_allin_pct`: 5% fee + IVA + 3,19% pasarela - conversación "5% + IVA + pasarela" |
+| **Promo lanzamiento m1-6** | **~6,17%** | Override por productor (`ProducerParams.platformFeePct`) - fee −50% (2,5% + IVA + pasarela); la pasarela nunca se subsidia |
+| **Promo lanzamiento m7-12** | **~7,65%** | Idem con fee −25% (3,75% + IVA + pasarela) - escalón antes del full |
 
-**Desglose del % todo incluido** (ej. 10% sobre $6.000 → deducción $600):
+**Desglose del % todo incluido** (ej. 9,14% sobre $6.000 → deducción $548):
 
 | Línea de liquidación | % sobre venta | CLP | Destino |
 |---|---|---|---|
 | `GATEWAY_FEE_PASSTHROUGH` | ~3,19% (real por medio) | $191 | Pasarela, al costo |
-| `PLATFORM_FEE_NET` | ~5,72% | $344 | Ingreso omni-dance |
-| `PLATFORM_FEE_IVA` | ~1,09% | $65 | IVA 19% sobre nuestro fee - facturado al productor |
-| **Total** | **10%** | **$600** | |
+| `PLATFORM_FEE_NET` | ~5% | $300 | Ingreso omni-dance |
+| `PLATFORM_FEE_IVA` | ~0,95% | $57 | IVA 19% sobre nuestro fee - facturado al productor |
+| **Total** | **9,14%** | **$548** | |
 
-Con promo 8%: neto omni ~4,05% ($243/ticket), productor recibe $5.520. El neto omni por ticket queda **en torno a los ~$300 históricos** del flat $500 - el cambio es de estructura, no de nivel de ingreso.
+El neto omni por ticket queda ~$300 - mismo nivel histórico del flat $500.
 
 **Un solo parámetro deriva todos los modos de cobro:**
 
 | Modo de cobro | Tasa | Detalle |
 |---|---|---|
-| **Gestionada** (nuestra pasarela) | `platformFeePct` (10% / promo 8%) | Recaudamos nosotros → payout |
-| **Métodos propios** (transferencia/link/comprobante) | `platformFeePct − gateway card pct` → **6,81% / 4,81%** | Mismo all-in menos la pasarela que no usamos; la promo baja sola. El fee se **devenga y se netea** contra payouts gestionados (o se factura mensual). Flujo: el comprador elige el método en checkout → orden queda PENDING con instrucciones → sube comprobante → el productor lo valida en `/productor/comprobantes` (aprobar = misma liquidación que un webhook de pasarela; rechazar exige motivo y permite re-intento) |
+| **Gestionada** (nuestra pasarela) | `platformFeePct` (9,14% / promo según tramo) | Recaudamos nosotros → payout |
+| **Métodos propios** (transferencia/link/comprobante) | `platformFeePct − gateway card pct` → **5,95%** | Mismo all-in menos la pasarela que no usamos; la promo baja sola. El fee se **devenga y se netea** contra payouts gestionados (o se factura mensual). Flujo: el comprador elige el método en checkout → orden queda PENDING con instrucciones → sube comprobante → el productor lo valida en `/productor/comprobantes` (aprobar = misma liquidación que un webhook de pasarela; rechazar exige motivo y permite re-intento) |
 | **Pasarela propia** (su cuenta Flow/MP) | mismo derivado que métodos propios | Credenciales cifradas del productor; la plata va directo a él; fee devengado igual |
 | **Efectivo en puerta** (staff registra) | **0%** | Es validación/QR + data, no procesamos plata |
 | **Entrada liberada** ($0) | **0%** | Nada que cobrar |
 
-Justificación: la diferencia gestionada↔propia es exactamente el costo de pasarela que evitamos - "con nosotros no pagas el 3,19% de Flow aparte, está dentro del 10%". Más honesto y más vendible que un surcharge arbitrario.
+Justificación: la diferencia gestionada↔propia es exactamente el costo de pasarela que evitamos - "con nosotros no pagas el 3,19% de Flow aparte, está dentro del 9,14%". Más honesto y más vendible que un surcharge arbitrario.
 
 ### Estudio de mercado (oct-2026) - por qué 8-10% es defendible
 
