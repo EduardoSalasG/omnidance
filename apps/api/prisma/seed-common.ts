@@ -151,11 +151,12 @@ const PARAM_DEFAULTS: Array<{
   { key: "academy_billing.trial_days", value: 30, description: "Días de trial de onboarding para academias nuevas (sin tarjeta upfront)" },
   { key: "academy_billing.migration_grace_days", value: 60, description: "Días de grace de lanzamiento para academias existentes al despliegue SaaS" },
   { key: "academy_billing.grace_days", value: 5, description: "Días calendario de gracia tras invoice impaga antes del bloqueo por mora" },
-  // Tiers Producer Pro: límite de facturación mensual (media 90d) por tier (PRO_BIG = a convenir).
+  // Tiers Producer Pro: límite de facturación mensual media 90d por tier.
   { key: "producer_tier.starter_max_monthly_clp", value: 2500000, description: "Facturación mensual máxima del tier PRO_STARTER (CLP)" },
   { key: "producer_tier.growth_max_monthly_clp", value: 8000000, description: "Facturación mensual máxima del tier PRO_GROWTH (CLP)" },
   { key: "producer_tier.starter_monthly_clp", value: 79700, description: "Precio mensual tier PRO_STARTER/Pro (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
   { key: "producer_tier.growth_monthly_clp", value: 169500, description: "Precio mensual tier PRO_GROWTH/Growth (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
+  { key: "producer_tier.big_monthly_clp", value: 300200, description: "Precio mensual tier PRO_BIG/Scale (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
   // Costo de pasarela descontado del payout de academia (línea GATEWAY_FEE_PASSTHROUGH).
   { key: "gateway_fee.academy_passthrough_pct", value: 3.19, description: "% de pasarela descontado del payout de academia" },
   // Ventanas de los insights de retención del dashboard de academia
@@ -557,16 +558,20 @@ export async function seedCommon(prisma: PrismaClient) {
   const CYCLE_FACTOR = { MONTHLY: 1, SEMIANNUAL: 5.52, ANNUAL: 10.2 } as const;
   const paramVal = (key: string) =>
     PARAM_DEFAULTS.find((p) => p.key === key)?.value as number;
+  // displayName: nombre público editable (desacoplado del tierCode
+  // persistido) - el front usa su mapa i18n si es null.
   const tierPriceSeed: {
     tierCode: string;
     kind: "ACADEMY" | "PRODUCER";
     monthlyKey: string;
+    displayName: string;
   }[] = [
-    { tierCode: "COBROS", kind: "ACADEMY", monthlyKey: "academy_tier.cobros_monthly_clp" },
-    { tierCode: "STUDIO", kind: "ACADEMY", monthlyKey: "academy_tier.studio_monthly_clp" },
-    { tierCode: "PRO", kind: "ACADEMY", monthlyKey: "academy_tier.pro_monthly_clp" },
-    { tierCode: "PRO_STARTER", kind: "PRODUCER", monthlyKey: "producer_tier.starter_monthly_clp" },
-    { tierCode: "PRO_GROWTH", kind: "PRODUCER", monthlyKey: "producer_tier.growth_monthly_clp" },
+    { tierCode: "COBROS", kind: "ACADEMY", monthlyKey: "academy_tier.cobros_monthly_clp", displayName: "Starter" },
+    { tierCode: "STUDIO", kind: "ACADEMY", monthlyKey: "academy_tier.studio_monthly_clp", displayName: "Studio" },
+    { tierCode: "PRO", kind: "ACADEMY", monthlyKey: "academy_tier.pro_monthly_clp", displayName: "Pro" },
+    { tierCode: "PRO_STARTER", kind: "PRODUCER", monthlyKey: "producer_tier.starter_monthly_clp", displayName: "Starter" },
+    { tierCode: "PRO_GROWTH", kind: "PRODUCER", monthlyKey: "producer_tier.growth_monthly_clp", displayName: "Standard" },
+    { tierCode: "PRO_BIG", kind: "PRODUCER", monthlyKey: "producer_tier.big_monthly_clp", displayName: "Pro" },
   ];
   for (const t of tierPriceSeed) {
     const monthly = paramVal(t.monthlyKey);
@@ -588,6 +593,7 @@ export async function seedCommon(prisma: PrismaClient) {
           countryCode: "CL",
           price: Math.round(monthly * CYCLE_FACTOR[cycle]),
           currency: "CLP",
+          displayName: t.displayName,
         },
       });
     }

@@ -656,9 +656,9 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 
 | Tier | Precio mensual | Facturación 90d | Incluye |
 |---|---|---|---|
-| **Pro** | $79.700 | ≤$2,5M | Analítica avanzada, exportaciones y multi-staff (1 colaborador) |
-| **Growth** | $169.500 | ≤$8M | + CRM de la audiencia (staff hasta 2) |
-| **Scale** | $300.200 | >$8M | + campañas, benchmark vs escena, staff ilimitado |
+| **Starter** | $79.700 | ≤$2,5M | Analítica avanzada, exportaciones y multi-staff (1 colaborador) |
+| **Standard** | $169.500 | ≤$8M | + CRM de la audiencia (staff hasta 2) |
+| **Pro** | $300.200 | >$8M | + campañas, benchmark vs escena, staff ilimitado |
 
 El ticketing base, venta y check-in **nunca se cortan** por la suscripción (el marketplace es el funnel). Trial de lanzamiento: +90d a productores registrados. Ciclos con −8% semestral/−15% anual (mismo criterio que academias).
 

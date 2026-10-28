@@ -113,7 +113,7 @@
       "note": "Começas com um período experimental no nível Studio: a operação completa desde o primeiro dia.\nPagamento semestral −8% · anual −15%.",
       "tiers": [
         {
-          "name": "Cobros",
+          "name": "Starter",
           "priceMonthly": 39500,
           "limit": "Até 60 alunos",
           "recommended": false,
@@ -128,7 +128,7 @@
           "limit": "Até 150 alunos",
           "recommended": true,
           "features": [
-            "Tudo do plano Cobros",
+            "Tudo do plano Starter",
             "Aulas, séries e reservas",
             "Presenças, staff e pré-vendas"
           ]
@@ -194,7 +194,7 @@
       "note": "A bilheteira base nunca é cortada: é o funil do marketplace.\nPagamento semestral −8% · anual −15%.",
       "tiers": [
         {
-          "name": "Pro",
+          "name": "Starter",
           "priceMonthly": 79700,
           "limit": "Até $2,5 M em vendas por mês",
           "recommended": false,
@@ -205,23 +205,23 @@
           ]
         },
         {
-          "name": "Growth",
+          "name": "Standard",
           "priceMonthly": 169500,
           "limit": "Até $8 M em vendas por mês",
           "recommended": true,
           "features": [
-            "Tudo de Pro",
+            "Tudo de Starter",
             "CRM do teu público",
             "Multi-staff (até 2)"
           ]
         },
         {
-          "name": "Scale",
+          "name": "Pro",
           "priceMonthly": 300200,
           "limit": "Sem teto de faturação",
           "recommended": false,
           "features": [
-            "Tudo de Growth",
+            "Tudo de Standard",
             "Campanhas e benchmark da cena",
             "Staff ilimitado"
           ]

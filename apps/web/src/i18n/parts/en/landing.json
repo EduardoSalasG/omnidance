@@ -113,7 +113,7 @@
       "note": "Your trial starts at Studio level: the full operation from day one.\nSemi-annual −8% · annual −15%.",
       "tiers": [
         {
-          "name": "Cobros",
+          "name": "Starter",
           "priceMonthly": 39500,
           "limit": "Up to 60 students",
           "recommended": false,
@@ -128,7 +128,7 @@
           "limit": "Up to 150 students",
           "recommended": true,
           "features": [
-            "Everything in Cobros",
+            "Everything in Starter",
             "Classes, series and bookings",
             "Attendance, staff and presales"
           ]
@@ -194,7 +194,7 @@
       "note": "Base ticketing never gets cut: it's the marketplace funnel.\nSemi-annual −8% · annual −15%.",
       "tiers": [
         {
-          "name": "Pro",
+          "name": "Starter",
           "priceMonthly": 79700,
           "limit": "Up to $2.5 M in monthly sales",
           "recommended": false,
@@ -205,23 +205,23 @@
           ]
         },
         {
-          "name": "Growth",
+          "name": "Standard",
           "priceMonthly": 169500,
           "limit": "Up to $8 M in monthly sales",
           "recommended": true,
           "features": [
-            "Everything in Pro",
+            "Everything in Starter",
             "Your audience CRM",
             "Multi-staff (up to 2)"
           ]
         },
         {
-          "name": "Scale",
+          "name": "Pro",
           "priceMonthly": 300200,
           "limit": "No billing cap",
           "recommended": false,
           "features": [
-            "Everything in Growth",
+            "Everything in Standard",
             "Campaigns & scene benchmark",
             "Unlimited staff"
           ]

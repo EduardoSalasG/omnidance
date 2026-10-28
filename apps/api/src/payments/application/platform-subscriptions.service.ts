@@ -322,7 +322,7 @@ export class PlatformSubscriptionsService {
     ]);
     if (monthlyGross <= starterMax) return "PRO_STARTER";
     if (monthlyGross <= growthMax) return "PRO_GROWTH";
-    return null;
+    return "PRO_BIG";
   }
 
   /**

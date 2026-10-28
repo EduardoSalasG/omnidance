@@ -113,7 +113,7 @@
       "note": "Empiezas con prueba en nivel Studio: la operación completa desde el día uno.\nPago semestral −8% · pago anual −15%.",
       "tiers": [
         {
-          "name": "Cobros",
+          "name": "Starter",
           "priceMonthly": 39500,
           "limit": "Hasta 60 alumnos",
           "recommended": false,
@@ -128,7 +128,7 @@
           "limit": "Hasta 150 alumnos",
           "recommended": true,
           "features": [
-            "Todo lo del plan Cobros",
+            "Todo lo del plan Starter",
             "Clases, series y reservas",
             "Asistencia, staff y preventas"
           ]
@@ -194,7 +194,7 @@
       "note": "Ticketing base nunca se corta: es el funnel del marketplace.\nPago semestral −8% · pago anual −15%.",
       "tiers": [
         {
-          "name": "Pro",
+          "name": "Starter",
           "priceMonthly": 79700,
           "limit": "Hasta $2,5 M de ventas al mes",
           "recommended": false,
@@ -205,23 +205,23 @@
           ]
         },
         {
-          "name": "Growth",
+          "name": "Standard",
           "priceMonthly": 169500,
           "limit": "Hasta $8 M de ventas al mes",
           "recommended": true,
           "features": [
-            "Todo lo de Pro",
+            "Todo lo de Starter",
             "CRM de tu público",
             "Multi-staff (hasta 2)"
           ]
         },
         {
-          "name": "Scale",
+          "name": "Pro",
           "priceMonthly": 300200,
           "limit": "Sin tope de facturación",
           "recommended": false,
           "features": [
-            "Todo lo de Growth",
+            "Todo lo de Standard",
             "Campañas y benchmark de la escena",
             "Staff ilimitado"
           ]
