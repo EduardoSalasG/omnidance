@@ -18,6 +18,11 @@ const BILLED_MONTHS: Record<Cycle, number> = {
   semiannual: 5.52,
   annual: 10.2,
 };
+// El % es numérico - no va por catálogo (mismo en todos los locales).
+const DISCOUNT_LABEL: Partial<Record<Cycle, string>> = {
+  semiannual: "−8%",
+  annual: "−15%",
+};
 
 export type PricingTier = {
   name: string;
@@ -129,15 +134,24 @@ export function PricingSection({
                     {pricing.free}
                   </span>
                 ) : (
-                  <>
+                  <span className="flex flex-wrap items-baseline gap-x-2">
+                    {cycle !== "monthly" && (
+                      <span className="text-sm text-ink/40 line-through">
+                        {formatClp(tier.priceMonthly, locale)}
+                      </span>
+                    )}
                     <span className="text-2xl font-extrabold">
                       {formatClp(equiv(tier.priceMonthly), locale)}
                     </span>
                     <span className="text-sm text-ink/50">
-                      {" "}
                       {pricing.perMonth}
                     </span>
-                  </>
+                    {cycle !== "monthly" && (
+                      <span className="rounded-full bg-neon/15 px-2 py-0.5 text-xs font-semibold text-neon">
+                        {DISCOUNT_LABEL[cycle]}
+                      </span>
+                    )}
+                  </span>
                 )}
               </p>
               {tier.priceMonthly != null &&
