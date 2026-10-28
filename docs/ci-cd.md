@@ -46,8 +46,11 @@ Dominios:
      alcanzar si el lock flaquea).
 3. **El bootstrap es automático y vive en el workflow**: antes de
    recrear el contenedor corre `prisma migrate deploy` one-shot
-   (compara `_prisma_migrations` y aplica solo las pendientes) y, si la
-   DB está vacía (sin roles baseline), el seed prod (baseline + admin).
+   (compara `_prisma_migrations` y aplica solo las pendientes) y **siempre**
+   el seed prod — es idempotente (upserts, no pisa params editados en
+   /admin) y es la única vía por la que params/baseline nuevos de cada
+   release llegan a prod. `SEED_ADMIN_EMAIL` solo se exige en el primer
+   boot (sin ADMIN aprobado aún).
    Contra una Neon recién creada, el primer deploy crea todas las
    tablas y las puebla. El contenedor solo ejecuta `node dist/main.js`
    (mismo patrón que video-repo) - migrar en el boot del contenedor se
