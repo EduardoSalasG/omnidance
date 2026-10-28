@@ -165,7 +165,7 @@
       "title": "Preguntas frecuentes",
       "items": [
         {
-          "q": "¿Cómo cobran mis alumnos?",
+          "q": "¿Cómo pagan mis alumnos?",
           "a": "Cada alumno paga su plan por la pasarela de pago con tarjeta, y también puedes registrar pagos por transferencia o efectivo. Tú ves quién está al día y a quién recordar."
         },
         {
@@ -192,8 +192,8 @@
     "heroNote": "Entras a tu plataforma, sin esperar llamada.",
     "painLabel": "¿Así se siente la noche del evento?",
     "painItems": "Excel + formularios · Transferencias una por una · Fila en la puerta · Invitados en WhatsApp · ¿Cuánto vendiste de verdad?",
-    "painResolution": "Del afiche al cierre de caja, una sola plataforma.",
-    "featuresTitle": "Del afiche al cierre de caja",
+    "painResolution": "Del flyer al cierre de caja, una sola plataforma.",
+    "featuresTitle": "Del flyer al cierre de caja",
     "featureQrTitle": "Ticketing",
     "featureQrDesc": "Entradas online al precio exacto.\nLinks, códigos de descuento y preventa.",
     "featureLearnTitle": "Puerta QR",
