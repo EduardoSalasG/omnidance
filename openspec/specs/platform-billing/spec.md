@@ -19,7 +19,7 @@ y no haya agotado maxCycles (contando invoices pagados de la sub).
 
 - **GIVEN** promo STUDIO -20% × 3 ciclos whitelist=academia X
   **WHEN** la academia X suscribe STUDIO mensual **THEN** el plan
-  espejo cobra $63.992 y a los 3 cobros pagados vuelve a $79.990
+  espejo cobra $63.760 y a los 3 cobros pagados vuelve a $79.700
 
 #### Scenario: Promo expirada no aplica
 
