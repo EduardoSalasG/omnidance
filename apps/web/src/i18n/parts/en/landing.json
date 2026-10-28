@@ -144,19 +144,17 @@
             "Videos and insights",
             "Multi-academy"
           ]
-        },
-        {
-          "name": "Enterprise",
-          "priceMonthly": null,
-          "limit": "Tailored operation",
-          "recommended": false,
-          "features": [
-            "Everything in Pro",
-            "Dedicated support",
-            "Custom terms"
-          ]
         }
-      ]
+      ],
+      "cycles": {
+        "monthly": "Monthly",
+        "semiannual": "Semi-annual −8%",
+        "annual": "Annual −15%"
+      },
+      "billedPer": {
+        "semiannual": "billed semi-annually",
+        "annual": "billed annually"
+      }
     }
   },
   "landingProducer": {
@@ -226,7 +224,16 @@
             "Unlimited staff"
           ]
         }
-      ]
+      ],
+      "cycles": {
+        "monthly": "Monthly",
+        "semiannual": "Semi-annual −8%",
+        "annual": "Annual −15%"
+      },
+      "billedPer": {
+        "semiannual": "billed semi-annually",
+        "annual": "billed annually"
+      }
     }
   },
   "landingProHub": {

@@ -144,19 +144,17 @@
             "Vidéos et insights",
             "Multi-académie"
           ]
-        },
-        {
-          "name": "Enterprise",
-          "priceMonthly": null,
-          "limit": "Opération sur mesure",
-          "recommended": false,
-          "features": [
-            "Tout le plan Pro",
-            "Accompagnement dédié",
-            "Conditions à convenir"
-          ]
         }
-      ]
+      ],
+      "cycles": {
+        "monthly": "Mensuel",
+        "semiannual": "Semestriel −8 %",
+        "annual": "Annuel −15 %"
+      },
+      "billedPer": {
+        "semiannual": "facturé semestriel",
+        "annual": "facturé annuel"
+      }
     }
   },
   "landingProducer": {
@@ -226,7 +224,16 @@
             "Staff illimité"
           ]
         }
-      ]
+      ],
+      "cycles": {
+        "monthly": "Mensuel",
+        "semiannual": "Semestriel −8 %",
+        "annual": "Annuel −15 %"
+      },
+      "billedPer": {
+        "semiannual": "facturé semestriel",
+        "annual": "facturé annuel"
+      }
     }
   },
   "landingProHub": {
