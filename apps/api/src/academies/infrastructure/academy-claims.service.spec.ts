@@ -434,12 +434,10 @@ describe("AcademyClaimsService.listClaims", () => {
 describe("AcademyClaimsService.createIntent - moneda (spec multipais-currency)", () => {
   it("snapshot de moneda: academy en MXN → claim.currency = MXN", async () => {
     const { service, fx } = mkService();
-    fx.prisma.academy.findUnique.mockResolvedValue({
-      id: ACADEMY,
-      name: "Academia",
-      ownerId: "owner-1",
-      city: { country: { currency: "MXN" } },
-    } as never);
+    // El claim hereda plan.currency - snapshot de la moneda de la
+    // academia estampado al crear el plan (spec multipais-currency):
+    // una academia MXN vende planes en MXN.
+    fx.data.plans.find((p) => p.id === PLAN)!.currency = "MXN";
     const claim = await service.createIntent(ACADEMY, PERSON, {
       planId: PLAN,
       methodId: METHOD,
