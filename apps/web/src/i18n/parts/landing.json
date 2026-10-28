@@ -18,11 +18,11 @@
     "weekCta": "Quiero ir",
     "featuresTitle": "Todo tu baile, en una app",
     "featureQrTitle": "Un solo QR",
-    "featureQrDesc": "Una entrada, una invitación, una noche entera:\ntodo nace de tu QR.",
+    "featureQrDesc": "Una entrada, una invitación, una noche entera.\nTodo nace de tu QR.",
     "featureLearnTitle": "Academy",
     "featureLearnDesc": "Las academias de la comunidad, sus clases y tu progreso en un solo lugar.",
     "featureSceneTitle": "Nightlife",
-    "featureSceneDesc": "La cartelera completa de la comunidad,\ncon tu entrada siempre lista.",
+    "featureSceneDesc": "La cartelera completa de la comunidad.\nTu entrada queda siempre lista.",
     "finalCta": "¿Bailamos?",
     "finalCtaDesc": "Registro rápido y fácil.\nTu gente ya está adentro.",
     "footerTagline": "Hecho para la comunidad salsera, timbera y bachatera de Chile",
@@ -36,7 +36,7 @@
     "metaDescription": "Los que ordenan primero, crecen primero. Entradas, puerta y números de tu negocio de baile en una sola plataforma.",
     "eyebrow": "Productores · DJs · Academias · Locales",
     "heroPromise": "Primero el orden. Después, el crecimiento.",
-    "heroLead": "Vende entradas, controla la puerta y mira tus números\nen una sola plataforma.\nCuando la operación está ordenada, crecer es la consecuencia.",
+    "heroLead": "Vende entradas, controla la puerta y mira tus números en una sola plataforma.\nCuando la operación está ordenada, crecer es la consecuencia.",
     "ctaCreateAccount": "Crear mi cuenta",
     "ctaEvents": "Probar la app ahora",
     "weekCount": "{count} eventos esta semana ya se ordenan con Omnidance",
@@ -47,11 +47,11 @@
     "weekCta": "Quiero estar ahí",
     "featuresTitle": "Hecha para quienes mueven la escena",
     "featureQrTitle": "Productores",
-    "featureQrDesc": "Vende sin filas ni planillas:\nentradas online, puerta controlada y liquidación con números claros.",
+    "featureQrDesc": "Vende sin filas ni planillas.\nEntradas online, puerta controlada y liquidación con números claros.",
     "featureLearnTitle": "Academias",
     "featureLearnDesc": "Clases, alumnos y cobros ordenados en un solo lugar.\nTus alumnos ven horarios, se inscriben y pagan solos sin llenarte de mensajes.",
     "featureSceneTitle": "Locales",
-    "featureSceneDesc": "Tu local en la cartelera:\nsolicitudes de arriendo y eventos que llenan tu puerta.",
+    "featureSceneDesc": "Tu local en la cartelera.\nSolicitudes de arriendo y eventos que llenan tu puerta.",
     "finalCta": "¿Empezamos?",
     "finalCtaDesc": "Crea tu cuenta y entra directo a tu plataforma.\nRevisamos cada perfil antes de publicarlo.",
     "footerAlt": "Para bailarines",
@@ -88,9 +88,9 @@
     "painResolution": "Tu academia ordenada. Tu tiempo, de vuelta a enseñar.",
     "featuresTitle": "Tu academia entera en la app",
     "featureQrTitle": "Horarios y clases",
-    "featureQrDesc": "Tu parrilla publicada para siempre:\ntus alumnos ven, reservan y entran solos.",
+    "featureQrDesc": "Tu parrilla publicada para siempre.\nTus alumnos ven, reservan y entran solos.",
     "featureLearnTitle": "Planes y pagos al día",
-    "featureLearnDesc": "Registra el pago por el medio que ya usas:\ntú ves quién pagó, quién vence y a quién recordar.",
+    "featureLearnDesc": "Registra el pago por el medio que ya usas.\nTú ves quién pagó, quién vence y a quién recordar.",
     "featureSceneTitle": "Tus alumnos, medidos",
     "featureSceneDesc": "Quién viene, quién falta, quién se está cayendo.\nVencimientos y cumpleaños sin tener que preguntar.",
     "ctaEvents": "Explorar academias",
@@ -112,7 +112,7 @@
       "ctaCustom": "Conversemos",
       "cycleLabel": "Período de facturación",
       "priceBefore": "antes {price}",
-      "note": "Empiezas con prueba en nivel Studio: la operación completa desde el día uno.\nPago semestral −8% · pago anual −15%.\nLa pasarela de pago se descuenta de lo recaudado, a costo real (hoy ~3,2%). En Starter el take de cobranza es 1,5× el fee de pasarela.",
+      "note": "Pago semestral −8% · pago anual −15%.\nLa pasarela de pago se descuenta de lo recaudado, a costo real (hoy ~3,2%). En Starter el take de cobranza es 1,5× el fee de pasarela.",
       "tiers": [
         {
           "name": "Starter",
@@ -160,6 +160,27 @@
         "semiannual": "cobrado semestral",
         "annual": "cobrado anual"
       }
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "items": [
+        {
+          "q": "¿Cómo cobran mis alumnos?",
+          "a": "Cada alumno paga su plan por la pasarela de pago con tarjeta, y también puedes registrar pagos por transferencia o efectivo. Tú ves quién está al día y a quién recordar."
+        },
+        {
+          "q": "¿La pasarela le cobra extra al alumno?",
+          "a": "No. El alumno paga el precio exacto del plan; el costo de la pasarela se descuenta de lo recaudado."
+        },
+        {
+          "q": "¿Qué pasa si supero los alumnos de mi plan?",
+          "a": "Te avisamos antes de llegar al tope para que subas de plan. Tus alumnos y tu operación siguen funcionando mientras tanto."
+        },
+        {
+          "q": "¿Hay permanencia mínima?",
+          "a": "No. Puedes cancelar cuando quieras; el plan se mantiene activo hasta el fin del período ya pagado."
+        }
+      ]
     }
   },
   "landingProducer": {
@@ -167,14 +188,14 @@
     "metaDescription": "Vende entradas, controla la puerta con QR y cierra la noche con números claros. La plataforma de los productores de la escena.",
     "eyebrow": "Para productores de eventos",
     "heroPromise": "Vende. Controla la puerta. Cierra con números.",
-    "heroLead": "Entradas online, check-in QR y liquidación clara\nen una sola plataforma.\nDejas de operar a ciegas desde tu primer evento.",
+    "heroLead": "Entradas online, check-in QR y liquidación clara en una sola plataforma.\nDejas de operar a ciegas desde tu primer evento.",
     "heroNote": "Entras a tu plataforma, sin esperar llamada.",
     "painLabel": "¿Así se siente la noche del evento?",
     "painItems": "Excel + formularios · Transferencias una por una · Fila en la puerta · Invitados en WhatsApp · ¿Cuánto vendiste de verdad?",
     "painResolution": "Del afiche al cierre de caja, una sola plataforma.",
     "featuresTitle": "Del afiche al cierre de caja",
     "featureQrTitle": "Ticketing",
-    "featureQrDesc": "Entradas online al precio exacto:\nlinks, códigos de descuento y preventa.",
+    "featureQrDesc": "Entradas online al precio exacto.\nLinks, códigos de descuento y preventa.",
     "featureLearnTitle": "Puerta QR",
     "featureLearnDesc": "Check-in en segundos con el QR rotativo.\nTu staff valida desde su propio teléfono.",
     "featureSceneTitle": "Tus números",
@@ -196,7 +217,7 @@
       "ctaCustom": "Conversemos",
       "cycleLabel": "Período de facturación",
       "priceBefore": "antes {price}",
-      "note": "Comisión: 5% + IVA + pasarela de pago (~9,1% todo incluido) por venta gestionada:\nse descuenta de tu liquidación — el asistente paga el precio exacto.",
+      "note": "Comisión: 5% + IVA + pasarela de pago (~9,1% todo incluido) por venta gestionada.\nSe descuenta de tu liquidación; el asistente paga el precio exacto.",
       "tiers": [
         {
           "name": "Starter",
@@ -244,6 +265,27 @@
         "semiannual": "cobrado semestral",
         "annual": "cobrado anual"
       }
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "items": [
+        {
+          "q": "¿El asistente paga cargo de servicio?",
+          "a": "No. El asistente paga el precio exacto de la entrada; la comisión se descuenta de tu liquidación."
+        },
+        {
+          "q": "¿Puedo usar mi propio link de pago?",
+          "a": "Los QR de entrada solo nacen de una venta gestionada en la plataforma, así el check-in y la liquidación siempre cuadran."
+        },
+        {
+          "q": "¿Qué pasa cuando subo de facturación?",
+          "a": "El plan sube de tier automáticamente según tus ventas del mes. No tienes que gestionar nada."
+        },
+        {
+          "q": "¿Puedo cancelar?",
+          "a": "Sí, cuando quieras. La suscripción se mantiene activa hasta el fin del ciclo ya pagado."
+        }
+      ]
     }
   },
   "landingProHub": {

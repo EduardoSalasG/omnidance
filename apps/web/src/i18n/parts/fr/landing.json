@@ -18,11 +18,11 @@
     "weekCta": "Je veux y aller",
     "featuresTitle": "Toute ta danse, dans une app",
     "featureQrTitle": "Un seul QR",
-    "featureQrDesc": "Un billet, une invitation, une soirée entière :\ntout part de ton QR.",
+    "featureQrDesc": "Un billet, une invitation, une soirée entière.\nTout part de ton QR.",
     "featureLearnTitle": "Academy",
     "featureLearnDesc": "Les académies de la communauté, leurs cours et ta progression au même endroit.",
     "featureSceneTitle": "Nightlife",
-    "featureSceneDesc": "Le programme complet de la communauté,\navec ton billet toujours prêt.",
+    "featureSceneDesc": "Le programme complet de la communauté.\nTon billet est toujours prêt.",
     "finalCta": "On danse ?",
     "finalCtaDesc": "Inscription rapide et facile.\nTa communauté est déjà dedans.",
     "footerTagline": "Fait pour la communauté salsa, timba et bachata du Chili",
@@ -36,7 +36,7 @@
     "metaDescription": "Ceux qui s'organisent d'abord, grandissent d'abord. Billets, porte et chiffres de ton activité de danse sur une seule plateforme.",
     "eyebrow": "Producteurs · DJs · Académies · Lieux",
     "heroPromise": "D'abord l'ordre. Ensuite, la croissance.",
-    "heroLead": "Vends des billets, contrôle la porte et regarde tes chiffres\nsur une seule plateforme.\nQuand l'opération est ordonnée, grandir en est la conséquence.",
+    "heroLead": "Vends des billets, contrôle la porte et regarde tes chiffres sur une seule plateforme.\nQuand l'opération est ordonnée, grandir en est la conséquence.",
     "ctaCreateAccount": "Créer mon compte",
     "ctaEvents": "Essayer l'app maintenant",
     "weekCount": "{count} événements cette semaine s'organisent déjà avec Omnidance",
@@ -47,11 +47,11 @@
     "weekCta": "Je veux en faire partie",
     "featuresTitle": "Fait pour ceux qui font bouger la scène",
     "featureQrTitle": "Producteurs",
-    "featureQrDesc": "Vends sans files ni tableurs :\nbillets en ligne, porte contrôlée et règlement aux chiffres clairs.",
+    "featureQrDesc": "Vends sans files ni tableurs.\nBillets en ligne, porte contrôlée et règlement aux chiffres clairs.",
     "featureLearnTitle": "Académies",
     "featureLearnDesc": "Cours, élèves et encaissements ordonnés au même endroit.\nTes élèves voient les horaires, s'inscrivent et paient seuls sans t'inonder de messages.",
     "featureSceneTitle": "Lieux",
-    "featureSceneDesc": "Ton lieu sur le programme :\ndemandes de location et événements qui remplissent ta porte.",
+    "featureSceneDesc": "Ton lieu sur le programme.\nDemandes de location et événements qui remplissent ta porte.",
     "finalCta": "On commence ?",
     "finalCtaDesc": "Crée ton compte et entre directement dans ta plateforme.\nChaque profil est vérifié avant publication.",
     "footerAlt": "Pour les danseurs",
@@ -88,9 +88,9 @@
     "painResolution": "Ton académie ordonnée. Ton temps, de retour à l'enseignement.",
     "featuresTitle": "Toute ton académie dans l'app",
     "featureQrTitle": "Horaires et cours",
-    "featureQrDesc": "Ta grille publiée pour toujours :\ntes élèves voient, réservent et entrent seuls.",
+    "featureQrDesc": "Ta grille publiée pour toujours.\nTes élèves voient, réservent et entrent seuls.",
     "featureLearnTitle": "Plans et paiements à jour",
-    "featureLearnDesc": "Enregistre le paiement par le canal que tu utilises déjà :\ntu vois qui a payé, qui expire et à qui rappeler.",
+    "featureLearnDesc": "Enregistre le paiement par le canal que tu utilises déjà.\nTu vois qui a payé, qui expire et à qui rappeler.",
     "featureSceneTitle": "Tes élèves, mesurés",
     "featureSceneDesc": "Qui vient, qui manque, qui décroche.\nÉchéances et anniversaires sans avoir à demander.",
     "academyCount": "{count} académies organisent déjà leur opération avec Omnidance",
@@ -112,7 +112,7 @@
       "ctaCustom": "Parlons-en",
       "cycleLabel": "Période de facturation",
       "priceBefore": "avant {price}",
-      "note": "Ton essai commence au niveau Studio : l'opération complète dès le premier jour.\nSemestriel −8 % · annuel −15 %.\nLa passerelle de paiement est déduite de tes encaissements, au coût réel (~3,2 % aujourd'hui). Sur Starter, le prélèvement de collecte est 1,5× les frais de passerelle.",
+      "note": "Semestriel −8 % · annuel −15 %.\nLa passerelle de paiement est déduite de tes encaissements, au coût réel (~3,2 % aujourd'hui). Sur Starter, le prélèvement de collecte est 1,5× les frais de passerelle.",
       "tiers": [
         {
           "name": "Starter",
@@ -160,6 +160,27 @@
         "semiannual": "facturé semestriel",
         "annual": "facturé annuel"
       }
+    },
+    "faq": {
+      "title": "Questions fréquentes",
+      "items": [
+        {
+          "q": "Comment mes élèves paient-ils ?",
+          "a": "Chaque élève paie son plan par la passerelle de paiement, par carte, et tu peux aussi enregistrer virements ou espèces. Tu vois qui est à jour et à qui rappeler."
+        },
+        {
+          "q": "La passerelle facture-t-elle un supplément à l'élève ?",
+          "a": "Non. L'élève paie le prix exact du plan ; les frais de passerelle sont déduits de tes encaissements."
+        },
+        {
+          "q": "Que se passe-t-il si je dépasse le nombre d'élèves de mon plan ?",
+          "a": "On te prévient avant d'atteindre le plafond pour que tu passes au plan supérieur. Tes élèves et ton opération continuent de fonctionner entre-temps."
+        },
+        {
+          "q": "Y a-t-il un engagement minimum ?",
+          "a": "Non. Tu peux annuler quand tu veux ; le plan reste actif jusqu'à la fin de la période déjà payée."
+        }
+      ]
     }
   },
   "landingProducer": {
@@ -167,14 +188,14 @@
     "metaDescription": "Vends des billets, contrôle la porte par QR et termine la soirée avec des chiffres clairs. La plateforme des producteurs de la scène.",
     "eyebrow": "Pour les producteurs d'événements",
     "heroPromise": "Vends. Contrôle la porte. Clôture avec des chiffres.",
-    "heroLead": "Billets en ligne, check-in QR et règlement clair\nsur une seule plateforme.\nTu cesses d'opérer à l'aveugle dès ton premier événement.",
+    "heroLead": "Billets en ligne, check-in QR et règlement clair sur une seule plateforme.\nTu cesses d'opérer à l'aveugle dès ton premier événement.",
     "heroNote": "Tu entres sur ta plateforme, sans attendre d'appel.",
     "painLabel": "La nuit de l'événement ressemble à ça ?",
     "painItems": "Excel + formulaires · Virements un par un · File à la porte · Invités sur WhatsApp · Combien as-tu vraiment vendu ?",
     "painResolution": "De l'affiche à la clôture de caisse, une seule plateforme.",
     "featuresTitle": "De l'affiche à la clôture de caisse",
     "featureQrTitle": "Billetterie",
-    "featureQrDesc": "Billets en ligne au prix exact :\nliens, codes de réduction et prévente.",
+    "featureQrDesc": "Billets en ligne au prix exact.\nLiens, codes de réduction et prévente.",
     "featureLearnTitle": "Porte QR",
     "featureLearnDesc": "Check-in en quelques secondes avec le QR rotatif.\nTon staff valide depuis son propre téléphone.",
     "featureSceneTitle": "Tes chiffres",
@@ -196,7 +217,7 @@
       "ctaCustom": "Parlons-en",
       "cycleLabel": "Période de facturation",
       "priceBefore": "avant {price}",
-      "note": "Commission : 5 % + TVA + passerelle de paiement (~9,1 % tout compris) par vente gérée :\ndéduite de ton règlement — l'assistant paie le prix exact.",
+      "note": "Commission : 5 % + TVA + passerelle de paiement (~9,1 % tout compris) par vente gérée.\nDéduite de ton règlement. L'assistant paie le prix exact.",
       "tiers": [
         {
           "name": "Starter",
@@ -244,6 +265,27 @@
         "semiannual": "facturé semestriel",
         "annual": "facturé annuel"
       }
+    },
+    "faq": {
+      "title": "Questions fréquentes",
+      "items": [
+        {
+          "q": "L'assistant paie-t-il des frais de service ?",
+          "a": "Non. L'assistant paie le prix exact du billet ; la commission est déduite de ton règlement."
+        },
+        {
+          "q": "Puis-je utiliser mon propre lien de paiement ?",
+          "a": "Les QR d'entrée ne naissent que d'une vente gérée sur la plateforme, pour que le check-in et le règlement concordent toujours."
+        },
+        {
+          "q": "Que se passe-t-il quand ma facturation augmente ?",
+          "a": "Ton plan monte de tier automatiquement selon tes ventes du mois. Tu n'as rien à gérer."
+        },
+        {
+          "q": "Puis-je annuler ?",
+          "a": "Oui, quand tu veux. L'abonnement reste actif jusqu'à la fin du cycle déjà payé."
+        }
+      ]
     }
   },
   "landingProHub": {

@@ -1,6 +1,7 @@
 
 import type { CSSProperties } from "react";
 import { ChevronRightIcon } from "@/components/ui";
+import { EscapableDetails } from "@/components/ui/escapable-details";
 // Las claves de la landing viven en este fragmento, que se fusiona con
 // messages/es-CL.json bajo los namespaces "landing" y "landingPro"
 // (ver src/i18n/parts/). landingPro solo declara overrides: las claves
@@ -124,6 +125,15 @@ export async function Landing({
       ? m.landingAcademy.pricing
       : variant === "producer"
         ? m.landingProducer.pricing
+        : null;
+  // FAQ por audiencia pro (objeciones de compra, catálogo
+  // landingAcademy.faq / landingProducer.faq) - va tras el pricing,
+  // antes del CTA final.
+  const faq =
+    variant === "academy"
+      ? m.landingAcademy.faq
+      : variant === "producer"
+        ? m.landingProducer.faq
         : null;
   // El secundario es exploración: cada audiencia mira el directorio que
   // le habla (academias para academias, cartelera para el resto). Anónimo
@@ -386,6 +396,40 @@ export async function Landing({
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: productLd }}
           />
+        )}
+
+        {/* ─── Solo pro: FAQ de objeciones de compra (academy/
+            producer) - <details> nativo con Escape vía el wrapper
+            compartido; la página sigue server. ─── */}
+        {faq && (
+          <section
+            aria-labelledby="faq-title"
+            className="border-t border-ink/5 px-6 py-16 sm:py-20 lg:py-24"
+          >
+            <div className="mx-auto max-w-2xl">
+              <h2
+                id="faq-title"
+                className="text-center text-2xl font-bold tracking-tight sm:text-3xl"
+              >
+                {faq.title}
+              </h2>
+              <ul className="mt-10 flex flex-col gap-3">
+                {faq.items.map((item) => (
+                  <li key={item.q}>
+                    <EscapableDetails className="group rounded-2xl border border-ink/10 bg-surface/60 px-6">
+                      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-4 text-base font-semibold marker:content-none [&::-webkit-details-marker]:hidden">
+                        {item.q}
+                        <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/50 transition-transform group-open:rotate-90" />
+                      </summary>
+                      <p className="pb-5 text-sm leading-relaxed text-ink/60">
+                        {item.a}
+                      </p>
+                    </EscapableDetails>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
         )}
 
         {/* ─── CTA final: registro directo - pro lleva su rol en

@@ -70,7 +70,8 @@
 ### Landings pro `/pro`, `/para-academias`, `/para-productores`
 - `/pro`: cards → landings por rol; sección "otros roles" con `ProLeadForm` (roles DJ|VENUE_MANAGER).
 - `/para-*`: la invitación es registro directo — header "Crear cuenta", hero primario y CTA final → `/login?mode=register&role=ACADEMY_OWNER|PRODUCER`; secundario exploratorio → `/academias` (academy) o `/eventos` (producer) con bounce anon a `/login?next=`.
-- `/para-*` incluye sección "Planes y precios" (4 cards por audiencia, tier "Recomendado" destacado; montos referenciales del catálogo i18n, fuente editable PlatformParam): los CTAs de cada tier van al mismo `/login?mode=register&role=…` — no abren flujo nuevo.
+- `/para-*` incluye sección "Planes y precios" (3 tiers por audiencia, tier "Recomendado" destacado; montos referenciales del catálogo i18n, fuente editable PlatformParam): los CTAs de cada tier van al mismo `/login?mode=register&role=…` — no abren flujo nuevo. La nota bajo los tiers cubre descuentos por ciclo (−8% semestral / −15% anual) y el costo de pasarela; ya no promete trial Studio.
+- `/para-*` (academy y producer) incluye además sección FAQ tras el pricing: 4 preguntas por audiencia en `<details>`/`<summary>` (Escape cierra vía `EscapableDetails`), contenido por catálogo `landingAcademy.faq` / `landingProducer.faq`; es informativa, sin flujo nuevo.
 - **Lead form (solo hub /pro, DJ|VENUE):** name≥2, email regex, phone obligatorio (contexto CL, `+` = internacional → E.164 + `phoneCountryCode`), role pills → `POST /leads` intent CONTACT → 200 `{id, accountExists}`.
   - `accountExists` → estado de éxito con link /login.
   - Negativos: campos faltantes (inline `#lead-error`), throttle 403, teléfono inválido 400 `telefono_invalido`, teléfono duplicado 409 (sobre E.164).
