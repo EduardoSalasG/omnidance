@@ -122,7 +122,8 @@
           "ctaLabel": "Começar com Starter",
           "features": [
             "Cobrança por comprovativo validado",
-            "Alunos em dia e em atraso num relance"
+            "Alunos em dia e em atraso num relance",
+            "Notificações push e por email sobre cobranças"
           ],
           "promoPriceMonthly": 19750
         },

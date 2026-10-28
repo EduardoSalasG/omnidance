@@ -240,7 +240,9 @@ class FakePrisma {
       this.people.get(where.id) ?? null,
   };
 
+  staffCount = 0;
   staffAssignment = {
+    count: async () => this.staffCount,
     upsert: async ({
       where,
       create,
@@ -916,8 +918,12 @@ describe("EventsController.addStaff - gating Producer Pro", () => {
     prisma = new FakePrisma();
     ctrl = new EventsController(
       prisma as unknown as PrismaService,
-      { getProducerParams: async () => null } as never,
+      {
+        getProducerParams: async () => null,
+        getNumber: async (_k: string, fb: number) => fb,
+      } as never,
     );
+    prisma.staffCount = 0;
     prisma.events.push({ id: "ev-1", producerId: "prod-1" });
     prisma.people.set("prod-1", mkProducer("prod-1"));
     prisma.people.set("door", { id: "door", name: "Puerta", photoUrl: null });
@@ -926,18 +932,27 @@ describe("EventsController.addStaff - gating Producer Pro", () => {
 
   const dto = { personId: "door", role: "DOOR" as const };
 
-  it("owner FREE sin trial → 403 tier.required", async () => {
+  it("owner FREE sin trial bajo el cupo (2) → asigna staff", async () => {
     prisma.people.set(
       "prod-1",
       mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
     );
+    const res = await ctrl.addStaff("ev-1", dto, reqAs("prod-1"));
+    expect(res).toMatchObject({ eventId: "ev-1", personId: "door" });
+  });
+
+  it("owner FREE con el cupo lleno → 403 tier.required", async () => {
+    prisma.people.set(
+      "prod-1",
+      mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
+    );
+    prisma.staffCount = 2;
     const err = await ctrl
       .addStaff("ev-1", dto, reqAs("prod-1"))
       .catch((e: unknown) => e);
     expect(err).toMatchObject({ status: 403 });
     expect(errBody(err)).toMatchObject({
       error: "tier.required",
-      requiredTier: "PRO_STARTER",
       feature: "multiStaff",
     });
   });

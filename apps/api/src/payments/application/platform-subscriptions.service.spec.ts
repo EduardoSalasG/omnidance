@@ -43,6 +43,7 @@ const PARAMS = new Map<string, number>([
   ["producer_tier.growth_max_monthly_clp", 8000000],
   ["producer_tier.starter_monthly_clp", 9990],
   ["producer_tier.growth_monthly_clp", 19990],
+    ["producer_tier.big_monthly_clp", 29990],
 ]);
 
 function mkAcademy(over: Partial<Row> = {}): Row {
@@ -825,18 +826,18 @@ describe("PlatformSubscriptionsService", () => {
       });
     });
 
-    it("tier por facturación: media 90d ≤ starter_max → PRO_STARTER", async () => {
+    it("tier por facturación: media 90d ≤ growth_max → PRO_GROWTH", async () => {
       // 3.000.000 brutos en 90d → 1.000.000/mes ≤ 2.500.000
       addSale(3000000);
       const r = await svc.subscribeProducer("p2", input);
       expect(r.kind).toBe("needs_card");
       const sub = fx.platSubs.find((s) => s.kind === "PRODUCER")!;
-      expect(sub.tierCode).toBe("PRO_STARTER");
+      expect(sub.tierCode).toBe("PRO_GROWTH");
       expect(sub.producerId).toBe("p2");
       expect(flow.ensurePlan).toHaveBeenCalledWith(
         expect.objectContaining({
-          planId: "plat_producer_pro_starter_monthly",
-          amount: 9990,
+          planId: "plat_producer_pro_growth_monthly",
+          amount: 19990,
         }),
         { correlationId: expect.any(String) },
       );
@@ -854,7 +855,7 @@ describe("PlatformSubscriptionsService", () => {
       addSale(3000000, 100); // fuera de la ventana → monthlyGross = 0
       await svc.subscribeProducer("p2", input);
       const sub = fx.platSubs.find((s) => s.kind === "PRODUCER")!;
-      expect(sub.tierCode).toBe("PRO_STARTER");
+      expect(sub.tierCode).toBe("PRO_GROWTH");
     });
 
     it("ventas de OTRO productor no cuentan", async () => {
@@ -870,27 +871,25 @@ describe("PlatformSubscriptionsService", () => {
       });
       await svc.subscribeProducer("p2", input);
       const sub = fx.platSubs.find((s) => s.kind === "PRODUCER")!;
-      expect(sub.tierCode).toBe("PRO_STARTER");
+      expect(sub.tierCode).toBe("PRO_GROWTH");
     });
 
-    it("media sobre el tope GROWTH → 400 tier_limit (PRO_BIG manual)", async () => {
+    it("media sobre el tope GROWTH → PRO_BIG self-serve", async () => {
       addSale(30000000); // 10M/mes > 8M
-      const err = await svc
-        .subscribeProducer("p2", input)
-        .catch((e: unknown) => e);
-      expect(err).toBeInstanceOf(BadRequestException);
-      expect(errBody(err).error).toBe("tier_limit");
-      expect(fx.platSubs).toHaveLength(0);
+      const r = await svc.subscribeProducer("p2", input);
+      expect(r.kind).toBe("needs_card");
+      const sub = fx.platSubs.find((x) => x.kind === "PRODUCER")!;
+      expect(sub.tierCode).toBe("PRO_BIG");
     });
 
     it("el tope se evalúa en la moneda de cobro - ventas en otra moneda no cuentan", async () => {
-      // 30M en USD (no CLP) → la media CLP es 0 → PRO_STARTER, nunca
+      // 30M en USD (no CLP) → la media CLP es 0 → PRO_GROWTH, nunca
       // suma cruzada (spec platform-multicountry).
       addSale(30000000, 10, "USD");
       const r = await svc.subscribeProducer("p2", input);
       expect(r.kind).toBe("needs_card");
       const sub = fx.platSubs.find((s) => s.kind === "PRODUCER")!;
-      expect(sub.tierCode).toBe("PRO_STARTER");
+      expect(sub.tierCode).toBe("PRO_GROWTH");
     });
 
     it("producerMonthlyGross agrupa por moneda (desglose, no suma)", async () => {
@@ -905,7 +904,7 @@ describe("PlatformSubscriptionsService", () => {
       addSale(100000);
       const r = await svc.subscribeProducer("p2", input);
       expect(r.kind).toBe("subscribed");
-      expect(fx.persons.get("p2")!.proTier).toBe("PRO_STARTER");
+      expect(fx.persons.get("p2")!.proTier).toBe("PRO_GROWTH");
       expect(notifications.notifySafe).toHaveBeenCalledWith(
         "p2",
         expect.objectContaining({ type: "producer.pro_started" }),
@@ -1401,7 +1400,7 @@ describe("PlatformSubscriptionsService", () => {
         refId: "tk-1",
         personId: "asist",
         eventId: "ev-1",
-        amount: 8_000_000,
+        amount: 30_000_000,
         currency: "CLP",
         status: "PAID",
         createdAt: new Date(),
@@ -1410,7 +1409,7 @@ describe("PlatformSubscriptionsService", () => {
         kind: "PRODUCER",
         academyId: null,
         producerId: "p1",
-        tierCode: "PRO_STARTER",
+        tierCode: "PRO_GROWTH",
         billingCycle: "MONTHLY",
         status: "ACTIVE",
         flowSubscriptionId: "fsub-1",
@@ -1424,8 +1423,8 @@ describe("PlatformSubscriptionsService", () => {
       await svc.reconcileSubscription(sub, fs);
       // El settle restaura el tier vigente; la facturación agenda el
       // superior para el próximo ciclo (nunca downgrade en curso).
-      expect(fx.persons.get("p1")!.proTier).toBe("PRO_STARTER");
-      expect(sub.pendingTierCode).toBe("PRO_GROWTH");
+      expect(fx.persons.get("p1")!.proTier).toBe("PRO_GROWTH");
+      expect(sub.pendingTierCode).toBe("PRO_BIG");
       expect(sub.pendingBillingCycle).toBe("MONTHLY");
       expect(flow.cancelSubscription).toHaveBeenCalledWith(
         "fsub-1",
@@ -1443,7 +1442,7 @@ describe("PlatformSubscriptionsService", () => {
         kind: "PRODUCER",
         academyId: null,
         producerId: "p1",
-        tierCode: "PRO_STARTER",
+        tierCode: "PRO_GROWTH",
         billingCycle: "MONTHLY",
         status: "ACTIVE",
         flowSubscriptionId: "fsub-1",
@@ -2310,7 +2309,7 @@ describe("multipais-currency", () => {
     const svc = svcWith(stripe as unknown as PaymentGateway);
     fx.countries.set("MX", { code: "MX", currency: "MXN" });
     fx.tierPrices.push({
-      tierCode: "PRO_STARTER",
+      tierCode: "PRO_GROWTH",
       kind: "PRODUCER",
       billingCycle: "MONTHLY",
       countryCode: "MX",

@@ -122,7 +122,8 @@
           "ctaLabel": "Start with Starter",
           "features": [
             "Collections via validated receipts",
-            "Students up to date and overdue at a glance"
+            "Students up to date and overdue at a glance",
+            "Push and email notifications about collections"
           ],
           "promoPriceMonthly": 19750
         },
