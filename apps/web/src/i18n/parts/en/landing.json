@@ -240,8 +240,7 @@
           "ctaLabel": "Start with Starter",
           "features": [
             "Sales and audience analytics",
-            "Exports",
-            "Multi-staff (1 member)"
+            "Exports"
           ]
         },
         {
@@ -252,8 +251,7 @@
           "ctaLabel": "Choose Standard",
           "features": [
             "Everything in Starter",
-            "Audience CRM",
-            "Multi-staff (up to 2)"
+            "Audience CRM"
           ]
         },
         {
@@ -264,8 +262,7 @@
           "ctaLabel": "Go Pro",
           "features": [
             "Everything in Standard",
-            "Segmented campaigns and scene benchmark",
-            "Unlimited staff"
+            "Segmented campaigns and scene benchmark"
           ]
         }
       ],

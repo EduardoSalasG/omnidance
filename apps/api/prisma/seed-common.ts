@@ -159,6 +159,7 @@ const PARAM_DEFAULTS: Array<{
   { key: "producer_tier.starter_monthly_clp", value: 79700, description: "Precio mensual tier PRO_STARTER/Pro (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
   { key: "producer_tier.growth_monthly_clp", value: 169500, description: "Precio mensual tier PRO_GROWTH/Growth (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
   { key: "producer_tier.big_monthly_clp", value: 300200, description: "Precio mensual tier PRO_BIG/Scale (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
+  { key: "producer_tier.free_staff_max", value: 2, description: "Staff máximo por evento sin suscripción Pro - 1-2 personas en puerta es la norma; multiStaff (Pro) se exige solo sobre este cupo" },
   // Costo de pasarela descontado del payout de academia (línea GATEWAY_FEE_PASSTHROUGH).
   { key: "gateway_fee.academy_passthrough_pct", value: 3.19, description: "% de pasarela descontado del payout de academia" },
   // Ventanas de los insights de retención del dashboard de academia

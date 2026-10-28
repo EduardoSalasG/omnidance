@@ -1237,7 +1237,20 @@ export class EventsController {
   ) {
     const event = await this.findEventOr404(id);
     await this.requireOwnerOrAdmin(event.producerId, req.person!);
-    await this.requireFeatureSelf(event.producerId, req.person!, "multiStaff");
+    // Sin Pro se permite un cupo mínimo de staff por evento
+    // (producer_tier.free_staff_max, default 2): la puerta con 1-2
+    // personas es la norma operativa, no un feature premium. El gate
+    // `multiStaff` solo aplica para ir más allá del cupo.
+    const freeMax = await this.params.getNumber(
+      "producer_tier.free_staff_max",
+      2,
+    );
+    const assigned = await this.prisma.staffAssignment.count({
+      where: { eventId: id },
+    });
+    if (assigned >= freeMax) {
+      await this.requireFeatureSelf(event.producerId, req.person!, "multiStaff");
+    }
     const person = await this.prisma.person.findUnique({
       where: { id: dto.personId },
       select: { id: true },
