@@ -312,15 +312,15 @@ export class PlatformSubscriptionsService {
     return gross;
   }
 
-  /** Tier Pro que califica una facturación mensual (null = PRO_BIG manual). */
+  /** Tier Pro que califica una facturación mensual (null = PRO_BIG manual).
+   *  PRO_STARTER salió de venta: el piso pago es Standard (PRO_GROWTH). */
   private async producerTierForGross(
     monthlyGross: number,
   ): Promise<ProducerProTier | null> {
-    const [starterMax, growthMax] = await Promise.all([
-      this.params.getNumber("producer_tier.starter_max_monthly_clp", 2500000),
-      this.params.getNumber("producer_tier.growth_max_monthly_clp", 8000000),
-    ]);
-    if (monthlyGross <= starterMax) return "PRO_STARTER";
+    const growthMax = await this.params.getNumber(
+      "producer_tier.growth_max_monthly_clp",
+      8000000,
+    );
     if (monthlyGross <= growthMax) return "PRO_GROWTH";
     return "PRO_BIG";
   }

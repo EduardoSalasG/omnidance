@@ -185,6 +185,9 @@ function mkPrisma() {
 
 function mkParams() {
   const numbers = new Map<string, number>();
+  // El spec verifica la descomposición con all-in redondo (10%):
+  // simula el param configurado - el fallback del código es 9.14.
+  numbers.set("fees.managed_allin_pct", 10);
   const strings = new Map<string, unknown>();
   const producers = new Map<string, ProducerFeeDefaults>();
   const params = {
@@ -802,7 +805,7 @@ describe("CheckoutService.purchaseTicket", () => {
     expect(fx.payments[0]!.platformFeeRate).toBe(10);
     expect(pf.params.getNumber).toHaveBeenCalledWith(
       "fees.managed_allin_pct",
-      10,
+      9.14,
     );
   });
 
@@ -1504,7 +1507,7 @@ describe("CheckoutService.purchaseSeriesPass", () => {
     expect(p.platformFeeRate).toBe(10);
     expect(pf.params.getNumber).toHaveBeenCalledWith(
       "fees.managed_allin_pct",
-      10,
+      9.14,
     );
   });
 

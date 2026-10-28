@@ -122,7 +122,8 @@
           "ctaLabel": "Commencer avec Starter",
           "features": [
             "Encaissement par justificatif validé",
-            "Élèves à jour et en retard en un coup d'œil"
+            "Élèves à jour et en retard en un coup d'œil",
+            "Notifications push et email sur les encaissements"
           ],
           "promoPriceMonthly": 19750
         },

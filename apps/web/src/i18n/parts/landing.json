@@ -122,7 +122,8 @@
           "ctaLabel": "Empezar con Starter",
           "features": [
             "Cobranza por comprobante validado",
-            "Alumnos al día y morosos a la vista"
+            "Alumnos al día y morosos a la vista",
+            "Notificaciones push y por email sobre cobranza"
           ],
           "promoPriceMonthly": 19750
         },
