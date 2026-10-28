@@ -102,7 +102,7 @@
     "footerAlt": "Pour les danseurs",
     "ctaEvents": "Explorer les académies",
     "pricing": {
-      "title": "Plans et prix",
+      "title": "Plans et prix pour écoles de danse",
       "lead": "Un plan pour chaque étape de ton académie.",
       "perMonth": "/mois",
       "free": "Gratuit",
@@ -110,6 +110,8 @@
       "recommended": "Recommandé",
       "cta": "Créer mon compte",
       "ctaCustom": "Parlons-en",
+      "cycleLabel": "Période de facturation",
+      "priceBefore": "avant {price}",
       "note": "Ton essai commence au niveau Studio : l'opération complète dès le premier jour.\nSemestriel −8 % · annuel −15 %.\nLa passerelle de paiement est déduite de tes encaissements, au coût réel (~3,2 % aujourd'hui). Sur Starter, le prélèvement de collecte est 1,5× les frais de passerelle.",
       "tiers": [
         {
@@ -117,6 +119,7 @@
           "priceMonthly": 39500,
           "limit": "Jusqu'à 60 élèves",
           "recommended": false,
+          "ctaLabel": "Commencer avec Starter",
           "features": [
             "Encaissement par la passerelle de paiement",
             "Élèves à jour et en retard en un coup d'œil"
@@ -127,6 +130,7 @@
           "priceMonthly": 79700,
           "limit": "Jusqu'à 150 élèves",
           "recommended": true,
+          "ctaLabel": "Choisir Studio",
           "features": [
             "Tout du plan Starter",
             "Cours, séries et réservations",
@@ -138,6 +142,7 @@
           "priceMonthly": 120500,
           "limit": "Élèves illimités",
           "recommended": false,
+          "ctaLabel": "Passer à Pro",
           "features": [
             "Tout le plan Studio",
             "Analytique, CRM et campagnes",
@@ -181,7 +186,7 @@
     "footerAlt": "Pour les danseurs",
     "ctaEvents": "Explorer les événements",
     "pricing": {
-      "title": "Plans et prix",
+      "title": "Plans et prix pour producteurs d'événements",
       "lead": "",
       "perMonth": "/mois",
       "free": "Gratuit",
@@ -189,6 +194,8 @@
       "recommended": "Recommandé",
       "cta": "Créer mon compte",
       "ctaCustom": "Parlons-en",
+      "cycleLabel": "Période de facturation",
+      "priceBefore": "avant {price}",
       "note": "Commission : 5 % + TVA + passerelle de paiement (~9,1 % tout compris) par vente gérée :\ndéduite de ton règlement — l'assistant paie le prix exact.",
       "tiers": [
         {
@@ -196,6 +203,7 @@
           "priceMonthly": 79700,
           "limit": "Jusqu'à 2,5 M$ de ventes par mois",
           "recommended": false,
+          "ctaLabel": "Commencer avec Starter",
           "features": [
             "Billetterie en ligne + porte QR",
             "Multi-staff (1 membre)",
@@ -207,6 +215,7 @@
           "priceMonthly": 169500,
           "limit": "Jusqu'à 8 M$ de ventes par mois",
           "recommended": true,
+          "ctaLabel": "Choisir Standard",
           "features": [
             "Tout de Starter",
             "CRM de votre public",
@@ -218,6 +227,7 @@
           "priceMonthly": 300200,
           "limit": "Sans plafond de facturation",
           "recommended": false,
+          "ctaLabel": "Passer à Pro",
           "features": [
             "Tout de Standard",
             "Campagnes & benchmark de la scène",

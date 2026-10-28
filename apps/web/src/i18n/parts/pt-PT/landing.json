@@ -102,7 +102,7 @@
     "footerAlt": "Para dançarinos",
     "ctaEvents": "Explorar academias",
     "pricing": {
-      "title": "Planos e preços",
+      "title": "Planos e preços para academias de dança",
       "lead": "Um plano para cada fase da tua academia.",
       "perMonth": "/mês",
       "free": "Grátis",
@@ -110,6 +110,8 @@
       "recommended": "Recomendado",
       "cta": "Criar a minha conta",
       "ctaCustom": "Vamos conversar",
+      "cycleLabel": "Período de faturação",
+      "priceBefore": "antes de {price}",
       "note": "Começas com um período experimental no nível Studio: a operação completa desde o primeiro dia.\nPagamento semestral −8% · anual −15%.\nA gateway de pagamento é descontada do que arrecadas, a custo real (hoje ~3,2%). No Starter, o take de cobrança é 1,5× a taxa da gateway.",
       "tiers": [
         {
@@ -117,6 +119,7 @@
           "priceMonthly": 39500,
           "limit": "Até 60 alunos",
           "recommended": false,
+          "ctaLabel": "Começar com Starter",
           "features": [
             "Cobrança pela gateway de pagamento",
             "Alunos em dia e em atraso num relance"
@@ -127,6 +130,7 @@
           "priceMonthly": 79700,
           "limit": "Até 150 alunos",
           "recommended": true,
+          "ctaLabel": "Escolher Studio",
           "features": [
             "Tudo do plano Starter",
             "Aulas, séries e reservas",
@@ -138,6 +142,7 @@
           "priceMonthly": 120500,
           "limit": "Alunos ilimitados",
           "recommended": false,
+          "ctaLabel": "Ir para Pro",
           "features": [
             "Tudo do plano Studio",
             "Analítica, CRM e campanhas",
@@ -181,7 +186,7 @@
     "footerAlt": "Para dançarinos",
     "ctaEvents": "Explorar eventos",
     "pricing": {
-      "title": "Planos e preços",
+      "title": "Planos e preços para produtores de eventos",
       "lead": "",
       "perMonth": "/mês",
       "free": "Grátis",
@@ -189,6 +194,8 @@
       "recommended": "Recomendado",
       "cta": "Criar a minha conta",
       "ctaCustom": "Vamos conversar",
+      "cycleLabel": "Período de faturação",
+      "priceBefore": "antes de {price}",
       "note": "Comissão: 5% + IVA + gateway de pagamento (~9,1% tudo incluído) por venda gerida:\ndeduzida da tua liquidação — o assistente paga o preço exato.",
       "tiers": [
         {
@@ -196,6 +203,7 @@
           "priceMonthly": 79700,
           "limit": "Até $2,5 M em vendas por mês",
           "recommended": false,
+          "ctaLabel": "Começar com Starter",
           "features": [
             "Bilhética online + porta QR",
             "Multi-staff (1 membro)",
@@ -207,6 +215,7 @@
           "priceMonthly": 169500,
           "limit": "Até $8 M em vendas por mês",
           "recommended": true,
+          "ctaLabel": "Escolher Standard",
           "features": [
             "Tudo de Starter",
             "CRM do teu público",
@@ -218,6 +227,7 @@
           "priceMonthly": 300200,
           "limit": "Sem teto de faturação",
           "recommended": false,
+          "ctaLabel": "Ir para Pro",
           "features": [
             "Tudo de Standard",
             "Campanhas e benchmark da cena",

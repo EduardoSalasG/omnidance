@@ -215,7 +215,8 @@
       "featuresDesc": "Flags de fonctionnalité par toggle",
       "cities": "Villes",
       "citiesDesc": "Guide éditorial par ville (scène, soirs, astuces)",
-      "promos": "Promotions"
+      "promos": "Promotions",
+      "prices": "Tarifs"
     },
     "academies": {
       "desc": "Santé de la base d'élèves par académie : distribution des segments, score moyen et élèves remarquables ou à risque.",

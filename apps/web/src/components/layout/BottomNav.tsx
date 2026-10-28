@@ -804,6 +804,13 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.promos",
           icon: ICONS.tag,
         },
+        // Price book de tiers por país/ciclo (spec multipais-currency).
+        {
+          href: "/admin/facturacion/precios",
+          ns: "admin",
+          key: "modules.prices",
+          icon: ICONS.tag,
+        },
         {
           href: "/admin/facturacion",
           ns: "admin",
