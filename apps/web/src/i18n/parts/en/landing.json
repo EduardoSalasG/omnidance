@@ -123,7 +123,8 @@
           "features": [
             "Collections via validated receipts",
             "Students up to date and overdue at a glance"
-          ]
+          ],
+          "promoPriceMonthly": 19750
         },
         {
           "name": "Studio",
