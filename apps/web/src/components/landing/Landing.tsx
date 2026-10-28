@@ -10,9 +10,15 @@ import { getLocale, getMessages } from "next-intl/server";
 import type { JsonLdEvent } from "./JsonLd";
 import { PricingSection } from "./PricingSection";
 import type { PublicAcademy } from "@/lib/public-academies";
+
 import { Link } from "@/i18n/navigation";
 import { getDateFmt } from "@/lib/intl";
 import { SITE_URL } from "@/lib/site-url";
+
+// Prueba social de academias desactivada hasta que haya clientes reales;
+// la lista seedeada es demo y no debe leerse como clientela. Volver a
+// true cuando las academias registradas sean de pago.
+const SHOW_ACADEMY_PROOF = false;
 
 // Acento de marca via token `neon` (#a78bfa violeta en :root) - icon.svg,
 // og-image e íconos PWA comparten el mismo valor. La atmósfera del hero es
@@ -89,14 +95,12 @@ export async function Landing({
     { index: "03", title: t.featureSceneTitle, desc: t.featureSceneDesc },
   ];
 
+  // El conteo de academias queda oculto hasta que haya clientes reales
+  // (academyEmpty es el fallback sin número); producer sí muestra
+  // eventos reales de la cartelera.
   const weekLabel =
     variant === "academy"
-      ? academies.length > 0
-        ? m.landingAcademy.academyCount.replace(
-            "{count}",
-            String(academies.length),
-          )
-        : m.landingAcademy.academyEmpty
+      ? m.landingAcademy.academyEmpty
       : weeklyEvents > 0
         ? t.weekCount.replace("{count}", String(weeklyEvents))
         : t.weekEmpty;
@@ -279,7 +283,7 @@ export async function Landing({
         <section className="border-t border-ink/5 px-6 py-10 lg:py-14">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
             <p className="text-sm font-semibold text-ink">{weekLabel}</p>
-            {variant === "academy" && academies.length > 0 && (
+            {variant === "academy" && SHOW_ACADEMY_PROOF && academies.length > 0 && (
               <ul className="flex flex-col items-center gap-1 lg:flex-row lg:flex-wrap lg:justify-center lg:gap-x-5">
                 {academies.slice(0, 3).map((a) => (
                   <li
@@ -387,8 +391,9 @@ export async function Landing({
             locale={locale}
             registerHref={registerHref}
             // Prueba social junto al punto de decisión: el mismo claim
-            // del strip de arriba (academias o eventos ya operando).
-            proof={weekLabel}
+            // del strip de arriba. En academias queda oculto hasta que
+            // haya clientes reales que respalden el número.
+            proof={variant === "academy" ? undefined : weekLabel}
           />
         )}
         {productLd && (

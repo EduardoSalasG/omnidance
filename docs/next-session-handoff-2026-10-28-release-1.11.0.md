@@ -85,3 +85,21 @@
   `/c/Program Files/Git/cmd/git.exe` o exportarlo.
 - Deleting-lock quirk de openspec: si `archive` se interrumpe queda
   `openspec/changes/archive/.openspec-archive.lock` — borrarlo y re-correr.
+
+## Post-sesión pricing (mismo día, extendido)
+
+- Landings: pricing sections + toggle de ciclo + tiers productor
+  Starter/Standard/Pro todos pagos self-serve + academy Cobros→Starter +
+  Enterprise fuera + nota de comisión 5%+IVA+pasarela en ambas.
+- `fees.managed_allin_pct` = 9,14 (era 10). `TierPrice.displayName`
+  (columna + migración + admin DTOs). Params/TierPrice en prod =
+  edición manual /admin (hecho por el usuario).
+- Bug 400 `/admin/params` = falta Content-Type JSON en apiFetch (y uno
+  igual en /admin/roles); además /api/api duplicado rompía toda
+  facturación/precios. Fijos en bdc39ca1 + ActionNotice + displayName.
+- Flow: transferencia 0,99%+$100 disponible — camino mínimo = habilitar
+  Khipu/Etpay en cuenta Flow + copy checkout (sin código). Selector
+  propio tarjeta/transferencia = scope mayor (ports, fee por método,
+  spec). Toku evaluado: candidato suscripciones futuro, no ahora.
+- Doc comercial: pitch cold closer + FAQ + proyecciones + break-even
+  pasarelas + runbook promo escalonada 50/25 (config /admin).
