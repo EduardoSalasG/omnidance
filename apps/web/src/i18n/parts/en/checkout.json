@@ -21,7 +21,7 @@
     "fRut": "Tax ID",
     "fEmail": "Email",
     "ownMethodTitle": "How do you want to pay?",
-    "ownMethodGateway": "Card / Webpay",
+    "ownMethodGateway": "Card, bank transfer or Webpay",
     "ownMethodHint": "We’ll show you the payment details and you’ll upload the receipt. The producer validates it and your ticket gets issued.",
     "ownMethodPendingTitle": "Order created · manual payment",
     "ownMethodPendingDesc": "Pay with these details and upload the receipt. Your ticket is issued when the producer validates the payment.",

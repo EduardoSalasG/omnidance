@@ -73,7 +73,7 @@
     "inactive": "Inactive",
     "deleteConfirm": "Delete this payment method?",
     "chooseMethod": "Which method are you paying with?",
-    "methodGateway": "Card or Webpay",
+    "methodGateway": "Card, bank transfer or Webpay",
     "continueMethod": "Continue with {label}",
     "awaitingHint": "We recorded your attempt with {method}. Pay from your app and come back to upload the receipt: you can leave and resume this anytime.",
     "pendingTitle": "Receipt under review",

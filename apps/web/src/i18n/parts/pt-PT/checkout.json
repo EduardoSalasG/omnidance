@@ -21,7 +21,7 @@
     "fRut": "N.º fiscal",
     "fEmail": "E-mail",
     "ownMethodTitle": "Como queres pagar?",
-    "ownMethodGateway": "Cartão / Webpay",
+    "ownMethodGateway": "Cartão, transferência ou Webpay",
     "ownMethodHint": "Vamos mostrar-te os dados para pagar e enviarás o comprovativo. O produtor valida e o teu bilhete é emitido.",
     "ownMethodPendingTitle": "Encomenda criada · pagamento manual",
     "ownMethodPendingDesc": "Paga com estes dados e envia o comprovativo. O teu bilhete é emitido quando o produtor validar o pagamento.",

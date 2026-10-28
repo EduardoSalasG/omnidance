@@ -73,7 +73,7 @@
     "inactive": "Inactivo",
     "deleteConfirm": "¿Eliminar este medio de pago?",
     "chooseMethod": "¿Con qué medio pagas?",
-    "methodGateway": "Tarjeta o Webpay",
+    "methodGateway": "Tarjeta, transferencia o Webpay",
     "continueMethod": "Continuar con {label}",
     "awaitingHint": "Ya registramos tu intento con {method}. Paga desde tu app y vuelve a subir el comprobante: puedes salir y retomar esto cuando quieras.",
     "pendingTitle": "Comprobante en revisión",

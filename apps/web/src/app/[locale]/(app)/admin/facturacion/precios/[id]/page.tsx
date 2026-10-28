@@ -8,7 +8,7 @@ import { Button, Card, SkeletonCard } from "@/components/ui";
 import { ActionNotice } from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
-import { cycleLabel, type TierPrice } from "../shared";
+import { cycleLabel, tierLabel, type TierPrice } from "../shared";
 
 // Ficha de una fila del price book (spec multipais-currency): edición de
 // nombre visible/precio/moneda (la clave tier×kind×ciclo×país no se
@@ -130,11 +130,15 @@ export default function AdminTierPriceDetailPage({
         {state === "ok" && row && (
           <>
             <h2 className="text-xl font-semibold">
-              {row.tierCode} · {row.countryCode}
+              {tierLabel(row)} · {row.countryCode}
             </h2>
 
             <Card className="flex flex-col gap-4">
               <dl className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <dt className="text-xs text-ink/50">{t("tier")}</dt>
+                  <dd className="tabular-nums">{row.tierCode}</dd>
+                </div>
                 <div>
                   <dt className="text-xs text-ink/50">{t("kind")}</dt>
                   <dd>
@@ -153,7 +157,7 @@ export default function AdminTierPriceDetailPage({
                     className={inputCls}
                     value={displayName}
                     maxLength={60}
-                    placeholder={row.tierCode}
+                    placeholder={tierLabel(row)}
                     onChange={(e) => setDisplayName(e.target.value)}
                   />
                 </label>

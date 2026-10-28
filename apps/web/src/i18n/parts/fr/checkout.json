@@ -21,7 +21,7 @@
     "fRut": "N° fiscal",
     "fEmail": "E-mail",
     "ownMethodTitle": "Comment veux-tu payer ?",
-    "ownMethodGateway": "Carte / Webpay",
+    "ownMethodGateway": "Carte, virement ou Webpay",
     "ownMethodHint": "On te montrera les coordonnées pour payer et tu enverras le justificatif. Le producteur valide et ton billet est émis.",
     "ownMethodPendingTitle": "Commande créée · paiement manuel",
     "ownMethodPendingDesc": "Paie avec ces coordonnées et envoie le justificatif. Ton billet est émis quand le producteur valide le paiement.",
