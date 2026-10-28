@@ -3,6 +3,42 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.11.0] - 2026-10-28
+
+### Added
+
+- **Producer Pro nivelado** (`producer-pro-tiers`): matriz de features
+  por tier del productor (`multiStaff`, `analytics`, `exports`, `crm`),
+  cupo de staff por tier, `trial = STARTER` y gate `multiStaff` en el
+  roster del evento.
+- **Medición web**: Google Tag Manager (`GTM-W9KC3378`) y Microsoft
+  Clarity (`z4swabie90`) en todas las páginas, gateados por
+  `NEXT_PUBLIC_GTM_ID` / `NEXT_PUBLIC_CLARITY_ID` (dev local no
+  contamina); CSP `script-src`/`frame-src` abierta solo a
+  `googletagmanager.com` y `*.clarity.ms`.
+- **`/llms.txt`**: resumen del sitio para crawlers de IA (llmstxt) con
+  las secciones públicas sobre el dominio primario.
+- **Multipaís currency + phone** (tasks 2-3 de `multipais-foundation`):
+  `Event.currency`, teléfono WhatsApp en formato E.164 con código de
+  país, gross por moneda en finanzas, onboarding de academia no-CL.
+
+### Changed
+
+- **Dominio primario `omnidance.tech`**: canonical, og:url, sitemap,
+  robots y JSON-LD dejan de emitir `omnidance.netlify.app` — los share
+  sheets móviles y buscadores resuelven el dominio real. `WEB_URL`/
+  `CORS_ORIGINS` del API deben actualizarse en el `.env` de la VM.
+- **Posicionamiento SEO**: metadata global (title/description/
+  keywords) describe el producto como gestión de academias de baile y
+  eventos de productores, referencia de sociales y congresos.
+- **Webhook Stripe billing** (`stripe-subs-webhook`): los eventos de
+  Stripe enrutan a membresías de academia y suscripciones de plataforma.
+
+### Fixed
+
+- `promoState` no exportable desde page (rompía `next build` en
+  `.next/types`).
+
 ## [1.10.0] - 2026-10-24
 
 ### Added
