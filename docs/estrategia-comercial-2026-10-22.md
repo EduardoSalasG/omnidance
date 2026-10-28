@@ -291,3 +291,72 @@ planillas.
    completa desde el día uno; planes desde $39.500 y pagos
    semestral/anual con descuento."
 4. *Cierre*: "¿Cuántos alumnos tienes hoy? La montamos esta semana."
+
+## 5. Proyección de volumen transado y criterio de pasarela
+
+Números usados para cotizar gateways (Fintoc, oct-2026) — sirven como
+la proyección oficial de transacciones para negociación.
+
+### Volumen proyectado
+
+| Etapa | Transacciones/mes | Volumen CLP/mes | Ticket |
+|---|---|---|---|
+| Inicial (conservador) | 2.000-3.000 | ~$15-20M | ~$6.000 |
+| +6 meses | 8.000-10.000 | ~$50-70M | ~$6.000 |
+| Suscripciones (aparte) | pocas, ticket alto | $40.000-300.000/tx | mensual |
+
+La escena completa en el doc §2 da un techo ~$51M brutos/mes en
+ticketing; los rangos arriba asumen captura parcial primero y mayoría
+después. La preventa online es la parte gestionable (~80% del gross);
+la puerta es el upside pendiente.
+
+### Criterio de evaluación de pasarela
+
+La decisión es **fijo vs solo-transaccional**, y depende del volumen:
+
+| Volumen mensual | Fijo $655K (12 UF + IVA) como % | Comisión máx. para empatar a Flow (~3,19%) |
+|---|---|---|
+| $20M | ~3,3% | <0% (no cierra) |
+| $50M | ~1,3% | <1,9% |
+| $70M | ~0,9% | <2,3% |
+| $100M | ~0,7% | <2,5% |
+
+- **Regla**: con fijo + comisión, el break-even vs Flow es
+  `V = fijo / (3,19% − comisión)`. En el arranque ningún fijo cierra
+  salvo comisión casi nula; desde ~$50M/mes cierra si la comisión
+  anduvo en ~1,5-2%.
+- **El mix decide**: la transferencia cuenta-a-cuenta (fuerte de
+  Fintoc) es el canal natural de esta escena — el público ya paga
+  transferencias, solo que a mano. Si la tasa de transferencia es
+  baja (<1,5%), un checkout con transferencia integrada le baja el
+  costo al productor y mejora nuestro fee real al mismo tiempo.
+- **Preguntas de cotización**: tasa por medio de pago (tarjeta vs
+  transferencia), qué cubre exactamente el fijo (¿incluye payouts y
+  conciliación?), y si hay tiers sin fijo.
+- Estrategia: **Flow como default al lanzamiento** (sin fijo, el
+  productor solo paga al vender — coherente con nuestro modelo), y
+  re-evaluar gateways con fijo al superar ~$50M/mes o si aparece un
+  canal de transferencia barato sin cargo mensual.
+
+### Estrategia de adopción (orden del embudo)
+
+1. **Productores ancla primero** — la cartelera es el activo:
+   Ardilla, Bsoul, Bailemos, C2 (formales, el IVA les cuadra) y
+   Gozadera/Havana/Madness (informales de mayor volumen — el cierre
+   es con `platformFeePct` por volumen, no con precio de lista).
+2. **Promo escalonada como mecanismo de firma**: −50% del fee (m1-6)
+   → −25% (m7-12) → full, siempre sobre precio de lista tachado.
+   En promo el costo total del productor (~6,2% informal) queda solo
+   ~1,7pts sobre su link propio — menos que la fuga de comprobantes
+   falsos + trabajo manual que ya tienen.
+3. **La cartelera alimenta el funnel**: más eventos gestionados → más
+   bailarines con la app → más presión para que el resto de
+   productores entre. El marketplace defiende solo cuando la
+   cobertura es mayoritaria.
+4. **Academias en paralelo** con trial Studio: suscripción más
+   estable que ticketing (MRR, no variable), y las academias que son
+   también productoras (ej. MuéveteOnTour) cierran ambos lados del
+   loop en una sola venta.
+5. **El ingreso sigue al hábito, no al precio**: año 1 con subsidio
+   (~$12M) compra la posición; los años 2-3 (~$47M/$64M) se cobran
+   con el fee full + tiers altos por auto-upgrade de facturación.
