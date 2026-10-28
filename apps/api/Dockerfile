@@ -42,6 +42,11 @@ ENV NODE_ENV=production
 COPY pnpm-workspace.yaml package.json ./
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+# Deps de runtime de shared (libphonenumber-js): pnpm deja el symlink en
+# packages/shared/node_modules → /app/node_modules/.pnpm - sin esta
+# copia require() desde shared/dist no resuelve (crasheó el deploy
+# 1.11.0 con MODULE_NOT_FOUND).
+COPY --from=builder /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=builder /app/apps/api/package.json ./apps/api/
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
