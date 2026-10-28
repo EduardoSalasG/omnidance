@@ -220,15 +220,27 @@
       "note": "Commission : 5 % + TVA + passerelle de paiement (~9,1 % tout compris) par vente gérée.\nDéduite de ton règlement. L'assistant paie le prix exact.",
       "tiers": [
         {
+          "name": "Vends des billets",
+          "priceMonthly": 0,
+          "limit": "Sans abonnement",
+          "features": [
+            "Publie ton événement dans la carte",
+            "Vente en ligne avec QR et check-in à la porte",
+            "Règlement avec la commission déduite"
+          ],
+          "recommended": false,
+          "ctaLabel": "Vendre maintenant"
+        },
+        {
           "name": "Starter",
           "priceMonthly": 79700,
           "limit": "Jusqu'à 2,5 M$ de ventes par mois",
           "recommended": false,
           "ctaLabel": "Commencer avec Starter",
           "features": [
-            "Billetterie en ligne + porte QR",
-            "Multi-staff (1 membre)",
-            "Analytiques et exports"
+            "Analytique des ventes et de l'audience",
+            "Exports",
+            "Multi-staff (1 membre)"
           ]
         },
         {
@@ -238,8 +250,8 @@
           "recommended": true,
           "ctaLabel": "Choisir Standard",
           "features": [
-            "Tout de Starter",
-            "CRM de votre public",
+            "Tout ce de Starter",
+            "CRM de ton public",
             "Multi-staff (jusqu'à 2)"
           ]
         },
@@ -250,8 +262,8 @@
           "recommended": false,
           "ctaLabel": "Passer à Pro",
           "features": [
-            "Tout de Standard",
-            "Campagnes & benchmark de la scène",
+            "Tout ce de Standard",
+            "Campagnes segmentées et benchmark de la scène",
             "Staff illimité"
           ]
         }

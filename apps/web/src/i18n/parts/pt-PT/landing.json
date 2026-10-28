@@ -220,15 +220,27 @@
       "note": "Comissão: 5% + IVA + gateway de pagamento (~9,1% tudo incluído) por venda gerida.\nDeduzida da tua liquidação; o assistente paga o preço exato.",
       "tiers": [
         {
+          "name": "Vende bilhetes",
+          "priceMonthly": 0,
+          "limit": "Sem mensalidade",
+          "features": [
+            "Publica o teu evento na programação",
+            "Venda online com QR e check-in à porta",
+            "Liquidação com a comissão deduzida"
+          ],
+          "recommended": false,
+          "ctaLabel": "Vender agora"
+        },
+        {
           "name": "Starter",
           "priceMonthly": 79700,
           "limit": "Até $2,5 M em vendas por mês",
           "recommended": false,
           "ctaLabel": "Começar com Starter",
           "features": [
-            "Bilhética online + porta QR",
-            "Multi-staff (1 membro)",
-            "Analíticas e exportações"
+            "Analíticas de vendas e audiência",
+            "Exportações",
+            "Multi-staff (1 membro)"
           ]
         },
         {
@@ -238,7 +250,7 @@
           "recommended": true,
           "ctaLabel": "Escolher Standard",
           "features": [
-            "Tudo de Starter",
+            "Tudo o do Starter",
             "CRM do teu público",
             "Multi-staff (até 2)"
           ]
@@ -250,8 +262,8 @@
           "recommended": false,
           "ctaLabel": "Ir para Pro",
           "features": [
-            "Tudo de Standard",
-            "Campanhas e benchmark da cena",
+            "Tudo o do Standard",
+            "Campanhas segmentadas e benchmark da cena",
             "Staff ilimitado"
           ]
         }

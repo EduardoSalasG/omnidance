@@ -220,15 +220,27 @@
       "note": "Commission: 5% + VAT + payment gateway (~9.1% all-in) per managed sale.\nDeducted from your settlement; attendees pay the exact price.",
       "tiers": [
         {
+          "name": "Sell tickets",
+          "priceMonthly": 0,
+          "limit": "No monthly fee",
+          "features": [
+            "Publish your event on the board",
+            "Online sales with QR and door check-in",
+            "Settlement with the commission deducted"
+          ],
+          "recommended": false,
+          "ctaLabel": "Sell now"
+        },
+        {
           "name": "Starter",
           "priceMonthly": 79700,
           "limit": "Up to $2.5 M in monthly sales",
           "recommended": false,
           "ctaLabel": "Start with Starter",
           "features": [
-            "Online ticketing + QR door",
-            "Multi-staff (1 member)",
-            "Analytics and exports"
+            "Sales and audience analytics",
+            "Exports",
+            "Multi-staff (1 member)"
           ]
         },
         {
@@ -239,7 +251,7 @@
           "ctaLabel": "Choose Standard",
           "features": [
             "Everything in Starter",
-            "Your audience CRM",
+            "Audience CRM",
             "Multi-staff (up to 2)"
           ]
         },
@@ -251,7 +263,7 @@
           "ctaLabel": "Go Pro",
           "features": [
             "Everything in Standard",
-            "Campaigns & scene benchmark",
+            "Segmented campaigns and scene benchmark",
             "Unlimited staff"
           ]
         }
