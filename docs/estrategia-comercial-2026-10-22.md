@@ -13,14 +13,20 @@ donde el más barato es **señuelo deliberado** — existe para anclar,
 no para venderse. El plan objetivo es el medio; el top captura a las
 operaciones grandes.
 
-- **Academia**: COBROS $39.990 (≤150) → STUDIO $79.990 (≤300) → PRO
-  $119.990 (ilimitado). Feature-gating: COBROS solo cobranza + estado
+- **Academia**: Starter $39.500 (≤60) → Studio $79.700 (≤150) → Pro
+  $120.500 (ilimitado). Feature-gating: Starter solo cobranza + estado
   de alumnos (con take ~4,8% all-in sobre lo recaudado — ahí la
-  cobranza ES el producto, compite con Membrezia); STUDIO operación
-  completa; PRO = CRM/analítica/campañas/videos/multi-academia.
-- **Producer Pro**: Pro $79.990 (≤$2,5M fact. 90d) → Growth $169.990
-  (≤$8M) → Scale $299.990 (>$8M). Ticketing base nunca se corta — es
-  el funnel del marketplace.
+  cobranza ES el producto, compite con Membrezia); Studio operación
+  completa; Pro = CRM/analítica/campañas/videos/multi-academia.
+  Enterprise queda fuera de la landing (a convenir, sin self-serve).
+- **Producer Pro**: Starter $79.700 (≤$2,5M fact. media 90d) →
+  Standard $169.500 (≤$8M) → Pro $300.200 (>$8M) — los 3 tiers son
+  pagos y self-serve. Ticketing base nunca se corta — es el funnel
+  del marketplace.
+- **Nomenclatura** (2026-10-28): los nombres visibles son
+  `TierPrice.displayName` / catálogo i18n; los códigos persistidos
+  (`COBROS`, `PRO_STARTER`…) no se renombran — desacople deliberado
+  para futuros renames sin migración.
 - **Error evitado**: la escalera propuesta inicialmente (40/65/90)
   tenía el salto medio→top más chico que señuelo→medio → todo el
   mundo habría saltado al top. Ratios sanos: medio ≈ 1,7–2× señuelo,
@@ -48,7 +54,7 @@ operaciones grandes.
 ## 3. Publicidad segmentada a bailarines (línea nueva evaluada)
 
 - Producto: pushes/notificaciones in-app promocionando talleres y
-  eventos, cupos incluidos en tiers top + extras ~$12.990/campaña.
+  eventos, cupos incluidos en tiers top + extras ~$12.500/campaña.
 - **El cap de inventario es feature, no bug**: máx. 1 push
   promocional/semana/persona → escasez que protege el tono y sostiene
   el precio. Guardrails: opt-out, targeting por agregados (nunca data
@@ -165,3 +171,123 @@ estresada" + métricas `Concentración top-1` y `Expansión de tier` en
   público del pase hasta negociarla con 2 productores reales.
 - Conversión A2A de Fintoc: si <30% de los checkouts la elige tras el
   piloto, la tesis de margen por pasarela se revisa.
+
+## 4. Comisión, IVA y promo de lanzamiento (pitch cold closer)
+
+Decisión 2026-10-28 — estructura de comisión al productor y la oferta
+de captura. Lo vinculante queda en `omni-dance.md` §10 y en los params;
+aquí el razonamiento y el script.
+
+### La estructura: 5% + IVA + pasarela
+
+- **Fee plataforma: 5% + IVA** por venta gestionada (`fees.*`), más
+  **pasarela como passthrough real** (~3,19% tarjeta, ya con su IVA —
+  no se le suma IVA encima, es costo del banco).
+- Total all-in ≈ **9,1%**. El comprador paga el precio publicado
+  exacto; la comisión se descuenta de la liquidación del productor.
+- La desagregación es también la estrategia defensiva: el passthrough
+  transparente impide leer el 9,1% como "codicia de la plataforma" y
+  deja tu fee visible como lo que es (~5-5,7% neto).
+
+### La escena real: 50% formal / 50% informal
+
+| Productor | Cuenta | Recupera IVA |
+|---|---|---|
+| Ardilla, Bsoul (SpA), Bailemos (SpA), C2 Carlos Producciones | Empresa | Sí — su costo real baja |
+| Ashé, Madness, La Gozadera, Havana | Personal | No |
+
+Eso define la tabla de costo real que el closer debe memorizar:
+
+| Escenario | Informal (IVA es costo puro) | Formal (IVA = crédito) |
+|---|---|---|
+| BYO-link propio (SumUp/MP ~3,8%+IVA) | ~4,5% + trabajo manual + fraude | ~3,8% |
+| Promo meses 1-6 (fee −50%) | ~6,2% | ~5,2% |
+| Promo meses 7-12 (fee −25%) | ~7,7% | ~6,4% |
+| Full | ~9,1% | ~7,6% |
+
+**La línea clave del pitch**: durante la promo la prima del loop
+gestionado sobre el BYO-link es ~1,7pts — menos que lo que hoy pierden
+en comprobantes falsos, filas en la puerta y planillas de
+reconciliación. Post-promo la prima sube a ~4,6pts y ahí vendes
+hábito, data y puerta QR, no precio.
+
+### Promo de lanzamiento escalonada
+
+- **Meses 1-6: −50% del fee de plataforma** (5%→2,5%+IVA) **y de los
+  planes** (Starter productor ~$39.850, academias similar).
+- **Meses 7-12: −25%** del fee y de planes.
+- **Solo sobre el fee propio — la pasarela nunca se subsidia** (ese
+  descuento sería pérdida seca de caja).
+- Mecanismo existente: `PlatformPromo` (PERCENT, maxCycles, ventana,
+  whitelist, scope) genera plan espejo sin mutar el tier — nunca
+  mostrar el precio promo como "el precio"; siempre tachado +
+  oferta + vencimiento.
+- El BYO-link se autolimita: vender 150 entradas por link externo y
+  validarlas a mano es justo el dolor que la plataforma elimina; la
+  emisión de ticket online solo nace de orden gestionada (invariante
+  de producto — nunca "sube tu link de pago").
+
+### Proyección 3 años (referencia, CLP)
+
+~$12M año 1 (promo + rampa 40%) → ~$47M año 2 (~80% cobertura, full)
+→ ~$64M año 3 (monopolio ~95%). El subsidio año 1 ≈ $10M de revenue
+diferido = costo de captura de la cartelera completa. Upside mayor:
+si la puerta también se digitaliza, el pool de comisión casi se
+duplica (+~$20M/año).
+
+### FAQ cold closer
+
+**"La transferencia me sale gratis, ¿por qué te pagaría?"**
+No es gratis: te cuesta la fila en la puerta, los comprobantes falsos,
+la conciliación post-evento y que no sabes quién es tu público. Con
+promo pagas ~6% total por vender online con cero trabajo y te llevas
+la data — lo que hoy pierdes en fugas paga la prima solo.
+
+**"¿Y si uso mi propio link de MercadoPago/SumUp?"**
+Puedes — pero el link te cobra, no te da la entrada. El QR, el
+check-in en segundos, la liquidación del evento y el CRM de tu
+público nacen de la venta gestionada. Con link propio igual terminas
+validando a mano en la puerta.
+
+**"Soy empresa, ¿el IVA me sirve?"**
+Sí — te emitimos el documento y el IVA del fee te vuelve como
+crédito: tu costo real baja ~1,5pts bajo el número de lista (ej.
+~7,6% en vez de 9,1%).
+
+**"¿Qué pasa después de la promo?"**
+El precio de lista siempre estuvo visible (con el tachado desde el
+día uno) y el descuento se reduce por tramos: −50% seis meses, −25%
+seis más, full al año. Nunca una sorpresa de un día para otro.
+
+**"¿El asistente paga más caro online?"**
+No — paga el precio publicado exacto, sin cargo de servicio al
+comprador. La comisión la absorbe el productor de su recaudación,
+como cualquier costo de operación.
+
+**"¿Me encierro contigo?"**
+La suscripción es mensual/semestral/anual, cancelable; lo que te
+queda al irte es tu data exportada (en planes Standard+). Lo que te
+ata no es un contrato, es que la alternativa es volver a las
+planillas.
+
+### El pitch en 4 movimientos
+
+**Productor** (dolor → loop → promo → cierre):
+1. *Dolor*: "¿Cómo cierras caja hoy? Excel + formularios +
+   comprobantes falsos + fila en la puerta sin saber cuánto vendiste."
+2. *Loop*: "Entradas al precio exacto, puerta QR que valida tu staff
+   desde su teléfono, liquidación con números claros la misma noche."
+3. *Oferta*: "Comisión 5%+IVA+pasarela; lanzamiento: −50% del fee tus
+   primeros 6 meses, −25% los siguientes 6 — te sale menos que lo que
+   hoy pierdes en fuga."
+4. *Cierre*: "¿Cuál es tu próximo evento? Lo montamos esta semana."
+
+**Academia** (dolor → orden → trial → cierre):
+1. *Dolor*: "¿Cuánto tiempo llevas al día persiguiendo pagos por
+   WhatsApp y marcando asistencia en papel?"
+2. *Orden*: "Horarios publicados, alumnos que reservan y pagan solos,
+   tú ves quién pagó y quién debe — sin un solo mensaje."
+3. *Oferta*: "Empiezas con prueba nivel Studio — la operación
+   completa desde el día uno; planes desde $39.500 y pagos
+   semestral/anual con descuento."
+4. *Cierre*: "¿Cuántos alumnos tienes hoy? La montamos esta semana."
