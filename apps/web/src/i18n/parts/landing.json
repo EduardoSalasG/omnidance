@@ -220,15 +220,27 @@
       "note": "Comisión: 5% + IVA + pasarela de pago (~9,1% todo incluido) por venta gestionada.\nSe descuenta de tu liquidación; el asistente paga el precio exacto.",
       "tiers": [
         {
+          "name": "Vende entradas",
+          "priceMonthly": 0,
+          "limit": "Sin mensualidad",
+          "features": [
+            "Publica tu evento en la cartelera",
+            "Venta online con QR y check-in en puerta",
+            "Liquidación con la comisión descontada"
+          ],
+          "recommended": false,
+          "ctaLabel": "Vender ahora"
+        },
+        {
           "name": "Starter",
           "priceMonthly": 79700,
           "limit": "Hasta $2,5 M de ventas al mes",
           "recommended": false,
           "ctaLabel": "Empezar con Starter",
           "features": [
-            "Ticketing online + puerta QR",
-            "Multi-staff (1 integrante)",
-            "Analíticas y exportaciones"
+            "Analíticas de ventas y audiencia",
+            "Exportaciones",
+            "Multi-staff (1 integrante)"
           ]
         },
         {
@@ -251,7 +263,7 @@
           "ctaLabel": "Ir a Pro",
           "features": [
             "Todo lo de Standard",
-            "Campañas y benchmark de la escena",
+            "Campañas segmentadas y benchmark",
             "Staff ilimitado"
           ]
         }
