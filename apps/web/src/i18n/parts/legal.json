@@ -56,7 +56,7 @@
             "Cuenta: nombre, correo electrónico y teléfono (optativo).",
             "Perfil de baile: género (optativo), estilos, roles y nivel autodeclarados.",
             "Actividad: check-ins QR en eventos, sesiones de baile y valoraciones, siempre privadas y agregadas, nunca expuestas de forma individual (mínimo k≥3).",
-            "Pagos: procesados por Flow. No almacenamos datos de tarjetas.",
+            "Pagos: procesados por pasarela de pago. No almacenamos datos de tarjetas.",
             "Tokens push de tu dispositivo para notificaciones.",
             "Datos técnicos: registros (logs) con request-id y dirección IP, con fines de seguridad y diagnóstico."
           ],
@@ -86,7 +86,7 @@
             "Para operar el servicio compartimos datos con encargados de tratamiento que actúan por cuenta nuestra:"
           ],
           "list": [
-            "Flow: procesamiento de pagos.",
+            "Pasarela de pago: procesamiento de pagos.",
             "Resend: envío de correos transaccionales.",
             "Proveedor de hosting/infraestructura de la plataforma.",
             "Apple y Google: entrega de notificaciones push a tu dispositivo."
@@ -185,7 +185,7 @@
         {
           "title": "5. Entradas y compras",
           "list": [
-            "Los pagos se procesan a través de Flow; Omnidance actúa como intermediario entre compradores y productores, y gestiona las liquidaciones correspondientes.",
+            "Los pagos se procesan a través de una pasarela de pago; Omnidance actúa como intermediario entre compradores y productores, y gestiona las liquidaciones correspondientes.",
             "Las entradas son transferibles según las reglas de la app, salvo indicación del productor.",
             "Las entradas no tienen reembolso salvo cancelación del evento o lo que la ley disponga; el acceso queda sujeto a la política de puerta del local y del productor.",
             "El precio publicado es el precio final: Omnidance no suma cargos al comprador. La comisión de plataforma se descuenta de la liquidación del productor."

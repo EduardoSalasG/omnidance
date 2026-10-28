@@ -56,7 +56,7 @@
             "Account: name, email and phone (optional).",
             "Dance profile: gender (optional), styles, roles and self-declared level.",
             "Activity: QR check-ins at events, dance sessions and ratings, always private and aggregated, never exposed individually (minimum k≥3).",
-            "Payments: processed by Flow. We do not store card data.",
+            "Payments: processed by a payment gateway. We do not store card data.",
             "Push tokens from your device for notifications.",
             "Technical data: logs with request-id and IP address, for security and diagnostic purposes."
           ],
@@ -86,7 +86,7 @@
             "To operate the service we share data with processors acting on our behalf:"
           ],
           "list": [
-            "Flow: payment processing.",
+            "Payment gateway: payment processing.",
             "Resend: transactional email delivery.",
             "The platform's hosting/infrastructure provider.",
             "Apple and Google: push notification delivery to your device."
@@ -185,7 +185,7 @@
         {
           "title": "5. Tickets and purchases",
           "list": [
-            "Payments are processed through Flow; Omnidance acts as an intermediary between buyers and producers and manages the corresponding settlements.",
+            "Payments are processed through a payment gateway; Omnidance acts as an intermediary between buyers and producers and manages the corresponding settlements.",
             "Tickets are transferable per the app's rules, unless the producer states otherwise.",
             "Tickets are non-refundable except for event cancellation or as the law provides; admission is subject to the venue's and producer's door policy.",
             "The published price is the final price: Omnidance adds no charges to the buyer. The platform fee is deducted from the producer's settlement."

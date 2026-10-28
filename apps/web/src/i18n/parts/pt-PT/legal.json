@@ -56,7 +56,7 @@
             "Conta: nome, e-mail e telefone (opcional).",
             "Perfil de dança: género (opcional), estilos, papéis e nível declarado.",
             "Atividade: check-ins QR em eventos, sessões de dança e avaliações, sempre privadas e agregadas, nunca expostas individualmente (mínimo k≥3).",
-            "Pagamentos: processados pela Flow. Não guardamos dados de cartão.",
+            "Pagamentos: processados por gateway de pagamento. Não guardamos dados de cartão.",
             "Tokens push do teu dispositivo para notificações.",
             "Dados técnicos: logs com request-id e endereço IP, para segurança e diagnóstico."
           ],
@@ -86,7 +86,7 @@
             "Para operar o serviço partilhamos dados com encarregados de tratamento que atuam por nossa conta:"
           ],
           "list": [
-            "Flow: processamento de pagamentos.",
+            "Gateway de pagamento: processamento de pagamentos.",
             "Resend: envio de e-mails transacionais.",
             "O fornecedor de hosting/infraestrutura da plataforma.",
             "Apple e Google: entrega de notificações push ao teu dispositivo."
@@ -185,7 +185,7 @@
         {
           "title": "5. Bilhetes e compras",
           "list": [
-            "Os pagamentos processam-se através da Flow; o Omnidance atua como intermediário entre compradores e produtores e gere as liquidações correspondentes.",
+            "Os pagamentos processam-se através de uma gateway de pagamento; o Omnidance atua como intermediário entre compradores e produtores e gere as liquidações correspondentes.",
             "Os bilhetes são transferíveis conforme as regras da app, salvo indicação contrária do produtor.",
             "Os bilhetes não são reembolsáveis salvo por cancelamento do evento ou conforme a lei; a admissão está sujeita à política de porta do local e do produtor.",
             "O preço publicado é o preço final: o Omnidance não acrescenta encargos ao comprador. A comissão da plataforma deduz-se da liquidação do produtor."
