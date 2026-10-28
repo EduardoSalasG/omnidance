@@ -6,12 +6,12 @@
     "desc": "Passez au tier supérieur pour continuer à l'utiliser - le changement est immédiat.",
     "cta": "Voir les plans",
     "tiers": {
-      "COBROS": "Cobros",
+      "COBROS": "Starter",
       "STUDIO": "Studio",
       "PRO": "Pro",
-      "PRO_STARTER": "Producer Pro",
-      "PRO_GROWTH": "Producer Pro Growth",
-      "PRO_BIG": "Producer Pro sur mesure"
+      "PRO_STARTER": "Starter",
+      "PRO_GROWTH": "Standard",
+      "PRO_BIG": "Pro"
     },
     "features": {
       "classes": "Cours et séries",

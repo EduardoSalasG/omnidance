@@ -24,7 +24,7 @@
     "tiers": {
       "STARTER": "Starter",
       "PRO": "Pro",
-      "COBROS": "Cobros",
+      "COBROS": "Starter",
       "STUDIO": "Studio",
       "ENTERPRISE": "Enterprise"
     },

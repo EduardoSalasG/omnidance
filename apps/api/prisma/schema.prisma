@@ -292,6 +292,10 @@ model TierPrice {
   countryCode  String   // ISO-3166 alpha-2
   price        Int      // monto en la moneda declarada (unidad menor si aplica)
   currency     String   // ISO-4217
+  // Nombre público del tier (desacoplado del código persistido):
+  // editable por admin sin migración ni deploy - null → el front usa
+  // su mapa i18n por tierCode.
+  displayName  String?
 
   @@unique([tierCode, kind, billingCycle, countryCode])
 }

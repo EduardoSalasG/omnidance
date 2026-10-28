@@ -27,9 +27,12 @@ export const SELF_SERVE_ACADEMY_TIERS = new Set<string>([
   "STUDIO",
   "PRO",
 ]);
+// ENTERPRISE queda como único "a convenir": los 3 tiers Pro de
+// productor (Pro/Growth/Scale en la UI) son autogestionados y pagos.
 export const SELF_SERVE_PRODUCER_TIERS = new Set<string>([
   "PRO_STARTER",
   "PRO_GROWTH",
+  "PRO_BIG",
 ]);
 
 /** Ranking para decidir upgrade (aplica ya) vs downgrade (próximo ciclo). */
@@ -99,7 +102,8 @@ export const CYCLE_LABEL: Record<BillingCycle, string> = {
 export function producerTierParamKey(tierCode: string): string | null {
   if (tierCode === "PRO_STARTER") return "starter";
   if (tierCode === "PRO_GROWTH") return "growth";
-  return null; // FREE/PRO_BIG no tienen precio autogestionado
+  if (tierCode === "PRO_BIG") return "big";
+  return null; // FREE no tiene precio autogestionado
 }
 
 /**

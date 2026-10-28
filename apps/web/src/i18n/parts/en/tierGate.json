@@ -6,12 +6,12 @@
     "desc": "Upgrade your tier to keep using it - the change applies immediately.",
     "cta": "See plans",
     "tiers": {
-      "COBROS": "Cobros",
+      "COBROS": "Starter",
       "STUDIO": "Studio",
       "PRO": "Pro",
-      "PRO_STARTER": "Producer Pro",
-      "PRO_GROWTH": "Producer Pro Growth",
-      "PRO_BIG": "Producer Pro custom"
+      "PRO_STARTER": "Starter",
+      "PRO_GROWTH": "Standard",
+      "PRO_BIG": "Pro"
     },
     "features": {
       "classes": "Classes and series",

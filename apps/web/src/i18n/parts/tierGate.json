@@ -6,12 +6,12 @@
     "desc": "Sube de tier para seguir usándola - el cambio aplica de inmediato.",
     "cta": "Ver planes",
     "tiers": {
-      "COBROS": "Cobros",
+      "COBROS": "Starter",
       "STUDIO": "Studio",
       "PRO": "Pro",
-      "PRO_STARTER": "Producer Pro",
-      "PRO_GROWTH": "Producer Pro Growth",
-      "PRO_BIG": "Producer Pro a medida"
+      "PRO_STARTER": "Starter",
+      "PRO_GROWTH": "Standard",
+      "PRO_BIG": "Pro"
     },
     "features": {
       "classes": "Clases y series",

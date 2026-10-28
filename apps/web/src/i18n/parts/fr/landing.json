@@ -113,7 +113,7 @@
       "note": "Ton essai commence au niveau Studio : l'opération complète dès le premier jour.\nSemestriel −8 % · annuel −15 %.",
       "tiers": [
         {
-          "name": "Cobros",
+          "name": "Starter",
           "priceMonthly": 39500,
           "limit": "Jusqu'à 60 élèves",
           "recommended": false,
@@ -128,7 +128,7 @@
           "limit": "Jusqu'à 150 élèves",
           "recommended": true,
           "features": [
-            "Tout le plan Cobros",
+            "Tout du plan Starter",
             "Cours, séries et réservations",
             "Présence, staff et préventes"
           ]
@@ -194,7 +194,7 @@
       "note": "La billetterie de base n'est jamais coupée : c'est l'entonnoir du marketplace.\nSemestriel −8 % · annuel −15 %.",
       "tiers": [
         {
-          "name": "Pro",
+          "name": "Starter",
           "priceMonthly": 79700,
           "limit": "Jusqu'à 2,5 M$ de ventes par mois",
           "recommended": false,
@@ -205,23 +205,23 @@
           ]
         },
         {
-          "name": "Growth",
+          "name": "Standard",
           "priceMonthly": 169500,
           "limit": "Jusqu'à 8 M$ de ventes par mois",
           "recommended": true,
           "features": [
-            "Tout de Pro",
+            "Tout de Starter",
             "CRM de votre public",
             "Multi-staff (jusqu'à 2)"
           ]
         },
         {
-          "name": "Scale",
+          "name": "Pro",
           "priceMonthly": 300200,
           "limit": "Sans plafond de facturation",
           "recommended": false,
           "features": [
-            "Tout de Growth",
+            "Tout de Standard",
             "Campagnes & benchmark de la scène",
             "Staff illimité"
           ]
