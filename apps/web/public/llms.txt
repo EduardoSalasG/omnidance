@@ -1,0 +1,35 @@
+# Omnidance
+
+> La app para gestionar academias de baile y producir eventos, y la
+> referencia de sociales y congresos de la escena SBK (salsa, bachata y
+> cubano) en Chile.
+
+Omnidance es la plataforma del ecosistema SBK: dos líneas de producto
+sobre un mismo backend — Omnidance Academy (gestión de academias:
+alumnos, clases, cobros, asistencia) y Omnidance Nightlife (eventos de
+productores: ticketing con cargo de servicio, validación en puerta por
+QR, analíticas). Más una superficie social para bailarines: cartelera,
+entradas, amigos y gamificación de la pista.
+
+## Secciones públicas
+
+- [Home](https://omnidance.tech/): qué es Omnidance y cómo empezar.
+- [Para academias](https://omnidance.tech/para-academias): gestión de
+  alumnos, clases, cobros y asistencia de la academia.
+- [Para productores](https://omnidance.tech/para-productores):
+  ticketing, puerta con QR y analíticas de eventos.
+- [Para negocios](https://omnidance.tech/pro): selector de audiencias
+  B2B (productores, academias, DJs, locales).
+- [Ciudades](https://omnidance.tech/ciudades): landings por ciudad con
+  la escena local — superficie de descubrimiento indexable.
+- [Pase Social](https://omnidance.tech/pase): pitch público del pase
+  para asistir a sociales.
+
+## Notas
+
+- Idioma principal: es-CL; variantes /en, /fr, /pt-PT con prefijo.
+- Los eventos, fichas y superficies de app requieren sesión: no hay
+  contenido indexable detrás de login.
+- Ratings y evaluaciones son privados y agregados por diseño: no existe
+  ranking público de personas ni academias.
+- Sitemap: https://omnidance.tech/sitemap.xml

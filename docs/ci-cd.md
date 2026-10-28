@@ -9,7 +9,11 @@ Dominios:
 - API: `https://api.omnidance.eduardosalasg.dev` (nginx de la VM →
   contenedor en `127.0.0.1:3002` - el contenedor escucha 4000 interno,
   el host publica 3002)
-- Web: `https://omnidance.netlify.app`
+- Web: `https://omnidance.tech` (dominio primario; `omnidance.netlify.app`
+  sigue sirviendo como subdominio de Netlify pero canonical/og/sitemap
+  declaran .tech — spec `seo-positioning-domain`. En Netlify: Domain
+  management → omnidance.tech como primary domain; recomendado activar
+  el redirect del subdominio al primario)
 
 ## Checklist primer deploy (en orden)
 
@@ -89,8 +93,8 @@ JWT_SECRET="<aleatorio>"
 QR_SECRET="<aleatorio>"
 
 # Orígenes
-WEB_URL="https://omnidance.netlify.app"
-CORS_ORIGINS="https://omnidance.netlify.app"
+WEB_URL="https://omnidance.tech"
+CORS_ORIGINS="https://omnidance.tech"
 API_URL="https://api.omnidance.eduardosalasg.dev"   # callbacks de Flow
 
 # Pagos - obligatorio en prod (fail-close: sin esto el API no levanta)
@@ -227,7 +231,7 @@ por branch/PR gratis.
 | `API_PROXY_TARGET` | `https://api.omnidance.eduardosalasg.dev` (ya en `netlify.toml`) |
 | `NEXT_PUBLIC_CARTO_BASEMAP_KEY` | key pública del basemap |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | misma VAPID pública del API |
-| `NEXT_PUBLIC_WEB_URL` | `https://omnidance.netlify.app` |
+| `NEXT_PUBLIC_WEB_URL` | `https://omnidance.tech` (ya en `netlify.toml`) |
 | `NEXT_PUBLIC_API_URL` | **vacía** - relativa = same-origin; setearla rompe el modelo de cookies Lax/iOS |
 
 ### Caveat socket.io
