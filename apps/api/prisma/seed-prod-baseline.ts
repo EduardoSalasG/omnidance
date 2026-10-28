@@ -21,18 +21,27 @@ export async function seedProdBaseline(prisma: PrismaClient) {
   const email = (process.env.SEED_ADMIN_EMAIL ?? "")
     .replace(/^[\s"']+|[\s"']+$/g, "")
     .toLowerCase();
-  if (!email) {
+  if (email) {
+    const admin = await ensurePerson(
+      prisma,
+      email,
+      process.env.SEED_ADMIN_NAME ?? "Admin Omnidance",
+      [{ role: "ADMIN" }],
+    );
+    console.log("Seed prod baseline listo:", { admin: admin.email });
+    return;
+  }
+  // Sin email: solo se omite cuando la DB ya tiene un ADMIN aprobado
+  // (re-correr el seed en cada deploy para validar baseline/params);
+  // primer boot sin admin sigue exigiendo el email.
+  const admins = await prisma.personRole.count({
+    where: { role: "ADMIN", status: "APPROVED" },
+  });
+  if (admins === 0) {
     throw new Error(
       "SEED_ADMIN_EMAIL es requerido para el seed baseline de producción " +
         "(será el primer usuario ADMIN por magic link).",
     );
   }
-  const admin = await ensurePerson(
-    prisma,
-    email,
-    process.env.SEED_ADMIN_NAME ?? "Admin Omnidance",
-    [{ role: "ADMIN" }],
-  );
-
-  console.log("Seed prod baseline listo:", { admin: admin.email });
+  console.log("Seed prod baseline listo (admin existente, email omitido)");
 }
