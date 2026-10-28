@@ -224,10 +224,10 @@
           "priceMonthly": 0,
           "limit": "Sans abonnement",
           "features": [
-            "Commission par vente : 5 % + passerelle (~3,2 %) + TVA",
             "Publie ton événement dans la carte",
             "Vente en ligne avec QR et check-in à la porte",
-            "Règlement avec la commission déduite"
+            "Règlement avec la commission déduite",
+            "Commission par vente : 5 % + passerelle (~3,2 %) + TVA"
           ],
           "recommended": false,
           "ctaLabel": "Vendre maintenant"
