@@ -354,7 +354,13 @@ export async function Landing({
               <p className="mx-auto mt-3 max-w-md text-center text-sm text-ink/50">
                 {pricing.lead}
               </p>
-              <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+              <ul
+                className={`mt-10 grid gap-4 sm:grid-cols-2 lg:gap-6 ${
+                  pricing.tiers.length >= 4
+                    ? "lg:grid-cols-4"
+                    : "mx-auto max-w-4xl lg:grid-cols-3"
+                }`}
+              >
                 {pricing.tiers.map((tier) => (
                   <li
                     key={tier.name}
