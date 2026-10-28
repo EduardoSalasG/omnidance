@@ -13,11 +13,16 @@ test.describe("dancer: descubrimiento", () => {
     // View mios (wallet) no debe crashear ni mostrar error.
     await page.goto("/eventos?view=mios");
     await expect(page.locator("main")).toBeVisible();
-    // Primer evento de la cartelera → detalle.
+    // Primer evento de la cartelera → detalle. waitForURL con el click:
+    // en dev la navegación RSC puede estar pending y un expect(URL)
+    // suelto agota el timeout con el click ya tragado por la transición.
     await page.goto("/eventos");
     const first = page.locator('a[href^="/eventos/"]').first();
-    await first.click();
-    await expect(page).toHaveURL(/\/eventos\/.+/);
+    await expect(first).toBeVisible();
+    await Promise.all([
+      page.waitForURL(/\/eventos\/.+/),
+      first.click(),
+    ]);
   });
 });
 
