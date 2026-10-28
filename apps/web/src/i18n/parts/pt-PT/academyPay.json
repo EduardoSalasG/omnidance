@@ -73,7 +73,7 @@
     "inactive": "Inativo",
     "deleteConfirm": "Eliminar este método de pagamento?",
     "chooseMethod": "Com que método vais pagar?",
-    "methodGateway": "Cartão ou Webpay",
+    "methodGateway": "Cartão, transferência ou Webpay",
     "continueMethod": "Continuar com {label}",
     "awaitingHint": "Registámos a tua tentativa com {method}. Paga a partir da tua app e volta para enviar o comprovativo: podes sair e continuar quando quiseres.",
     "pendingTitle": "Comprovativo em revisão",

@@ -21,7 +21,7 @@
     "fRut": "RUT",
     "fEmail": "Correo",
     "ownMethodTitle": "¿Cómo quieres pagar?",
-    "ownMethodGateway": "Tarjeta / Webpay",
+    "ownMethodGateway": "Tarjeta, transferencia o Webpay",
     "ownMethodHint": "Te mostraremos los datos para pagar y subirás el comprobante. El productor valida y tu entrada queda emitida.",
     "ownMethodPendingTitle": "Orden creada · pago manual",
     "ownMethodPendingDesc": "Paga con estos datos y sube el comprobante. Tu entrada se emite cuando el productor valide el pago.",

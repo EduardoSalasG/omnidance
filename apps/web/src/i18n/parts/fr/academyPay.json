@@ -73,7 +73,7 @@
     "inactive": "Inactif",
     "deleteConfirm": "Supprimer ce moyen de paiement ?",
     "chooseMethod": "Avec quel moyen paies-tu ?",
-    "methodGateway": "Carte ou Webpay",
+    "methodGateway": "Carte, virement ou Webpay",
     "continueMethod": "Continuer avec {label}",
     "awaitingHint": "On a enregistré ton essai avec {method}. Paie depuis ton app et reviens envoyer le justificatif : tu peux partir et reprendre à tout moment.",
     "pendingTitle": "Justificatif en cours d'examen",

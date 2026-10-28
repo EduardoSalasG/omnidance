@@ -1,29 +1,66 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, SkeletonList } from "@/components/ui";
+import { Badge, Button, Card, SkeletonList } from "@/components/ui";
+import { inputCls } from "@/components/academy/shared";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { Link } from "@/i18n/navigation";
 import { formatMoney } from "@/lib/intl";
-import { cycleLabel, type TierPrice } from "./shared";
+import { cycleLabel, tierLabel, type TierPrice } from "./shared";
 
 // Libro de precios de tiers (spec multipais-currency): listado del
-// price book. Crear = CTA → /nuevo; fila → ficha /[id] para editar
+// price book. Crear = CTA → /nuevo; card → ficha /[id] para editar
 // (console-patterns: nada de forms ni edición inline en el listado).
+// Filtros país (catálogo /cities/catalog) + línea → query params de
+// GET /admin/tier-prices.
+
+type CountryOption = { code: string; name: string };
+type CountryCatalog = CountryOption & {
+  currency: string;
+  cities: { id: string; name: string }[];
+};
 
 export default function AdminTierPricesPage() {
   const t = useTranslations("admin.tierPrices");
+  const tq = useTranslations("query");
   const locale = useLocale();
   const [items, setItems] = useState<TierPrice[] | null>(null);
   const [error, setError] = useState(false);
+  const [countries, setCountries] = useState<CountryOption[]>([]);
+  const [countryCode, setCountryCode] = useState("");
+  const [kind, setKind] = useState("");
+
+  // Catálogo de países para el filtro (público, mismo que usa el alta
+  // de academia). Si falla se rellena con los códigos ya presentes en
+  // el libro - el filtro nunca queda ciego.
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/cities/catalog")
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const catalog = (await res.json()) as CountryCatalog[];
+        if (cancelled) return;
+        setCountries(catalog.map((c) => ({ code: c.code, name: c.name })));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const load = useCallback(async () => {
     setError(false);
     try {
-      const res = await apiFetch("/admin/tier-prices");
+      const params = new URLSearchParams();
+      if (countryCode) params.set("countryCode", countryCode);
+      if (kind) params.set("kind", kind);
+      const qs = params.toString();
+      const res = await apiFetch(
+        `/admin/tier-prices${qs ? `?${qs}` : ""}`,
+      );
       if (!res.ok) throw new Error();
       const data = (await res.json()) as { items: TierPrice[] };
       setItems(data.items);
@@ -31,11 +68,27 @@ export default function AdminTierPricesPage() {
       setError(true);
       setItems([]);
     }
-  }, []);
+  }, [countryCode, kind]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Opciones del filtro de país: catálogo + cualquier código del libro
+  // que el catálogo no declare (mercado sin ciudades cargadas).
+  const countryOptions = useMemo(() => {
+    const byCode = new Map(countries.map((c) => [c.code, c.name]));
+    for (const r of items ?? []) {
+      if (!byCode.has(r.countryCode)) byCode.set(r.countryCode, r.countryCode);
+    }
+    return [...byCode.entries()]
+      .map(([code, name]) => ({ code, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }, [countries, items]);
+
+  const filtered = countryCode !== "" || kind !== "";
+  const kindLabel = (k: TierPrice["kind"]) =>
+    k === "ACADEMY" ? t("academy") : t("producer");
 
   return (
     <AdminGate>
@@ -51,6 +104,39 @@ export default function AdminTierPricesPage() {
         />
         <p className="text-sm text-ink/60">{t("subtitle")}</p>
 
+        <section
+          aria-label={tq("filtersLabel")}
+          className="grid grid-cols-2 gap-3"
+        >
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-xs text-ink/50">{t("country")}</span>
+            <select
+              className={`${inputCls} min-w-0`}
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+            >
+              <option value="">{tq("filtersAll")}</option>
+              {countryOptions.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-xs text-ink/50">{t("kind")}</span>
+            <select
+              className={`${inputCls} min-w-0`}
+              value={kind}
+              onChange={(e) => setKind(e.target.value)}
+            >
+              <option value="">{tq("filtersAll")}</option>
+              <option value="ACADEMY">{t("academy")}</option>
+              <option value="PRODUCER">{t("producer")}</option>
+            </select>
+          </label>
+        </section>
+
         {items === null ? (
           <SkeletonList items={6} />
         ) : error ? (
@@ -58,64 +144,54 @@ export default function AdminTierPricesPage() {
             <button onClick={() => void load()}>{t("retry")}</button>
           </p>
         ) : items.length === 0 ? (
-          <div className="flex flex-col items-start gap-3">
-            <p className="text-sm text-ink/50">{t("empty")}</p>
-            <Button
-              size="sm"
-              variant="secondary"
-              href="/admin/facturacion/precios/nuevo"
-            >
-              {`＋ ${t("new")}`}
-            </Button>
-          </div>
+          filtered ? (
+            <Card className="py-10 text-center">
+              <p role="status" className="text-ink/70">
+                {tq("empty")}
+              </p>
+            </Card>
+          ) : (
+            <div className="flex flex-col items-start gap-3">
+              <p className="text-sm text-ink/50">{t("empty")}</p>
+              <Button
+                size="sm"
+                variant="secondary"
+                href="/admin/facturacion/precios/nuevo"
+              >
+                {`＋ ${t("new")}`}
+              </Button>
+            </div>
+          )
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-ink/50">
-                  <th className="py-2">{t("country")}</th>
-                  <th className="py-2">{t("kind")}</th>
-                  <th className="py-2">{t("tier")}</th>
-                  <th className="py-2">{t("cycle")}</th>
-                  <th className="py-2 text-right">{t("price")}</th>
-                  <th className="py-2">{t("currency")}</th>
-                  <th className="py-2">{t("actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((r) => (
-                  <tr key={r.id} className="border-t border-line">
-                    <td className="py-2 tabular-nums">{r.countryCode}</td>
-                    <td className="py-2">
-                      {r.kind === "ACADEMY" ? t("academy") : t("producer")}
-                    </td>
-                    <td className="py-2">
-                      <Link
-                        href={`/admin/facturacion/precios/${r.id}`}
-                        className="transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-                      >
-                        {r.displayName ?? r.tierCode}
-                      </Link>
-                    </td>
-                    <td className="py-2">{cycleLabel(t, r.billingCycle)}</td>
-                    <td className="py-2 text-right tabular-nums">
-                      {formatMoney(r.price, r.currency, locale)}
-                    </td>
-                    <td className="py-2">{r.currency}</td>
-                    <td className="py-2">
-                      <Button
-                        variant="ghost"
-                        className="min-h-11"
-                        href={`/admin/facturacion/precios/${r.id}`}
-                      >
-                        {t("edit")}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
+            {items.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/admin/facturacion/precios/${r.id}`}
+                  className="block"
+                >
+                  <Card className="flex flex-col gap-2 transition-colors hover:border-neon/60">
+                    <div className="flex items-start justify-between gap-2">
+                      <h2 className="min-w-0 flex-1 truncate font-semibold">
+                        {tierLabel(r)}
+                      </h2>
+                      <Badge variant="outline">{kindLabel(r.kind)}</Badge>
+                    </div>
+                    <p className="text-sm font-semibold tabular-nums">
+                      {formatMoney(r.price, r.currency, locale)}{" "}
+                      <span className="text-xs font-normal text-ink/50">
+                        · {cycleLabel(t, r.billingCycle)}
+                      </span>
+                    </p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink/50">
+                      <span className="tabular-nums">{r.tierCode}</span>
+                      <span className="tabular-nums">{r.countryCode}</span>
+                    </div>
+                  </Card>
+                </Link>
+              </li>
+            ))}
+          </ul>
         )}
       </main>
     </AdminGate>

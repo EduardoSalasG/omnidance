@@ -9,7 +9,13 @@ import { ActionNotice } from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { useRouter } from "@/i18n/navigation";
-import { CYCLES, cycleLabel, kindForTier, TIERS } from "../shared";
+import {
+  CYCLES,
+  cycleLabel,
+  kindForTier,
+  TIER_LABELS,
+  TIERS,
+} from "../shared";
 
 // Alta de una fila del price book (spec multipais-currency): página
 // dedicada del CTA del listado (console-patterns: crear = CTA → página).
@@ -93,7 +99,10 @@ export default function AdminTierPriceNewPage() {
             >
               {TIERS.map((x) => (
                 <option key={x} value={x}>
-                  {x}
+                  {/* Nombre público + código: el label se repite entre
+                      líneas (Starter/productor vs academia) y el código
+                      es la clave persistida. */}
+                  {TIER_LABELS[x] ? `${TIER_LABELS[x]} · ${x}` : x}
                 </option>
               ))}
             </select>
@@ -157,7 +166,7 @@ export default function AdminTierPriceNewPage() {
               className={inputCls}
               value={form.displayName}
               maxLength={60}
-              placeholder={form.tierCode}
+              placeholder={TIER_LABELS[form.tierCode] ?? form.tierCode}
               onChange={(e) =>
                 setForm((f) => ({ ...f, displayName: e.target.value }))
               }
