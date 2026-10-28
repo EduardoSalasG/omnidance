@@ -18,11 +18,11 @@
     "weekCta": "Quero ir",
     "featuresTitle": "Toda a tua dança, numa app",
     "featureQrTitle": "Um só QR",
-    "featureQrDesc": "Um bilhete, um convite, uma noite inteira:\ntudo começa no teu QR.",
+    "featureQrDesc": "Um bilhete, um convite, uma noite inteira.\nTudo começa no teu QR.",
     "featureLearnTitle": "Academia",
     "featureLearnDesc": "As academias da comunidade, as suas aulas e o teu progresso num só lugar.",
     "featureSceneTitle": "Nightlife",
-    "featureSceneDesc": "O lineup completo da comunidade,\ncom o teu bilhete sempre pronto.",
+    "featureSceneDesc": "O lineup completo da comunidade.\nO teu bilhete está sempre pronto.",
     "finalCta": "Dançamos?",
     "finalCtaDesc": "Registo rápido e fácil.\nA tua gente já está dentro.",
     "footerTagline": "Feito para a comunidade de salsa, timba e bachata do Chile",
@@ -36,7 +36,7 @@
     "metaDescription": "Quem se organiza primeiro, cresce primeiro. Bilhetes, porta e números para o teu negócio de dança numa só plataforma.",
     "eyebrow": "Produtores · DJs · Academias · Locais",
     "heroPromise": "Ordem primeiro. Crescimento depois.",
-    "heroLead": "Vende bilhetes, controla a porta e vê os teus números\nnuma só plataforma.\nQuando a operação está organizada, o crescimento vem a seguir.",
+    "heroLead": "Vende bilhetes, controla a porta e vê os teus números numa só plataforma.\nQuando a operação está organizada, o crescimento vem a seguir.",
     "ctaCreateAccount": "Criar a minha conta",
     "ctaEvents": "Experimentar a app agora",
     "weekCount": "{count} eventos esta semana já funcionam no Omnidance",
@@ -47,11 +47,11 @@
     "weekCta": "Quero estar lá",
     "featuresTitle": "Feito para quem move a cena",
     "featureQrTitle": "Produtores",
-    "featureQrDesc": "Vende sem filas nem folhas de cálculo:\nbilhetes online, porta controlada e liquidação com números claros.",
+    "featureQrDesc": "Vende sem filas nem folhas de cálculo.\nBilhetes online, porta controlada e liquidação com números claros.",
     "featureLearnTitle": "Academias",
     "featureLearnDesc": "Aulas, alunos e cobranças organizados num só lugar.\nOs teus alunos veem horários, inscrevem-se e pagam sozinhos sem te inundar de mensagens.",
     "featureSceneTitle": "Locais",
-    "featureSceneDesc": "O teu local no lineup:\npedidos de aluguer e eventos que enchem a tua porta.",
+    "featureSceneDesc": "O teu local no lineup.\nPedidos de aluguer e eventos que enchem a tua porta.",
     "finalCta": "Vamos começar?",
     "finalCtaDesc": "Cria a tua conta e entra diretamente na tua plataforma.\nRevemos cada perfil antes de o publicar.",
     "footerAlt": "Para dançarinos",
@@ -88,9 +88,9 @@
     "painResolution": "A tua academia organizada. O teu tempo, de volta ao ensino.",
     "featuresTitle": "Toda a tua academia na app",
     "featureQrTitle": "Horários e aulas",
-    "featureQrDesc": "O teu horário publicado para sempre:\nos teus alunos veem, reservam e entram sozinhos.",
+    "featureQrDesc": "O teu horário publicado para sempre.\nOs teus alunos veem, reservam e entram sozinhos.",
     "featureLearnTitle": "Planos e pagamentos em dia",
-    "featureLearnDesc": "Regista o pagamento pelo canal que já usas:\nvês quem pagou, quem deve e quem precisa de lembrete.",
+    "featureLearnDesc": "Regista o pagamento pelo canal que já usas.\nVês quem pagou, quem deve e quem precisa de lembrete.",
     "featureSceneTitle": "Os teus alunos, medidos",
     "featureSceneDesc": "Quem vem, quem falta, quem está a desertar.\nDatas de vencimento e aniversários sem teres de perguntar.",
     "academyCount": "{count} academias já gerem a sua operação no Omnidance",
@@ -112,7 +112,7 @@
       "ctaCustom": "Vamos conversar",
       "cycleLabel": "Período de faturação",
       "priceBefore": "antes de {price}",
-      "note": "Começas com um período experimental no nível Studio: a operação completa desde o primeiro dia.\nPagamento semestral −8% · anual −15%.\nA gateway de pagamento é descontada do que arrecadas, a custo real (hoje ~3,2%). No Starter, o take de cobrança é 1,5× a taxa da gateway.",
+      "note": "Pagamento semestral −8% · anual −15%.\nA gateway de pagamento é descontada do que arrecadas, a custo real (hoje ~3,2%). No Starter, o take de cobrança é 1,5× a taxa da gateway.",
       "tiers": [
         {
           "name": "Starter",
@@ -160,6 +160,27 @@
         "semiannual": "cobrado semestral",
         "annual": "cobrado anual"
       }
+    },
+    "faq": {
+      "title": "Perguntas frequentes",
+      "items": [
+        {
+          "q": "Como pagam os meus alunos?",
+          "a": "Cada aluno paga o seu plano pela gateway de pagamento, com cartão, e também podes registar transferências ou dinheiro. Vês quem está em dia e quem precisa de lembrete."
+        },
+        {
+          "q": "A gateway cobra extra ao aluno?",
+          "a": "Não. O aluno paga o preço exato do plano; a taxa da gateway é descontada do que arrecadas."
+        },
+        {
+          "q": "O que acontece se ultrapassar os alunos do meu plano?",
+          "a": "Avisamos-te antes de chegares ao limite para subires de plano. Os teus alunos e a tua operação continuam a funcionar entretanto."
+        },
+        {
+          "q": "Há permanência mínima?",
+          "a": "Não. Podes cancelar quando quiseres; o plano fica ativo até ao fim do período já pago."
+        }
+      ]
     }
   },
   "landingProducer": {
@@ -167,14 +188,14 @@
     "metaDescription": "Vende bilhetes, controla a porta com QR e fecha a noite com números claros. A plataforma dos produtores da cena.",
     "eyebrow": "Para produtores de eventos",
     "heroPromise": "Vende. Controla a porta. Fecha com números.",
-    "heroLead": "Bilhetes online, check-in QR e liquidação clara\nnuma só plataforma.\nDeixas de operar às cegas desde o teu primeiro evento.",
+    "heroLead": "Bilhetes online, check-in QR e liquidação clara numa só plataforma.\nDeixas de operar às cegas desde o teu primeiro evento.",
     "heroNote": "Entras na tua plataforma, sem esperar por uma chamada.",
     "painLabel": "A noite do evento é assim?",
     "painItems": "Excel + formulários · Transferências uma a uma · Fila à porta · Convidados no WhatsApp · Quanto vendeste realmente?",
     "painResolution": "Do flyer ao fecho de caixa, uma plataforma.",
     "featuresTitle": "Do flyer ao fecho de caixa",
     "featureQrTitle": "Bilhética",
-    "featureQrDesc": "Bilhetes online ao preço exato:\nlinks, códigos de desconto e pré-venda.",
+    "featureQrDesc": "Bilhetes online ao preço exato.\nLinks, códigos de desconto e pré-venda.",
     "featureLearnTitle": "Porta QR",
     "featureLearnDesc": "Check-in em segundos com o QR rotativo.\nO teu staff valida a partir do seu próprio telemóvel.",
     "featureSceneTitle": "Os teus números",
@@ -196,7 +217,7 @@
       "ctaCustom": "Vamos conversar",
       "cycleLabel": "Período de faturação",
       "priceBefore": "antes de {price}",
-      "note": "Comissão: 5% + IVA + gateway de pagamento (~9,1% tudo incluído) por venda gerida:\ndeduzida da tua liquidação — o assistente paga o preço exato.",
+      "note": "Comissão: 5% + IVA + gateway de pagamento (~9,1% tudo incluído) por venda gerida.\nDeduzida da tua liquidação; o assistente paga o preço exato.",
       "tiers": [
         {
           "name": "Starter",
@@ -244,6 +265,27 @@
         "semiannual": "cobrado semestral",
         "annual": "cobrado anual"
       }
+    },
+    "faq": {
+      "title": "Perguntas frequentes",
+      "items": [
+        {
+          "q": "O assistente paga taxa de serviço?",
+          "a": "Não. O assistente paga o preço exato do bilhete; a comissão é deduzida da tua liquidação."
+        },
+        {
+          "q": "Posso usar o meu próprio link de pagamento?",
+          "a": "Os QR de entrada só nascem de uma venda gerida na plataforma, para o check-in e a liquidação baterem sempre certo."
+        },
+        {
+          "q": "O que acontece quando a minha faturação sobe?",
+          "a": "O plano sobe de tier automaticamente consoante as tuas vendas do mês. Não tens de gerir nada."
+        },
+        {
+          "q": "Posso cancelar?",
+          "a": "Sim, quando quiseres. A subscrição fica ativa até ao fim do ciclo já pago."
+        }
+      ]
     }
   },
   "landingProHub": {

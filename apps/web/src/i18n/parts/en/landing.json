@@ -18,11 +18,11 @@
     "weekCta": "I want to go",
     "featuresTitle": "All your dancing, in one app",
     "featureQrTitle": "One QR",
-    "featureQrDesc": "A ticket, an invite, a whole night:\nit all starts from your QR.",
+    "featureQrDesc": "A ticket, an invite, a whole night.\nIt all starts from your QR.",
     "featureLearnTitle": "Academy",
     "featureLearnDesc": "The community's academies, their classes and your progress in one place.",
     "featureSceneTitle": "Nightlife",
-    "featureSceneDesc": "The community's full lineup,\nwith your ticket always ready.",
+    "featureSceneDesc": "The community's full lineup.\nYour ticket is always ready.",
     "finalCta": "Shall we dance?",
     "finalCtaDesc": "Quick and easy sign-up.\nYour people are already in.",
     "footerTagline": "Made for Chile's salsa, timba and bachata community",
@@ -36,7 +36,7 @@
     "metaDescription": "Those who get organized first, grow first. Tickets, door and numbers for your dance business on a single platform.",
     "eyebrow": "Producers · DJs · Academies · Venues",
     "heroPromise": "Order first. Growth second.",
-    "heroLead": "Sell tickets, control the door and see your numbers\non a single platform.\nWhen operations are organized, growth follows.",
+    "heroLead": "Sell tickets, control the door and see your numbers on a single platform.\nWhen operations are organized, growth follows.",
     "ctaCreateAccount": "Create my account",
     "ctaEvents": "Try the app now",
     "weekCount": "{count} events this week already run on Omnidance",
@@ -47,11 +47,11 @@
     "weekCta": "I want to be there",
     "featuresTitle": "Made for those who move the scene",
     "featureQrTitle": "Producers",
-    "featureQrDesc": "Sell without lines or spreadsheets:\nonline tickets, controlled door and settlement with clear numbers.",
+    "featureQrDesc": "Sell without lines or spreadsheets.\nOnline tickets, controlled door and settlement with clear numbers.",
     "featureLearnTitle": "Academies",
     "featureLearnDesc": "Classes, students and collections organized in one place.\nYour students see schedules, enroll and pay on their own without flooding you with messages.",
     "featureSceneTitle": "Venues",
-    "featureSceneDesc": "Your venue on the lineup:\nrental requests and events that fill your door.",
+    "featureSceneDesc": "Your venue on the lineup.\nRental requests and events that fill your door.",
     "finalCta": "Ready to start?",
     "finalCtaDesc": "Create your account and jump straight into your platform.\nWe review every profile before publishing it.",
     "footerAlt": "For dancers",
@@ -88,9 +88,9 @@
     "painResolution": "Your academy organized. Your time, back to teaching.",
     "featuresTitle": "Your whole academy in the app",
     "featureQrTitle": "Schedules and classes",
-    "featureQrDesc": "Your timetable published forever:\nyour students see, book and enter on their own.",
+    "featureQrDesc": "Your timetable published forever.\nYour students see, book and enter on their own.",
     "featureLearnTitle": "Plans and payments up to date",
-    "featureLearnDesc": "Log the payment through the channel you already use:\nyou see who paid, who's due and who needs a reminder.",
+    "featureLearnDesc": "Log the payment through the channel you already use.\nYou see who paid, who's due and who needs a reminder.",
     "featureSceneTitle": "Your students, measured",
     "featureSceneDesc": "Who comes, who's missing, who's dropping off.\nDue dates and birthdays without having to ask.",
     "academyCount": "{count} academies already run their operation on Omnidance",
@@ -112,7 +112,7 @@
       "ctaCustom": "Talk to us",
       "cycleLabel": "Billing period",
       "priceBefore": "was {price}",
-      "note": "Your trial starts at Studio level: the full operation from day one.\nSemi-annual −8% · annual −15%.\nThe payment gateway fee is deducted from what you collect, at real cost (today ~3.2%). On Starter, the collections take is 1.5× the gateway fee.",
+      "note": "Semi-annual −8% · annual −15%.\nThe payment gateway fee is deducted from what you collect, at real cost (today ~3.2%). On Starter, the collections take is 1.5× the gateway fee.",
       "tiers": [
         {
           "name": "Starter",
@@ -160,6 +160,27 @@
         "semiannual": "billed semi-annually",
         "annual": "billed annually"
       }
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "items": [
+        {
+          "q": "How do my students pay?",
+          "a": "Each student pays their plan through the payment gateway by card, and you can also log transfers or cash. You see who's up to date and who needs a reminder."
+        },
+        {
+          "q": "Does the gateway charge the student extra?",
+          "a": "No. The student pays the exact plan price; the gateway fee is deducted from what you collect."
+        },
+        {
+          "q": "What happens if I go over my plan's student limit?",
+          "a": "We let you know before you hit the cap so you can move up a plan. Your students and your operation keep working in the meantime."
+        },
+        {
+          "q": "Is there a minimum commitment?",
+          "a": "No. You can cancel anytime; the plan stays active until the end of the period you already paid for."
+        }
+      ]
     }
   },
   "landingProducer": {
@@ -167,14 +188,14 @@
     "metaDescription": "Sell tickets, control the door with QR and close the night with clear numbers. The platform for the scene's producers.",
     "eyebrow": "For event producers",
     "heroPromise": "Sell. Control the door. Close with numbers.",
-    "heroLead": "Online tickets, QR check-in and clear settlement\non a single platform.\nYou stop running blind from your very first event.",
+    "heroLead": "Online tickets, QR check-in and clear settlement on a single platform.\nYou stop running blind from your very first event.",
     "heroNote": "You enter your platform, no waiting for a call.",
     "painLabel": "Does event night feel like this?",
     "painItems": "Excel + forms · Transfers one by one · Line at the door · Guests on WhatsApp · How much did you really sell?",
     "painResolution": "From the flyer to the cash close, one platform.",
     "featuresTitle": "From the flyer to the cash close",
     "featureQrTitle": "Ticketing",
-    "featureQrDesc": "Online tickets at the exact price:\nlinks, discount codes and presale.",
+    "featureQrDesc": "Online tickets at the exact price.\nLinks, discount codes and presale.",
     "featureLearnTitle": "QR door",
     "featureLearnDesc": "Check-in in seconds with the rotating QR.\nYour staff validates from their own phone.",
     "featureSceneTitle": "Your numbers",
@@ -196,7 +217,7 @@
       "ctaCustom": "Talk to us",
       "cycleLabel": "Billing period",
       "priceBefore": "was {price}",
-      "note": "Commission: 5% + VAT + payment gateway (~9.1% all-in) per managed sale:\ndeducted from your settlement — attendees pay the exact price.",
+      "note": "Commission: 5% + VAT + payment gateway (~9.1% all-in) per managed sale.\nDeducted from your settlement; attendees pay the exact price.",
       "tiers": [
         {
           "name": "Starter",
@@ -244,6 +265,27 @@
         "semiannual": "billed semi-annually",
         "annual": "billed annually"
       }
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "items": [
+        {
+          "q": "Does the attendee pay a service fee?",
+          "a": "No. The attendee pays the exact ticket price; the commission is deducted from your settlement."
+        },
+        {
+          "q": "Can I use my own payment link?",
+          "a": "Entry QR codes are only issued from a sale managed on the platform, so check-in and settlement always match."
+        },
+        {
+          "q": "What happens when my sales grow?",
+          "a": "Your plan moves up a tier automatically based on the month's sales. There's nothing to manage."
+        },
+        {
+          "q": "Can I cancel?",
+          "a": "Yes, anytime. The subscription stays active until the end of the cycle you already paid for."
+        }
+      ]
     }
   },
   "landingProHub": {
