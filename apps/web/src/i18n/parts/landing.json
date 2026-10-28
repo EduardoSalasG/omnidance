@@ -114,7 +114,7 @@
       "tiers": [
         {
           "name": "Cobros",
-          "priceMonthly": 39990,
+          "priceMonthly": 39500,
           "limit": "Hasta 60 alumnos",
           "recommended": false,
           "features": [
@@ -124,7 +124,7 @@
         },
         {
           "name": "Studio",
-          "priceMonthly": 79990,
+          "priceMonthly": 79700,
           "limit": "Hasta 150 alumnos",
           "recommended": true,
           "features": [
@@ -135,7 +135,7 @@
         },
         {
           "name": "Pro",
-          "priceMonthly": 119990,
+          "priceMonthly": 120500,
           "limit": "Alumnos ilimitados",
           "recommended": false,
           "features": [
@@ -206,7 +206,7 @@
         },
         {
           "name": "Pro Starter",
-          "priceMonthly": 99990,
+          "priceMonthly": 99700,
           "limit": "Hasta $2,5 M de ventas al mes",
           "recommended": true,
           "features": [
@@ -218,7 +218,7 @@
         },
         {
           "name": "Pro Growth",
-          "priceMonthly": 249990,
+          "priceMonthly": 250200,
           "limit": "Hasta $8 M de ventas al mes",
           "recommended": false,
           "features": [

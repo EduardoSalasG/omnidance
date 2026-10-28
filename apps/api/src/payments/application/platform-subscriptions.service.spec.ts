@@ -35,8 +35,8 @@ const PARAMS = new Map<string, number>([
   ["academy_tier.studio_max_students", 120],
   ["academy_tier.starter_max_students", 30],
   ["academy_tier.cobros_monthly_clp", 19990],
-  ["academy_tier.studio_monthly_clp", 79990],
-  ["academy_tier.pro_monthly_clp", 39990],
+  ["academy_tier.studio_monthly_clp", 79700],
+  ["academy_tier.pro_monthly_clp", 120500],
   ["academy_tier.starter_monthly_clp", 19990],
   ["academy_billing.grace_days", 5],
   ["producer_tier.starter_max_monthly_clp", 2500000],
@@ -1119,7 +1119,7 @@ describe("PlatformSubscriptionsService", () => {
         invoices: [
           {
             id: 501,
-            amount: 39990,
+            amount: 39500,
             paid: true,
             payment: { orderRef: "991" },
           },
@@ -1133,7 +1133,7 @@ describe("PlatformSubscriptionsService", () => {
       )!;
       expect(payment.refId).toBe(`platsub_${sub.id}_501`);
       expect(payment.status).toBe("PAID");
-      expect(payment.amount).toBe(39990);
+      expect(payment.amount).toBe(39500);
       expect(payment.gatewayRef).toBe("991");
 
       const types = fx.events
@@ -1492,7 +1492,7 @@ describe("PlatformSubscriptionsService", () => {
   describe("handleBillingEvent (webhook Stripe)", () => {
     const inv = (id: string, paid = true) => ({
       id,
-      amount: 39990,
+      amount: 39500,
       currency: "USD",
       periodStart: "2026-10-01T00:00:00.000Z",
       periodEnd: "2026-11-01T00:00:00.000Z",
@@ -1643,7 +1643,7 @@ describe("PlatformSubscriptionsService", () => {
         { ...sub } as PlatformSubscription,
         mkFlowSub({
           subscriptionId: "sub_stripe_1",
-          invoices: [{ id: "in_300", amount: 39990, paid: true }],
+          invoices: [{ id: "in_300", amount: 39500, paid: true }],
         }),
       );
       expect(settled).toBe(0);
@@ -1726,7 +1726,7 @@ describe("PlatformSubscriptionsService", () => {
         orderType: "PLATFORM_SUB",
         refId: `platsub_${sub.id}_500`,
         personId: "p1",
-        amount: 39990,
+        amount: 39500,
         status: "PAID",
         createdAt: new Date(),
       });

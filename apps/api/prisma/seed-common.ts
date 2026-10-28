@@ -135,9 +135,12 @@ const PARAM_DEFAULTS: Array<{
   { key: "academy_tier.starter_max_students", value: 50, description: "Máximo de alumnos activos del tier STARTER de academia (legado - ya no se vende)" },
   // Precio mensual base por tier (CLP/mes) - el cobro del ciclo se
   // calcula: semestral ×5.52 (−8%), anual ×10.2 (−15%).
-  { key: "academy_tier.cobros_monthly_clp", value: 39990, description: "Precio mensual tier COBROS de academia (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
-  { key: "academy_tier.studio_monthly_clp", value: 79990, description: "Precio mensual tier STUDIO de academia (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
-  { key: "academy_tier.pro_monthly_clp", value: 119990, description: "Precio mensual tier PRO de academia (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
+  // Precios "calculados" (terminación 200/500/700) - decisión de
+  // posicionamiento: se perciben derivados de costos; no usar
+  // terminación .990 (charm pricing se lee como "precio de descuento").
+  { key: "academy_tier.cobros_monthly_clp", value: 39500, description: "Precio mensual tier COBROS de academia (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
+  { key: "academy_tier.studio_monthly_clp", value: 79700, description: "Precio mensual tier STUDIO de academia (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
+  { key: "academy_tier.pro_monthly_clp", value: 120500, description: "Precio mensual tier PRO de academia (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
   { key: "academy_tier.starter_monthly_clp", value: 49990, description: "Precio mensual tier STARTER de academia (CLP, legado) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
   // Take de cobranza del tier COBROS: el payout de academias COBROS
   // descuenta take_multiplier × el fee de pasarela sobre cobros de
@@ -151,8 +154,8 @@ const PARAM_DEFAULTS: Array<{
   // Tiers Producer Pro: límite de facturación mensual (media 90d) por tier (PRO_BIG = a convenir).
   { key: "producer_tier.starter_max_monthly_clp", value: 2500000, description: "Facturación mensual máxima del tier PRO_STARTER (CLP)" },
   { key: "producer_tier.growth_max_monthly_clp", value: 8000000, description: "Facturación mensual máxima del tier PRO_GROWTH (CLP)" },
-  { key: "producer_tier.starter_monthly_clp", value: 99990, description: "Precio mensual tier PRO_STARTER (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
-  { key: "producer_tier.growth_monthly_clp", value: 249990, description: "Precio mensual tier PRO_GROWTH (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
+  { key: "producer_tier.starter_monthly_clp", value: 99700, description: "Precio mensual tier PRO_STARTER (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
+  { key: "producer_tier.growth_monthly_clp", value: 250200, description: "Precio mensual tier PRO_GROWTH (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
   // Costo de pasarela descontado del payout de academia (línea GATEWAY_FEE_PASSTHROUGH).
   { key: "gateway_fee.academy_passthrough_pct", value: 3.19, description: "% de pasarela descontado del payout de academia" },
   // Ventanas de los insights de retención del dashboard de academia

@@ -640,12 +640,13 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 
 | Tier | Precio mensual | Alumnos activos | Incluye |
 |---|---|---|---|
-| **COBROS** (señuelo) | $39.990 |  ≤60 | Cobro de membresías por nuestra pasarela + lista de alumnos al día/morosos + **reporte de cobranza** (facturación mensual, quién pagó, plan top, filtros). Sin clases, sin asistencia, sin staff, sin scores/clasificación CRM en superficies de alumnos. Take ~1,5× el fee real de pasarela (~4,8% all-in) — compite con cobranza pura tipo Membrezia |
-| **STUDIO** (objetivo) | $79.990 | ≤150 | + planes y membresías, clases/series, reservas, asistencia por profe, export mensual CSV, check-in, KPIs operacionales (ocupación, asistencia del día). Pasarela a costo real (sin take). Sin consultas rápidas ni analítica estratégica |
-| **PRO** (top) | $119.990 | ilimitado | + analítica completa (consultas rápidas, insights, audiencia), CRM (scores/segmentos/campañas), notificaciones de marketing segmentadas, videos, **cuenta multi-academia** |
+| **COBROS** (señuelo) | $39.500 |  ≤60 | Cobro de membresías por nuestra pasarela + lista de alumnos al día/morosos + **reporte de cobranza** (facturación mensual, quién pagó, plan top, filtros). Sin clases, sin asistencia, sin staff, sin scores/clasificación CRM en superficies de alumnos. Take ~1,5× el fee real de pasarela (~4,8% all-in) — compite con cobranza pura tipo Membrezia |
+| **STUDIO** (objetivo) | $79.700 | ≤150 | + planes y membresías, clases/series, reservas, asistencia por profe, export mensual CSV, check-in, KPIs operacionales (ocupación, asistencia del día). Pasarela a costo real (sin take). Sin consultas rápidas ni analítica estratégica |
+| **PRO** (top) | $120.500 | ilimitado | + analítica completa (consultas rápidas, insights, audiencia), CRM (scores/segmentos/campañas), notificaciones de marketing segmentadas, videos, **cuenta multi-academia** |
 
 - El medio es el plan que queremos vender (gestión completa); el señuelo existe para anclar — quien compara solo sticker no es el segmento.
 - Descuentos por ciclo: semestral **−8%**, anual **−15%** (convención 15–20%; el −2%/−4% anterior no movía decisión).
+- Terminaciones de precio "calculadas" (**200/500/700**) — decisión de posicionamiento: se perciben derivados de costos; no usar charm pricing (.990), que se lee como "precio de descuento".
 - Cobro: suscripción recurrente Flow (`PlatformSubscription`, mismo motor que membresías de alumnos). Trial 30d; al superar el límite de alumnos del tier el sistema exige subir en la próxima compra.
 - **Mora**: renovación fallida → 5 días de gracia → día 6 bloqueo (`billingBlockedAt`): consola read-only, academia y clases fuera de explorar, sin reservas ni compras nuevas - **el alumno conserva todo su historial**. Un pago recuperado desbloquea solo (`RENEWAL_SETTLED`).
 - Los productos de la academia **no cobran cargo de servicio al alumno**; la academia absorbe la tarifa Flow como línea `GATEWAY_FEE_PASSTHROUGH` explícita en su payout.
@@ -655,9 +656,9 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 
 | Tier | Precio mensual | Facturación 90d | Incluye |
 |---|---|---|---|
-| **Pro** | $79.990 | ≤$2,5M | Analítica avanzada, export mensual, staff limitado |
-| **Pro Growth** | $169.990 | ≤$8M | + CRM, campañas, multi-staff, códigos avanzados |
-| **Pro Scale** | $299.990 | >$8M (manual OK) | + benchmark vs escena, soporte prioritario, exports completos/API |
+| **Pro Starter** | $99.700 | ≤$2,5M | Analítica avanzada, exportaciones y multi-staff (1 colaborador) |
+| **Pro Growth** | $250.200 | ≤$8M | + CRM de la audiencia (staff hasta 2) |
+| **Pro Big** | a convenir | >$8M (manual OK) | + campañas, benchmark vs escena, staff ilimitado |
 
 El ticketing base, venta y check-in **nunca se cortan** por la suscripción (el marketplace es el funnel). Trial de lanzamiento: +90d a productores registrados. Ciclos con −8% semestral/−15% anual (mismo criterio que academias).
 
