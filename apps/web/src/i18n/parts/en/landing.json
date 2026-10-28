@@ -100,7 +100,64 @@
     "crossLink": "Do you also produce events?",
     "crossHref": "/para-productores",
     "footerAlt": "For dancers",
-    "ctaEvents": "Explore academies"
+    "ctaEvents": "Explore academies",
+    "pricing": {
+      "title": "Plans and pricing",
+      "lead": "A plan for every stage of your academy.",
+      "perMonth": "/mo",
+      "free": "Free",
+      "custom": "Let's talk",
+      "recommended": "Recommended",
+      "cta": "Create my account",
+      "ctaCustom": "Talk to us",
+      "note": "Your trial starts at Studio level: the full operation from day one.\nSemi-annual −8% · annual −15%.",
+      "tiers": [
+        {
+          "name": "Cobros",
+          "priceMonthly": 39990,
+          "limit": "Up to 60 students",
+          "recommended": false,
+          "features": [
+            "Collections through the payment gateway",
+            "Students up to date and overdue at a glance"
+          ]
+        },
+        {
+          "name": "Studio",
+          "priceMonthly": 79990,
+          "limit": "Up to 150 students",
+          "recommended": true,
+          "features": [
+            "Everything in Cobros",
+            "Classes, series and bookings",
+            "Attendance, staff and presales"
+          ]
+        },
+        {
+          "name": "Pro",
+          "priceMonthly": 119990,
+          "limit": "Unlimited students",
+          "recommended": false,
+          "features": [
+            "Everything in Studio",
+            "Analytics, CRM and campaigns",
+            "Videos and insights",
+            "Multi-academy"
+          ]
+        },
+        {
+          "name": "Enterprise",
+          "priceMonthly": null,
+          "limit": "Tailored operation",
+          "recommended": false,
+          "features": [
+            "Everything in Pro",
+            "Dedicated support",
+            "Custom terms"
+          ]
+        }
+      ]
+    }
   },
   "landingProducer": {
     "metaTitle": "Ticketing and control for producers | Omnidance",
@@ -124,7 +181,64 @@
     "crossLink": "Do you also have an academy?",
     "crossHref": "/para-academias",
     "footerAlt": "For dancers",
-    "ctaEvents": "Explore events"
+    "ctaEvents": "Explore events",
+    "pricing": {
+      "title": "Plans and pricing",
+      "lead": "Free to start. Pro when your operation grows.",
+      "perMonth": "/mo",
+      "free": "Free",
+      "custom": "Let's talk",
+      "recommended": "Recommended",
+      "cta": "Create my account",
+      "ctaCustom": "Talk to us",
+      "note": "Pro plans add multi-staff, analytics, exports and CRM.\nSemi-annual −8% · annual −15%.",
+      "tiers": [
+        {
+          "name": "Base",
+          "priceMonthly": 0,
+          "limit": "To get started",
+          "recommended": false,
+          "features": [
+            "Online ticketing",
+            "QR check-in door",
+            "Per-event settlement"
+          ]
+        },
+        {
+          "name": "Pro Starter",
+          "priceMonthly": 99990,
+          "limit": "Up to $2.5M in monthly sales",
+          "recommended": true,
+          "features": [
+            "Everything in Base",
+            "Multi-staff and roles",
+            "Analytics and exports",
+            "CRM of your audience"
+          ]
+        },
+        {
+          "name": "Pro Growth",
+          "priceMonthly": 249990,
+          "limit": "Up to $8M in monthly sales",
+          "recommended": false,
+          "features": [
+            "Everything in Pro Starter",
+            "Multi-staff, analytics, exports and CRM"
+          ]
+        },
+        {
+          "name": "Pro Big",
+          "priceMonthly": null,
+          "limit": "No gross cap",
+          "recommended": false,
+          "features": [
+            "Everything in Pro Growth",
+            "Custom terms",
+            "Dedicated support"
+          ]
+        }
+      ]
+    }
   },
   "landingProHub": {
     "metaTitle": "Omnidance for businesses",
