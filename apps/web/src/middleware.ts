@@ -64,7 +64,7 @@ const isDev = process.env.NODE_ENV !== "production";
 function cspHeader(): string {
   return [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
@@ -75,6 +75,8 @@ function cspHeader(): string {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
+    // GTM: iframe noscript del contenedor (spec web-tag-manager).
+    "frame-src https://www.googletagmanager.com",
     ...(isDev ? [] : ["upgrade-insecure-requests"]),
   ].join("; ");
 }

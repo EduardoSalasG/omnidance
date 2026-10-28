@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
+import { GtmNoScript, GtmScript } from "@/components/gtm";
 import { PageLoadingHost } from "@/components/ui/page-loading-host";
 import { commonMessages } from "@/i18n/messages";
 import { routing, type Locale } from "@/i18n/routing";
@@ -103,9 +104,11 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <GtmScript />
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body className="bg-canvas text-ink min-h-dvh antialiased">
+        <GtmNoScript />
         {/* Provider raíz SOLO con `common` (~3KB): el catálogo completo
             lo aporta cada route group ((app)/(marketing) hacen merge
             sobre este). PageLoadingHost/Spinner usa useTranslations
