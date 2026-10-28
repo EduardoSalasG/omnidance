@@ -11,6 +11,7 @@ import { PricingSection } from "./PricingSection";
 import type { PublicAcademy } from "@/lib/public-academies";
 import { Link } from "@/i18n/navigation";
 import { getDateFmt } from "@/lib/intl";
+import { SITE_URL } from "@/lib/site-url";
 
 // Acento de marca via token `neon` (#a78bfa violeta en :root) - icon.svg,
 // og-image e íconos PWA comparten el mismo valor. La atmósfera del hero es
@@ -128,6 +129,36 @@ export async function Landing({
   // le habla (academias para academias, cartelera para el resto). Anónimo
   // rebota a /login?next= - el mismo funnel del secundario dancer.
   const secondaryHref = variant === "academy" ? "/academias" : "/eventos";
+
+  // JSON-LD de oferta (SEO pro): Product + AggregateOffer con el tier
+  // mensual más barato como lowPrice - los precios del catálogo son los
+  // mismos que muestra la sección de precios. Mismo patrón de escape
+  // que JsonLd ("<" → &lt; escapado para no poder cerrar el script).
+  const productLd =
+    pricing == null
+      ? null
+      : (() => {
+          const monthly = pricing.tiers
+            .map((tier) => tier.priceMonthly)
+            .filter((p): p is number => p != null && p > 0);
+          if (monthly.length === 0) return null;
+          return JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name:
+              variant === "academy"
+                ? "Omnidance para academias"
+                : "Omnidance Producer Pro",
+            brand: { "@type": "Brand", name: "Omnidance" },
+            url: `${SITE_URL}${variant === "academy" ? "/para-academias" : "/para-productores"}`,
+            offers: {
+              "@type": "AggregateOffer",
+              priceCurrency: "CLP",
+              lowPrice: Math.min(...monthly),
+              offerCount: pricing.tiers.length,
+            },
+          }).replace(/</g, "\\u003c");
+        })();
 
   // La fecha se formatea en la hora local del EVENTO (city.timezone) -
   // sin TZ explícita el server formatea en UTC y una noche chilena
@@ -345,6 +376,15 @@ export async function Landing({
             pricing={pricing}
             locale={locale}
             registerHref={registerHref}
+            // Prueba social junto al punto de decisión: el mismo claim
+            // del strip de arriba (academias o eventos ya operando).
+            proof={weekLabel}
+          />
+        )}
+        {productLd && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: productLd }}
           />
         )}
 

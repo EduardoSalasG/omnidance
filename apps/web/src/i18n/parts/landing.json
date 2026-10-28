@@ -102,7 +102,7 @@
     "crossHref": "/para-productores",
     "footerAlt": "Para bailarines",
     "pricing": {
-      "title": "Planes y precios",
+      "title": "Planes y precios para academias de baile",
       "lead": "Un plan para cada momento de tu academia.",
       "perMonth": "/mes",
       "free": "Gratis",
@@ -110,6 +110,8 @@
       "recommended": "Recomendado",
       "cta": "Crear mi cuenta",
       "ctaCustom": "Conversemos",
+      "cycleLabel": "Período de facturación",
+      "priceBefore": "antes {price}",
       "note": "Empiezas con prueba en nivel Studio: la operación completa desde el día uno.\nPago semestral −8% · pago anual −15%.\nLa pasarela de pago se descuenta de lo recaudado, a costo real (hoy ~3,2%). En Starter el take de cobranza es 1,5× el fee de pasarela.",
       "tiers": [
         {
@@ -117,6 +119,7 @@
           "priceMonthly": 39500,
           "limit": "Hasta 60 alumnos",
           "recommended": false,
+          "ctaLabel": "Empezar con Starter",
           "features": [
             "Cobranza por pasarela de pago",
             "Alumnos al día y morosos a la vista"
@@ -127,6 +130,7 @@
           "priceMonthly": 79700,
           "limit": "Hasta 150 alumnos",
           "recommended": true,
+          "ctaLabel": "Elegir Studio",
           "features": [
             "Todo lo del plan Starter",
             "Clases, series y reservas",
@@ -138,6 +142,7 @@
           "priceMonthly": 120500,
           "limit": "Alumnos ilimitados",
           "recommended": false,
+          "ctaLabel": "Ir a Pro",
           "features": [
             "Todo lo del plan Studio",
             "Analítica, CRM y campañas",
@@ -181,7 +186,7 @@
     "crossHref": "/para-academias",
     "footerAlt": "Para bailarines",
     "pricing": {
-      "title": "Planes y precios",
+      "title": "Planes y precios para productores de eventos",
       "lead": "",
       "perMonth": "/mes",
       "free": "Gratis",
@@ -189,6 +194,8 @@
       "recommended": "Recomendado",
       "cta": "Crear mi cuenta",
       "ctaCustom": "Conversemos",
+      "cycleLabel": "Período de facturación",
+      "priceBefore": "antes {price}",
       "note": "Comisión: 5% + IVA + pasarela de pago (~9,1% todo incluido) por venta gestionada:\nse descuenta de tu liquidación — el asistente paga el precio exacto.",
       "tiers": [
         {
@@ -196,6 +203,7 @@
           "priceMonthly": 79700,
           "limit": "Hasta $2,5 M de ventas al mes",
           "recommended": false,
+          "ctaLabel": "Empezar con Starter",
           "features": [
             "Ticketing online + puerta QR",
             "Multi-staff (1 integrante)",
@@ -207,6 +215,7 @@
           "priceMonthly": 169500,
           "limit": "Hasta $8 M de ventas al mes",
           "recommended": true,
+          "ctaLabel": "Elegir Standard",
           "features": [
             "Todo lo de Starter",
             "CRM de tu público",
@@ -218,6 +227,7 @@
           "priceMonthly": 300200,
           "limit": "Sin tope de facturación",
           "recommended": false,
+          "ctaLabel": "Ir a Pro",
           "features": [
             "Todo lo de Standard",
             "Campañas y benchmark de la escena",

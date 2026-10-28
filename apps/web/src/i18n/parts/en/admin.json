@@ -215,7 +215,8 @@
       "featuresDesc": "Feature flags by toggle",
       "cities": "Cities",
       "citiesDesc": "Editorial guide per city (scene, nights, tips)",
-      "promos": "Promos"
+      "promos": "Promos",
+      "prices": "Pricing"
     },
     "academies": {
       "desc": "Student base health per academy: segment distribution, average score and standout or at-risk students.",

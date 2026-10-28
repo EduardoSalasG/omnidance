@@ -102,7 +102,7 @@
     "footerAlt": "For dancers",
     "ctaEvents": "Explore academies",
     "pricing": {
-      "title": "Plans and pricing",
+      "title": "Plans and pricing for dance academies",
       "lead": "A plan for every stage of your academy.",
       "perMonth": "/mo",
       "free": "Free",
@@ -110,6 +110,8 @@
       "recommended": "Recommended",
       "cta": "Create my account",
       "ctaCustom": "Talk to us",
+      "cycleLabel": "Billing period",
+      "priceBefore": "was {price}",
       "note": "Your trial starts at Studio level: the full operation from day one.\nSemi-annual −8% · annual −15%.\nThe payment gateway fee is deducted from what you collect, at real cost (today ~3.2%). On Starter, the collections take is 1.5× the gateway fee.",
       "tiers": [
         {
@@ -117,6 +119,7 @@
           "priceMonthly": 39500,
           "limit": "Up to 60 students",
           "recommended": false,
+          "ctaLabel": "Start with Starter",
           "features": [
             "Collections through the payment gateway",
             "Students up to date and overdue at a glance"
@@ -127,6 +130,7 @@
           "priceMonthly": 79700,
           "limit": "Up to 150 students",
           "recommended": true,
+          "ctaLabel": "Choose Studio",
           "features": [
             "Everything in Starter",
             "Classes, series and bookings",
@@ -138,6 +142,7 @@
           "priceMonthly": 120500,
           "limit": "Unlimited students",
           "recommended": false,
+          "ctaLabel": "Go Pro",
           "features": [
             "Everything in Studio",
             "Analytics, CRM and campaigns",
@@ -181,7 +186,7 @@
     "footerAlt": "For dancers",
     "ctaEvents": "Explore events",
     "pricing": {
-      "title": "Plans and pricing",
+      "title": "Plans and pricing for event producers",
       "lead": "",
       "perMonth": "/mo",
       "free": "Free",
@@ -189,6 +194,8 @@
       "recommended": "Recommended",
       "cta": "Create my account",
       "ctaCustom": "Talk to us",
+      "cycleLabel": "Billing period",
+      "priceBefore": "was {price}",
       "note": "Commission: 5% + VAT + payment gateway (~9.1% all-in) per managed sale:\ndeducted from your settlement — attendees pay the exact price.",
       "tiers": [
         {
@@ -196,6 +203,7 @@
           "priceMonthly": 79700,
           "limit": "Up to $2.5 M in monthly sales",
           "recommended": false,
+          "ctaLabel": "Start with Starter",
           "features": [
             "Online ticketing + QR door",
             "Multi-staff (1 member)",
@@ -207,6 +215,7 @@
           "priceMonthly": 169500,
           "limit": "Up to $8 M in monthly sales",
           "recommended": true,
+          "ctaLabel": "Choose Standard",
           "features": [
             "Everything in Starter",
             "Your audience CRM",
@@ -218,6 +227,7 @@
           "priceMonthly": 300200,
           "limit": "No billing cap",
           "recommended": false,
+          "ctaLabel": "Go Pro",
           "features": [
             "Everything in Standard",
             "Campaigns & scene benchmark",

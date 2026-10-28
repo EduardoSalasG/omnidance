@@ -30,6 +30,9 @@ export type PricingTier = {
   limit: string;
   recommended: boolean;
   features: string[];
+  // CTA propio por tier (opcional en catálogo) - si falta cae a
+  // pricing.cta, que es el genérico de la sección.
+  ctaLabel?: string;
 };
 
 export type PricingMessages = {
@@ -42,6 +45,11 @@ export type PricingMessages = {
   cta: string;
   ctaCustom: string;
   note: string;
+  // aria-label del grupo del toggle de ciclo (lectores de pantalla).
+  cycleLabel: string;
+  // Texto sr-only del precio tachado ("antes {price}") - el tachado
+  // visual no se anuncia; sin él el lector solo dice el precio nuevo.
+  priceBefore: string;
   cycles: Record<Cycle, string>;
   billedPer: { semiannual: string; annual: string };
   tiers: PricingTier[];
@@ -51,10 +59,14 @@ export function PricingSection({
   pricing,
   locale,
   registerHref,
+  proof,
 }: {
   pricing: PricingMessages;
   locale: string;
   registerHref: string;
+  // Prueba social junto al punto de decisión (claim ya resuelto por
+  // la página - mismo copy del strip de arriba).
+  proof?: string;
 }) {
   const [cycle, setCycle] = useState<Cycle>("monthly");
   const equiv = (monthly: number) =>
@@ -79,7 +91,7 @@ export function PricingSection({
         </p>
         <div
           role="group"
-          aria-label={pricing.title}
+          aria-label={pricing.cycleLabel}
           className="mt-6 inline-flex w-full justify-center"
         >
           <div className="inline-flex rounded-full border border-ink/10 bg-surface/60 p-1">
@@ -136,9 +148,23 @@ export function PricingSection({
                 ) : (
                   <span className="flex flex-wrap items-baseline gap-x-2">
                     {cycle !== "monthly" && (
-                      <span className="text-sm text-ink/40 line-through">
-                        {formatClp(tier.priceMonthly, locale)}
-                      </span>
+                      <>
+                        {/* El tachado no se anuncia: el precio anterior
+                            va como texto sr-only para no leer dos
+                            montos seguidos sin contexto. */}
+                        <span
+                          aria-hidden="true"
+                          className="text-sm text-ink/40 line-through"
+                        >
+                          {formatClp(tier.priceMonthly, locale)}
+                        </span>
+                        <span className="sr-only">
+                          {pricing.priceBefore.replace(
+                            "{price}",
+                            formatClp(tier.priceMonthly, locale),
+                          )}
+                        </span>
+                      </>
                     )}
                     <span className="text-2xl font-extrabold">
                       {formatClp(equiv(tier.priceMonthly), locale)}
@@ -157,12 +183,12 @@ export function PricingSection({
               {tier.priceMonthly != null &&
                 tier.priceMonthly > 0 &&
                 cycle !== "monthly" && (
-                  <p className="mt-0.5 text-xs text-ink/50">
+                  <p className="mt-0.5 text-xs text-ink/60">
                     {pricing.billedPer[cycle]}:{" "}
                     {formatClp(billed(tier.priceMonthly), locale)}
                   </p>
                 )}
-              <p className="mt-1 text-xs text-ink/50">{tier.limit}</p>
+              <p className="mt-1 text-xs text-ink/60">{tier.limit}</p>
               <ul className="mt-4 flex flex-col gap-1.5 text-sm text-ink/70">
                 {tier.features.map((feature) => (
                   <li key={feature}>· {feature}</li>
@@ -180,7 +206,7 @@ export function PricingSection({
                 >
                   {tier.priceMonthly == null
                     ? pricing.ctaCustom
-                    : pricing.cta}
+                    : (tier.ctaLabel ?? pricing.cta)}
                 </Link>
               </div>
             </li>
@@ -189,6 +215,9 @@ export function PricingSection({
         <p className="mx-auto mt-6 max-w-xl whitespace-pre-line text-center text-xs text-ink/50">
           {pricing.note}
         </p>
+        {proof && (
+          <p className="mt-3 text-center text-xs text-ink/50">{proof}</p>
+        )}
       </div>
     </section>
   );

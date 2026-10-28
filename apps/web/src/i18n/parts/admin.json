@@ -215,7 +215,8 @@
       "featuresDesc": "Flags de funcionalidad por toggle",
       "cities": "Ciudades",
       "citiesDesc": "Guía editorial por ciudad (escena, noches, tips)",
-      "promos": "Promos"
+      "promos": "Promos",
+      "prices": "Precios"
     },
     "academies": {
       "desc": "Salud de la base de alumnos por academia: score medio, distribución de segmentos y actividad.",
