@@ -100,7 +100,64 @@
     "finalCtaDesc": "Crea tu cuenta y monta tu academia hoy.\nRevisamos el perfil antes de publicarla en la app.",
     "crossLink": "¿También produces eventos?",
     "crossHref": "/para-productores",
-    "footerAlt": "Para bailarines"
+    "footerAlt": "Para bailarines",
+    "pricing": {
+      "title": "Planes y precios",
+      "lead": "Un plan para cada momento de tu academia.",
+      "perMonth": "/mes",
+      "free": "Gratis",
+      "custom": "A convenir",
+      "recommended": "Recomendado",
+      "cta": "Crear mi cuenta",
+      "ctaCustom": "Conversemos",
+      "note": "Empiezas con prueba en nivel Studio: la operación completa desde el día uno.\nPago semestral −8% · pago anual −15%.",
+      "tiers": [
+        {
+          "name": "Cobros",
+          "priceMonthly": 39500,
+          "limit": "Hasta 60 alumnos",
+          "recommended": false,
+          "features": [
+            "Cobranza por pasarela de pago",
+            "Alumnos al día y morosos a la vista"
+          ]
+        },
+        {
+          "name": "Studio",
+          "priceMonthly": 79700,
+          "limit": "Hasta 150 alumnos",
+          "recommended": true,
+          "features": [
+            "Todo lo del plan Cobros",
+            "Clases, series y reservas",
+            "Asistencia, staff y preventas"
+          ]
+        },
+        {
+          "name": "Pro",
+          "priceMonthly": 120500,
+          "limit": "Alumnos ilimitados",
+          "recommended": false,
+          "features": [
+            "Todo lo del plan Studio",
+            "Analítica, CRM y campañas",
+            "Videos e insights",
+            "Multi-academia"
+          ]
+        },
+        {
+          "name": "Enterprise",
+          "priceMonthly": null,
+          "limit": "Operación a medida",
+          "recommended": false,
+          "features": [
+            "Todo lo del plan Pro",
+            "Acompañamiento dedicado",
+            "Condiciones a convenir"
+          ]
+        }
+      ]
+    }
   },
   "landingProducer": {
     "metaTitle": "Ticketing y control para productores | Omnidance",
@@ -124,7 +181,64 @@
     "finalCtaDesc": "Crea tu cuenta y monta tu primer evento hoy.\nRevisamos el perfil antes de publicarlo.",
     "crossLink": "¿También tienes academia?",
     "crossHref": "/para-academias",
-    "footerAlt": "Para bailarines"
+    "footerAlt": "Para bailarines",
+    "pricing": {
+      "title": "Planes y precios",
+      "lead": "Gratis para partir. Pro cuando tu operación crece.",
+      "perMonth": "/mes",
+      "free": "Gratis",
+      "custom": "A convenir",
+      "recommended": "Recomendado",
+      "cta": "Crear mi cuenta",
+      "ctaCustom": "Conversemos",
+      "note": "Los planes Pro suman multi-staff, analíticas, exportaciones y CRM.\nPago semestral −8% · pago anual −15%.",
+      "tiers": [
+        {
+          "name": "Base",
+          "priceMonthly": 0,
+          "limit": "Para partir",
+          "recommended": false,
+          "features": [
+            "Ticketing online",
+            "Puerta con check-in QR",
+            "Liquidación por evento"
+          ]
+        },
+        {
+          "name": "Pro Starter",
+          "priceMonthly": 99700,
+          "limit": "Hasta $2,5 M de ventas al mes",
+          "recommended": true,
+          "features": [
+            "Todo lo del plan Base",
+            "Multi-staff y roles",
+            "Analíticas y exportaciones",
+            "CRM de tu público"
+          ]
+        },
+        {
+          "name": "Pro Growth",
+          "priceMonthly": 250200,
+          "limit": "Hasta $8 M de ventas al mes",
+          "recommended": false,
+          "features": [
+            "Todo lo de Pro Starter",
+            "Multi-staff, analíticas, exportaciones y CRM"
+          ]
+        },
+        {
+          "name": "Pro Big",
+          "priceMonthly": null,
+          "limit": "Sin tope de facturación",
+          "recommended": false,
+          "features": [
+            "Todo lo de Pro Growth",
+            "Condiciones a convenir",
+            "Acompañamiento dedicado"
+          ]
+        }
+      ]
+    }
   },
   "landingProHub": {
     "metaTitle": "Omnidance para negocios",

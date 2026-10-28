@@ -100,7 +100,64 @@
     "crossLink": "Também produzes eventos?",
     "crossHref": "/para-productores",
     "footerAlt": "Para dançarinos",
-    "ctaEvents": "Explorar academias"
+    "ctaEvents": "Explorar academias",
+    "pricing": {
+      "title": "Planos e preços",
+      "lead": "Um plano para cada fase da tua academia.",
+      "perMonth": "/mês",
+      "free": "Grátis",
+      "custom": "Sob consulta",
+      "recommended": "Recomendado",
+      "cta": "Criar a minha conta",
+      "ctaCustom": "Vamos conversar",
+      "note": "Começas com um período experimental no nível Studio: a operação completa desde o primeiro dia.\nPagamento semestral −8% · anual −15%.",
+      "tiers": [
+        {
+          "name": "Cobros",
+          "priceMonthly": 39500,
+          "limit": "Até 60 alunos",
+          "recommended": false,
+          "features": [
+            "Cobrança pela gateway de pagamento",
+            "Alunos em dia e em atraso num relance"
+          ]
+        },
+        {
+          "name": "Studio",
+          "priceMonthly": 79700,
+          "limit": "Até 150 alunos",
+          "recommended": true,
+          "features": [
+            "Tudo do plano Cobros",
+            "Aulas, séries e reservas",
+            "Presenças, staff e pré-vendas"
+          ]
+        },
+        {
+          "name": "Pro",
+          "priceMonthly": 120500,
+          "limit": "Alunos ilimitados",
+          "recommended": false,
+          "features": [
+            "Tudo do plano Studio",
+            "Analítica, CRM e campanhas",
+            "Vídeos e insights",
+            "Multi-academia"
+          ]
+        },
+        {
+          "name": "Enterprise",
+          "priceMonthly": null,
+          "limit": "Operação à medida",
+          "recommended": false,
+          "features": [
+            "Tudo do plano Pro",
+            "Acompanhamento dedicado",
+            "Condições a combinar"
+          ]
+        }
+      ]
+    }
   },
   "landingProducer": {
     "metaTitle": "Bilhética e controlo para produtores | Omnidance",
@@ -124,7 +181,64 @@
     "crossLink": "Também tens uma academia?",
     "crossHref": "/para-academias",
     "footerAlt": "Para dançarinos",
-    "ctaEvents": "Explorar eventos"
+    "ctaEvents": "Explorar eventos",
+    "pricing": {
+      "title": "Planos e preços",
+      "lead": "Grátis para começar. Pro quando a tua operação cresce.",
+      "perMonth": "/mês",
+      "free": "Grátis",
+      "custom": "Sob consulta",
+      "recommended": "Recomendado",
+      "cta": "Criar a minha conta",
+      "ctaCustom": "Vamos conversar",
+      "note": "Os planos Pro somam multi-staff, analíticas, exportações e CRM.\nPagamento semestral −8% · anual −15%.",
+      "tiers": [
+        {
+          "name": "Base",
+          "priceMonthly": 0,
+          "limit": "Para começar",
+          "recommended": false,
+          "features": [
+            "Bilhética online",
+            "Porta com check-in QR",
+            "Liquidação por evento"
+          ]
+        },
+        {
+          "name": "Pro Starter",
+          "priceMonthly": 99700,
+          "limit": "Até 2,5 M$ de vendas por mês",
+          "recommended": true,
+          "features": [
+            "Tudo do plano Base",
+            "Multi-staff e funções",
+            "Analíticas e exportações",
+            "CRM do teu público"
+          ]
+        },
+        {
+          "name": "Pro Growth",
+          "priceMonthly": 250200,
+          "limit": "Até 8 M$ de vendas por mês",
+          "recommended": false,
+          "features": [
+            "Tudo do Pro Starter",
+            "Multi-staff, analíticas, exportações e CRM"
+          ]
+        },
+        {
+          "name": "Pro Big",
+          "priceMonthly": null,
+          "limit": "Sem teto de faturação",
+          "recommended": false,
+          "features": [
+            "Tudo do Pro Growth",
+            "Condições a combinar",
+            "Acompanhamento dedicado"
+          ]
+        }
+      ]
+    }
   },
   "landingProHub": {
     "metaTitle": "Omnidance para empresas",
