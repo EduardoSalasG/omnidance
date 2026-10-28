@@ -20,6 +20,9 @@
   # Contenedor Google Tag Manager (spec web-tag-manager). Sin esta var el
   # snippet no se renderiza: dev local no contamina la medición.
   NEXT_PUBLIC_GTM_ID = "GTM-W9KC3378"
+  # Proyecto Microsoft Clarity (spec web-tag-manager). Sin esta var el
+  # snippet no se renderiza: dev local no contamina la medición.
+  NEXT_PUBLIC_CLARITY_ID = "z4swabie90"
 
 # socket.io va por proxy edge directo al API, antes del runtime Next:
 # el edge normaliza trailing slash (`/socket.io/` → 308 → `/socket.io`)
@@ -42,3 +45,4 @@
 #     setearla en el UI solo si el dominio primario cambia.
 #   NEXT_PUBLIC_GTM_ID           - ya va en build.environment; override en
 #     el UI solo para apuntar a otro contenedor (p.ej. staging).
+#   NEXT_PUBLIC_CLARITY_ID       - idem para el proyecto de Clarity.

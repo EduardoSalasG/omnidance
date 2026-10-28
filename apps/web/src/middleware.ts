@@ -64,7 +64,7 @@ const isDev = process.env.NODE_ENV !== "production";
 function cspHeader(): string {
   return [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
