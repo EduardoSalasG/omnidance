@@ -56,7 +56,7 @@
             "Compte : nom, e-mail et téléphone (optionnel).",
             "Profil de danse : genre (optionnel), styles, rôles et niveau autodéclaré.",
             "Activité : check-ins QR aux événements, sessions de danse et évaluations, toujours privées et agrégées, jamais exposées individuellement (minimum k≥3).",
-            "Paiements : traités par Flow. Nous ne stockons pas les données de cartes.",
+            "Paiements : traités par une passerelle de paiement. Nous ne stockons pas les données de cartes.",
             "Jetons push de ton appareil pour les notifications.",
             "Données techniques : journaux avec request-id et adresse IP, à des fins de sécurité et de diagnostic."
           ],
@@ -86,7 +86,7 @@
             "Pour fournir le service nous partageons des données avec des sous-traitants qui agissent pour notre compte :"
           ],
           "list": [
-            "Flow : traitement des paiements.",
+            "Passerelle de paiement : traitement des paiements.",
             "Resend : envoi d'e-mails transactionnels.",
             "Le fournisseur d'hébergement/d'infrastructure de la plateforme.",
             "Apple et Google : livraison des notifications push sur ton appareil."
@@ -185,7 +185,7 @@
         {
           "title": "5. Billets et achats",
           "list": [
-            "Les paiements sont traités via Flow ; Omnidance agit comme intermédiaire entre acheteurs et producteurs, et gère les règlements correspondants.",
+            "Les paiements sont traités via une passerelle de paiement ; Omnidance agit comme intermédiaire entre acheteurs et producteurs, et gère les règlements correspondants.",
             "Les billets sont transférables selon les règles de l'app, sauf indication du producteur.",
             "Les billets ne sont pas remboursables sauf annulation de l'événement ou disposition légale ; l'accès reste soumis à la politique de porte du lieu et du producteur.",
             "Le prix publié est le prix final : Omnidance n'ajoute aucun frais pour l'acheteur. La commission de la plateforme est déduite du règlement du producteur."
