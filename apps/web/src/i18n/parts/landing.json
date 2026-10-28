@@ -112,7 +112,7 @@
       "ctaCustom": "Conversemos",
       "cycleLabel": "Período de facturación",
       "priceBefore": "antes {price}",
-      "note": "Pago semestral −8% · pago anual −15%.\nStudio incluye pago con tarjeta y transferencia vía pasarela, a costo real (hoy ~3,2%).",
+      "note": "Pago semestral −8% · pago anual −15%.\nStudio incluye pago con tarjeta y transferencia vía pasarela, a costo real (hoy ~3,2%).\nPrecio de lanzamiento: 50% de descuento en tu plan los primeros 6 meses.",
       "tiers": [
         {
           "name": "Starter",
@@ -217,7 +217,7 @@
       "ctaCustom": "Conversemos",
       "cycleLabel": "Período de facturación",
       "priceBefore": "antes {price}",
-      "note": "Comisión: 5% + IVA + pasarela de pago (~9,1% todo incluido) por venta gestionada.\nSe descuenta de tu liquidación; el asistente paga el precio exacto.",
+      "note": "Comisión: 5% + IVA + pasarela de pago (~9,1% todo incluido) por venta gestionada.\nSe descuenta de tu liquidación; el asistente paga el precio exacto.\nPrecio de lanzamiento: 50% de descuento en tu plan los primeros 6 meses.",
       "tiers": [
         {
           "name": "Starter",

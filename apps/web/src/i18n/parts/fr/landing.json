@@ -112,7 +112,7 @@
       "ctaCustom": "Parlons-en",
       "cycleLabel": "Période de facturation",
       "priceBefore": "avant {price}",
-      "note": "Semestriel −8 % · annuel −15 %.\nStudio inclut le paiement par carte et virement via passerelle, au coût réel (~3,2 % aujourd'hui).",
+      "note": "Semestriel −8 % · annuel −15 %.\nStudio inclut le paiement par carte et virement via passerelle, au coût réel (~3,2 % aujourd'hui).\nPrix de lancement : 50 % de réduction sur ton forfait pendant les 6 premiers mois.",
       "tiers": [
         {
           "name": "Starter",
@@ -217,7 +217,7 @@
       "ctaCustom": "Parlons-en",
       "cycleLabel": "Période de facturation",
       "priceBefore": "avant {price}",
-      "note": "Commission : 5 % + TVA + passerelle de paiement (~9,1 % tout compris) par vente gérée.\nDéduite de ton règlement. L'assistant paie le prix exact.",
+      "note": "Commission : 5 % + TVA + passerelle de paiement (~9,1 % tout compris) par vente gérée.\nDéduite de ton règlement. L'assistant paie le prix exact.\nPrix de lancement : 50 % de réduction sur ton forfait pendant les 6 premiers mois.",
       "tiers": [
         {
           "name": "Starter",
