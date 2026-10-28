@@ -14,9 +14,10 @@
   API_PROXY_TARGET = "https://api.omnidance.eduardosalasg.dev"
   # NEXT_PUBLIC_* se inlinea en el bundle durante `next build` - sí llega
   # desde build.environment (a diferencia del runtime serverless). Es la
-  # base de canonical/og:url/sitemap/robots/JSON-LD; sin ella salían
-  # como localhost:3000 y WhatsApp compartía esa URL.
-  NEXT_PUBLIC_WEB_URL = "https://omnidance.netlify.app"
+  # base de canonical/og:url/sitemap/robots/JSON-LD y del dominio que
+  # comparten los share sheets móviles: apunta al dominio primario
+  # omnidance.tech, NO al subdominio *.netlify.app.
+  NEXT_PUBLIC_WEB_URL = "https://omnidance.tech"
   # Contenedor Google Tag Manager (spec web-tag-manager). Sin esta var el
   # snippet no se renderiza: dev local no contamina la medición.
   NEXT_PUBLIC_GTM_ID = "GTM-W9KC3378"

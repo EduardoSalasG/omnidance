@@ -17,9 +17,10 @@ export function generateStaticParams() {
 }
 
 const SITE_DESCRIPTION =
-  "Sociales, entradas, academias y clases de la comunidad salsera, " +
-  "timbera y bachatera de Chile en una sola app. Registro rápido y fácil.";
-const SITE_TITLE = "Omnidance - salsa, timba y bachata en Chile";
+  "La app para gestionar academias de baile y producir eventos, y la " +
+  "referencia de sociales y congresos de la escena en Chile: ticketing, " +
+  "puerta con QR, cobros y analíticas.";
+const SITE_TITLE = "Omnidance - gestión de academias y eventos de baile";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -29,14 +30,15 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   keywords: [
+    "gestión de academias de baile",
+    "software para academias de baile",
+    "ticketing eventos de baile",
+    "productores de eventos de baile",
+    "sociales de baile",
+    "congresos de baile",
     "salsa Chile",
     "timba Chile",
     "bachata Chile",
-    "social de baile",
-    "eventos salsa y bachata",
-    "academias de baile Chile",
-    "clases de salsa",
-    "clases de bachata",
     "Omnidance",
   ],
   openGraph: {
