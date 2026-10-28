@@ -66,6 +66,18 @@
   `docs/competitive-references.md` tienen precios/caps stale —
   refresco queda como trabajo aparte (decision records históricos).
 
+## Incidente del deploy (resuelto)
+
+- El primer deploy de `main` (`12b2ad5b`) murió en el health gate con
+  `MODULE_NOT_FOUND libphonenumber-js` y dejó el API en ~15min de 502.
+  Causa: el stage runtime del Dockerfile no copiaba
+  `packages/shared/node_modules` (symlink pnpm → store `.pnpm`) — la
+  dep llegó con multipais-phone. Fix: `827316fd` (COPY extra en
+  Dockerfile) → redeploy success (6m47s), health `ok`.
+- Lección: si `packages/shared` gana una dep de runtime nueva, el
+  Dockerfile ya la cubre — pero ojo al agregar workspace packages con
+  deps propias al runtime stage.
+
 ## Notas operativas
 
 - Docker Desktop debe estar corriendo para `db:up`/`test:e2e`.
