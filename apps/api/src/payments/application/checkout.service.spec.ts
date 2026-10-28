@@ -794,6 +794,35 @@ describe("CheckoutService.purchaseTicket", () => {
     expect(p.producerNetClp).toBe(9200);
   });
 
+  it("tasa: tier PRO_GROWTH baja el fee a fees.standard_fee_pct (~7,36 all-in)", async () => {
+    pf.producers.set("prod-1", { proTier: "PRO_GROWTH", platformFeePct: null });
+    await buy();
+    // 3,5% × 1,19 IVA + 3,19% pasarela = 7,355
+    expect(fx.payments[0]!.platformFeeRate).toBeCloseTo(7.355, 3);
+  });
+
+  it("tasa: tier PRO_BIG baja el fee a fees.pro_fee_pct (~6,17 all-in)", async () => {
+    pf.producers.set("prod-1", { proTier: "PRO_BIG", platformFeePct: null });
+    await buy();
+    // 2,5% × 1,19 IVA + 3,19% pasarela = 6,165
+    expect(fx.payments[0]!.platformFeeRate).toBeCloseTo(6.165, 3);
+  });
+
+  it("tasa: el override manual platformFeePct gana al fee del tier", async () => {
+    pf.producers.set("prod-1", {
+      platformFeePct: 8,
+      proTier: "PRO_BIG",
+    });
+    await buy();
+    expect(fx.payments[0]!.platformFeeRate).toBe(8);
+  });
+
+  it("tasa: producer FREE/sin tier cae a fees.managed_allin_pct", async () => {
+    pf.producers.set("prod-1", { proTier: "FREE", platformFeePct: null });
+    await buy();
+    expect(fx.payments[0]!.platformFeeRate).toBe(10);
+  });
+
   it("tasa: sin evento ni productor gana el param fees.managed_allin_pct", async () => {
     pf.numbers.set("fees.managed_allin_pct", 12);
     await buy();

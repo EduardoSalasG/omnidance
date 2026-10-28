@@ -89,8 +89,8 @@ const PARAM_DEFAULTS: Array<{
   // productor una comisión all-in que incluye pasarela + fee neto + IVA.
   // all-in = gateway_fee.card_pct + fee neto × (1 + tax.iva_pct):
   // 3,19 + 5,0 × 1,19 = 9,14 → fee plataforma 5% + IVA + pasarela.
-  { key: "fees.standard_fee_pct", value: 3.5, description: "Fee neto del tier Standard (PRO_GROWTH) - all-in = fee×1,19 + pasarela = ~6,17%" },
-  { key: "fees.pro_fee_pct", value: 2.5, description: "Fee neto del tier Pro (PRO_BIG) - all-in = fee×1,19 + pasarela = ~4,98%" },
+  { key: "fees.standard_fee_pct", value: 3.5, description: "Fee neto del tier Standard (PRO_GROWTH) - all-in = 3,5×1,19 + 3,19 = ~7,36%" },
+  { key: "fees.pro_fee_pct", value: 2.5, description: "Fee neto del tier Pro (PRO_BIG) - all-in = 2,5×1,19 + 3,19 = ~6,17%" },
   { key: "fees.managed_allin_pct", value: 9.14, description: "Comisión todo incluido sobre ventas gestionadas (%): 5% fee + IVA + 3,19% pasarela - default global; cadena: override evento → default productor (platformFeePct) → este param" },
   { key: "gateway_fee.card_pct", value: 3.19, description: "Costo esperado de pasarela por tarjeta (%) - base del desglose all-in de órdenes MANAGED" },
   { key: "tax.iva_pct", value: 19, description: "IVA (%) aplicado sobre el fee neto de plataforma - componente de la comisión all-in" },

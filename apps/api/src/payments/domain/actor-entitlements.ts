@@ -69,7 +69,9 @@ const PRODUCER_TIER_ORDER = ["PRO_STARTER", "PRO_GROWTH", "PRO_BIG"] as const;
  * bloqueada por el gate de `multiStaff`.
  */
 export const PRODUCER_TIER_STAFF_LIMIT: Record<string, number> = {
-  PRO_STARTER: 1,
+  // PRO_STARTER legado y FREE comparten el cupo de la norma operativa
+  // (1-2 personas en puerta); el diferenciador pago es ilimitado (BIG).
+  PRO_STARTER: 2,
   PRO_GROWTH: 2,
 };
 

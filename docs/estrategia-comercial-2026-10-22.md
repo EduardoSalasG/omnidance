@@ -203,19 +203,19 @@ Eso define la tabla de costo real que el closer debe memorizar:
 | BYO-link propio (SumUp/MP ~3,8%+IVA) | ~4,5% + trabajo manual + fraude | ~3,8% |
 | Free (sin plan) | ~9,1% | ~7,7% |
 | Standard $79.700 | ~7,4% + plan | ~6,2% + plan |
-| Pro $169.500 | ~5,0% + plan | ~4,2% + plan |
+| Pro $169.500 | ~6,2% + plan | ~5,2% + plan |
 
 **La línea clave del pitch**: el BYO-link *parece* más barato (~4,5%
 informal) pero cobra sin darte la entrada — el QR, el check-in, la
 liquidación y el CRM nacen de la venta gestionada. Y el plan cambia
 la comparación: con Standard tu total baja de ~9,1% a ~7,4% + plan,
-y con Pro a ~5,0% — contra ~4,5% de BYO + trabajo manual + fraude,
+y con Pro a ~6,2% — contra ~4,5% de BYO + trabajo manual + fraude,
 el loop gestionado cierra el argumento.
 
 ### Estructura de adopción (commission-bundled)
 
 - **Sin promo de comisión**: el fee ya baja por tier automáticamente —
-  Free 9,14% → Standard ~7,36% → Pro ~4,98%. El descuento es
+  Free 9,14% → Standard ~7,36% → Pro ~6,17%. El descuento es
   *producto*, no promoción: el plan se paga solo desde ~$4,5M/mes.
 - **Promo de planes** (opcional, lanzamiento): `PlatformPromo` PERCENT
   50 `maxCycles=6` → PERCENT 25 `maxCycles=6`, solo sobre la
@@ -257,14 +257,14 @@ validando a mano en la puerta.
 **"Soy empresa, ¿el IVA me sirve?"**
 Sí — te emitimos el documento y el IVA del fee te vuelve como
 crédito: tu costo real baja ~1,4pts bajo el número de lista (ej.
-~7,7% en vez de 9,1% en Free, ~5,0% en vez de ~6,2% en Standard,
-~4,2% en vez de ~5,0% en Pro).
+~7,7% en vez de 9,1% en Free, ~6,2% en vez de ~7,4% en Standard,
+~5,2% en vez de ~6,2% en Pro).
 
 **"¿Cuándo me conviene un plan?"**
 La matemática es simple: cuando factures ~$4,5M al mes, el plan
 Standard ($79.700) se paga solo — tu comisión baja de ~9,1% a ~7,4%
 y encima te llevas analíticas, CRM y exportaciones. Arriba de ~$7,5M
-conviene Pro: la comisión baja a ~5,0% + campañas y benchmark. Antes
+conviene Pro: la comisión baja a ~6,2% + campañas y benchmark. Antes
 de eso, vendes gratis y pagas solo comisión — nadie te apura.
 
 **"¿Qué pasa si cancelo el plan?"**
@@ -383,7 +383,7 @@ La decisión es **fijo vs solo-transaccional**, y depende del volumen:
 - **Comisión**: ya no va por override — desde el modelo
   commission-bundled el fee baja por tier automáticamente (resolución
   en lectura vía `Person.proTier`): Free 9,14% → Standard ~7,36% →
-  Pro ~4,98%. Params `fees.standard_fee_pct`=3,5 y
+  Pro ~6,17%. Params `fees.standard_fee_pct`=3,5 y
   `fees.pro_fee_pct`=2,5. Los overrides `platformFeePct` manuales se
   reservan para deals negociados puntuales (siguen ganando al tier).
 - Param global: `fees.managed_allin_pct` = **9,14**
