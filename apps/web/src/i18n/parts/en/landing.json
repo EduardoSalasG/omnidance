@@ -112,7 +112,7 @@
       "ctaCustom": "Talk to us",
       "cycleLabel": "Billing period",
       "priceBefore": "was {price}",
-      "note": "Semi-annual −8% · annual −15%.\nThe payment gateway fee is deducted from what you collect, at real cost (today ~3.2%). On Starter, the collections take is 1.5× the gateway fee.",
+      "note": "Semi-annual −8% · annual −15%.\nStudio includes card and bank transfer payments via gateway at real cost (today ~3.2%).",
       "tiers": [
         {
           "name": "Starter",
@@ -121,7 +121,7 @@
           "recommended": false,
           "ctaLabel": "Start with Starter",
           "features": [
-            "Collections through the payment gateway",
+            "Collections via validated receipts",
             "Students up to date and overdue at a glance"
           ]
         },
@@ -166,19 +166,19 @@
       "items": [
         {
           "q": "How do my students pay?",
-          "a": "Each student pays their plan through the payment gateway by card, and you can also log transfers or cash. You see who's up to date and who needs a reminder."
+          "a": "They join your plan or class and pay in the app with their usual method. You see who's up to date without chasing or checking receipts."
         },
         {
-          "q": "Does the gateway charge the student extra?",
-          "a": "No. The student pays the exact plan price; the gateway fee is deducted from what you collect."
+          "q": "Can I record cash or transfer payments?",
+          "a": "Yes. You log it in your console and the student is marked up to date; the app is your payment control, not only the gateway."
         },
         {
-          "q": "What happens if I go over my plan's student limit?",
-          "a": "We let you know before you hit the cap so you can move up a plan. Your students and your operation keep working in the meantime."
+          "q": "What if I exceed my plan's student cap?",
+          "a": "We let you know so you can move up a plan; your operation doesn't stop overnight."
         },
         {
           "q": "Is there a minimum commitment?",
-          "a": "No. You can cancel anytime; the plan stays active until the end of the period you already paid for."
+          "a": "No. Monthly cancels anytime; semiannual and annual run to the end of the period with their discount."
         }
       ]
     }
@@ -270,23 +270,28 @@
       "title": "Frequently asked questions",
       "items": [
         {
-          "q": "Does the attendee pay a service fee?",
-          "a": "No. The attendee pays the exact ticket price; the commission is deducted from your settlement."
+          "q": "How much does it cost me to sell tickets?",
+          "a": "A commission per managed sale: 5% + VAT + payment gateway (~9.1% all-in), deducted from your settlement. Attendees pay the exact price; cash door sales carry no commission."
         },
         {
-          "q": "Can I use my own payment link?",
-          "a": "Entry QR codes are only issued from a sale managed on the platform, so check-in and settlement always match."
+          "q": "Do I need a plan to sell?",
+          "a": "No. You can publish your event and sell tickets anytime. A plan adds multi-staff, analytics, CRM and marketing campaigns."
         },
         {
-          "q": "What happens when my sales grow?",
-          "a": "Your plan moves up a tier automatically based on the month's sales. There's nothing to manage."
+          "q": "When do I get my sales money?",
+          "a": "When the event closes, the settlement is ready with the commission already deducted; payout follows the configured cycle."
         },
         {
-          "q": "Can I cancel?",
-          "a": "Yes, anytime. The subscription stays active until the end of the cycle you already paid for."
+          "q": "Does my audience need to install an app?",
+          "a": "No. They buy on the web, get a QR ticket, and you or your staff validate it at the door from a phone."
+        },
+        {
+          "q": "Can I cancel my plan?",
+          "a": "Yes, monthly anytime; semiannual and annual run to the end of the period with their discount."
         }
       ]
-    }
+    },
+    "weekEmpty": "The scene's events are published in one board"
   },
   "landingProHub": {
     "metaTitle": "Omnidance for businesses",
