@@ -87,7 +87,9 @@ const PARAM_DEFAULTS: Array<{
   // ─── Modelo comisión todo incluido (spec producer-fee-model) ───
   // El comprador paga el precio publicado exacto; la plataforma cobra al
   // productor una comisión all-in que incluye pasarela + fee neto + IVA.
-  { key: "fees.managed_allin_pct", value: 10, description: "Comisión todo incluido sobre ventas gestionadas (%) - default global; cadena: override evento → default productor (platformFeePct) → este param" },
+  // all-in = gateway_fee.card_pct + fee neto × (1 + tax.iva_pct):
+  // 3,19 + 5,0 × 1,19 = 9,14 → fee plataforma 5% + IVA + pasarela.
+  { key: "fees.managed_allin_pct", value: 9.14, description: "Comisión todo incluido sobre ventas gestionadas (%): 5% fee + IVA + 3,19% pasarela - default global; cadena: override evento → default productor (platformFeePct) → este param" },
   { key: "gateway_fee.card_pct", value: 3.19, description: "Costo esperado de pasarela por tarjeta (%) - base del desglose all-in de órdenes MANAGED" },
   { key: "tax.iva_pct", value: 19, description: "IVA (%) aplicado sobre el fee neto de plataforma - componente de la comisión all-in" },
   // Proveedor que procesa las órdenes nuevas (spec

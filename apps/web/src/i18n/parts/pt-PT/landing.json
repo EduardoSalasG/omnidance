@@ -189,7 +189,7 @@
       "recommended": "Recomendado",
       "cta": "Criar a minha conta",
       "ctaCustom": "Vamos conversar",
-      "note": "Comissão tudo incluído de 10% por venda gerida (gateway + taxa + IVA):\ndeduzida da tua liquidação — o assistente paga o preço exato.",
+      "note": "Comissão: 5% + IVA + gateway de pagamento (~9,1% tudo incluído) por venda gerida:\ndeduzida da tua liquidação — o assistente paga o preço exato.",
       "tiers": [
         {
           "name": "Starter",

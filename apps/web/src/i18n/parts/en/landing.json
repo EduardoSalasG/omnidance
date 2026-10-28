@@ -189,7 +189,7 @@
       "recommended": "Recommended",
       "cta": "Create my account",
       "ctaCustom": "Talk to us",
-      "note": "All-in commission of 10% per managed sale (gateway + fee + VAT):\ndeducted from your settlement — attendees pay the exact price.",
+      "note": "Commission: 5% + VAT + payment gateway (~9.1% all-in) per managed sale:\ndeducted from your settlement — attendees pay the exact price.",
       "tiers": [
         {
           "name": "Starter",
