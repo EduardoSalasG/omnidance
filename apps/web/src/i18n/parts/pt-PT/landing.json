@@ -110,7 +110,7 @@
       "recommended": "Recomendado",
       "cta": "Criar a minha conta",
       "ctaCustom": "Vamos conversar",
-      "note": "Começas com um período experimental no nível Studio: a operação completa desde o primeiro dia.\nPagamento semestral −8% · anual −15%.",
+      "note": "Começas com um período experimental no nível Studio: a operação completa desde o primeiro dia.\nPagamento semestral −8% · anual −15%.\nA gateway de pagamento é descontada do que arrecadas, a custo real (hoje ~3,2%). No Starter, o take de cobrança é 1,5× a taxa da gateway.",
       "tiers": [
         {
           "name": "Starter",

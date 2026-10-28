@@ -110,7 +110,7 @@
       "recommended": "Recomendado",
       "cta": "Crear mi cuenta",
       "ctaCustom": "Conversemos",
-      "note": "Empiezas con prueba en nivel Studio: la operación completa desde el día uno.\nPago semestral −8% · pago anual −15%.",
+      "note": "Empiezas con prueba en nivel Studio: la operación completa desde el día uno.\nPago semestral −8% · pago anual −15%.\nLa pasarela de pago se descuenta de lo recaudado, a costo real (hoy ~3,2%). En Starter el take de cobranza es 1,5× el fee de pasarela.",
       "tiers": [
         {
           "name": "Starter",

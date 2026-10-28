@@ -110,7 +110,7 @@
       "recommended": "Recommended",
       "cta": "Create my account",
       "ctaCustom": "Talk to us",
-      "note": "Your trial starts at Studio level: the full operation from day one.\nSemi-annual −8% · annual −15%.",
+      "note": "Your trial starts at Studio level: the full operation from day one.\nSemi-annual −8% · annual −15%.\nThe payment gateway fee is deducted from what you collect, at real cost (today ~3.2%). On Starter, the collections take is 1.5× the gateway fee.",
       "tiers": [
         {
           "name": "Starter",
