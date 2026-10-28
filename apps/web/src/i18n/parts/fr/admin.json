@@ -735,6 +735,7 @@
       "cycle": "Cycle",
       "price": "Prix",
       "currency": "Devise",
+      "displayName": "Nom affiché",
       "new": "Nouveau prix",
       "save": "Enregistrer",
       "saved": "Enregistré",

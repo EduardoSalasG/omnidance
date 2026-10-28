@@ -735,6 +735,7 @@
       "cycle": "Ciclo",
       "price": "Precio",
       "currency": "Moneda",
+      "displayName": "Nombre visible",
       "new": "Nuevo precio",
       "save": "Guardar",
       "saved": "Guardado",

@@ -23,7 +23,7 @@ export default function AdminTierPricesPage() {
   const load = useCallback(async () => {
     setError(false);
     try {
-      const res = await apiFetch("/api/admin/tier-prices");
+      const res = await apiFetch("/admin/tier-prices");
       if (!res.ok) throw new Error();
       const data = (await res.json()) as { items: TierPrice[] };
       setItems(data.items);
@@ -94,7 +94,7 @@ export default function AdminTierPricesPage() {
                         href={`/admin/facturacion/precios/${r.id}`}
                         className="transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                       >
-                        {r.tierCode}
+                        {r.displayName ?? r.tierCode}
                       </Link>
                     </td>
                     <td className="py-2">{cycleLabel(t, r.billingCycle)}</td>

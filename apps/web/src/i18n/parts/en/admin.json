@@ -735,6 +735,7 @@
       "cycle": "Cycle",
       "price": "Price",
       "currency": "Currency",
+      "displayName": "Display name",
       "new": "New price",
       "save": "Save",
       "saved": "Saved",

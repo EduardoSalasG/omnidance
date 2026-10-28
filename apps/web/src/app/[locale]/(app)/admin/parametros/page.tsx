@@ -63,6 +63,7 @@ function ParamsPanel() {
     try {
       const res = await apiFetch(`/admin/params/${key}`, {
         method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: parseValue(drafts[key] ?? "") }),
       });
       if (!res.ok) return setActionError(true);

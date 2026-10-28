@@ -60,6 +60,7 @@ function RolesPanel() {
     try {
       const res = await apiFetch(`/admin/roles/${roleKey}/permissions`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ permission, grant }),
       });
       if (!res.ok) return setActionError(true);
