@@ -12,6 +12,8 @@ const CACHE_TTL_MS = 30_000;
  * los lee el settlement para reconstruir tickets de pagos legacy. */
 export interface ProducerFeeDefaults {
   platformFeePct: number | null;
+  /** Tier Pro vigente del productor (Person.proTier) - base del fee por plan. */
+  proTier?: string | null;
   /** Defaults de mesas (spec checkout-table-reservation): los edita el
    *  propio productor; el evento los hereda al crear/editar. Opcionales -
    *  los consumidores de fees no los necesitan. */
@@ -65,18 +67,26 @@ export class ParamsService {
     const hit = this.producerCache.get(producerId);
     if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
 
-    const row = await this.prisma.producerParams.findUnique({
-      where: { producerId },
-    });
-    const value: ProducerFeeDefaults | null = row
-      ? {
-          platformFeePct: row.platformFeePct,
-          tablesTotal: row.tablesTotal,
-          tableSeatMax: row.tableSeatMax,
-          tableSeatsTotal: row.tableSeatsTotal,
-          presaleCutoffMinutes: row.presaleCutoffMinutes,
-        }
-      : null;
+    const [row, person] = await Promise.all([
+      this.prisma.producerParams.findUnique({
+        where: { producerId },
+      }),
+      this.prisma.person.findUnique({
+        where: { id: producerId },
+        select: { proTier: true },
+      }),
+    ]);
+    const value: ProducerFeeDefaults | null =
+      row || person
+        ? {
+            platformFeePct: row?.platformFeePct ?? null,
+            tablesTotal: row?.tablesTotal ?? null,
+            tableSeatMax: row?.tableSeatMax ?? null,
+            tableSeatsTotal: row?.tableSeatsTotal ?? null,
+            presaleCutoffMinutes: row?.presaleCutoffMinutes ?? null,
+            proTier: person?.proTier ?? null,
+          }
+        : null;
     this.producerCache.set(producerId, { value, at: Date.now() });
     return value;
   }

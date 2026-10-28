@@ -489,9 +489,14 @@ Micro-encuentros de baile **creados por cualquier bailarín** - no requieren aca
 
 | Tier comercial | % todo incluido | Uso |
 |---|---|---|
-| **Precio de lista** | **9,14%** | `fees.managed_allin_pct`: 5% fee + IVA + 3,19% pasarela - conversación "5% + IVA + pasarela" |
-| **Promo lanzamiento m1-6** | **~6,17%** | Override por productor (`ProducerParams.platformFeePct`) - fee −50% (2,5% + IVA + pasarela); la pasarela nunca se subsidia |
-| **Promo lanzamiento m7-12** | **~7,65%** | Idem con fee −25% (3,75% + IVA + pasarela) - escalón antes del full |
+| **Free (lista)** | **9,14%** | `fees.managed_allin_pct`: 5% fee + IVA + 3,19% pasarela - sin mensualidad; el productor publica y vende siempre |
+| **Standard** ($79.700/mes) | **~7,36%** | `fees.standard_fee_pct` 3,5% + IVA + pasarela - comisión-bundled: el plan se paga solo desde ~$4,5M/mes |
+| **Pro** ($169.500/mes) | **~4,98%** | `fees.pro_fee_pct` 2,5% + IVA + pasarela - conviene sobre ~$7,5M vs Standard; + campañas y benchmark |
+
+El fee por plan se resuelve en lectura (`Person.proTier` proyectado por
+la suscripción): cadena evento → override `platformFeePct` → tier →
+global. Los overrides manuales por productor o evento siguen ganando
+sobre el tier - los deals negociados no se pierden.
 
 **Desglose del % todo incluido** (ej. 9,14% sobre $6.000 → deducción $548):
 
@@ -623,7 +628,7 @@ Omni-dance (empresa de software propia) recauda y liquida por **transferencia se
 
 | Perfil | Qué recauda omni por ellos | Liquidación |
 |---|---|---|
-| **Productor** | Precio de lista de tickets (preventa + puerta app), pases mensuales, inscripciones | `payout` por evento o semanal: **bruto − % todo incluido** (`platformFeePct`, default 10 / promo 8; líneas `PLATFORM_FEE_NET` + `PLATFORM_FEE_IVA` + `GATEWAY_FEE_PASSTHROUGH` al costo) − fee devengado por métodos propios neteado → transferencia + comprobante |
+| **Productor** | Precio de lista de tickets (preventa + puerta app), pases mensuales, inscripciones | `payout` por evento o semanal: **bruto − % todo incluido** (cadena: evento → `platformFeePct` del productor → fee del tier Pro vigente → `fees.managed_allin_pct` 9,14; líneas `PLATFORM_FEE_NET` + `PLATFORM_FEE_IVA` + `GATEWAY_FEE_PASSTHROUGH` al costo) − fee devengado por métodos propios neteado → transferencia + comprobante |
 | **Academia** | Mensualidades, packs, talleres, clases privadas, trial pagos | `payout` mensual/semanal consolidado: **bruto − tarifa Flow** (`GATEWAY_FEE_PASSTHROUGH`, ~3,19%); **sin comisión ni cargo al comprador** - la academia monetiza vía suscripción SaaS (ver abajo) |
 | **Instructor** | Clases privadas (vía academia - liquida a través de la academia según el acuerdo económico `payType`/`payAmount`/`payClasses`) | Dentro del payout de la academia, desglosado |
 | **Venue** | Futuro: arriendos (`venue_rental`), cortesías cobradas | `payout` cuando aplique |
@@ -653,13 +658,16 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 - Los productos de la academia **no cobran cargo de servicio al alumno**; la academia absorbe la tarifa Flow como línea `GATEWAY_FEE_PASSTHROUGH` explícita en su payout.
 - Notificaciones: las **transaccionales** (recordatorio de clase, renovación, waitlist) viven en todos los tiers — son función core, no marketing. Solo las **campañas/pushes de marketing segmentadas** se gatean a PRO.
 
-**Productor**: su monetización core es la **comisión todo incluido por venta** (`platformFeePct`, default 10% / promo 8% - ver "Modelo de precio" arriba) **+ Producer Pro opcional** - suscripción por tier de facturación mensual media (90d) con features gateadas:
+**Productor**: su monetización core es la **comisión todo incluido por venta** (cadena evento → override → tier → `fees.managed_allin_pct` 9,14; los planes bajan el fee: Standard 7,36 / Pro 4,98 - ver "Modelo de precio" arriba) **+ Producer Pro opcional** - suscripción por tier de facturación mensual media (90d) con features gateadas:
 
 | Tier | Precio mensual | Facturación 90d | Incluye |
 |---|---|---|---|
-| **Starter** | $79.700 | ≤$2,5M | Analítica avanzada, exportaciones y multi-staff (1 colaborador) |
-| **Standard** | $169.500 | ≤$8M | + CRM de la audiencia (staff hasta 2) |
-| **Pro** | $300.200 | >$8M | + campañas, benchmark vs escena, staff ilimitado |
+| **Free** | $0 | sin tope | Publica y vende siempre: ticketing online + QR + check-in + liquidación; comisión 9,14% por venta; staff hasta 2 por evento |
+| **Standard** | $79.700 | ≤$8M | Analíticas, CRM de la audiencia, exportaciones; comisión baja a ~7,36% |
+| **Pro** | $169.500 | >$8M | + campañas segmentadas, benchmark vs escena; comisión baja a ~4,98% |
+
+PRO_STARTER quedó como código legado (subs vigentes conservan su plan);
+ya no se vende - el plan de entrada es el ticketing transaccional.
 
 El ticketing base, venta y check-in **nunca se cortan** por la suscripción (el marketplace es el funnel). Trial de lanzamiento: +90d a productores registrados. Ciclos con −8% semestral/−15% anual (mismo criterio que academias).
 
