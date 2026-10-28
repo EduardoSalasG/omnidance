@@ -182,14 +182,14 @@
     "ctaEvents": "Explorer les événements",
     "pricing": {
       "title": "Plans et prix",
-      "lead": "La billetterie de base reste toujours active — Pro ajoute staff, analytiques et CRM.",
+      "lead": "",
       "perMonth": "/mois",
       "free": "Gratuit",
       "custom": "Sur devis",
       "recommended": "Recommandé",
       "cta": "Créer mon compte",
       "ctaCustom": "Parlons-en",
-      "note": "La billetterie de base n'est jamais coupée : c'est l'entonnoir du marketplace.\nSemestriel −8 % · annuel −15 %.",
+      "note": "Commission tout compris de 10 % par vente gérée (passerelle + frais + TVA) :\ndéduite de ton règlement — l'assistant paie le prix exact.",
       "tiers": [
         {
           "name": "Starter",

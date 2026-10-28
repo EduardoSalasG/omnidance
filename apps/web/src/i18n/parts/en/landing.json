@@ -182,14 +182,14 @@
     "ctaEvents": "Explore events",
     "pricing": {
       "title": "Plans and pricing",
-      "lead": "Base ticketing always on — Pro adds staff, analytics and CRM.",
+      "lead": "",
       "perMonth": "/mo",
       "free": "Free",
       "custom": "Let's talk",
       "recommended": "Recommended",
       "cta": "Create my account",
       "ctaCustom": "Talk to us",
-      "note": "Base ticketing never gets cut: it's the marketplace funnel.\nSemi-annual −8% · annual −15%.",
+      "note": "All-in commission of 10% per managed sale (gateway + fee + VAT):\ndeducted from your settlement — attendees pay the exact price.",
       "tiers": [
         {
           "name": "Starter",
