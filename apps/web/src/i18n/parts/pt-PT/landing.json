@@ -224,10 +224,10 @@
           "priceMonthly": 0,
           "limit": "Sem mensalidade",
           "features": [
-            "Comissão por venda: 5% + gateway (~3,2%) + IVA",
             "Publica o teu evento na programação",
             "Venda online com QR e check-in à porta",
-            "Liquidação com a comissão deduzida"
+            "Liquidação com a comissão deduzida",
+            "Comissão por venda: 5% + gateway (~3,2%) + IVA"
           ],
           "recommended": false,
           "ctaLabel": "Vender agora"
