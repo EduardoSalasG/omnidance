@@ -240,8 +240,7 @@
           "ctaLabel": "Empezar con Starter",
           "features": [
             "Analíticas de ventas y audiencia",
-            "Exportaciones",
-            "Multi-staff (1 integrante)"
+            "Exportaciones"
           ]
         },
         {
@@ -252,8 +251,7 @@
           "ctaLabel": "Elegir Standard",
           "features": [
             "Todo lo de Starter",
-            "CRM de tu público",
-            "Multi-staff (hasta 2)"
+            "CRM de tu público"
           ]
         },
         {
@@ -264,8 +262,7 @@
           "ctaLabel": "Ir a Pro",
           "features": [
             "Todo lo de Standard",
-            "Campañas segmentadas y benchmark",
-            "Staff ilimitado"
+            "Campañas segmentadas y benchmark"
           ]
         }
       ],
