@@ -9,7 +9,7 @@ import { getLocale, getMessages } from "next-intl/server";
 import type { JsonLdEvent } from "./JsonLd";
 import type { PublicAcademy } from "@/lib/public-academies";
 import { Link } from "@/i18n/navigation";
-import { getDateFmt } from "@/lib/intl";
+import { formatClp, getDateFmt } from "@/lib/intl";
 
 // Acento de marca via token `neon` (#a78bfa violeta en :root) - icon.svg,
 // og-image e íconos PWA comparten el mismo valor. La atmósfera del hero es
@@ -110,6 +110,19 @@ export async function Landing({
   const registerHref =
     "/login?mode=register" + (landingRole ? `&role=${landingRole}` : "");
   const primaryHref = registerHref;
+
+  // Planes y precios por audiencia pro. Los montos son REFERENCIALES:
+  // la fuente editable vive en PlatformParam (academy_tier.*_monthly_clp
+  // - dominio apps/api/src/academies/domain/academy-tiers.ts;
+  // producer_tier.*_monthly_clp - dominio apps/api/src/payments/domain/
+  // platform-tiers.ts) y no hay endpoint público de precios, así que la
+  // landing los lleva en el catálogo i18n y los formatea con formatClp.
+  const pricing =
+    variant === "academy"
+      ? m.landingAcademy.pricing
+      : variant === "producer"
+        ? m.landingProducer.pricing
+        : null;
   // El secundario es exploración: cada audiencia mira el directorio que
   // le habla (academias para academias, cartelera para el resto). Anónimo
   // rebota a /login?next= - el mismo funnel del secundario dancer.
@@ -321,6 +334,95 @@ export async function Landing({
             </ul>
           </div>
         </section>
+
+        {/* ─── Solo pro: planes y precios referenciales. Los CTAs van
+            al mismo registerHref que el resto de la landing (registro
+            directo con rol - estas páginas no tienen lead form; el
+            form de contacto vive solo en el hub /pro). ─── */}
+        {pricing && (
+          <section
+            aria-labelledby="pricing-title"
+            className="border-t border-ink/5 px-6 py-16 sm:py-20 lg:py-24"
+          >
+            <div className="mx-auto max-w-5xl">
+              <h2
+                id="pricing-title"
+                className="text-center text-2xl font-bold tracking-tight sm:text-3xl"
+              >
+                {pricing.title}
+              </h2>
+              <p className="mx-auto mt-3 max-w-md text-center text-sm text-ink/50">
+                {pricing.lead}
+              </p>
+              <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+                {pricing.tiers.map((tier) => (
+                  <li
+                    key={tier.name}
+                    className={`flex flex-col rounded-2xl border p-6 ${
+                      tier.recommended
+                        ? "border-neon bg-neon/5"
+                        : "border-ink/10 bg-surface/60"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-lg font-semibold">{tier.name}</h3>
+                      {tier.recommended && (
+                        <span className="rounded-full bg-neon px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-on-accent">
+                          {pricing.recommended}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-3">
+                      {tier.priceMonthly == null ? (
+                        <span className="text-2xl font-extrabold">
+                          {pricing.custom}
+                        </span>
+                      ) : tier.priceMonthly === 0 ? (
+                        <span className="text-2xl font-extrabold">
+                          {pricing.free}
+                        </span>
+                      ) : (
+                        <>
+                          <span className="text-2xl font-extrabold">
+                            {formatClp(tier.priceMonthly, locale)}
+                          </span>
+                          <span className="text-sm text-ink/50">
+                            {" "}
+                            {pricing.perMonth}
+                          </span>
+                        </>
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs text-ink/50">{tier.limit}</p>
+                    <ul className="mt-4 flex flex-col gap-1.5 text-sm text-ink/70">
+                      {tier.features.map((feature) => (
+                        <li key={feature}>· {feature}</li>
+                      ))}
+                    </ul>
+                    <div className="mt-auto pt-6">
+                      <Link
+                        href={registerHref}
+                        prefetch={false}
+                        className={`inline-flex min-h-11 w-full items-center justify-center rounded-full px-4 text-sm font-semibold transition-colors active:scale-[0.97] ${
+                          tier.recommended
+                            ? "bg-neon text-on-accent hover:bg-neon-soft"
+                            : "border border-ink/15 text-ink/80 hover:border-ink/30 hover:text-ink"
+                        }`}
+                      >
+                        {tier.priceMonthly == null
+                          ? pricing.ctaCustom
+                          : pricing.cta}
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className="mx-auto mt-6 max-w-xl whitespace-pre-line text-center text-xs text-ink/50">
+                {pricing.note}
+              </p>
+            </div>
+          </section>
+        )}
 
         {/* ─── CTA final: registro directo - pro lleva su rol en
             registerHref (?role= → PersonRole PENDING). ─── */}

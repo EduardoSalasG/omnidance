@@ -100,7 +100,64 @@
     "crossLink": "Tu produis aussi des événements ?",
     "crossHref": "/para-productores",
     "footerAlt": "Pour les danseurs",
-    "ctaEvents": "Explorer les académies"
+    "ctaEvents": "Explorer les académies",
+    "pricing": {
+      "title": "Plans et prix",
+      "lead": "Un plan pour chaque étape de ton académie.",
+      "perMonth": "/mois",
+      "free": "Gratuit",
+      "custom": "Sur devis",
+      "recommended": "Recommandé",
+      "cta": "Créer mon compte",
+      "ctaCustom": "Parlons-en",
+      "note": "Ton essai commence au niveau Studio : l'opération complète dès le premier jour.\nSemestriel −8 % · annuel −15 %.",
+      "tiers": [
+        {
+          "name": "Cobros",
+          "priceMonthly": 39500,
+          "limit": "Jusqu'à 60 élèves",
+          "recommended": false,
+          "features": [
+            "Encaissement par la passerelle de paiement",
+            "Élèves à jour et en retard en un coup d'œil"
+          ]
+        },
+        {
+          "name": "Studio",
+          "priceMonthly": 79700,
+          "limit": "Jusqu'à 150 élèves",
+          "recommended": true,
+          "features": [
+            "Tout le plan Cobros",
+            "Cours, séries et réservations",
+            "Présence, staff et préventes"
+          ]
+        },
+        {
+          "name": "Pro",
+          "priceMonthly": 120500,
+          "limit": "Élèves illimités",
+          "recommended": false,
+          "features": [
+            "Tout le plan Studio",
+            "Analytique, CRM et campagnes",
+            "Vidéos et insights",
+            "Multi-académie"
+          ]
+        },
+        {
+          "name": "Enterprise",
+          "priceMonthly": null,
+          "limit": "Opération sur mesure",
+          "recommended": false,
+          "features": [
+            "Tout le plan Pro",
+            "Accompagnement dédié",
+            "Conditions à convenir"
+          ]
+        }
+      ]
+    }
   },
   "landingProducer": {
     "metaTitle": "Billetterie et contrôle pour producteurs | Omnidance",
@@ -124,7 +181,64 @@
     "crossLink": "Tu as aussi une académie ?",
     "crossHref": "/para-academias",
     "footerAlt": "Pour les danseurs",
-    "ctaEvents": "Explorer les événements"
+    "ctaEvents": "Explorer les événements",
+    "pricing": {
+      "title": "Plans et prix",
+      "lead": "Gratuit pour commencer. Pro quand ton opération grandit.",
+      "perMonth": "/mois",
+      "free": "Gratuit",
+      "custom": "Sur devis",
+      "recommended": "Recommandé",
+      "cta": "Créer mon compte",
+      "ctaCustom": "Parlons-en",
+      "note": "Les plans Pro ajoutent multi-staff, analytiques, exports et CRM.\nSemestriel −8 % · annuel −15 %.",
+      "tiers": [
+        {
+          "name": "Base",
+          "priceMonthly": 0,
+          "limit": "Pour démarrer",
+          "recommended": false,
+          "features": [
+            "Billetterie en ligne",
+            "Porte avec check-in QR",
+            "Règlement par événement"
+          ]
+        },
+        {
+          "name": "Pro Starter",
+          "priceMonthly": 99700,
+          "limit": "Jusqu'à 2,5 M$ de ventes par mois",
+          "recommended": true,
+          "features": [
+            "Tout le plan Base",
+            "Multi-staff et rôles",
+            "Analytiques et exports",
+            "CRM de ton public"
+          ]
+        },
+        {
+          "name": "Pro Growth",
+          "priceMonthly": 250200,
+          "limit": "Jusqu'à 8 M$ de ventes par mois",
+          "recommended": false,
+          "features": [
+            "Tout Pro Starter",
+            "Multi-staff, analytiques, exports et CRM"
+          ]
+        },
+        {
+          "name": "Pro Big",
+          "priceMonthly": null,
+          "limit": "Sans plafond de facturation",
+          "recommended": false,
+          "features": [
+            "Tout Pro Growth",
+            "Conditions à convenir",
+            "Accompagnement dédié"
+          ]
+        }
+      ]
+    }
   },
   "landingProHub": {
     "metaTitle": "Omnidance pour les entreprises",
