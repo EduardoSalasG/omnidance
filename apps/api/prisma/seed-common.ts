@@ -89,6 +89,8 @@ const PARAM_DEFAULTS: Array<{
   // productor una comisión all-in que incluye pasarela + fee neto + IVA.
   // all-in = gateway_fee.card_pct + fee neto × (1 + tax.iva_pct):
   // 3,19 + 5,0 × 1,19 = 9,14 → fee plataforma 5% + IVA + pasarela.
+  { key: "fees.standard_fee_pct", value: 3.5, description: "Fee neto del tier Standard (PRO_GROWTH) - all-in = fee×1,19 + pasarela = ~6,17%" },
+  { key: "fees.pro_fee_pct", value: 2.5, description: "Fee neto del tier Pro (PRO_BIG) - all-in = fee×1,19 + pasarela = ~4,98%" },
   { key: "fees.managed_allin_pct", value: 9.14, description: "Comisión todo incluido sobre ventas gestionadas (%): 5% fee + IVA + 3,19% pasarela - default global; cadena: override evento → default productor (platformFeePct) → este param" },
   { key: "gateway_fee.card_pct", value: 3.19, description: "Costo esperado de pasarela por tarjeta (%) - base del desglose all-in de órdenes MANAGED" },
   { key: "tax.iva_pct", value: 19, description: "IVA (%) aplicado sobre el fee neto de plataforma - componente de la comisión all-in" },
@@ -157,8 +159,8 @@ const PARAM_DEFAULTS: Array<{
   { key: "producer_tier.starter_max_monthly_clp", value: 2500000, description: "Facturación mensual máxima del tier PRO_STARTER (CLP)" },
   { key: "producer_tier.growth_max_monthly_clp", value: 8000000, description: "Facturación mensual máxima del tier PRO_GROWTH (CLP)" },
   { key: "producer_tier.starter_monthly_clp", value: 79700, description: "Precio mensual tier PRO_STARTER/Pro (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
-  { key: "producer_tier.growth_monthly_clp", value: 169500, description: "Precio mensual tier PRO_GROWTH/Growth (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
-  { key: "producer_tier.big_monthly_clp", value: 300200, description: "Precio mensual tier PRO_BIG/Scale (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
+  { key: "producer_tier.growth_monthly_clp", value: 79700, description: "Precio mensual tier PRO_GROWTH/Standard (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
+  { key: "producer_tier.big_monthly_clp", value: 169500, description: "Precio mensual tier PRO_BIG/Pro (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
   { key: "producer_tier.free_staff_max", value: 2, description: "Staff máximo por evento sin suscripción Pro - 1-2 personas en puerta es la norma; multiStaff (Pro) se exige solo sobre este cupo" },
   // Costo de pasarela descontado del payout de academia (línea GATEWAY_FEE_PASSTHROUGH).
   { key: "gateway_fee.academy_passthrough_pct", value: 3.19, description: "% de pasarela descontado del payout de academia" },

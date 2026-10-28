@@ -234,25 +234,27 @@
         },
         {
           "name": "Standard",
-          "priceMonthly": 169500,
+          "priceMonthly": 79700,
           "limit": "Up to $8 M in monthly sales",
           "recommended": true,
           "ctaLabel": "Choose Standard",
           "features": [
             "Sales and audience analytics",
             "Audience CRM",
-            "Exports"
+            "Exports",
+            "Commission per sale: 3.5% + gateway (~3.2%) + VAT"
           ]
         },
         {
           "name": "Pro",
-          "priceMonthly": 300200,
+          "priceMonthly": 169500,
           "limit": "No billing cap",
           "recommended": false,
           "ctaLabel": "Go Pro",
           "features": [
             "Everything in Standard",
-            "Segmented campaigns and scene benchmark"
+            "Segmented campaigns and scene benchmark",
+            "Commission per sale: 2.5% + gateway (~3.2%) + VAT"
           ]
         }
       ],

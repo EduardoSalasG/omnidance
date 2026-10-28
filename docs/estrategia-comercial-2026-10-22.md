@@ -201,23 +201,28 @@ Eso define la tabla de costo real que el closer debe memorizar:
 | Escenario | Informal (IVA es costo puro) | Formal (IVA = crédito) |
 |---|---|---|
 | BYO-link propio (SumUp/MP ~3,8%+IVA) | ~4,5% + trabajo manual + fraude | ~3,8% |
-| Promo meses 1-6 (fee −50%) | ~6,2% | ~5,2% |
-| Promo meses 7-12 (fee −25%) | ~7,7% | ~6,4% |
-| Full | ~9,1% | ~7,6% |
+| Free (sin plan) | ~9,1% | ~7,7% |
+| Standard $79.700 | ~7,4% + plan | ~6,2% + plan |
+| Pro $169.500 | ~5,0% + plan | ~4,2% + plan |
 
-**La línea clave del pitch**: durante la promo la prima del loop
-gestionado sobre el BYO-link es ~1,7pts — menos que lo que hoy pierden
-en comprobantes falsos, filas en la puerta y planillas de
-reconciliación. Post-promo la prima sube a ~4,6pts y ahí vendes
-hábito, data y puerta QR, no precio.
+**La línea clave del pitch**: el BYO-link *parece* más barato (~4,5%
+informal) pero cobra sin darte la entrada — el QR, el check-in, la
+liquidación y el CRM nacen de la venta gestionada. Y el plan cambia
+la comparación: con Standard tu total baja de ~9,1% a ~7,4% + plan,
+y con Pro a ~5,0% — contra ~4,5% de BYO + trabajo manual + fraude,
+el loop gestionado cierra el argumento.
 
-### Promo de lanzamiento escalonada
+### Estructura de adopción (commission-bundled)
 
-- **Meses 1-6: −50% del fee de plataforma** (5%→2,5%+IVA) **y de los
-  planes** (Starter productor ~$39.850, academias similar).
-- **Meses 7-12: −25%** del fee y de planes.
-- **Solo sobre el fee propio — la pasarela nunca se subsidia** (ese
-  descuento sería pérdida seca de caja).
+- **Sin promo de comisión**: el fee ya baja por tier automáticamente —
+  Free 9,14% → Standard ~7,36% → Pro ~4,98%. El descuento es
+  *producto*, no promoción: el plan se paga solo desde ~$4,5M/mes.
+- **Promo de planes** (opcional, lanzamiento): `PlatformPromo` PERCENT
+  50 `maxCycles=6` → PERCENT 25 `maxCycles=6`, solo sobre la
+  mensualidad del plan — nunca sobre la pasarela (subsidio = pérdida
+  seca).
+- **Staff**: hasta 2 por evento sin plan (norma operativa); más staff
+  requiere Pro.
 - Mecanismo existente: `PlatformPromo` (PERCENT, maxCycles, ventana,
   whitelist, scope) genera plan espejo sin mutar el tier — nunca
   mostrar el precio promo como "el precio"; siempre tachado +
@@ -251,13 +256,21 @@ validando a mano en la puerta.
 
 **"Soy empresa, ¿el IVA me sirve?"**
 Sí — te emitimos el documento y el IVA del fee te vuelve como
-crédito: tu costo real baja ~1,5pts bajo el número de lista (ej.
-~7,6% en vez de 9,1%).
+crédito: tu costo real baja ~1,4pts bajo el número de lista (ej.
+~7,7% en vez de 9,1% en Free, ~5,0% en vez de ~6,2% en Standard,
+~4,2% en vez de ~5,0% en Pro).
 
-**"¿Qué pasa después de la promo?"**
-El precio de lista siempre estuvo visible (con el tachado desde el
-día uno) y el descuento se reduce por tramos: −50% seis meses, −25%
-seis más, full al año. Nunca una sorpresa de un día para otro.
+**"¿Cuándo me conviene un plan?"**
+La matemática es simple: cuando factures ~$4,5M al mes, el plan
+Standard ($79.700) se paga solo — tu comisión baja de ~9,1% a ~7,4%
+y encima te llevas analíticas, CRM y exportaciones. Arriba de ~$7,5M
+conviene Pro: la comisión baja a ~5,0% + campañas y benchmark. Antes
+de eso, vendes gratis y pagas solo comisión — nadie te apura.
+
+**"¿Qué pasa si cancelo el plan?"**
+Vuelves a la comisión de lista (9,14%) y vendes igual — el ticketing
+nunca se corta, solo se apagan las analíticas y el CRM. Tu data
+exportada es tuya.
 
 **"¿El asistente paga más caro online?"**
 No — paga el precio publicado exacto, sin cargo de servicio al
@@ -277,9 +290,9 @@ planillas.
    comprobantes falsos + fila en la puerta sin saber cuánto vendiste."
 2. *Loop*: "Entradas al precio exacto, puerta QR que valida tu staff
    desde su teléfono, liquidación con números claros la misma noche."
-3. *Oferta*: "Comisión 5%+IVA+pasarela; lanzamiento: −50% del fee tus
-   primeros 6 meses, −25% los siguientes 6 — te sale menos que lo que
-   hoy pierdes en fuga."
+3. *Oferta*: "Empiezas gratis: vendes y pagas comisión sola
+   (5%+IVA+pasarela). Cuando factures ~$4,5M el plan se paga solo
+   porque la comisión baja a ~7,4% — y encima te llevas el CRM."
 4. *Cierre*: "¿Cuál es tu próximo evento? Lo montamos esta semana."
 
 **Academia** (dolor → orden → trial → cierre):
@@ -367,14 +380,14 @@ La decisión es **fijo vs solo-transaccional**, y depende del volumen:
   líneas, `maxCycles=6` por actor, ventana de lanzamiento; al expirar
   crear la segunda PERCENT 25 `maxCycles=6`. El reconcile agenda
   `pendingReprice` solo — nunca editar el plan del tier.
-- **Fee de comisión** (por productor): override
-  `ProducerParams.platformFeePct` — m1-6 = **6,17** (2,5% fee + IVA +
-  pasarela), m7-12 = **7,65** (3,75% + IVA + pasarela), luego quitar
-  el override (vuelve al default 9,14). La pasarela nunca entra al
-  descuento.
-- Param global ya actualizado: `fees.managed_allin_pct` = **9,14**
-  (5% + 19% IVA + 3,19% pasarela — la descomposición por línea es la
-  misma de siempre).
+- **Comisión**: ya no va por override — desde el modelo
+  commission-bundled el fee baja por tier automáticamente (resolución
+  en lectura vía `Person.proTier`): Free 9,14% → Standard ~7,36% →
+  Pro ~4,98%. Params `fees.standard_fee_pct`=3,5 y
+  `fees.pro_fee_pct`=2,5. Los overrides `platformFeePct` manuales se
+  reservan para deals negociados puntuales (siguen ganando al tier).
+- Param global: `fees.managed_allin_pct` = **9,14**
+  (5% + 19% IVA + 3,19% pasarela).
 
 ## 6. Análisis competitivo — Starter vs Membrezia (academias)
 

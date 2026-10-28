@@ -530,17 +530,31 @@ export class CheckoutService {
   /** Tasa todo incluido + costos esperados para órdenes del productor. */
   private async producerFeeContext(
     eventOrNull: { platformFeePct?: number | null } | null,
-    producerParams: { platformFeePct?: number | null } | null,
+    producerParams: {
+      platformFeePct?: number | null;
+      proTier?: string | null;
+    } | null,
   ) {
-    const [globalPct, cardPct, ivaPct] = await Promise.all([
-      this.params.getNumber("fees.managed_allin_pct", 10),
+    const [globalPct, cardPct, ivaPct, stdFee, proFee] = await Promise.all([
+      this.params.getNumber("fees.managed_allin_pct", 9.14),
       this.params.getNumber("gateway_fee.card_pct", 3.19),
       this.params.getNumber("tax.iva_pct", 19),
+      this.params.getNumber("fees.standard_fee_pct", 3.5),
+      this.params.getNumber("fees.pro_fee_pct", 2.5),
     ]);
+    // Fee por plan (comisión-bundled): el tier Pro vigente baja el fee
+    // base; la cadena sigue evento → override manual → tier → global.
+    const allin = (fee: number) => fee * (1 + ivaPct / 100) + cardPct;
+    const tierPct =
+      producerParams?.proTier === "PRO_GROWTH"
+        ? allin(stdFee)
+        : producerParams?.proTier === "PRO_BIG"
+          ? allin(proFee)
+          : null;
     const allInPct = resolvePlatformFeeRate(
       eventOrNull ?? {},
       producerParams,
-      globalPct,
+      tierPct ?? globalPct,
     );
     return { allInPct, cardPct, ivaPct };
   }

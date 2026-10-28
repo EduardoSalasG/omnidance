@@ -234,25 +234,27 @@
         },
         {
           "name": "Standard",
-          "priceMonthly": 169500,
+          "priceMonthly": 79700,
           "limit": "Hasta $8 M de ventas al mes",
           "recommended": true,
           "ctaLabel": "Elegir Standard",
           "features": [
             "Analíticas de ventas y audiencia",
             "CRM de tu público",
-            "Exportaciones"
+            "Exportaciones",
+            "Comisión por venta: 3,5% + pasarela (~3,2%) + IVA"
           ]
         },
         {
           "name": "Pro",
-          "priceMonthly": 300200,
+          "priceMonthly": 169500,
           "limit": "Sin tope de facturación",
           "recommended": false,
           "ctaLabel": "Ir a Pro",
           "features": [
             "Todo lo de Standard",
-            "Campañas segmentadas y benchmark de la escena"
+            "Campañas segmentadas y benchmark de la escena",
+            "Comisión por venta: 2,5% + pasarela (~3,2%) + IVA"
           ]
         }
       ],
