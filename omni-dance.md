@@ -491,7 +491,7 @@ Micro-encuentros de baile **creados por cualquier bailarín** - no requieren aca
 |---|---|---|
 | **Free (lista)** | **9,14%** | `fees.managed_allin_pct`: 5% fee + IVA + 3,19% pasarela - sin mensualidad; el productor publica y vende siempre |
 | **Standard** ($79.700/mes) | **~7,36%** | `fees.standard_fee_pct` 3,5% + IVA + pasarela - comisión-bundled: el plan se paga solo desde ~$4,5M/mes |
-| **Pro** ($169.500/mes) | **~4,98%** | `fees.pro_fee_pct` 2,5% + IVA + pasarela - conviene sobre ~$7,5M vs Standard; + campañas y benchmark |
+| **Pro** ($169.500/mes) | **~6,17%** | `fees.pro_fee_pct` 2,5% + IVA + pasarela - conviene sobre ~$7,5M vs Standard; + campañas y benchmark |
 
 El fee por plan se resuelve en lectura (`Person.proTier` proyectado por
 la suscripción): cadena evento → override `platformFeePct` → tier →
@@ -658,13 +658,13 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 - Los productos de la academia **no cobran cargo de servicio al alumno**; la academia absorbe la tarifa Flow como línea `GATEWAY_FEE_PASSTHROUGH` explícita en su payout.
 - Notificaciones: las **transaccionales** (recordatorio de clase, renovación, waitlist) viven en todos los tiers — son función core, no marketing. Solo las **campañas/pushes de marketing segmentadas** se gatean a PRO.
 
-**Productor**: su monetización core es la **comisión todo incluido por venta** (cadena evento → override → tier → `fees.managed_allin_pct` 9,14; los planes bajan el fee: Standard 7,36 / Pro 4,98 - ver "Modelo de precio" arriba) **+ Producer Pro opcional** - suscripción por tier de facturación mensual media (90d) con features gateadas:
+**Productor**: su monetización core es la **comisión todo incluido por venta** (cadena evento → override → tier → `fees.managed_allin_pct` 9,14; los planes bajan el fee: Standard 7,36 / Pro 6,17 - ver "Modelo de precio" arriba) **+ Producer Pro opcional** - suscripción por tier de facturación mensual media (90d) con features gateadas:
 
 | Tier | Precio mensual | Facturación 90d | Incluye |
 |---|---|---|---|
 | **Free** | $0 | sin tope | Publica y vende siempre: ticketing online + QR + check-in + liquidación; comisión 9,14% por venta; staff hasta 2 por evento |
 | **Standard** | $79.700 | ≤$8M | Analíticas, CRM de la audiencia, exportaciones; comisión baja a ~7,36% |
-| **Pro** | $169.500 | >$8M | + campañas segmentadas, benchmark vs escena; comisión baja a ~4,98% |
+| **Pro** | $169.500 | >$8M | + campañas segmentadas, benchmark vs escena; comisión baja a ~6,17% |
 
 PRO_STARTER quedó como código legado (subs vigentes conservan su plan);
 ya no se vende - el plan de entrada es el ticketing transaccional.

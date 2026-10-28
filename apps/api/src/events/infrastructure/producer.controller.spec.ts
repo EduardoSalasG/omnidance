@@ -133,12 +133,15 @@ function mk(over: {
     },
     producerStaff: {
       findMany: vi.fn(async () => over.roster ?? []),
+      count: vi.fn(async () => (over.roster ?? []).length),
       upsert: vi.fn(async () => ({ id: "ps-1" })),
       deleteMany: vi.fn(async () => ({})),
     },
     $transaction: vi.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
   } as unknown as PrismaService;
-  const params = {} as ParamsService;
+  const params = {
+    getNumber: vi.fn(async (_k: string, fb: number) => fb),
+  } as unknown as ParamsService;
   const auth = {
     createMagicToken: vi.fn(async () => "invite-token"),
   } as never;
@@ -322,17 +325,33 @@ describe("ProducerController.addStaff", () => {
     });
   });
 
-  // Cupo de la nómina por tier (spec producer-pro): STARTER 1, GROWTH 2,
-  // BIG ilimitado; el gate multiStaff exige Pro (trial → PRO_STARTER).
-  it("FREE sin trial ni Pro → 403 tier.required (multiStaff)", async () => {
-    const { ctl } = mk({ producer: true, meTrial: null });
+  // Cupo de la nómina: FREE sin Pro comparte el cupo de puerta
+  // (producer_tier.free_staff_max, 2); sobre él se exige multiStaff.
+  // Tiers: STARTER legado/GROWTH 2, BIG ilimitado; trial → PRO_STARTER.
+  it("FREE sin trial ni Pro bajo el cupo (2) → agrega", async () => {
+    const { ctl } = mk({
+      producer: true,
+      meTrial: null,
+      roster: [],
+      existingPerson: existing,
+    });
+    const res = await ctl.addStaff({ personId: "per-9" }, req("prod-1"));
+    expect(res.person.id).toBe("per-9");
+  });
+
+  it("FREE sin trial ni Pro con el cupo lleno → 403 tier.required", async () => {
+    const { ctl } = mk({
+      producer: true,
+      meTrial: null,
+      roster: [{ personId: "a" }, { personId: "b" }],
+      existingPerson: existing,
+    });
     const err = await ctl
       .addStaff({ personId: "per-9" }, req("prod-1"))
       .catch((e: unknown) => e);
     expect(err).toMatchObject({ status: 403 });
     expect(errBody(err)).toMatchObject({
       error: "tier.required",
-      requiredTier: "PRO_STARTER",
       feature: "multiStaff",
     });
   });
@@ -349,12 +368,12 @@ describe("ProducerController.addStaff", () => {
     expect(res.person.id).toBe("per-9");
   });
 
-  it("PRO_STARTER con 1 en nómina → el 2do recibe 403 staff_quota", async () => {
+  it("PRO_STARTER con 2 en nómina → el 3ro recibe 403 staff_quota", async () => {
     const { ctl } = mk({
       producer: true,
       meTier: "PRO_STARTER",
       meTrial: null,
-      roster: [{ personId: "otro" }],
+      roster: [{ personId: "a" }, { personId: "b" }],
       existingPerson: existing,
     });
     const err = await ctl
@@ -363,8 +382,8 @@ describe("ProducerController.addStaff", () => {
     expect(err).toMatchObject({ status: 403 });
     expect(errBody(err)).toMatchObject({
       error: "staff_quota",
-      limit: 1,
-      used: 1,
+      limit: 2,
+      used: 2,
     });
   });
 

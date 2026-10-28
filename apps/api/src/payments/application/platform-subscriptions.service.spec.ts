@@ -1796,7 +1796,7 @@ describe("PlatformSubscriptionsService", () => {
       p.proTier = "PRO_STARTER";
       const view = await svc.producerProView("p1");
       expect(view.staffUsed).toBe(2);
-      expect(view.staffLimit).toBe(1);
+      expect(view.staffLimit).toBe(2);
       expect(view.enabledFeatures).toEqual([
         "analytics",
         "exports",
@@ -1808,7 +1808,7 @@ describe("PlatformSubscriptionsService", () => {
       const p = fx.persons.get("p1")!;
       p.proTrialEndsAt = new Date(Date.now() + 30 * DAY);
       let view = await svc.producerProView("p1");
-      expect(view.staffLimit).toBe(1);
+      expect(view.staffLimit).toBe(2);
       p.proTier = "PRO_BIG";
       p.proTrialEndsAt = null;
       view = await svc.producerProView("p1");
@@ -1816,10 +1816,10 @@ describe("PlatformSubscriptionsService", () => {
       expect(view.enabledFeatures).toContain("campaigns");
     });
 
-    it("FREE sin Pro → staffLimit null y sin features", async () => {
+    it("FREE sin Pro → cupo libre de puerta (free_staff_max) y sin features", async () => {
       const view = await svc.producerProView("p1");
       expect(view.staffUsed).toBe(0);
-      expect(view.staffLimit).toBeNull();
+      expect(view.staffLimit).toBe(2);
       expect(view.enabledFeatures).toEqual([]);
     });
   });

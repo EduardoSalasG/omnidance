@@ -393,15 +393,34 @@ export class ProducerController {
       throw new BadRequestException("envía personId o email");
     }
 
-    // La nómina es parte de multiStaff (matriz producer-pro): FREE sin
-    // Pro → 403 tier.required; un admin soporte nunca se gatea (misma
-    // regla que requireFeatureSelf en eventos). Con gate superado se
-    // resuelve el cupo del tier para el alta.
+    // La nómina comparte el cupo mínimo de puerta con el staff por
+    // evento (producer_tier.free_staff_max, default 2 - la norma
+    // operativa real): FREE sin Pro arma su puerta; sobre el cupo
+    // se exige multiStaff (403 tier.required). Un admin soporte nunca
+    // se gatea. Con tier Pro/trial vigente aplica el cupo del tier.
     let staffLimit: number | null = null;
     if (!admin) {
-      await assertActorFeature(this.prisma, "PRODUCER", me.id, "multiStaff");
       const entitlement = await resolveProducerEntitlement(this.prisma, me.id);
-      staffLimit = PRODUCER_TIER_STAFF_LIMIT[entitlement?.tier ?? ""] ?? null;
+      if (entitlement?.tier != null) {
+        staffLimit =
+          PRODUCER_TIER_STAFF_LIMIT[entitlement.tier] ?? null;
+      } else {
+        const freeMax = await this.params.getNumber(
+          "producer_tier.free_staff_max",
+          2,
+        );
+        const rosterCount = await this.prisma.producerStaff.count({
+          where: { producerId: me.id },
+        });
+        if (rosterCount >= freeMax) {
+          await assertActorFeature(
+            this.prisma,
+            "PRODUCER",
+            me.id,
+            "multiStaff",
+          );
+        }
+      }
     }
 
     let invited = false;

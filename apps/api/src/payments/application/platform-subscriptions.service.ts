@@ -1923,7 +1923,7 @@ export class PlatformSubscriptionsService {
       staffLimit:
         entitlement.tier != null
           ? (PRODUCER_TIER_STAFF_LIMIT[entitlement.tier] ?? null)
-          : null,
+          : await this.params.getNumber("producer_tier.free_staff_max", 2),
       enabledFeatures: entitlement.features,
       nextInvoiceAt: current?.nextInvoiceAt ?? null,
       canceledAt: current?.canceledAt ?? null,
