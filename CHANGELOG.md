@@ -3,6 +3,58 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.12.0] - 2026-10-28
+
+### Added
+
+- **Commission-bundled para productores**: el fee de plataforma baja
+  por tier de suscripción resuelto en lectura vía `Person.proTier`
+  (cadena evento → override `platformFeePct` → tier → global):
+  Free 9,14% → Standard ~7,36% (`fees.standard_fee_pct` 3,5) →
+  Pro ~6,17% (`fees.pro_fee_pct` 2,5). Los overrides manuales por
+  productor o evento siguen ganando (deals negociados).
+- **Card Free de productor** en `/para-productores`: ticketing
+  transaccional sin mensualidad con la comisión visible por tier
+  (5% + pasarela + IVA en Free; 3,5% Standard; 2,5% Pro).
+- **Cupo de puerta sin plan** (`producer_tier.free_staff_max`, default
+  2): el productor FREE arma su nómina (`/productor/colaboradores`) y
+  asigna staff por evento hasta el cupo; sobre él se exige `multiStaff`
+  (403 `tier.required`). La vista de suscripción expone el cupo real.
+- **Starter academias a $19.750 destacado**: la landing muestra
+  $39.500 tachado + chip −50% (`promoPriceMonthly` en `PricingTier`);
+  la campaña real es `PlatformPromo` PERCENT 50 scope ACADEMY sin
+  ventana (config `/admin/facturacion/promos`).
+- **FAQ de objeciones reales** en ambas landings (sección
+  `<details>` accesible post-pricing ×4 locales), CTAs por tier,
+  JSON-LD `Product`/`AggregateOffer`, `aria-label` en el toggle de
+  ciclo y texto sr para precios tachados.
+- **Filtro por país + tabla responsive** en
+  `/admin/facturacion/precios` (TierPrice).
+
+### Changed
+
+- **Tiers de productor reestructurados**: Free (transaccional) →
+  Standard $79.700 → Pro $169.500. `PRO_STARTER` sale de venta (código
+  legado para subs vigentes); el piso pago de `producerTierForGross`
+  es PRO_GROWTH (≤$8M) y PRO_BIG queda self-serve.
+- **Copys de precios "calculados"**: academy 39.500/79.700/120.500,
+  producer 79.700/169.500; notas de pasarela a costo (academias ~3,2%,
+  Starter sin pasarela — solo comprobante validado + notificaciones
+  push/email de cobranza).
+- **Legal genérico**: referencias públicas a "pasarela de pago" en
+  vez de nombrar Flow (los textos operativos del checkout siguen
+  nombrándolo donde el redirect es real).
+- Prueba social oculta hasta tener clientes (`SHOW_ACADEMY_PROOF`)
+  y copy "flyer", "cómo pagan mis alumnos" pulidos ×4.
+
+### Fixed
+
+- `/admin/parametros` y `/admin/roles`: `Content-Type: application/json`
+  faltante devolvía `400 value requerido` al guardar.
+- `/admin/facturacion/precios`: path `/api/api/` duplicado (404 total),
+  UI simplificada (kind derivado, cards unificadas), feedback con
+  `ActionNotice`, `displayName` editable, item agregado a la nav admin.
+
 ## [1.11.0] - 2026-10-28
 
 ### Added
