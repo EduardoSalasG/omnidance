@@ -224,7 +224,7 @@
           "priceMonthly": 0,
           "limit": "No monthly fee",
           "features": [
-            "Commission: 5% + gateway (~3.2%) + VAT = ~9.1% per sale",
+            "Commission: 5% + gateway (~3.2%) + VAT = ~9.1% VAT included per sale",
             "Publish your event on the board",
             "Online sales with QR and door check-in",
             "Settlement with the commission deducted"
