@@ -1186,7 +1186,7 @@
   "hintApproved": "Your academy is visible in Explore and classes.",
   "hintRejected": "An administrator hid your academy. Complete it and let us know to reactivate it.",
   "missing": "Pending",
-  "ownerApprovedHint": "The Omnidance team validates your owner role - no action needed from you.",
+  "ownerApprovedHint": "The Omnidance team validates your owner role; no action needed from you.",
   "checks": {
    "name": "Name",
    "description": "Description",
