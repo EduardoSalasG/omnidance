@@ -266,7 +266,15 @@
     "slotEnd": "End",
     "slotInstructors": "Assigned instructors",
     "slotNoRoster": "Enable instructors in the series edit to assign them.",
-    "slotDeleteDesc": "Deleting the slot cancels its future classes and frees bookings."
+    "slotDeleteDesc": "Deleting the slot cancels its future classes and frees bookings.",
+    "kindLabel": "Class type",
+    "kindRecurring": "Weekly series",
+    "kindOneOff": "Workshop / one-off class",
+    "slotsOneOff": "Workshop schedule",
+    "dateLabel": "Date",
+    "workshopBadge": "Workshop",
+    "cancelClass": "Cancel class",
+    "cancelClassDesc": "Cancels only this class: its bookings are freed and the rest of the schedule stays the same."
   },
   "instructor": {
     "title": "My classes",

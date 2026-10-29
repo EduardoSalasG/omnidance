@@ -266,7 +266,15 @@
     "slotEnd": "Fin",
     "slotInstructors": "Professeurs assignés",
     "slotNoRoster": "Activez des professeurs dans l'édition de la série pour les assigner.",
-    "slotDeleteDesc": "Supprimer le créneau annule ses cours futurs et libère les réservations."
+    "slotDeleteDesc": "Supprimer le créneau annule ses cours futurs et libère les réservations.",
+    "kindLabel": "Type de cours",
+    "kindRecurring": "Série hebdomadaire",
+    "kindOneOff": "Atelier / cours unique",
+    "slotsOneOff": "Horaire de l'atelier",
+    "dateLabel": "Date",
+    "workshopBadge": "Atelier",
+    "cancelClass": "Annuler le cours",
+    "cancelClassDesc": "Annule uniquement ce cours : ses réservations sont libérées et le reste de l'horaire ne change pas."
   },
   "instructor": {
     "title": "Mes cours",

@@ -326,6 +326,11 @@ export type SeriesSlot = {
   weekday: number; // 0-6, domingo = 0
   startTime: string; // "19:00"
   endTime: string;
+  // ISO medianoche UTC: fecha puntual de un slot de instancia única
+  // (taller o clase única, spec workshop-one-off-class). null/ausente =
+  // horario semanal recurrente; cuando existe, materializa solo esa
+  // fecha y weekday queda como dato informativo derivado.
+  oneOffDate?: string | null;
   // Legacy: filas antiguas pueden traer capacity/types por slot - hoy
   // cupos (series.quorum → academy.defaultQuorum) y modalidad son de
   // la serie completa (spec academies/class-series).
@@ -367,6 +372,8 @@ type ClassSlot = {
   weekday: number; // 0-6, domingo = 0
   startTime: string; // "19:00"
   endTime: string;
+  // ISO medianoche UTC: taller o clase única (spec workshop-one-off-class).
+  oneOffDate?: string | null;
   capacity: number | null;
   series: { id: string; name: string };
   types: { type: { id: string; name: string } }[];

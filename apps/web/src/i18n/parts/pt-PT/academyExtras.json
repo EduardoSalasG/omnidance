@@ -266,7 +266,15 @@
     "slotEnd": "Fim",
     "slotInstructors": "Professores atribuídos",
     "slotNoRoster": "Ativa professores na edição da série para os atribuir.",
-    "slotDeleteDesc": "Eliminar o horário cancela as aulas futuras e liberta as reservas."
+    "slotDeleteDesc": "Eliminar o horário cancela as aulas futuras e liberta as reservas.",
+    "kindLabel": "Tipo de aula",
+    "kindRecurring": "Série semanal",
+    "kindOneOff": "Workshop / aula única",
+    "slotsOneOff": "Horário do workshop",
+    "dateLabel": "Data",
+    "workshopBadge": "Workshop",
+    "cancelClass": "Cancelar aula",
+    "cancelClassDesc": "Cancela apenas esta aula: as reservas são libertadas e o resto do horário não muda."
   },
   "instructor": {
     "title": "As minhas aulas",

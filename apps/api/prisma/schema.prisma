@@ -1248,6 +1248,10 @@ model ClassSlot {
   seriesId     String
   instructorId String?
   weekday      Int // 0-6
+  // Taller/clase única: fecha puntual (medianoche UTC, convención
+  // Class.date). null = recurrente semanal por weekday. Con fecha set,
+  // materializa solo ese día y el job diario no recurre.
+  oneOffDate   DateTime?
   startTime    String // "19:00"
   endTime      String
   capacity     Int? // null = hereda el quórum de la serie/academia
@@ -1294,6 +1298,11 @@ model Class {
   instructorId String?
   capacity    Int? // override puntual de cupos para esta instancia
   cancelled   Boolean   @default(false)
+  // Baja individual por la academia (feriado, clase puntual): la
+  // distingue de las cancelaciones de cascada (serie/horario), que la
+  // dejan null. materializeSlot NO revive instancias con cancelledAt
+  // set - solo las de cascada (reactivación de serie).
+  cancelledAt DateTime?
 
   attendances Attendance[]
   bookings    ClassBooking[]

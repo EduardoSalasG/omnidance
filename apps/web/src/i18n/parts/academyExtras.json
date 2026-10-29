@@ -266,7 +266,15 @@
     "slotEnd": "Fin",
     "slotInstructors": "Profesores asignados",
     "slotNoRoster": "Habilita profesores al editar la serie para poder asignarlos.",
-    "slotDeleteDesc": "Eliminar el horario cancela sus clases futuras y libera las reservas."
+    "slotDeleteDesc": "Eliminar el horario cancela sus clases futuras y libera las reservas.",
+    "kindLabel": "Tipo de clase",
+    "kindRecurring": "Serie semanal",
+    "kindOneOff": "Taller / clase única",
+    "slotsOneOff": "Horario del taller",
+    "dateLabel": "Fecha",
+    "workshopBadge": "Taller",
+    "cancelClass": "Cancelar clase",
+    "cancelClassDesc": "Cancela solo esta clase: se liberan sus reservas y el resto del horario sigue igual."
   },
   "instructor": {
     "title": "Mis clases",
