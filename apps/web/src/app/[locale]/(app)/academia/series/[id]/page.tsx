@@ -126,10 +126,13 @@ function SeriesDetail({
         currency: "CLP",
         maximumFractionDigits: 0,
       });
+  // Class.date llega a medianoche UTC: formatear en UTC para que el día
+  // no se corra en zonas negativas (mismo contrato que classDayFmt).
   const dayFmt = useDateFmt({
         weekday: "short",
         day: "numeric",
         month: "short",
+        timeZone: "UTC",
       });
 
   const reload = useCallback(async () => {

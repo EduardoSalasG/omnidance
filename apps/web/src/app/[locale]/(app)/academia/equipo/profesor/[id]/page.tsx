@@ -70,10 +70,13 @@ function Detail({
   currency: "CLP",
   maximumFractionDigits: 0,
 });
+  // Class.date llega a medianoche UTC: formatear en UTC para que el
+  // día no se corra en zonas negativas.
   const dayFmt = useDateFmt({
   day: "numeric",
   month: "short",
   year: "numeric",
+  timeZone: "UTC",
 });
   const locale = useLocale();
   const t = useTranslations("academyStaff");
