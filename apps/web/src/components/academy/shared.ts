@@ -408,8 +408,10 @@ export type ClassRoster = {
   class: {
     id: string;
     date: string; // ISO - medianoche UTC
+    cancelled: boolean;
     startTime: string;
     endTime: string;
+    academyId: string;
     seriesName: string | null;
     styleName: string | null;
     levelName: string | null;
@@ -421,6 +423,9 @@ export type ClassRoster = {
   /** true si el caller es el instructor efectivo de la clase o admin -
       habilita el control "Presente" sobre cada reserva. */
   canMark: boolean;
+  /** true con cap schedule/classes (owner/admin con gestión): habilita
+      la zona roja de cancelación por instancia. */
+  canCancel: boolean;
   /** Ventana para marcar asistencia: [inicio-30min, inicio+30min] ISO. */
   attendanceWindow: { opensAt: string; closesAt: string };
   booked: {

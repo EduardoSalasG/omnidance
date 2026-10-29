@@ -11,7 +11,6 @@ import {
   Card,
   ConfirmSheet,
   RefreshIcon,
-  XIcon,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { InstructorChecklist } from "@/components/academy/instructor-checklist";
@@ -106,12 +105,12 @@ function SeriesDetail({
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  // Confirmación destructiva compartida: serie entera, un horario o la
-  // cancelación de una instancia de clase (spec workshop-one-off-class).
+  // Confirmación destructiva compartida: serie entera o un horario.
+  // La cancelación por instancia vive en la ficha de la clase
+  // (/academia/clases/[id], zona roja - spec workshop-one-off-class).
   const [confirm, setConfirm] = useState<
     | { kind: "series" }
     | { kind: "slot"; slotId: string }
-    | { kind: "class"; classId: string }
     | null
   >(null);
 
@@ -296,33 +295,6 @@ function SeriesDetail({
       const res = await apiFetch(
         `/academies/${academyId}/slots/${slotId}`,
         { method: "DELETE" },
-      );
-      if (!res.ok) {
-        setConfirm(null);
-        setActionError((await readError(res)) ?? t("error"));
-        return;
-      }
-      setConfirm(null);
-      setFeedback(t("updated"));
-      await reload();
-    } catch {
-      setConfirm(null);
-      setActionError(t("error"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // Cancelación por instancia (spec workshop-one-off-class): solo esa
-  // clase queda cancelada + refunded; el resto del horario no cambia.
-  async function cancelClass(classId: string): Promise<void> {
-    setBusy(true);
-    setActionError(null);
-    setFeedback(null);
-    try {
-      const res = await apiFetch(
-        `/academies/${academyId}/classes/${classId}/cancel`,
-        { method: "POST" },
       );
       if (!res.ok) {
         setConfirm(null);
@@ -594,22 +566,6 @@ function SeriesDetail({
                       {t("bookedCount", { count: c.bookedCount })}
                     </span>
                   </Link>
-                  {/* Cancelar solo esta instancia (feriado, profe
-                      enfermo): el horario sigue igual. ConfirmSheet al
-                      pie, misma pauta que quitar horario. */}
-                  {!c.cancelled && (
-                    <button
-                      type="button"
-                      aria-label={t("cancelClass")}
-                      disabled={busy}
-                      onClick={() =>
-                        setConfirm({ kind: "class", classId: c.id })
-                      }
-                      className="mr-1 flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-ink/40 transition-colors hover:bg-elevated hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
-                    >
-                      <XIcon className="h-4 w-4" />
-                    </button>
-                  )}
                 </li>
               ))}
             </ul>
@@ -686,29 +642,18 @@ function SeriesDetail({
       <ConfirmSheet
         open={confirm !== null}
         title={
-          confirm?.kind === "class"
-            ? t("cancelClass")
-            : confirm?.kind === "slot"
-              ? t("removeSlotConfirm")
-              : t("deleteConfirm")
-        }
-        description={
-          confirm?.kind === "class" ? t("cancelClassDesc") : undefined
+          confirm?.kind === "slot"
+            ? t("removeSlotConfirm")
+            : t("deleteConfirm")
         }
         confirmLabel={
-          confirm?.kind === "class"
-            ? t("cancelClass")
-            : confirm?.kind === "slot"
-              ? t("removeSlot")
-              : t("delete")
+          confirm?.kind === "slot" ? t("removeSlot") : t("delete")
         }
         busy={busy}
         onConfirm={() =>
-          confirm?.kind === "class"
-            ? void cancelClass(confirm.classId)
-            : confirm?.kind === "slot"
-              ? void removeSlot(confirm.slotId)
-              : void remove()
+          confirm?.kind === "slot"
+            ? void removeSlot(confirm.slotId)
+            : void remove()
         }
         onClose={() => setConfirm(null)}
       />

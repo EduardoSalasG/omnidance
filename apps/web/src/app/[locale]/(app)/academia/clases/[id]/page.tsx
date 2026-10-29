@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, use } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, ConfirmSheet, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import {
   OnboardingRunner,
@@ -124,6 +124,7 @@ export default function AcademiaClaseRosterPage(
             roster={roster}
             classId={classId}
             onChanged={markAttended}
+            onCancelled={() => void load()}
           />
           {/* Tour de primera visita del roster - los anchors montan
               con el detalle (state ready). */}
@@ -175,13 +176,16 @@ function RosterDetail({
   roster,
   classId,
   onChanged,
+  onCancelled,
 }: {
   roster: ClassRoster;
   classId: string;
   onChanged: (personId: string) => void;
+  onCancelled: () => void;
 }) {
   const locale = useLocale();
   const t = useTranslations("instructor");
+  const ts = useTranslations("academySeries");
   const tc = useTranslations("common");
   const c = roster.class;
   const booked = roster.booked.length;
@@ -197,6 +201,24 @@ function RosterDetail({
   // efectivo (canMark del server); el owner no marca asistencia.
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [markError, setMarkError] = useState<string | null>(null);
+  // Cancelación por instancia (spec workshop-one-off-class): zona roja
+  // solo con cap schedule/classes (canCancel del server).
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
+
+  async function cancelClass(): Promise<void> {
+    if (cancelBusy) return;
+    setCancelBusy(true);
+    const res = await apiFetch(
+      `/academies/${c.academyId}/classes/${classId}/cancel`,
+      { method: "POST" },
+    );
+    setCancelBusy(false);
+    if (res.ok) {
+      setConfirmCancel(false);
+      onCancelled();
+    }
+  }
 
   async function markPresent(personId: string): Promise<void> {
     setMarkingId(personId);
@@ -372,6 +394,34 @@ function RosterDetail({
           </ul>
         )}
       </section>
+
+      {/* Zona roja: cancelar esta instancia (console-patterns: la
+          acción destructiva vive en la ficha, no en el listado). */}
+      {roster.canCancel && !c.cancelled && (
+        <Card className="flex flex-col gap-3 border-red-500/30">
+          <p className="text-xs text-ink/50">{ts("cancelClassDesc")}</p>
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={cancelBusy}
+              onClick={() => setConfirmCancel(true)}
+            >
+              {ts("cancelClass")}
+            </Button>
+          </div>
+        </Card>
+      )}
+      {c.cancelled && <Badge variant="muted">{ts("cancelled")}</Badge>}
+      <ConfirmSheet
+        open={confirmCancel}
+        title={ts("cancelClass")}
+        description={ts("cancelClassDesc")}
+        confirmLabel={ts("cancelClass")}
+        busy={cancelBusy}
+        onConfirm={() => void cancelClass()}
+        onClose={() => setConfirmCancel(false)}
+      />
     </div>
   );
 }

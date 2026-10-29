@@ -1235,6 +1235,7 @@ export class ClassesController {
       select: {
         id: true,
         date: true,
+        cancelled: true,
         instructorId: true,
         instructors: { select: { personId: true } },
         capacity: true,
@@ -1319,10 +1320,26 @@ export class ClassesController {
     const canMark =
       (await this.access.isPlatformAdmin(req.person!)) ||
       rosterIds.has(req.person!.id);
+    // Cap schedule/classes (owner/admin con gestión): habilita la zona
+    // roja de cancelación por instancia. Un instructor sin gestión ve el
+    // roster pero no el control (requireCapabilityWrite arroja si falta).
+    let canCancel = false;
+    try {
+      await this.access.requireCapabilityWrite(
+        cls.slot.academyId,
+        req.person!,
+        "schedule",
+        "classes",
+      );
+      canCancel = true;
+    } catch {
+      // sin cap de escritura - el control se oculta
+    }
     return {
       class: {
         id: cls.id,
         date: cls.date,
+        cancelled: cls.cancelled,
         startTime: cls.slot.startTime,
         endTime: cls.slot.endTime,
         academyId: cls.slot.academyId,
@@ -1344,6 +1361,7 @@ export class ClassesController {
         academyDefaultQuorum: cls.slot.academy.defaultQuorum,
       }),
       canMark,
+      canCancel,
       attendanceWindow,
       booked: bookings.filter((b) => b.status === "BOOKED").map(toRow),
       waitlist: bookings.filter((b) => b.status === "WAITLIST").map(toRow),

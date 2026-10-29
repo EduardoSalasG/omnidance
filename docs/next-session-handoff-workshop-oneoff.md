@@ -48,11 +48,50 @@
 
 ## Notas / pendientes
 
-- **Smoke manual pendiente**: crear taller desde el form, reservar,
-  reprogramar fecha, cancelar un feriado en serie recurrente. Stack
-  corre en background (shell dev pnpm dev).
+- **Smoke manual hecho (2026-10-29)**: owner creó academia + datos +
+  publicación + serie + horario + taller; dancer se inscribió al plan y
+  agendó clase. Quedan por probar manualmente: reprogramar fecha de
+  taller (cascada refund+rematerialize) y cancel por instancia en serie
+  recurrente (feriado).
 - `addSlots` en ficha de serie solo ofrece weekday (un taller puede
   recibir slot recurrente; modelo lo permite, UI no ofrece fecha ahí).
 - Sin "descancelar" instancia ni traspaso de reservas al reprogramar
   (documentado fuera de scope en el change archivado).
 - Mini-form agregar horario no soporta `date` (decisión consciente).
+
+## TRABAJO EN CURSO (retomar aquí)
+
+**Mover cancel por instancia del listado a la ficha de clase** (pedido
+del usuario: "el botón debe estar dentro del detalle, no en el listado").
+
+- QUITAR de `apps/web/src/app/[locale]/(app)/academia/series/[id]/page.tsx`:
+  fn `cancelClass` (~l.318), botón X por fila (~l.600), `confirm.kind==="class"`
+  del state y sus entradas en ConfirmSheet (~l.690-708), comentario l.110.
+- AGREGAR a `apps/web/src/app/[locale]/(app)/academia/clases/[id]/page.tsx`
+  (componente `RosterDetail`): zona roja Card `border-red-500/30` al pie +
+  ConfirmSheet → `POST /academies/{academyId}/classes/{classId}/cancel`.
+  AcademyId: revisar type `ClassRoster` en `components/academy/shared.ts`
+  (roster.class probablemente trae academyId; si no, agregar al endpoint
+  GET /classes/:id/roster). Labels: reuse `useTranslations("academySeries")`
+  → `cancelClass`/`cancelClassDesc` (keys ya existen ×4). Mostrar solo si
+  la clase no está cancelada y es futura; gatear por cap manage (revisar
+  si ClassRoster expone canManage; si solo canMark=instructor, el POST
+  igual falla por cap schedule → ocultar o dejar que 403 falle limpio).
+- Verificar: `pnpm exec tsc --noEmit` web + `i18n-audit`/parity; commit.
+
+**QA del usuario ya hecho**: cancel instancia borró la del 4/11 OK;
+reprogramación de taller al 8 funcionó (cascada OK).
+
+### Hallazgos para el move (ya investigado)
+
+- `GET /classes/:id/roster` (classes.controller.ts ~l.1231): `class`
+  ya devuelve `academyId` (l.1328). Falta: `cls.cancelled` en select y
+  flag `canCancel` = try/catch de `requireCapabilityWrite(academyId,
+  person, "schedule","classes")` (academy-access.service.ts l.206).
+- Web `ClassRoster` (shared.ts l.407): agregar `academyId: string`,
+  `cancelled: boolean`, `canCancel: boolean` en `class`/top.
+- `RosterDetail` (academia/clases/[id]/page.tsx): zona roja cuando
+  `roster.canCancel && !roster.class.cancelled`; tras cancel → `load()`
+  del parent (pasar callback) o `location.reload()`. i18n:
+  `useTranslations("academySeries")` → cancelClass/cancelClassDesc ya
+  existen.
