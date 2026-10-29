@@ -189,16 +189,9 @@ export function StudentsSection({
           </Button>
         </div>
       ) : students.length === 0 ? (
-        <div className="flex flex-col items-start gap-3">
-          <p role="status" className="text-sm text-ink/50">
-            {t("studentsEmpty")}
-          </p>
-          {!readOnly && (
-            <Button href="/academia/alumnos/nuevo" size="sm">
-              + {t("newEnrollment")}
-            </Button>
-          )}
-        </div>
+        <p role="status" className="text-sm text-ink/50">
+          {t("studentsEmpty")}
+        </p>
       ) : (
         <ul
           data-tour="academy-alumnos-list"

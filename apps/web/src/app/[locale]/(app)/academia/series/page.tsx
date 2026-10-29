@@ -184,12 +184,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
       />
 
       {series.length === 0 ? (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-sm text-ink/50">{t("empty")}</p>
-          <Button href="/academia/series/nueva" size="sm">
-            + {t("new")}
-          </Button>
-        </div>
+        <p className="text-sm text-ink/50">{t("empty")}</p>
       ) : (
         <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start">
           {series.map((s) => (

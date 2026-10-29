@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { Badge, Card, PriceTag } from "@/components/ui";
 import type { MembershipPlan } from "./shared";
 import { Link } from "@/i18n/navigation";
 
@@ -30,15 +30,9 @@ export function PlansSection({ plans }: Props) {
   const t = useTranslations("academy");
 
   if (plans.length === 0) {
-    // Empty state con el CTA de crear como acción principal.
-    return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-sm text-ink/50">{t("plansEmpty")}</p>
-        <Button href="/academia/planes/nueva" size="sm">
-          + {t("newPlan")}
-        </Button>
-      </div>
-    );
+    // Empty state: el CTA de crear ya vive en el header de la página -
+    // acá solo el texto (console-patterns: un solo punto de creación).
+    return <p className="text-sm text-ink/50">{t("plansEmpty")}</p>;
   }
 
   const recurring = plans.filter((p) => RECURRING_TYPES.has(p.type));
