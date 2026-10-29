@@ -151,10 +151,12 @@ export function AcademyDashboard({
     return f == null || canFeature(f);
   });
 
-  // Checklist de activación: 5 pasos de puesta en marcha, persistente
+  // Checklist de activación: 4 pasos de puesta en marcha, persistente
   // hasta completarlos todos (no hasta el primer alumno). El orden es
-  // el flujo natural: horario → qué cobrar → cómo cobrar → quién ayuda
-  // → a quién cobrar.
+  // el flujo natural: horario → qué cobrar → quién ayuda → a quién
+  // cobrar. Medio de pago propio NO es paso: el checkout gestionado
+  // (Flow de la plataforma) cobra sin que la academia configure nada -
+  // transferencia/efectivo es opcional para comprobante manual.
   const checklistSteps = dashboard
     ? ([
         {
@@ -166,11 +168,6 @@ export function AcademyDashboard({
           key: "plan",
           done: dashboard.plansCount > 0,
           href: "/academia/planes",
-        },
-        {
-          key: "method",
-          done: dashboard.methodsCount > 0,
-          href: "/academia/configuracion/pagos",
         },
         {
           key: "team",
@@ -218,10 +215,9 @@ export function AcademyDashboard({
         keys={kpiKeys}
       />
 
-      {/* Checklist de activación: persiste hasta completar los 5 pasos
+      {/* Checklist de activación: persiste hasta completar los 4 pasos
           de puesta en marcha (spec academies/owner-insights) - antes se
-          escondía con el primer alumno aunque faltara configuración
-          (p.ej. sin medio de pago la academia no puede cobrar). */}
+          escondía con el primer alumno aunque faltara configuración. */}
       {showChecklist && (
         <Card padded={false} data-tour="academy-checklist" className="p-5">
           <div className="flex items-baseline justify-between gap-3">
