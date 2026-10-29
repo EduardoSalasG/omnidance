@@ -1186,7 +1186,7 @@
   "hintApproved": "Votre académie est visible dans Explorer et les cours.",
   "hintRejected": "Un administrateur a masqué votre académie. Complétez-la et prévenez-nous pour la réactiver.",
   "missing": "En attente",
-  "ownerApprovedHint": "L'équipe Omnidance valide votre rôle de propriétaire - aucune action requise.",
+  "ownerApprovedHint": "L'équipe Omnidance valide votre rôle de propriétaire ; aucune action requise.",
   "checks": {
    "name": "Nom",
    "description": "Description",
