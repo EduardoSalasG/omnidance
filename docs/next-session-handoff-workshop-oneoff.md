@@ -95,3 +95,21 @@ reprogramación de taller al 8 funcionó (cascada OK).
   del parent (pasar callback) o `location.reload()`. i18n:
   `useTranslations("academySeries")` → cancelClass/cancelClassDesc ya
   existen.
+
+## CIERRE (2026-10-29)
+
+Todo lo de "TRABAJO EN CURSO" quedó hecho y commiteado:
+
+- `990d99da` refactor: cancel por instancia vive en ficha de clase
+  (zona roja, roster expone canCancel+cancelled+academyId); quitado
+  del listado de próximas de la serie.
+- `3e246759` + `24b323a2`: notificación `class.booking.released` al
+  alumno en las 4 cascadas (cancel instancia, delete slot,
+  reprogramar, desactivar serie). Helper `releaseBookings` (in-tx,
+  idempotente) + `notifyReleasedBookings` (post-commit, notifySafe:
+  in-app + WS + web push). 19/19 spec, tsc limpio, change archivado.
+- `58e7601a`: card dancer marca taller (oneOff → título serie + chip).
+- `88536e7c`, `1fbec322`: botón "Crear" y éxito contextual en el form.
+
+Pendiente conocido: 2 tests `calendarIcs` fallan por drift de formato
+(`;` vs ` - ` en SUMMARY) - decidir formato correcto y alinear.
