@@ -101,10 +101,13 @@ export function buildClassIcs(input: ClassIcsInput): string {
       ? new Date(input.date.getTime() + 86_400_000)
       : input.date;
 
+  // El separador "; " va literal: escapeIcsText por parte, no sobre el
+  // string unido (RFC 5545 escapa los caracteres del contenido, no el
+  // delimitador propio del SUMMARY).
   const summary =
     input.title === input.academyName
-      ? input.title
-      : `${input.title} - ${input.academyName}`;
+      ? escapeIcsText(input.title)
+      : `${escapeIcsText(input.title)}; ${escapeIcsText(input.academyName)}`;
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -116,14 +119,14 @@ export function buildClassIcs(input: ClassIcsInput): string {
     `DTSTAMP:${icsStamp(input.now ?? new Date())}`,
     `DTSTART;TZID=${input.timezone}:${icsDate(input.date)}T${icsTime(input.startTime)}`,
     `DTEND;TZID=${input.timezone}:${icsDate(endDate)}T${icsTime(input.endTime)}`,
-    `SUMMARY:${escapeIcsText(summary)}`,
+    `SUMMARY:${summary}`,
     `LOCATION:${escapeIcsText(input.location)}`,
     `DESCRIPTION:${escapeIcsText(input.description)}`,
     `URL:${input.webUrl}/clases/${input.classId}`,
     "BEGIN:VALARM",
     "TRIGGER:-PT60M",
     "ACTION:DISPLAY",
-    `DESCRIPTION:${escapeIcsText(summary)}`,
+    `DESCRIPTION:${summary}`,
     "END:VALARM",
     "END:VEVENT",
     "END:VCALENDAR",
