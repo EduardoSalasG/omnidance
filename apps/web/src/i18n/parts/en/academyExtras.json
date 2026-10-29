@@ -202,7 +202,8 @@
       "general": "Classes",
       "payments": "Payment methods",
       "profile": "Academy profile",
-      "appearance": "Appearance"
+      "appearance": "Appearance",
+      "import": "Import data"
     },
     "kpis": {
       "title": "Month overview",

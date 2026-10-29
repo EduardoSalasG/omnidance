@@ -26,9 +26,10 @@ const STATUS_VARIANT: Record<
   error: "live",
 };
 
-// Card de carga masiva CSV (spec academy-bulk-import). Vive embebida en
-// su módulo: kind="students" en /academia/alumnos, kind="schedule" en
-// /academia/horarios. El host la muestra según la capacidad del viewer
+// Card de carga masiva CSV (spec academy-bulk-import). Ambas clases de
+// importación (students/schedule) se agrupan en
+// /academia/configuracion/importar - son setup de una vez, no operación
+// diaria. El host la muestra según la capacidad del viewer
 // (students/schedule); el backend gatea igual en /import/:kind.
 export function ImportCard({
   academyId,
@@ -157,6 +158,6 @@ export function ImportCard({
 }
 
 /**
- * /academia/importar ya no existe como módulo: las cargas masivas viven
- * embebidas en su dominio (alumnos / horarios).
+ * /academia/configuracion/importar agrupa las cargas masivas en una sola
+ * página de Configuración (antes embebidas en alumnos / series).
  */

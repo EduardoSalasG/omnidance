@@ -202,7 +202,8 @@
       "general": "Aulas",
       "payments": "Métodos de pagamento",
       "profile": "Perfil da academia",
-      "appearance": "Aparência"
+      "appearance": "Aparência",
+      "import": "Importar dados"
     },
     "kpis": {
       "title": "Resumo do mês",

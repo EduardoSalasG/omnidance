@@ -700,6 +700,14 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "configPages.appearance",
           icon: ICONS.slider,
         },
+        // Cargas masivas CSV (alumnos/clases): setup de una vez, no
+        // operación diaria - por eso viven en Configuración.
+        {
+          href: "/academia/configuracion/importar",
+          ns: "academy",
+          key: "configPages.import",
+          icon: ICONS.slider,
+        },
         {
           href: "/academia/suscripcion",
           ns: "academy",

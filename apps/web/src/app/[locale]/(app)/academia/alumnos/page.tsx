@@ -8,7 +8,6 @@ import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyKpiStrip } from "@/components/academy/academy-kpi-strip";
 import { StudentsInsights } from "@/components/academy/students-insights";
 import { StudentsSection } from "@/components/academy/students-section";
-import { ImportCard } from "@/components/academy/import-section";
 import { useAcademyAccess } from "@/components/academy/use-academy-access";
 import { academyTierHas } from "@/lib/academy-features";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -65,8 +64,8 @@ function StudentsModule({
       !!me &&
       (me.roles.includes("ADMIN") || me.id === ownerId);
 
-  // Carga masiva de alumnos embebida en el módulo (cap `students` -
-  // owner/admin reportan todas; null mientras resuelve = no se muestra).
+  // Carga masiva de alumnos: vive en /academia/configuracion/importar
+  // (cap `students` - el backend gatea igual en /import/:kind).
   const access = useAcademyAccess(academyId);
   // KPIs e insights son feature PRO del tier (spec
   // unified-actor-entitlements + academy-tier-v2): ocultar el bloque
@@ -107,11 +106,6 @@ function StudentsModule({
         tier={tier}
         readOnly={canAdminister !== true}
       />
-      {!instructorLens && access?.caps.students === true && (
-        <div data-tour="academy-alumnos-import">
-          <ImportCard academyId={academyId} kind="students" />
-        </div>
-      )}
       {/* Tour de primera visita del módulo: los anchors de gestión
           (KPIs, insights, alta, importación) solo existen para quien
           administra - el runner filtra los ausentes y el instructor
