@@ -64,7 +64,9 @@ export default function AcademiaPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8">
       <p className="text-sm text-ink/50">{t("hubDesc")}</p>
 
-      <AcademyGate>
+      {/* selector: el cambio de academia vive solo en el hub - las
+          subrutas heredan la selección persistida. */}
+      <AcademyGate selector>
         {({ academy }) => (
           <AcademyHub academy={academy} t={t} tt={tt} me={me} />
         )}
