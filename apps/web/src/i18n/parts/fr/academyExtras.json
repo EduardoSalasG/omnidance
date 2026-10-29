@@ -262,6 +262,13 @@
     "notFound": "Série introuvable."
   },
   "instructor": {
+      "instructors": "Professeurs",
+      "weekdayLabel": "Jour",
+      "slotStart": "Début",
+      "slotEnd": "Fin",
+      "slotInstructors": "Professeurs assignés",
+      "slotNoRoster": "Activez des professeurs dans l'édition de la série pour les assigner.",
+      "slotDeleteDesc": "Supprimer le créneau annule ses cours futurs et libère les réservations.",
     "title": "Mes cours",
     "empty": "Tu n'as pas de cours assignés dans les 30 prochains jours.",
     "forbidden": "Cette vue est pour les instructeurs d'académie.",

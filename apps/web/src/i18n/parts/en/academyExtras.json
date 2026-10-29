@@ -262,6 +262,13 @@
     "notFound": "Series not found."
   },
   "instructor": {
+      "instructors": "Instructors",
+      "weekdayLabel": "Day",
+      "slotStart": "Start",
+      "slotEnd": "End",
+      "slotInstructors": "Assigned instructors",
+      "slotNoRoster": "Enable instructors in the series edit to assign them.",
+      "slotDeleteDesc": "Deleting the slot cancels its future classes and frees bookings.",
     "title": "My classes",
     "empty": "You have no classes assigned in the next 30 days.",
     "forbidden": "This view is for academy instructors.",

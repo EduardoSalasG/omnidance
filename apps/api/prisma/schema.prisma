@@ -108,6 +108,7 @@ model Person {
   billingDocs   BillingDocument[] @relation("BillingReceiver")
   mailCampaigns MailCampaign[]
   classSlotInstructors ClassSlotInstructor[]
+  classSeriesInstructors ClassSeriesInstructor[]
   classInstructors     ClassInstructor[]
   consentRecords       ConsentRecord[]
   tripItems            TripItem[]
@@ -1211,6 +1212,20 @@ model ClassSeries {
 
   types ClassSeriesType[]
   slots ClassSlot[]
+  // Plantel habilitado de la serie: los instructores asignables a sus
+  // horarios. instructorId queda como primario/default (legacy).
+  instructors ClassSeriesInstructor[]
+}
+
+// Instructores habilitados en una serie (roster): solo ellos aparecen
+// asignables en los horarios. Modelo spec: serie habilita → slot asigna.
+model ClassSeriesInstructor {
+  series   ClassSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  seriesId String
+  person   Person      @relation(fields: [personId], references: [id])
+  personId String
+
+  @@id([seriesId, personId])
 }
 
 model ClassSeriesType {
@@ -1236,6 +1251,10 @@ model ClassSlot {
   startTime    String // "19:00"
   endTime      String
   capacity     Int? // null = hereda el quórum de la serie/academia
+  // Borrado lógico: un slot con clases pasadas no puede hard-deletearse
+  // (Class.slot es Restrict) - se cancelan sus clases futuras y queda
+  // oculto de la consola/materialización, conservando el historial.
+  deletedAt    DateTime?
   classes      Class[]
   types        ClassSlotType[]
   // Plantel completo del horario (co-teaching): el primario

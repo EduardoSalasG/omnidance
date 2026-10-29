@@ -14,6 +14,7 @@ import {
   XIcon,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import { InstructorChecklist } from "@/components/academy/instructor-checklist";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -116,7 +117,7 @@ function SeriesDetail({
   const [nsWeekday, setNsWeekday] = useState(1);
   const [nsStart, setNsStart] = useState("19:00");
   const [nsEnd, setNsEnd] = useState("20:00");
-  const [nsInstructor, setNsInstructor] = useState("");
+  const [nsInstructors, setNsInstructors] = useState<string[]>([]);
   const [instructors, setInstructors] = useState<AcademyInstructor[] | null>(
     null,
   );
@@ -267,7 +268,7 @@ function SeriesDetail({
           weekday: nsWeekday,
           startTime: nsStart,
           endTime: nsEnd,
-          ...(nsInstructor ? { instructorId: nsInstructor } : {}),
+          ...(nsInstructors.length ? { instructorIds: nsInstructors } : {}),
         },
       ],
     });
@@ -393,37 +394,28 @@ function SeriesDetail({
         <Card padded={false}>
           <ul className="divide-y divide-line">
             {series.slots.map((slot) => (
-              <li
-                key={slot.id}
-                className="flex items-center gap-2 px-4 py-3 text-sm"
-              >
-                <span className="tabular-nums text-ink/80">
-                  {ta(`weekday.${slot.weekday}`)} {slot.startTime}–
-                  {slot.endTime}
-                </span>
-                {/* Plantel del horario (multi-instructor): co-profes
-                    separados por " · " junto al horario. */}
-                {!!slot.instructors?.length && (
-                  <span className="truncate text-xs text-ink/50">
-                    {slot.instructors
-                      .map((i) => i.person.name)
-                      .filter(Boolean)
-                      .join(" · ")}
+              <li key={slot.id}>
+                {/* El tap abre la ficha del horario: editar día/hora,
+                    asignar plantel y eliminar viven ahí (console-patterns). */}
+                <Link
+                  href={`/academia/series/${seriesId}/horarios/${slot.id}`}
+                  className="flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-elevated"
+                >
+                  <span className="tabular-nums text-ink/80">
+                    {ta(`weekday.${slot.weekday}`)} {slot.startTime}–
+                    {slot.endTime}
                   </span>
-                )}
-                {series.active && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="ml-auto px-2"
-                    aria-label={t("removeSlot")}
-                    disabled={busy}
-                    onClick={() => setConfirm({ kind: "slot", slotId: slot.id })}
-                  >
-                    <XIcon className="h-4 w-4" />
-                  </Button>
-                )}
+                  {/* Plantel del horario (multi-instructor): co-profes
+                      separados por " · " junto al horario. */}
+                  {!!slot.instructors?.length && (
+                    <span className="truncate text-xs text-ink/50">
+                      {slot.instructors
+                        .map((i) => i.person.name)
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  )}
+                </Link>
               </li>
             ))}
           </ul>
@@ -439,7 +431,7 @@ function SeriesDetail({
                 setNsWeekday(1);
                 setNsStart("19:00");
                 setNsEnd("20:00");
-                setNsInstructor("");
+                setNsInstructors([]);
                 setActionError(null);
               }}
             >
@@ -489,23 +481,15 @@ function SeriesDetail({
                 required
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{t("instructor")}</span>
-              <select
-                className={`${inputCls} disabled:opacity-50`}
-                value={nsInstructor}
-                onChange={(e) => setNsInstructor(e.target.value)}
-                disabled={instructors === null}
-                aria-busy={instructors === null}
-              >
-                <option value="">·</option>
-                {(instructors ?? []).map((i) => (
-                  <option key={i.personId} value={i.personId}>
-                    {i.name ?? i.personId.slice(0, 8)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-ink/50">{t("slotInstructors")}</span>
+              {/* Solo el roster habilitado de la serie es asignable. */}
+              <InstructorChecklist
+                options={((series as { instructors?: { person: { id: string; name: string | null } }[] } | null)?.instructors ?? []).map((i) => ({ id: i.person.id, name: i.person.name }))}
+                selected={nsInstructors}
+                onChange={setNsInstructors}
+              />
+            </div>
             <div className="flex flex-wrap gap-2">
               <Button type="submit" size="sm" disabled={busy}>
                 {busy ? tc("loading") : t("addSlot")}
