@@ -51,6 +51,7 @@ function assignDefined<T extends object>(target: T, data: object): void {
 interface FakeBooking {
   id: string;
   classId: string;
+  personId: string;
   status: "BOOKED" | "WAITLIST" | "CANCELLED";
   cancelledAt: Date | null;
   refunded: boolean;
@@ -59,6 +60,7 @@ interface FakeBooking {
 interface FakeSeries {
   id: string;
   academyId: string;
+  name?: string;
   active: boolean;
   deletedAt: Date | null;
 }
@@ -118,28 +120,51 @@ class FakePrisma {
   };
 
   classBooking = {
+    findMany: async ({
+      where,
+    }: {
+      where: {
+        classId?: { in: string[] };
+        status?: { in: string[] };
+      };
+    }) =>
+      this.bookings.filter(
+        (b) =>
+          (!where.classId || where.classId.in.includes(b.classId)) &&
+          (!where.status || where.status.in.includes(b.status)),
+      ),
     updateMany: async ({
       where,
       data,
     }: {
       where: {
-        classId: string | { in: string[] };
-        status: { in: string[] };
+        id?: { in: string[] };
+        classId?: string | { in: string[] };
+        status?: { in: string[] };
       };
       data: Partial<FakeBooking>;
     }) => {
       const classIds =
         typeof where.classId === "string"
           ? [where.classId]
-          : (where.classId.in ?? []);
+          : (where.classId?.in ?? null);
       let n = 0;
       for (const b of this.bookings) {
-        if (classIds.includes(b.classId) && where.status.in.includes(b.status)) {
-          Object.assign(b, data);
-          n++;
-        }
+        if (classIds && !classIds.includes(b.classId)) continue;
+        if (where.id && !where.id.in.includes(b.id)) continue;
+        if (where.status && !where.status.in.includes(b.status)) continue;
+        Object.assign(b, data);
+        n++;
       }
       return { count: n };
+    },
+  };
+
+  academies = new Map<string, { id: string; name: string }>();
+  academy = {
+    findUnique: async ({ where }: { where: { id: string } }) => {
+      const a = this.academies.get(where.id);
+      return a ? { name: a.name } : null;
     },
   };
 
@@ -331,21 +356,25 @@ const nextWeekday = (d: number) => {
 describe("ClassSeriesController - cancelación por la academia devuelve crédito", () => {
   let prisma: FakePrisma;
   let ctrl: ClassSeriesController;
+  let notifications: { notifySafe: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     prisma = new FakePrisma();
+    notifications = { notifySafe: vi.fn(async () => undefined) };
     ctrl = new ClassSeriesController(
       prisma as unknown as PrismaService,
       {
         requireCapability: vi.fn(async () => undefined),
         requireCapabilityWrite: vi.fn(async () => undefined),
       } as unknown as AcademyAccess,
-      { notifySafe: vi.fn() } as unknown as NotificationsService,
+      notifications as unknown as NotificationsService,
       new AcademyMaterializeService(prisma as unknown as PrismaService),
     );
+    prisma.academies.set("acad-1", { id: "acad-1", name: "Academia Test" });
     prisma.series.set("ser-1", {
       id: "ser-1",
       academyId: "acad-1",
+      name: "Serie Test",
       active: true,
       deletedAt: null,
     });
@@ -362,9 +391,9 @@ describe("ClassSeriesController - cancelación por la academia devuelve crédito
       { id: "c2", classSlotId: "slot-1", seriesId: "ser-1", date: future(), cancelled: false },
     );
     prisma.bookings.push(
-      { id: "b1", classId: "c1", status: "BOOKED", cancelledAt: null, refunded: false },
-      { id: "b2", classId: "c1", status: "WAITLIST", cancelledAt: null, refunded: true },
-      { id: "b3", classId: "c2", status: "CANCELLED", cancelledAt: null, refunded: false },
+      { id: "b1", classId: "c1", personId: "per-1", status: "BOOKED", cancelledAt: null, refunded: false },
+      { id: "b2", classId: "c1", personId: "per-2", status: "WAITLIST", cancelledAt: null, refunded: true },
+      { id: "b3", classId: "c2", personId: "per-3", status: "CANCELLED", cancelledAt: null, refunded: false },
     );
 
     await ctrl.deactivate("acad-1", "ser-1", req);
@@ -382,6 +411,71 @@ describe("ClassSeriesController - cancelación por la academia devuelve crédito
     expect(prisma.classes.every((c) => c.cancelled)).toBe(true);
   });
 
+  it("deactivate notifica a cada alumno con reserva liberada, no a las ya CANCELLED", async () => {
+    prisma.classes.push(
+      { id: "c1", classSlotId: "slot-1", seriesId: "ser-1", date: future(), cancelled: false },
+      { id: "c2", classSlotId: "slot-1", seriesId: "ser-1", date: future(), cancelled: false },
+    );
+    prisma.bookings.push(
+      { id: "b1", classId: "c1", personId: "per-1", status: "BOOKED", cancelledAt: null, refunded: false },
+      { id: "b2", classId: "c1", personId: "per-2", status: "WAITLIST", cancelledAt: null, refunded: false },
+      { id: "b3", classId: "c2", personId: "per-3", status: "CANCELLED", cancelledAt: null, refunded: false },
+    );
+
+    await ctrl.deactivate("acad-1", "ser-1", req);
+
+    // Una notificación class.booking.released por reserva viva, con
+    // contexto de clase/serie/academia y el refund explícito.
+    expect(notifications.notifySafe).toHaveBeenCalledTimes(2);
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "per-1",
+      expect.objectContaining({
+        type: "class.booking.released",
+        data: expect.objectContaining({
+          bookingId: "b1",
+          classId: "c1",
+          academyId: "acad-1",
+          seriesId: "ser-1",
+          seriesName: "Serie Test",
+          reason: "series.deactivated",
+          refunded: true,
+          path: "/clases",
+        }),
+      }),
+    );
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "per-2",
+      expect.objectContaining({ type: "class.booking.released" }),
+    );
+    // La reserva ya CANCELLED no vuelve a avisar (idempotencia).
+    expect(notifications.notifySafe).not.toHaveBeenCalledWith(
+      "per-3",
+      expect.anything(),
+    );
+  });
+
+  it("deactivate sin reservas vivas no notifica a nadie", async () => {
+    prisma.classes.push({
+      id: "c1",
+      classSlotId: "slot-1",
+      seriesId: "ser-1",
+      date: future(),
+      cancelled: false,
+    });
+    prisma.bookings.push({
+      id: "b1",
+      classId: "c1",
+      personId: "per-1",
+      status: "CANCELLED",
+      cancelledAt: null,
+      refunded: false,
+    });
+
+    await ctrl.deactivate("acad-1", "ser-1", req);
+
+    expect(notifications.notifySafe).not.toHaveBeenCalled();
+  });
+
   it("deleteSlot: idem para las clases futuras del horario", async () => {
     prisma.classes.push({
       id: "c1",
@@ -393,6 +487,7 @@ describe("ClassSeriesController - cancelación por la academia devuelve crédito
     prisma.bookings.push({
       id: "b1",
       classId: "c1",
+      personId: "per-1",
       status: "BOOKED",
       cancelledAt: null,
       refunded: false,
@@ -404,6 +499,20 @@ describe("ClassSeriesController - cancelación por la academia devuelve crédito
     expect(b1.status).toBe("CANCELLED");
     expect(b1.refunded).toBe(true);
     expect(b1.cancelledAt).toBeInstanceOf(Date);
+    // El alumno queda avisado de la liberación (razón: horario eliminado).
+    expect(notifications.notifySafe).toHaveBeenCalledTimes(1);
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "per-1",
+      expect.objectContaining({
+        type: "class.booking.released",
+        data: expect.objectContaining({
+          bookingId: "b1",
+          classId: "c1",
+          reason: "slot.deleted",
+          refunded: true,
+        }),
+      }),
+    );
     // Con historial de clases el horario queda en borrado lógico (Class.slot
     // es Restrict) - el hard delete solo corre cuando nunca tuvo clases.
     const slot = prisma.slots.get("slot-1") as
@@ -473,6 +582,7 @@ describe("ClassSeriesController - cancelación por la academia devuelve crédito
     prisma.bookings.push({
       id: "b1",
       classId: "c1",
+      personId: "per-1",
       status: "BOOKED",
       cancelledAt: null,
       refunded: false,
@@ -487,6 +597,20 @@ describe("ClassSeriesController - cancelación por la academia devuelve crédito
     const b1 = prisma.bookings.find((b) => b.id === "b1")!;
     expect(b1.status).toBe("CANCELLED");
     expect(b1.refunded).toBe(true);
+    // La reprogramación también notifica al alumno liberado.
+    expect(notifications.notifySafe).toHaveBeenCalledTimes(1);
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "per-1",
+      expect.objectContaining({
+        type: "class.booking.released",
+        data: expect.objectContaining({
+          bookingId: "b1",
+          classId: "c1",
+          reason: "slot.rescheduled",
+          refunded: true,
+        }),
+      }),
+    );
     // El día nuevo queda materializado dentro de la ventana rodante.
     expect(
       prisma.classes.some(
@@ -525,9 +649,11 @@ describe("ClassSeriesController - taller de fecha única y cancel por instancia"
   let prisma: FakePrisma;
   let ctrl: ClassSeriesController;
   let materialize: AcademyMaterializeService;
+  let notifications: { notifySafe: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     prisma = new FakePrisma();
+    notifications = { notifySafe: vi.fn(async () => undefined) };
     materialize = new AcademyMaterializeService(
       prisma as unknown as PrismaService,
     );
@@ -537,12 +663,14 @@ describe("ClassSeriesController - taller de fecha única y cancel por instancia"
         requireCapability: vi.fn(async () => undefined),
         requireCapabilityWrite: vi.fn(async () => undefined),
       } as unknown as AcademyAccess,
-      { notifySafe: vi.fn() } as unknown as NotificationsService,
+      notifications as unknown as NotificationsService,
       materialize,
     );
+    prisma.academies.set("acad-1", { id: "acad-1", name: "Academia Test" });
     prisma.series.set("ser-1", {
       id: "ser-1",
       academyId: "acad-1",
+      name: "Serie Test",
       active: true,
       deletedAt: null,
     });
@@ -663,6 +791,7 @@ describe("ClassSeriesController - taller de fecha única y cancel por instancia"
     prisma.bookings.push({
       id: "b1",
       classId: "c1",
+      personId: "per-1",
       status: "BOOKED",
       cancelledAt: null,
       refunded: false,
@@ -683,6 +812,20 @@ describe("ClassSeriesController - taller de fecha única y cancel por instancia"
     const b1 = prisma.bookings.find((b) => b.id === "b1")!;
     expect(b1.status).toBe("CANCELLED");
     expect(b1.refunded).toBe(true);
+    // Reprogramar el taller avisa al alumno de la fecha vieja.
+    expect(notifications.notifySafe).toHaveBeenCalledTimes(1);
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "per-1",
+      expect.objectContaining({
+        type: "class.booking.released",
+        data: expect.objectContaining({
+          bookingId: "b1",
+          classId: "c1",
+          reason: "slot.rescheduled",
+          refunded: true,
+        }),
+      }),
+    );
     // Se materializa una sola clase en la fecha nueva.
     const fresh = prisma.classes.filter((c) => c.id !== "c1");
     expect(fresh).toHaveLength(1);
@@ -722,6 +865,8 @@ describe("ClassSeriesController - taller de fecha única y cancel por instancia"
     expect(slot.oneOffDate?.getTime()).toBe(day.getTime());
     expect(slot.weekday).toBe(day.getUTCDay());
     expect(prisma.classes.find((c) => c.id === "c1")!.cancelled).toBe(false);
+    // Sin cascada no hay liberación ni notificación.
+    expect(notifications.notifySafe).not.toHaveBeenCalled();
   });
 
   it("cancelClass: baja solo esa instancia con refund y el materializador no la revive", async () => {
@@ -742,8 +887,8 @@ describe("ClassSeriesController - taller de fecha única y cancel por instancia"
       { id: "c3", classSlotId: "slot-1", seriesId: "ser-1", date: d3, cancelled: true, cancelledAt: null },
     );
     prisma.bookings.push(
-      { id: "b1", classId: "c1", status: "BOOKED", cancelledAt: null, refunded: false },
-      { id: "b2", classId: "c2", status: "BOOKED", cancelledAt: null, refunded: false },
+      { id: "b1", classId: "c1", personId: "per-1", status: "BOOKED", cancelledAt: null, refunded: false },
+      { id: "b2", classId: "c2", personId: "per-2", status: "BOOKED", cancelledAt: null, refunded: false },
     );
 
     await ctrl.cancelClass("acad-1", "c1", req);
@@ -754,6 +899,22 @@ describe("ClassSeriesController - taller de fecha única y cancel por instancia"
     const b1 = prisma.bookings.find((b) => b.id === "b1")!;
     expect(b1.status).toBe("CANCELLED");
     expect(b1.refunded).toBe(true);
+    // Solo se avisa al alumno de la instancia cancelada: b2 (otra fecha)
+    // no recibe nada.
+    expect(notifications.notifySafe).toHaveBeenCalledTimes(1);
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "per-1",
+      expect.objectContaining({
+        type: "class.booking.released",
+        data: expect.objectContaining({
+          bookingId: "b1",
+          classId: "c1",
+          seriesId: "ser-1",
+          reason: "class.cancelled",
+          refunded: true,
+        }),
+      }),
+    );
     // Las demás instancias y sus reservas quedan intactas.
     expect(prisma.classes.find((c) => c.id === "c2")!.cancelled).toBe(false);
     expect(prisma.bookings.find((b) => b.id === "b2")!.status).toBe("BOOKED");
@@ -785,6 +946,14 @@ describe("ClassSeriesController - taller de fecha única y cancel por instancia"
       cancelled: false,
       cancelledAt: null,
     });
+    prisma.bookings.push({
+      id: "b1",
+      classId: "c1",
+      personId: "per-1",
+      status: "BOOKED",
+      cancelledAt: null,
+      refunded: false,
+    });
 
     const first = await ctrl.cancelClass("acad-1", "c1", req);
     const again = await ctrl.cancelClass("acad-1", "c1", req);
@@ -792,6 +961,9 @@ describe("ClassSeriesController - taller de fecha única y cancel por instancia"
     expect(again.cancelled).toBe(true);
     // El cancelledAt del re-cancel no se reescribe.
     expect(again.cancelledAt).toEqual(first.cancelledAt);
+    // La notificación sale una sola vez: en el re-cancel la reserva ya
+    // estaba CANCELLED y queda fuera del set liberado.
+    expect(notifications.notifySafe).toHaveBeenCalledTimes(1);
   });
 
   it("cancelClass de una clase pasada responde 404", async () => {
