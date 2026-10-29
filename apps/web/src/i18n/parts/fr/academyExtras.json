@@ -274,7 +274,8 @@
     "dateLabel": "Date",
     "workshopBadge": "Atelier",
     "cancelClass": "Annuler le cours",
-    "cancelClassDesc": "Annule uniquement ce cours : ses réservations sont libérées et le reste de l'horaire ne change pas."
+    "cancelClassDesc": "Annule uniquement ce cours : ses réservations sont libérées et le reste de l'horaire ne change pas.",
+    "createdOneOff": "Atelier créé"
   },
   "instructor": {
     "title": "Mes cours",

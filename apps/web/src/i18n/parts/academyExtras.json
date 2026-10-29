@@ -274,7 +274,8 @@
     "dateLabel": "Fecha",
     "workshopBadge": "Taller",
     "cancelClass": "Cancelar clase",
-    "cancelClassDesc": "Cancela solo esta clase: se liberan sus reservas y el resto del horario sigue igual."
+    "cancelClassDesc": "Cancela solo esta clase: se liberan sus reservas y el resto del horario sigue igual.",
+    "createdOneOff": "Taller creado"
   },
   "instructor": {
     "title": "Mis clases",

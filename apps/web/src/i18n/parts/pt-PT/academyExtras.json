@@ -274,7 +274,8 @@
     "dateLabel": "Data",
     "workshopBadge": "Workshop",
     "cancelClass": "Cancelar aula",
-    "cancelClassDesc": "Cancela apenas esta aula: as reservas são libertadas e o resto do horário não muda."
+    "cancelClassDesc": "Cancela apenas esta aula: as reservas são libertadas e o resto do horário não muda.",
+    "createdOneOff": "Workshop criado"
   },
   "instructor": {
     "title": "As minhas aulas",
