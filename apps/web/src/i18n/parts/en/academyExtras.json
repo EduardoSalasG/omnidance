@@ -274,7 +274,8 @@
     "dateLabel": "Date",
     "workshopBadge": "Workshop",
     "cancelClass": "Cancel class",
-    "cancelClassDesc": "Cancels only this class: its bookings are freed and the rest of the schedule stays the same."
+    "cancelClassDesc": "Cancels only this class: its bookings are freed and the rest of the schedule stays the same.",
+    "createdOneOff": "Workshop created"
   },
   "instructor": {
     "title": "My classes",

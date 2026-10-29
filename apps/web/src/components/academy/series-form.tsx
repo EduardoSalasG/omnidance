@@ -284,7 +284,11 @@ export function SeriesForm({
     <Card>
       {saved ? (
         <p role="status" className="text-sm text-neon">
-          {editing ? t("updated") : t("created")}
+          {editing
+            ? t("updated")
+            : kind === "oneOff"
+              ? t("createdOneOff")
+              : t("created")}
         </p>
       ) : (
         <>
