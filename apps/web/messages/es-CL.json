@@ -1186,6 +1186,7 @@
   "hintApproved": "Tu academia es visible en Explorar y clases.",
   "hintRejected": "Un administrador ocultó tu academia. Complétala y avísanos para reactivarla.",
   "missing": "Pendiente",
+  "ownerApprovedHint": "El equipo Omnidance valida tu rol de dueño - no requiere acción tuya.",
   "checks": {
    "name": "Nombre",
    "description": "Descripción",

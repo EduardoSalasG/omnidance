@@ -74,6 +74,10 @@ export function AcademyVisibilityCard({
           {missing.map((k) => {
             const href = CHECK_HREF[k];
             const label = t(`checks.${k}`);
+            // ownerApproved no es accionable por el dueño: lo valida el
+            // equipo en /admin/roles - se muestra como pendiente de
+            // revisión, no como tarea clickeable.
+            const isReview = k === "ownerApproved";
             return (
               <li key={k}>
                 {href ? (
@@ -84,8 +88,11 @@ export function AcademyVisibilityCard({
                     ✗ {label}
                   </Link>
                 ) : (
-                  <span className="inline-flex items-center rounded-full bg-elevated px-2 py-0.5 text-[11px] text-ink/50">
-                    ✗ {label}
+                  <span
+                    title={isReview ? t("ownerApprovedHint") : undefined}
+                    className="inline-flex items-center rounded-full bg-elevated px-2 py-0.5 text-[11px] text-ink/50"
+                  >
+                    {isReview ? "⏳" : "✗"} {label}
                   </span>
                 )}
               </li>
