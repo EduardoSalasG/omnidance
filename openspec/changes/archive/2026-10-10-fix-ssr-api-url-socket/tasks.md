@@ -1,4 +1,4 @@
-# Tasks — fix-ssr-api-url-socket
+# Tasks; fix-ssr-api-url-socket
 
 - [x] 1 `server-api.ts`: `serverApiUrl()` con fallback headers-origin
 - [x] 2 11 call sites a request-scope (9 pages + 2 lib públicos)

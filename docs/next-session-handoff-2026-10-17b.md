@@ -1,8 +1,8 @@
-# Handoff 2026-10-17b — slice `producer-own-methods`
+# Handoff 2026-10-17b; slice `producer-own-methods`
 
 ## Completado
 
-Slice 5/5 del programa de pagos — **medios de cobro propios del productor**
+Slice 5/5 del programa de pagos; **medios de cobro propios del productor**
 (transferencia / link de pago / efectivo) con comprobante del comprador y
 validación por el productor (feeMode `OWN_METHOD`).
 
@@ -14,7 +14,7 @@ validación por el productor (feeMode `OWN_METHOD`).
   methodType/methodLabel, status PENDING/APPROVED/REJECTED +
   reviewedById/reviewedAt/reviewNote) + `Payment.ticketClaims`.
   Migración `20261018000000_producer_own_methods` (SQL escrita a mano,
-  aplicada con `prisma migrate deploy` — `migrate dev` quedó bloqueado
+  aplicada con `prisma migrate deploy`; `migrate dev` quedó bloqueado
   por el dev server).
 - **`ProducerClaimsService`** (`payments/infrastructure/`): CRUD de
   métodos (orden por `order`+`createdAt`, `includeInactive`), claims del
@@ -43,25 +43,25 @@ validación por el productor (feeMode `OWN_METHOD`).
   `GET /producer/claims/:id/receipt`.
 - **`PaymentsModule` ahora importa `StorageModule` explícitamente**
   (igual que `AcademiesModule`): el módulo global no basta en testing
-  modules parciales — el fix recuperó 215 tests e2e que se saltaban por
+  modules parciales; el fix recuperó 215 tests e2e que se saltaban por
   `beforeAll` fallido en 8 archivos (admin, admin-intel, checkout,
   gap-crm, gap-events, gap-payments, social-endpoints, leads).
 
 ### Frontend (`apps/web`)
 
-- `components/checkout/own-method-picker.tsx` — selector de método en el
+- `components/checkout/own-method-picker.tsx`; selector de método en el
   checkout (radio cards).
-- `components/checkout/own-method-details.tsx` — instrucciones del
+- `components/checkout/own-method-details.tsx`; instrucciones del
   método (banco/cuenta/RUT, link, efectivo) con copiar.
-- `components/checkout/own-method-claim.tsx` — upload de comprobante +
+- `components/checkout/own-method-claim.tsx`; upload de comprobante +
   estado del claim.
-- `checkout-client.tsx` + `series-pass-cta.tsx` — fase `manual`:
+- `checkout-client.tsx` + `series-pass-cta.tsx`; fase `manual`:
   fetch `GET /events/:id/payment-methods`, picker, y tras la compra
   instrucciones + claim en vez de redirect.
-- `components/producer/payment-methods-section.tsx` — CRUD en
+- `components/producer/payment-methods-section.tsx`; CRUD en
   `/productor/parametros`.
 - `components/producer/claims-queue-section.tsx` + ruta
-  **`/productor/comprobantes`** — cola PENDING/history, aprobar,
+  **`/productor/comprobantes`**; cola PENDING/history, aprobar,
   rechazar con motivo, ver comprobante. Card "Comprobantes" en el hub
   `/productor`.
 - i18n: `checkout.*` (ownMethod, claim, labels de detalle) +
@@ -78,7 +78,7 @@ regenerados: **228 paths**.
 
 ## Verificación
 
-- `pnpm exec vitest run` (apps/api): **1636/1636 tests, 77 archivos —
+- `pnpm exec vitest run` (apps/api): **1636/1636 tests, 77 archivos;
   todo verde** (incluye los 215 e2e recuperados por el fix de
   StorageModule).
 - `pnpm build` (apps/web): 68/68 páginas, incluye
@@ -102,12 +102,12 @@ Los 5 slices completos y commiteados en `dev`:
 ## Gaps conocidos / próximos pasos
 
 - **E2E real del flujo manual en sandbox** (comprar con método propio,
-  subir comprobante, aprobar → ticket emitido) queda pendiente — los
+  subir comprobante, aprobar → ticket emitido) queda pendiente; los
   specs cubren service/controller pero no hay e2e del claim completo.
 - Revisión de UX en browser real (320px/mobile/desktop) pendiente del
   picker + cola de comprobantes (detector impeccable limpio, pero sin
   QA visual).
 - Roadmap propuesto tras pagos: módulo de facturación admin (diseño
   aprobado?), wallet passes + QR day-of, offline check-in staff,
-  adaptador Fintoc (A2A 1,35%+IVA — evaluación hecha, decisión
+  adaptador Fintoc (A2A 1,35%+IVA; evaluación hecha, decisión
   pendiente).

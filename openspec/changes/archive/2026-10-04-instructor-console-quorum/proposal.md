@@ -1,9 +1,9 @@
-# instructor-console-quorum — consola del profesor + quorum parametrizable
+# instructor-console-quorum; consola del profesor + quorum parametrizable
 
 INSTRUCTOR existe como rol y ya tiene acceso de gestión vía
 requireManage, pero no tiene superficie propia ni visibilidad de
 roster. Además el "quórum" (cupos de la clase) hoy es solo
-slot.capacity fijo — debe heredar: clase → slot → serie → academia.
+slot.capacity fijo; debe heredar: clase → slot → serie → academia.
 
 ## Alcance
 
@@ -29,5 +29,5 @@ slot.capacity fijo — debe heredar: clase → slot → serie → academia.
 ## Fuera de scope
 
 - Cancelación automática de clases bajo quórum (el quórum es
-  informativo — no bloquea ni cancela la clase).
+  informativo; no bloquea ni cancela la clase).
 - Notificación a alumnos cuando el profesor cambia.

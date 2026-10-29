@@ -48,7 +48,7 @@ incluido se cobra al actor y se descuenta de su liquidación**.
   regla vieja (fee real + platformFeePct); `PAYOUT_LINE_ASSIGNED` al
   ledger de cada orden; idempotente por actor+período.
 - **Fix encontrado por e2e**: la línea de pasarela queda **acotada a
-  la deducción congelada** — tasa 0% (promo) o < card% significa que la
+  la deducción congelada**; tasa 0% (promo) o < card% significa que la
   plataforma absorbe el costo, nunca el productor.
 - **Params**: seed con `fees.managed_allin_pct` (10), `tax.iva_pct`
   (19), `gateway_fee.card_pct` (3,19), `gateway_fee.
@@ -69,21 +69,21 @@ incluido se cobra al actor y se descuenta de su liquidación**.
 
 ## Verificación
 
-- **1536/1536 tests API** (69 archivos) — incluye e2e reescritos:
+- **1536/1536 tests API** (69 archivos); incluye e2e reescritos:
   checkout (quote exacto, congelado MANAGED, override 8%/0%),
   gap-producer (platformFeePct admin-gated), gap-payments (payouts por
   líneas, ACADEMY passthrough), gap-checkins (door-sale fee 0).
 - API `tsc --noEmit` limpio; web `next build` 66/66 limpio; i18n
   `ALL_KEYS_OK`; `impeccable detect` sin hallazgos en los archivos UI.
 - `prisma migrate status`: 20 migraciones, up to date.
-- `export-api-docs.cjs` regenerado (sin diff de paths — el cambio es
+- `export-api-docs.cjs` regenerado (sin diff de paths; el cambio es
   de campos de respuesta/whitelist, limitación conocida del export).
 - `openspec validate` OK al crear el change.
 
 ## Bug corregido en el camino
 
 `managedSettlementLines` emitía la línea GATEWAY_FEE_PASSTHROUGH aun
-con deducción congelada $0 (override 0%) — hubiera descontado 319 de
+con deducción congelada $0 (override 0%); hubiera descontado 319 de
 un payout promo. Ahora `gatewayReal = min(real|expected, deduction)`;
 spec nuevo cubre el caso (tasa 0% → sin líneas, gross completo).
 
@@ -94,26 +94,26 @@ spec nuevo cubre el caso (tasa 0% → sin líneas, gross completo).
   como datos inertes: solo el settlement los lee como fallback para
   pagos pre-modelo (`unitServiceFee null`) y el CSV de recaudación los
   suma por exactitud histórica.
-- `TicketWallet` muestra `listPrice + serviceFee` — correcto para
+- `TicketWallet` muestra `listPrice + serviceFee`; correcto para
   tickets históricos; los nuevos llevan 0.
 
 ## Próximos slices (aprobados, en orden)
 
-2. `gateway-port-normalization` — `GatewayConfirmation` normalizado,
+2. `gateway-port-normalization`; `GatewayConfirmation` normalizado,
    webhook por proveedor `/payments/webhook/:provider`,
    `Payment.currency`/`Event.currency`, adaptador **MercadoPago**
    como prueba del puerto.
-3. `subscription-port-generic` — `FlowInvoice`/`FlowSubscription` →
+3. `subscription-port-generic`; `FlowInvoice`/`FlowSubscription` →
    tipos normalizados (puerto desacoplado).
-4. `producer-gateway-accounts` — `GatewayAccount` cifrado AES-256-GCM
+4. `producer-gateway-accounts`; `GatewayAccount` cifrado AES-256-GCM
    por actor (su Flow/MP, plata directo a ellos, fee derivado).
-5. `producer-own-methods` — claims espejo de academy-claims +
+5. `producer-own-methods`; claims espejo de academy-claims +
    devengado OWN_METHOD para el netting.
 
 ## Pendiente / gaps conocidos
 
 - `BillingDocument` (factura formal al productor: folio, RUT, neto,
-  IVA) — deuda declarada; `PayoutLine` ya deja la contabilidad.
+  IVA); deuda declarada; `PayoutLine` ya deja la contabilidad.
 - Deploy/promotion a `main`: pendiente de release gate del usuario.
 - DBs existentes conservan filas `service_fee.*` inertes (el seed ya
   no las crea; borrarlas es cosmético, no necesario).

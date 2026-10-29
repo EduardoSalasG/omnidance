@@ -12,7 +12,7 @@ tiene el productor.
 ### Requirement: inventario de mesas del evento
 
 `Event.tablesTotal` (Int, null = sin servicio), `Event.tableSeatMax` (Int,
-tope por reserva) y `Event.tableSeatsTotal` (Int, cupo sentable total —
+tope por reserva) y `Event.tableSeatsTotal` (Int, cupo sentable total;
 distinto del aforo del evento y usualmente menor) SHALL ser editables por
 el productor del evento en create y PATCH. El detalle público
 `GET /events/:id` SHALL exponerlos junto a `tablesLeft`
@@ -37,7 +37,7 @@ evento no tiene mesas o no configuró cupo).
 
 - **WHEN** un evento tiene `tablesTotal: 8` y `tableSeatsTotal: 40` con
   reservas activas que suman 36 personas
-- **THEN** `tablesLeft` puede ser positivo pero `seatsLeft: 4` — una reserva
+- **THEN** `tablesLeft` puede ser positivo pero `seatsLeft: 4`; una reserva
   de 5 personas ya no cabe aunque queden mesas
 
 ### Requirement: defaults de mesas del productor
@@ -91,4 +91,4 @@ tamaño) no SHALL re-notificar.
 - **WHEN** el productor confirma una reserva solicitada para 4 ajustándola
   a `partySize: 5` con `tableNo: "M-7"`
 - **THEN** el solicitante recibe una notificación `table.confirmed` que
-  dice "5 personas · Mesa M-7" — el valor final, no el solicitado
+  dice "5 personas · Mesa M-7"; el valor final, no el solicitado

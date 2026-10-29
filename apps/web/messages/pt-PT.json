@@ -390,14 +390,14 @@
   "cameraError": "Não foi possível abrir a câmara",
   "notStaff": "Esta secção é só para o staff do evento",
   "offline": "Sem ligação. A tentar de novo…",
-  "offlineSeal": "Registado neste dispositivo — confirmado ao sincronizar",
+  "offlineSeal": "Registado neste dispositivo, confirmado ao sincronizar",
   "pendingSync": "por sincronizar",
   "pendingSyncCount": "{count} por sincronizar",
   "conflictBadge": "conflito",
   "conflictCount": "{count} conflito(s) a rever",
   "failedBadge": "sincronização falhada",
   "manifestAge": "ficheiro de há {age} h",
-  "expiredQr": "QR expirado — procura por nome",
+  "expiredQr": "QR expirado, procura por nome",
   "searchName": "Procurar por nome",
   "loginRequired": "Inicia sessão com o teu e-mail para gerir a porta"
  },
@@ -1206,7 +1206,7 @@
   "title": "O teu papel de {role}",
   "pending": "Em revisão",
   "hintPending": "Completa o seguinte para que um admin te aprove:",
-  "hintComplete": "Perfil completo — a aguardar aprovação do admin.",
+  "hintComplete": "Perfil completo, a aguardar aprovação do admin.",
   "checks": {
    "name": "Nome real",
    "emailVerified": "Email verificado",
@@ -1218,11 +1218,11 @@
    "PRODUCER": "produtor"
   },
   "verifyCta": "verificar",
-  "verifySent": "Enviámos um código para {email} — introduz aqui ou abre o link do email.",
+  "verifySent": "Enviámos um código para {email}, introduz aqui ou abre o link do email.",
   "otpPlaceholder": "000000",
   "otpSubmit": "Confirmar",
   "otpInvalid": "Código inválido ou expirado",
-  "verifyError": "Não conseguimos enviar o email — tenta novamente",
+  "verifyError": "Não conseguimos enviar o email, tenta novamente",
   "actorLabels": {
    "ACADEMY_OWNER": "Nome da academia",
    "PRODUCER": "Nome do evento"

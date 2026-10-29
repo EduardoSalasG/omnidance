@@ -10,7 +10,7 @@ HMAC-SHA256 del personId con `JWT_SECRET`. El endpoint MUST ser público
 (sin sesión), validar la firma (rechazar firmas inválidas con 400) y
 marcar `Person.mailOptOutAt`. La resolución de audiencias y el loop de
 envío MUST excluir personas con `mailOptOutAt` no nulo. El opt-out solo
-afecta correos de campañas — los correos transaccionales (magic link,
+afecta correos de campañas; los correos transaccionales (magic link,
 recibos) NO se ven afectados.
 
 #### Scenario: baja con firma válida
@@ -34,7 +34,7 @@ recibos) NO se ven afectados.
 ### Requirement: recipient por contexto en audiencias de ciclo
 
 Una corrida SHALL crear un `MailCampaignRecipient` por cada entrada
-resuelta distinguida por `dedupKey` — `@@unique(runId, personId,
+resuelta distinguida por `dedupKey`; `@@unique(runId, personId,
 dedupKey)` con dedupKey vacío por omisión. En audiencias con contexto
 una persona con N ciclos activos recibe N recipients (cada uno con su
 propio ctx); en audiencias genéricas el comportamiento se conserva
@@ -58,7 +58,7 @@ propio ctx); en audiencias genéricas el comportamiento se conserva
 La campaña SHALL admitir `CLAIMS_PENDING {days}` (días enteros 1-365):
 resuelve los owners de academias que tienen `PaymentClaim` PENDING con
 `createdAt < now - days`, con vars `{{academy}}` y `{{count}}`. El
-dedupKey es `claims:<academyId>:<fecha es-CL>` — máximo un recordatorio
+dedupKey es `claims:<academyId>:<fecha es-CL>`; máximo un recordatorio
 por academia por día mientras sigan existiendo comprobantes sin
 validar.
 
@@ -78,7 +78,7 @@ validar.
 
 El formulario de campañas SHALL permitir elegir como audiencia
 cualquier evento buscable por nombre (endpoint browse con `q`),
-listando status y fecha en cada opción — no solo los PUBLISHED
+listando status y fecha en cada opción; no solo los PUBLISHED
 recientes.
 
 #### Scenario: evento pasado seleccionable
@@ -106,7 +106,7 @@ conjunto de variables:
 - `CLAIMS_PENDING {days}`: owners con claims PENDING > `days` →
   `{{academy}}`, `{{count}}`.
 
-Cada destinatario de ciclo lleva `dedupKey` — una corrida posterior
+Cada destinatario de ciclo lleva `dedupKey`; una corrida posterior
 lo marca SKIPPED si el ciclo ya fue recordado en `MailCampaignSent`.
 Toda persona con `mailOptOutAt` queda excluida de la resolución.
 

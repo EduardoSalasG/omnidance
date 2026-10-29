@@ -21,7 +21,7 @@ anchas.
   Mi QR / Academia: inicio, clases, academias, Mi QR) con el
   `ModeToggle` Social/Academia accesible en el chrome.
 - **Anchos por arquetipo**: las páginas dejan el `max-w-2xl` uniforme por
-  anchos según su tipo — exploración/hub/listados `lg:max-w-5xl` con cards
+  anchos según su tipo; exploración/hub/listados `lg:max-w-5xl` con cards
   en grilla multi-columna; fichas/detalle `lg:max-w-4xl` con layout de 2
   columnas donde haya panel natural; formularios y flujos conservan lectura
   angosta; consola de puerta staff con layout propio de columnas.
@@ -48,6 +48,6 @@ anchas.
   `AppSidebar`, `globals.css`, y los `page.tsx`/`*.tsx` de las superficies
   en alcance (~70 archivos de página, la mayoría cambios de clases).
 - Sin cambios de API, contratos, schema ni migraciones.
-- Onboarding tours (driver.js) apuntan a `[data-tour]` del chrome móvil —
+- Onboarding tours (driver.js) apuntan a `[data-tour]` del chrome móvil;
   en desktop los targets pueden no existir; los tours se evalúan/saltean
   por breakpoint.

@@ -1,9 +1,9 @@
-# Proposal — add-clarity
+# Proposal; add-clarity
 
 ## Why
 
 Además de GTM (medición/marketing) necesitamos Microsoft Clarity
-(proyecto `z4swabie90`) para heatmaps y grabaciones de sesión — el
+(proyecto `z4swabie90`) para heatmaps y grabaciones de sesión; el
 "por qué" detrás de los números en landings y flujos de conversión.
 
 ## What Changes
@@ -22,7 +22,7 @@ Además de GTM (medición/marketing) necesitamos Microsoft Clarity
 
 ### New Capabilities
 
-(ninguna — extiende la existente)
+(ninguna; extiende la existente)
 
 ### Modified Capabilities
 
@@ -31,8 +31,8 @@ Además de GTM (medición/marketing) necesitamos Microsoft Clarity
 
 ## Impact
 
-- `apps/web/src/app/[locale]/layout.tsx` — monta `<ClarityScript/>`.
-- `apps/web/src/components/clarity.tsx` — nuevo componente.
-- `apps/web/src/middleware.ts` — `script-src` suma `https://*.clarity.ms`.
-- `netlify.toml` — env var de build.
+- `apps/web/src/app/[locale]/layout.tsx`; monta `<ClarityScript/>`.
+- `apps/web/src/components/clarity.tsx`; nuevo componente.
+- `apps/web/src/middleware.ts`; `script-src` suma `https://*.clarity.ms`.
+- `netlify.toml`; env var de build.
 - Sin cambios de API, schema ni contratos.

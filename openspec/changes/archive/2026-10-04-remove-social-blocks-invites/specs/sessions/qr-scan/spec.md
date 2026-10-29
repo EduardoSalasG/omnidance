@@ -1,4 +1,4 @@
-# sessions/qr-scan — deltas
+# sessions/qr-scan; deltas
 
 ## ADDED Requirements
 

@@ -1,8 +1,8 @@
-# Handoff — 2026-11-03
+# Handoff; 2026-11-03
 
 ## Completado esta sesión
 
-### `academy-presale-commission` — implementado y archivado
+### `academy-presale-commission`; implementado y archivado
 
 Preventa vendida por academias como canal atribuido (modelo acordado con el
 usuario: la plataforma **registra** la deuda productor→academia, no la paga;
@@ -13,12 +13,12 @@ el productor marca pagado unilateralmente con comprobante opcional).
   (marca de pago materializada al marcar, `amountDue` + `evidenceUrl?`),
   `Payment.soldByAcademyId`/`academyCommissionClp` (snapshot por orden).
   Migración `20261103000000_academy_sale_deals` aplicada al Postgres Docker.
-- **Dominio**: `payments/application/academy-sales.service.ts` — creación con
+- **Dominio**: `payments/application/academy-sales.service.ts`; creación con
   owner/admin + academia aprobada (active + `ACADEMY_OWNER` APPROVED del
   owner), accept/decline/disable/edit, `resolveAttribution` (solo
   `channel=PRESALE`, acuerdo ACTIVE del evento **o de su serie**, cupo
   `maxTickets`), deuda computada = Σ `academyCommissionClp` PAID − Σ
-  settlements. Ojo: `Payment` no tiene relación `event` — el alcance de serie
+  settlements. Ojo: `Payment` no tiene relación `event`; el alcance de serie
   resuelve `event.findMany({seriesId})` → `eventId IN (...)`.
 - **Checkout**: `academyId` opcional en `POST /checkout/ticket`; atribución
   silenciosa (sin acuerdo → orden normal sin error); `FEE_ASSESSED` lleva
@@ -57,11 +57,11 @@ el productor marca pagado unilateralmente con comprobante opcional).
 
 - **Sin smoke E2E de la compra atribuida** contra DB real (los specs cubren
   el camino; falta una compra real con `?a=` en dev).
-- `GET /academy-deals/:id` no existe — las fichas resuelven desde el listado
+- `GET /academy-deals/:id` no existe; las fichas resuelven desde el listado
   (suficiente en v1; si el volumen crece, agregar endpoint por id).
 - Acuerdos de serie: el front solo arma link del evento en contexto; la
   academia ve el hint "vale para toda la serie".
-- `webhook`/settle no tocan `soldByAcademyId` — la comisión vive solo en el
+- `webhook`/settle no tocan `soldByAcademyId`; la comisión vive solo en el
   Payment; reportes de deuda por período son un siguiente slice si se pide.
 
 ## Próximo slice sugerido

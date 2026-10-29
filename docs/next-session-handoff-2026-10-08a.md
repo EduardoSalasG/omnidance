@@ -1,4 +1,4 @@
-# Handoff — 2026-10-08 (a): analytics-query-engine
+# Handoff; 2026-10-08 (a): analytics-query-engine
 
 ## Estado
 
@@ -16,7 +16,7 @@ release gate `dev → main` (sigue pendiente aprobación; dev acumula bastante).
   CRUD `/query/saved`. Catálogo declarativo en
   `packages/shared/src/query-catalog.ts` (PRODUCER 7 entidades,
   ACADEMY_OWNER 6, ADMIN 13). `/admin/browse/:entity` y
-  `/events/:id|series/:id/export.*` delegan en el registry — back-compat.
+  `/events/:id|series/:id/export.*` delegan en el registry; back-compat.
 - **`SavedReport`** nueva tabla (migración `20261008000000_saved_report`,
   generada con `migrate diff` + `migrate deploy` porque `migrate dev` exige
   TTY). Plantillas de sistema = `SYSTEM_QUERIES` en shared, no en DB.
@@ -26,7 +26,7 @@ release gate `dev → main` (sigue pendiente aprobación; dev acumula bastante).
 - **Refactor de filtros** en todos los módulos de listas (academia:
   alumnos/asistencia/clases/cobros/particulares/planes/series/equipo/videos;
   productor: eventos/listas/pagos/comprobantes/codigos; admin:
-  datos/usuarios/finanzas/auditoria/campanas/facturacion) — mismo `FilterBar`
+  datos/usuarios/finanzas/auditoria/campanas/facturacion); mismo `FilterBar`
   y mismos params del catálogo; módulos conservan acciones, analítica es
   solo lectura.
 
@@ -59,7 +59,7 @@ release gate `dev → main` (sigue pendiente aprobación; dev acumula bastante).
 
 ## Limitaciones conocidas
 
-- **Filtro sexo/género de alumnos**: no implementado — `Person`/`Enrollment`
+- **Filtro sexo/género de alumnos**: no implementado; `Person`/`Enrollment`
   no tienen un campo confiable. Decidir: modelar el campo (migración nueva)
   o documentar como no disponible.
 - Filtros client-side (declarados): payouts en `/admin/finanzas`, campañas
@@ -71,7 +71,7 @@ release gate `dev → main` (sigue pendiente aprobación; dev acumula bastante).
 
 - `git` no está en PATH del shell: usar `/c/Program Files/Git/cmd/git.exe` o
   `export PATH="$PATH:/c/Program Files/Git/cmd"`.
-- Build web con dev server corriendo falla por colisión `.next` — parar dev,
+- Build web con dev server corriendo falla por colisión `.next`; parar dev,
   `rm -rf apps/web/.next`, build.
-- `prisma migrate dev` no corre non-TTY en Windows — usar `migrate diff` +
+- `prisma migrate dev` no corre non-TTY en Windows; usar `migrate diff` +
   `migrate deploy`.

@@ -1,4 +1,4 @@
-# Tasks — producer-console-v2
+# Tasks; producer-console-v2
 
 ## 1. Configuración dividida
 
@@ -13,7 +13,7 @@
 - [x] 1.5 Nav: grupo Configuración con Defaults / Medios de pago /
   Suscripción / Mis pagos / Apariencia; `PRO_SECTION_HREF` → suscripción
 - [x] 1.6 i18n: `producerParams.title` → "Valores por defecto" +
-  `feeTitle`; `producer.configPages.*` — verifica: `ALL_KEYS_OK`
+  `feeTitle`; `producer.configPages.*`; verifica: `ALL_KEYS_OK`
 
 ## 2. Listas de invitados en la ficha del evento
 
@@ -43,7 +43,7 @@
   asistencia derecha; cobros por revisar como sección propia
 - [x] 5.2 `ticket.sale` al productor en `settleTicket` (PAID) con
   deep-link al evento; sin autoaviso cuando el comprador es el
-  productor — spec en `payment-settlement.service.spec.ts`
+  productor; spec en `payment-settlement.service.spec.ts`
 
 ## 6. Seed
 

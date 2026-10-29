@@ -2,7 +2,7 @@
 
 - [x] Schema: `DiscountCodeType.ACADEMY_PRESALE`,
       `DiscountCode.academySaleAgreementId` (índice),
-      `Payment.methodLabel` — migración versionada + generate.
+      `Payment.methodLabel`; migración versionada + generate.
 - [x] `AcademySalesService.createPresaleCode`/`listPresaleCodes` + generador
       slug-fecha-suffix + cupo (emitidos + link-sales PAID < maxTickets).
 - [x] Endpoints `POST/GET /academy-deals/:id/codes` (staff academia

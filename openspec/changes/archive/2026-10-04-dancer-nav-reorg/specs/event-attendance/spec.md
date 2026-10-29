@@ -39,7 +39,7 @@ El header de `/eventos` MUST ofrecer el toggle de íconos lista/calendario y un 
 ### Requirement: RSVP a eventos (GOING/INTERESTED)
 
 **Reason**: la asistencia real se valida con `Ticket`/`Checkin`; RSVP declaraba intención sin valor operativo ni de métrica.
-**Migration**: se eliminan los endpoints RSVP (`PUT/DELETE /api/events/:id/rsvp`, `GET /api/me/rsvp`); "guardados" se reemplaza por Mis eventos (tickets). La tabla `Rsvp` NO se dropea — queda repurposed como marcador "voy" de prácticas; los datos históricos de eventos se pierden — eran solo marcadores.
+**Migration**: se eliminan los endpoints RSVP (`PUT/DELETE /api/events/:id/rsvp`, `GET /api/me/rsvp`); "guardados" se reemplaza por Mis eventos (tickets). La tabla `Rsvp` NO se dropea; queda repurposed como marcador "voy" de prácticas; los datos históricos de eventos se pierden; eran solo marcadores.
 
 ### Requirement: Vista Guardados
 

@@ -1,4 +1,4 @@
-# Diseño — créditos de clase + cancelación con corte
+# Diseño; créditos de clase + cancelación con corte
 
 ## Modelo de datos (migración)
 
@@ -25,7 +25,7 @@ de la clase objetivo, así que la historia no afecta el conteo actual.
 
 ISO lun–dom sobre `Class.date` (que ya se materializa a medianoche UTC del
 día de la clase). No se usa hora local: la diferencia solo aparecería en una
-clase que cruza el lunes 21:00 hora Chile — caso prácticamente inexistente.
+clase que cruza el lunes 21:00 hora Chile; caso prácticamente inexistente.
 
 ## Conteo de consumo
 
@@ -33,7 +33,7 @@ Una reserva consume crédito si `status = BOOKED` o `status = CANCELLED AND
 refunded = false`. `WAITLIST` no consume (ocupa posición en cola, nada más).
 
 La consulta de uso es por `(personId, academyId, rango de semana)` sobre
-`ClassBooking` — no por `enrollmentId` (que queda como auditoría de qué
+`ClassBooking`; no por `enrollmentId` (que queda como auditoría de qué
 inscripción respondió). Esto mantiene el conteo correcto aunque existan
 inscripciones solapadas en la misma academia.
 
@@ -92,7 +92,7 @@ clase = `Class.date` (medianoche UTC) + `slot.startTime` "HH:mm".
 - **Datos existentes**: reservas viejas sin `enrollmentId`/`refunded` no
   distorsionan cuotas (semana acotada; default refunded=true).
 - **Doble reserva concurrente**: el conteo va dentro de la tx existente de
-  `book()` — Postgres serializa por la fila única `(classId, personId)`; el
+  `book()`; Postgres serializa por la fila única `(classId, personId)`; el
   conteo por semana puede tener race entre dos clases distintas reservadas a
-  la vez — se acepta (peor caso: una reserva extra en la semana), o se añade
+  la vez; se acepta (peor caso: una reserva extra en la semana), o se añade
   advisory lock por `(personId, academyId)` si la revisión lo exige.

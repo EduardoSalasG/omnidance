@@ -1,4 +1,4 @@
-# Handoff — Release v1.0.0 + seed prod
+# Handoff; Release v1.0.0 + seed prod
 
 **Rama**: `dev` (sincronizada con `main` en `6da125b`) · **Tag**: `v1.0.0`
 
@@ -22,18 +22,18 @@
 
 ## Verificación (G3)
 
-- `pnpm test`: api 98 archivos / 1932 tests, web 3/3 — todo verde.
+- `pnpm test`: api 98 archivos / 1932 tests, web 3/3; todo verde.
 - `tsc --noEmit` web: limpio (`tsc-errors.txt` untracked es artifact
   viejo de la migración i18n, ignorar/borrar).
-- `pnpm build`: shared + api + web (367 páginas × 4 locales) — verde.
+- `pnpm build`: shared + api + web (367 páginas × 4 locales); verde.
 
 ## Notas
 
 - La URL de Neon prod la pasó el usuario por chat; no queda en el repo.
 - Untracked acumulados en working tree (`.agents/`, `.claude/`,
   `brag-output*/`, `docs/lighthouse/*.json` nuevos, `skills-lock.json`,
-  `tsc-errors.txt`) — candidatos a `.gitignore` o limpieza.
-- Frontend: push a main no gatilla deploy del front acá — Netlify
+  `tsc-errors.txt`); candidatos a `.gitignore` o limpieza.
+- Frontend: push a main no gatilla deploy del front acá; Netlify
   construye desde el repo conectado; verificar que el build de Netlify
   haya corrido para `main`/`v1.0.0`.
 - Annotations del workflow (no bloqueantes): acciones en Node 20

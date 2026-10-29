@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Permitir declarar un baile sin escaneo QR (elegir a la persona manualmente) con confirmación mutua — cuenta para perfil e historial pero nunca para Prime Time, porque solo el escaneo en vivo alimenta el reveal (spec §4).
+Permitir declarar un baile sin escaneo QR (elegir a la persona manualmente) con confirmación mutua; cuenta para perfil e historial pero nunca para Prime Time, porque solo el escaneo en vivo alimenta el reveal (spec §4).
 
 ## ADDED Requirements
 

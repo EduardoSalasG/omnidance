@@ -162,7 +162,7 @@ pasado (año ≥ 1900, no futura) o null/empty para limpiarlo.
 
 `/perfil` SHALL mostrar los roles de la persona como badges bajo el
 nombre y correo solo cuando son ≤2. Con 3 o más `roleStates` la lista
-MUST omitirse — los roles siguen visibles en la sección "Interactuar
+MUST omitirse; los roles siguen visibles en la sección "Interactuar
 como" (que solo lista los APPROVED, con su estado).
 
 #### Scenario: persona con dos roles
@@ -186,7 +186,7 @@ renderizarse en `/perfil` bajo lentes que no las usan:
 - Insignias: ocultas para `ADMIN` e `INSTRUCTOR`.
 - "Mis pagos": oculto para `ACADEMY_OWNER` e `INSTRUCTOR`.
 
-Los datos siguen existiendo bajo la lente DANCER de la misma persona —
+Los datos siguen existiendo bajo la lente DANCER de la misma persona;
 la ocultación es por lente activa, no por usuario.
 
 #### Scenario: instructor abre su perfil

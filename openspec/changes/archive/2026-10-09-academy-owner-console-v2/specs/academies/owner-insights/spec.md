@@ -1,4 +1,4 @@
-# Delta — academies/owner-insights
+# Delta; academies/owner-insights
 
 ## MODIFIED Requirements
 
@@ -9,7 +9,7 @@ comparables computadas sobre el tramo equivalente del mes anterior
 (month-to-date: desde el día 1 hasta el mismo día transcurrido):
 `activeStudentsMonthPrev`, `billedMonthPrev`, `avgTicketMonthPrev` y
 `avgAttendancePerClassMonthPrev` (null cuando el mes anterior no tiene
-base — 0 clases dictadas o 0 pagos).
+base; 0 clases dictadas o 0 pagos).
 
 `activeStudentsMonth` SHALL contar **personas únicas** (`personId`) con
 enrollment en estado que habilita asistir (ACTIVE, TRIAL, ONLINE) y

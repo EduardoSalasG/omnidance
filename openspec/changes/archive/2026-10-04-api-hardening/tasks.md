@@ -1,4 +1,4 @@
-# Tasks — api-hardening
+# Tasks; api-hardening
 
 - [x] Deps: `helmet` + `@nestjs/throttler` (versión compatible Nest 10,
       pinned, `pnpm --filter @omnidance/api add`)

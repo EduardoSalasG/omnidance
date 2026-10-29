@@ -1,11 +1,11 @@
-# Design — admin-console-billing-nav
+# Design; admin-console-billing-nav
 
 ## Decisiones
 
 - **Drawer-only por `MOBILE_DRAWER_ONLY`**: agregar `"ADMIN"` al set
   existente. `showTabBar=false` → sin tab bar, `data-notabbar` quita el
   padding, `hasDrawerItems` mantiene la hamburguesa. Mismo mecanismo
-  probado de owner/productor — cero código nuevo de chrome.
+  probado de owner/productor; cero código nuevo de chrome.
 - **Drawer admin completo**: `DRAWER_BY_ROLE.ADMIN` =
   `MOBILE_HOME_GROUP()` (Inicio primero, mobileOnly) + grupo Admin
   (hub `/admin` `exact` + roles/parametros/usuarios/datos/academias/
@@ -14,7 +14,7 @@
   `/admin/finanzas`) + CRM + Analítica + Social. `/admin` y
   `/admin/facturacion` llevan `exact: true` porque su prefijo cubre
   sub-páginas. En `≥lg` el grupo de tabs queda solo con Inicio
-  (el resto se deduplica contra drawerHrefs) — mismo resultado que
+  (el resto se deduplica contra drawerHrefs); mismo resultado que
   producer/owner.
 - **Home admin = `/home/stats` extendido, no endpoint nuevo**:
   `adminStats()` suma `leadsNew`, `txRevenueMonth` (clp),
@@ -25,13 +25,13 @@
   finance.controller lo importa (hoy es función local); home.service
   lo reusa para el mismo mes calendario Chile que la consola.
   txRevenueMonth = Σ(net+vat) de PAID no-PLATFORM_SUB; subRevenueMonth =
-  Σamount de PAID PLATFORM_SUB — misma semántica que
+  Σamount de PAID PLATFORM_SUB; misma semántica que
   `platformRevenue.net/vat` y `gmv.saas` del summary.
 - **`/admin/datos` seed por URL**: un efecto one-shot lee
   `useSearchParams` al montar (tras cargar el catálogo): `entity`
   válido → `setEntity`, y cada key de `entityDef.filters` presente en
   la URL → `filters`. Invalid → default actual. `useSearchParams`
-  requiere Suspense boundary — la page es client component dentro del
+  requiere Suspense boundary; la page es client component dentro del
   shell que ya provee boundaries (verificar; si Next exige, envolver
   en `<Suspense>`).
 - **Nuevas páginas reusando endpoints**:
@@ -39,13 +39,13 @@
     para KPIs + desglose; `GET /admin/browse/payments?status=PAID` +
     FilterBar con `entityDef("ADMIN","payments")` para la lista
     (misma query que el tab payments de finanzas).
-  - `suscripciones/page.tsx`: `GET /admin/finance/mrr` — KPIs, byTier,
+  - `suscripciones/page.tsx`: `GET /admin/finance/mrr`; KPIs, byTier,
     funnel (chips filtran client-side) y lista de subscriptions.
   - Ambas: `AdminGate`, `ConsoleHeader` (se auto-oculta por
     isSidebarRoute), skeleton `.page-loading`, `role="alert"` + retry,
     empty states.
 - **Kpi compartido**: el `<Kpi label value hint>` vive local en
-  finanzas/page.tsx — se extrae a `components/admin/kpi-card.tsx` y lo
+  finanzas/page.tsx; se extrae a `components/admin/kpi-card.tsx` y lo
   consumen las dos páginas nuevas (finanzas lo adopta para no
   duplicar).
 - **i18n**: keys nuevas en `messages/es-CL.json` → `home.kpi.leadsNew`,
@@ -57,11 +57,11 @@
 ## Riesgos
 
 - `useSearchParams` en datos/page: ya es `"use client"`; el shell monta
-  la page bajo su propio árbol — si el build exige Suspense se envuelve
+  la page bajo su propio árbol; si el build exige Suspense se envuelve
   el panel.
 - `adminStats` corre para cualquier admin en cada carga de /inicio:
   dos agregados extra sobre `Payment` + `Lead` indexados por
-  createdAt/status — barato.
+  createdAt/status; barato.
 - El KPI `txRevenueMonth` excluye PLATFORM_SUB para no doble-contar:
   las subs de plataforma no llevan platformFee (su monto ES el ingreso).
 

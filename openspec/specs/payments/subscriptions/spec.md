@@ -59,7 +59,7 @@ métodos.
 - **WHEN** ningún adaptador registrado implementa
   `SubscriptionProvider` y soporta la moneda
 - **THEN** los flujos de suscripción fallan con error explícito de
-  moneda no soportada — nunca caen en silencio a un provider de CLP
+  moneda no soportada; nunca caen en silencio a un provider de CLP
 
 #### Scenario: Provider sin capability
 
@@ -97,7 +97,7 @@ SHALL aceptar `STRIPE` como motor válido para el pase.
 
 - **WHEN** un bailarín suscribe y Stripe crea la Checkout Session
 - **THEN** vuelve a la app y `invoice.paid` (webhook firmado) activa
-  su `SocialPass` — la confirmación v1 puede además resolverse por
+  su `SocialPass`; la confirmación v1 puede además resolverse por
   `getSubscription` al regresar (mismo patrón polling del checkout)
 
 ### Requirement: Créditos del pase
@@ -106,21 +106,21 @@ SHALL aceptar `STRIPE` como motor válido para el pase.
 `SocialPassLedger` (`RESET` al allotment `creditsPerPeriod` en cada
 `invoice.paid`, `REDEEM` por entrada pagada con crédito, `GRANT`
 manual admin). El reset SHALL ser duro por período (créditos no
-acumulan — copy explícito al usuario). Créditos aplican a
-tickets de eventos sociales/prácticas — NUNCA a membresías, clases
+acumulan; copy explícito al usuario). Créditos aplican a
+tickets de eventos sociales/prácticas; NUNCA a membresías, clases
 o productos de academia.
 
 #### Scenario: Renovación resetea
 
 - **WHEN** `invoice.paid` de un ciclo nuevo llega
 - **THEN** `creditsBalance = creditsPerPeriod` y el ledger gana
-  `RESET` — el remanente anterior se pierde
+  `RESET`; el remanente anterior se pierde
 
 #### Scenario: Redención atómica
 
 - **WHEN** el bailarín usa 1 crédito en una entrada
 - **THEN** decrementar el balance + `REDEEM` + crear la orden $0 va
-  en la misma transacción — sin crédito suficiente → 409 y nada muta
+  en la misma transacción; sin crédito suficiente → 409 y nada muta
 
 ### Requirement: Beneficios de precio en checkout
 
@@ -128,7 +128,7 @@ Con `SocialPass` `ACTIVE` el checkout de ticket SHALL usar
 `presalePrice` aunque la preventa haya cerrado, y SHALL eximir
 `doorAppFeeClp` (desglose con línea visible del beneficio). Sin pass,
 el pricing actual no cambia. El beneficio aplica al comprador
-suscrito — nunca a tickets para terceros/regalos del mismo orden.
+suscrito; nunca a tickets para terceros/regalos del mismo orden.
 
 #### Scenario: Suscriptor en puerta
 
@@ -154,7 +154,7 @@ El webhook STRIPE SHALL enrutar `invoice.paid`,
 `invoice.payment_failed` y `customer.subscription.deleted` a la
 `MembershipSubscription` cuyo remoteId coincida con la suscripción del
 evento, aplicando la misma semántica del reconcile (settle de invoice,
-mora, cancelación) con dedup idempotente — la misma invoice procesada
+mora, cancelación) con dedup idempotente; la misma invoice procesada
 por webhook y por polling SHALL liquidarse una sola vez.
 
 #### Scenario: renovación de membresía Stripe
@@ -181,5 +181,5 @@ bloqueo, invoice impaga abre gracia, cancel remoto marca CANCELED).
 
 - **WHEN** llega `invoice.payment_failed` para una
   `PlatformSubscription` ACTIVE
-- **THEN** abre la ventana de gracia/bloqueo igual que el reconcile —
+- **THEN** abre la ventana de gracia/bloqueo igual que el reconcile;
   sin esperar al polling

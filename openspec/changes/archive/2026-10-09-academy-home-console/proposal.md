@@ -1,4 +1,4 @@
-# Proposal — academy-home-console
+# Proposal; academy-home-console
 
 ## Why
 

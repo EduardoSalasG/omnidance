@@ -1,4 +1,4 @@
-# Delta — academies/class-series (academy-console-v3)
+# Delta; academies/class-series (academy-console-v3)
 
 ## ADDED Requirements
 
@@ -44,7 +44,7 @@ de modalidad y nivel junto a la búsqueda.
 ### Requirement: Detalle de clase (serie)
 
 El card de clase en el listado MUST NOT mostrar acciones visibles
-(editar, desactivar, reactivar, eliminar, agregar/quitar horario) — el
+(editar, desactivar, reactivar, eliminar, agregar/quitar horario); el
 tap navega al detalle `/academia/series/[id]`, que concentra: datos,
 edición (formulario existente), gestión de horarios (agregar/quitar),
 desactivar/reactivar/eliminar, próximas clases con reservas y clases
@@ -66,7 +66,7 @@ slot > serie).
 
 Marcar presente SHALL ser exclusivo del instructor efectivo de la
 clase (`class.instructorId ?? slot.instructorId ?? series.instructorId`)
-o un admin de plataforma — el owner de la academia MUST NOT registrar
+o un admin de plataforma; el owner de la academia MUST NOT registrar
 asistencia. `POST /classes/:id/attendance {personId}` exige que el
 alumno tenga reserva `BOOKED` en esa clase; duplicado → 409.
 `POST /academies/:id/attendance` (legacy) aplica la misma regla de
@@ -93,7 +93,7 @@ consola del instructor muestre el control "Presente" por alumno.
 
 La carga masiva CSV de horarios (ImportCard kind="schedule") SHALL
 vivir en la página de Clases junto a los filtros como acción
-"Importar clases" — las páginas standalone `/academia/horarios` y
+"Importar clases"; las páginas standalone `/academia/horarios` y
 `/academia/asistencia` se eliminan (redirect a `/academia/series`).
 
 #### Scenario: importar desde Clases

@@ -192,7 +192,7 @@
       },
       "seatsOccupancy": "{used} of {total} seats occupied",
       "cancelTitle": "Cancel the reservation?",
-      "cancelDesc": "{name} — {count, plural, one {# person} other {# people}}."
+      "cancelDesc": "{name}, {count, plural, one {# person} other {# people}}."
     },
     "ratings": {
       "notEnough": "Not enough ratings to show yet ({count}/3).",
@@ -449,11 +449,11 @@
       "emailPlaceholder": "person@email.com",
       "nameLabel": "Name (optional)",
       "inviteSubmit": "Send invite",
-      "invited": "Invite sent — they got an email with access",
+      "invited": "Invite sent, they got an email with access",
       "added": "Collaborator added",
       "removeTitle": "Remove {name}?",
       "removeDesc": "They will no longer appear as a staff candidate for your events.",
-      "quotaFull": "Your plan covers up to {limit} collaborator(s) — upgrade to add more."
+      "quotaFull": "Your plan covers up to {limit} collaborator(s), upgrade to add more."
     }
   }
 }

@@ -200,7 +200,7 @@ export function AcademyKpiCards({
                   data-tour={`academy-kpi-${k.key}`}
                   // El hint también vive en title (visual); el aria-label
                   // lo expone a teclado/táctil y lectores de pantalla.
-                  aria-label={`${label}: ${k.value ?? t("kpis.noData")} — ${k.hint}`}
+                  aria-label={`${label}: ${k.value ?? t("kpis.noData")}. ${k.hint}`}
                   className="block h-full rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98]"
                 >
                   <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/40">

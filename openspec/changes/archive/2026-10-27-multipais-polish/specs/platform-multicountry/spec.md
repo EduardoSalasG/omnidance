@@ -1,4 +1,4 @@
-# platform-multicountry — polish
+# platform-multicountry; polish
 
 ## ADDED Requirements
 
@@ -42,7 +42,7 @@ onboarding de planes.
 
 ### Requirement: Facturación mensual por moneda
 
-La facturación bruta mensual del productor SHALL agregarse por moneda —
+La facturación bruta mensual del productor SHALL agregarse por moneda;
 los KPIs y la resolución de tier SHALL operar sobre el desglose
 `{currency: amount}`, nunca sobre una suma de monedas distintas.
 

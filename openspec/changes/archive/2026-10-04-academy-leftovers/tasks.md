@@ -1,4 +1,4 @@
-# tasks — academy-leftovers
+# tasks; academy-leftovers
 
 - [x] PATCH series: addSlots + materialización parcial
 - [x] PATCH series: notificación class.series.resumed a enrollments activos

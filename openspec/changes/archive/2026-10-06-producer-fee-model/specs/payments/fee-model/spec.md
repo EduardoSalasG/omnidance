@@ -31,10 +31,10 @@ cobra.
 El sistema SHALL persistir en `Payment` al crear la orden:
 
 - `feeMode`: `MANAGED` (tickets/pases por pasarela nuestra),
-  `ACADEMY` (órdenes de academia — monetiza SaaS), `FREE` (total $0).
+  `ACADEMY` (órdenes de academia; monetiza SaaS), `FREE` (total $0).
 - `platformFeeRate`: % todo incluido aplicado, resuelto
   `Event.platformFeePct` → `ProducerParams.platformFeePct` →
-  `fees.managed_allin_pct` (default 10). Snapshot — nunca se
+  `fees.managed_allin_pct` (default 10). Snapshot; nunca se
   recalcula.
 - `platformFeeNetClp` + `platformFeeVatClp`:
   `round((deduction − gatewayExpected) / (1 + tax.iva_pct/100))` y su

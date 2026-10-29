@@ -18,7 +18,7 @@ link solo cuando hay website (muestra el host como etiqueta).
 
 La ficha pública (`GET /academies/:id/profile`) SHALL además exigir que
 la academia sea visible (`reviewStatus` APPROVED o checklist completo)
-para viewers sin privilegios de gestión — ver academies/approval-gate.
+para viewers sin privilegios de gestión; ver academies/approval-gate.
 
 #### Scenario: guardar y mostrar
 

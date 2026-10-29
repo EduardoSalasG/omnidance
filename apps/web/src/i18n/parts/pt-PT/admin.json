@@ -12,7 +12,7 @@
         "title": "Zona de perigo",
         "body": "Desativa a conta: não pode entrar nem aparecer nas superfícies públicas, mas os dados ficam intactos e podes reativar.",
         "cta": "Desativar utilizador",
-        "confirm": "Desativar {name}? Os dados ficam guardados — podes reativar depois."
+        "confirm": "Desativar {name}? Os dados ficam guardados, podes reativar depois."
       },
       "detail": {
         "personal": "Dados pessoais",
@@ -461,11 +461,11 @@
         "FAILED": "Falhou",
         "CANCELLED": "Cancelada"
       },
-      "testSent": "Teste enviado — verifica o teu e-mail."
+      "testSent": "Teste enviado, verifica o teu e-mail."
     },
     "billing": {
       "title": "Faturação",
-      "desc": "Notas de débito internas para as deduções de cada liquidação. Documento interno — não é uma fatura fiscal.",
+      "desc": "Notas de débito internas para as deduções de cada liquidação. Documento interno, não é uma fatura fiscal.",
       "candidatesTitle": "Emitir a partir das liquidações",
       "candidatesEmpty": "Sem liquidações com débitos à espera de documento.",
       "docsTitle": "Documentos emitidos",
@@ -516,12 +516,12 @@
       "markPaid": "Marcar pago",
       "evidence": "Comprovativo",
       "evidencePlaceholder": "Link para o comprovativo de transferência…",
-      "accrualEmpty": "Tudo liquidado — sem pagamentos à espera de liquidação.",
+      "accrualEmpty": "Tudo liquidado, sem pagamentos à espera de liquidação.",
       "accrualSince": "{count, plural, one {# encomenda} other {# encomendas}} desde {date}",
       "accrualSplit": "Bruto {gross} − deduções est. {deductions}",
       "receivable": "O ator deve {amount} por métodos próprios (líquido)",
       "generate": "Gerar uma liquidação",
-      "generated": "Liquidação gerada para {name} — ver o separador Liquidações.",
+      "generated": "Liquidação gerada para {name}, ver o separador Liquidações.",
       "generateError": "Não foi possível gerar a liquidação.",
       "paymentsHint": "Encomendas pagas com o seu detalhe de comissão fixado. A cadeia completa de eventos está em Dados → Pagamentos.",
       "paymentSplit": "Taxa {rate} · líquido ator {producerNet} · gateway {gateway}",

@@ -12,8 +12,8 @@ el chrome móvil actual.
 
 En viewports `≥lg` la app SHALL renderizar una sidebar izquierda persistente
 con los módulos del rol activo agrupados por dominio. La sidebar MUST
-soportar dos estados — expandida (ícono + label + headers de grupo) y
-colapsada (rail de solo íconos, label accesible vía tooltip/`aria-label`) —
+soportar dos estados; expandida (ícono + label + headers de grupo) y
+colapsada (rail de solo íconos, label accesible vía tooltip/`aria-label`);
 con un toggle visible para cambiar de estado. El estado MUST persistir por
 dispositivo. La sidebar MUST marcar la ruta activa con `aria-current` y ser
 un `<nav>` con `aria-label`.
@@ -138,7 +138,7 @@ consola agrupados por dominio operativo: **Gestión** (`/admin/usuarios`,
 `/admin/campanas` Difusión), **Analítica** (`/analitica`,
 `/admin/datos`, `/analitica/usuarios`), **Plataforma**
 (`/admin/parametros`, `/admin/jobs`, `/admin/auditoria`) y **Social**
-(`/eventos`, `/staff`). El hub `/admin` se elimina — redirige a
+(`/eventos`, `/staff`). El hub `/admin` se elimina; redirige a
 `/inicio`.
 
 #### Scenario: Ninguna página huérfana

@@ -1,4 +1,4 @@
-# academy-billing — precio del tier por país
+# academy-billing; precio del tier por país
 
 ## MODIFIED Requirements
 
@@ -32,4 +32,4 @@ academia.
 - **GIVEN** una academia en `Country("MX")` con fila
   `TierPrice(STUDIO, ACADEMY, MONTHLY, MX)`
 - **WHEN** el owner abre la pantalla de suscripción
-- **THEN** ve el precio de la fila MX en MXN — no el param CLP
+- **THEN** ve el precio de la fila MX en MXN; no el param CLP

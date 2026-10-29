@@ -4,8 +4,8 @@
 
 El checkout actual permite comprar 1 entrada propia + regalar a amigos registrados (`recipientIds`). Dos brechas reales del flujo:
 
-1. **El comprador no controla la cantidad** — la cantidad se deriva de los amigos marcados; no hay forma de comprar N entradas "sueltas" (pareja, grupo, revender/regalar después).
-2. **El destinatario fuera de la app se escapa del embudo** — si la persona no está registrada o no es amiga, hoy la compra se bloquea. En la práctica el comprador igual quiere traerla: necesita un link de reclamo compartible (WhatsApp) — "crea tu cuenta y reclama tu entrada" — que además es el vector de crecimiento más orgánico del producto.
+1. **El comprador no controla la cantidad**; la cantidad se deriva de los amigos marcados; no hay forma de comprar N entradas "sueltas" (pareja, grupo, revender/regalar después).
+2. **El destinatario fuera de la app se escapa del embudo**; si la persona no está registrada o no es amiga, hoy la compra se bloquea. En la práctica el comprador igual quiere traerla: necesita un link de reclamo compartible (WhatsApp); "crea tu cuenta y reclama tu entrada"; que además es el vector de crecimiento más orgánico del producto.
 
 Sin esto, el caso más común de la vida real ("te compro la entrada y te la paso por WhatsApp") no existe en la plataforma.
 
@@ -13,14 +13,14 @@ Sin esto, el caso más común de la vida real ("te compro la entrada y te la pas
 
 - **Selector de cantidad en checkout** (1–10): el usuario elige cuántas entradas compra; asigna amigos hasta `quantity-1`; el resto quedan como **entradas por reclamar**.
 - **`Ticket.claimToken` + `claimedAt`**: las entradas no asignadas se emiten al PAID con `ownerId=comprador` y un token de reclamo único. La trazabilidad queda en la tabla Ticket existente (`buyerId` original, `giftedFromId` al reclamar, `claimedAt` timestamp).
-- **Endpoints de reclamo**: `GET /tickets/claim/:token` (público — renderiza la invitación con evento + quién regaló) y `POST /tickets/claim/:token` (sesión — asigna el ticket al reclamante, notifica al comprador).
-- **`/reclamar/[token]`**: landing pública "X te regaló una entrada para Y — crea tu cuenta" → login/registro (con `next` preservando el token) → botón "Reclamar entrada" → la entrada aparece en Mis entradas.
+- **Endpoints de reclamo**: `GET /tickets/claim/:token` (público; renderiza la invitación con evento + quién regaló) y `POST /tickets/claim/:token` (sesión; asigna el ticket al reclamante, notifica al comprador).
+- **`/reclamar/[token]`**: landing pública "X te regaló una entrada para Y; crea tu cuenta" → login/registro (con `next` preservando el token) → botón "Reclamar entrada" → la entrada aparece en Mis entradas.
 - **Share por WhatsApp**: en el éxito del checkout y en la wallet, cada entrada pendiente de reclamo muestra botón "Enviar invitación" (`wa.me/?text=` con el link).
 - **Checkout pide `quantity` explícito** (default 1) además de `recipientIds`; valida `recipientIds ≤ quantity-1`.
 - **Onboarding**: quitar del tour de QR la mención "se actualiza cada 30 segundos".
-- **Seed**: shows para TODOS los eventos publicados — jueves ≥3, viernes/sábado 4–5 (los que más tienen), mar/mié 1–2; rosters explícitos se mantienen.
+- **Seed**: shows para TODOS los eventos publicados; jueves ≥3, viernes/sábado 4–5 (los que más tienen), mar/mié 1–2; rosters explícitos se mantienen.
 
-No cambia: el pago real por tarjeta (Flow/Webpay sigue pendiente — stub en dev), los estados de Ticket (no se agrega PENDING_CLAIM — el reclamo se modela por `claimToken != null`), ni la emisión al PAID vía webhook.
+No cambia: el pago real por tarjeta (Flow/Webpay sigue pendiente; stub en dev), los estados de Ticket (no se agrega PENDING_CLAIM; el reclamo se modela por `claimToken != null`), ni la emisión al PAID vía webhook.
 
 ## Capabilities
 

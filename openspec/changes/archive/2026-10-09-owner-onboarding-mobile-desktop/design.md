@@ -42,15 +42,15 @@
 - **Checklist**: la condición pasa de `totalStudents === 0` a
   `!allDone` con 5 pasos ordenados (series → plan → método de pago →
   equipo → primer alumno). Se agrega `methodsCount` al dashboard (count
-  aditivo en el Promise.all existente) en vez de un fetch extra —
+  aditivo en el Promise.all existente) en vez de un fetch extra;
   mismo patrón que `teamCount`. El header muestra "{done} de {total}".
 - **Tour owner**: nueva clave `academia-owner` (independiente de la
-  clave `academia` que usa el hub de staff — un owner que también es
+  clave `academia` que usa el hub de staff; un owner que también es
   staff en otra academia ve ambos recorridos). Steps sobre secciones
   del dashboard con anchors `academy-kpis`, `academy-checklist`,
   `academy-today`, `academy-alerts`; el paso de navegación declara dos
   candidatos: `appbar-menu` (hamburguesa, `<lg`) y `app-sidebar`
-  (`<nav>` de AppSidebar, `≥lg`) — el runner conserva solo el visible.
+  (`<nav>` de AppSidebar, `≥lg`); el runner conserva solo el visible.
   La campana (`appbar-bell`) cierra el tour.
 - **Carrera de targets async (descubierta en verificación)**: los
   anchors del dashboard solo existen tras resolver `AcademyGate` →
@@ -59,11 +59,11 @@
   reducido a los 2 anchors del chrome. Dos defensas: el runner se
   monta **dentro** del `AcademyGate` (los anchors estáticos ya
   existen) y `OnboardingRunner` sondea cada 250ms hasta que el set de
-  targets quede estable ~1.5s (o 8s máx) — así las secciones que
+  targets quede estable ~1.5s (o 8s máx); así las secciones que
   dependen del fetch (checklist, today, colas, alertas) entran al
   tour y las que nunca existen se omiten como antes.
 - **Anchor de sidebar**: `data-tour="app-sidebar"` en el `<nav>` de
-  `AppSidebar` (todo el menú, no un item puntual — el popover cubre
+  `AppSidebar` (todo el menú, no un item puntual; el popover cubre
   "todos los módulos"). En riel colapsado el nav sigue visible → el
   step funciona en ambos estados.
 - **Staff tour**: `SIDEBAR_TOUR` gana `/academia` → `nav-academy` y
@@ -74,9 +74,9 @@
 
 - `academy-kpis`/`academy-today`/`academy-alerts` envuelven secciones
   existentes: el tour queda atado a la estructura del dashboard (si la
-  sección se elimina, el step se omite solo — comportamiento tolerado
+  sección se elimina, el step se omite solo; comportamiento tolerado
   por diseño del runner).
-- Owners existentes verán el tour una vez (clave nueva): intencional —
+- Owners existentes verán el tour una vez (clave nueva): intencional;
   es onboarding nuevo, no repetición del anterior.
 - `methodsCount` suma una query `count` al dashboard (ya batched en un
   Promise.all grande): impacto despreciable.

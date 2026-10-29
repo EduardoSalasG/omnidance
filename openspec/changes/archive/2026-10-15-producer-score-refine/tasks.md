@@ -3,11 +3,11 @@
 ## 1. Params
 
 - [x] Seed baseline: `crm.score.early_pts` (2), `crm.score.early_cap`
-      (3), `crm.score.early_days` (3) — idempotente.
+      (3), `crm.score.early_days` (3); idempotente.
 
 ## 2. Dominio (crm.service)
 
-- [x] `computeActivity` PRODUCER: señales nuevas — `eventsRecent`
+- [x] `computeActivity` PRODUCER: señales nuevas; `eventsRecent`
       (checkins últimas `attendance_weeks` semanas), `eventStreak`
       (eventos pasados consecutivos asistidos), `monthsContinuous`
       (meses con checkin o compra), `purchases` (TICKET por eventId +

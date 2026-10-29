@@ -1,4 +1,4 @@
-# Proposal — admin-user-soft-delete
+# Proposal; admin-user-soft-delete
 
 ## Why
 
@@ -23,4 +23,4 @@ intacta para el admin.
 - Admin UI: badge "Desactivada" en lista y ficha, botón Reactivar,
   copy de zona de peligro actualizado.
 - **BREAKING** semántico: el endpoint ya no libera el email ni elimina
-  el historial — comportamiento intencional.
+  el historial; comportamiento intencional.

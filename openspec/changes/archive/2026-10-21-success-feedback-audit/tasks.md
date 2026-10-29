@@ -1,4 +1,4 @@
-# Tareas — success-feedback-audit
+# Tareas; success-feedback-audit
 
 - [x] 1. Change + artifacts.
 - [x] 2. Atom `ActionNotice` + adopción en superficies dancer (lista clases,

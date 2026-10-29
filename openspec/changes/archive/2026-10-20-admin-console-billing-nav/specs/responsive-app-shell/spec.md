@@ -1,4 +1,4 @@
-# responsive-app-shell — delta admin-console-billing-nav
+# responsive-app-shell; delta admin-console-billing-nav
 
 ## ADDED Requirements
 
@@ -33,7 +33,7 @@ consola agrupados por dominio operativo: **Gestión** (`/admin/usuarios`,
 `/admin/campanas` Difusión), **Analítica** (`/analitica`,
 `/admin/datos`, `/analitica/usuarios`), **Plataforma**
 (`/admin/parametros`, `/admin/jobs`, `/admin/auditoria`) y **Social**
-(`/eventos`, `/staff`). El hub `/admin` se elimina — redirige a
+(`/eventos`, `/staff`). El hub `/admin` se elimina; redirige a
 `/inicio`.
 
 #### Scenario: Ninguna página huérfana

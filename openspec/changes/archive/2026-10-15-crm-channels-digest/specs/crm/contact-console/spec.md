@@ -1,4 +1,4 @@
-# crm/contact-console — delta crm-channels-digest
+# crm/contact-console; delta crm-channels-digest
 
 ## ADDED Requirements
 

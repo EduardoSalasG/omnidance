@@ -1,4 +1,4 @@
-# Change: backlog-wave — features §16 del spec
+# Change: backlog-wave; features §16 del spec
 
 ## Why
 
@@ -7,7 +7,7 @@ faltan tras `spec-gap-closure`: CRUD de eventos del productor, pases de
 lista, pase de serie, payouts, matching de viajes, academia avanzada
 (clases privadas + videos), CRM transversal (scores/tags/campañas/
 triggers/referrals) y tiempo real (WebSocket + Web Push + scheduler de
-triggers). El schema de Prisma ya modela todas las entidades — el gap es
+triggers). El schema de Prisma ya modela todas las entidades; el gap es
 funcional: endpoints, servicios y wiring.
 
 ## What changes
@@ -30,5 +30,5 @@ funcional: endpoints, servicios y wiring.
   (PRODUCER + ACADEMY_OWNER). Params nuevos: `series_pass.price_clp`,
   `service_fee.series_pass_clp`, `crm.winback_days`.
 - BullMQ diferido: en su lugar `node-cron` in-process para evaluación de
-  triggers (decisión: un solo dev, infra gratis — Redis existe en
+  triggers (decisión: un solo dev, infra gratis; Redis existe en
   docker-compose pero no es requisito para v1).

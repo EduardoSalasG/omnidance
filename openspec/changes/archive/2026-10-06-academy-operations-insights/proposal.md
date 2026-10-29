@@ -2,7 +2,7 @@
 
 ## Why
 
-La landing `/para-academias` promete gestión real — pero dos features
+La landing `/para-academias` promete gestión real; pero dos features
 de retención que el owner espera (avisos de planes por vencer y
 cumpleaños de alumnos) no existen en la consola, y el strip de prueba
 social muestra eventos (dato de productor, no de academia). La data ya
@@ -13,7 +13,7 @@ está (`Enrollment.endsAt`); los cumpleaños requieren un campo nuevo.
 - `Person.birthDate` (DateTime nullable, autodeclarado): editable vía
   `PATCH /me`, devuelto en `GET /me` y editable en `/perfil/datos`.
 - `GET /academies/public` (sin sesión): `{id, name, styles[]}` de
-  academias activas sin bloqueo de mora — mínima exposición para el
+  academias activas sin bloqueo de mora; mínima exposición para el
   strip de la landing.
 - `GET /academies/:id/dashboard` gana `expiringEnrollments` (planes con
   vigencia en los próximos N días) y `upcomingBirthdays` (cumpleaños de

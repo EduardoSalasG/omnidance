@@ -3,7 +3,7 @@
 ## Problema
 
 El modelo de fees (`producer-fee-model`) ya contempla `feeMode
-OWN_GATEWAY` — la venta se cobra en la cuenta Flow/MercadoPago **del
+OWN_GATEWAY`; la venta se cobra en la cuenta Flow/MercadoPago **del
 productor**, la plata va directo a él y la plataforma solo devenga su
 comisión (`all-in − card%`, neteada en su payout como líneas
 `OWN_METHOD_*`). Pero hoy no existe forma de registrar credenciales por
@@ -14,7 +14,7 @@ sin el onboarding de cuentas.
 ## Propuesta
 
 - **`ProducerGatewayAccount`**: credenciales del productor cifradas con
-  AES-256-GCM (`PRODUCER_GATEWAY_KEY` env) — nunca en texto plano ni
+  AES-256-GCM (`PRODUCER_GATEWAY_KEY` env); nunca en texto plano ni
   expuestas por API (solo `keyMask` últimos 4). Una cuenta ACTIVE por
   productor; registrar una nueva desactiva la anterior. Providers:
   `FLOW`, `MERCADOPAGO`, y `STUB` solo fuera de producción (ejercita el
@@ -33,7 +33,7 @@ sin el onboarding de cuentas.
 - **Webhook**: `POST /payments/webhook/:provider?account=<id>`
   resuelve el adaptador por cuenta (el productor configura esa URL en
   su panel Flow/MP); el Payment encontrado por refId debe pertenecer a
-  esa cuenta — mismatch → 400.
+  esa cuenta; mismatch → 400.
 - **Polling** `GET /payments/:id`: `refreshStatus` contra el adaptador
   de `Payment.gatewayAccountId` cuando existe.
 - **Endpoints productor** (`SessionGuard` + PRODUCER APPROVED o
@@ -48,7 +48,7 @@ sin el onboarding de cuentas.
 
 - Cuentas de academia (ACADEMY sigue por la pasarela de la plataforma).
 - Suscripciones por cuenta del productor (el motor de suscripciones es
-  facturación de plataforma — siempre por `payments.subscription_gateway`).
+  facturación de plataforma; siempre por `payments.subscription_gateway`).
 - Refunds por pasarela propia (se gestionan en el panel del proveedor).
-- `OWN_METHOD` (ventas manuales: efectivo/transferencia) — slice
+- `OWN_METHOD` (ventas manuales: efectivo/transferencia); slice
   `producer-own-methods`.

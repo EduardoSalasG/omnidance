@@ -1,4 +1,4 @@
-# Design — multipais-phone
+# Design; multipais-phone
 
 ## Contexto
 
@@ -7,7 +7,7 @@ paths de `phone` hoy: `updateMe` (regex `/^\+?[0-9]{8,15}$/`),
 `completeProfile` (sin validación de formato), `door-sale` (campo
 `phone` plano → `createLightPerson`), `POST /leads` (`Lead.phone` →
 `Person.phone` en convertLead), import CSV (`telefono`). `Person.phone`
-es `@unique` y las búsquedas (`findPersonByPhone`) son match exacto —
+es `@unique` y las búsquedas (`findPersonByPhone`) son match exacto;
 sin normalización el mismo número en dos formatos es otra Person.
 
 ## Decisiones
@@ -38,7 +38,7 @@ siempre re-valida.
 
 ### P2. Storage: `phone` = E.164 con `+`, `phoneCountryCode` = ISO-2
 
-- `@unique` se mantiene sobre `phone` — E.164 hace el dedup real.
+- `@unique` se mantiene sobre `phone`; E.164 hace el dedup real.
 - `phoneCountryCode` se deriva del parseo, nunca se confía en el del
   body (el body `phoneCountryCode` es solo el hint de país nacional).
 
@@ -61,7 +61,7 @@ sin código; normalizar `phone`: si empieza con `+` se deja; si son
 si existen, la migración deja la fila duplicada intacta (normaliza solo
 si no colisiona) y se reporta en el handoff.
 
-### P5. Front — `PhoneInput`
+### P5. Front; `PhoneInput`
 
 Componente en `components/people/phone-input.tsx` (o `ui/` si encaja
 atómico): props `{ value, defaultCountry, onChange({e164,countryCode}) }`.
@@ -69,7 +69,7 @@ Selector de país = dropdown con dial code (lista de países soportados
 de libphonenumber, sin catálogo propio). Regla de UX:
 
 - `/perfil/datos`, `/perfil/completar`, `/bienvenida`: selector visible.
-- Door-sale staff y `ProLeadForm`: sin selector — el input asume el país
+- Door-sale staff y `ProLeadForm`: sin selector; el input asume el país
   de contexto (venue del evento; CL para el lead) y tipear `+` cambia a
   modo internacional. Texto de ayuda muestra el país asumido.
 
@@ -79,9 +79,9 @@ El front manda `{phone, phoneCountryCode}`; el API decide.
 
 - **Bundle**: libphonenumber-js completo ~140KB min; aceptable (se usa
   en varias superficies). Si pesa, `max` → `min` metadata custom en una
-  iteración posterior — no bloquea.
+  iteración posterior; no bloquea.
 - **Backfill con duplicados reales**: cubierto en P4.
-- **`Academy.whatsapp`** ya documenta E.164 sin `+` — no se toca (fuera
+- **`Academy.whatsapp`** ya documenta E.164 sin `+`; no se toca (fuera
   de scope).
 
 ## Verificación

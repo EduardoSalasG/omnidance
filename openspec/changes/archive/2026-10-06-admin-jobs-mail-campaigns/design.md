@@ -10,10 +10,10 @@ timezone, handler}`): cada bounded context registra sus jobs en
 todos los moduleInit) hace upsert por key:
 
 - job nuevo → `create` con `cronExpr = defaultCron`, `enabled = true`.
-- job existente → solo actualiza `label`/`description`/`defaultCron` —
+- job existente → solo actualiza `label`/`description`/`defaultCron`;
   **jamás pisa `cronExpr`/`enabled`/`timezone`**: la consola gana.
 - job en DB cuyo key ya no está en el registry → se marca `orphaned`
-  (badge en UI, no se ejecuta) — no se borra (preserva historial).
+  (badge en UI, no se ejecuta); no se borra (preserva historial).
 
 ### 2. Un solo tick por minuto, no un node-cron por job
 
@@ -22,10 +22,10 @@ todos los moduleInit) hace upsert por key:
 <= now` y los ejecuta secuencialmente. Ventajas sobre re-registrar
 tasks node-cron por job: una sola fuente de scheduling, `nextRunAt`
 persistido (visible en UI), catch-up automático tras downtime (un job
-vencido corre una vez al boot), y el tick es O(jobs) — trivial.
+vencido corre una vez al boot), y el tick es O(jobs); trivial.
 
 `nextRunAt` se calcula con **`cron-parser`** (`CronExpressionParser.
-parse(expr, {tz})` → `.next()`). Dependencia nueva aprobada — valida
+parse(expr, {tz})` → `.next()`). Dependencia nueva aprobada; valida
 sintaxis completa y maneja DST de America/Santiago, cosa que un
 matcher propio haría mal silenciosamente. `PATCH` con expr inválida →
 400 con mensaje claro.
@@ -38,9 +38,9 @@ matcher propio haría mal silenciosamente. `PATCH` con expr inválida →
   proceso + flag DB basta; no hace falta lock distribuido (si se
   escala a réplicas en el futuro, el tick ya es el único consumidor y
   habría que agregar un `UPDATE ... WHERE runningRunId IS NULL`
-  atómico — se deja documentado).
+  atómico; se deja documentado).
 - Corrida manual crea `JobRun{trigger: "MANUAL", actorId}` y corre el
-  handler en background (sin await en el request) — el front hace
+  handler en background (sin await en el request); el front hace
   polling del run.
 
 ### 4. Campañas: audiencia re-anclada por corrida, recipients por run
@@ -75,7 +75,7 @@ instancias de contenido creadas por el admin.
 - Todas las rutas bajo `SessionGuard + RolesGuard +
   @RequirePermissions("admin.access")` (convención de la consola).
 - `htmlBody` se guarda crudo (admin confiable) y el preview usa
-  `<iframe sandbox>` sin allow-same-origin — el HTML del admin no
+  `<iframe sandbox>` sin allow-same-origin; el HTML del admin no
   puede correr scripts en el contexto de la app.
 - `AuditLog` en cada mutación: `JOB_UPDATE`, `JOB_RUN_MANUAL`,
   `MAIL_CAMPAIGN_CREATE/UPDATE/CANCEL/TEST/RUN` con prev/next.
@@ -167,7 +167,7 @@ model MailCampaignRecipient {
 }
 ```
 
-`Person` gana relaciones `mailCampaigns` (createdBy) — nada más.
+`Person` gana relaciones `mailCampaigns` (createdBy); nada más.
 
 ## API
 
@@ -190,7 +190,7 @@ GET    /api/admin/mail-campaigns/:id/runs       → runs + contadores
 
 ## Módulos
 
-- `src/jobs/` nuevo: `JobsModule` (@Global — convención StorageModule),
+- `src/jobs/` nuevo: `JobsModule` (@Global; convención StorageModule),
   provee `JOB_REGISTRY`, `JobsService`, `JobsRunner`.
 - `src/mail/` nuevo: `MailModule` → `MailCampaignsService` +
   `MailCampaignsController`. Inyecta `MAILER` (puerto auth) y registra
@@ -204,13 +204,13 @@ GET    /api/admin/mail-campaigns/:id/runs       → runs + contadores
 
 ## Frontend
 
-- `/admin/jobs`: tabla/cards de jobs — label+key, badge Activo/Pausado
+- `/admin/jobs`: tabla/cards de jobs; label+key, badge Activo/Pausado
   /Huerfano/Error, cronExpr+tz legible, próxima corrida, último
   resultado; acciones: Editar horario (input + presets Diario 09:00 /
   Cada hora / Cada minuto...), Pausar|Reactivar, Correr ahora
   (confirm), historial expandible (runs: trigger, duración, error,
   meta).
-- `/admin/campanas`: lista + crear/editar — nombre, asunto, textarea
+- `/admin/campanas`: lista + crear/editar; nombre, asunto, textarea
   HTML + preview iframe sandbox, audiencia (Todos / Rol / Evento con
   count en vivo vía audience-count), programación (radio: una fecha-
   hora | recurrente cron + input), test-send, Programar, Cancelar.

@@ -1,4 +1,4 @@
-# Proposal: loading-states — cero flash de contenido
+# Proposal: loading-states; cero flash de contenido
 
 ## Problema
 
@@ -17,10 +17,10 @@ luego cambia a la lente guardada en localStorage.
 - Estándar de carga: nada de contenido real ni empty-state antes de que
   el primer fetch resuelva → skeleton con layout conocido (listas/cards/
   detalle) o `PageLoading` (gates de sesión/rol, forma desconocida).
-- Secciones secundarias: skeleton o `null` hasta tener data — nunca
+- Secciones secundarias: skeleton o `null` hasta tener data; nunca
   valores por defecto ni empty-state prematuro.
 - Mantener el estándar de carga percibida existente (beacon 200ms delay,
-  `.page-loading`, `NavPendingOverlay`) — los cambios lo usan, no lo
+  `.page-loading`, `NavPendingOverlay`); los cambios lo usan, no lo
   reescriben.
 - Sin empeorar UX: donde ya hay skeleton correcto, no tocar.
 
@@ -28,7 +28,7 @@ luego cambia a la lente guardada en localStorage.
 
 - Cambiar el modelo de data-fetching (no SWR/React Query).
 - SSR de datos reales (las páginas autenticadas cargan por cookie en
-  cliente — el SSR solo pinta el estado de carga, que debe ser el mismo
+  cliente; el SSR solo pinta el estado de carga, que debe ser el mismo
   en server y cliente).
 - Optimización de latencia de API.
 

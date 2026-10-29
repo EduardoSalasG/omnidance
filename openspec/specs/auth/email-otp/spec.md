@@ -31,7 +31,7 @@ email.
 
 `POST /auth/otp/verify {email, code}` SHALL, ante un código válido y
 vigente: consumirlo (no reutilizable), resolver la cuenta como hace el
-magic link (`upsertByEmail` — si no existía se crea y se envía bienvenida),
+magic link (`upsertByEmail`; si no existía se crea y se envía bienvenida),
 estampar el `consent` registrado al pedir el acceso, emitir sesión y
 responder `{ok:true}` con la cookie de sesión seteada en el origen web.
 Ante código inválido, expirado, ya consumido o email sin solicitud vigente
@@ -70,7 +70,7 @@ uno nuevo. La emisión conserva el rate limit estricto de auth vigente.
 
 Cuando el código verifica un email sin cuenta, el sistema SHALL crear la
 cuenta (`upsertByEmail`), enviar la bienvenida y dirigir al paso de perfil
-post-registro — mismo resultado observable que el magic link.
+post-registro; mismo resultado observable que el magic link.
 
 #### Scenario: primer acceso por código
 

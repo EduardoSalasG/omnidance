@@ -76,10 +76,10 @@ conservado; `module-grid` → `lg:grid-cols-3`.
   `/academia/alumnos` (~300px, contenido con select+date), y el toggle
   expandida↔rail con reload (persistencia localStorage).
 - `staff-section` y lista staff de `private-lessons` quedaron en 2
-  columnas máx. (densidad de controles) — decisión deliberada.
+  columnas máx. (densidad de controles); decisión deliberada.
 - Detalles dancer: varias fichas quedaron `lg:max-w-4xl` 1-columna
   porque el CTA fijo es la acción secundaria natural (no se metió panel
   lateral forzado).
 - Nada pusheado; `dev` tiene 8 commits sobre el último estado de prod
   (v0.3.0). El release gate `dev → main` sigue pendiente de aprobación
-  — este trabajo NO promueve nada.
+ ; este trabajo NO promueve nada.

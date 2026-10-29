@@ -1,7 +1,7 @@
-# Handoff — 2026-10-20 (fix actor verification flow + uploads en prod)
+# Handoff; 2026-10-20 (fix actor verification flow + uploads en prod)
 
 **Rama**: `dev` · **Commit**: fix actor verification flow (sin push).
-**Motivación**: reporte de prod — academia nueva "en revisión" sin poder
+**Motivación**: reporte de prod; academia nueva "en revisión" sin poder
 completar: foto rota, checklist admin pedía email verificado + datos del
 actor, y el usuario no veía qué le faltaba.
 
@@ -11,7 +11,7 @@ actor, y el usuario no veía qué le faltaba.
   `verifiedAt` y ningún flujo lo completaba (solo magic link/OTP lo
   estampan) → el checklist admin era imposible de aprobar. Ahora:
   - `POST /auth/register` envía el correo de acceso (link+OTP) además
-    de la bienvenida — funciona como verificación de posesión.
+    de la bienvenida; funciona como verificación de posesión.
   - `POST /auth/resend-verification` (SessionGuard + throttle auth):
     reenvía el correo si `verifiedAt` es null; idempotente.
   - `PendingRoleCard` (`components/people/`): con PersonRole PENDING de
@@ -20,17 +20,17 @@ actor, y el usuario no veía qué le faltaba.
     se verifica inline (resend → OTP). Montada en `/perfil` y `HomeHub`
     (lentes owner y productor).
   - `GET /me/role-checks` en PeopleController devuelve el checklist al
-    dueño — `roleProfileChecks` extraído a `src/common/role-checks.ts`
+    dueño; `roleProfileChecks` extraído a `src/common/role-checks.ts`
     y reusado por `AdminController` (misma verdad, sin duplicar).
 - **Foto**: `cleanPhotoUrl` acepta paths `/api/...` (el PATCH de
-  settings rechazaba el `photoUrl` que el propio upload persistía —
+  settings rechazaba el `photoUrl` que el propio upload persistía;
   guardar perfil tras subir foto siempre 400).
 - **Uploads en prod**: `apps/api/docker-compose.yml` ahora declara
-  `volumes: /mnt/omnidance/uploads:/app/uploads` + `UPLOADS_DIR` — el
+  `volumes: /mnt/omnidance/uploads:/app/uploads` + `UPLOADS_DIR`; el
   workflow re-copia ese compose a la VM en cada deploy, así que el
   mount manual del usuario se pisaba; versionado ya no. `docs/ci-cd.md`
   actualizado con la ruta real.
-- **OpenSpec**: `fix-actor-verification-flow` archivado — specs
+- **OpenSpec**: `fix-actor-verification-flow` archivado; specs
   `auth/email-verification` (nueva), `rbac` (+checklist visible al
   actor), `academies/approval-gate` (photoUrl acepta /api/…).
 
@@ -51,7 +51,7 @@ en photoUrl + rutas compat). Todo en `main` con tags, dev sincronizado.
 
 - **Validado en prod por el usuario**: upload + visualización de foto OK
   tras v1.3.2. La ruta compat sirve los photoUrls ya guardados con el
-  folder duplicado — no hay migración de datos necesaria (opcional:
+  folder duplicado; no hay migración de datos necesaria (opcional:
   UPDATE de photoUrl a formato limpio, muy bajo valor).
 - **Docs API**: openapi.json + postman regenerados desde prod (314
   paths) y commiteados a dev.

@@ -2,7 +2,7 @@ import { BadRequestException } from "@nestjs/common";
 
 /**
  * Filtros de listado de la consola de academia (spec
- * analytics/query-console — "Contrato de filtros compartido con
+ * analytics/query-console; "Contrato de filtros compartido con
  * módulos"): mismos params/semántica que el catálogo shared. Los
  * endpoints los toman como @Query opcionales - sin params = comportamiento
  * anterior, claves desconocidas ignoradas, enum inválido → 400.

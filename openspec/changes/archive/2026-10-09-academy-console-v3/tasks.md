@@ -1,4 +1,4 @@
-# Tasks — academy-console-v3
+# Tasks; academy-console-v3
 
 ## 1. UI fixes
 - [x] 1.1 `ExpiringList`: `flex-1` en la celda nombre (mobile colapsaba).
@@ -30,7 +30,7 @@
      →configuración, KPIs facturación/ticket/top3 métodos.
 - [x] 4.3 Equipo: alta única con tipo; detalle miembro (profe: stats +
      encuestas; colaborador: permisos editables) + acuerdo económico.
-- [x] 4.4 Particulares: sin comisión — solo solicitudes + agendar.
+- [x] 4.4 Particulares: sin comisión; solo solicitudes + agendar.
 
 ## 5. Analítica + alumno + encuestas + paginación
 - [x] 5.1 /analitica = consultas única; sin chips rol/vista.

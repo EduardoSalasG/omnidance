@@ -1,4 +1,4 @@
-# crm/contact-console — delta crm-dynamic-segments
+# crm/contact-console; delta crm-dynamic-segments
 
 ## ADDED Requirements
 

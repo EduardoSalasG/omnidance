@@ -1,4 +1,4 @@
-# academies/console-lists — delta academy-create-page
+# academies/console-lists; delta academy-create-page
 
 ## ADDED Requirements
 
@@ -6,7 +6,7 @@
 
 El owner con rol ACADEMY_OWNER (APPROVED o SANDBOX) SHALL ver un CTA
 "Nueva academia" en la consola `/academia` aunque ya tenga una o más
-academias — junto al selector cuando hay varias, solo cuando hay una.
+academias; junto al selector cuando hay varias, solo cuando hay una.
 El CTA navega a una página dedicada `/academia/nueva` (crear = página,
 no form inline en el listado) con `ConsoleHeader` de vuelta a
 `/academia`. Tras crear, la academia nueva queda seleccionada
@@ -23,7 +23,7 @@ no form inline en el listado) con `ConsoleHeader` de vuelta a
 #### Scenario: deep-link sin permiso
 
 - **WHEN** una persona sin rol ACADEMY_OWNER entra a `/academia/nueva`
-- **THEN** ve el estado "sin acceso" con CTA de salida — el form no se
+- **THEN** ve el estado "sin acceso" con CTA de salida; el form no se
   renderiza (el backend igual rechaza sin `academies.create`)
 
 #### Scenario: CTA oculto para no-owner

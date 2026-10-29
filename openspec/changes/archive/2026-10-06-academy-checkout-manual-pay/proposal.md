@@ -4,7 +4,7 @@
 
 La sección "Pagar a la academia" vive hoy en la ficha pública
 (`AcademyPaySection`), separada del checkout de membresía. El alumno
-compra un plan por un lado y declara el pago por otro — dos flujos
+compra un plan por un lado y declara el pago por otro; dos flujos
 desconectados. Además, el claim actual nace solo cuando el comprobante
 ya está subido (`receiptKey` requerido): el alumno que sale de la app
 para hacer la transferencia y vuelve no tiene nada persistido que
@@ -16,11 +16,11 @@ retomar, y la academia no ve el intento hasta que el comprobante llega.
   academia tiene métodos activos, el checkout ofrece "tarjeta/Webpay"
   (Flow, comportamiento actual) **o** un método propio de la academia
   (TRANSFER | PAYMENT_LINK | CASH). La rama suscripción (`mode=sub`)
-  sigue siendo solo Flow — un método manual no puede cobrar recurrencia.
+  sigue siendo solo Flow; un método manual no puede cobrar recurrencia.
 - **Intento de pago persistido**: nuevo estado `AWAITING` en
   `ClaimStatus` y `receiptKey` nullable. `POST /academies/:id/claims/intent
   {planId, methodId}` crea (o devuelve el existente) el claim AWAITING
-  con snapshot de monto/método — el intento queda registrado desde que
+  con snapshot de monto/método; el intento queda registrado desde que
   el alumno confirma el medio, y la cola del owner lo muestra.
 - **Reanudable**: al volver al checkout del mismo plan, un claim
   AWAITING muestra de nuevo las instrucciones y el upload; uno PENDING

@@ -1,4 +1,4 @@
-# Tasks — pilot-real-users
+# Tasks; pilot-real-users
 
 ## 1. Auth - claim de cuenta pre-sembrada
 
@@ -18,7 +18,7 @@
 - [x] 2.2 `checkout-client` (eventos): el picker siempre dentro de su
      `Card`.
 - [x] 2.3 `ManualPayPanel` (membresía): sin early-return por 0
-     métodos — la pasarela queda visible como opción única.
+     métodos; la pasarela queda visible como opción única.
 
 ## 3. Seed - usuarios reales y data de escena
 

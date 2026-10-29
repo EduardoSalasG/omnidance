@@ -5,7 +5,7 @@
 ### Requirement: Guía editorial por ciudad
 
 El sistema SHALL persistir `CityGuide {cityId @unique, intro,
-nightlife, practical, updatedById, updatedAt}` — una guía por ciudad
+nightlife, practical, updatedById, updatedAt}`; una guía por ciudad
 con tres secciones de texto. `GET /admin/city-guides` SHALL listar las
 ciudades con su estado de guía (vacía/borrador/completa: completa =
 las 3 secciones con texto); `GET /admin/city-guides/:cityId` devuelve
@@ -31,7 +31,7 @@ o con todas las secciones vacías.
 
 - **WHEN** una ciudad tiene solo `intro` escrito
 - **THEN** `hasGuide:true` y la landing muestra solo la sección con
-  contenido — nunca secciones vacías al visitante
+  contenido; nunca secciones vacías al visitante
 
 ### Requirement: Editor admin
 

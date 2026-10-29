@@ -5,7 +5,7 @@
 ### `mail-campaign-context-audiences` → audiencias con ctx + plantillas
 
 Decisión (conversada): el admin quería crear recordatorios tipo
-"vencimiento del plan" por su cuenta — las campañas con HTML estático
+"vencimiento del plan" por su cuenta; las campañas con HTML estático
 no alcanzaban.
 
 - **Variables `{{var}}`** en subject+HTML interpoladas por destinatario;
@@ -86,8 +86,8 @@ crons existentes Y campañas de mail programables por el admin
 
 ## Credenciales prod (confirmado por usuario)
 
-- `RESEND_API_KEY` — **cargada en prod** ✅
-- `VAPID_*` (web push) — **cargadas en prod back + Netlify** ✅
+- `RESEND_API_KEY`; **cargada en prod** ✅
+- `VAPID_*` (web push); **cargadas en prod back + Netlify** ✅
 - Pendientes sin verificar: `GOOGLE_WALLET_*` (el botón se oculta sin
   ellas), `FINTOC_*` (adaptador testeado solo con mocks).
 - Al promover a prod, primer chequeo operativo: test-send de una
@@ -186,7 +186,7 @@ persistido reanudable al salir de la app, y seguimiento del intento.
 
 ---
 
-## Addendum — platform-polish-gaps (sesión siguiente, 21-oct)
+## Addendum; platform-polish-gaps (sesión siguiente, 21-oct)
 
 Todos los gaps menores del slice jobs/campañas cerrados (menos i18n,
 decisión de producto pendiente):
@@ -197,19 +197,19 @@ decisión de producto pendiente):
   audiencias excluyen opt-outs al resolver Y en el loop de envío. Los
   mails transaccionales no se tocan.
 - **Recipient por contexto**: `MailCampaignRecipient.dedupKey` +
-  unique `(runId,personId,dedupKey)` — N inscripciones por vencer = N
+  unique `(runId,personId,dedupKey)`; N inscripciones por vencer = N
   mails con su propio ctx (antes 1/persona con el primer ctx).
 - **Claim atómico de jobs**: `updateMany(id, runningRunId IS NULL)`
-  como mutex — multi-instancia seguro, quien pierde descarta el run
+  como mutex; multi-instancia seguro, quien pierde descarta el run
   (CRON skip / MANUAL 409).
 - **Audiencia `CLAIMS_PENDING {days}`**: owners con claims PENDING
   >N días → vars `{{academy}}`/`{{count}}`, dedup diario por academia.
 - **Selector de eventos**: búsqueda por `q` sin filtro de status
-  (eventos pasados elegibles — caso mail post-evento).
+  (eventos pasados elegibles; caso mail post-evento).
 - **E2e del flujo manual**: intent→AWAITING (idempotente)→receipt→
   PENDING→approve→Payment MANUAL + enrollment; cancel propio.
 - Migración `20261021000000_platform_polish_gaps` aplicada (ojo: el
-  unique viejo de MailCampaignRecipient era INDEX, no CONSTRAINT —
+  unique viejo de MailCampaignRecipient era INDEX, no CONSTRAINT;
   la migración usa DROP INDEX).
 
 Verificación: 1739/1739 tests (87 archivos; gap-crm flake conocido por

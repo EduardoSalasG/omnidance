@@ -1,4 +1,4 @@
-# Spec delta: checkins/offline — puerta sin señal
+# Spec delta: checkins/offline; puerta sin señal
 
 ## ADDED Requirements
 
@@ -12,7 +12,7 @@ necesario para validar ingresos sin red.
 #### Scenario: Contenido del manifiesto
 
 - **WHEN** staff autorizado consulta `GET /events/:id/door-manifest`
-- **THEN** recibe `{event:{id,seriesId,status,...}, tickets:[{personId,name,photoUrl}], entryPasses:[{personId,type}], seriesPasses:[{personId}], checkins:[{personId,inAt}], generatedAt}` — solo pases ACTIVE y check-ins abiertos (sin `outAt`), personas resueltas
+- **THEN** recibe `{event:{id,seriesId,status,...}, tickets:[{personId,name,photoUrl}], entryPasses:[{personId,type}], seriesPasses:[{personId}], checkins:[{personId,inAt}], generatedAt}`; solo pases ACTIVE y check-ins abiertos (sin `outAt`), personas resueltas
 
 #### Scenario: Autorización
 
@@ -53,7 +53,7 @@ real de puerta y la idempotencia exacta por `clientRef`.
   mismo evento y ambos sincronizan
 - **THEN** el segundo ítem responde `{clientRef, result:"duplicate"}`
   (la dedup por check-in abierto lo resuelve por timestamp); ambos
-  quedan auditables — la resolución humana usa el `POST /checkins/:id/void`
+  quedan auditables; la resolución humana usa el `POST /checkins/:id/void`
   existente
 
 ### Requirement: Registro local del staff sin señal
@@ -77,7 +77,7 @@ de inmediato encolándolo para sincronización.
 
 - **WHEN** el personId decodificado no está en el manifiesto (pase
   emitido tras el preload o persona sin pase)
-- **THEN** el resultado es ámbar-revisar (nunca rojo-duro — el
+- **THEN** el resultado es ámbar-revisar (nunca rojo-duro; el
   manifiesto puede estar stale) y el escaneo se encola igual
 
 #### Scenario: Duplicado local

@@ -45,7 +45,7 @@ del ownerId). La evaluación SHALL hacerse en batch (groupBy), sin N+1.
 Una academia en PENDING cuyo checklist evalúa completo SHALL
 considerarse pública y SHALL persistirse a APPROVED best-effort en el
 mismo request. Una academia REJECTED SHALL permanecer oculta aunque el
-checklist esté completo — solo admin la restaura.
+checklist esté completo; solo admin la restaura.
 
 #### Scenario: dueño completa datos y la academia sale sola
 
@@ -103,7 +103,7 @@ la lista de ítems pendientes con link a la sección que los resuelve
 ### Requirement: foto de academia vía URL externa
 
 `photoUrl` SHALL ser editable en `PATCH /academies/:id/settings` y en
-la página `/academia/configuracion/perfil` (input de URL externa —
+la página `/academia/configuracion/perfil` (input de URL externa;
 nunca se hostean archivos). SHALL exponerse en
 `GET /academies/:id/profile` cuando esté aprobada.
 

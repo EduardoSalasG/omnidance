@@ -5,7 +5,7 @@
 La preventa cierra a una hora fija global (`presale.cutoff_hour`,
 default 19:00 del día del evento). Eso no representa eventos reales:
 "Bachata con Salsa" de DJ Krrera tiene entrada liberada hasta las
-23:45 y después cobra $5.000 en puerta — la ventana gratuita ES una
+23:45 y después cobra $5.000 en puerta; la ventana gratuita ES una
 preventa ($0) con su propio corte. Además:
 
 - El corte hoy solo se parametriza a nivel plataforma; ni el evento ni
@@ -33,11 +33,11 @@ preventa ($0) con su propio corte. Además:
   descuento que deja la orden en $0), el checkout NO llama a la
   pasarela: crea el Payment con `gateway: "FREE"` y lo liquida al
   instante por `PaymentSettlementService.settle(..., "PAID", {actor:
-  "checkout"})` — mismo camino del webhook: tickets emitidos, mesa
+  "checkout"})`; mismo camino del webhook: tickets emitidos, mesa
   materializada, redención de código auditada, ledger y notificación.
   La respuesta devuelve `paymentUrl` apuntando a
   `/checkout/return?paymentId=…`, así el front redirige a la pantalla
-  de retorno que ya muestra el éxito — sin cambios en el flujo del
+  de retorno que ya muestra el éxito; sin cambios en el flujo del
   cliente.
 - **UI productor**: `event-form.tsx` gana el campo "Preventa hasta"
   (`input type="time"` → minutos); vacío = hereda.

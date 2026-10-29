@@ -1,10 +1,10 @@
-# user-blocks — deltas
+# user-blocks; deltas
 
 ## REMOVED Requirements
 
 ### Requirement: Bloquear a una persona
 
-**Reason**: funcionalidad eliminada por decisión de producto — los
+**Reason**: funcionalidad eliminada por decisión de producto; los
 bailes solo se registran vía escaneo QR; el bloqueo perdió su
 superficie de enforcement y nunca tuvo UI.
 
@@ -25,7 +25,7 @@ superficie de enforcement y nunca tuvo UI.
 
 ### Requirement: Enforcement en invitaciones de sesión
 
-**Reason**: las invitaciones a bailar se eliminan también — `POST
+**Reason**: las invitaciones a bailar se eliminan también; `POST
 /sessions/invite` y su ciclo confirm/decline dejan de existir; el
 bloqueo no tiene superficie donde aplicar.
 

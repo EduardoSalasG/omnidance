@@ -64,42 +64,42 @@
 - `openspec validate --changes`: 2 passed. `producer-console-v2`
   archivado → specs canónicas actualizadas.
 
-## Release v0.7.0 — estado
+## Release v0.7.0; estado
 
 - Tag `v0.7.0` en `main` (`07ff990`), push main + dev sincronizados.
-- Deploy API (GH Actions → VM): **success** en 5m49s —
+- Deploy API (GH Actions → VM): **success** en 5m49s;
   `/api/health` 200, `/api/events` 200 con data.
 - **Web (Netlify): rebuild disparado por el push pero aún sirve el
   build anterior** (chunks de páginas nuevas 404 en CDN al cierre).
   El fix SSR entra en producción cuando ese build termine - verificar
   `/productor/apariencia` renderiza tras login.
 
-## Release v0.8.0 — onboarding tours (commit `ff49f37`, tag `v0.8.0`)
+## Release v0.8.0; onboarding tours (commit `ff49f37`, tag `v0.8.0`)
 
 - **Audit**: dancer (`profile-setup` + `home`/`home-academy` + tours por
   módulo) y owner (`academia-owner` + `academia`) ya estaban completos.
 - **Productor**: tour `productor` montado en la rama PRODUCER de HomeHub
-  — `producer-kpis` → `producer-claims` → `producer-tops` → `nav-events`
+ ; `producer-kpis` → `producer-claims` → `producer-tops` → `nav-events`
   → menú (`appbar-menu` móvil / `app-sidebar` desktop) → `appbar-bell`.
   Copy `tours.productor` reescrito al vocabulario v2 (el anterior
   mencionaba liquidaciones/listas de puerta, módulos eliminados).
-- **Instructor**: tour `instructor` — `home-stats` → `home-classes`
+- **Instructor**: tour `instructor`; `home-stats` → `home-classes`
   (anchor nuevo en "Próximas clases") → `nav-classes` → `nav-students`
   → `appbar-bell` → `nav-profile`.
 - Anchors nuevos en `ProducerDashboard` (kpis/claims/tops) y
   `SIDEBAR_TOUR["/productor/eventos"]="nav-events"` en BottomNav.
-- Persistencia: mismo contrato — `POST /me/onboarding {tour}` mergea en
+- Persistencia: mismo contrato; `POST /me/onboarding {tour}` mergea en
   `Person.onboarding` JSON; los tours corren una sola vez por usuario.
 - OpenSpec `2026-10-10-console-onboarding-tours` archivado → specs
   `events/producer-console` y `academies/staff-roles` actualizadas.
 - **Deploy**: API workflow success 5m45s; `/api/health` y `/api/events`
-  200 en prod. Web: rebuild de Netlify disparado por el push — verificar
+  200 en prod. Web: rebuild de Netlify disparado por el push; verificar
   en Deploys que sirva el build de `ff49f37` (los tours son front-only).
 
-## Release v0.8.1 — hotfix SSR + socket.io (commit `e284554`, tag `v0.8.1`)
+## Release v0.8.1; hotfix SSR + socket.io (commit `e284554`, tag `v0.8.1`)
 
 - **Causa raíz del "eventos no carga en prod" que persistía tras v0.7.0**:
-  `API_PROXY_TARGET` vive en `[build.environment]` de netlify.toml —
+  `API_PROXY_TARGET` vive en `[build.environment]` de netlify.toml;
   disponible en build pero **no en runtime** del serverless; y
   `NEXT_PUBLIC_WEB_URL` nunca se seteó en el UI de Netlify → el helper
   seguía cayendo a `localhost:4000`. Prueba: `/reclamar/<token-falso>`
@@ -107,7 +107,7 @@
   cuando el API responde 404 → debió ser `goneTitle`.
 - **Fix**: `serverApiUrl()` (función request-scope, reemplaza la const
   `SERVER_API_URL`) agrega fallback al **origin del request** vía
-  `headers()` (x-forwarded-host/host + x-forwarded-proto) — la propia
+  `headers()` (x-forwarded-host/host + x-forwarded-proto); la propia
   web sirve `/api/*` por el rewrite de next.config.mjs. 11 call sites
   actualizados (9 pages + public-events/public-academies).
 - **socket.io**: Netlify edge normalizaba `/socket.io/` → 308 →
@@ -115,12 +115,12 @@
   de polling. Fix: `[[redirects]]` en netlify.toml proxea `/socket.io/*`
   al API a nivel edge con `force = true` (antes del runtime Next).
 - Errores React #418/#423 de la consola del usuario: probable efecto del
-  SSR roto o edge cache con builds mixtos — re-evaluar tras el rebuild.
+  SSR roto o edge cache con builds mixtos; re-evaluar tras el rebuild.
 - **Verificado en prod** (buildId `Typw-kN_p8BWocvQAhw1Q`):
   `/socket.io/?EIO=4&transport=polling` → handshake `0{"sid":...}` OK;
   `/reclamar/<fake>` → `goneTitle` ("Este link ya no es válido") → el
   fetch SSR llega al API. Eventos y todos los módulos SSR resueltos.
-- **Seed Mambo Madness**: verificado exhaustivamente en local — todos
+- **Seed Mambo Madness**: verificado exhaustivamente en local; todos
   los slots/clases de Eduardo y María José ya son PM (lun 19:30/20:30,
   sáb 17:00/18:00). Si en prod se ven AM es data vieja: re-correr
   `SEED_ENV=dev pnpm db:seed` contra Neon (la poda de slots stale en
@@ -151,20 +151,20 @@
 
 - **Lente INSTRUCTOR degrada privilegios**: `/academia/alumnos`,
   `/alumnos/[personId]` y `/alumnos/nuevo` ahora respetan la lente
-  activa (`useActiveRole`) — bajo INSTRUCTOR no hay KPIs/Insights/
+  activa (`useActiveRole`); bajo INSTRUCTOR no hay KPIs/Insights/
   ImportCard/CTA ni editor de enrollment, aunque la persona tenga
   ADMIN/owner/staff reales (spec academies/staff-roles, ya lo exigía).
 - **API**: `GET /academies/:id/students/insights` solo computa
   `topPayersMonth` con cap `payments` (instructor recibe `[]`). Test
   nuevo: `academies-insights.controller.spec.ts` (2 tests).
 - **FilterBar**: `min-w-0` en labels/inputs de grid y en el par
-  desde/hasta — los `input[type=date]` ya no desbordan la celda ni se
+  desde/hasta; los `input[type=date]` ya no desbordan la celda ni se
   montan entre sí (fix global: aplica a todas las consolas).
-- **Seed**: bloque "transferencias para todos" tras limpieza E2E — toda
+- **Seed**: bloque "transferencias para todos" tras limpieza E2E; toda
   academia sin TRANSFER recibe uno activo con datos generados; todo rol
   PRODUCER aprobado recibe `ProducerPaymentMethod` TRANSFER. Verificado:
   20/20 academias, 16/16 productores. **Prod**: el deploy solo corre
-  baseline — hay que lanzar `SEED_ENV=dev pnpm --filter @omnidance/api
+  baseline; hay que lanzar `SEED_ENV=dev pnpm --filter @omnidance/api
   prisma db seed` con la URL directa de Neon para aplicarlo.
 - Verificación: tsc web+api, i18n `ALL_KEYS_OK`, impeccable `[]`,
   openspec validate+archive, tests academies 210/210, seed local,

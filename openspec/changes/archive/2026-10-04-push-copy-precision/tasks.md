@@ -12,10 +12,10 @@
    `sessions/infrastructure/sessions.controller.ts`,
    `admin/infrastructure/admin.controller.ts`.
 2. [x] Agregar test de convención: titles ≤ 40 chars (sin interpolar) y sin
-   punto final — helper que recorra los literales conocidos o spot-checks
+   punto final; helper que recorra los literales conocidos o spot-checks
    en los specs de los controllers tocados.
 3. [x] `pnpm --filter @omnidance/api exec tsc --noEmit` + specs de los
    módulos tocados (`payment-settlement`, `private-lessons`,
    `classes`, `subscriptions`, `waitlist`).
-4. [x] Verificar que ningún `type`/`category`/`data` cambió — diff solo
+4. [x] Verificar que ningún `type`/`category`/`data` cambió; diff solo
    literales de copy.

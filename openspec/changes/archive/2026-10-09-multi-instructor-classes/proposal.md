@@ -5,7 +5,7 @@
 La realidad de las academias: una clase puede ser dictada por más de un
 profesor (co-teaching, dupla titular+apoyo). El modelo actual tiene un
 solo `instructorId` por `ClassSeries`, `ClassSlot` y `Class`, así que
-no se puede expresar "María y Eduardo dictan juntos el sábado" — caso
+no se puede expresar "María y Eduardo dictan juntos el sábado"; caso
 real del piloto (Mambo Madness).
 
 ## What Changes
@@ -13,7 +13,7 @@ real del piloto (Mambo Madness).
 - **Nuevo**: `ClassSlotInstructor` y `ClassInstructor` (tablas join)
   modelan el plantel completo de profesores por horario y por clase
   materializada. `instructorId` existente se conserva como instructor
-  "principal" — las lecturas de un solo profesor (comisión, encuesta
+  "principal"; las lecturas de un solo profesor (comisión, encuesta
   mensual, liquidación) no cambian de semántica.
 - **Materialización**: al crear clases desde un slot se copia además el
   plantel completo (slot → clase).

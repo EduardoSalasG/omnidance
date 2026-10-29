@@ -29,5 +29,5 @@ completo). Sin `STRIPE_SECRET_KEY` configurado el endpoint responde
 #### Scenario: Estado vacío
 
 - **WHEN** el actor no tiene destinos
-- **THEN** la sección muestra empty state con el CTA — nunca un panel
+- **THEN** la sección muestra empty state con el CTA; nunca un panel
   vacío sin acción

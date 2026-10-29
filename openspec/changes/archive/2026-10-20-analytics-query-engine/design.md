@@ -1,4 +1,4 @@
-# Design — analytics-query-engine
+# Design; analytics-query-engine
 
 ## Context
 
@@ -28,7 +28,7 @@ la barra de filtros y los params).
 
 ## Decisions
 
-### D1 — Catálogo estático en shared, opciones resueltas por API
+### D1; Catálogo estático en shared, opciones resueltas por API
 
 Las entidades y sus filtros (key, tipo, opciones enum estáticas o fuente
 FK) se declaran **una vez en `packages/shared`** (`query-catalog.ts`) como
@@ -41,32 +41,32 @@ hacer fetch ni pedir role explícito; hardcodear una segunda copia en el
 cliente (lo que hoy hace `datos/page.tsx`) es exactamente la divergencia
 que se quiere eliminar.
 
-### D2 — Engine = registry de entidades con scoping inyectado
+### D2; Engine = registry de entidades con scoping inyectado
 
 `src/query/query.service.ts` mantiene un registry `entity → {filters,
 buildQuery(scope, filters) → rows, columns}`. Cada entidad declara su
 `scopeWhere(role, personId)` (admin: `{}`; producer: `{event.producerId}`
 o equivalente; academy: `{academyId ∈ owned}`). Los filtros se traducen a
-`where` por la entidad vía whitelist — nunca se acepta `where` arbitrario.
+`where` por la entidad vía whitelist; nunca se acepta `where` arbitrario.
 
 Las queries de `BrowseController` se extraen a `src/query/entities/*.ts`
 (funciones puras que reciben prisma + scope + filters). `BrowseController`
 delega al registry con scope admin → comportamiento idéntico, tests de
 regresión mínimos.
 
-### D3 — Exports = misma construcción de filas, dos serializadores
+### D3; Exports = misma construcción de filas, dos serializadores
 
 Los builders de `events.controller` (`exportSales/Checkins/Guestlist` +
 `toCsv` + PDF) se mueven al engine como datasets del lente PRODUCER. Los
 endpoints `/events/:id/export.*` quedan como adaptadores finos (resuelven
-scope evento/serie → llaman al engine) — el spec `producer-export` queda
+scope evento/serie → llaman al engine); el spec `producer-export` queda
 intacto y gana filtros opcionales.
 
 `POST /query/run` y `GET /query/export.*` comparten el mismo
 `buildRows()`; run capea `rows` (preview 50 + `total`), export envía todo.
 PDF reutiliza el serializador existente (A4, header repetido, paginación).
 
-### D4 — SavedReport por persona+lente, params validados contra catálogo
+### D4; SavedReport por persona+lente, params validados contra catálogo
 
 ```prisma
 model SavedReport {
@@ -84,14 +84,14 @@ model SavedReport {
 
 Sin `@@unique` de nombre (permite homónimos; la UX los distingue por fecha).
 Las plantillas de sistema viven en shared (`SYSTEM_QUERIES` por lente:
-entity+filtros sin scope fijo) — no se persisten ni se borran.
+entity+filtros sin scope fijo); no se persisten ni se borran.
 
-### D5 — FilterBar compartido; módulos conservan su fetch
+### D5; FilterBar compartido; módulos conservan su fetch
 
 `components/query/FilterBar.tsx` recibe el descriptor de la entidad (del
 catálogo shared) + valores + onChange; renderiza q (debounce), selects enum,
 selects FK (opciones vía props/loader), fechas. **Las páginas de módulo
-siguen pegándole a su endpoint actual** — el endpoint gana los params del
+siguen pegándole a su endpoint actual**; el endpoint gana los params del
 catálogo para su entidad (ej. `GET /academies/:id/students?status=&q=&from=&to=`).
 Consultas sí usa `/query/run|export` (read-only).
 
@@ -100,7 +100,7 @@ UI propia con acciones (mutaciones), shapes distintos al formato tabla del
 engine. Compartir el contrato de filtros (params + componente) es la parte
 con valor; compartir el row-fetch mezclaría lectura con escritura.
 
-### D6 — Admin también por el engine
+### D6; Admin también por el engine
 
 `/admin/datos` migra a `FilterBar` + `DataTable` sobre el catálogo
 (admite row-renderer por entidad donde las filas no son tabulares, ej.
@@ -126,6 +126,6 @@ sigue respondiendo igual (delega al engine).
 ## Migration Plan
 
 `pnpm db:migrate` crea `SavedReport` (tabla nueva, aditiva). Rollback:
-`DROP TABLE` + revert — ningún dato existente se toca. Deploy normal
+`DROP TABLE` + revert; ningún dato existente se toca. Deploy normal
 dev → main por release gate; los endpoints nuevos son aditivos y los
 viejos quedan como adaptadores.

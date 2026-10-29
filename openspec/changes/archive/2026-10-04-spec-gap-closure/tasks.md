@@ -1,8 +1,8 @@
-# Tasks — spec-gap-closure
+# Tasks; spec-gap-closure
 
 Orden por slice; cada tarea lleva verificación propia (TDD donde aplique).
 
-## Slice A — Core loop y safety
+## Slice A; Core loop y safety
 
 - [x] **A1 user-blocks**: `BlocksController` (`POST /blocks`, `DELETE /blocks/:personId`, `GET /blocks`) + enforcement en `sessions.invite` y `sessions.declare` → e2e.
 - [x] **A2 retro-declared**: `POST /sessions/declare` + filtro `retroDeclared:false` en queries de Prime Time/leaderboard/reveal del repo gamificación → e2e contador excluye.
@@ -10,16 +10,16 @@ Orden por slice; cada tarea lleva verificación propia (TDD donde aplique).
 - [x] **A4 void check-in**: `POST /checkins/:id/void {reason}` staff-only + revert ticket + `AuditLog CHECKIN_VOID` → e2e.
 - [x] **A5 event-ratings**: `POST /events/:id/ratings` (check-in + ventana 24h, upsert) + `GET /events/:id/ratings/summary` (agrupado por actor, umbral ≥3, productor/admin) → e2e.
 
-## Slice B — Social y ticketing
+## Slice B; Social y ticketing
 
 - [x] **B1 friendships**: `FriendsController` (request/accept/decline/list) con par ordenado + notify → e2e.
 - [x] **B2 table-reservations**: `POST /events/:id/table-reservations`, `GET` (solo CONFIRMED), `PATCH` producer/admin, `DELETE` solicitante → e2e.
 - [x] **B3 song-suggestions**: `songSuggestion?` en checkout DTO → persistir en tx webhook PAID; `GET /events/:id/song-suggestions` top-20 para productor/DJ/admin → e2e.
-- [x] **B4 door-sale**: `POST /checkins/door-sale` — cuenta ligera por phone, ticket por canal (params door_cash/door_app), check-in MANUAL, doorCap, qrToken en respuesta → e2e.
+- [x] **B4 door-sale**: `POST /checkins/door-sale`; cuenta ligera por phone, ticket por canal (params door_cash/door_app), check-in MANUAL, doorCap, qrToken en respuesta → e2e.
 
-## Slice C — Gamificación
+## Slice C; Gamificación
 
-- [x] **C1 reveal**: `GET /events/:id/prime-time/reveal` — bayesiano por rol (C=10, m=media evento), min 3 evaluaciones, excluye retroDeclared, pareja de la noche, corona `PersonBadge(expiresAt +7d)` idempotente → unit + e2e.
+- [x] **C1 reveal**: `GET /events/:id/prime-time/reveal`; bayesiano por rol (C=10, m=media evento), min 3 evaluaciones, excluye retroDeclared, pareja de la noche, corona `PersonBadge(expiresAt +7d)` idempotente → unit + e2e.
 - [x] **C2 season-points**: `PointLedger` accrual idempotente por `refType`/`refId` en hooks (confirm/rate/checkin-early/mission) + `GET /gamification/me/points` → unit + e2e.
 - [x] **C3 badge-rules**: madrugador / maratonista / mariposa_social en `BadgeAwarder` + stats del repo + seed de los 3 badges → unit tests de reglas puras.
 - [x] **C4 featured-badge**: `GET /qr/mine` +`featuredBadge` (featured activo > corona vigente > null) → e2e.
@@ -28,7 +28,7 @@ Orden por slice; cada tarea lleva verificación propia (TDD donde aplique).
 
 - [x] Registrar controllers en módulos (`*.module.ts` es exclusivo del padre).
 - [x] `GET /me` o payload QR: verificar shape final del featured badge.
-- [x] Regenerar `docs/openapi.json` + colección Postman (`scripts/export-api-docs.cjs`) — 95 paths.
+- [x] Regenerar `docs/openapi.json` + colección Postman (`scripts/export-api-docs.cjs`); 95 paths.
 - [x] Actualizar `docs/flows.md` (nuevas secuencias: door-sale, reveal, points, blocks/friends, out/void). `architecture.md` sin cambios (tabla es por módulo, no por controller).
 - [x] Seed: badges madrugador/maratonista/mariposa_social + corona prime_time_crown (en `seed-common.ts`, params `early_checkin.cutoff_minutes`, `prime_time.*`).
 - [x] Suite completa (635/635) + typecheck + smoke (21/21) + commit por scope.

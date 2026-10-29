@@ -1,4 +1,4 @@
-# Proposal — producer-console-v2
+# Proposal; producer-console-v2
 
 ## Why
 

@@ -1,4 +1,4 @@
-# payments/class-dropin — moneda de la orden
+# payments/class-dropin; moneda de la orden
 
 ## ADDED Requirements
 

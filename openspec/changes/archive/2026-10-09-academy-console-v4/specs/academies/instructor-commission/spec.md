@@ -1,4 +1,4 @@
-# Delta — academies/instructor-commission (academy-console-v4)
+# Delta; academies/instructor-commission (academy-console-v4)
 
 La comisión por porcentaje deja de ser el acuerdo vigente: se reemplaza
 por el acuerdo económico (`payType`/`payAmount`/`payClasses`) y
@@ -12,7 +12,7 @@ El sistema SHALL exponer `PATCH /academies/:id/instructors/:personId`
 con `{payType?: "PER_CLASS"|"MONTHLY"|null, payAmount?: int≥0,
 payClasses?: int≥0}` que actualiza el acuerdo económico del
 `AcademyInstructor`. Solo owner de la academia o `admin.access`.
-`commissionPct` SHALL NO ser aceptado ni expuesto por este contrato —
+`commissionPct` SHALL NO ser aceptado ni expuesto por este contrato;
 la columna persiste como histórico.
 
 #### Scenario: owner fija el acuerdo
@@ -31,13 +31,13 @@ la columna persiste como histórico.
 ### Requirement: Sin snapshot de comisión en lecciones nuevas
 
 `POST /academies/:id/private-lessons` y `PATCH /private-lessons/:id`
-con `action="assign"` SHALL NO escribir `commissionPct` — las lecciones
+con `action="assign"` SHALL NO escribir `commissionPct`; las lecciones
 nuevas nacen con el default 0 y su liquidación se rige por el acuerdo
 económico. `commissionPct`/`commissionPaidAt` persisten en schema como
 histórico y `action="pay-commission"` SHALL seguir liquidando solo
 lecciones con `commissionPct > 0` (rechaza 409 las nuevas). El filtro
 `commission` de `GET /academies/:id/private-lessons` SHALL operar solo
-sobre el histórico: `paid`/`pending` implican `commissionPct > 0` —
+sobre el histórico: `paid`/`pending` implican `commissionPct > 0`;
 las lecciones nuevas no son "pendientes de comisión".
 
 #### Scenario: lección nueva sin comisión
@@ -95,7 +95,7 @@ exponer el acuerdo ni la comisión.
 = round(price * commissionPct / 100)` y `netClp = price -
 commissionClp` únicamente en filas con `commissionPct > 0` (lecciones
 históricas). En lecciones nuevas (`commissionPct=0`) esos campos SHALL
-NO aparecer — un `netClp` igual al precio sugeriría que el instructor
+NO aparecer; un `netClp` igual al precio sugeriría que el instructor
 cobra el total. La rama `as=student` ya no existe en este endpoint
 (la vista del alumno vive en `/classes/mine`).
 
@@ -122,7 +122,7 @@ cobra el total. La rama `as=student` ya no existe en este endpoint
 ### Requirement: Comisión configurable por instructor
 
 **Reason**: `PATCH .../instructors/:personId {commissionPct}` queda
-retirado — el acuerdo económico (`payType`/`payAmount`/`payClasses`)
+retirado; el acuerdo económico (`payType`/`payAmount`/`payClasses`)
 es el mecanismo vigente; la columna persiste como histórico sin vías
 de escritura.
 
@@ -142,5 +142,5 @@ liquidándose por `pay-commission`.
 ### Requirement: Vista staff expone la comisión
 
 **Reason**: la vista manage ya no expone `commissionPct` en
-`academy.instructors` — expone el acuerdo económico (ver "Vista staff
+`academy.instructors`; expone el acuerdo económico (ver "Vista staff
 expone el acuerdo, no la comisión").

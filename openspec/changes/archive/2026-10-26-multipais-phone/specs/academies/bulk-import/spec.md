@@ -1,4 +1,4 @@
-# academies/bulk-import — teléfono normalizado
+# academies/bulk-import; teléfono normalizado
 
 ## ADDED Requirements
 

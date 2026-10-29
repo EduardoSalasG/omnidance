@@ -1,4 +1,4 @@
-# crm/contact-console — delta crm-trigger-actor-scope
+# crm/contact-console; delta crm-trigger-actor-scope
 
 ## ADDED Requirements
 

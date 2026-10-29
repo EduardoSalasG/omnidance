@@ -1,4 +1,4 @@
-# Proposal — consent-por-jurisdiccion
+# Proposal; consent-por-jurisdiccion
 
 ## Why
 
@@ -8,7 +8,7 @@ El consentimiento legal actual es único e implícito chileno (Ley
 `POST /me/consent` + `ConsentBanner` para re-aceptación. Multipaís
 exige resolver la ley aplicable por jurisdicción del actor: Europa
 exige GDPR (consentimiento **granular**: necesario vs. marketing vs.
-analítica, y registro auditable de qué aceptó cada persona) — operar
+analítica, y registro auditable de qué aceptó cada persona); operar
 en UE con el checkbox chileno único es ilegal.
 
 ## What Changes
@@ -20,13 +20,13 @@ en UE con el checkbox chileno único es ilegal.
   jurisdicción `{jurisdiction, version, body, requiredScopes[],
   granular, publishedAt, active}`. Seed: texto CL vigente (extraído
   del `/privacidad` actual) + texto EU GDPR (contenido base,
-  pendiente revisión legal — marcado `draftNote`).
+  pendiente revisión legal; marcado `draftNote`).
 - **`ConsentRecord`** (nuevo modelo): historial auditable por
   aceptación `{personId, jurisdiction, version, scopes Json,
-  acceptedAt}` — `Person.consentVersion`/`consentAcceptedAt` quedan
+  acceptedAt}`; `Person.consentVersion`/`consentAcceptedAt` quedan
   como snapshot del último consentimiento.
 - **`GET /legal/consent?country=`** (público): versión vigente +
-  `requiredScopes` + flag `granular` para la jurisdicción — el
+  `requiredScopes` + flag `granular` para la jurisdicción; el
   registro la consulta para renderizar el form correcto (EU →
   checkboxes granulares; CL/resto → checkbox único como hoy).
 - **`POST /me/consent`** extendido: acepta `{version, scopes?}` y

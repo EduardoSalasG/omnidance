@@ -1,4 +1,4 @@
-# people-profile — teléfono por país
+# people-profile; teléfono por país
 
 ## ADDED Requirements
 

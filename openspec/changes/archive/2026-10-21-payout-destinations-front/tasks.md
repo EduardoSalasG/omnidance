@@ -1,4 +1,4 @@
-# Tasks — payout-destinations-front
+# Tasks; payout-destinations-front
 
 - [x] 1. Sección "Cuenta de desembolso" en `/productor/pagos`:
   lista destinos (status badge PENDING/ACTIVE/DISABLED + rail +

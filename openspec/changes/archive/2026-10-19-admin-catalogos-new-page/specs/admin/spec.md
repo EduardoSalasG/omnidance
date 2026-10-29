@@ -1,4 +1,4 @@
-# admin — delta admin-catalogos-new-page
+# admin; delta admin-catalogos-new-page
 
 ## ADDED Requirements
 
@@ -6,10 +6,10 @@
 
 Las secciones de `/admin/catalogos` SHALL listar sus valores como filas
 de lectura (nombre truncable a la izquierda; metadatos y acciones
-agrupados en la zona derecha) — no cards de contenido variable. El alta
+agrupados en la zona derecha); no cards de contenido variable. El alta
 de un valor SHALL hacerse en una página dedicada
 `/admin/catalogos/nuevo?cat=<catalogo>` alcanzada por un CTA por
-sección — nunca un form inline en el listado.
+sección; nunca un form inline en el listado.
 
 #### Scenario: fila legible en 320px
 

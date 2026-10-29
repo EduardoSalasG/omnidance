@@ -12,7 +12,7 @@ renderizarse en `/perfil` bajo lentes que no las usan:
 - Insignias: ocultas para `ADMIN` e `INSTRUCTOR`.
 - "Mis pagos": oculto para `ACADEMY_OWNER` e `INSTRUCTOR`.
 
-Los datos siguen existiendo bajo la lente DANCER de la misma persona —
+Los datos siguen existiendo bajo la lente DANCER de la misma persona;
 la ocultación es por lente activa, no por usuario.
 
 #### Scenario: instructor abre su perfil

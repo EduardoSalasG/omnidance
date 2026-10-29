@@ -6,7 +6,7 @@
 
 `/perfil` SHALL mostrar los roles de la persona como badges bajo el
 nombre y correo solo cuando son ≤2. Con 3 o más `roleStates` la lista
-MUST omitirse — los roles siguen visibles en la sección "Interactuar
+MUST omitirse; los roles siguen visibles en la sección "Interactuar
 como" (que solo lista los APPROVED, con su estado).
 
 #### Scenario: persona con dos roles

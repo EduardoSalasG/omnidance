@@ -3,7 +3,7 @@
 ## Por qué
 
 El backend de `payout-rails` ya expone `POST/GET /me/payout-destinations`
-(onboarding Connect Express + estado) pero no hay superficie — el
+(onboarding Connect Express + estado) pero no hay superficie; el
 productor no puede declarar su cuenta de desembolso sin llamar la API
 a mano. Esta es la pieza UI del flujo multipaís.
 
@@ -24,7 +24,7 @@ a mano. Esta es la pieza UI del flujo multipaís.
 ## Fuera de scope
 
 - Destinos ACADEMY/VENUE desde UI (el endpoint los soporta; la UI v1
-  cubre el caso PRODUCER que es el real hoy — el POST ya valida
+  cubre el caso PRODUCER que es el real hoy; el POST ya valida
   ownership y se puede extender con un selector de actor después).
 - Desvincular/desactivar un destino desde UI (DISABLED queda por
   admin/ops).

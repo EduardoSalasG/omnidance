@@ -5,7 +5,7 @@
 La reestructura de planes (omni-dance.md §10) crea el tier COBROS
 ($39.990, señuelo): cobranza pura de membresías con take ~4,8% all-in,
 sin clases/asistencia/staff/CRM/analítica/export. Hoy NO hay gating por
-tier en academia — todas las features llegan a toda suscripción. Hay que
+tier en academia; todas las features llegan a toda suscripción. Hay que
 construir la matriz de entitlements y la UI de gateo reutilizando el
 patrón `assertProducerPro`/`pro.required` ya existente.
 
@@ -25,7 +25,7 @@ patrón `assertProducerPro`/`pro.required` ya existente.
   tier como hace flags; superficies bloqueadas muestran estado
   upgrade con CTA (console-patterns: gate explícito, no blank).
 - **Take COBROS**: cobranza por nuestra pasarela a ~1,5× fee real en
-  ese tier (spec §10) — nuevo feeMode o línea de deducción.
+  ese tier (spec §10); nuevo feeMode o línea de deducción.
 - Params/seed: nuevos `academy_tier.cobros_*` + re-etiqueta de tiers.
 
 ## Out of scope

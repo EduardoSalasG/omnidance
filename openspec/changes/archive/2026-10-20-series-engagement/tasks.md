@@ -1,4 +1,4 @@
-# Tasks — series-engagement
+# Tasks; series-engagement
 
 - [ ] 1. Schema `SeriesReview` + migración + relaciones
 - [ ] 2. `series-engagement.controller.ts`: engagement/review/reviews

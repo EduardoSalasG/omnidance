@@ -47,7 +47,7 @@ deducción de cada pago del período, enlazada por `paymentId`, con tipos
 
 - **WHEN** el payout es ACADEMY
 - **THEN** solo líneas `GATEWAY_FEE_PASSTHROUGH` (fee real por pago o
-  `gross × gateway_fee.card_pct` cuando no hay dato real) — sin
+  `gross × gateway_fee.card_pct` cuando no hay dato real); sin
   `PLATFORM_FEE_*`
 
 #### Scenario: Órdenes FREE no generan líneas

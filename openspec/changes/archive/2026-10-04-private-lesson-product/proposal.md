@@ -8,7 +8,7 @@ escape al final de `/clases`. El modelo de negocio real la trata como un
 **producto comprable** al mismo nivel que los planes y la clase suelta:
 el alumno paga por adelantado y el **dueño de la academia** asigna fecha e
 instructor después. La clase suelta (WORKSHOP) y la particular son el mismo
-concepto — "clase individual" — diferenciadas solo por cuántas personas
+concepto; "clase individual"; diferenciadas solo por cuántas personas
 asisten (N vs 1).
 
 ## What Changes
@@ -19,7 +19,7 @@ asisten (N vs 1).
 - `PrivateLesson`: `instructorId` y `scheduledAt` pasan a nullables (la
   lección pagada nace "por asignar"), `paymentId String?` enlaza la compra.
 - Checkout: `POST /checkout/private-class {academyId}` +
-  `GET /checkout/private-class-quote?academyId=` — orden `Payment`
+  `GET /checkout/private-class-quote?academyId=`; orden `Payment`
   `orderType=PRIVATE`, refId `pvt_<academyId>_<uuid>`, cargo de servicio del
   param `service_fee.membership_clp` (línea academy).
 - Settle: rama PRIVATE → al PAID crea `PrivateLesson` `REQUESTED` con
@@ -30,7 +30,7 @@ asisten (N vs 1).
   setea ambos + snapshot `commissionPct`, transiciona → `CONFIRMED`,
   notifica alumno e instructor.
 - `POST /academies/:id/private-lessons` queda restringido a staff
-  (requireManage): la solicitud libre del alumno desaparece — el alumno
+  (requireManage): la solicitud libre del alumno desaparece; el alumno
   compra; el staff puede crear manualmente (clase regalada/convenio).
 - Payouts: `paymentsByAcademy` atribuye órdenes PRIVATE a su academia.
 - UI: se remueve el fallback "clase particular" del final de `/clases`;
@@ -43,7 +43,7 @@ asisten (N vs 1).
 
 ## Impact
 
-- Schema: 2 migraciones de columna (nullable — sin data migration).
+- Schema: 2 migraciones de columna (nullable; sin data migration).
 - Endpoints nuevos: `POST /checkout/private-class`,
   `GET /checkout/private-class-quote`. Endpoints modificados:
   `PATCH /academies/:id/settings`, `GET /academies/:id/profile`,

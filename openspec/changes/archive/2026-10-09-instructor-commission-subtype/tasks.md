@@ -1,4 +1,4 @@
-# Tasks — instructor-commission-subtype
+# Tasks; instructor-commission-subtype
 
 ## 1. Backend
 

@@ -6,7 +6,7 @@
 
 El API SHALL exponer `GET /classes/my-quota` (sesión) que devuelve, por
 cada inscripción reservable del viewer, la cuota vigente: academia,
-tipo (semanal/pack/ilimitado), clases consumidas y límite — la misma
+tipo (semanal/pack/ilimitado), clases consumidas y límite; la misma
 conteo que rige la reserva (BOOKED + cancelaciones tardías, excluyendo
 asientos pagados).
 

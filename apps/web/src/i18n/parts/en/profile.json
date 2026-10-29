@@ -68,7 +68,7 @@
      "EU": "European Union (GDPR)"
     }
    },
-   "photoError": "Couldn't upload the photo — try a lighter image (max 5 MB) or JPG/PNG."
+   "photoError": "Couldn't upload the photo, try a lighter image (max 5 MB) or JPG/PNG."
   },
   "reminder": {
    "title": "Complete your profile",
@@ -94,7 +94,7 @@
    "title": "Security",
    "label": "Password",
    "defined": "Set",
-   "notSet": "No password — you sign in via your email link",
+   "notSet": "No password, you sign in via your email link",
    "set": "Set password",
    "change": "Change password",
    "current": "Current password",

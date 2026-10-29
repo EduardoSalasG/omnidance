@@ -26,7 +26,7 @@
       },
       "s6": {
         "title": "Le bouton +",
-        "desc": "Ton QR — ton billet à la porte et ta façon de logger des danses sur la piste — plus ton historique de Danses et les Pratiques de la communauté."
+        "desc": "Ton QR, ton billet à la porte et ta façon de logger des danses sur la piste, plus ton historique de Danses et les Pratiques de la communauté."
       },
       "s7": {
         "title": "Ton profil",
@@ -88,7 +88,7 @@
     "clases": {
       "s1": {
         "title": "Liste ou calendrier",
-        "desc": "Les cours groupés par jour ou le mois complet en calendrier — choisis comment regarder la semaine."
+        "desc": "Les cours groupés par jour ou le mois complet en calendrier, choisis comment regarder la semaine."
       },
       "s2": {
         "title": "Quoi regarder",
@@ -100,7 +100,7 @@
       },
       "s4": {
         "title": "Filtre à ta mesure",
-        "desc": "Style, niveau et académie — et dans Mes cours tu peux basculer entre Tous et seulement tes Réservés."
+        "desc": "Style, niveau et académie, et dans Mes cours tu peux basculer entre Tous et seulement tes Réservés."
       },
       "s5": {
         "title": "Réserve en un tap",
@@ -124,7 +124,7 @@
     "amigos": {
       "s1": {
         "title": "Constitue ta troupe",
-        "desc": "Cherche-les par nom ou partage ton lien d'invitation — celui qui l'ouvre atterrit directement sur l'ajout."
+        "desc": "Cherche-les par nom ou partage ton lien d'invitation, celui qui l'ouvre atterrit directement sur l'ajout."
       },
       "s2": {
         "title": "Tes amis vont à",
@@ -186,7 +186,7 @@
       },
       "s4": {
         "title": "Ta série",
-        "desc": "Semaines consécutives sur la piste — ou en cours en mode Académie. Ça se gagne en y allant."
+        "desc": "Semaines consécutives sur la piste, ou en cours en mode Académie. Ça se gagne en y allant."
       },
       "s5": {
         "title": "Badges",

@@ -1,4 +1,4 @@
-# web-tag-manager Specification Delta — add-clarity
+# web-tag-manager Specification Delta; add-clarity
 
 ## ADDED Requirements
 

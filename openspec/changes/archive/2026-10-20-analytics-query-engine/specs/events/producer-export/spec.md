@@ -1,4 +1,4 @@
-# events/producer-export — delta
+# events/producer-export; delta
 
 ## ADDED Requirements
 

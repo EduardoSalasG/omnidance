@@ -73,7 +73,7 @@ crear `Payment{orderType:"MEMBERSHIP", gateway:"MANUAL", status:PAID,
 amount:claim.amount, fee:0, net:claim.amount, personId:claim.personId}`;
 asegurar el `Enrollment` del alumno (crearlo ACTIVE si no existe) y
 extender `endsAt` con `membershipBase(now, endsAt)` +
-`membershipEndsAt(plan, base)` — idéntica regla del webhook Flow;
+`membershipEndsAt(plan, base)`; idéntica regla del webhook Flow;
 notificar `payment_claim_approved` al alumno.
 
 `POST /academies/:id/claims/:claimId/reject {note}` SHALL marcar el
@@ -111,7 +111,7 @@ Claims ya resueltos MUST NOT poder re-aprobarse ni re-rechazarse (409).
 
 `GET /academies/:id/claims/:claimId/receipt` SHALL servir el archivo
 solo a admins de la academia o al dueño del claim (con sesión); los
-archivos MUST NOT exponerse por ruta estática ni URL pública — el
+archivos MUST NOT exponerse por ruta estática ni URL pública; el
 comprobante contiene datos bancarios del emisor.
 
 #### Scenario: acceso permitido y denegado
@@ -125,7 +125,7 @@ comprobante contiene datos bancarios del emisor.
 Los medios BYO y el checkout Flow de membresía SHALL coexistir: una
 academia sin métodos propios sigue ofreciendo pago por la plataforma
 (modelo passthrough vigente, sin cambios de comisión). Los claims
-MANUAL MUST NOT entrar a liquidaciones `Payout` — el dinero nunca pasó
+MANUAL MUST NOT entrar a liquidaciones `Payout`; el dinero nunca pasó
 por la plataforma.
 
 #### Scenario: cobro directo no liquida
@@ -220,8 +220,8 @@ tiene `receiptKey`.
 
 La selección de medio de pago de la academia (métodos propios vs
 pasarela Flow) SHALL ocurrir dentro de `/academias/:id/checkout`, no en
-la ficha pública, y el panel SHALL renderizarse siempre — aunque la
-academia no tenga métodos propios activos — mostrando la pasarela como
+la ficha pública, y el panel SHALL renderizarse siempre; aunque la
+academia no tenga métodos propios activos; mostrando la pasarela como
 única opción marcada. Cuando el método elegido es TRANSFER, el checkout
 SHALL mostrar los campos `holder` (nombre), `rut`, `bank`,
 `accountType`, `accountNumber` y `email` del método con copia
@@ -241,7 +241,7 @@ rechazo).
 - **WHEN** el alumno abre el checkout de una academia sin métodos
   propios activos
 - **THEN** el panel se muestra igualmente con la pasarela como única
-  opción marcada — el alumno siempre ve con qué va a pagar
+  opción marcada; el alumno siempre ve con qué va a pagar
 
 ### Requirement: Moneda del comprobante
 

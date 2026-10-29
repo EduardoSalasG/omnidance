@@ -1,16 +1,16 @@
-# Tasks — auth-email-otp
+# Tasks; auth-email-otp
 
 ## 1. Datos
 
 - [x] 1.1 Modelo `AuthOtp` en `apps/api/prisma/schema.prisma` + `pnpm
-  db:migrate` (migración versionada, no db:push) — verifica: migración
+  db:migrate` (migración versionada, no db:push); verifica: migración
   `20261102000000_auth_otp` aplicada vía `migrate deploy`, `prisma
   generate` OK
 
 ## 2. Dominio (TDD primero)
 
 - [x] 2.1 Tests `auth.service.spec.ts`: createOtp invalida activos previos;
-  verifyOtp éxito/expirado/consumido/5 intentos; hash nunca en claro —
+  verifyOtp éxito/expirado/consumido/5 intentos; hash nunca en claro;
   25 tests auth verdes
 - [x] 2.2 `AuthService.createOtp`/`verifyOtp` + repo methods
   (`createOtp`, `consumeActives`, `findActiveOtp`, `bumpAttempts`,
@@ -19,9 +19,9 @@
 ## 3. Controller + email
 
 - [x] 3.1 `POST /auth/otp/verify` (DTO `{email, code}`, `AUTH_THROTTLE`,
-  401 uniforme, `{ok:true, isNew}`) — spec del controller actualizado
+  401 uniforme, `{ok:true, isNew}`); spec del controller actualizado
 - [x] 3.2 `sendMagicLink` emite OTP y `magicLinkEmailHtml(link, code)`
-  muestra el código destacado — el claim-path de `register` lo hereda
+  muestra el código destacado; el claim-path de `register` lo hereda
 
 ## 4. Front
 

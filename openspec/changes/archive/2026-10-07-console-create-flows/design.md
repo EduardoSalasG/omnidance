@@ -20,16 +20,16 @@ siempre visibles (`plans-section`, `videos`, `students-section`,
 ## Decisions
 
 - **Ruta dedicada por entidad** (`/nueva`/`/nuevo`), no sheet ni modal:
-  decisión del usuario — los formularios de consola son largos (plan tiene 8
+  decisión del usuario; los formularios de consola son largos (plan tiene 8
   campos, evento ~15) y la página completa permite validación, scroll y
   deep-link. El patrón dancer ya lo usa (`/practicas/nueva`).
 - **Crear y editar comparten página** con `?edit=<id>`: un solo formulario
   por entidad; la página en modo edición fetchea la entidad, precarga y hace
-  PATCH en vez de POST. Alternativa descartada: rutas `[id]/editar` —
+  PATCH en vez de POST. Alternativa descartada: rutas `[id]/editar`;
   duplica wiring sin ganancia.
 - **Extracción, no reescritura**: cada formulario inline se extrae a un
   componente `*-form.tsx` compartido entre listado (que ya no lo renderiza)
-  y la nueva página — el submit (POST/PATCH) ya existe y se reutiliza.
+  y la nueva página; el submit (POST/PATCH) ya existe y se reutiliza.
 - **Navegación post-submit**: crear → `router.push` de vuelta al listado
   (o al detalle si aplica) con aviso `role="status"`. El listado refetchea
   al montar (las páginas ya fetchean en `useEffect`, así que basta volver).
@@ -44,7 +44,7 @@ siempre visibles (`plans-section`, `videos`, `students-section`,
 - **Staff del evento** (`producer/staff-section`): alta por email va a
   `/productor/eventos/[id]/staff/nuevo`; toggles de rol/estado por fila
   quedan inline (acción por fila).
-- **Slots dentro de series** (`+ addSlot` por serie): se queda — es acción
+- **Slots dentro de series** (`+ addSlot` por serie): se queda; es acción
   contextual dentro de la card de una serie específica, ya button-gated.
 
 ## Risks / Trade-offs
@@ -60,4 +60,4 @@ siempre visibles (`plans-section`, `videos`, `students-section`,
 
 Feature por feature, en orden: academia (planes→videos→alumnos→equipo→
 series) luego productor (eventos→codigos→listas→staff). Cada migración es
-independiente y commiteable. Rollback: revert del commit — sin datos.
+independiente y commiteable. Rollback: revert del commit; sin datos.

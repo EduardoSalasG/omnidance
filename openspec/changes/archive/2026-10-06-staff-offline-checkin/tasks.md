@@ -8,7 +8,7 @@
 - [x] `GET /events/:id/door-manifest` (`checkins.write`): evento +
   tickets/entry passes/series passes ACTIVE con persona resuelta +
   check-ins abiertos + `generatedAt`.
-- [x] `POST /checkins/sync` (`checkins.write`): batch por ítem —
+- [x] `POST /checkins/sync` (`checkins.write`): batch por ítem;
   verifica JWT, `register(inAt, method:"OFFLINE", clientRef)`, resultado
   por ítem `synced|duplicate|invalid_token|error`; `clientRef`
   existente → `duplicate` sin insertar.
@@ -17,7 +17,7 @@
   JWT, registro local con sello offline, cola + flush
   (online/post/30s), conflictos/fallidos visibles, manual por nombre
   sobre manifest, wake lock.
-- [x] `sw.js`: runtime cache — cache-first `/_next/static/**`,
+- [x] `sw.js`: runtime cache; cache-first `/_next/static/**`,
   network-first con fallback para `/staff/**`; push intacto.
 - [x] Specs: sync endpoint (por ítem, idempotencia clientRef, JWT
   inválido), manifest (contenido + autorización), register con

@@ -1,26 +1,26 @@
-# Handoff 2026-10-15 — scores de relación por componentes (academy + producer)
+# Handoff 2026-10-15; scores de relación por componentes (academy + producer)
 
 ## Completado
 
-**Changes `academy-score-refine` + `producer-score-refine`** — implementados, verificados y archivados en OpenSpec. Commits `a7719d8` y `6189b52` en `dev`.
+**Changes `academy-score-refine` + `producer-score-refine`**; implementados, verificados y archivados en OpenSpec. Commits `a7719d8` y `6189b52` en `dev`.
 
-### Fase 2 — productor (commit `6189b52`)
-- Fórmula PRODUCER por componentes: `eventsRecent` (checkins últimas 8 semanas), `eventStreak` (eventos pasados consecutivos asistidos — solo PUBLISHED/LIVE/CLOSED, DRAFT/CANCELLED no rompen racha), `monthsContinuous` (checkin o compra), `purchases` (TICKET por `eventId` + SERIES_PASS por `sp_<seriesId>_`→`EventSeries.producerId`), `earlyPurchases` (compra ≥`crm.score.early_days` antes del evento), tenure, referrals. Breakdown con claves producer (`eventsRecent`, `eventStreak`, `earlyPurchases`, ...).
-- Params nuevos: `crm.score.early_days/early_cap/early_pts` (3/3/2) — el resto compartidos con ACADEMY.
-- AT_RISK por caída a nivel evento (0 de los últimos 2 tras ≥2 de los 5 anteriores) — implementado via `PersonActivity.dropping` que cada universo calcula.
+### Fase 2; productor (commit `6189b52`)
+- Fórmula PRODUCER por componentes: `eventsRecent` (checkins últimas 8 semanas), `eventStreak` (eventos pasados consecutivos asistidos; solo PUBLISHED/LIVE/CLOSED, DRAFT/CANCELLED no rompen racha), `monthsContinuous` (checkin o compra), `purchases` (TICKET por `eventId` + SERIES_PASS por `sp_<seriesId>_`→`EventSeries.producerId`), `earlyPurchases` (compra ≥`crm.score.early_days` antes del evento), tenure, referrals. Breakdown con claves producer (`eventsRecent`, `eventStreak`, `earlyPurchases`, ...).
+- Params nuevos: `crm.score.early_days/early_cap/early_pts` (3/3/2); el resto compartidos con ACADEMY.
+- AT_RISK por caída a nivel evento (0 de los últimos 2 tras ≥2 de los 5 anteriores); implementado via `PersonActivity.dropping` que cada universo calcula.
 - CORE unificado a `score ≥ crm.score.core_min` para ambos actores (PRODUCER pierde el umbral legado de ≥3 asistencias).
 - Ficha `/crm/personas/[id]` muestra el desglose genérico (`personDetail.components.*` en i18n).
-- `gap-crm.e2e` actualizado a la fórmula nueva (rangos en vez de números exactos — dependen del calendario).
+- `gap-crm.e2e` actualizado a la fórmula nueva (rangos en vez de números exactos; dependen del calendario).
 - Smoke real: producer scores con spread sano (62 CORE / 58-59 borde; ya no dominado por spend).
 
 ### Datos
-- `RelationshipScore.breakdown Json?` — migración `20261015000000_relationship_score_breakdown` (aplicada en dev).
+- `RelationshipScore.breakdown Json?`; migración `20261015000000_relationship_score_breakdown` (aplicada en dev).
 - Params tunables en `PARAM_DEFAULTS` de `seed-common.ts`: `crm.score.attendance_weeks/attendance_pts`, `streak_cap/streak_pts`, `months_cap/months_pts`, `purchase_months/purchase_cap/purchase_pts`, `tenure_cap/tenure_pts`, `referral_pts`, `core_min`, `crm.new_days`, `crm.brings_people_referrals`.
 
 ### Dominio (`crm.service.ts`)
 - `computeAcademyActivity`: enrollments + attendances (ventanas 8w/4w/4w-prev, racha semanal y meses continuos por calendario America/Santiago vía `weekIndex`/`monthIndex`) + compras por `Payment.refId` (`mem_`/`wks_`/`pvt_`) + `PaymentClaim` APPROVED (el Payment `claim-*` materializado se excluye para no duplicar) + `MembershipSubscription` vigente.
 - `computeScore`/`computeSegment` por componentes; breakdown persistido. **PRODUCER conserva fórmula legado** (`attendance*10+spend/1000+referrals*15`, CORE por ≥3 asistencias).
-- `recomputeAllScores()` + scheduler `CrmScoresScheduler` (job `crm.scores`, default `0 6 * * *` America/Santiago — registrado y verificado en `ScheduledJob`).
+- `recomputeAllScores()` + scheduler `CrmScoresScheduler` (job `crm.scores`, default `0 6 * * *` America/Santiago; registrado y verificado en `ScheduledJob`).
 
 ### Endpoints
 - `GET /academies/:id/students` → +`score`/`segment` por fila.
@@ -33,7 +33,7 @@
 - `/academia/alumnos/[personId]`: desglose de componentes con puntos.
 - `/admin/usuarios/[personId]`: sección "Scores por actor".
 - `/admin/academias`: página nueva (salud por academia, top/en-riesgo, drill-down expandible → ficha de usuario admin). Link en el hub `/admin`.
-- i18n: `academyExtras.studentProfile.breakdown.*`, `admin.academies.*`, `admin.users.scores.*` — `i18n-audit.cjs` → ALL_KEYS_OK.
+- i18n: `academyExtras.studentProfile.breakdown.*`, `admin.academies.*`, `admin.users.scores.*`; `i18n-audit.cjs` → ALL_KEYS_OK.
 
 ### Docs
 - `docs/architecture.md` (6 jobs + párrafo del score), `omni-dance.md` §13 fórmula, `docs/openapi.json` + postman regenerados (289 paths).
@@ -47,11 +47,11 @@
 
 ## Gotchas / decisiones
 
-- `Uint8Array<ArrayBuffer>` en `PushOptIn.tsx` dio TS2315 por **cache incremental stale** de tsc — borrar `*.tsbuildinfo` si reaparece; con cache limpio compila (TS 5.9).
+- `Uint8Array<ArrayBuffer>` en `PushOptIn.tsx` dio TS2315 por **cache incremental stale** de tsc; borrar `*.tsbuildinfo` si reaparece; con cache limpio compila (TS 5.9).
 - `prisma migrate dev` no corre en shell no-interactivo: usar `migrate diff --from-url` + `migrate deploy` + `prisma generate` (matar el dev server antes: DLL bloqueada → EPERM).
 - AT_RISK por caída: ACADEMY por ventanas 4w/4w; PRODUCER por eventos (últimos 2 vs 5 anteriores). Ambos setean `PersonActivity.dropping`.
-- Score "saturado" en seed (academias con muchas asistencias) — normal; los pesos son tunables.
-- Openspec archive puede dejar `.openspec-archive.lock` stale — borrarlo y reintentar. Proposal requiere secciones `## Why`/`## What Changes` en inglés.
+- Score "saturado" en seed (academias con muchas asistencias); normal; los pesos son tunables.
+- Openspec archive puede dejar `.openspec-archive.lock` stale; borrarlo y reintentar. Proposal requiere secciones `## Why`/`## What Changes` en inglés.
 
 ## Pendiente / próximo slice
 
@@ -60,7 +60,7 @@
 
 ---
 
-## Sesión CRM avanzado (2026-10-15 tarde) — 3 slices commiteadas `c300816`
+## Sesión CRM avanzado (2026-10-15 tarde); 3 slices commiteadas `c300816`
 
 ### crm-dynamic-segments (Slice A)
 - `ActorSegment` + `ActorSegmentMembership` (migración `20261015010000`): regla nombrada `{match:"all"|"any", conditions:[{field,op,value}]}` sobre señales del score + segmento calculado + tags. `SEGMENT_RULE_OPS` valida campo↔op.
@@ -72,7 +72,7 @@
 - `POST /crm/people/tags/bulk {personIds, tag, op:add|remove}` idempotente.
 - `Campaign.scheduledAt` → status `SCHEDULED`; job `crm.campaigns` (`*/5 * * * *`) envía las vencidas; `POST /crm/campaigns/:id/cancel` → DRAFT. sendCampaign acepta DRAFT y SCHEDULED.
 - `sendCampaign` persiste `result.audienceIds` → `GET /crm/campaigns/:id` (SENT) agrega `metrics {sent, engaged, redemptions}` (engaged = attendance/checkin post-envío en el universo del actor; redemptions = pagos PAID con `discountCodeId` del código de campaña).
-- Front: checkbox por fila + barra de selección (etiquetar/quitar tag, campaña a selección vía `/crm/campanas/nueva?personIds=` — page con Suspense por useSearchParams), scheduledAt en form, bloque métricas + cancel en ficha.
+- Front: checkbox por fila + barra de selección (etiquetar/quitar tag, campaña a selección vía `/crm/campanas/nueva?personIds=`; page con Suspense por useSearchParams), scheduledAt en form, bloque métricas + cancel en ficha.
 
 ### crm-channels-digest (Slice C)
 - `GET /crm/campaigns/:id/whatsapp?text=` → `{items:[{personId,name,phone,url wa.me}], total, withoutPhone}` (SENT usa audienceIds; DRAFT resuelve al vuelo).
@@ -83,6 +83,6 @@
 - Smoke real DB dev: segmento creado + recompute materializó membresía + filtro listPeople correctos.
 
 ### Notas
-- `impeccable detect` no se corrió sobre el diff UI (skill no resolvió CLI en esta sesión) — pendiente para QA visual.
+- `impeccable detect` no se corrió sobre el diff UI (skill no resolvió CLI en esta sesión); pendiente para QA visual.
 - Untracked ajenos quedan fuera del commit: `.agents/`, `.claude/`, `.devin/skills/brag/`, `brag-output/`, `skills-lock.json`.
 - Stack sigue arriba (api :4000, web :3000, Postgres+Redis).

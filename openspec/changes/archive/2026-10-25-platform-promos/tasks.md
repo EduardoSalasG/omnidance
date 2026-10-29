@@ -1,4 +1,4 @@
-# Tasks — platform-promos
+# Tasks; platform-promos
 
 - [x] 1. Schema: modelo PlatformPromo + relaciones + migración
   versionada + seed (1 promo ejemplo o vacío).

@@ -1,4 +1,4 @@
-# Tasks — platform-polish-gaps
+# Tasks; platform-polish-gaps
 
 ## Schema
 
@@ -9,7 +9,7 @@
 
 ## Opt-out
 
-- [x] `GET /api/mail/unsubscribe?p=&t=` público — HMAC-SHA256(personId,
+- [x] `GET /api/mail/unsubscribe?p=&t=` público; HMAC-SHA256(personId,
   JWT_SECRET) hex[0:32], HTML de confirmación, firma inválida → 400
 - [x] Footer automático con link en sendRun y testSend
 - [x] Filtrar `mailOptOutAt: null` en TODAS las resoluciones + re-chequeo

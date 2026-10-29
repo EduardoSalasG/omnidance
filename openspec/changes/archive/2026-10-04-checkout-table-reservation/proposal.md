@@ -11,14 +11,14 @@ de una reserva al confirmarla.
 
 ## What Changes
 
-- `Event.tablesTotal Int?` — mesas reservables de la noche; `null` = sin
+- `Event.tablesTotal Int?`; mesas reservables de la noche; `null` = sin
   servicio de mesas. Editable por el productor en crear/editar evento
   (dinámico: puede cambiar con la configuración del local).
-- `Event.tableSeatMax Int?` + `Event.tableSeatsTotal Int?` — tope por
+- `Event.tableSeatMax Int?` + `Event.tableSeatsTotal Int?`; tope por
   reserva y cupo sentable total. El cupo sentable es el inventario real:
-  **distinto del aforo del evento y usualmente menor** — la disponibilidad
+  **distinto del aforo del evento y usualmente menor**; la disponibilidad
   se valida en personas sentadas, no en mesas.
-- `ProducerParams.{tablesTotal,tableSeatMax,tableSeatsTotal}` — defaults
+- `ProducerParams.{tablesTotal,tableSeatMax,tableSeatsTotal}`; defaults
   del productor, editables en `/productor/parametros`
   (`GET/PUT /producer/table-params`). Cadena: override del evento →
   default del productor → sin servicio. En create, ausente hereda y
@@ -27,7 +27,7 @@ de una reserva al confirmarla.
 - Disponibilidad referencial: `tablesLeft = tablesTotal − reservas activas
   (REQUESTED|CONFIRMED)` y `seatsLeft = tableSeatsTotal − Σ partySize
   activas`, expuestos en `GET /events/:id`.
-- Checkout: sección "¿Quieres mesa?" — oculta si el evento no tiene mesas;
+- Checkout: sección "¿Quieres mesa?"; oculta si el evento no tiene mesas;
   muestra "Sin mesas disponibles" si `tablesLeft ≤ 0` o `seatsLeft ≤ 0`;
   si hay, Sí/No y al Sí un stepper de personas acotado por
   `min(tableSeatMax, seatsLeft)` + disclaimer de disponibilidad referencial
@@ -37,7 +37,7 @@ de una reserva al confirmarla.
   `REQUESTED` solo cuando el pago queda `PAID` (una mesa sin ticket no tiene
   sentido). Notificación al productor.
 - Gestión del productor: `PATCH /table-reservations/:id` acepta `partySize`
-  (ajuste al confirmar — el disclaimer al comprador lo promete);
+  (ajuste al confirmar; el disclaimer al comprador lo promete);
   `ReservationsSection` muestra ocupación `activas/total` y permite editar
   el tamaño; `EventForm` gana el campo "Mesas reservables".
 
@@ -45,7 +45,7 @@ de una reserva al confirmarla.
 
 ### New Capabilities
 
-(ninguna — extiende capacidades ya especificadas)
+(ninguna; extiende capacidades ya especificadas)
 
 ### Modified Capabilities
 

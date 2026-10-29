@@ -1,11 +1,11 @@
-# Proposal — multipais-phone
+# Proposal; multipais-phone
 
 ## Why
 
 `Person.phoneCountryCode` existe en el schema desde multipais-foundation
 pero **nada lo lee ni lo escribe**. La validación actual es un regex
 genérico (`/^\+?[0-9]{8,15}$/`) que asume +56 en los flujos de puerta,
-y `Person.phone` es `@unique` sin normalización — el mismo número
+y `Person.phone` es `@unique` sin normalización; el mismo número
 ingresado como `+56912345678` y `912345678` genera dos `Person`
 distintas. Para operar fuera de Chile el teléfono debe normalizarse a
 E.164 con país explícito en cada write path.
@@ -27,7 +27,7 @@ E.164 con país explícito en cada write path.
 - **UI**: `PhoneInput` compartido (selector de país + número nacional).
   Perfil/datos y completar-perfil muestran el selector; puerta y lead
   form asumen el país del contexto (venue → país del evento; lead → CL)
-  con override por `+` — sin fricción nueva en el flujo de 5 segundos.
+  con override por `+`; sin fricción nueva en el flujo de 5 segundos.
 - **Migración**: backfill `phoneCountryCode='CL'` + normalización E.164
   de `phone` en filas existentes (todas son +56 implícitas).
 
@@ -51,12 +51,12 @@ E.164 con país explícito en cada write path.
 ## Impact
 
 - **Deps nuevas**: `libphonenumber-js` (shared + web; la api lo consume
-  vía shared). ~140KB en bundle — aceptable, metadata completa.
+  vía shared). ~140KB en bundle; aceptable, metadata completa.
 - **API**: `people.controller`, `checkins.controller` +
   `prisma-checkins.repo`, `leads.controller`, `academy-import.service`.
 - **Web**: `PhoneInput` nuevo en `components/ui` o `components/people`;
   superficies `/perfil/datos`, `/perfil/completar`, `/bienvenida`,
   door-sale del staff, `ProLeadForm`.
-- **Schema**: sin columnas nuevas — solo migración de datos (backfill).
+- **Schema**: sin columnas nuevas; solo migración de datos (backfill).
 - **Fuera de scope**: login por teléfono/OTP-SMS, verificación de
   teléfono, cambio de `Academy.whatsapp` (ya es E.164 sin `+`).

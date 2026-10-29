@@ -3,7 +3,7 @@
 ### Requirement: Baja lógica de usuario
 
 `DELETE /admin/users/:personId` SHALL marcar la cuenta como desactivada
-(`Person.deletedAt`) sin eliminar filas — el grafo de datos (academias,
+(`Person.deletedAt`) sin eliminar filas; el grafo de datos (academias,
 eventos, tickets, roles, historial) queda intacto. Una cuenta
 desactivada MUST NO poder autenticarse por ningún mecanismo (sesión,
 password, magic link, OTP) y MUST NO aparecer en superficies públicas
@@ -30,7 +30,7 @@ rechazada con 400.
 #### Scenario: Email ocupado tras desactivación
 
 - WHEN alguien registra con el email de una cuenta desactivada
-- THEN recibe 409 emailTaken — el email no se libera
+- THEN recibe 409 emailTaken; el email no se libera
 
 #### Scenario: Reactivación restaura el acceso
 

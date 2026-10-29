@@ -212,7 +212,7 @@ export class UserIntelController {
 
     // Facturación por academia: pagos PAID que resuelven a actor ACADEMY
     // (misma resolución que finance/accrual) del mes CL vigente y el
-    // anterior — para la comparación mes vs mes del card.
+    // anterior; para la comparación mes vs mes del card.
     const mStart = clMonthStart(new Date());
     const mPrevStart = clMonthStart(new Date(mStart.getTime() - DAY_MS));
     const [billingPays, payEvents, payPlans, payClasses] = await Promise.all([
@@ -297,7 +297,7 @@ export class UserIntelController {
 
     // Activos = alumnos únicos con check-in a clases de la academia en
     // el período (Attendance→class→slot.academyId). Mes vigente vs
-    // anterior — comparable porque la asistencia sí tiene timestamp.
+    // anterior; comparable porque la asistencia sí tiene timestamp.
     const attendances = await this.prisma.attendance.findMany({
       where: {
         checkedAt: { gte: mPrevStart },
@@ -889,7 +889,7 @@ export class UserIntelController {
     };
   }
 
-  /** Pagos PAID que resuelven a la academia — misma regla que score-health. */
+  /** Pagos PAID que resuelven a la academia; misma regla que score-health. */
   private async academyRevenue(academyId: string) {
     const [payments, evs, plans, classes] = await Promise.all([
       this.prisma.payment.findMany({

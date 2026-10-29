@@ -12,7 +12,7 @@ llegue a esa ruta SHALL ser redirigida a `/inicio`. La lente INSTRUCTOR
 
 La navegación del instructor SHALL reducirse a sus destinos operativos:
 tab bar = Inicio, Mis clases, Alumnos y Perfil. "Mis clases" SHALL ser
-un tab normal — MUST NOT renderizarse como acción central destacada
+un tab normal; MUST NOT renderizarse como acción central destacada
 (`center`): hereda el estilo de los demás tabs y solo se acentúa cuando
 está activo. El hub `/academia` ("Mi academia"), Clases particulares y
 Videos MUST NOT aparecer en la navegación del instructor (tab bar,
@@ -20,7 +20,7 @@ drawer ni sidebar); las rutas siguen existiendo para owner/staff.
 
 El instructor MUST NOT renderizar hamburguesa ni drawer overlay en
 `<lg` (mismo criterio que DANCER: todo cabe en el tab bar). En `≥lg`
-el instructor MUST NOT renderizar sidebar — el tab bar inferior sigue
+el instructor MUST NOT renderizar sidebar; el tab bar inferior sigue
 visible en todos los breakpoints como su única navegación, y el
 contenido no reserva el padding lateral de la sidebar.
 

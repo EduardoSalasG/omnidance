@@ -1,10 +1,10 @@
-# Handoff 2026-10-17c — slice `staff-offline-checkin`
+# Handoff 2026-10-17c; slice `staff-offline-checkin`
 
 ## Completado (commit `1299282` en `dev`, pusheado)
 
 Puerta sin señal: la app de staff sigue registrando gente offline y
 sincroniza al volver la conectividad. La credencial sigue siendo **el
-mismo QR personal rotativo** — cero fricción extra, ningún QR por
+mismo QR personal rotativo**; cero fricción extra, ningún QR por
 entrada (decisión de producto confirmada con el usuario).
 
 ### Backend
@@ -15,25 +15,25 @@ entrada (decisión de producto confirmada con el usuario).
 - `POST /checkins/sync` (`checkins.write`): batch 1–500 ítems
   `{clientRef, qrToken?, personId?, eventId, scannedAt}`. Por ítem:
   `qrToken` → verify JWT (HMAC solo en server) o `personId` directo
-  (manual por nombre — mismo permiso que `/checkins/manual`) →
+  (manual por nombre; mismo permiso que `/checkins/manual`) →
   `syncCheckin` → `register(inAt=scannedAt, method:"OFFLINE",
   clientRef)` (mismo camino = mismos side effects: ticket→USED, mesa,
   gamificación, notificación). Resultado por ítem:
   `synced|duplicate|invalid_token|error`. `clientRef` repetido →
   `duplicate` sin insertar (retry exacto del dispositivo).
-- Schema: `Checkin.clientRef String? @unique` — migración
+- Schema: `Checkin.clientRef String? @unique`; migración
   `20261018010000_checkin_client_ref`. `CheckinMethod` gana `"OFFLINE"`.
 
 ### Frontend (`/staff/[eventId]`)
 
-- `lib/door-db.ts`: IndexedDB `omnidance-door` — store `manifest`
+- `lib/door-db.ts`: IndexedDB `omnidance-door`; store `manifest`
   (key=eventId) + `queue` (keyPath=clientRef, índice eventId;
   status pending|conflict|failed).
 - Manifiesto: preload al entrar, refresh con el poll (~15s), fallback
   al cache IndexedDB; banner muestra antigüedad (`padrón de las HH:MM`).
 - Escaneo offline: decodifica el JWT localmente **sin verificar** (solo
-  lectura de `sub`/`exp` para mostrar nombre — la firma es honestidad
-  del server al sync). `exp` vencido → ámbar "QR vencido — búscalo por
+  lectura de `sub`/`exp` para mostrar nombre; la firma es honestidad
+  del server al sync). `exp` vencido → ámbar "QR vencido; búscalo por
   nombre". Dedup local (cola + check-ins abiertos). Sello "offline" en
   el overlay verde/ámbar.
 - Cola: `crypto.randomUUID()` clientRef; flush al evento `online`,
@@ -50,7 +50,7 @@ entrada (decisión de producto confirmada con el usuario).
 ### Decisión clave (de la consulta del usuario)
 
 - Orden manual = `Payment PENDING`, **sin Ticket** hasta approve (ya
-  era así). En `/entradas` el pendiente aún no se muestra — gap
+  era así). En `/entradas` el pendiente aún no se muestra; gap
   anotado para el slice `wallet-passes`.
 - QR offline NO es verificable criptográficamente (HS256 = secreto
   simétrico, no distribuible). El diseño asume cola "decodificada
@@ -65,16 +65,16 @@ entrada (decisión de producto confirmada con el usuario).
 | API vitest | **1644/1644, 77 archivos** |
 | Web tsc + build | limpio, 68/68 páginas |
 | i18n audit | `ALL_KEYS_OK` |
-| impeccable detect | 1 warning preexistente (`<img>` remoto en Avatar — decisión documentada) |
+| impeccable detect | 1 warning preexistente (`<img>` remoto en Avatar; decisión documentada) |
 | openspec validate | 14/14 |
 | API docs | 230 paths regenerados |
 
 ## Pendiente / gaps
 
-- QA real offline en dispositivo (DevTools offline + IndexedDB) —
+- QA real offline en dispositivo (DevTools offline + IndexedDB);
   no verificado en browser, solo build + lógica.
 - Próximo slice: `fintoc-gateway-adapter` (brief listo: adaptador
   fetch-confirm tipo MP, provider String sin migración, webhook con
-  firma — extender ctx del puerto), luego `admin-billing-documents`,
+  firma; extender ctx del puerto), luego `admin-billing-documents`,
   luego `wallet-passes` (incluye el gap "pendiente de validación" en
   `/entradas`).

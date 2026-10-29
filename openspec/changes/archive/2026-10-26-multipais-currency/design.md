@@ -1,4 +1,4 @@
-# Design — multipais-currency
+# Design; multipais-currency
 
 ## Contexto
 
@@ -14,20 +14,20 @@ provider de suscripciones por moneda.
 
 ## Decisiones
 
-### D1. `Country.currency` — la moneda vive en el país
+### D1. `Country.currency`; la moneda vive en el país
 
 Columna `currency String @default("CLP")` en `Country`. Justificación:
 un país opera con una moneda de cobro (los países EUR comparten EUR y
-está bien — el precio exacto lo da `TierPrice`, la moneda el país).
+está bien; el precio exacto lo da `TierPrice`, la moneda el país).
 `academy.city.country.currency` resuelve la moneda de una academia;
 `event → venue.city.country` o `event.city.country` la del evento.
 Fallback a "CL"/"CLP" cuando el actor no tiene ciudad.
 
-### D2. Montos siguen en `Int` — unidad menor de la moneda
+### D2. Montos siguen en `Int`; unidad menor de la moneda
 
 Convención: `price`, `amount`, `fee`, `net` = unidad menor (CLP ya es
 entero; USD/EUR = centavos). No hay cambio de tipo; se documenta en el
-schema. Sin FX — nunca se suman montos de monedas distintas; reportes
+schema. Sin FX; nunca se suman montos de monedas distintas; reportes
 agrupan por `currency`.
 
 ### D3. `TierPrice` es la fuente de precio de suscripciones de plataforma
@@ -37,9 +37,9 @@ agrupan por `currency`.
 price book y luego al param `*_monthly_clp` legacy (compat con seeds y
 entornos sin price book). `kind` ACADEMY/PRODUCER cubren los tiers
 SaaS; la fila del Pase Social sigue como está (`tierCode=SOCIAL_PASS`,
-`kind=PRODUCER` placeholder — el resolver busca por tierCode+country).
+`kind=PRODUCER` placeholder; el resolver busca por tierCode+country).
 
-El resultado de `chargeSpec` gana `{price, currency}` — hoy devuelve
+El resultado de `chargeSpec` gana `{price, currency}`; hoy devuelve
 solo monto CLP. Todos sus callers (subscribe, pendingTier, reprice,
 drift-check) persis­ten `currency` en la `PlatformSubscription`.
 
@@ -48,7 +48,7 @@ drift-check) persis­ten `currency` en la `PlatformSubscription`.
 `PlatformSubscription.countryCode String @default("CL")`:
 - `kind=ACADEMY` → `academy.city.country.code` (null → "CL").
 - `kind=PRODUCER` → `billingCountry` en el body del subscribe (ISO-2,
-  default "CL") — el productor no tiene venue; lo declara igual que en
+  default "CL"); el productor no tiene venue; lo declara igual que en
   `PayoutDestination`.
 
 ### D5. Provider de suscripciones por moneda
@@ -62,7 +62,7 @@ drift-check) persis­ten `currency` en la `PlatformSubscription`.
 
 Misma regla para `PlatformSubscriptionsService.provider()` y
 `SubscriptionsService` (membresías). `SocialPassService` ya resuelve
-`gateways.get("STRIPE")` explícito — se deja igual.
+`gateways.get("STRIPE")` explícito; se deja igual.
 
 ### D6. Espejo remoto por gateway+moneda
 
@@ -74,11 +74,11 @@ Product+Price remoto lazy, igual que hoy.
 
 ### D7. Moneda del dominio de membresías y claims
 
-- `MembershipPlan.currency` — default la moneda de la academia al
+- `MembershipPlan.currency`; default la moneda de la academia al
   crear; no editable después (un plan no cambia de moneda: se crea otro
   plan). Staff en CL ni lo nota.
-- `MembershipSubscription.currency` — snapshot del plan al suscribir.
-- `PaymentClaim.currency` — snapshot de la moneda de la academia al
+- `MembershipSubscription.currency`; snapshot del plan al suscribir.
+- `PaymentClaim.currency`; snapshot de la moneda de la academia al
   declarar; `amount` se interpreta en esa moneda.
 - Drop-in (`orderType WORKSHOP`): la orden lleva la moneda de la
   academia de la clase.
@@ -88,7 +88,7 @@ Product+Price remoto lazy, igual que hoy.
 
 `PlatformPromo` `FIXED_CLP` aplica solo a cargos CLP (una promo fija en
 CLP no descuenta euros). `PERCENT` aplica a cualquier moneda.
-`AcademyPromo` igual si tiene tipo FIXED — verificar enum al
+`AcademyPromo` igual si tiene tipo FIXED; verificar enum al
 implementar; misma regla.
 
 ### D9. Front
@@ -103,13 +103,13 @@ es CLP para evitar ambigüedad ("US$ 50" vs "$ 50.000").
 ## Riesgos
 
 - **Espejos remotos**: crear Price remoto en moneda equivocada deja la
-  sub cobrando mal — el create es lazy y validado por currency.
-- **Datos legacy**: todo default CLP/CL — migración trivial, cero drift.
+  sub cobrando mal; el create es lazy y validado por currency.
+- **Datos legacy**: todo default CLP/CL; migración trivial, cero drift.
 - **Params vs TierPrice**: mantener params CL como fallback evita
   romper entornos sin price book; el seed siembra TierPrice CL desde
   los params para que converjan.
 - **`Person.jurisdiction` ≠ país de cobro**: jurisdiction es legal
-  (EU/CL), no ISO-3166 país. No reusarlo para pricing — de ahí el
+  (EU/CL), no ISO-3166 país. No reusarlo para pricing; de ahí el
   `countryCode` propio en PlatformSubscription.
 
 ## Verificación

@@ -24,7 +24,7 @@ El bailarín declara su género y en qué estilos baila con qué rol (leader/fol
 El perfil MUST permitir declarar por cada `Style` del catálogo un
 `DanceRole` (`LEADER | FOLLOWER | SWITCH`) y nivel opcional. El nivel,
 cuando está presente, SHALL tomar uno de estos valores:
-`iniciacion | basico | intermedio | avanzado` — la misma escala del
+`iniciacion | basico | intermedio | avanzado`; la misma escala del
 catálogo pedagógico `ClassLevel` de las academias.
 `PUT /api/me/style-roles` SHALL reemplazar el set completo de
 `PersonStyleRole` de forma idempotente. `GET /api/styles` SHALL

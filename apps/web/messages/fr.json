@@ -390,14 +390,14 @@
   "cameraError": "Impossible d'ouvrir la caméra",
   "notStaff": "Cette section est réservée au staff de l'événement",
   "offline": "Hors ligne. Nouvelle tentative…",
-  "offlineSeal": "Enregistré sur cet appareil — confirmé à la synchronisation",
+  "offlineSeal": "Enregistré sur cet appareil, confirmé à la synchronisation",
   "pendingSync": "à synchroniser",
   "pendingSyncCount": "{count} à synchroniser",
   "conflictBadge": "conflit",
   "conflictCount": "{count} conflit(s) à vérifier",
   "failedBadge": "sync échouée",
   "manifestAge": "fichier d'il y a {age} h",
-  "expiredQr": "QR expiré — cherche par nom",
+  "expiredQr": "QR expiré, cherche par nom",
   "searchName": "Chercher par nom",
   "loginRequired": "Connecte-toi avec ton e-mail pour gérer la porte"
  },
@@ -1206,7 +1206,7 @@
   "title": "Votre rôle de {role}",
   "pending": "En cours d'examen",
   "hintPending": "Complétez ce qui suit pour qu'un admin vous approuve :",
-  "hintComplete": "Profil complet — en attente de l'approbation d'un admin.",
+  "hintComplete": "Profil complet, en attente de l'approbation d'un admin.",
   "checks": {
    "name": "Nom réel",
    "emailVerified": "Email vérifié",
@@ -1218,11 +1218,11 @@
    "PRODUCER": "producteur"
   },
   "verifyCta": "vérifier",
-  "verifySent": "Nous avons envoyé un code à {email} — saisissez-le ici ou ouvrez le lien du courriel.",
+  "verifySent": "Nous avons envoyé un code à {email}, saisissez-le ici ou ouvrez le lien du courriel.",
   "otpPlaceholder": "000000",
   "otpSubmit": "Confirmer",
   "otpInvalid": "Code invalide ou expiré",
-  "verifyError": "Impossible d'envoyer le courriel — réessayez",
+  "verifyError": "Impossible d'envoyer le courriel, réessayez",
   "actorLabels": {
    "ACADEMY_OWNER": "Nom de l'académie",
    "PRODUCER": "Nom de l'événement"

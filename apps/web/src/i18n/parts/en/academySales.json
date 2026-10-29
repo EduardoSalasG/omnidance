@@ -20,7 +20,7 @@
     "commissionPctLabel": "{pct}% commission",
     "commissionPctHint": "Percentage of the list price per ticket (1 to 90).",
     "maxTickets": "Ticket cap",
-    "maxTicketsHint": "Optional — attribution turns off when the cap is reached.",
+    "maxTicketsHint": "Optional, attribution turns off when the cap is reached.",
     "seriesScope": "Whole series",
     "linkLabel": "The academy's sale link",
     "copy": "Copy",

@@ -1,4 +1,4 @@
-# Handoff — 2026-10-14 (tarde)
+# Handoff; 2026-10-14 (tarde)
 
 ## Completado esta sesión
 
@@ -24,14 +24,14 @@ Baez", después de academias/eventos/clique):
 
 Equivalente SQL directo para insertar a Jorge en una DB ya sembrada
 sin correr `pnpm db:seed`. Transaccional e **idempotente**: no usa
-solo `ON CONFLICT (id)` — las claims se guardan por natural key
+solo `ON CONFLICT (id)`; las claims se guardan por natural key
 (academia+persona+plan+APPROVED), las sesiones por par
 (evento,inviter,invitee), los pagos de entradas por persona+evento+
 orderType, porque el seed ya crea equivalentes con cuids. Verificado
 como no-op contra la DB real poblada y en transacción con email de
 prueba (dataset completo, rollback). Ojo al editarlo: mezclar
 comma-joins con `JOIN ... ON` rompe referencias (`invalid reference
-to FROM-clause entry`) — usar `CROSS JOIN`.
+to FROM-clause entry`); usar `CROSS JOIN`.
 
 ### Release v0.8.5 desplegada
 

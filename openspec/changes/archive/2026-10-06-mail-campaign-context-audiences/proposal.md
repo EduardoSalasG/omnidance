@@ -26,7 +26,7 @@ le re-enviaría el mail al mismo alumno cada día hasta que su plan venza.
 - **Dedup por ciclo** (`MailCampaignSent`, `@@unique(campaignId,
   dedupKey)`): una audiencia con contexto marca cada destinatario con
   `dedupKey` (`enr:<id>:<endsAt>` / `psub:<id>:<nextInvoiceAt>`); un
-  cron diario no re-envía al mismo alumno por el mismo ciclo — al
+  cron diario no re-envía al mismo alumno por el mismo ciclo; al
   renovar cambia `endsAt` y el recordatorio se rearma. Las audiencias
   genéricas (ALL/ROLE/EVENT) no tienen dedupKey: cada corrida envía a
   todos (semántica de newsletter).

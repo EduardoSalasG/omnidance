@@ -1592,7 +1592,7 @@ describe("ClassesController.calendarIcs", () => {
     expect(body).toContain("DTSTAMP:");
     expect(body).toContain("DTSTART;TZID=America/Santiago:20260915T200000");
     expect(body).toContain("DTEND;TZID=America/Santiago:20260915T213000");
-    expect(body).toContain("SUMMARY:Bachata Inicial — Academia X");
+    expect(body).toContain("SUMMARY:Bachata Inicial; Academia X");
     expect(body).toContain(
       "LOCATION:Academia X\\, Av. Siempre Viva 123",
     );
@@ -1652,7 +1652,7 @@ describe("ClassesController.calendarIcs", () => {
     });
     const body = await call("cls-5");
     expect(body).toContain(
-      "SUMMARY:Rueda\\, nivel 2\\; intensivo — Academia\\, X",
+      "SUMMARY:Rueda\\, nivel 2\\; intensivo; Academia\\, X",
     );
   });
 

@@ -1,10 +1,10 @@
-# Proposal — seo-positioning-domain
+# Proposal; seo-positioning-domain
 
 ## Why
 
 `omnidance.tech` es el dominio primario (DNS → Netlify, responde 200)
 pero `NEXT_PUBLIC_WEB_URL` quedó fijada a `omnidance.netlify.app`:
-canonical, og:url, sitemap y JSON-LD declaran el subdominio Netlify —
+canonical, og:url, sitemap y JSON-LD declaran el subdominio Netlify;
 los share sheets móviles, WhatsApp y los buscadores resuelven el
 dominio "equivocado". Además el posicionamiento del producto
 ("gestión de academias + eventos de productores + referencia de

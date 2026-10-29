@@ -68,7 +68,7 @@
      "EU": "Unión Europea (GDPR)"
     }
    },
-   "photoError": "No pudimos subir la foto — prueba con una imagen más liviana (máx. 5 MB) o en JPG/PNG."
+   "photoError": "No pudimos subir la foto, prueba con una imagen más liviana (máx. 5 MB) o en JPG/PNG."
   },
   "reminder": {
    "title": "Completa tu perfil",
@@ -94,7 +94,7 @@
    "title": "Seguridad",
    "label": "Contraseña",
    "defined": "Definida",
-   "notSet": "Sin contraseña — entras por link a tu correo",
+   "notSet": "Sin contraseña, entras por link a tu correo",
    "set": "Establecer contraseña",
    "change": "Cambiar contraseña",
    "current": "Contraseña actual",

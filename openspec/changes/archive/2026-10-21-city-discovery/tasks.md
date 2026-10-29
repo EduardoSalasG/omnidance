@@ -1,8 +1,8 @@
-# Tasks — city-discovery
+# Tasks; city-discovery
 
 - [x] 1. Backend: `cities.controller.ts` (público, flag `city_landing`
   gated): `GET /cities`, `GET /cities/:slug` (ficha + eventos futuros
-  shape feed + venues + hasGuide si CityGuide/city.guide existe —
+  shape feed + venues + hasGuide si CityGuide/city.guide existe;
   si no, omite el campo) + `GET /events/near?lat&lng&radiusKm`
   (haversine sobre City.lat/lng → cityIds → eventos futuros
   publicados; nearestCity de sugerencia). Specs vitest.

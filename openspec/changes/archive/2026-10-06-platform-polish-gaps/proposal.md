@@ -6,19 +6,19 @@ Tras `admin-jobs-mail-campaigns` + `mail-campaign-context-audiences`
 quedaron gaps declarados que bloquean el uso serio de la consola de
 jobs/campañas en producción:
 
-- **Sin opt-out**: las campañas no ofrecen baja de suscripción — un
+- **Sin opt-out**: las campañas no ofrecen baja de suscripción; un
   requisito básico si el admin manda avisos a toda la base.
 - **Un mail por persona, no por contexto**: una persona con N
   inscripciones por vencer recibe un solo recordatorio (con el ctx de
   la primera); el ciclo correcto es un aviso por ciclo.
 - **Runner sin claim atómico**: `tick`/`runNow` leen `runningRunId`
-  antes de tomarlo — con 2 instancias de API ambas podrían correr el
+  antes de tomarlo; con 2 instancias de API ambas podrían correr el
   mismo job a la vez.
 - **Selector de eventos acotado**: el formulario de campañas solo lista
   los ~50 eventos PUBLISHED más recientes, sin búsqueda ni eventos
   pasados (caso típico: mail post-evento).
 - **Sin recordatorio de comprobantes**: el owner de academia puede
-  dejar claims `PENDING` sin validar indefinidamente — la audiencia
+  dejar claims `PENDING` sin validar indefinidamente; la audiencia
   `CLAIMS_PENDING` lo hace configurable como campaña.
 
 Además el flujo de pagos manuales (`academy-checkout-manual-pay`) no
@@ -32,7 +32,7 @@ tiene e2e del ciclo intent→receipt→approve.
   pública, HTML de confirmación). Las audiencias excluyen personas con
   opt-out al resolver y al enviar.
 - **Recipient por contexto**: `MailCampaignRecipient.dedupKey` +
-  `@@unique(runId, personId, dedupKey)` — las audiencias con dedupKey
+  `@@unique(runId, personId, dedupKey)`; las audiencias con dedupKey
   generan un recipient por contexto (una persona con 2 planes por
   vencer recibe 2 mails, cada uno con su ctx); las genéricas siguen
   deduplicando por persona.
@@ -41,7 +41,7 @@ tiene e2e del ciclo intent→receipt→approve.
   corrida (MANUAL → 409, CRON → skip), multi-instancia seguro.
 - **Selector de eventos con búsqueda**: el form consulta
   `GET /admin/browse/events?q=` sin filtro de status (la respuesta ya
-  incluye status/fecha) — se ven eventos pasados y futuros, con
+  incluye status/fecha); se ven eventos pasados y futuros, con
   búsqueda por nombre.
 - **Audiencia `CLAIMS_PENDING {days}`**: owners de academia con claims
   `PENDING` más viejos que `days` días → vars `academy`, `count`;

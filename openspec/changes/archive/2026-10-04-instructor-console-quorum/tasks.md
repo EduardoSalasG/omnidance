@@ -1,4 +1,4 @@
-# tasks — instructor-console-quorum
+# tasks; instructor-console-quorum
 
 - [x] Schema: defaultQuorum/quorum/capacity nullable + push
 - [x] API: cadena de quorum efectivo aplicada en browse/book/roster

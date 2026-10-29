@@ -1,4 +1,4 @@
-# Proposal — multipais-currency
+# Proposal; multipais-currency
 
 ## Why
 
@@ -7,7 +7,7 @@ solo `Event`, `Ticket`, `Payment` y `PlatformSubscription` declaran
 `currency`. Los precios de tiers SaaS (`academy_tier.*`,
 `producer_tier.*`) y las membresías de academia (`MembershipPlan.price`)
 siguen implícitos en CLP, el provider de suscripciones es uno solo por
-param global (Flow) y `TierPrice` — el price book tier×país — solo lo
+param global (Flow) y `TierPrice`; el price book tier×país; solo lo
 usa el Pase Social. Sin este change no se puede cobrar una suscripción
 ni una membresía fuera de Chile.
 
@@ -21,12 +21,12 @@ ni una membresía fuera de Chile.
   `*_monthly_clp`; el param queda como fallback CL. `TierPrice` pasa a
   cubrir `kind=ACADEMY|PRODUCER` (hoy solo SOCIAL_PASS).
 - **País de cobro de la suscripción de plataforma**:
-  `PlatformSubscription.countryCode` — ACADEMY lo deriva de
+  `PlatformSubscription.countryCode`; ACADEMY lo deriva de
   `academy.city.country` (null → CL); PRODUCER lo declara el actor al
   suscribir (`billingCountry`, default CL).
 - **Moneda en membresías**: `MembershipPlan.currency` (default = moneda
   de la academia al crear), `MembershipSubscription.currency` y
-  `PaymentClaim.currency` (snapshot — el alumno declara en la moneda de
+  `PaymentClaim.currency` (snapshot; el alumno declara en la moneda de
   la academia).
 - **Provider de suscripciones por moneda**: CLP sigue en el param
   `payments.subscription_gateway` (Flow); otra moneda resuelve el
@@ -44,7 +44,7 @@ ni una membresía fuera de Chile.
   checkout, billing y listados de precios muestran la moneda real del
   contexto.
 - **Admin**: TierPrice gestionable vía endpoints admin (list/create/
-  update) — qué mercados están abiertos queda en data, no en código.
+  update); qué mercados están abiertos queda en data, no en código.
 
 No hay conversión FX: cada reporte/agregado agrupa por moneda.
 
@@ -73,7 +73,7 @@ No hay conversión FX: cada reporte/agregado agrupa por moneda.
 
 - **Schema/migraciones**: `Country.currency`, `MembershipPlan.currency`
   + `remoteRefs`, `MembershipSubscription.currency`,
-  `PaymentClaim.currency`, `PlatformSubscription.countryCode` —
+  `PaymentClaim.currency`, `PlatformSubscription.countryCode`;
   defaults CLP/CL, sin pérdida.
 - **API**: `platform-subscriptions.service` (`chargeSpec`, subscribe),
   `subscriptions.service` (provider por moneda, espejo remoto),

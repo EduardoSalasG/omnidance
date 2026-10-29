@@ -1,6 +1,6 @@
-# Delta — academies/private-lesson-product (instructor-commission-subtype)
+# Delta; academies/private-lesson-product (instructor-commission-subtype)
 
-El assign/create vuelven a snapshotear `commissionPct` — ahora según
+El assign/create vuelven a snapshotear `commissionPct`; ahora según
 el subtipo del acuerdo vigente del instructor (solo `COMMISSION`).
 
 ## MODIFIED Requirements

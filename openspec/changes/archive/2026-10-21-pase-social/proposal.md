@@ -13,13 +13,13 @@ productor + cargo de puerta (~$1.000). Reembolsos fuera de scope.
 ## Qué cambia
 
 - **`SocialPass`** (nuevo modelo, `personId @unique`): suscripción
-  del bailarín sobre Stripe Billing — `{personId, stripeCustomerId,
+  del bailarín sobre Stripe Billing; `{personId, stripeCustomerId,
   stripeSubId, status, amount, currency, creditsPerPeriod,
   creditsBalance, lastCreditResetAt, currentPeriodEnd,
   cancelAtPeriodEnd, tierCode}`.
 - **`SocialPassLedger`** (nuevo): movimientos auditable de crédito
   `{personId, delta, reason RESET|REDEEM|GRANT, paymentId?, createdAt}`
-  — el balance nunca se muta sin línea.
+ ; el balance nunca se muta sin línea.
 - **Precio por país**: `TierPrice` ya existe (`tierCode` × país →
   `{amount,currency}`); `tierCode:"SOCIAL_PASS"` resuelve precio por
   `Person.jurisdiction`/país con fallback CL. Créditos por período
@@ -31,10 +31,10 @@ productor + cargo de puerta (~$1.000). Reembolsos fuera de scope.
   (`subscription_data.metadata.personId`), `getSubscription`,
   `cancelSubscription` (cancel_at_period_end). `registerCustomerCard`
   mapea a la propia sesión de Checkout (Stripe cobra el 1er período
-  y toma tarjeta ahí mismo — el flujo needs_card de Flow se traduce
+  y toma tarjeta ahí mismo; el flujo needs_card de Flow se traduce
   a "redirect a Checkout").
 - **Webhook**: `POST /payments/webhook/STRIPE` gana routing por tipo
-  de evento — `invoice.paid` → activar/renovar + reset de créditos
+  de evento; `invoice.paid` → activar/renovar + reset de créditos
   (`RESET` ledger al allotment del período), `invoice.payment_failed`
   → `FAILED_CARD`, `customer.subscription.deleted` → `CANCELED`;
   firme `Stripe-Signature` igual que el path de órdenes. Metadata
@@ -49,12 +49,12 @@ productor + cargo de puerta (~$1.000). Reembolsos fuera de scope.
 - **Endpoints** (`/me/social-pass`): `GET` (estado, período,
   créditos restantes), `POST /subscribe` → Checkout subscription
   URL, `POST /cancel` → `cancelAtPeriodEnd`.
-- **Front**: página `/pase` (pública, gated por flag — pitch +
+- **Front**: página `/pase` (pública, gated por flag; pitch +
   precio por jurisdicción + CTA subscribe; miembro: estado/período/
   créditos restantes/cancelar en 2 pasos); indicador del precio
   beneficiado en checkout ("pagas preventa con Pase Social");
   opción "usar crédito" cuando aplica; entrada en nav cuando flag ON.
-- **Gating total**: flag `social_pass` (seed **OFF** — nace
+- **Gating total**: flag `social_pass` (seed **OFF**; nace
   desactivado): OFF → endpoints 404, front sin enlaces ni página.
 - Migración + specs + i18n es-CL.
 
@@ -62,8 +62,8 @@ productor + cargo de puerta (~$1.000). Reembolsos fuera de scope.
 
 - Reembolsos/cancelación retroactiva (decisión de producto).
 - Trials, pausas, cambio de plan, múltiples planes del pase,
-  créditos acumulables entre períodos (reset duro por período —
+  créditos acumulables entre períodos (reset duro por período;
   política explícita del copy).
 - Connect destination charges para suscripciones (siempre plataforma).
 - Connect webhook events en cuenta del productor (own-gateway
-  confirmaba por polling — igual acá no aplica, es plataforma).
+  confirmaba por polling; igual acá no aplica, es plataforma).

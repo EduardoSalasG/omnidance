@@ -44,7 +44,7 @@ pantalla en contextos de lectura y dificulta deep-linking y estados vacíos.
 
 ### New Capabilities
 - `console-crud-flows`: flujos de creación/edición de entidades en las
-  consolas B2B — CTA "Crear" → página dedicada, estados vacíos con CTA,
+  consolas B2B; CTA "Crear" → página dedicada, estados vacíos con CTA,
   feedback post-submit, excepciones inline documentadas.
 
 ### Modified Capabilities

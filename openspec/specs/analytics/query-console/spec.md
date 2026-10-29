@@ -146,7 +146,7 @@ funcional: las listas de módulo conservan sus acciones por fila
 ### Requirement: Gate Producer Pro
 
 Las entidades del lente PRODUCER (catálogo, run y export) SHALL requerir
-Producer Pro efectivo del owner consultado — misma regla que los exports
+Producer Pro efectivo del owner consultado; misma regla que los exports
 actuales (`403` con el contrato unificado `tier.required`). Los lentes
 ACADEMY_OWNER y ADMIN no tienen gate adicional al de rol aprobado.
 

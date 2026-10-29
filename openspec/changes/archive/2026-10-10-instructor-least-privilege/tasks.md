@@ -1,4 +1,4 @@
-# Tasks — instructor-least-privilege
+# Tasks; instructor-least-privilege
 
 - [x] 1 `alumnos/page.tsx`: lente INSTRUCTOR → sin KPIs, Insights,
   ImportCard ni CTA (`canAdminister`/`manages`/`caps.students` scoped a

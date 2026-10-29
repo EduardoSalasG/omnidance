@@ -4,10 +4,10 @@
 
 ### Requirement: Aviso a admins de registro nuevo
 
-Cuando nace una `Person` por un flujo iniciado por el usuario — alta
+Cuando nace una `Person` por un flujo iniciado por el usuario; alta
 con password (`POST /auth/register`) o primer acceso por magic
 link/OTP (`GET /auth/verify`, `POST /auth/otp/verify` sobre un email
-sin cuenta) — el sistema SHALL crear una notificación `OPERATIONAL`
+sin cuenta); el sistema SHALL crear una notificación `OPERATIONAL`
 de tipo `user.registered` para cada `PersonRole` con `role:"ADMIN"`
 y `status:"APPROVED"`, con nombre y email del registrado. El envío
 SHALL ser best-effort (`notifySafe`): un fallo del centro de

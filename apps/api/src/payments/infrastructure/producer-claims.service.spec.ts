@@ -177,7 +177,7 @@ function manualPayment(over: Row = {}): Row {
   };
 }
 
-describe("ProducerClaimsService — métodos", () => {
+describe("ProducerClaimsService; métodos", () => {
   it("crea método con type válido y lista solo activos", async () => {
     const { svc } = mkService();
     await svc.createMethod(PRODUCER, {
@@ -227,7 +227,7 @@ describe("ProducerClaimsService — métodos", () => {
   });
 });
 
-describe("ProducerClaimsService — createClaim", () => {
+describe("ProducerClaimsService; createClaim", () => {
   it("requiere archivo, ≤5MB y mimetype imagen/pdf", async () => {
     const { svc, data } = mkService();
     data.payments.push(manualPayment());
@@ -314,7 +314,7 @@ describe("ProducerClaimsService — createClaim", () => {
   });
 });
 
-describe("ProducerClaimsService — approve/reject", () => {
+describe("ProducerClaimsService; approve/reject", () => {
   function claimPendiente(data: { claims: Row[]; payments: Row[] }) {
     data.payments.push(manualPayment());
     data.claims.push({
@@ -379,7 +379,7 @@ describe("ProducerClaimsService — approve/reject", () => {
   });
 });
 
-describe("ProducerClaimsService — receipt privacy", () => {
+describe("ProducerClaimsService; receipt privacy", () => {
   const claim = { personId: BUYER, producerId: PRODUCER };
   it.each([
     [BUYER, false],

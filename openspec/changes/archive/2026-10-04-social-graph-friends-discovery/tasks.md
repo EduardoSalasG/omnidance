@@ -1,12 +1,12 @@
-# Tasks — social-graph-friends-discovery
+# Tasks; social-graph-friends-discovery
 
 ## 1. Schema + API
 
 - [x] 1.1 `Person.instagram String?` en schema.prisma + `db:push`
 - [x] 1.2 `PATCH /me` en people.controller (DTO UpdateMeDto, normaliza/valida handle, null si vacío)
 - [x] 1.3 `GET /me` incluye `instagram`; `GET /people/:id` incluye `instagram`
-- [x] 1.4 `GET /events/:id/friends-going` con SessionGuard en events.controller — amigos ACCEPTED con ticket ACTIVE del evento, dedup por persona
-- [x] 1.5 Tests del endpoint friends-going (events.controller.spec.ts — 3 casos)
+- [x] 1.4 `GET /events/:id/friends-going` con SessionGuard en events.controller; amigos ACCEPTED con ticket ACTIVE del evento, dedup por persona
+- [x] 1.5 Tests del endpoint friends-going (events.controller.spec.ts; 3 casos)
 
 ## 2. Web
 

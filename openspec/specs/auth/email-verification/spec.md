@@ -3,7 +3,7 @@
 ## Purpose
 Prueba de posesión del correo para cuentas creadas con contraseña. Las
 cuentas nacidas por magic link/OTP ya prueban el correo al verificar;
-las de password no tenían vía — y el checklist de aprobación de actores
+las de password no tenían vía; y el checklist de aprobación de actores
 exige `emailVerified`.
 
 ## Requirements
@@ -11,7 +11,7 @@ exige `emailVerified`.
 ### Requirement: Emisión de verificación en el registro con password
 
 `POST /auth/register` SHALL emitir, además de la bienvenida, el correo
-de acceso (magic link + código OTP) a la cuenta recién creada — ese
+de acceso (magic link + código OTP) a la cuenta recién creada; ese
 correo actúa como verificación de posesión. El registro y el login con
 password SHALL NOT estampar `verifiedAt` por sí solos.
 
@@ -24,7 +24,7 @@ password SHALL NOT estampar `verifiedAt` por sí solos.
 #### Scenario: password no prueba posesión
 
 - **WHEN** un usuario se registra o loguea solo con password
-- **THEN** `verifiedAt` queda null — solo verify/otp/verify lo estampan
+- **THEN** `verifiedAt` queda null; solo verify/otp/verify lo estampan
 
 ### Requirement: Reenvío de verificación con sesión
 
@@ -53,7 +53,7 @@ SHALL responder éxito sin reenviar (idempotente).
 
 Mientras `me.verifiedAt` sea null la app SHALL mostrar un aviso
 accionable (dentro de la card de rol pendiente) con CTA para reenviar
-el correo e ingresar el código OTP inline — sin obligar a salir de la
+el correo e ingresar el código OTP inline; sin obligar a salir de la
 app ni a cerrar sesión.
 
 #### Scenario: verificación inline

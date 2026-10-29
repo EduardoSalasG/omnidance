@@ -12,7 +12,7 @@ import {
 
 /**
  * Entidad del catálogo ACADEMY_OWNER lista para FilterBar en una página
- * de módulo (spec analytics/query-console — contrato de filtros
+ * de módulo (spec analytics/query-console, contrato de filtros
  * compartido): se omiten los filtros `scope` porque la página ya fija la
  * academia por contexto (AcademyGate).
  */

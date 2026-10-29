@@ -1,4 +1,4 @@
-# Proposal — add-gtm
+# Proposal; add-gtm
 
 ## Why
 
@@ -28,16 +28,16 @@ deploys futuros.
 
 ### Modified Capabilities
 
-(ninguna — el CSP existente no tiene spec canónica; es detalle de
+(ninguna; el CSP existente no tiene spec canónica; es detalle de
 implementación)
 
 ## Impact
 
-- `apps/web/src/app/[locale]/layout.tsx` — head + body.
-- `apps/web/src/middleware.ts` — política CSP.
-- `netlify.toml` — env var de build.
+- `apps/web/src/app/[locale]/layout.tsx`; head + body.
+- `apps/web/src/middleware.ts`; política CSP.
+- `netlify.toml`; env var de build.
 - Nuevo componente `apps/web/src/components/gtm.tsx`.
 - Sin cambios de API, schema ni contratos. El container inyecta tags de
-  terceros en runtime — `connect-src https:` / `img-src https:` ya los
+  terceros en runtime; `connect-src https:` / `img-src https:` ya los
   cubren; tags que carguen scripts de otros dominios requerirán
   ampliar `script-src` en cambios futuros.

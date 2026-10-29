@@ -1,10 +1,10 @@
-# social-modules-scope — deltas
+# social-modules-scope; deltas
 
 ## REMOVED Requirements
 
 ### Requirement: Invitaciones de baile solo sobre eventos en curso
 
-**Reason**: el ciclo de invitaciones se eliminó — ya no se crean
+**Reason**: el ciclo de invitaciones se eliminó; ya no se crean
 `DanceSession` INVITED (ni por escaneo ni por declaración). Las
 históricas INVITED se conservan como dato.
 
@@ -20,7 +20,7 @@ históricas INVITED se conservan como dato.
 
 `/bailes` SHALL listar las `DanceSession` del usuario (creadas
 exclusivamente por escaneo QR; las históricas INVITED aparecen como
-pendientes/expiradas) con pareja, estilo, estado y rating — sin otras
+pendientes/expiradas) con pareja, estilo, estado y rating; sin otras
 secciones. MUST NOT renderizar disponibilidad ni solicitudes de pareja.
 
 #### Scenario: Historial limpio

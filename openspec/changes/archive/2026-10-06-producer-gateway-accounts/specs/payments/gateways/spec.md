@@ -28,7 +28,7 @@ producción.
 #### Scenario: Secreto sin key de cifrado
 
 - **WHEN** `PRODUCER_GATEWAY_KEY` no está configurada o es inválida
-- **THEN** alta y resolución de adaptador fallan explícito — nunca se
+- **THEN** alta y resolución de adaptador fallan explícito; nunca se
   persiste ni usa material sin cifrar
 
 ### Requirement: Routing de órdenes por cuenta propia
@@ -72,7 +72,7 @@ polling `GET /payments/:id` SHALL usar el adaptador de
 
 - **WHEN** `/payments/webhook/FLOW?account=B` notifica un refId cuya
   orden pertenece a la cuenta A
-- **THEN** se rechaza 400 — una cuenta no confirma pagos de otra
+- **THEN** se rechaza 400; una cuenta no confirma pagos de otra
 
 #### Scenario: Auditoría por cuenta
 

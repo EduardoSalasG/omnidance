@@ -7,7 +7,7 @@
 El sistema SHALL persistir `FeatureFlag {key, label, description?,
 enabled, updatedById?, updatedAt}` como catálogo global de
 funcionalidades activables, seedado desde código con defaults por
-flag (un flag nuevo nace con el default que declare su seed —
+flag (un flag nuevo nace con el default que declare su seed;
 `social_pass` nace `enabled:false`). `FeatureFlagsService.isEnabled`
 SHALL responder desde una cache corta (≤60s) e invalidarse al
 escritura.
@@ -29,7 +29,7 @@ escritura.
 `GET /admin/feature-flags` (`admin.access`) SHALL devolver el
 catálogo con label, descripción, estado y última modificación.
 `PATCH /admin/feature-flags/:key {enabled}` SHALL flippear el flag,
-persistir `updatedById` y auditar `FEATURE_FLAG_TOGGLE` — flag
+persistir `updatedById` y auditar `FEATURE_FLAG_TOGGLE`; flag
 inexistente → 404. `GET /features` SHALL ser público y devolver el
 mapa `{key: enabled}` de todos los flags (los flags son metadatos de
 producto, no secretos), cacheado a nivel HTTP.
@@ -59,4 +59,4 @@ en estado inconsistente.
 
 - **WHEN** el PATCH falla (red o 403)
 - **THEN** el toggle vuelve a su estado previo y se muestra el error
-  — nunca queda "encendido" visualmente contra el estado real
+ ; nunca queda "encendido" visualmente contra el estado real

@@ -7,7 +7,7 @@
 Marcar presente SHALL ser exclusivo del instructor efectivo de la
 clase (cualquier instructor del plantel: `class.instructorId`,
 `ClassInstructor`, `slot.instructorId`, `ClassSlotInstructor` o el
-instructor por defecto de la serie) o un admin de plataforma — el
+instructor por defecto de la serie) o un admin de plataforma; el
 owner de la academia MUST NOT registrar asistencia.
 `POST /classes/:id/attendance {personId}` exige que el alumno tenga
 reserva `BOOKED` en esa clase; duplicado → 409.
@@ -26,7 +26,7 @@ en el roster SHALL enlazar a su ficha `/academia/alumnos/:personId`.
 
 Una reserva sin asistencia marcada SHALL permanecer `BOOKED`: el
 alumno figura como no confirmado, pero su cupo sigue contando en
-`bookedCount` (quórum) y el crédito de su plan permanece consumido —
+`bookedCount` (quórum) y el crédito de su plan permanece consumido;
 la asistencia nunca libera cupo.
 
 #### Scenario: profe marca presente
@@ -63,9 +63,9 @@ la asistencia nunca libera cupo.
 ### Requirement: Notificación al asignar instructor
 
 Cuando una persona queda asignada como instructora de una serie u
-horario — `POST /academies/:id/series` (instructor de serie o de
+horario; `POST /academies/:id/series` (instructor de serie o de
 slot), `PATCH /academies/:id/series/:seriesId` (cambio de instructor
-de serie o `addSlots` con instructor) o importación de horarios — el
+de serie o `addSlots` con instructor) o importación de horarios; el
 sistema SHALL emitir una notificación `class.instructor_assigned` al
 instructor asignado con título `Te asignaron una clase` y body
 `{serie} · {academia}`.

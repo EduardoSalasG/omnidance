@@ -1,4 +1,4 @@
-# admin — delta admin-usuarios-refine
+# admin; delta admin-usuarios-refine
 
 ## ADDED Requirements
 
@@ -7,7 +7,7 @@
 En la ficha `/admin/usuarios/[personId]`, cada lista dentro de las
 cards de "Actividad por rol" SHALL mostrar máximo 5 filas por defecto;
 cuando la lista supera las 5, un toggle centrado SHALL permitir ver
-todas ("Ver las {count}") y volver a colapsar ("Ver menos") — mismo
+todas ("Ver las {count}") y volver a colapsar ("Ver menos"); mismo
 patrón que las fichas de `/admin/academias/[id]`.
 
 #### Scenario: lista larga colapsada

@@ -6,7 +6,7 @@ import {
 } from "./billing.controller";
 import type { AdminBillingService } from "../application/billing.service";
 
-// Billing controllers (spec admin-billing-documents): wiring de rutas —
+// Billing controllers (spec admin-billing-documents): wiring de rutas:
 // generate delega payoutId+actor, pdf responde stream con headers, void
 // pasa motivo+actor, /me/billing acota al person de la sesión.
 

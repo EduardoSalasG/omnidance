@@ -1,4 +1,4 @@
-# Spec delta: payments/claims — métodos propios del productor
+# Spec delta: payments/claims; métodos propios del productor
 
 ## ADDED Requirements
 
@@ -43,13 +43,13 @@ alguna, y MUST devolver las instrucciones del método en la respuesta.
 
 - **WHEN** el `methodId` no pertenece al productor del evento/serie o
   está inactivo
-- **THEN** 400 — nunca se cobra por un medio que el productor no
+- **THEN** 400; nunca se cobra por un medio que el productor no
   declaró
 
 #### Scenario: Órdenes de academia y suscripciones
 
 - **WHEN** cualquier orden de academia o suscripción se crea
-- **THEN** `methodId` no aplica — siguen por la pasarela/param de
+- **THEN** `methodId` no aplica; siguen por la pasarela/param de
   plataforma
 
 ### Requirement: Comprobante y aprobación
@@ -72,7 +72,7 @@ autenticado (comprador dueño, productor o admin).
 
 - **WHEN** alguien que no es el comprador intenta crear el claim, o la
   orden no es `MANUAL`/`PENDING`
-- **THEN** 403/409 — la evidencia solo se adjunta a la orden propia y
+- **THEN** 403/409; la evidencia solo se adjunta a la orden propia y
   pendiente
 
 #### Scenario: Aprobación del productor

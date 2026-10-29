@@ -14,7 +14,7 @@ Un "Agregar a mi calendario" post-reserva es el estándar de la industria
   de la ciudad de la academia, `LOCATION` (sede/dirección), `DESCRIPTION`
   (academia, instructor, nivel/estilo, link a la ficha), `UID` estable,
   `VALARM` -60min. iOS/Android abren el "agregar a calendario" nativo al
-  descargar un `.ics` — no hace falta share-sheet ni API extra.
+  descargar un `.ics`; no hace falta share-sheet ni API extra.
 - Front: en el estado `BOOKED` de `class-booking-cta` aparece el botón
   "Agregar a mi calendario" (link al endpoint, hit area 44px, i18n).
   Solo cuando el asiento es propio (`BOOKED`), nunca en `WAITLIST` ni
@@ -25,8 +25,8 @@ Un "Agregar a mi calendario" post-reserva es el estándar de la industria
 ## Out of scope
 
 - Suscripciones `webcal:` / RRULE de series (v1 = un solo evento por clase).
-- Clases particulares (private lessons) — mismo patrón, iteración.
-- Calendario de eventos nightlife — la misma utilidad aplica después
+- Clases particulares (private lessons); mismo patrón, iteración.
+- Calendario de eventos nightlife; la misma utilidad aplica después
   (endpoint paralelo, no en este change).
 
 ## Decisión: .ics server-side

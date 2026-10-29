@@ -6,7 +6,7 @@ El modelo actual cobra un cargo por servicio fijo al **comprador**
 (+$500 preventa / +$700 puerta app). Eso fricciona la venta, no escala
 con el precio y no es el estándar que queremos comunicar ("publicas tu
 precio, el asistente paga exactamente eso"). Además, cada deducción del
-payout hoy se deriva de 3 columnas agregadas — no es auditable peso a
+payout hoy se deriva de 3 columnas agregadas; no es auditable peso a
 peso (nivel BIAN).
 
 Decisión aprobada (omni-dance.md §10, design doc

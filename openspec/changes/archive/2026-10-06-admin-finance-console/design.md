@@ -63,7 +63,7 @@ liquidado:
 `GET /api/admin/browse/payments` agrega `feeMode`, `platformFeeRate`,
 `producerNetClp`, `gatewayFeeClp`, `currency` a su select.
 
-## Accrual — misma fuente de verdad
+## Accrual; misma fuente de verdad
 
 `computeSettlement` (payouts.controller) gana un tercer argumento
 opcional `{ unliquidatedOnly?: boolean }` que agrega
@@ -75,7 +75,7 @@ opcional `{ unliquidatedOnly?: boolean }` que agrega
    plan.academyId; WORKSHOP → class.slot.academyId; PRIVATE →
    `decodePrivateRef`. PLATFORM_SUB se excluye (ingreso nuestro).
 2. Por cada actor, `computeSettlement(actor, epoch→now,
-   {unliquidatedOnly:true})` — las deducciones proyectadas son las
+   {unliquidatedOnly:true})`; las deducciones proyectadas son las
    mismas que liquidaría un payout real.
 3. `ownMethodReceivable` = Σ líneas OWN_METHOD_* (receivable, no
    payable). `estimatedNet = net`.
@@ -85,7 +85,7 @@ opcional `{ unliquidatedOnly?: boolean }` que agrega
 ## MRR
 
 `PlatformSubscription` con `status = ACTIVE` (incluye
-`CANCEL_PENDING`? NO — solo ACTIVE; CANCEL_PENDING va al funnel como
+`CANCEL_PENDING`? NO; solo ACTIVE; CANCEL_PENDING va al funnel como
 churn próximo). Precio por sub: `academy_tier.<tier>_<ciclo>_clp` /
 `producer_tier.<key>_<ciclo>_clp` (`producerTierParamKey`); ENTERPRISE
 y PRO_BIG sin param → `customContracts`. `monthlyAmount = precio /

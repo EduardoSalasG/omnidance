@@ -18,7 +18,7 @@ duplicación y prepara los tiers nivelados de Producer Pro
   (Person.proTier + proTrialEndsAt; hoy binario → PRO) y
   `AcademyEntitlements` (Academy.tier + estado suscripción).
 - `assertActorFeature(actorType, actorId, feature)` reemplaza
-  `assertProducerPro`/`assertAcademyTier` en los call sites — cada
+  `assertProducerPro`/`assertAcademyTier` en los call sites; cada
   endpoint declara su feature, no el tier nominal.
 - `GET /me/entitlements` unificado: `{producer: {tier,features}|null,
   academies:[{id,tier,features}]}` (reemplaza `effectivePro` y

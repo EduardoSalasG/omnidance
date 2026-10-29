@@ -1,4 +1,4 @@
-# Delta — academies/private-lesson-product (academy-console-v4)
+# Delta; academies/private-lesson-product (academy-console-v4)
 
 La clase la marca realizada el instructor, no el owner; la asignación
 ya no snapshottea comisión (acuerdo económico).
@@ -11,7 +11,7 @@ ya no snapshottea comisión (acuerdo económico).
 `{instructorId, scheduledAt}`: solo owner/ADMIN, solo sobre lecciones en
 `REQUESTED`; valida que el instructor pertenezca a la academia (404 si no);
 setea instructor+fecha y transiciona a `CONFIRMED` **sin escribir
-`commissionPct`** (las lecciones nuevas nacen en 0 — la liquidación
+`commissionPct`** (las lecciones nuevas nacen en 0; la liquidación
 vigente es el acuerdo económico). SHALL notificar al alumno y al
 instructor asignado.
 
@@ -51,7 +51,7 @@ dirección de la academia. Sobre lecciones no `CONFIRMED` responde 409.
 
 - **WHEN** el owner de la academia intenta `action="done"` sobre una
   lección de su academia
-- **THEN** responde 403 — el owner gestiona, no acredita asistencia
+- **THEN** responde 403; el owner gestiona, no acredita asistencia
 
 #### Scenario: admin como escape operativo
 

@@ -12,7 +12,7 @@ independientes permiten activar la línea que tenga oferta real.
 - Dos flags nuevos en el catálogo `FEATURE_FLAG_SEED`: `social_line`
   (Nightlife: eventos/bailes/prácticas/ciudades/mi-viaje/pase) y
   `academy_line` (Academy: clases/directorio), ambos default ON.
-- Gating front: `Tab.flag` nuevo en BottomNav — tabs del bailarín y
+- Gating front: `Tab.flag` nuevo en BottomNav; tabs del bailarín y
   de roles de escena filtrados por flag público; drawer/sidebar ya
   filtraban por `spec.flag`. Lentes: items sociales → `social_line`,
   items academia → `academy_line`.

@@ -1,5 +1,5 @@
 /**
- * door-db — IndexedDB para la puerta offline (spec staff-offline-checkin).
+ * door-db: IndexedDB para la puerta offline (spec staff-offline-checkin).
  *
  * Dos stores:
  * - `manifest` (key = eventId): el snapshot de GET /events/:id/door-manifest

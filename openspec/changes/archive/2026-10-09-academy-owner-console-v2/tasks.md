@@ -1,6 +1,6 @@
-# Tasks — academy-owner-console-v2
+# Tasks; academy-owner-console-v2
 
-## 1. API — series ilimitadas
+## 1. API; series ilimitadas
 
 - [x] 1.1 `AcademyMaterializeService`: `rollingDates()` (hoy UTC → fin
   del mes siguiente), `materializeSlot(tx, slot, dates)` extraído del
@@ -14,7 +14,7 @@
 - [x] 1.4 `AcademiesScheduler`: registra `academies.class_materialization`
   (default `30 3 * * *`); provider en `academies.module.ts`.
 
-## 2. API — dashboard KPIs
+## 2. API; dashboard KPIs
 
 - [x] 2.1 Helper de dominio puro `computeActiveStudentsKpis` (personas
   únicas, ventana previa, split de género) + spec RED.
@@ -31,7 +31,7 @@
 - [x] 3.3 `alumnos/page.tsx`: `keys={["activeStudents","pctWomen","pctMen"]}`.
 - [x] 3.4 `BottomNav.tsx`: quitar `/academia/clases` del drawer
   ACADEMY_OWNER; label override `/academia/series/nueva` → "Nueva serie
-  de clases" (sin volverla raíz — conserva el ‹ back).
+  de clases" (sin volverla raíz; conserva el ‹ back).
 - [x] 3.5 `clases/page.tsx`: redirect `/inicio` cuando la lente activa
   es ACADEMY_OWNER.
 - [x] 3.6 `series-form.tsx`: sin month, SlotDraft sin capacity/typeIds,

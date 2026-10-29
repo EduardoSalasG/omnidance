@@ -1,4 +1,4 @@
-# Tasks — mi-viaje
+# Tasks; mi-viaje
 
 - [x] 1. Schema `TripItem` + migración (orquestador).
 - [x] 2. API: `GET /me/trip` (+expansión evento feed-shape + city,

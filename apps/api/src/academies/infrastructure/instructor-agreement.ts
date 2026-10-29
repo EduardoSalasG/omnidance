@@ -76,7 +76,7 @@ export function agreementWrite(
 
 /**
  * Snapshot de la comisión a la lección (create/assign): solo cuando el
- * acuerdo del instructor es COMMISSION — el resto nace con 0 (las
+ * acuerdo del instructor es COMMISSION; el resto nace con 0 (las
  * lecciones legacy con >0 se liquidan igual por pay-commission).
  */
 export function commissionSnapshot(instructor: {

@@ -401,7 +401,7 @@ function CampaignForm({
       .catch(() => setRoles([]));
   }, []);
 
-  // Buscador de eventos (debounce): sin filtro de status — también los
+  // Buscador de eventos (debounce): sin filtro de status, también los
   // pasados sirven como audiencia (mail post-evento a asistentes).
   useEffect(() => {
     if (kind !== "EVENT") return;

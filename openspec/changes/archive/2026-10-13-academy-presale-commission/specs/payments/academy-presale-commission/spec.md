@@ -85,7 +85,7 @@ platformDeduction` y la comisión es un pasivo registrado aparte.
 
 El productor SHALL poder marcar la deuda de un período/academia como
 pagada, opcionalmente adjuntando comprobante (`evidenceUrl`). El estado
-pasa a PAID con `paidAt` — no hay confirmación del lado de la academia.
+pasa a PAID con `paidAt`; no hay confirmación del lado de la academia.
 La academia SHALL ver su deuda acumulada por productor/período y su
 estado (pendiente/pagada), sin acción disponible.
 

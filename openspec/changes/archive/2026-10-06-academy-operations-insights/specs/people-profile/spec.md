@@ -1,4 +1,4 @@
-# people-profile — deltas
+# people-profile; deltas
 
 ## ADDED Requirements
 

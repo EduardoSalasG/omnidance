@@ -202,7 +202,7 @@ function PlansKpiCards({ kpis }: { kpis: PlansKpis }) {
     >
       <Card
         className="flex flex-col gap-1 p-4"
-        aria-label={`${t("planKpiActive")}: ${kpis.activePlans} — ${t("planKpiActiveHint")}`}
+        aria-label={`${t("planKpiActive")}: ${kpis.activePlans}. ${t("planKpiActiveHint")}`}
       >
         <span className="text-xs font-medium text-ink/50">
           {t("planKpiActive")}
@@ -219,7 +219,7 @@ function PlansKpiCards({ kpis }: { kpis: PlansKpis }) {
           <Card
             key={p.planId}
             className="flex flex-col gap-1 p-4"
-            aria-label={`${p.name ?? p.planId}: ${p.students} — ${t("planKpiTopHint")}`}
+            aria-label={`${p.name ?? p.planId}: ${p.students}. ${t("planKpiTopHint")}`}
           >
             <span className="truncate text-xs font-medium text-ink/50">
               {p.name ?? p.planId}

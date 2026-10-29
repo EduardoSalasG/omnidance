@@ -1,4 +1,4 @@
-# admin — delta role-registration-pipeline
+# admin; delta role-registration-pipeline
 
 ## ADDED Requirements
 

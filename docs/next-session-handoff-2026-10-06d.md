@@ -1,16 +1,16 @@
-# Handoff — release v0.3.0 promovido a prod (2026-10-06d)
+# Handoff; release v0.3.0 promovido a prod (2026-10-06d)
 
 ## Estado: `main` y `dev` sincronizados en `951dbc8` (tag `v0.3.0`)
 
-Release MINOR v0.3.0 — 39 commits desde v0.2.1. Promoción fast-forward
+Release MINOR v0.3.0; 39 commits desde v0.2.1. Promoción fast-forward
 `dev → main`, deploy verificado en producción.
 
 ### Evidencia de release
 
 - Tag anotado `v0.3.0` en `951dbc8cfdd55a956542f2379fabd1c12f2eeefa`
-  (commit exacto de `main` desplegado — objetivo de rollback).
+  (commit exacto de `main` desplegado; objetivo de rollback).
 - GitHub Actions `Deploy omnidance API` run `37547321800`: **success
-  en 5m46s** — tests, build, imagen GHCR, deploy Oracle VM y verify de
+  en 5m46s**; tests, build, imagen GHCR, deploy Oracle VM y verify de
   nginx todos verdes. Las migraciones nuevas (claims AWAITING,
   mail campaigns, opt-out, billing, wallet, etc.) corrieron en el
   contenedor de migrate del deploy.
@@ -20,7 +20,7 @@ Release MINOR v0.3.0 — 39 commits desde v0.2.1. Promoción fast-forward
   - `GET /api/mail/unsubscribe?p=x&t=y` → `400` (endpoint nuevo vivo,
     firma inválida rechazada)
   - `https://omnidance.netlify.app` → `200`
-- `dev` mergeado de vuelta desde `main` (ff, mismo SHA) — no quedarse
+- `dev` mergeado de vuelta desde `main` (ff, mismo SHA); no quedarse
   parado en `main`.
 
 ### Qué salió en v0.3.0 (ver CHANGELOG.md)
@@ -46,7 +46,7 @@ Release MINOR v0.3.0 — 39 commits desde v0.2.1. Promoción fast-forward
   next-intl. Falta decidir locales, traducir parts y auditar strings
   hardcodeados/datos seed.
 - Credenciales sin ejercitar en prod: `GOOGLE_WALLET_*`, `FINTOC_*`
-  (mocks OK). `RESEND_API_KEY` y `VAPID_*` ya están cargados —
+  (mocks OK). `RESEND_API_KEY` y `VAPID_*` ya están cargados;
   test-send real desde `/admin/campanas` es la prueba natural.
 - Flake conocido: `test/gap-crm.e2e.spec.ts` puede fallar en teardown
   si el dev server corre contra la misma DB (JobsRunner crea

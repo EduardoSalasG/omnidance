@@ -1,11 +1,11 @@
-# admin — delta admin-catalogos-edit-page
+# admin; delta admin-catalogos-edit-page
 
 ## ADDED Requirements
 
 ### Requirement: edición de catálogo en página dedicada
 
 La acción "Editar" de una fila de `/admin/catalogos` SHALL navegar a
-`/admin/catalogos/[cat]/[id]/editar` — página con `ConsoleHeader` de
+`/admin/catalogos/[cat]/[id]/editar`; página con `ConsoleHeader` de
 vuelta al listado, form prellenado (nombre + campo extra del catálogo),
 PATCH al endpoint y regreso a `/admin/catalogos`. El listado SHALL NOT
 renderizar forms de edición inline. `cat` desconocido cae a `styles`;

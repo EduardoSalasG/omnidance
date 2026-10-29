@@ -1,4 +1,4 @@
-# Tasks — consent-por-jurisdiccion
+# Tasks; consent-por-jurisdiccion
 
 - [x] 1. Schema: `Person.jurisdiction`, `LegalText`, `ConsentRecord` +
   migración versionada (orquestador) + seed de textos (CL vigente del

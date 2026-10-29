@@ -57,7 +57,7 @@ log de la API si no hay Resend configurado).
 | `pnpm dev` / `dev:web` / `dev:api` | Servidores de desarrollo |
 | `pnpm build` | Build de todos los paquetes |
 | `pnpm test` | Vitest unit + componente (API ~1900 tests, web) |
-| `pnpm test:e2e` | Playwright smoke (chromium + mobile) — requiere `pnpm dev` vivo y `pnpm exec playwright install` la 1ª vez |
+| `pnpm test:e2e` | Playwright smoke (chromium + mobile); requiere `pnpm dev` vivo y `pnpm exec playwright install` la 1ª vez |
 | `pnpm db:up` / `db:down` | Postgres 16 + Redis 7 |
 | `pnpm db:push` / `db:migrate` | Schema Prisma / migración versionada |
 | `pnpm db:seed` | Seed idempotente (`SEED_ENV=dev` default, `prod` solo baseline+admin) |

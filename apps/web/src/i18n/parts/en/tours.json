@@ -6,7 +6,7 @@
     "home": {
       "s1": {
         "title": "Your pulse in the scene",
-        "desc": "Consecutive weeks out and recent dances — your real activity, no rankings. The full detail lives in your Profile."
+        "desc": "Consecutive weeks out and recent dances, your real activity, no rankings. The full detail lives in your Profile."
       },
       "s2": {
         "title": "Going out tonight?",
@@ -26,7 +26,7 @@
       },
       "s6": {
         "title": "The + button",
-        "desc": "Your QR — your ticket at the door and how you log dances on the floor — plus your Dances history and the community's Practices."
+        "desc": "Your QR, your ticket at the door and how you log dances on the floor, plus your Dances history and the community's Practices."
       },
       "s7": {
         "title": "Your profile",
@@ -88,7 +88,7 @@
     "clases": {
       "s1": {
         "title": "List or calendar",
-        "desc": "Classes grouped by day or the full month in calendar — choose how to look at the week."
+        "desc": "Classes grouped by day or the full month in calendar, choose how to look at the week."
       },
       "s2": {
         "title": "What to look at",
@@ -100,7 +100,7 @@
       },
       "s4": {
         "title": "Filter your way",
-        "desc": "Style, level and academy — and inside My classes you can switch between All and just your Booked ones."
+        "desc": "Style, level and academy, and inside My classes you can switch between All and just your Booked ones."
       },
       "s5": {
         "title": "Book in one tap",
@@ -124,7 +124,7 @@
     "amigos": {
       "s1": {
         "title": "Build your people",
-        "desc": "Search them by name or share your invite link — whoever opens it lands straight on adding you."
+        "desc": "Search them by name or share your invite link, whoever opens it lands straight on adding you."
       },
       "s2": {
         "title": "Your friends are going to",
@@ -186,7 +186,7 @@
       },
       "s4": {
         "title": "Your streak",
-        "desc": "Consecutive weeks on the floor — or in class if you're in Academy mode. It's earned by showing up."
+        "desc": "Consecutive weeks on the floor, or in class if you're in Academy mode. It's earned by showing up."
       },
       "s5": {
         "title": "Badges",

@@ -1,18 +1,18 @@
-# push-copy — convención de copy de notificaciones
+# push-copy; convención de copy de notificaciones
 
 ## ADDED Requirements
 
 ### Requirement: Títulos de notificación concisos
 
-El sistema SHALL emitir `title` como frase de outcome corta — sin prefijos
+El sistema SHALL emitir `title` como frase de outcome corta; sin prefijos
 de categoría ("Pago confirmado —"), sin punto final, y que comunique el
 estado en ~40 chars o menos tras interpolar valores típicos.
 
 #### Scenario: confirmación de pago
 
 - **WHEN** se liquida un pago PAID de ticket
-- **THEN** el `title` de la notificación es `Ticket listo` — no
-  `Pago confirmado — tu ticket está listo`
+- **THEN** el `title` de la notificación es `Ticket listo`; no
+  `Pago confirmado; tu ticket está listo`
 
 #### Scenario: outcome sin boilerplate
 
@@ -47,4 +47,4 @@ Los literales `title`/`body` SHALL coincidir con la tabla de
 
 - **WHEN** Flow reporta mora en una suscripción
 - **THEN** el title es `Cobro fallido` y el body
-  `${plan.name} · ${academy.name} — reintentaremos; revisa tu tarjeta`
+  `${plan.name} · ${academy.name}; reintentaremos; revisa tu tarjeta`

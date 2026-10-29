@@ -20,7 +20,7 @@ engine.io (Nest responde `Cannot GET /socket.io`).
 - `lib/server-api.ts`: `SERVER_API_URL` (const module-scope) →
   `serverApiUrl()` request-scope con fallback al **origin del request**
   (`headers()` → `x-forwarded-host`/`host` + `x-forwarded-proto`): la
-  propia web sirve `/api/*` por el rewrite — no depende de env vars.
+  propia web sirve `/api/*` por el rewrite; no depende de env vars.
 - `netlify.toml`: `[[redirects]]` proxy `/socket.io/*` → API antes del
   runtime Next (preserva el trailing slash).
 - 11 call sites actualizados a request-scope.

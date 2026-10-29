@@ -192,7 +192,7 @@
       },
       "seatsOccupancy": "{used} de {total} asientos ocupados",
       "cancelTitle": "¿Cancelar la reserva?",
-      "cancelDesc": "{name} — {count, plural, one {# persona} other {# personas}}."
+      "cancelDesc": "{name}, {count, plural, one {# persona} other {# personas}}."
     },
     "ratings": {
       "notEnough": "Aún no hay suficientes evaluaciones para mostrar ({count}/3).",
@@ -449,11 +449,11 @@
       "emailPlaceholder": "persona@correo.cl",
       "nameLabel": "Nombre (opcional)",
       "inviteSubmit": "Enviar invitación",
-      "invited": "Invitación enviada — le llegó un correo con acceso",
+      "invited": "Invitación enviada, le llegó un correo con acceso",
       "added": "Colaborador agregado",
       "removeTitle": "¿Quitar a {name}?",
       "removeDesc": "Dejará de aparecer como candidato de staff en tus eventos.",
-      "quotaFull": "Tu plan cubre hasta {limit} colaborador(es) — sube de tier para sumar más."
+      "quotaFull": "Tu plan cubre hasta {limit} colaborador(es), sube de tier para sumar más."
     }
   }
 }

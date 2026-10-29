@@ -1,4 +1,4 @@
-# Delta — academies/console-lists (academy-console-v3)
+# Delta; academies/console-lists (academy-console-v3)
 
 Capacidad nueva: contrato de paginación de listados de consola.
 
@@ -7,7 +7,7 @@ Capacidad nueva: contrato de paginación de listados de consola.
 ### Requirement: Envelope paginado en endpoints de listado
 
 Los endpoints de listado de la consola SHALL aceptar `page` y
-`pageSize` (opcionales) y responder `{items, total, page, pageSize}` —
+`pageSize` (opcionales) y responder `{items, total, page, pageSize}`;
 ninguna vista operativa descarga la tabla completa. `page` se
 normaliza a ≥1 (default 1); `pageSize` se normaliza a ≥1 (default 25)
 y se capa a un máximo por endpoint (100 por defecto; 200 en claims).
@@ -32,7 +32,7 @@ Endpoints cubiertos (además de los ya existentes en otros cambios):
 
 Cuando un filtro de búsqueda (`q`) depende de un join (nombre de
 persona vía FK plana), el endpoint SHALL resolver los IDs que matchean
-antes de paginar — paginar y filtrar después produce páginas vacías
+antes de paginar; paginar y filtrar después produce páginas vacías
 incorrectas.
 
 #### Scenario: primera página por defecto
@@ -66,7 +66,7 @@ Las vistas de listado de la consola SHALL renderizar el componente
 `Pager` (prev/next + "Página X de Y" + total) y resetear la página a 1
 ante cualquier cambio de filtro u orden. Los consumidores que
 necesitan el universo completo (pickers, selects de audiencia) SHALL
-pedir un `pageSize` acotado explícito o usar un endpoint de detalle —
+pedir un `pageSize` acotado explícito o usar un endpoint de detalle;
 no recorrer la lista.
 
 #### Scenario: cambiar de página

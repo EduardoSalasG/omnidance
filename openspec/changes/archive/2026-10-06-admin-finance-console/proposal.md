@@ -17,18 +17,18 @@ La administración financiera hoy exige leer la DB.
   desglose congelado por orden) y **SaaS** (MRR por tier + subs
   activas).
 - `AdminFinanceController` (`admin.access`):
-  - `GET /admin/finance/summary?from&to` — GMV por segmento
+  - `GET /admin/finance/summary?from&to`; GMV por segmento
     (social/academia/SaaS/métodos-propios), ingreso plataforma
     (neto+IVA+SaaS), costo de pasarela, cola de payouts.
-  - `GET /admin/finance/accrual` — pagos PAID **sin `PayoutLine`**
+  - `GET /admin/finance/accrual`; pagos PAID **sin `PayoutLine`**
     atribuidos por actor con las mismas reglas del settlement
     (`unliquidatedOnly`), con neto estimado y receivable OWN_METHOD
     (lo que el actor nos debe, reportado aparte).
-  - `GET /admin/finance/mrr` — `PlatformSubscription` ACTIVE por
+  - `GET /admin/finance/mrr`; `PlatformSubscription` ACTIVE por
     kind+tier con monto mensual normalizado por ciclo + funnel de
     estados.
 - `computeSettlement` gana flag `unliquidatedOnly`
-  (`payoutLines: none`) — misma fuente de verdad que la generación.
+  (`payoutLines: none`); misma fuente de verdad que la generación.
 - `/admin/browse/payments` expone el desglose congelado
   (`feeMode/platformFeeRate/producerNetClp/gatewayFeeClp`).
 - Card "Facturación" en el hub `/admin`.

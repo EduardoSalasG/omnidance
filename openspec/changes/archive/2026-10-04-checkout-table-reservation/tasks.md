@@ -1,4 +1,4 @@
-# Tasks — checkout-table-reservation
+# Tasks; checkout-table-reservation
 
 - [x] Schema: `Event.tablesTotal Int?`, `Payment.tablePartySize Int?` + `db push` + regen client
 - [x] API events: `tablesTotal` en CreateEventDto/UpdateEventDto (null limpia), detail expone `tablesTotal`+`tablesLeft`

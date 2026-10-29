@@ -1,4 +1,4 @@
-# Delta — academies/owner-insights
+# Delta; academies/owner-insights
 
 ## ADDED Requirements
 
@@ -35,7 +35,7 @@ métricas computadas sobre el tramo equivalente del mes anterior
 (month-to-date: desde el día 1 hasta el mismo día transcurrido):
 `billedMonthPrev`, `avgTicketMonthPrev` y
 `avgAttendancePerClassMonthPrev` (null cuando el mes anterior no tiene
-base — 0 clases dictadas o 0 pagos). Los KPIs sin histórico confiable
+base; 0 clases dictadas o 0 pagos). Los KPIs sin histórico confiable
 (`activeStudentsMonth`, `purchasablePlans`, `weeklyClasses`) MUST NOT
 llevar comparativa.
 

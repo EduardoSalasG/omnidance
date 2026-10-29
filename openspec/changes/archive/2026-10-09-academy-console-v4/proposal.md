@@ -1,11 +1,11 @@
-# academy-console-v4 — refinamiento de consola + retiro de comisión
+# academy-console-v4; refinamiento de consola + retiro de comisión
 
 ## Why
 
 Segunda iteración sobre la consola del owner tras academy-console-v3:
 detalles de UX pedidos (cards navegables completos, listas vs cards,
 acciones en el nivel correcto) y saneamiento de la deuda detectada en
-la auditoría posterior al v3 — sobre todo `commissionPct`, que quedó
+la auditoría posterior al v3; sobre todo `commissionPct`, que quedó
 semi-muerto: el acuerdo económico (`payType`/`payAmount`/`payClasses`)
 lo reemplazó pero el campo seguía editable en Configuración y el API
 lo seguía aceptando y snapshotteando en cada clase particular.
@@ -21,14 +21,14 @@ lo seguía aceptando y snapshotteando en cada clase particular.
 - **Alumnos**: card completo clickeable; el cambio de estado y
   "pagado hasta" solo se editan en el detalle del alumno; el detalle
   muestra la lista de pagos (plan, inicio, fin).
-- **Particulares**: se quita "marcar realizada" — la asistencia la
+- **Particulares**: se quita "marcar realizada"; la asistencia la
   marca el instructor desde su clase.
 - **Planes**: lista separada en secciones Recurrentes vs Pago único;
   chip activo/desactivado en el card.
 - **Equipo**: en detalle de profesor, "Quitar" → "Eliminar" centrado
   en rojo (mismo patrón que "eliminar amigo").
 - **Configuración**: "General" se renombra "Clases"; el título de la
-  sección pasa a "Valores por defecto"; métodos de pago editables —
+  sección pasa a "Valores por defecto"; métodos de pago editables;
   card clickeable → página de detalle/edición (ej. datos de cuenta
   de transferencia); se retira el editor de `commissionPct`.
 - **Analítica**: "Consultas rápidas" (guardadas/sistema) arriba de

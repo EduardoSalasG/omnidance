@@ -1,4 +1,4 @@
-# producer-export — PDF y exporte por serie
+# producer-export; PDF y exporte por serie
 
 ## ADDED Requirements
 
@@ -27,7 +27,7 @@ autorización/rechazo son idénticos a los del CSV (owner del evento o
   (sales: tickets + recaudado sin cancelados; checkins: totales +
   anulados; guestlist: invitados + listas), la tabla completa y
   numeración de páginas
-- **AND** las celdas largas se truncan con elipsis — ninguna rompe el
+- **AND** las celdas largas se truncan con elipsis; ninguna rompe el
   layout ni genera páginas vacías
 
 #### Scenario: rechazos idénticos al CSV
@@ -62,7 +62,7 @@ o `admin.access`; mismos rechazos (400/401/403/404).
 ### Requirement: Serializadores compartidos
 
 El sistema SHALL construir los datasets una sola vez como
-`{headers, rows, summary}` por consulta y serializarlos a CSV o PDF —
+`{headers, rows, summary}` por consulta y serializarlos a CSV o PDF;
 ningún formato puede divergir en columnas ni filas. Ningún formato
 expone `claimToken` ni ids internos de persona.
 

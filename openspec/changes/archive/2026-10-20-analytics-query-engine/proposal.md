@@ -1,4 +1,4 @@
-# Proposal — analytics-query-engine
+# Proposal; analytics-query-engine
 
 ## Why
 
@@ -8,7 +8,7 @@ de datos por entidad con filtros whitelist, pero solo para admin y sin
 export ni persistencia; y las páginas de módulos (academia/productor/admin)
 tienen filtros ad-hoc, inconsistentes o inexistentes. Se unifica todo en un
 motor de consultas compartido: mismo catálogo de entidades+filtros, misma
-UI, scoping por rol, preview, export CSV/PDF y consultas guardadas —
+UI, scoping por rol, preview, export CSV/PDF y consultas guardadas;
 analítica es solo-lectura, los módulos reutilizan los mismos filtros sobre
 sus listas interactivas.
 
@@ -30,7 +30,7 @@ sus listas interactivas.
   memberships/payments/private_lessons; admin extiende el set actual de
   browse (events/payments/payouts/people/…).
 - **Filtros transversales**: `from`/`to` + enums por entidad (status, canal,
-  método, orderType…) + `q` + FK selects — mismos nombres/semántica en
+  método, orderType…) + `q` + FK selects; mismos nombres/semántica en
   Consultas y en los endpoints de módulo.
 - **Exports unificados**: `GET /query/export.{csv,pdf}?role=&entity=&…filtros`
   construye `{headers, rows, summary}` con el mismo engine; el preview usa
@@ -56,7 +56,7 @@ sus listas interactivas.
 
 ### New Capabilities
 
-- `analytics/query-console`: motor de consultas compartido — catálogo por
+- `analytics/query-console`: motor de consultas compartido; catálogo por
   rol, scoping/ownership, preview, export CSV/PDF, consultas guardadas,
   y la regla de que los módulos y Consultas usan el mismo contrato de
   filtros (módulos = interactivos, Consultas = solo lectura).

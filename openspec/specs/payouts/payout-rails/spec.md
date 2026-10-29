@@ -12,7 +12,7 @@ El sistema SHALL abstraer el desembolso de un `Payout` tras un port
 resolución SHALL ser: `PayoutDestination` `ACTIVE` del actor para el
 payout → su rail; sin destino activo o moneda del destino distinta a
 la del payout → `MANUAL`. `MANUAL.disburse` SHALL rechazar con
-`PAYOUT_REQUIRES_MANUAL` — nunca hay desembolso implícito.
+`PAYOUT_REQUIRES_MANUAL`; nunca hay desembolso implícito.
 
 #### Scenario: Actor con destino Connect activo
 
@@ -37,7 +37,7 @@ El sistema SHALL persistir `PayoutDestination` (`actorType` +
 crear la cuenta Connect Express (`capabilities` card_payments +
 transfers) y devolver `onboardingUrl` (Account Link tipo
 `account_onboarding`); SHALL validar ownership del actor
-(`PRODUCER`=personId, `ACADEMY`/`VENUE`=ownerId — misma regla de
+(`PRODUCER`=personId, `ACADEMY`/`VENUE`=ownerId; misma regla de
 `/me/payouts`) y responder 503 si Stripe no está configurado.
 `GET /me/payout-destinations` SHALL listar los destinos del actor y
 refrescar best-effort el estado contra Stripe (`details_submitted` +
@@ -89,7 +89,7 @@ dejar el payout `APPROVED` para reintento seguro.
 - **WHEN** el primer intento de transfer murió en red pero Stripe sí
   lo creó
 - **THEN** el reintento con la misma Idempotency-Key devuelve el
-  mismo `tr_…` — nunca hay doble desembolso
+  mismo `tr_…`; nunca hay doble desembolso
 
 #### Scenario: Actor sin destino
 
@@ -100,4 +100,4 @@ dejar el payout `APPROVED` para reintento seguro.
 #### Scenario: Sin aprobación
 
 - **WHEN** se desembolsa un payout `PENDING`
-- **THEN** responde 409 — el gate de aprobación humana no se salta
+- **THEN** responde 409; el gate de aprobación humana no se salta

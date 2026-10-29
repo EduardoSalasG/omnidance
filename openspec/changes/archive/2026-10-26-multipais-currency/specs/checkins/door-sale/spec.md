@@ -1,4 +1,4 @@
-# checkins/door-sale — moneda del ticket de puerta
+# checkins/door-sale; moneda del ticket de puerta
 
 ## ADDED Requirements
 

@@ -20,7 +20,7 @@ const PAGE = (title: string, body: string) =>
 
 /**
  * Baja de campañas de mail (spec platform-polish-gaps): ruta PÚBLICA
- * — llega desde el footer del correo sin sesión. La firma HMAC del
+ *; llega desde el footer del correo sin sesión. La firma HMAC del
  * personId (JWT_SECRET) es la autorización; no hay token persistido.
  * Solo afecta correos de campañas: los transaccionales (magic link,
  * recibos) siguen llegando.
@@ -50,7 +50,7 @@ export class MailUnsubscribeController {
         ? PAGE("Enlace inválido", "Este enlace de baja no corresponde a una cuenta vigente.")
         : PAGE(
             "Suscripción cancelada",
-            "Listo — no recibirás más correos de campañas. Los correos de tu cuenta (acceso, recibos) siguen llegando normalmente.",
+            "Listo, no recibirás más correos de campañas. Los correos de tu cuenta (acceso, recibos) siguen llegando normalmente.",
           ),
     );
   }

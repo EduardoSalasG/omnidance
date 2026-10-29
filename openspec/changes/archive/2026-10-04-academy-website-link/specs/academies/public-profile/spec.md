@@ -1,9 +1,9 @@
-# academies/public-profile — contacto público de la academia
+# academies/public-profile; contacto público de la academia
 
 ## Purpose
 
 La ficha pública de la academia puede mostrar canales de contacto
-autodeclarados por el owner (Instagram, WhatsApp, sitio web) — todos
+autodeclarados por el owner (Instagram, WhatsApp, sitio web); todos
 opcionales.
 
 ## ADDED Requirements

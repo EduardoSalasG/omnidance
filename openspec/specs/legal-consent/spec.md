@@ -65,8 +65,8 @@ sesión a la Person existente con toda su data sembrada.
 
 - **WHEN** register llega con el email y password de una Person
   existente
-- **THEN** emite la sesión (cookie) sobre esa Person — sin crear
-  duplicado ni pisar el nombre — y no envía correo
+- **THEN** emite la sesión (cookie) sobre esa Person; sin crear
+  duplicado ni pisar el nombre; y no envía correo
 
 #### Scenario: cuenta sin password recibe link de reclamo
 
@@ -80,7 +80,7 @@ sesión a la Person existente con toda su data sembrada.
 
 - **WHEN** register llega con password que no coincide con el
   `passwordHash` de la Person existente
-- **THEN** se envía magic link al correo real y responde 409 — el
+- **THEN** se envía magic link al correo real y responde 409; el
   password incorrecto nunca emite sesión ni cambia la contraseña
 
 ### Requirement: Jurisdicción legal del actor
@@ -114,7 +114,7 @@ resuelve jurisdicción por el país y devuelve el texto/versión vigente,
 
 - **WHEN** el form de registro consulta `GET /legal/consent?country=DE`
 - **THEN** recibe `granular: true` y `requiredScopes` con los tres
-  scopes — el envío solo requiere `essential`; `marketing`/`analytics`
+  scopes; el envío solo requiere `essential`; `marketing`/`analytics`
   son opt-in registrados
 
 #### Scenario: Sin LegalText activo para la jurisdicción
@@ -138,7 +138,7 @@ Scopes no requeridos por la jurisdicción SHALL ignorarse (un scope
 - **WHEN** un usuario EU acepta `{version:"eu-v1.0",
   scopes:{essential:true,marketing:true}}`
 - **THEN** el `ConsentRecord` persiste ambos scopes, `jurisdiction:"EU"`
-  y el snapshot queda `eu-v1.0` — una auditoría puede reconstruir qué
+  y el snapshot queda `eu-v1.0`; una auditoría puede reconstruir qué
   aceptó y cuándo
 
 #### Scenario: Re-aceptación por versión de la jurisdicción

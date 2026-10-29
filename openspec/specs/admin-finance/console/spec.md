@@ -122,7 +122,7 @@ Ambas páginas SHALL cumplir el patrón de consola: gate `admin.access`
 (loading skeleton / unauth / forbidden explícitos), loading con
 `SkeletonList`/cards en `.page-loading`, error `role="alert"` con
 reintento, empty states con mensaje, y figuran como destinos raíz del
-drawer/sidebar (sin back de ConsoleHeader — la navegación es el
+drawer/sidebar (sin back de ConsoleHeader; la navegación es el
 chrome).
 
 #### Scenario: deep link directo

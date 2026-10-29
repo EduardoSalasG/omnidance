@@ -905,7 +905,7 @@ export async function seedDev(prisma: PrismaClient) {
   // ─── Normalización de títulos de series ───
   // El nombre lleva solo el estilo: nivel y mes son campos propios
   // (levelId / month). Seeds anteriores sembraron "X - Nivel",
-  // "X — Nivel" y "X Nivel Mes"; esta pasada renombra esos títulos y
+  // "X; Nivel" y "X Nivel Mes"; esta pasada renombra esos títulos y
   // desactiva (soft delete - conserva clases/historial para analítica)
   // los duplicados huérfanos que dejaron, conservando la fila viva: la
   // ya limpia, o la más reciente (la lineage del seed actual).

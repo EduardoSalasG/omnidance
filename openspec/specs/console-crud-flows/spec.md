@@ -59,7 +59,7 @@ como acción principal, en lugar de un mensaje sin salida.
 ### Requirement: Excepciones inline permitidas
 
 Los siguientes formularios SHALL permanecer inline por ser la acción
-primaria de su pantalla, settings, o acciones por fila — no creación de
+primaria de su pantalla, settings, o acciones por fila; no creación de
 entidad desde un listado:
 
 - Registro rápido de asistencia (`/academia/asistencia`) y alta manual en la

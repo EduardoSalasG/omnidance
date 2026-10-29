@@ -1,4 +1,4 @@
-# Tasks — city-guides
+# Tasks; city-guides
 
 - [x] 1. Schema `CityGuide` + migración (orquestador).
 - [x] 2. API: `GET/PUT /admin/city-guides` + `GET /admin/city-guides
@@ -10,6 +10,6 @@
   guardado + dirty-guard al salir, console-patterns, i18n es-CL,
   impeccable) + entrada nav admin.
 - [x] 4. Front público `/ciudades/[slug]`: secciones con contenido
-  bajo el hero (tabs/accordion según craft — solo las con texto).
+  bajo el hero (tabs/accordion según craft; solo las con texto).
 - [x] 5. architecture.md + qa-inventory + openapi regen; validate +
   archive (orquestador).

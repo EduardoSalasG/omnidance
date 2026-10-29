@@ -1,4 +1,4 @@
-# Tasks — add-clarity
+# Tasks; add-clarity
 
 - [x] 1. Crear `apps/web/src/components/clarity.tsx`: export
       `ClarityScript` (script inline bootstrap oficial,

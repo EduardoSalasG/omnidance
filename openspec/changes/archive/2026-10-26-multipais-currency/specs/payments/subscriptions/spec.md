@@ -1,4 +1,4 @@
-# payments/subscriptions — provider por moneda
+# payments/subscriptions; provider por moneda
 
 ## MODIFIED Requirements
 
@@ -29,7 +29,7 @@ métodos.
 - **WHEN** ningún adaptador registrado implementa
   `SubscriptionProvider` y soporta la moneda
 - **THEN** los flujos de suscripción fallan con error explícito de
-  moneda no soportada — nunca caen en silencio a un provider de CLP
+  moneda no soportada; nunca caen en silencio a un provider de CLP
 
 #### Scenario: Provider sin capability
 

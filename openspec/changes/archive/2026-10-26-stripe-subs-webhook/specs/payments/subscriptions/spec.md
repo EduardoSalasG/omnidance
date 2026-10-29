@@ -1,4 +1,4 @@
-# payments/subscriptions — billing events Stripe
+# payments/subscriptions; billing events Stripe
 
 ## ADDED Requirements
 
@@ -8,7 +8,7 @@ El webhook STRIPE SHALL enrutar `invoice.paid`,
 `invoice.payment_failed` y `customer.subscription.deleted` a la
 `MembershipSubscription` cuyo remoteId coincida con la suscripción del
 evento, aplicando la misma semántica del reconcile (settle de invoice,
-mora, cancelación) con dedup idempotente — la misma invoice procesada
+mora, cancelación) con dedup idempotente; la misma invoice procesada
 por webhook y por polling SHALL liquidarse una sola vez.
 
 #### Scenario: renovación de membresía Stripe
@@ -35,5 +35,5 @@ bloqueo, invoice impaga abre gracia, cancel remoto marca CANCELED).
 
 - **WHEN** llega `invoice.payment_failed` para una
   `PlatformSubscription` ACTIVE
-- **THEN** abre la ventana de gracia/bloqueo igual que el reconcile —
+- **THEN** abre la ventana de gracia/bloqueo igual que el reconcile;
   sin esperar al polling

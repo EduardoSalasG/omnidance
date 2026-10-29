@@ -1,4 +1,4 @@
-# Tasks — class-dropin-checkout
+# Tasks; class-dropin-checkout
 
 ## 1. Schema + refs
 

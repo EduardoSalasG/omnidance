@@ -20,7 +20,7 @@
     "commissionPctLabel": "{pct}% de commission",
     "commissionPctHint": "Pourcentage du prix affiché par billet (1 à 90).",
     "maxTickets": "Plafond de billets",
-    "maxTicketsHint": "Optionnel — l'attribution s'arrête quand le plafond est atteint.",
+    "maxTicketsHint": "Optionnel, l'attribution s'arrête quand le plafond est atteint.",
     "seriesScope": "Toute la série",
     "linkLabel": "Le lien de vente de l'académie",
     "copy": "Copier",

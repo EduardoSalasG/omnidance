@@ -1,4 +1,4 @@
-# Tasks — private-lesson-product
+# Tasks; private-lesson-product
 
 ## 1. Schema
 
@@ -18,7 +18,7 @@
   settle rama PRIVATE + notify owner, action assign + notify alumno/
   instructor, null-safe joins, POST staff-only, DTO settings + profile.
 - [x] 2.3 `paymentsByAcademy` + `withContextNames` incluyen PRIVATE
-  (academia directa del refId — no viaja por Class).
+  (academia directa del refId; no viaja por Class).
 
 ## 3. UI
 

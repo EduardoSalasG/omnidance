@@ -2,7 +2,7 @@
 
 ### Requirement: Ciudad como dimensión de datos
 
-Toda entidad geolocalizable SHALL resolver su `City` — `Venue.cityId`
+Toda entidad geolocalizable SHALL resolver su `City`; `Venue.cityId`
 requerido para venues nuevos; `City` con `country`, `slug`, lat/lng,
 `geohash` y `timezone` IANA. Las fechas de eventos/clases SHALL
 persistir en UTC y SHALL renderizarse en la `timezone` de la ciudad
@@ -25,7 +25,7 @@ del venue. Data existente SHALL migrarse a `Santiago, CL`.
 `Event`, `Ticket`, `PlatformSubscription` y membresías SHALL declarar
 `currency` (ISO-4217); el default para data existente SHALL ser CLP.
 Los precios de tiers SHALL resolverse por `tier × country` en un
-price book versionado — nunca hardcoded.
+price book versionado; nunca hardcoded.
 
 #### Scenario: Precio por país
 
@@ -37,7 +37,7 @@ price book versionado — nunca hardcoded.
 El registro de gateways SHALL soportar más de un proveedor por país
 (Chile: Flow/Fintoc; global: Stripe; opcional LatAm: MercadoPago).
 Cada actor SHALL declarar su gateway acorde a su país; el payout
-SHALL abstraerse tras un port — el flujo chileno actual (claims
+SHALL abstraerse tras un port; el flujo chileno actual (claims
 Fintoc) SHALL seguir funcionando como el caso Chile.
 
 #### Scenario: Productor internacional cobra
@@ -62,7 +62,7 @@ por jurisdicción del actor.
 ### Requirement: Descubrimiento por ciudad
 
 La plataforma SHALL exponer por ciudad: academias, socials, eventos
-y prácticas — filtrable por "cerca de mí" (geohash). Las
+y prácticas; filtrable por "cerca de mí" (geohash). Las
 estadísticas verificadas (check-ins agregados, engagement de serie)
 SHALL alimentar el ranking local sin exponer evaluaciones
 individuales.

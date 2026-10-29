@@ -1,4 +1,4 @@
-# legal-consent — delta pilot-real-users
+# legal-consent; delta pilot-real-users
 
 ## ADDED Requirements
 
@@ -19,8 +19,8 @@ sesión a la Person existente con toda su data sembrada.
 
 - **WHEN** register llega con el email y password de una Person
   existente
-- **THEN** emite la sesión (cookie) sobre esa Person — sin crear
-  duplicado ni pisar el nombre — y no envía correo
+- **THEN** emite la sesión (cookie) sobre esa Person; sin crear
+  duplicado ni pisar el nombre; y no envía correo
 
 #### Scenario: cuenta sin password recibe link de reclamo
 
@@ -34,5 +34,5 @@ sesión a la Person existente con toda su data sembrada.
 
 - **WHEN** register llega con password que no coincide con el
   `passwordHash` de la Person existente
-- **THEN** se envía magic link al correo real y responde 409 — el
+- **THEN** se envía magic link al correo real y responde 409; el
   password incorrecto nunca emite sesión ni cambia la contraseña

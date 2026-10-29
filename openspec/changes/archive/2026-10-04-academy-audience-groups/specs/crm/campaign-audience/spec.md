@@ -1,11 +1,11 @@
-# campaign-audience — grupos de negocio para campañas de academia
+# campaign-audience; grupos de negocio para campañas de academia
 
 ## ADDED Requirements
 
 ### Requirement: Criterios de audiencia propios de academia
 
 `CampaignSegment` SHALL admitir `allStudents`, `enrollmentStatus`,
-`planId` y `seriesId` — solo válidos con `actorType: "ACADEMY"` (400
+`planId` y `seriesId`; solo válidos con `actorType: "ACADEMY"` (400
 BAD_REQUEST en otro actor o si plan/serie no pertenecen a la academia).
 Los criterios se unen (OR) con los existentes (segment/tags/personIds).
 

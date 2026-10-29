@@ -29,7 +29,7 @@ export function staffInviteEmailHtml(input: InviteEmailInput): string {
     <p style="margin:16px 0 24px 0;color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;text-align:center;">
       <strong style="color:#ffffff;">${escapeHtml(input.academyName)}</strong>
       te agregó como colaborador en Omnidance. Con este link entras
-      directo a tu cuenta — no necesitas contraseña.
+      directo a tu cuenta; no necesitas contraseña.
     </p>
     ${ctaButton(input.link, "Entrar a la plataforma")}
     ${fallbackLink(input.link)}`,
@@ -49,7 +49,7 @@ export function instructorInviteEmailHtml(input: InviteEmailInput): string {
     <p style="margin:16px 0 24px 0;color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;text-align:center;">
       <strong style="color:#ffffff;">${escapeHtml(input.academyName)}</strong>
       te agregó como profesor en Omnidance. Con este link entras
-      directo a tu cuenta — no necesitas contraseña.
+      directo a tu cuenta; no necesitas contraseña.
     </p>
     ${ctaButton(input.link, "Entrar a la plataforma")}
     ${fallbackLink(input.link)}`,
@@ -69,7 +69,7 @@ export function studentInviteEmailHtml(input: InviteEmailInput): string {
     <p style="margin:16px 0 24px 0;color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;text-align:center;">
       <strong style="color:#ffffff;">${escapeHtml(input.academyName)}</strong>
       migró a Omnidance y ya tienes tu inscripción cargada. Con este link
-      creas tu cuenta al entrar — no necesitas contraseña.
+      creas tu cuenta al entrar; no necesitas contraseña.
     </p>
     ${ctaButton(input.link, "Activar mi cuenta")}
     ${fallbackLink(input.link)}`,

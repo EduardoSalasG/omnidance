@@ -93,7 +93,7 @@ function mk(over: {
   return { ctrl, claims };
 }
 
-describe("ProducerClaimsController — gate", () => {
+describe("ProducerClaimsController; gate", () => {
   it("sin productor APPROVED ni admin → 403 en todas las rutas de gestión", async () => {
     const { ctrl } = mk({});
     await expect(ctrl.listMyMethods(req("me"))).rejects.toBeInstanceOf(
@@ -176,7 +176,7 @@ describe("ProducerClaimsController — gate", () => {
   });
 });
 
-describe("ProducerClaimsController — métodos públicos del evento", () => {
+describe("ProducerClaimsController; métodos públicos del evento", () => {
   it("evento con productor → métodos activos de ESE productor", async () => {
     const { ctrl, claims } = mk({});
     const out = await ctrl.methodsForEvent("evt-1");
@@ -192,7 +192,7 @@ describe("ProducerClaimsController — métodos públicos del evento", () => {
   });
 });
 
-describe("ProducerClaimsController — claims del comprador", () => {
+describe("ProducerClaimsController; claims del comprador", () => {
   it("delega archivo + methodId/note al service con el personId de sesión", async () => {
     const { ctrl, claims } = mk({});
     const file = { mimetype: "image/png", size: 10 } as Express.Multer.File;

@@ -1,4 +1,4 @@
-# Inventario de flujos — base para QA automatizado
+# Inventario de flujos; base para QA automatizado
 
 > Fuente de verdad para diseñar la cobertura e2e. Generado 2026-10-18 por mapeo directo del código
 > (`apps/web` + `apps/api`), verificado contra controladores Nest. Rama `dev` @ 5844d6f.
@@ -6,14 +6,14 @@
 > `(app)` requieren sesión; `(marketing)` es público.
 >
 > **REGLA VIVA (ver AGENTS.md §Documentación):** todo cambio que agregue/modifique/elimine un flujo
-> de usuario debe actualizar este archivo en el mismo commit — el QA automatizado se alimenta de él.
+> de usuario debe actualizar este archivo en el mismo commit; el QA automatizado se alimenta de él.
 
 ## 0. Mecánica transversal (leer una vez, aplica a todos los flujos)
 
 ### Auth y sesión
 - Cookie `omnidance_session` (JWT httpOnly, 30d). Middleware redirige anon → `/login?next=<path>`.
 - **Login con password (dev):** todas las cuentas `*@omnidance.dev` usan `omnidance123`; `monica@omnidance.cl` usa `gatoperro123`. Esto habilita login determinístico en QA sin magic link.
-- Magic link: `POST /auth/magic-link` → OTP 6 dígitos; sin `RESEND_API_KEY` el HTML (con OTP) sale por el log del API — recuperable en tests.
+- Magic link: `POST /auth/magic-link` → OTP 6 dígitos; sin `RESEND_API_KEY` el HTML (con OTP) sale por el log del API; recuperable en tests.
 - `?next=` sanitizado por `safeInternalPath` (rechaza `//host`, `\`, `%5c` → fallback `/inicio`).
 - Logout: solo en `/perfil` → `POST /auth/logout` → reload a `/`.
 - Cuentas demo (`isDemoAccount`): escrituras no-GET → 403 `demo_mode` salvo whitelist.
@@ -34,18 +34,18 @@
 
 ### Gates de cliente (cada consola)
 - **Registro por landing**: CTAs de /para-academias y /para-productores → /login?mode=register&role=ACADEMY_OWNER|PRODUCER; el rol viaja en magic link/OTP/register y crea PersonRole PENDING (usable en su consola, invisible al público) hasta aprobación admin. SANDBOX eliminado del enum.
-- `ProducerGate` (`me.roles` ∩ {PRODUCER, ADMIN}); `AcademyGate` (`GET /academies/mine` → selector si >1, persiste en `localStorage["omnidance:academy-id"]`; CTA "Nueva academia" → `/academia/nueva` solo si `me.roleStates` tiene ACADEMY_OWNER APPROVED/SANDBOX — crear usa `POST /academies` (nombre + select país→ciudad del catálogo `GET /cities/catalog` — la ciudad define Country.currency de planes/facturación), la nueva queda seleccionada y vuelve al hub; deep-link sin rol → estado sin-acceso); `AdminGate` (`me.roles` ADMIN); `CrmGateScreen` (`useCrmContext` + `ActorPicker`); soporte deriva gate de respuestas API; `/venue` gatea por `GET /venues/mine`.
-- **Academy approval gate** (`Academy.reviewStatus`): nueva academia nace PENDING; se auto-publica cuando el checklist server-side completa (nombre, descripción, dirección, contacto IG/WA/web, photoUrl, serie activa, clase futura, plan activo, owner APPROVED) — sin acción admin. REJECTED la oculta aunque complete. Filtro en `GET /academies`, `/academies/public`, `/academies/:id/profile` (404 a no-managers) y `/classes/browse`. Owner ve `AcademyVisibilityCard` en su dashboard con lo que falta (links a la sección); admin tiene override en `/admin/perfiles-por-validar` → sección Academias (`GET /admin/academy-review-queue`, approve=override/reject). `photoUrl` editable en `/academia/configuracion/perfil` (URL externa).
+- `ProducerGate` (`me.roles` ∩ {PRODUCER, ADMIN}); `AcademyGate` (`GET /academies/mine` → selector si >1, persiste en `localStorage["omnidance:academy-id"]`; CTA "Nueva academia" → `/academia/nueva` solo si `me.roleStates` tiene ACADEMY_OWNER APPROVED/SANDBOX; crear usa `POST /academies` (nombre + select país→ciudad del catálogo `GET /cities/catalog`; la ciudad define Country.currency de planes/facturación), la nueva queda seleccionada y vuelve al hub; deep-link sin rol → estado sin-acceso); `AdminGate` (`me.roles` ADMIN); `CrmGateScreen` (`useCrmContext` + `ActorPicker`); soporte deriva gate de respuestas API; `/venue` gatea por `GET /venues/mine`.
+- **Academy approval gate** (`Academy.reviewStatus`): nueva academia nace PENDING; se auto-publica cuando el checklist server-side completa (nombre, descripción, dirección, contacto IG/WA/web, photoUrl, serie activa, clase futura, plan activo, owner APPROVED); sin acción admin. REJECTED la oculta aunque complete. Filtro en `GET /academies`, `/academies/public`, `/academies/:id/profile` (404 a no-managers) y `/classes/browse`. Owner ve `AcademyVisibilityCard` en su dashboard con lo que falta (links a la sección); admin tiene override en `/admin/perfiles-por-validar` → sección Academias (`GET /admin/academy-review-queue`, approve=override/reject). `photoUrl` editable en `/academia/configuracion/perfil` (URL externa).
 - Server: `SessionGuard + RolesGuard + @RequirePermissions(...)`; ADMIN bypass por `isSuperuser`.
 - **Lente activa** (`localStorage["omnidance:active-role"]`, fallback ADMIN>SUPPORT>PRODUCER>ACADEMY_OWNER>INSTRUCTOR>VENUE_MANAGER>STAFF>DJ>DANCER): condiciona lo que muestran /inicio, /perfil, /analitica, /notificaciones y la UI academia (lens INSTRUCTOR degrada privilegios reales en UI).
-- **Entitlements unificados** (`unified-actor-entitlements`): `GET /me/entitlements` → `{producer:{tier,features}|null, academies:[{id,tier,features}]}` vía `EntitlementsProvider`/`useActorEntitlements` — una sola fuente para productor y academias. Productor sin la feature (ej. `producer.features` sin "analytics"/"staff"/"crm") bloquea (TierPaywall, CTA /productor/suscripcion) analytics de evento, invitar staff, CRM propio y /analitica con lens PRODUCER. Reactivo: 403 `{error:"tier.required", upgrade:true, requiredTier, feature}` — mismo contrato para TODOS los actores (`pro.required` ya no existe; `me.effectivePro` ya no se consume).
+- **Entitlements unificados** (`unified-actor-entitlements`): `GET /me/entitlements` → `{producer:{tier,features}|null, academies:[{id,tier,features}]}` vía `EntitlementsProvider`/`useActorEntitlements`; una sola fuente para productor y academias. Productor sin la feature (ej. `producer.features` sin "analytics"/"staff"/"crm") bloquea (TierPaywall, CTA /productor/suscripcion) analytics de evento, invitar staff, CRM propio y /analitica con lens PRODUCER. Reactivo: 403 `{error:"tier.required", upgrade:true, requiredTier, feature}`; mismo contrato para TODOS los actores (`pro.required` ya no existe; `me.effectivePro` ya no se consume).
 - **Academia bloqueada** (`billingBlockedAt`): todo `*Write` → 403 `billing.blocked`; banner global salvo /academia/suscripcion.
 
 ### Patrones UI para automatización
 - **No existe `data-testid` en ningún lado.** Selectores estables: `role`+nombre accesible, `role="alert"` (errores), `role="status"` (feedback), `role="dialog"`/bottom-sheet (confirmaciones), `role="radiogroup"`, `aria-pressed`, `aria-live`, y atributos `data-tour` (ver anexo).
-- `FilterBar` = estado React local (NO va a URL) — no hay deep-links a vistas filtradas en consolas; el driver debe interactuar. Excepciones URL-state: /eventos, /clases, /academias, /practicas, /locales/[id] (SSR), `?edit=` en formularios, `?a=` atribución academia en /eventos/[id].
-- Redirects de éxito típicos con timer ~1200ms (`planSaved`, `added`, `created`, `invited`) — buen `waitFor` en tests.
-- `OnboardingRunner` (tours driver.js) puede tapar elementos en primera visita — sembrar `me.onboarding` o descartar el tour en setup.
+- `FilterBar` = estado React local (NO va a URL); no hay deep-links a vistas filtradas en consolas; el driver debe interactuar. Excepciones URL-state: /eventos, /clases, /academias, /practicas, /locales/[id] (SSR), `?edit=` en formularios, `?a=` atribución academia en /eventos/[id].
+- Redirects de éxito típicos con timer ~1200ms (`planSaved`, `added`, `created`, `invited`); buen `waitFor` en tests.
+- `OnboardingRunner` (tours driver.js) puede tapar elementos en primera visita; sembrar `me.onboarding` o descartar el tour en setup.
 - Confirmaciones: `ConfirmSheet` / bottom-sheet inline para casi todo lo destructivo. **Sin confirmación:** cancelar reserva de mesa (productor), desactivar/reactivar plan de academia, declinar preventa, toggle de trigger CRM, toggle de grant en /admin/roles, guardar params en /admin/parametros, aprobar/pagar payouts, emitir documento de cobro, convertir lead, test-send de campaña admin, delete de consulta guardada.
 - Errores server → `readError` (Nest `message` string|array) en `role="alert"`.
 
@@ -69,8 +69,8 @@
 
 ### Landings pro `/pro`, `/para-academias`, `/para-productores`
 - `/pro`: cards → landings por rol; sección "otros roles" con `ProLeadForm` (roles DJ|VENUE_MANAGER).
-- `/para-*`: la invitación es registro directo — header "Crear cuenta", hero primario y CTA final → `/login?mode=register&role=ACADEMY_OWNER|PRODUCER`; secundario exploratorio → `/academias` (academy) o `/eventos` (producer) con bounce anon a `/login?next=`.
-- `/para-*` incluye sección "Planes y precios" (academia: Starter −50% tachado $39.500→$19.750 / Studio / Pro; productor: Free transaccional $0 + Standard $79.700 + Pro $169.500, tier "Recomendado" destacado; montos del catálogo i18n, fuente editable PlatformParam/TierPrice): los CTAs de cada tier van al mismo `/login?mode=register&role=…` — no abren flujo nuevo. La nota bajo los tiers cubre descuentos por ciclo (−8% semestral / −15% anual); las cards de productor muestran su comisión por tier (Free 5% + pasarela + IVA; Standard 3,5%; Pro 2,5%) y la de Starter academias el precio promo permanente con chip −50% (`promoPriceMonthly`).
+- `/para-*`: la invitación es registro directo; header "Crear cuenta", hero primario y CTA final → `/login?mode=register&role=ACADEMY_OWNER|PRODUCER`; secundario exploratorio → `/academias` (academy) o `/eventos` (producer) con bounce anon a `/login?next=`.
+- `/para-*` incluye sección "Planes y precios" (academia: Starter −50% tachado $39.500→$19.750 / Studio / Pro; productor: Free transaccional $0 + Standard $79.700 + Pro $169.500, tier "Recomendado" destacado; montos del catálogo i18n, fuente editable PlatformParam/TierPrice): los CTAs de cada tier van al mismo `/login?mode=register&role=…`; no abren flujo nuevo. La nota bajo los tiers cubre descuentos por ciclo (−8% semestral / −15% anual); las cards de productor muestran su comisión por tier (Free 5% + pasarela + IVA; Standard 3,5%; Pro 2,5%) y la de Starter academias el precio promo permanente con chip −50% (`promoPriceMonthly`).
 - `/para-*` (academy y producer) incluye además sección FAQ tras el pricing: 4 preguntas por audiencia en `<details>`/`<summary>` (Escape cierra vía `EscapableDetails`), contenido por catálogo `landingAcademy.faq` / `landingProducer.faq`; es informativa, sin flujo nuevo.
 - **Lead form (solo hub /pro, DJ|VENUE):** name≥2, email regex, phone obligatorio (contexto CL, `+` = internacional → E.164 + `phoneCountryCode`), role pills → `POST /leads` intent CONTACT → 200 `{id, accountExists}`.
   - `accountExists` → estado de éxito con link /login.
@@ -83,7 +83,7 @@
 - Register: `POST /auth/register` → /bienvenida(?next=); 409 emailTaken. Con password correcto de cuenta seed → login silencioso (claim). Cuenta nueva recibe bienvenida + correo de acceso (link+OTP = verificación de email; `verifiedAt` solo se estampa por link/OTP, nunca por password).
 - Link de email: `GET /auth/verify?token=` → cookie + 302 /inicio|/bienvenida; inválido → 401 HTML.
 - Lockout login: 10 fallos/10min por email+IP → 401.
-- **Aviso a admins de alta nueva** (`notifyAdminsNewUser`, spec notifications/admin-alerts): cuando una Person nace por flujo iniciado por el usuario — `POST /auth/register`, `GET /auth/verify` o `POST /auth/otp/verify` sobre email sin cuenta — cada admin APPROVED recibe notificación in-app OPERATIONAL `user.registered` (best-effort: un fallo nunca rompe ni demora el alta). **No notifica:** claim de cuenta existente (register con password correcto → login silencioso; verify/OTP sobre email ya registrado) ni altas sembradas por admin (invite staff/alumno, lead convert — la Person ya existe cuando verifican el link).
+- **Aviso a admins de alta nueva** (`notifyAdminsNewUser`, spec notifications/admin-alerts): cuando una Person nace por flujo iniciado por el usuario; `POST /auth/register`, `GET /auth/verify` o `POST /auth/otp/verify` sobre email sin cuenta; cada admin APPROVED recibe notificación in-app OPERATIONAL `user.registered` (best-effort: un fallo nunca rompe ni demora el alta). **No notifica:** claim de cuenta existente (register con password correcto → login silencioso; verify/OTP sobre email ya registrado) ni altas sembradas por admin (invite staff/alumno, lead convert; la Person ya existe cuando verifican el link).
 
 ### Reclamar entrada `/reclamar/[token]` (público)
 - SSR `GET /tickets/claim/:token` → 404 → pantalla "gone". Anon → CTAs register/login con `next` round-trip.
@@ -103,7 +103,7 @@
 
 ---
 
-## 2. Dancer — descubrimiento
+## 2. Dancer; descubrimiento
 
 ### `/inicio` (hub, todas las roles)
 - `GET /home/stats?role&mode`, `GET /me/pending-surveys`, `GET /me/pending-course-surveys`.
@@ -196,7 +196,7 @@
 
 ---
 
-## 3. Dancer — transaccional/social
+## 3. Dancer; transaccional/social
 
 ### QR `/qr` (`?modo=mio|escanear`, `?event=`)
 - Modo persiste localStorage; `?event` implica escanear.
@@ -216,7 +216,7 @@
 
 ### Perfil `/perfil`, `/perfil/datos`, `/perfil/pagos`
 - Hub: `?sub=error` alert; identidad→datos; badges de roles; ProfileReminder (dismiss→`POST /me/onboarding`); "Interactuar como" radiogroup (lens); KPIs DANCER; streak+badges por modo; ThemeToggle; link pagos; **logout** `POST /auth/logout`→`/`。
-- Datos: PATCH /me {name*,phone,instagram,gender,birthDate} — phone normaliza a E.164 + `phoneCountryCode` (selector de país en `PhoneInput`; 400 inválido, 409 phoneTaken); selector idioma → PATCH /me {language} + router.replace locale; sección por modo (academy→enrollments; otro→editor styleRoles PUT /me/style-roles); sección Seguridad: cambiar contraseña (hasPassword→pide actual) o establecer (magic-link-only) → PUT /me/password (400 password.incorrect|password.same; nueva ≥8 + confirmación).
+- Datos: PATCH /me {name*,phone,instagram,gender,birthDate}; phone normaliza a E.164 + `phoneCountryCode` (selector de país en `PhoneInput`; 400 inválido, 409 phoneTaken); selector idioma → PATCH /me {language} + router.replace locale; sección por modo (academy→enrollments; otro→editor styleRoles PUT /me/style-roles); sección Seguridad: cambiar contraseña (hasPassword→pide actual) o establecer (magic-link-only) → PUT /me/password (400 password.incorrect|password.same; nueva ≥8 + confirmación).
 - Pagos: `GET /payments/mine` + `/subscriptions/mine` (CANCELED fuera); cancel sub → 2-pasos → `POST /subscriptions/:id/cancel`; filas expanden ledger `GET /payments/:id/events`.
 
 ---
@@ -226,7 +226,7 @@
 ### Dashboard `/productor` → redirect `/inicio`
 
 ### Eventos `/productor/eventos`
-- `GET /events/mine{?q,status,type,from,to}` paginado 25 — permiso events.manage; stats por card (sold/gross/checkins).
+- `GET /events/mine{?q,status,type,from,to}` paginado 25; permiso events.manage; stats por card (sold/gross/checkins).
 - Filtros FilterBar: q, status (DRAFT|PUBLISHED|LIVE|CLOSED|CANCELLED), type (SOCIAL|PRACTICA|GALA|CONGRESS|COMPETITION), from/to. `?crear=1` legacy → /nuevo.
 - CTA → /productor/eventos/nuevo; card → /eventos/{id} ficha. Empties: sin filtro (CTA crear) vs filtrado.
 
@@ -261,20 +261,20 @@
 
 ---
 
-## 5. Productor — backoffice
+## 5. Productor; backoffice
 
-### `/productor/apariencia` — ThemeToggle (localStorage, sin API).
-### `/productor/colaboradores` — `GET /producer/staff`; add→/nuevo; **remove sin confirm** `DELETE /producer/staff/{personId}`. Nuevo: buscador `GET /people/search`→`POST /producer/staff {personId}` o invite email → `{invited}` (magic link 7d); 400 self-add; upsert idempotente. **Cupo compartido con la puerta (free_staff_max, default 2)**: FREE sin Pro arma su nómina de puerta hasta 2 colaboradores; sobre el cupo → 403 `tier.required` (`multiStaff`). Tiers Pro: STARTER legado/GROWTH 2, BIG ilimitado → 403 `{error:"staff_quota"}` + copy "sube de tier"; re-alta de quien ya está en nómina no consume cupo.
-### `/productor/comprobantes` — cola claims: default 3 GETs paralelos (PENDING|APPROVED|REJECTED) → grid pendientes + historial; con filtro status → paginado. Detalle `claim/[id]`: datos+receipt stream; PENDING → **Approve** `POST .../approve` (atómico+emite ticket, 409 resuelto) | **Reject** → panel nota* → `POST .../reject`.
-### `/productor/medios-pago` — A) Gateway propio: `GET /producer/gateway-account` (mask); upsert provider FLOW|MERCADOPAGO|FINTOC + apiKey(+secret) → `PUT`; disable 2-pasos → `DELETE` (fallback plataforma). B) Métodos directos: `GET /producer/payment-methods`; create TRANSFER(6 campos)|PAYMENT_LINK(url)|CASH(instrucciones) + label*+order → POST; toggle active PATCH; delete ConfirmSheet.
-### `/productor/desembolso` — página "Cuenta de desembolso" (grupo Configuración del drawer): lista `GET /me/payout-destinations` (badge status + rail + país/moneda + onboardedAt + lastError); CTA "Conectar con Stripe" → select país ISO-2 → `POST /me/payout-destinations` → redirect `onboardingUrl` (Account Link vuelve a esta página; el GET hace el flip PENDING→ACTIVE); PENDING → "Continuar en Stripe" sin select (reusa acct_); ACTIVE → sin CTA; 503 → estado "aún no disponible"; empty con form incluido. Detalle del rail en §9 "Destinos de desembolso".
-### `/productor/pagos` — "Mis pagos" (grupo módulos del drawer, tras Comprobantes): `GET /me/payouts` (permiso crm.manage): filtros status/orderType/channel/from-to; cards período/bruto/neto/líneas deducción → /{id}. Detalle read-only + evidenceUrl. Sección billing docs `GET /me/billing` → PDF inline.
-### `/productor/parametros` — `GET /producer/table-params`: tablesTotal/tableSeatMax/tableSeatsTotal/presaleCutoff (HH:MM; >1439 render vacío + dirty-flag) → `PUT` solo campos dirty.
-### `/productor/suscripcion` — `?pro=ok|error`; `GET /producers/{id}/pro` + `/params/public`. Estados FREE|trial|PENDING_CARD|ACTIVATING|ACTIVE|CANCEL_PENDING. Suscribir: ciclo MONTHLY|SEMIANNUAL|ANNUAL (tier auto por GMV — piso pago PRO_GROWTH/Standard ≤$8M, PRO_BIG/Pro sobre el tope; PRO_STARTER salió de venta), consent* → `POST .../pro/subscribe` → PENDING_CARD+paymentUrl → intersticial → Flow registro tarjeta. Cancel 2-pasos → `POST .../pro/cancel` (efectivo nextInvoiceAt). Vista con Pro: tier vigente + features habilitadas + cupo de nómina `staffUsed/staffLimit` (BIG → "sin tope"). Sección fee read-only — el fee se resuelve por tier: Free 9,14% / Standard ~7,36% / Pro ~6,17% (params `fees.standard_fee_pct`/`fees.pro_fee_pct`; overrides `platformFeePct` manual o por evento siguen ganando).
+### `/productor/apariencia`; ThemeToggle (localStorage, sin API).
+### `/productor/colaboradores`; `GET /producer/staff`; add→/nuevo; **remove sin confirm** `DELETE /producer/staff/{personId}`. Nuevo: buscador `GET /people/search`→`POST /producer/staff {personId}` o invite email → `{invited}` (magic link 7d); 400 self-add; upsert idempotente. **Cupo compartido con la puerta (free_staff_max, default 2)**: FREE sin Pro arma su nómina de puerta hasta 2 colaboradores; sobre el cupo → 403 `tier.required` (`multiStaff`). Tiers Pro: STARTER legado/GROWTH 2, BIG ilimitado → 403 `{error:"staff_quota"}` + copy "sube de tier"; re-alta de quien ya está en nómina no consume cupo.
+### `/productor/comprobantes`; cola claims: default 3 GETs paralelos (PENDING|APPROVED|REJECTED) → grid pendientes + historial; con filtro status → paginado. Detalle `claim/[id]`: datos+receipt stream; PENDING → **Approve** `POST .../approve` (atómico+emite ticket, 409 resuelto) | **Reject** → panel nota* → `POST .../reject`.
+### `/productor/medios-pago`; A) Gateway propio: `GET /producer/gateway-account` (mask); upsert provider FLOW|MERCADOPAGO|FINTOC + apiKey(+secret) → `PUT`; disable 2-pasos → `DELETE` (fallback plataforma). B) Métodos directos: `GET /producer/payment-methods`; create TRANSFER(6 campos)|PAYMENT_LINK(url)|CASH(instrucciones) + label*+order → POST; toggle active PATCH; delete ConfirmSheet.
+### `/productor/desembolso`; página "Cuenta de desembolso" (grupo Configuración del drawer): lista `GET /me/payout-destinations` (badge status + rail + país/moneda + onboardedAt + lastError); CTA "Conectar con Stripe" → select país ISO-2 → `POST /me/payout-destinations` → redirect `onboardingUrl` (Account Link vuelve a esta página; el GET hace el flip PENDING→ACTIVE); PENDING → "Continuar en Stripe" sin select (reusa acct_); ACTIVE → sin CTA; 503 → estado "aún no disponible"; empty con form incluido. Detalle del rail en §9 "Destinos de desembolso".
+### `/productor/pagos`; "Mis pagos" (grupo módulos del drawer, tras Comprobantes): `GET /me/payouts` (permiso crm.manage): filtros status/orderType/channel/from-to; cards período/bruto/neto/líneas deducción → /{id}. Detalle read-only + evidenceUrl. Sección billing docs `GET /me/billing` → PDF inline.
+### `/productor/parametros`; `GET /producer/table-params`: tablesTotal/tableSeatMax/tableSeatsTotal/presaleCutoff (HH:MM; >1439 render vacío + dirty-flag) → `PUT` solo campos dirty.
+### `/productor/suscripcion`; `?pro=ok|error`; `GET /producers/{id}/pro` + `/params/public`. Estados FREE|trial|PENDING_CARD|ACTIVATING|ACTIVE|CANCEL_PENDING. Suscribir: ciclo MONTHLY|SEMIANNUAL|ANNUAL (tier auto por GMV; piso pago PRO_GROWTH/Standard ≤$8M, PRO_BIG/Pro sobre el tope; PRO_STARTER salió de venta), consent* → `POST .../pro/subscribe` → PENDING_CARD+paymentUrl → intersticial → Flow registro tarjeta. Cancel 2-pasos → `POST .../pro/cancel` (efectivo nextInvoiceAt). Vista con Pro: tier vigente + features habilitadas + cupo de nómina `staffUsed/staffLimit` (BIG → "sin tope"). Sección fee read-only; el fee se resuelve por tier: Free 9,14% / Standard ~7,36% / Pro ~6,17% (params `fees.standard_fee_pct`/`fees.pro_fee_pct`; overrides `platformFeePct` manual o por evento siguen ganando).
 
 ---
 
-## 6. CRM (`/crm/*` — actor PRODUCER propio [Pro-gated] | ACADEMY propia | ADMIN manual; permiso `crm.manage`)
+## 6. CRM (`/crm/*`; actor PRODUCER propio [Pro-gated] | ACADEMY propia | ADMIN manual; permiso `crm.manage`)
 
 - PickActor obligatorio; actor sin feature "crm" (producer sin Pro | academy COBROS/STUDIO) → `ctx.blocked` → TierPaywall con CTA de su actor.
 - `/crm` personas: `GET /crm/people?actor&q&segment&tag&sort&page`; segment-count badges; **Recompute** `POST /crm/scores/recompute`; bulk select → tag add/remove `POST /crm/people/tags/bulk` | bulkCampaign→/campanas/nueva?personIds=; card → /personas/{id}.
@@ -285,7 +285,7 @@
 
 ---
 
-## 7. Analítica B2B (`/analitica` — permiso por lens activo)
+## 7. Analítica B2B (`/analitica`; permiso por lens activo)
 
 - Boot `GET /analytics/roles`; lens no-query-role → noQueries/forbidden; actor sin la feature (PRODUCER sin Pro | academia COBROS/STUDIO) → TierPaywall (403 tier.required reactivo como fallback).
 - `GET /query/catalog?role` → entidades por lens (PRODUCER: sales,checkins,guestlist,attendees,reservations,waitlist,rsvps con scopeId evento/serie; ACADEMY: students,attendance,bookings,memberships,payments,private_lessons; ADMIN: catálogo completo 13 entidades).
@@ -296,7 +296,7 @@
 
 ## 8. Academia (rol ACADEMY_OWNER + staff por caps `students|payments|plans|schedule|profile|team|billing`; instructor operativo limitado)
 
-### Hub `/academia` — owner → redirect /inicio; staff/instructor ven dashboard + ModuleGrid filtrado por caps (alumnos, clases/series, particulares[no instructor puro], videos, cobros, preventas, equipo, config, CRM[owner/ADMIN], suscripción).
+### Hub `/academia`; owner → redirect /inicio; staff/instructor ven dashboard + ModuleGrid filtrado por caps (alumnos, clases/series, particulares[no instructor puro], videos, cobros, preventas, equipo, config, CRM[owner/ADMIN], suscripción).
 
 - **Gate por tier de suscripción** (`academy-tier-cobros` + `unified-actor-entitlements`): los módulos del owner se filtran por feature de su plan (`GET /me/entitlements` → `useActorEntitlements("ACADEMY")`, `academyFeature` en el drawer). COBROS ve solo cobros/alumnos/planes/config/suscripción; STUDIO suma series, particulares, equipo, preventas, consultas/export; PRO suma CRM, videos, insights, analítica y multi-academia. Página sin feature → `AcademyTierGate` muestra TierPaywall "parte del plan X" + CTA a /academia/suscripcion; API responde 403 `{error:"tier.required", upgrade:true, requiredTier}` como red de seguridad. ADMIN operando por otro nunca se gatea; alumnos/instructores en consumo (reservar clase, mi QR) tampoco. STARTER legado y trial resuelven a nivel STUDIO.
 
@@ -306,8 +306,8 @@
 - Ficha `[personId]`: header score/segment/breakdown; editor enrollment (si canEdit server=cap students): status+endsAt → `PATCH /enrollments/{id}` (400 transición inválida); pagos (enrollments), historial, próximas. Sin acciones destructivas.
 
 ### Asistencia `/academia/asistencia` → redirect /academia/series. Marcación real en roster de clase.
-### Clases (instructor) `/academia/clases` — sin AcademyGate; lens OWNER → /inicio. `GET /classes/teaching` filtros academy/series/from-to; cards con quorum+waitlist → /academia/clases/{id}.
-### Roster `/academia/clases/[id]` — `GET /classes/:id/roster` (requireManage). Booked: fila→alumno; "Marcar presente" solo si canMark (instructor de la clase/ADMIN, owner NO) y ventana ±30min → `POST /classes/:id/attendance` (400 fuera ventana, 409 dup); waitlist numerada. Sin un-mark ni "ausente".
+### Clases (instructor) `/academia/clases`; sin AcademyGate; lens OWNER → /inicio. `GET /classes/teaching` filtros academy/series/from-to; cards con quorum+waitlist → /academia/clases/{id}.
+### Roster `/academia/clases/[id]`; `GET /classes/:id/roster` (requireManage). Booked: fila→alumno; "Marcar presente" solo si canMark (instructor de la clase/ADMIN, owner NO) y ventana ±30min → `POST /classes/:id/attendance` (400 fuera ventana, 409 dup); waitlist numerada. Sin un-mark ni "ausente".
 
 ### Series `/academia/series*` (cap schedule)
 - Lista: q/status/styleId/levelId+typeId multi; insights; CTA nueva; toggle import horarios CSV.
@@ -330,7 +330,7 @@
 
 ### Planes `/academia/planes*` (cap plans)
 - Lista: q/status(active|inactive)/sort + KPIs; recurrentes vs pago-único; CTA nueva.
-- Nueva/edit `?edit=`: name*, type (disabled si flowPlanId — mirror Flow), price*, classCount, weeklyClasses (solo recurrentes), periodDays (PERIOD), description líneas≤12, active (edit) → POST/PATCH (502 si Flow mirror falla).
+- Nueva/edit `?edit=`: name*, type (disabled si flowPlanId; mirror Flow), price*, classCount, weeklyClasses (solo recurrentes), periodDays (PERIOD), description líneas≤12, active (edit) → POST/PATCH (502 si Flow mirror falla).
 - Detalle: editar; **desactivar/reactivar sin confirm** PATCH {active}; alumnos ACTIVE listados.
 
 ### Preventas `/academia/preventas*` (deals como vendedora)
@@ -355,33 +355,33 @@
 
 ---
 
-## 9. Admin (`/admin/*` — `admin.access`/isSuperuser; todo mutación audita AuditLog)
+## 9. Admin (`/admin/*`; `admin.access`/isSuperuser; todo mutación audita AuditLog)
 
 - Chrome móvil: **drawer-only** (sin bottom tab bar, igual que owner/productor); drawer/sidebar por dominio: Inicio primero, **Gestión** (usuarios/roles/academias/catálogos), **Facturación** (transacciones/suscripciones/promos/precios/documentos/finanzas), **Comercial** (CRM 4 secciones + difusión `/admin/campanas`), **Analítica** (consultas/datos/usuarios), **Plataforma** (params/jobs/auditoría), **Social** (eventos/staff). `/crm` y `/admin/facturacion` matchean activo exacto; `/admin` redirige a `/inicio`.
-- `/inicio` (lente ADMIN): KPIs `home/stats` — pendingRoles, **leadsNew**, **txRevenueMonth** (fees neto+IVA PAID no-PLATFORM_SUB del mes CL), **subRevenueMonth** (PLATFORM_SUB PAID del mes), users, activeEvents, pendingPayouts — + sección "Leads por revisar" (NEW asc, 6 filas → `/admin/datos?entity=leads&status=NEW`) + hero.
+- `/inicio` (lente ADMIN): KPIs `home/stats`; pendingRoles, **leadsNew**, **txRevenueMonth** (fees neto+IVA PAID no-PLATFORM_SUB del mes CL), **subRevenueMonth** (PLATFORM_SUB PAID del mes), users, activeEvents, pendingPayouts; + sección "Leads por revisar" (NEW asc, 6 filas → `/admin/datos?entity=leads&status=NEW`) + hero.
 - `/admin` → redirect a `/inicio` (hub eliminado: los destinos viven en el sidebar).
 - `/admin/usuarios`: búsqueda q≥2 + role enum (catálogo RBAC vivo) → `GET /admin/users` paginado `{items,total,page,pageSize}` (size 25) + `Pager`; cambio de filtro resetea a página 1; card muestra contadores "N academia(s)"/"N evento(s)" cuando >0 → /{personId}.
 - `/admin/perfiles-por-validar`: cola PersonRole PENDING de ACADEMY_OWNER/PRODUCER (registro por landing) → checklist nombre/email verificado/teléfono/datos del actor; Aprobar exige checklist completo (409 si falta) → APPROVED (visible); Rechazar ConfirmSheet → REJECTED auditable. El actor ve el mismo checklist en `PendingRoleCard` (en `/perfil` y en su home de lente): `GET /me/role-checks` + links a resolver cada ítem; email se verifica inline (`POST /auth/resend-verification` → OTP `POST /auth/otp/verify`).
 - `/admin/usuarios/[personId]` ⚠️: cambiar status de rol (select inline sin confirm) `POST /users/:id/roles`; agregar rol; revocar ConfirmSheet `DELETE .../roles/:role`; **hard-delete** ConfirmSheet `DELETE /users/:id` (400 self-delete; irreversible); listas de "Actividad por rol" con expand tras 5 filas ("Ver las {count}"/"Ver menos"); link analytics.
 - `/admin/roles` ⚠️: toggle grant `POST /roles/:key/permissions` **sin confirm** (cuidado lockout admin.access); crear rol/permiso existe sin UI.
-- `/admin/parametros` ⚠️: `PUT /params/:key` (JSON libre, sin confirm — efecto global); `GET/PUT /producers/:id/fee-params` (fee+preset cutoff; >1439 preserva raw).
+- `/admin/parametros` ⚠️: `PUT /params/:key` (JSON libre, sin confirm; efecto global); `GET/PUT /producers/:id/fee-params` (fee+preset cutoff; >1439 preserva raw).
 - `/admin/datos`: catalog ADMIN 13 entidades → `GET /admin/browse/:entity` (cap 100); **deep-link `?entity=<e>&<key>=<v>` precarga entidad+filtros declarados**; payments→verificar cadena ledger; leads→**Convertir** `POST /leads/:id/convert` (crea cuenta demo + email magic-link real); payloads expandibles; export csv/pdf; consultas guardadas.
-- `/admin/finanzas` ⚠️: KPIs `finance/summary`; tabs payouts (approve `POST /:id/approve` sin confirm idempotente; pay `POST /:id/pay` evidence opcional; **disburse** `POST /:id/disburse` — solo APPROVED: actor con `PayoutDestination` STRIPE_CONNECT ACTIVE en la moneda del payout → transfer `tr_…` + PAID + audit `PAYOUT_DISBURSE`; sin destino/moneda distinta → 409 requiresManualEvidence; PENDING/PAID → 409; fallo proveedor → 502 queda APPROVED; reintento seguro por `Idempotency-Key: payout:<id>`), accrual (`POST /payouts/generate` idempotente), payments read-only, saas MRR.
-- **Destinos de desembolso (actor, `crm.manage`)**: `POST /me/payout-destinations {actorType, actorId, country}` — ownership regla /me/payouts (PRODUCER=personId, ACADEMY/VENUE=ownerId); crea Stripe Express account + devuelve `onboardingUrl` (Account Link → `/productor/desembolso`); PENDING reutiliza la acct_ existente, ACTIVE → 409; sin `STRIPE_SECRET_KEY` → 503. `GET /me/payout-destinations` lista + refresh best-effort (`details_submitted`+`charges_enabled` → ACTIVE + `onboardedAt` + moneda reportada).
+- `/admin/finanzas` ⚠️: KPIs `finance/summary`; tabs payouts (approve `POST /:id/approve` sin confirm idempotente; pay `POST /:id/pay` evidence opcional; **disburse** `POST /:id/disburse`; solo APPROVED: actor con `PayoutDestination` STRIPE_CONNECT ACTIVE en la moneda del payout → transfer `tr_…` + PAID + audit `PAYOUT_DISBURSE`; sin destino/moneda distinta → 409 requiresManualEvidence; PENDING/PAID → 409; fallo proveedor → 502 queda APPROVED; reintento seguro por `Idempotency-Key: payout:<id>`), accrual (`POST /payouts/generate` idempotente), payments read-only, saas MRR.
+- **Destinos de desembolso (actor, `crm.manage`)**: `POST /me/payout-destinations {actorType, actorId, country}`; ownership regla /me/payouts (PRODUCER=personId, ACADEMY/VENUE=ownerId); crea Stripe Express account + devuelve `onboardingUrl` (Account Link → `/productor/desembolso`); PENDING reutiliza la acct_ existente, ACTIVE → 409; sin `STRIPE_SECRET_KEY` → 503. `GET /me/payout-destinations` lista + refresh best-effort (`details_submitted`+`charges_enabled` → ACTIVE + `onboardedAt` + moneda reportada).
 - **Página "Cuenta de desembolso" `/productor/desembolso`** (grupo Configuración de la consola; era sección de `/productor/pagos`): lista destinos (badge status + rail + país/moneda + onboardedAt + lastError); CTA "Conectar con Stripe" → select país ISO-2 → POST → redirect `onboardingUrl` (Spinner inline); PENDING → "Continuar en Stripe" sin select (reusa acct_); ACTIVE → sin CTA; 503 → estado "aún no disponible" (transferencia manual sigue); empty con form incluido.
-- **Own-gateway STRIPE (spec connect-own-gateway)**: `PUT /producer/gateway-account {provider:"STRIPE"}` sin apiKey — resuelve la `acct_` del `PayoutDestination` ACTIVE del actor (sin destino → 400 guiando a conectar primero); `createOrder` con header `Stripe-Account` = cargo directo a su cuenta, `feeMode:OWN_GATEWAY` idéntico a Flow/MP/Fintoc; confirmación por polling `refreshStatus` (Connect webhook fuera de scope v1).
+- **Own-gateway STRIPE (spec connect-own-gateway)**: `PUT /producer/gateway-account {provider:"STRIPE"}` sin apiKey; resuelve la `acct_` del `PayoutDestination` ACTIVE del actor (sin destino → 400 guiando a conectar primero); `createOrder` con header `Stripe-Account` = cargo directo a su cuenta, `feeMode:OWN_GATEWAY` idéntico a Flow/MP/Fintoc; confirmación por polling `refreshStatus` (Connect webhook fuera de scope v1).
 - **Consent por jurisdicción (spec consent-por-jurisdiccion)**: register declara `country` ISO-2 → `Person.jurisdiction` (EU/EEA→`EU`, resto→`CL`); `GET /legal/consent?country=` público devuelve `{version, body, requiredScopes, granular}` del `LegalText` activo (fallback CL); EU → checkboxes granulares `essential|marketing|analytics` en alta; `POST /me/consent {version, scopes?}` escribe `ConsentRecord` auditable + snapshot `Person.consentVersion`; jurisdicción editable en `/perfil/datos` (card "Región legal"); `LegalText` seed `cl-v1.0`/`eu-v1.0` (este último con `draftNote:"pending legal review"`).
 - `/admin/facturacion`: candidates → Emitir `POST /billing/generate` (idempotente); docs filtros → PDF inline; **Anular** inline razón* → `POST /billing/:id/void`.
 - `/admin/facturacion/transacciones`: KPIs del mes `finance/summary` (ingreso plataforma, GMV tx, costo pasarela, por transferir) + desglose segmento + FilterBar `payments` + lista `browse/payments` (default PAID; KPIs del período no siguen el filtro).
 - `/admin/facturacion/suscripciones`: KPIs `finance/mrr` (MRR/ARR/activas/a convenir) + byTier + funnel de estados clickeable (filtro client-side) + lista suscripciones (kind, actor, tier, ciclo, status, monto mensual, próximo cobro).
 - `/admin/facturacion/promos` (`platform-promos`): lista `GET /admin/platform-promos` → crear `/nueva` (POST) → ficha `/[id]` (PATCH: todos los campos + toggle enabled). Form: nombre, línea (ambas/ACADEMY/PRODUCER), tipo PERCENT|FIXED_CLP, valor, ventana, maxCycles, whitelist con pickers de academias/productores (`browse/academies` + `browse/people?role=PRODUCER`). Estados vigente/programada/expirada/deshabilitada. Sin delete.
-- `/admin/facturacion/precios` (price book `TierPrice`, spec multipais-currency): **filtros país (select del catálogo público `GET /cities/catalog`, rellenado con los códigos del libro si el catálogo no los declara) + línea ACADEMY/PRODUCER → query params `?countryCode=&kind=`**; listado = **cards clickeables** (responsive, 2 col lg — sin tabla) con nombre visible (`displayName` ?? `TIER_LABELS[tierCode]` — nombres públicos post-rename: Starter/Studio/Pro/Enterprise/Standard/Pase Social — ?? tierCode), badge línea, precio+ciclo, código+país; empty con filtros = `query.empty`; crear = CTA → `/nuevo` (POST: tier select muestra "Nombre · CÓDIGO"/ciclo/país/precio/moneda/nombre — kind se deriva del tier), card → ficha `/[id]` (edición nombre/precio/moneda → PUT). Éxito/error por `ActionNotice`. `GET/POST /admin/tier-prices`, `PUT /admin/tier-prices/:id`. Abrir un mercado = crear filas del país — sin deploy.
+- `/admin/facturacion/precios` (price book `TierPrice`, spec multipais-currency): **filtros país (select del catálogo público `GET /cities/catalog`, rellenado con los códigos del libro si el catálogo no los declara) + línea ACADEMY/PRODUCER → query params `?countryCode=&kind=`**; listado = **cards clickeables** (responsive, 2 col lg; sin tabla) con nombre visible (`displayName` ?? `TIER_LABELS[tierCode]`; nombres públicos post-rename: Starter/Studio/Pro/Enterprise/Standard/Pase Social; ?? tierCode), badge línea, precio+ciclo, código+país; empty con filtros = `query.empty`; crear = CTA → `/nuevo` (POST: tier select muestra "Nombre · CÓDIGO"/ciclo/país/precio/moneda/nombre; kind se deriva del tier), card → ficha `/[id]` (edición nombre/precio/moneda → PUT). Éxito/error por `ActionNotice`. `GET/POST /admin/tier-prices`, `PUT /admin/tier-prices/:id`. Abrir un mercado = crear filas del país; sin deploy.
 - `activePromo` en vistas del actor: `/academia/suscripcion` y `/productor` (sección Pro) muestran badge promo (−%/−$ + vencimiento + ciclos restantes) y precio lista tachado + precio oferta en consentimiento/botón de suscripción.
 - `/admin/jobs` ⚠️: pause/resume PATCH sin confirm; edit cron PATCH; **Run now** ConfirmSheet `POST /:key/run` (efectos reales: mails, payouts); runs list.
 - `/admin/campanas` ⚠️: lista; Edit (DRAFT|SCHEDULED); **Test** send sin confirm; **Run now** ConfirmSheet (audiencia completa real); Cancel ConfirmSheet. Form: audiencia ALL|ROLE|EVENT|lifecycle+days; audience-count debounce; schedule ONCE|CRON.
 - `/admin/auditoria`: read-only `GET /admin/audit` filtros.
 - `/admin/academias`: score-health read-only + drill a usuarios.
-- `/admin/catalogos`: styles(+genre)/class-levels(+order)/class-types — filas de lectura (nombre|meta|Editar+Eliminar); alta en `/admin/catalogos/nuevo?cat=` y edición en `/admin/catalogos/[cat]/[id]/editar` (ambas páginas dedicadas, cat inválido→styles, id inválido→notFound); delete ConfirmSheet; 409 en uso; 409 dup.
+- `/admin/catalogos`: styles(+genre)/class-levels(+order)/class-types; filas de lectura (nombre|meta|Editar+Eliminar); alta en `/admin/catalogos/nuevo?cat=` y edición en `/admin/catalogos/[cat]/[id]/editar` (ambas páginas dedicadas, cat inválido→styles, id inválido→notFound); delete ConfirmSheet; 409 en uso; 409 dup.
 
 ## 10. Soporte `/soporte` (SUPPORT|ADMIN, read-only total)
 - Búsqueda ≥2c debounce → `GET /support/users` (top 20) → detalle inline `GET /support/users/:id` (person, contadores, roles, últimos 10 tickets→evento, últimos 10 pagos). Sin impersonación/refunds/edición. Superficie más segura para smoke.
@@ -394,43 +394,43 @@
   - Offline: decode JWT local (expired→error), dup check local, encola IndexedDB → overlay con sello offline; banner pending+edad manifest.
   - Sync `POST /checkins/sync` (online/30s/mount/post-scan): synced→dequeue; duplicate/invalid/error→badges conflict/failed (resolución humana, sin UI).
   - **Sin UI pero en API:** check-out `/checkins/:id/out`, void (requiere assignment), door-sale `POST /checkins/door-sale` (crea cuenta light + ticket USED + check-in atómico, doorCap; phone normaliza a E.164 con país del venue como default y `+` override; ticket hereda `event.currency`).
-  - Autorización solo a nivel permiso — cualquier `checkins.write` registra en cualquier evento.
+  - Autorización solo a nivel permiso; cualquier `checkins.write` registra en cualquier evento.
 
 ## 12. Venue `/venue` (VENUE_MANAGER → `venues.manage`)
-- `GET /venues/mine` → selector si >1; dashboard `GET /venues/:id/dashboard`: KPIs (eventos próximos/30d, check-ins 30d agregado — sin live ni Prime Time), próximos eventos, reservas de mesas, flujo por hora 30d, menús externos.
+- `GET /venues/mine` → selector si >1; dashboard `GET /venues/:id/dashboard`: KPIs (eventos próximos/30d, check-ins 30d agregado; sin live ni Prime Time), próximos eventos, reservas de mesas, flujo por hora 30d, menús externos.
 - Única mutación: rentals REQUESTED → Confirmar|Cancelar (mini-confirm 2 pasos inline) → `PATCH /venues/:id/rentals/:rentalId`.
 
 ---
 
-## 13. Multipaís — discovery, viaje, pase social (specs city-discovery, city-guides, mi-viaje, pase-social, feature-flags-admin)
+## 13. Multipaís; discovery, viaje, pase social (specs city-discovery, city-guides, mi-viaje, pase-social, feature-flags-admin)
 
-- **Feature flags**: `/admin/funcionalidades` (admin.access) — catálogo, toggle sin confirm + revert en error + role=switch + quién/cuándo; `GET /features` público → el front oculta superficies gated; `isEnabled` server-side 404ea endpoints apagados. Seed: `social_pass` OFF; `trip_planner`/`city_guides`/`city_landing` ON.
+- **Feature flags**: `/admin/funcionalidades` (admin.access); catálogo, toggle sin confirm + revert en error + role=switch + quién/cuándo; `GET /features` público → el front oculta superficies gated; `isEnabled` server-side 404ea endpoints apagados. Seed: `social_pass` OFF; `trip_planner`/`city_guides`/`city_landing` ON.
 - **Directorio y landing de ciudad** (`city_landing`): `/ciudades` público (directorio con count) → `/ciudades/[slug]` (hero + eventos + venues + guía si hasGuide); flag OFF → endpoints 404 + páginas notFound + sin enlaces en nav.
 - **Cerca de mí** (`/eventos`): botón geolocalización → `GET /events/near?lat&lng&radiusKm` (haversine sobre `City.lat/lng`, default 25 máx 200); permiso denegado → estado + fallback select de ciudades; vacío → `nearestCity` sugerencia. Resultados con chip "Cerca de ti" aditivos al feed.
 - **Guías de ciudad** (`city_guides`): `/admin/ciudades` (lista con estado vacía/parcial/completa) → editor por sección (3 textareas máx 8000 + contador + guardado + dirty-guard: ConfirmSheet en navegación in-app + beforeunload); `PUT /admin/city-guides/:cityId` upsert por sección audita `CITY_GUIDE_UPDATE`; público: solo secciones con texto renderizan en `/ciudades/[slug]`.
 - **Mi viaje** (`trip_planner`): bookmark en ficha `/eventos/[id]` (optimista + revert + aria-pressed; sin sesión → link login); `/mi-viaje` agrupada ciudad→fecha con nota inline (blur/Enter, serializada contra quitar) + quitar optimista; `GET|PUT|DELETE /me/trip` (+`/ids`) con aislamiento por persona; flag OFF → 404 + nav oculta.
-- **Pase Social** (`social_pass` OFF — superficie apagada por diseño): `/pase` pública gated (pitch + precio por jurisdicción + subscribe→Stripe Checkout; miembro → estado/créditos restantes/cancel ConfirmSheet; `?session_id=` confirma por polling). Checkout ticket con pass: línea "Precio Pase Social" en desglose + toggle "usar crédito" (sin regalos ni método propio, saldo ≥ cantidad) → orden $0 `FREE` + `REDEEM` ledger atómico. Endpoints `GET|POST /me/social-pass[/subscribe|/cancel|/confirm]` → 404 flag OFF. Webhook STRIPE billing (spec stripe-subs-webhook): `invoice.paid`/`payment_failed`/`customer.subscription.deleted|updated` enrutan por target — metadata socialPass → Pase Social (RESET créditos dedup período / FAILED_CARD / CANCELED); remoteId en `MembershipSubscription` → settle/mora/CANCELED vía reconcile puntual; remoteId en `PlatformSubscription` → RENEWAL_SETTLED/gracia/CANCELED; sin match → 200 ignorado. Dedup por invoice/refId = webhook y polling no doble-liquidan.
+- **Pase Social** (`social_pass` OFF; superficie apagada por diseño): `/pase` pública gated (pitch + precio por jurisdicción + subscribe→Stripe Checkout; miembro → estado/créditos restantes/cancel ConfirmSheet; `?session_id=` confirma por polling). Checkout ticket con pass: línea "Precio Pase Social" en desglose + toggle "usar crédito" (sin regalos ni método propio, saldo ≥ cantidad) → orden $0 `FREE` + `REDEEM` ledger atómico. Endpoints `GET|POST /me/social-pass[/subscribe|/cancel|/confirm]` → 404 flag OFF. Webhook STRIPE billing (spec stripe-subs-webhook): `invoice.paid`/`payment_failed`/`customer.subscription.deleted|updated` enrutan por target; metadata socialPass → Pase Social (RESET créditos dedup período / FAILED_CARD / CANCELED); remoteId en `MembershipSubscription` → settle/mora/CANCELED vía reconcile puntual; remoteId en `PlatformSubscription` → RENEWAL_SETTLED/gracia/CANCELED; sin match → 200 ignorado. Dedup por invoice/refId = webhook y polling no doble-liquidan.
 
 - **Agregar clase al calendario**: ficha clase reservada (BOOKED) muestra "Agregar a mi calendario" →  descarga  RFC 5545 (SUMMARY clase+academia, DTSTART/DTEND con TZID de la ciudad, LOCATION sede academia, DESCRIPTION instructor/nivel+link, UID estable, VALARM -60min). Solo BOOKED; WAITLIST/compra pendiente sin boton. Sesion requerida, 404 clase inexistente.
 
-- **Feedback de exito transversal** (success-feedback-audit): toda mutacion visible emite confirmacion perceptible — notice inline role=status junto a la accion, el atom ActionNotice fijo (auto-dismiss 3s, sobre BottomNav, lg:bottom-6) cuando el punto puede quedar fuera del viewport (reserva de clase en /clases y ficha, RSVP practica, bailes act/rate, review de serie, amigos, cancel de clase particular), ConfirmSheet previo en acciones financieras/destructivas (aprobar claim productor, markPaid acuerdo, eliminar colaborador, cancelar reserva de mesa, borrar consulta guardada) y role=alert perceptible en fallos (approve/pay/generate admin, metodos de pago). Marcaje de asistencia del instructor actualiza in-place sin skeleton full-page.
+- **Feedback de exito transversal** (success-feedback-audit): toda mutacion visible emite confirmacion perceptible; notice inline role=status junto a la accion, el atom ActionNotice fijo (auto-dismiss 3s, sobre BottomNav, lg:bottom-6) cuando el punto puede quedar fuera del viewport (reserva de clase en /clases y ficha, RSVP practica, bailes act/rate, review de serie, amigos, cancel de clase particular), ConfirmSheet previo en acciones financieras/destructivas (aprobar claim productor, markPaid acuerdo, eliminar colaborador, cancelar reserva de mesa, borrar consulta guardada) y role=alert perceptible en fallos (approve/pay/generate admin, metodos de pago). Marcaje de asistencia del instructor actualiza in-place sin skeleton full-page.
 - **Onboarding mobile viewport**: banners de primer uso comparten slot con precedencia consent > install > push (PushOptIn cede como InstallPrompt); tours resuelven el anchor visible (tab bar movil vs sidebar); DancerActionsSheet max-h-85dvh scrolleable; banners respetan data-notabbar; alertas de form de alta/login/completar scrollean al view.
 
 - **Cuota semanal en Inicio** (home-weekly-quota):  devuelve por cada inscripcion reservable del viewer {academy, kind WEEKLY|PACK|UNLIMITED|MEMBERSHIP, used, limit} - MEMBERSHIP = academia sin feature classes (COBROS): fila muestra plan + valido-hasta + CTA Ver plan (sin agenda). /home/stats lente academy del bailarin: classesMonth y nextClass/myClasses solo aplican a academias con classes (STUDIO+); una asistencia real del mes (clase suelta) re-habilita el KPI con la misma conteo que rige la reserva (BOOKED + cancel tardia, sin asientos pagados; gracia por endsAt). HomeHub monta WeeklyQuotaCard en vista DANCER: fila por academia con progreso + CTA Agendar -> /clases?scope=mias (PACK agotado -> Renovar en la ficha). Sin inscripcion no renderiza. Mensaje de cuota agotada (409 de book) ahora capitalizado y con singular/plural + variante pack.
 
-## Anexo A — Gaps y notas para automatización
+## Anexo A; Gaps y notas para automatización
 
-1. **Sin infra e2e actual**: no existe playwright.config ni specs e2e; solo Vitest unit en api y un test web (`wallet-sort.test.ts`). El "Playwright smoke e2e" de AGENTS.md está por construir — este inventario es su backlog.
-2. **Sin `data-testid`** — usar roles/texto/`data-tour`. Recomendación: agregar `data-testid` en CTAs críticos de checkout/confirmaciones antes de escribir la suite (evita fragilidad por i18n).
-3. **Tours OnboardingRunner** pueden interceptar clicks en primera visita — fixtures deben pre-sembrar `me.onboarding` o driver descarta el tour.
-4. **Estado de filtros no-URL en consolas** — tests deben interactuar; no deep-link.
-5. **Acciones destructivas sin confirmación** (lista en §0) — automatizar con datos seed sacrificables; documentar como riesgo de UX/datos.
-6. **Timers fijos** (~1200ms redirects, 2.5s overlays puerta, 50s re-mint QR, 15s poll checkins) — usar `waitFor` en vez de sleeps; fake timers no trivial con SSR.
+1. **Sin infra e2e actual**: no existe playwright.config ni specs e2e; solo Vitest unit en api y un test web (`wallet-sort.test.ts`). El "Playwright smoke e2e" de AGENTS.md está por construir; este inventario es su backlog.
+2. **Sin `data-testid`**; usar roles/texto/`data-tour`. Recomendación: agregar `data-testid` en CTAs críticos de checkout/confirmaciones antes de escribir la suite (evita fragilidad por i18n).
+3. **Tours OnboardingRunner** pueden interceptar clicks en primera visita; fixtures deben pre-sembrar `me.onboarding` o driver descarta el tour.
+4. **Estado de filtros no-URL en consolas**; tests deben interactuar; no deep-link.
+5. **Acciones destructivas sin confirmación** (lista en §0); automatizar con datos seed sacrificables; documentar como riesgo de UX/datos.
+6. **Timers fijos** (~1200ms redirects, 2.5s overlays puerta, 50s re-mint QR, 15s poll checkins); usar `waitFor` en vez de sleeps; fake timers no trivial con SSR.
 7. **Determinismo de pagos**: stub:// + `POST /payments/webhook` cubre PAID/FAILED sin Flow. Claims manuales: upload multipart testeable con fixture de imagen.
 8. **Privacidad a asertar**: ratings nunca individuales ni identidad del evaluador (k-anon ≥3); scores CRM por actor; receipt streams auth'd; gateway keys solo mask; WhatsApp audience phones intencional pero acotado al actor.
-9. **Offline puerta**: flujo IndexedDB + sync — candidato a tests de integración específicos (Playwright offline mode).
-10. **Blast radius admin**: role grants, params globales, payouts, billing void, campaigns (emails reales), lead convert, jobs run-now — preferir rol custom de prueba y stubs de mailer.
-11. **Render stale al cambiar de entidad/vista** (bug real 2026-10-18 en `/admin/datos`): al seleccionar otra entidad hay un frame con rows viejas bajo la entidad nueva antes de que corra el fetch — `renderRow` formateaba campos inexistentes → `RangeError: Invalid time value`. Fix: filas etiquetadas con la entidad que las produjo (`result.entity === entity`). Caso QA: cambiar de entidad/píldora repetidamente con datos cargados no debe crashear; vale para cualquier página con filas shape-per-entity (`/admin/datos`; `/analitica` es inmune por shape genérico de celdas).
+9. **Offline puerta**: flujo IndexedDB + sync; candidato a tests de integración específicos (Playwright offline mode).
+10. **Blast radius admin**: role grants, params globales, payouts, billing void, campaigns (emails reales), lead convert, jobs run-now; preferir rol custom de prueba y stubs de mailer.
+11. **Render stale al cambiar de entidad/vista** (bug real 2026-10-18 en `/admin/datos`): al seleccionar otra entidad hay un frame con rows viejas bajo la entidad nueva antes de que corra el fetch; `renderRow` formateaba campos inexistentes → `RangeError: Invalid time value`. Fix: filas etiquetadas con la entidad que las produjo (`result.entity === entity`). Caso QA: cambiar de entidad/píldora repetidamente con datos cargados no debe crashear; vale para cualquier página con filas shape-per-entity (`/admin/datos`; `/analitica` es inmune por shape genérico de celdas).
 
 ## Baja lógica de usuario (spec admin-user-soft-delete)
 

@@ -3,7 +3,7 @@
 ## Why
 
 Feedback de cliente real: la academia ya cobra por su lado (MercadoPago,
-transferencia, efectivo) y no quiere otra comisión — lo que necesita es
+transferencia, efectivo) y no quiere otra comisión; lo que necesita es
 **orden**: saber quién pagó, quién vence y a quién recordar. Hoy el cobro
 externo existe solo informalmente (el staff marca `Enrollment.endsAt` a
 mano tras ver el comprobante por WhatsApp). La propuesta: la academia
@@ -13,15 +13,15 @@ propio siguen cobrando por la plataforma (Flow, passthrough vigente).
 
 ## What Changes
 
-- `AcademyPaymentMethod` (nuevo): medios de pago por academia —
+- `AcademyPaymentMethod` (nuevo): medios de pago por academia;
   `TRANSFER` (datos bancarios), `PAYMENT_LINK` (URL: MercadoPago,
   Flow u otro) y `CASH` (instrucciones). CRUD del owner, orden y activo.
 - `PaymentClaim` (nuevo): comprobante subido por el alumno
   `{academyId, personId, enrollmentId?, planId?, amount, methodType,
-  methodLabel, receiptKey, status, note}` — PENDING → APPROVED/REJECTED.
+  methodLabel, receiptKey, status, note}`; PENDING → APPROVED/REJECTED.
 - Storage de archivos (nuevo módulo `src/storage`): puerto + adaptador
   de disco local (mismo patrón que video-repo): `UPLOADS_DIR` env,
-  `storageKey` en DB, archivos servidos por endpoint autenticado —
+  `storageKey` en DB, archivos servidos por endpoint autenticado;
   los comprobantes son evidencia financiera privada, no estáticos.
 - Endpoints nuevos bajo `/academies/:id`:
   - `GET /payment-methods` (sesión: métodos activos para el alumno),
@@ -57,7 +57,7 @@ propio siguen cobrando por la plataforma (Flow, passthrough vigente).
 
 ### Modified Capabilities
 
-- (ninguna — Payment MANUAL y extensiones de endsAt reusan contratos
+- (ninguna; Payment MANUAL y extensiones de endsAt reusan contratos
   existentes)
 
 ## Impact

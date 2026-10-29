@@ -1,8 +1,8 @@
-# Tasks — pase-social
+# Tasks; pase-social
 
 - [x] 1. Schema `SocialPass` + `SocialPassLedger` + migración
   (orquestador); seed param `social_pass.credits_per_month=4` +
-  `TierPrice` `SOCIAL_PASS` para CL (precio base, p.ej. 15000 CLP —
+  `TierPrice` `SOCIAL_PASS` para CL (precio base, p.ej. 15000 CLP;
   param editable).
 - [x] 2. `StripeGateway` implementa `SubscriptionProvider` completo
   (spec payments/subscriptions del change): ensurePlan/syncPlan
@@ -18,7 +18,7 @@
 - [x] 4. Webhook STRIPE routing por event.type: `invoice.paid` →
   SocialPass activate/renew + RESET créditos;
   `invoice.payment_failed` → FAILED_CARD;
-  `customer.subscription.deleted` → CANCELED — todo firmado por
+  `customer.subscription.deleted` → CANCELED; todo firmado por
   el mismo `Stripe-Signature`; specs.
 - [x] 5. Checkout: beneficios ACTIVE (presale siempre + exentar
   doorAppFee, línea visible en desglose) + `payWithCredit`

@@ -84,7 +84,7 @@ function normalizeGatewayData(p: MpPayment): Record<string, unknown> {
 export class MercadoPagoGateway implements PaymentGateway {
   readonly name = "MERCADOPAGO";
   // Declaración para el routing por moneda del registry (spec
-  // stripe-gateway-payout-rail): solo LatAm — USD/EUR las toma STRIPE
+  // stripe-gateway-payout-rail): solo LatAm; USD/EUR las toma STRIPE
   // (rail global) cuando ambos conviven; `createOrder` sigue aceptando
   // USD/EUR vía SUPPORTED_CURRENCIES para cuentas propias del productor.
   readonly currencies = ["CLP", "ARS", "BRL", "MXN", "COP", "PEN", "UYU"];

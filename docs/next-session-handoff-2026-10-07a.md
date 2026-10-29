@@ -1,4 +1,4 @@
-# Handoff 2026-10-07a — Modo claro/oscuro
+# Handoff 2026-10-07a; Modo claro/oscuro
 
 ## Completado
 

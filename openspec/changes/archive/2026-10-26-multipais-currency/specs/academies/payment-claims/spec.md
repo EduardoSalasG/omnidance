@@ -1,4 +1,4 @@
-# academies/payment-claims — moneda del claim
+# academies/payment-claims; moneda del claim
 
 ## ADDED Requirements
 
