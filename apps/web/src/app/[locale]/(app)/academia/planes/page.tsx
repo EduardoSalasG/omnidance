@@ -24,10 +24,7 @@ import { Link } from "@/i18n/navigation";
 // nombre y status = active|inactive (whitelist del endpoint).
 const PLANS_ENTITY: EntityDef = {
   entity: "membership_plans",
-  filters: [
-    { key: "q", type: "text" },
-    { key: "status", type: "enum", options: ["active", "inactive"] },
-  ],
+  filters: [{ key: "q", type: "text" }],
   columns: [],
 };
 
@@ -68,6 +65,7 @@ export default function AcademiaPlanesPage() {
 function PlansModule({ academyId }: { academyId: string }) {
   const t = useTranslations("academy");
   const tc = useTranslations("common");
+  const tq = useTranslations("query");
   const [plans, setPlans] = useState<MembershipPlan[] | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -129,25 +127,44 @@ function PlansModule({ academyId }: { academyId: string }) {
       {kpis && kpis.topPurchasedMonth.length > 0 && (
         <TopPurchasedList items={kpis.topPurchasedMonth} />
       )}
-      {/* Toolbar única: filtros + orden en la misma línea (wrap en
-          mobile). Antes el sort quedaba en una fila suelta alineada a
-          la derecha y se veía desalineado bajo el FilterBar. */}
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-0 w-full sm:flex-1">
-          <FilterBar
-            entity={PLANS_ENTITY}
-            filters={filters}
-            onChange={(f) => {
-              setFilters(f);
+      {/* Filtros: búsqueda arriba (FilterBar), Estado y Ordenar en la
+          misma fila de dos columnas a todo ancho - legibles en mobile
+          (antes el sort quedaba colapsado junto al FilterBar). */}
+      <FilterBar
+        entity={PLANS_ENTITY}
+        filters={filters}
+        onChange={(f) => {
+          setFilters(f);
+          setPage(1);
+        }}
+        options={{}}
+      />
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex min-w-0 flex-col gap-1">
+          <span className="text-xs text-ink/50">{tq("filters.status")}</span>
+          <select
+            className={`${inputCls} min-w-0`}
+            value={filters.status ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setFilters((f) => {
+                const next = { ...f };
+                if (v) next.status = v;
+                else delete next.status;
+                return next;
+              });
               setPage(1);
             }}
-            options={{}}
-          />
-        </div>
-        <label className="flex w-full items-center gap-2 text-xs text-ink/50 sm:w-auto">
-          {t("sortLabel")}
+          >
+            <option value="">{tq("filtersAll")}</option>
+            <option value="active">{tq("optionLabels.active")}</option>
+            <option value="inactive">{tq("optionLabels.inactive")}</option>
+          </select>
+        </label>
+        <label className="flex min-w-0 flex-col gap-1">
+          <span className="text-xs text-ink/50">{t("sortLabel")}</span>
           <select
-            className={`${inputCls} min-w-40 flex-1 sm:flex-initial`}
+            className={`${inputCls} min-w-0`}
             value={sort}
             onChange={(e) => {
               setSort(e.target.value as SortKey);

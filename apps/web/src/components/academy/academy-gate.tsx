@@ -25,11 +25,15 @@ const STORAGE_KEY = ACADEMY_STORAGE_KEY;
  */
 export function AcademyGate({
   children,
+  selector = false,
 }: {
   children: (ctx: {
     academy: Academy;
     academies: Academy[];
   }) => React.ReactNode;
+  /** Selector de academia visible: solo el hub /academia lo muestra -
+      las subrutas heredan la selección persistida en localStorage. */
+  selector?: boolean;
 }) {
   const t = useTranslations("academy");
   const tc = useTranslations("common");
@@ -163,7 +167,7 @@ export function AcademyGate({
               componente se auto-omite - el estado va detallado ahí). */}
           <AcademyBillingBanner academy={selected} />
           <div className="flex flex-wrap items-center gap-2">
-            {(academies.length > 1 || canCreate) && (
+            {selector && (academies.length > 1 || canCreate) && (
               <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-xs">
                 <span className="sr-only">{t("title")}</span>
                 {/* La opción "Nueva academia" vive dentro del selector
