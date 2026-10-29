@@ -64,7 +64,9 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
 
   return (
     <Card className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-3">
+      {/* flex-wrap: en mobile el CTA cae a su propia línea en vez de
+          comprimirse en 3 líneas de texto. */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("methodsAdminTitle")}
@@ -76,6 +78,7 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
         <Button
           variant="secondary"
           size="sm"
+          className="shrink-0 whitespace-nowrap"
           href="/academia/configuracion/pagos/nuevo"
         >
           + {t("addMethod")}
