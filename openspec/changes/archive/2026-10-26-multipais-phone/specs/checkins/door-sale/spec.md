@@ -1,4 +1,4 @@
-# checkins/door-sale — país del teléfono en puerta
+# checkins/door-sale; país del teléfono en puerta
 
 ## ADDED Requirements
 
@@ -7,7 +7,7 @@
 `POST /checkins/door-sale` SHALL aceptar `phoneCountryCode` opcional y
 SHALL resolver el país por defecto del teléfono desde el país del venue
 del evento (venue sin país → CL). El input de staff SHALL asumir ese
-país sin mostrar selector — tipear `+` overridea a E.164 — para no
+país sin mostrar selector; tipear `+` overridea a E.164; para no
 agregar fricción al flujo de puerta. La Person ligera SHALL persistir
 `phone` E.164 + `phoneCountryCode`, y el lookup de "persona ya existe"
 SHALL hacerse sobre el E.164 normalizado.

@@ -3,7 +3,7 @@
 - [x] 1. Puerto + registry: `currencies?` en `PaymentGateway`;
   `GatewayRegistry.resolve(name?, currency?)` con fallback por moneda;
   declaraciones FLOW/FINTOC; `CheckoutService.resolveGateway` pasa
-  `Payment.currency`… — spec de registry actualizado.
+  `Payment.currency`…; spec de registry actualizado.
 - [x] 2. `StripeGateway` + spec: `createOrder` (Checkout Session,
   refId en `client_reference_id`+`metadata`, `card`+`link`, minor
   units por tabla zero-decimal), `verifyWebhook` (firma
@@ -14,7 +14,7 @@
 - [x] 3. Wiring env: `resolveGateways` registra Stripe con
   `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_BASE_URL`;
   `.env.example`.
-- [x] 4. Schema: `PayoutDestination` + `Payout.rail`/`railRef` —
+- [x] 4. Schema: `PayoutDestination` + `Payout.rail`/`railRef`;
   migración versionada (solo orquestador).
 - [x] 5. `PayoutRail` port + `ManualPayoutRail` +
   `StripeConnectPayoutRail` (`POST /v1/transfers`,

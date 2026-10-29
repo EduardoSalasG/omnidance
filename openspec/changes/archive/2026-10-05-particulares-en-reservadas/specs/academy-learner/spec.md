@@ -1,4 +1,4 @@
-# academy-learner — deltas (particulares-en-reservadas)
+# academy-learner; deltas (particulares-en-reservadas)
 
 ## ADDED Requirements
 
@@ -25,7 +25,7 @@ en el scope historial.
 
 - **GIVEN** alumno que compró una particular aún sin asignar
   **WHEN** abre reservadas **THEN** la ve primero con estado "por
-  agendar" — el pago nunca queda invisible.
+  agendar"; el pago nunca queda invisible.
 
 #### Scenario: Sin bandeja separada
 

@@ -1,6 +1,6 @@
 # Capability: academy-billing
 
-Suscripción SaaS del dueño de academia — tiers por alumnos activos,
+Suscripción SaaS del dueño de academia; tiers por alumnos activos,
 ciclos mensual/semestral/anual, trial, gracia y bloqueo por mora.
 
 ## ADDED Requirements
@@ -10,10 +10,10 @@ ciclos mensual/semestral/anual, trial, gracia y bloqueo por mora.
 El sistema SHALL ofrecer tiers de suscripción de academia con límite
 de alumnos activos y precios por ciclo de facturación.
 
-- **STARTER** — hasta 50 alumnos activos.
-- **PRO** — hasta 150.
-- **STUDIO** — hasta 400.
-- **ENTERPRISE** — sin límite, contratación manual (no
+- **STARTER**; hasta 50 alumnos activos.
+- **PRO**; hasta 150.
+- **STUDIO**; hasta 400.
+- **ENTERPRISE**; sin límite, contratación manual (no
   auto-seleccionable).
 
 Los precios por tier y ciclo (mensual, semestral −2% sobre el mensual,

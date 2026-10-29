@@ -4,7 +4,7 @@
 
 ### Requirement: Invitaciones de baile solo sobre eventos en curso
 
-`/bailes` SHALL mostrar invitaciones `INVITED` solo cuando exista un evento LIVE ocurriendo ahora — la invitación nace del escaneo en pista, no puede existir sobre eventos futuros ni pasados sin resolver.
+`/bailes` SHALL mostrar invitaciones `INVITED` solo cuando exista un evento LIVE ocurriendo ahora; la invitación nace del escaneo en pista, no puede existir sobre eventos futuros ni pasados sin resolver.
 
 #### Scenario: Seed con noche en vivo
 

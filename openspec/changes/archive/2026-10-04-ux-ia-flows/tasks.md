@@ -1,4 +1,4 @@
-# ux-ia-flows — tareas
+# ux-ia-flows; tareas
 
 ## 1. Hub QR unificado
 

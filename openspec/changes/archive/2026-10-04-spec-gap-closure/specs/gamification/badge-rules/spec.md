@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Reglas de conducta adicionales para badges: madrugador, maratonista y mariposa social — badges por conducta de la noche, repetibles, nunca por puntaje (spec §7, regla de oro: conductas, no juicio).
+Reglas de conducta adicionales para badges: madrugador, maratonista y mariposa social; badges por conducta de la noche, repetibles, nunca por puntaje (spec §7, regla de oro: conductas, no juicio).
 
 ## ADDED Requirements
 
@@ -13,7 +13,7 @@ El sistema SHALL otorgar el badge `madrugador` a quien hace check-in antes de la
 #### Scenario: check-in temprano
 
 - **WHEN** una persona hace check-in en un evento antes de la hora de corte
-- **THEN** recibe el badge madrugador (idempotente — repetible por diseño pero sin duplicar la fila)
+- **THEN** recibe el badge madrugador (idempotente; repetible por diseño pero sin duplicar la fila)
 
 #### Scenario: check-in tardío
 

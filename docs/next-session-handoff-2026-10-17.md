@@ -1,4 +1,4 @@
-# Handoff 2026-10-17 — slice `producer-gateway-accounts`
+# Handoff 2026-10-17; slice `producer-gateway-accounts`
 
 ## Completado (pendiente commit al momento de escribir - ver git log)
 

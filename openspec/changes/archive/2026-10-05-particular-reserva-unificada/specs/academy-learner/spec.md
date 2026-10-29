@@ -1,4 +1,4 @@
-# Delta — academy-learner (particular-reserva-unificada)
+# Delta; academy-learner (particular-reserva-unificada)
 
 ## MODIFIED Requirements
 
@@ -12,7 +12,7 @@ de clase (`series: null`, `date: null` cuando aún no se agenda) y
 `GET /classes/mine?scope=past` SHALL incluir las terminales
 (DONE/CANCELLED). El card SHALL ser el mismo `ClassCard` del resto
 (título "Clase particular", badge de reservado, link a la ficha). Las
-sin agendar SHALL agruparse al inicio bajo "Por agendar" — el pago
+sin agendar SHALL agruparse al inicio bajo "Por agendar"; el pago
 nunca queda invisible. Cancelar SHALL ocurrir dentro de la ficha
 (`/clases/[id]`, que resuelve también particulares) como zona
 destructiva con confirmación, igual que una reserva normal.
@@ -28,14 +28,14 @@ destructiva con confirmación, igual que una reserva normal.
 
 - **GIVEN** alumno que compró una particular aún sin asignar
   **WHEN** abre reservadas **THEN** la ve primero en el grupo "Por
-  agendar" — el pago nunca queda invisible.
+  agendar"; el pago nunca queda invisible.
 
 #### Scenario: Una sola llamada
 
 - **WHEN** la vista reservadas carga **THEN** los items llegan en la
-  respuesta de `GET /classes/mine` — sin fetch adicional de
+  respuesta de `GET /classes/mine`; sin fetch adicional de
   particulares desde la página. `GET /private-lessons/mine` queda
-  reservado a la rama instructor (`?as=instructor`) — la lectura del
+  reservado a la rama instructor (`?as=instructor`); la lectura del
   alumno tiene una sola fuente.
 
 #### Scenario: Cancelar desde la ficha
@@ -43,7 +43,7 @@ destructiva con confirmación, igual que una reserva normal.
 - **GIVEN** una particular activa del alumno **WHEN** abre su ficha
   `/clases/[id]` **THEN** ve academia, instructor (o "por asignar"),
   fecha (o "por agendar"), precio y estado, y **THEN** puede cancelar
-  desde la zona destructiva al pie con confirmación — tras cancelar
+  desde la zona destructiva al pie con confirmación; tras cancelar
   la ficha refleja CANCELLED.
 
 #### Scenario: Sin bandeja separada

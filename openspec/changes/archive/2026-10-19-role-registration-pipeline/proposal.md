@@ -1,9 +1,9 @@
-# Proposal — role-registration-pipeline
+# Proposal; role-registration-pipeline
 
 ## Why
 
 Hoy ACADEMY_OWNER y PRODUCER se solicitan desde /perfil y SANDBOX da
-acceso demo parcial — un flujo muerto que nadie usa. Producto quiere:
+acceso demo parcial; un flujo muerto que nadie usa. Producto quiere:
 registro por landing con rol usable al instante (crear academia/eventos/
 perfil) pero INVISIBLE al público hasta que admin valide el perfil.
 
@@ -20,7 +20,7 @@ perfil) pero INVISIBLE al público hasta que admin valide el perfil.
 - **SANDBOX eliminado**: del enum `RoleStatus` (migración), del
   `AllowSandbox` decorator, guard, y de toda referencia api/web/i18n.
   PersonRole con SANDBOX migran a PENDING.
-- **/admin/perfiles-por-validar**: página dedicada — cola de PENDING
+- **/admin/perfiles-por-validar**: página dedicada; cola de PENDING
   (ACADEMY_OWNER/PRODUCER) con checklist de perfil completo (nombre,
   email verificado, teléfono, datos del actor completados) + aprobar
   (solo si completo) / rechazar.
@@ -46,5 +46,5 @@ perfil) pero INVISIBLE al público hasta que admin valide el perfil.
 ## Decisión extra (usuario)
 
 - **Pro bloqueado por aprobación**: `me.effectivePro` SHALL exigir
-  `PersonRole.status === APPROVED` — un productor PENDING no puede
+  `PersonRole.status === APPROVED`; un productor PENDING no puede
   comprar ni usar features Pro hasta que admin lo valide.

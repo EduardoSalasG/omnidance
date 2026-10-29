@@ -4,7 +4,7 @@
 
 El `RelationshipScore` para actor ACADEMY hoy es `min(100, asistencias×10 +
 spend/1000 + referrals×15)` con `spend` hardcodeado a 0 (el comentario del
-código dice "sin vínculo Payment↔academy" — ya existe vía `refId`
+código dice "sin vínculo Payment↔academy"; ya existe vía `refId`
 `mem_/wks_/pvt_` y `PaymentClaim` APPROVED). No captura compras de
 plan/clase/taller/privada, rachas semanales ni continuidad mensual, que son
 las señales que la spec de producto (`omni-dance.md` §11/§14) pide para
@@ -72,5 +72,5 @@ exponen, y el recompute es solo manual → las vistas quedan obsoletas.
   baseline idempotente).
 - **Docs**: `omni-dance.md` §11/§14 (fórmula), `architecture.md`,
   `flows.md` si aplica, openapi/postman regenerados.
-- **Privacidad**: sin cambios — el alumno nunca ve el número ni el
+- **Privacidad**: sin cambios; el alumno nunca ve el número ni el
   desglose; scores privados por actor.

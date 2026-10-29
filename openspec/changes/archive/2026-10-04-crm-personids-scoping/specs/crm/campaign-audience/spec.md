@@ -1,4 +1,4 @@
-# campaign-audience — delta: scoping de personIds
+# campaign-audience; delta: scoping de personIds
 
 ## ADDED Requirements
 

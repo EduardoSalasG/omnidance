@@ -92,7 +92,7 @@ degradar a solo número + segmento sin error.
 3. `BRINGS_PEOPLE` - referrals ≥ `crm.brings_people_referrals` (param,
    default 2).
 4. `CORE` - score ≥ `crm.score.core_min` (param, default 60) para ambos
-   actores — PRODUCER migra del conteo legado de asistencias al umbral
+   actores; PRODUCER migra del conteo legado de asistencias al umbral
    de score, unificando semántica.
 5. `null` - resto.
 
@@ -164,7 +164,7 @@ por `eventId`, SERIES_PASS por `seriesId`→`EventSeries.producerId`).
 
 - **GIVEN** un asistente con 3 checkins en 8 semanas, racha de 2
   eventos, 2 meses continuos, 2 compras (1 anticipada), 3 meses de
-  antigüedad y 1 referral — con los defaults
+  antigüedad y 1 referral; con los defaults
 - **THEN** score = 12 + 6 + 8 + 6 + 2 + 3 + 5 = 42
 
 #### Scenario: SERIES_PASS atribuida al productor

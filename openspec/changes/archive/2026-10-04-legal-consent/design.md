@@ -1,16 +1,16 @@
-# Design — legal-consent
+# Design; legal-consent
 
 ## Contenido de `/privacidad` (estructura obligatoria)
 
-1. **Responsable del tratamiento**: Omni Dance SpA — `[PENDIENTE: RUT,
+1. **Responsable del tratamiento**: Omni Dance SpA; `[PENDIENTE: RUT,
    domicilio, email de contacto privacidad@]`.
 2. **Marco legal**: Ley 19.628 sobre Protección de los Datos
    Personales, según modificada por Ley 21.719 (vigente dic-2026) y su
    reglamento.
 3. **Datos que tratamos**: cuenta (nombre, email, teléfono optativo),
    perfil de baile (género optativo, estilos y roles), actividad
-   (check-ins QR, sesiones de baile, valoraciones — SIEMPRE privadas y
-   agregadas, k≥3), pagos (procesados por Flow — NO almacenamos datos
+   (check-ins QR, sesiones de baile, valoraciones; SIEMPRE privadas y
+   agregadas, k≥3), pagos (procesados por Flow; NO almacenamos datos
    de tarjeta), tokens push del dispositivo, datos técnicos (logs con
    request-id, IP).
    Declarar explícitamente: NO recolectamos geolocalización del
@@ -26,7 +26,7 @@
    internacionales declaradas.
 7. **Derechos del titular (Ley 21.719)**: acceso (gratuito al menos
    trimestralmente), rectificación, supresión, oposición, bloqueo del
-   tratamiento, portabilidad — personales, intransferibles,
+   tratamiento, portabilidad; personales, intransferibles,
    irrenunciables, gratuitos. Ejercicio: solicitud escrita a
    `[PENDIENTE: email]`; canal expedito.
 8. **Retención**: mientras la cuenta esté activa + plazos legales
@@ -39,7 +39,7 @@
     cuando corresponda.
 11. **Reclamos**: Agencia de Protección de Datos Personales (órgano
     fiscalizador).
-12. **Cookies/similar**: cookie de sesión, localStorage (preferencias) —
+12. **Cookies/similar**: cookie de sesión, localStorage (preferencias);
     no cookies de terceros publicitarias.
 13. **Cambios**: notificación en app + nuevo consentimiento si el cambio
     es material.
@@ -60,10 +60,10 @@ incumplimiento) · ley chilena + tribunales de Santiago · contacto.
 ## Consentimiento
 
 - `Person.consentVersion String?` + `Person.consentAcceptedAt DateTime?`
-  — migración propia (DESPUÉS de `drop_social_blocks_invites`).
+ ; migración propia (DESPUÉS de `drop_social_blocks_invites`).
 - `CONSENT_VERSION = "2026-10"` en shared o API.
 - `MagicLinkDto`, `RegisterDto`, `PasswordLoginDto` ganan
-  `consent?: boolean` — si llega `true`, al crear sesión se estampa en
+  `consent?: boolean`; si llega `true`, al crear sesión se estampa en
   la Person (`consentAcceptedAt=now`, `consentVersion=CONSENT_VERSION`).
   Front: checkbox OBLIGATORIO en el form antes de pedir link/registrar.
 - `POST /me/consent` (SessionGuard): `{version}` → estampa los campos;

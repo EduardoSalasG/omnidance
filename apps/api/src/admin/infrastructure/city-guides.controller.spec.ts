@@ -3,7 +3,7 @@ import "../../auth/infrastructure/auth.controller"; // rompe el ciclo session.gu
 import { AdminCityGuidesController } from "./city-guides.controller";
 import type { AdminCityGuidesService } from "../application/city-guides.service";
 
-// AdminCityGuidesController (spec city-guides): wiring de rutas —
+// AdminCityGuidesController (spec city-guides): wiring de rutas:
 // list/detail/update delegan al service con cityId + actor de sesión.
 
 const req = (id = "adm-1") => ({ person: { id } }) as never;

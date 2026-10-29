@@ -6,7 +6,7 @@
 
 `photoUrl` SHALL ser editable en `PATCH /academies/:id/settings` y en
 la página `/academia/configuracion/perfil`. El campo SHALL aceptar dos
-orígenes: una URL externa https (input manual — regla "fotos nunca
+orígenes: una URL externa https (input manual; regla "fotos nunca
 hosteadas" para contenido externo) o un path hosteado `/api/...`
 proveniente del upload propio (`POST /academies/:id/photo`). Guardar el
 perfil con un `photoUrl` hosteado SHALL NOT rechazarlo. SHALL
@@ -22,5 +22,5 @@ exponerse en `GET /academies/:id/profile` cuando esté aprobada.
 
 - **WHEN** el owner subió la foto (photoUrl quedó `/api/academies/photos/<key>`)
   y guarda el formulario de perfil
-- **THEN** el PATCH no rechaza el path hosteado — la foto persiste y el
+- **THEN** el PATCH no rechaza el path hosteado; la foto persiste y el
   resto de campos se guardan

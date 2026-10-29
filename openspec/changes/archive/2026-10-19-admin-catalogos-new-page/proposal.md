@@ -1,10 +1,10 @@
-# Proposal — admin-catalogos-new-page
+# Proposal; admin-catalogos-new-page
 
 ## Why
 
 `/admin/catalogos` tiene cards `flex-wrap` que en móvil quedan ilegibles
 (nombre, badge y dos botones repartidos sin estructura de fila) y el
-alta vive como form inline al pie de cada sección — el anti-patrón que
+alta vive como form inline al pie de cada sección; el anti-patrón que
 `console-patterns` prohíbe (crear = CTA → página dedicada).
 
 ## What Changes
@@ -14,7 +14,7 @@ alta vive como form inline al pie de cada sección — el anti-patrón que
   izquierda, meta (badge género / orden) + acciones en la zona derecha.
   Edición sigue inline pero como form apilado en la fila.
 - **Crear → página dedicada**: cada sección gana CTA "＋ Nuevo" que va a
-  `/admin/catalogos/nuevo?cat=styles|levels|types` — página con
+  `/admin/catalogos/nuevo?cat=styles|levels|types`; página con
   `ConsoleHeader` de vuelta, campo extra según catálogo (género/orden/
   ninguno), POST y regreso al listado. `cat` inválido → la primera
   sección.
@@ -22,12 +22,12 @@ alta vive como form inline al pie de cada sección — el anti-patrón que
 
 ## Capabilities
 
-- **Modified Capabilities**: `admin` — mantenedor de catálogos.
+- **Modified Capabilities**: `admin`; mantenedor de catálogos.
 
 ## Impact
 
-- `apps/web/.../admin/catalogos/page.tsx` — reescritura de
+- `apps/web/.../admin/catalogos/page.tsx`; reescritura de
   `CatalogSection` (filas + CTA, sin alta inline).
 - Nueva `apps/web/.../admin/catalogos/nuevo/page.tsx`.
 - i18n: `adminCatalogs.new`, `newTitle` en `messages/es-CL.json`.
-- `docs/qa-flows-inventory.md` — flujo catálogos.
+- `docs/qa-flows-inventory.md`; flujo catálogos.

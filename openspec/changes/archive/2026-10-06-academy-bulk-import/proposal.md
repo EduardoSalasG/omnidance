@@ -4,7 +4,7 @@
 
 Migración de academias desde otra plataforma: el owner llega con su
 nómina de alumnos (con vigencias ya pagadas afuera) y su horario semanal
-armados en Excel. Entrar todo a mano es inviable — la carga masiva CSV
+armados en Excel. Entrar todo a mano es inviable; la carga masiva CSV
 es el onboarding real de una academia nueva. Además cada alumno importado
 que no tiene cuenta debe recibir un email para crearla.
 
@@ -41,7 +41,7 @@ que no tiene cuenta debe recibir un email para crearla.
 ## Non-goals
 
 - Sin import de pagos históricos ni asistencia.
-- Sin auto-crear planes ni catálogos (Style/ClassLevel) — una fila con
+- Sin auto-crear planes ni catálogos (Style/ClassLevel); una fila con
   plan inexistente es error de esa fila, no del archivo.
 - Sin modo dry-run por separado: el reporte por fila ya es la
   previsualización (el import es idempotente por dedup).

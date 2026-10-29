@@ -1,4 +1,4 @@
-# role-driven-ui — tareas
+# role-driven-ui; tareas
 
 ## 1. Rol activo
 
@@ -12,7 +12,7 @@
 - [x] `TABS_BY_ROLE`: DANCER(Inicio·Eventos·QR·Alertas) ·
   STAFF(Inicio·Puerta·QR·Alertas) · PRODUCER(Inicio·Eventos·Crear●·Alertas)
   · ACADEMY/INSTRUCTOR(Inicio·Academia●·Alertas) · DJ/VENUE(Inicio·Eventos·
-  Alertas) · ADMIN(Inicio·Admin·CRM·Alertas) — +botón Más siempre
+  Alertas) · ADMIN(Inicio·Admin·CRM·Alertas); +botón Más siempre
 - [x] `MORE_ITEMS_BY_ROLE`: solo funciones del rol activo + Perfil
 - [x] Tab "Crear" productor → /productor/eventos?crear=1 (abre form)
 - [x] MoreSheet: sin cambio de contrato (secciones por heurística)

@@ -1,4 +1,4 @@
-# academies/owner-insights — deltas
+# academies/owner-insights; deltas
 
 ## ADDED Requirements
 
@@ -6,7 +6,7 @@
 
 `GET /academies/public` SHALL responder sin sesión la lista de
 academias activas (`active: true` y sin `billingBlockedAt`) con solo
-`{id, name, styles}` — los estilos se derivan de sus series activas,
+`{id, name, styles}`; los estilos se derivan de sus series activas,
 deduplicados y ordenados alfabéticamente. MUST NOT exponer dirección,
 instructores, métricas ni datos de alumnos.
 

@@ -24,7 +24,7 @@ por el front (ocultar nav/CTAs).
 - **Endpoints**: `GET /admin/feature-flags` (lista con label/desc,
   `admin.access`), `PATCH /admin/feature-flags/:key {enabled}`
   (audita), y `GET /features` **público** → mapa `{key: enabled}` de
-  los flags para gating de front (cacheado, sin datos sensibles —
+  los flags para gating de front (cacheado, sin datos sensibles;
   flags son booleanos públicos por diseño).
 - **Front**: página `/admin/funcionalidades` (console-patterns):
   cards de flag con label + descripción + toggle + `updatedAt/By`;
@@ -40,6 +40,6 @@ por el front (ocultar nav/CTAs).
 ## Fuera de scope
 
 - Flags por región/segmento/rollout % (todo flag es global booleano).
-- UI para crear/borrar flags (el catálogo lo define código+seed —
+- UI para crear/borrar flags (el catálogo lo define código+seed;
   un flag sin consumer no sirve; solo toggle).
 - Expiración/horarios de activación.

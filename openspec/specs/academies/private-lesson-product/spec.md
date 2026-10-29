@@ -95,7 +95,7 @@ dirección de la academia. Sobre lecciones no `CONFIRMED` responde 409.
 
 - **WHEN** el owner de la academia intenta `action="done"` sobre una
   lección de su academia
-- **THEN** responde 403 — el owner gestiona, no acredita asistencia
+- **THEN** responde 403; el owner gestiona, no acredita asistencia
 
 #### Scenario: admin como escape operativo
 

@@ -11,8 +11,8 @@ el chrome móvil actual.
 
 En viewports `≥lg` la app SHALL renderizar una sidebar izquierda persistente
 con los módulos del rol activo agrupados por dominio. La sidebar MUST
-soportar dos estados — expandida (ícono + label + headers de grupo) y
-colapsada (rail de solo íconos, label accesible vía tooltip/`aria-label`) —
+soportar dos estados; expandida (ícono + label + headers de grupo) y
+colapsada (rail de solo íconos, label accesible vía tooltip/`aria-label`);
 con un toggle visible para cambiar de estado. El estado MUST persistir por
 dispositivo. La sidebar MUST marcar la ruta activa con `aria-current` y ser
 un `<nav>` con `aria-label`.

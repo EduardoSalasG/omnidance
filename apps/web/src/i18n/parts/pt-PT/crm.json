@@ -170,7 +170,7 @@
       },
       "segment": "Segmento",
       "pickSegment": "Escolhe um segmento",
-      "noSegments": "Sem segmentos guardados — cria um na secção Segmentos.",
+      "noSegments": "Sem segmentos guardados, cria um na secção Segmentos.",
       "action": "Ação",
       "actions": {
         "NOTIFY": "Notificar a pessoa",

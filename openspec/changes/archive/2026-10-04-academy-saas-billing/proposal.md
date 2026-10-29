@@ -1,4 +1,4 @@
-# academy-saas-billing — de fee-por-venta a plataforma de gestión (SaaS)
+# academy-saas-billing; de fee-por-venta a plataforma de gestión (SaaS)
 
 ## Por qué
 

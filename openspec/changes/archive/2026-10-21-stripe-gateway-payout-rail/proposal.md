@@ -6,7 +6,7 @@ La plataforma solo puede cobrar por rieles chilenos (Flow, Fintoc) o
 MercadoPago, y las liquidaciones (`Payout`) se pagan a mano: el admin
 transfiere por banco y sube `evidenceUrl`. Para operar fuera de Chile
 (roadmap multipaís, spec `platform-multicountry` §"Rieles de pago por
-región") se necesita un adaptador global — Stripe — y que el
+región") se necesita un adaptador global; Stripe; y que el
 desembolso se abstraiga tras un port `PayoutRail` en vez de un paso
 manual implícito.
 
@@ -23,7 +23,7 @@ manual implícito.
 - **Routing por moneda**: `GatewayRegistry` resuelve el adaptador que
   soporta la moneda de la orden cuando el default no la soporta
   (Flow=CLP; USD/EUR/… → Stripe cuando está configurado). Chile sigue
-  saliendo por su default — el routing es fallback por moneda, no
+  saliendo por su default; el routing es fallback por moneda, no
   re-asignación por país.
 - **Port `PayoutRail`** (`MANUAL` | `STRIPE_CONNECT`): el desembolso
   de un `Payout` se abstrae tras el rail del destino declarado por el
@@ -44,10 +44,10 @@ manual implícito.
 
 - **Cobro a cuenta propia sobre Connect** (direct/destination charges
   en la cuenta del productor): `ProducerGatewayAccount` sigue sin
-  aceptar `STRIPE` — el onboarding de destino construido acá es el
+  aceptar `STRIPE`; el onboarding de destino construido acá es el
   prerrequisito; el cobro own-gateway va en el change siguiente.
 - Suscripciones por Stripe Billing (el port `SubscriptionProvider`
-  queda como slot futuro — Pase Social lo necesitará).
-- Rail Fintoc de payouts (Chile sigue manual hoy — el port lo deja
+  queda como slot futuro; Pase Social lo necesitará).
+- Rail Fintoc de payouts (Chile sigue manual hoy; el port lo deja
   listo para enchufar después).
 - Refunds (decisión de producto: no van), multi-destination por actor.

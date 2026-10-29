@@ -1,4 +1,4 @@
-# Design — add-gtm
+# Design; add-gtm
 
 ## Decisiones
 
@@ -23,7 +23,7 @@
   `connect-src https:`/`img-src https:`/`style-src 'unsafe-inline'` ya
   cubren los beacons e inyecciones de estilo de los tags. Tags que
   carguen scripts de dominios propios (p.ej. Meta pixel) requerirán
-  ampliar `script-src` cuando se configuren — documentado, no
+  ampliar `script-src` cuando se configuren; documentado, no
   pre-agregado.
 - **dev sin eval**: `script-src` en dev suma `'unsafe-eval'` ya
   existente; la CSP del snippet no cambia por entorno.

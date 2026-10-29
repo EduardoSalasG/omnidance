@@ -1,4 +1,4 @@
-# Design — stripe-subs-webhook
+# Design; stripe-subs-webhook
 
 ## Contexto
 
@@ -19,7 +19,7 @@ Un dispatcher por target, no un consumer gigante:
 3. Matchea `PlatformSubscription` por remoteId → `PlatformSubscriptionsService` (misma semántica: settle renewal, mora/grace, CANCELED).
 4. Sin match en ninguno → ack ignorado (comportamiento actual).
 
-Dedup: reusar `lastInvoiceId`/`refId` existentes — la misma invoice por
+Dedup: reusar `lastInvoiceId`/`refId` existentes; la misma invoice por
 webhook y por polling no liquida dos veces.
 
 ## Verificación

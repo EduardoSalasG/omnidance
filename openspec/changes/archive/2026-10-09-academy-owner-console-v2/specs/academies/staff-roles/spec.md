@@ -1,4 +1,4 @@
-# Delta — academies/staff-roles
+# Delta; academies/staff-roles
 
 ## ADDED Requirements
 

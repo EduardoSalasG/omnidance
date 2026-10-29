@@ -1,4 +1,4 @@
-# Tasks — add-gtm
+# Tasks; add-gtm
 
 - [x] 1. Crear `apps/web/src/components/gtm.tsx`: exports `GtmScript`
       (script inline bootstrap, `dangerouslySetInnerHTML`) y

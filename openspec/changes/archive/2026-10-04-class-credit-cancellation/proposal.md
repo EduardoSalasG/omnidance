@@ -3,11 +3,11 @@
 ## Why
 
 El modelo de reservas actual (`ClassBooking` BOOKED/WAITLIST/CANCELLED) no
-implementa la promesa comercial de los planes: "Mensual — 2 clases semanales"
-es solo copy — `POST /classes/:id/book` exige inscripción vigente pero **no
+implementa la promesa comercial de los planes: "Mensual; 2 clases semanales"
+es solo copy; `POST /classes/:id/book` exige inscripción vigente pero **no
 descuenta ningún crédito**, así que un alumno puede reservar ilimitado con
-cualquier plan. La regla de negocio definida — cancelar ≥1h antes devuelve la
-clase, <1h la pierde — no tiene un contador sobre el cual operar.
+cualquier plan. La regla de negocio definida; cancelar ≥1h antes devuelve la
+clase, <1h la pierde; no tiene un contador sobre el cual operar.
 
 ## What Changes
 
@@ -22,10 +22,10 @@ clase, <1h la pierde — no tiene un contador sobre el cual operar.
   `inicioClase − classes.cancel_refund_minutes` (PlatformParam, default 60):
   dentro de ventana → `refunded=true` y la respuesta lo declara; fuera →
   `refunded=false` (cancela, pierde la clase). El asiento siempre se libera y
-  la waitlist promueve — pero la promoción re-chequea cuota y salta al
+  la waitlist promueve; pero la promoción re-chequea cuota y salta al
   siguiente si el candidato está sin crédito.
 - **Cancelación por la academia** (desactivar serie, eliminar slot): los
-  bookings afectados quedan `CANCELLED` con `refunded=true` — nunca quema
+  bookings afectados quedan `CANCELLED` con `refunded=true`; nunca quema
   crédito una cancelación ajena al alumno.
 - **UI dancer**: ficha de clase muestra "Te quedan N de M esta semana" (o pack)
   junto al CTA; el sheet de cancelar distingue "recuperas tu clase" vs "la
@@ -38,17 +38,17 @@ clase, <1h la pierde — no tiene un contador sobre el cual operar.
 
 ### New Capabilities
 
-- `academies/class-credits`: cuota de clases por inscripción — semanal (planes
+- `academies/class-credits`: cuota de clases por inscripción; semanal (planes
   por tiempo) o total (packs), consumo al reservar, devolución por la política
   de cancelación, enforcement en `book` y en la promoción de waitlist.
 - `academies/booking-cancellation`: política de corte para cancelación del
-  alumno — ventana configurable, devolución del crédito dentro de la ventana,
+  alumno; ventana configurable, devolución del crédito dentro de la ventana,
   pérdida fuera de ella, y refund garantizado cuando la cancelación la origina
   la academia.
 
 ### Modified Capabilities
 
-_(ninguna — no existen specs previas de estas capacidades en openspec/specs/)_
+_(ninguna; no existen specs previas de estas capacidades en openspec/specs/)_
 
 ## Impact
 

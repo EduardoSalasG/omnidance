@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Puntos de temporada: única moneda de progreso, **no gastable** — se acumulan por conductas (sesiones, ratings cerrados, check-in temprano, misiones), alimentan el leaderboard de temporada y resetean por temporada (spec §7).
+Puntos de temporada: única moneda de progreso, **no gastable**; se acumulan por conductas (sesiones, ratings cerrados, check-in temprano, misiones), alimentan el leaderboard de temporada y resetean por temporada (spec §7).
 
 ## ADDED Requirements
 
@@ -23,7 +23,7 @@ El sistema SHALL acreditar puntos en `PointLedger` cuando ocurren conductas veri
 #### Scenario: idempotente por conducta
 
 - **WHEN** la misma conducta se procesa dos veces (re-webhook, retry, re-evaluación)
-- **THEN** no se duplican los puntos — cada conducta acredita una sola vez
+- **THEN** no se duplican los puntos; cada conducta acredita una sola vez
 
 ### Requirement: Consulta de puntos
 

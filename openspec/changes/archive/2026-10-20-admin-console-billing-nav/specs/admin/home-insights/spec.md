@@ -1,4 +1,4 @@
-# admin/home-insights — delta admin-console-billing-nav
+# admin/home-insights; delta admin-console-billing-nav
 
 ## ADDED Requirements
 

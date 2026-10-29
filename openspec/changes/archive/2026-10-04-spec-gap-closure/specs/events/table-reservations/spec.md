@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Reserva de mesa por evento: nombre del solicitante + cantidad de personas, con ciclo solicitada→confirmada/cancelada gestionado por productor o venue — mesa como proxy de consumo, sin competir con el POS del local (spec §8, §13).
+Reserva de mesa por evento: nombre del solicitante + cantidad de personas, con ciclo solicitada→confirmada/cancelada gestionado por productor o venue; mesa como proxy de consumo, sin competir con el POS del local (spec §8, §13).
 
 ## ADDED Requirements
 
@@ -46,7 +46,7 @@ El productor del evento (o admin) SHALL poder listar las reservas y cambiar su e
 
 ### Requirement: Visibilidad del listado confirmado
 
-Cualquier usuario autenticado SHALL poder ver qué reservas confirmadas existen (nombre + cantidad), para organizar el punto de encuentro — sin exponer ids ni datos sensibles.
+Cualquier usuario autenticado SHALL poder ver qué reservas confirmadas existen (nombre + cantidad), para organizar el punto de encuentro; sin exponer ids ni datos sensibles.
 
 #### Scenario: listado del evento
 

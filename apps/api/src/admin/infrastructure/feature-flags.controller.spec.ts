@@ -4,7 +4,7 @@ import { AdminFeatureFlagsController } from "./feature-flags.controller";
 import type { FeatureFlagsService } from "../../features/feature-flags.service";
 
 // AdminFeatureFlagsController (spec feature-flags-admin): wiring de
-// rutas — list/setEnabled delegan al service con key + actor de sesión.
+// rutas; list/setEnabled delegan al service con key + actor de sesión.
 
 const req = (id = "adm-1") => ({ person: { id } }) as never;
 

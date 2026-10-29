@@ -9,7 +9,7 @@ TBD - created by archiving change academy-operations-insights. Update Purpose af
 
 `GET /academies/public` SHALL responder sin sesión la lista de
 academias activas (`active: true` y sin `billingBlockedAt`) con solo
-`{id, name, styles}` — los estilos se derivan de sus series activas,
+`{id, name, styles}`; los estilos se derivan de sus series activas,
 deduplicados y ordenados alfabéticamente. MUST NOT exponer dirección,
 instructores, métricas ni datos de alumnos.
 
@@ -132,7 +132,7 @@ comparables computadas sobre el tramo equivalente del mes anterior
 (month-to-date: desde el día 1 hasta el mismo día transcurrido):
 `activeStudentsMonthPrev`, `billedMonthPrev`, `avgTicketMonthPrev` y
 `avgAttendancePerClassMonthPrev` (null cuando el mes anterior no tiene
-base — 0 clases dictadas o 0 pagos).
+base; 0 clases dictadas o 0 pagos).
 
 `activeStudentsMonth` SHALL contar **personas únicas** (`personId`) con
 enrollment en estado que habilita asistir (ACTIVE, TRIAL, ONLINE) y

@@ -1,4 +1,4 @@
-# Tasks — academy-website-link
+# Tasks; academy-website-link
 
 ## 1. Datos + API
 
@@ -22,4 +22,4 @@
 
 - [x] 3.1 Specs verdes + `tsc --noEmit` api/web + `openspec validate`.
 - [x] 3.2 openapi.json/postman si el endpoint cambia de shape (nuevo
-  campo en DTO — regenerar).
+  campo en DTO; regenerar).

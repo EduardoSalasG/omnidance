@@ -1,10 +1,10 @@
-# Proposal — admin-console-billing-nav
+# Proposal; admin-console-billing-nav
 
 ## Why
 
 La consola del admin de sistema tiene tres problemas de navegación y
 superficie: (1) en móvil mantiene un bottom tab bar de 4 destinos que no
-cubre sus ~11 módulos — owner y productor ya resolvieron esto siendo
+cubre sus ~11 módulos; owner y productor ya resolvieron esto siendo
 consoles "drawer-only"; (2) el drawer/sidebar no lista todas las páginas
 de admin: `/admin` (hub), `/admin/finanzas`, `/admin/facturacion`,
 `/admin/jobs`, `/admin/campanas` y `/admin/academias` son inalcanzables
@@ -16,7 +16,7 @@ dedicada con el patrón de insights del resto de consolas.
 ## What Changes
 
 - **Admin pasa a ser consola drawer-only en móvil**: `ADMIN` entra a
-  `MOBILE_DRAWER_ONLY` — sin bottom tab bar, el drawer lateral es la
+  `MOBILE_DRAWER_ONLY`; sin bottom tab bar, el drawer lateral es la
   navegación (mismo patrón que ACADEMY_OWNER y PRODUCER). En desktop no
   cambia nada (la sidebar ya existía).
 - **Cobertura completa del drawer/sidebar admin**: el grupo Admin gana
@@ -48,29 +48,29 @@ dedicada con el patrón de insights del resto de consolas.
 
 ## Capabilities
 
-- **New Capabilities**: `admin/home-insights` — KPIs e insights de la
+- **New Capabilities**: `admin/home-insights`; KPIs e insights de la
   página de inicio del rol ADMIN.
 - **Modified Capabilities**:
-  - `responsive-app-shell` — ADMIN se suma a las consolas drawer-only
+  - `responsive-app-shell`; ADMIN se suma a las consolas drawer-only
     en móvil y su drawer cubre todos los destinos de la consola.
-  - `admin-finance/console` — la superficie de monetización gana páginas
+  - `admin-finance/console`; la superficie de monetización gana páginas
     dedicadas Transacciones y Suscripciones bajo `/admin/facturacion/*`
     dentro de la sección Facturación.
 
 ## Impact
 
-- `apps/web/src/components/layout/BottomNav.tsx` — drawer-only admin,
+- `apps/web/src/components/layout/BottomNav.tsx`; drawer-only admin,
   grupos del drawer (nuevos ítems + sección Facturación).
-- `apps/web/src/components/home/HomeHub.tsx` + `kpi-grid.tsx` — KPIs y
+- `apps/web/src/components/home/HomeHub.tsx` + `kpi-grid.tsx`; KPIs y
   sección de leads para la lente ADMIN.
-- `apps/api/src/home/home.service.ts` — `adminStats()` extendido
+- `apps/api/src/home/home.service.ts`; `adminStats()` extendido
   (KPIs de facturación del mes + cola de leads NEW).
-- `apps/api/src/admin/infrastructure/finance.controller.ts` — extrae
+- `apps/api/src/admin/infrastructure/finance.controller.ts`; extrae
   `clMonthStart` a `src/common/cl-time.ts` para reusarlo en home.
 - Páginas nuevas: `admin/facturacion/transacciones/page.tsx`,
   `admin/facturacion/suscripciones/page.tsx`; `/admin/datos` gana seed
   de estado desde query params.
 - i18n: keys nuevas en `messages/es-CL.json` (home) y
   `src/i18n/parts/admin.json` (módulos + páginas).
-- `docs/qa-flows-inventory.md` — actualización del inventario de flujos
+- `docs/qa-flows-inventory.md`; actualización del inventario de flujos
   admin (regla viva del repo).

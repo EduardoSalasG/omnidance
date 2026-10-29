@@ -1,4 +1,4 @@
-# Tasks — product-line-flags
+# Tasks; product-line-flags
 
 - [x] 1. Flags `social_line` + `academy_line` en FEATURE_FLAG_SEED (ON).
 - [x] 2. `Tab.flag` + filtro de roleTabs por mapa público; flags en

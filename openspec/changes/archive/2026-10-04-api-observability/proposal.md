@@ -1,4 +1,4 @@
-# Proposal — api-observability
+# Proposal; api-observability
 
 ## Why
 
@@ -20,11 +20,11 @@ error con el request que lo causó ni parsear logs con un collector.
   (method/path/status/duration/actorId) al `finish`.
 - Redacción: claves que matcheen secrets/tokens (authorization, cookie,
   token, password, secret, jwt, qr payload…) se enmascaran antes de
-  escribir — regla de seguridad del repo (nunca loggear QR ni creds).
+  escribir; regla de seguridad del repo (nunca loggear QR ni creds).
 - `LOG_LEVEL` env para nivel (`debug` dev / `info` prod por defecto).
 - Exclusiones del request log: `/api/health`, docs de swagger.
 
 ## Scope
 
-Solo `apps/api`. La parte web (Next.js) queda fuera — su observabilidad
+Solo `apps/api`. La parte web (Next.js) queda fuera; su observabilidad
 sería otro stack (Sentry/similar), pedido aparte.

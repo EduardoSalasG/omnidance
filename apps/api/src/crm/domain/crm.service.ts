@@ -44,7 +44,7 @@ const TRIGGER_ACTOR_TYPES: Readonly<Record<string, readonly string[]>> = {
 export type CrmTriggerKey = (typeof CRM_TRIGGER_KEYS)[number];
 
 // Triggers dirigidos por evento (diff de membresía de ActorSegment en
-// cada recompute) — no se evalúan por fecha en el cron de triggers.
+// cada recompute); no se evalúan por fecha en el cron de triggers.
 const EVENT_TRIGGER_KEYS = new Set(["SEGMENT_ENTER", "SEGMENT_EXIT"]);
 
 // Campos/ops permitidos en las reglas de ActorSegment
@@ -87,7 +87,7 @@ interface CampaignSegment {
   enrollmentStatus?: string[];
   planId?: string;
   seriesId?: string;
-  /** id de ActorSegment guardado (spec crm-dynamic-segments) — resuelve
+  /** id de ActorSegment guardado (spec crm-dynamic-segments); resuelve
    *  a la membresía materializada en el último recompute. */
   segmentRef?: string;
 }
@@ -2307,7 +2307,7 @@ id: { in: filtered.map((r) => r.personId) },
     }
 
     // NOTIFY (default): una notificación por persona, dedup por
-    // (persona, segmento, dirección, día) — cooldown implícito de 1 día.
+    // (persona, segmento, dirección, día); cooldown implícito de 1 día.
     for (const personId of personIds) {
       const recent = await this.prisma.notification.findFirst({
         where: {

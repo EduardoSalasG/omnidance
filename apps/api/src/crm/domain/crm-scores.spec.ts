@@ -125,7 +125,7 @@ class FakePrisma {
       return row;
     },
   };
-  // syncSegments corre al final de cada recomputeScores — stubs vacíos
+  // syncSegments corre al final de cada recomputeScores; stubs vacíos
   // por defecto; el describe de segmentos los pisa con estado real.
   actorSegment = { findMany: async () => [] };
   actorSegmentMembership = {
@@ -451,7 +451,7 @@ describe("CrmService.recomputeScores (PRODUCER)", () => {
     checkin("p1", "ev-5", 55);
     checkin("p1", "ev-6", 65);
     checkin("p1", "ev-7", 75);
-    // última actividad reciente? no — 55d > 21d → AT_RISK de todas formas.
+    // última actividad reciente? no; 55d > 21d → AT_RISK de todas formas.
     // Para aislar la caída: pago TICKET reciente (actividad ≠ asistencia).
     ticket("p1", "ev-2", 1);
 

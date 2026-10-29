@@ -1,4 +1,4 @@
-# Tasks — unified-actor-entitlements
+# Tasks; unified-actor-entitlements
 
 - [x] 1. API: dominio ActorEntitlements + adapters + matrices
   (PRODUCER_FEATURES, ACADEMY_FEATURES) + assertActorFeature.

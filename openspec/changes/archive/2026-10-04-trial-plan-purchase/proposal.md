@@ -4,21 +4,21 @@
 
 La clase de prueba (`PlanType.TRIAL`) hoy solo se asigna manual por staff
 (`POST /academies/:id/enrollments` con status TRIAL). El usuario la quiere
-**comprable online** por cualquier alumno, inscrito o no — herramienta de
+**comprable online** por cualquier alumno, inscrito o no; herramienta de
 adquisición (omni-dance.md: "plan de prueba" entre los tipos de plan).
 La ficha pública ya lista planes TRIAL activos con CTA "Comprar", pero el
-checkout los rechaza con 400 — es un camino roto visible.
+checkout los rechaza con 400; es un camino roto visible.
 
 ## What Changes
 
 - `GET /checkout/membership-quote` y `POST /checkout/membership` dejan de
   rechazar `plan.type === "TRIAL"`; el plan TRIAL se cobra como orden
   one-off `MEMBERSHIP` con el mismo `service_fee.membership_clp`.
-- Requisito: `price > 0` — una prueba gratis sigue siendo asignación staff
+- Requisito: `price > 0`; una prueba gratis sigue siendo asignación staff
   (la pasarela no cobra CLP 0; orden con total 0 → 400
   PlanNotPurchasable).
 - `settleMembership` con plan TRIAL: crea un **nuevo** `Enrollment` con
-  `status: "TRIAL"` — nunca hace update del existente ni baja un
+  `status: "TRIAL"`; nunca hace update del existente ni baja un
   ACTIVE/ONLINE a TRIAL. `endsAt` = derivación estándar del plan
   (`periodDays` si el owner lo configuró, si no null).
 - Compra repetida de prueba → otra fila TRIAL (histórico permitido, sin

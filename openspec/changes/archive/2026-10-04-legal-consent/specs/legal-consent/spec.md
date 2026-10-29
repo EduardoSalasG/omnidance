@@ -1,4 +1,4 @@
-# legal-consent — deltas
+# legal-consent; deltas
 
 ## ADDED Requirements
 

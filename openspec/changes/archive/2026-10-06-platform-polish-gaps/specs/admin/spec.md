@@ -4,8 +4,8 @@
 
 ### Requirement: claim atómico de corrida multi-instancia
 
-La toma de un job para ejecutarlo MUST ser atómica a nivel DB —
-`updateMany` condicional sobre `runningRunId IS NULL` — de modo que
+La toma de un job para ejecutarlo MUST ser atómica a nivel DB;
+`updateMany` condicional sobre `runningRunId IS NULL`; de modo que
 con N instancias de API a lo sumo una ejecuta la corrida. La instancia
 que pierde la carrera descarta el `JobRun` creado: en trigger CRON el
 skip es silencioso; en MANUAL responde 409 "ya tiene una corrida

@@ -1,4 +1,4 @@
-# Proposal — academy-owner-console-v2
+# Proposal; academy-owner-console-v2
 
 ## Why
 
@@ -6,7 +6,7 @@ Segunda pasada sobre la consola del dueño de academia tras
 `academy-home-console`:
 
 - La card "Alumnos activos" no tiene comparativa y los deltas se
-  muestran en porcentaje — el owner pidió notación absoluta
+  muestran en porcentaje; el owner pidió notación absoluta
   (`+1`, `-3`, `=`) y comparativa también para asistencia, facturado y
   ticket.
 - `/academia/alumnos` muestra los 6 KPIs del dashboard; el módulo solo
@@ -17,7 +17,7 @@ Segunda pasada sobre la consola del dueño de academia tras
   instructores".
 - El form de series pide "mes de vigencia": las series deberían ser
   ilimitadas hasta desactivarse, no mensuales. Hoy sin `month` no hay
-  materialización más allá del mes — el cambio requiere materialización
+  materialización más allá del mes; el cambio requiere materialización
   rodante + job diario, no solo quitar el input.
 - Cupos (`capacity`) y modalidad (`typeIds`) se piden por horario
   semanal cuando son atributos de la serie completa (`quorum` /
@@ -30,23 +30,23 @@ Segunda pasada sobre la consola del dueño de academia tras
 
 - **API** `GET /academies/:id/dashboard`:
   - `kpis.activeStudentsMonth` pasa a contar personas únicas con
-    enrollment vigente (antes enrollments — misma métrica, sin doble
+    enrollment vigente (antes enrollments; misma métrica, sin doble
     contar a quien tiene 2 planes).
   - Nuevos: `activeStudentsMonthPrev` (personas con enrollment cuya
-    vigencia intersecta el tramo MTD del mes anterior — el estado actual
+    vigencia intersecta el tramo MTD del mes anterior; el estado actual
     se usa como aproximación, no hay histórico), `pctMenMonth`,
     `pctWomenMonth` (% entero sobre alumnos activos; null sin base) y
     `pctMenMonthPrev` / `pctWomenMonthPrev`.
 - **API** series (`class-series.controller`):
   - `CreateSeriesDto.month` pasa a opcional; se persiste el mes actual
-    como etiqueta de origen (la columna queda — sin migración) pero la
+    como etiqueta de origen (la columna queda; sin migración) pero la
     vigencia ya no depende de él.
   - Ventana de materialización rodante `hoy UTC → fin del mes
     siguiente` aplicada en create, addSlots y reactivación.
   - Nuevo `AcademyMaterializeService` (extrae `materializeSlot` del
     controller, idempotente) + job diario `academies.class_materialization`
     en el registry (default 03:30) que materializa la ventana para todos
-    los slots de series activas — la serie queda efectivamente ilimitada
+    los slots de series activas; la serie queda efectivamente ilimitada
     hasta `active=false`.
   - `SeriesSlotDto`/`AddSeriesSlotDto` pierden `capacity` y `typeIds`
     (cupos/modalidad son de la serie: `quorum`/`typeIds` de serie →

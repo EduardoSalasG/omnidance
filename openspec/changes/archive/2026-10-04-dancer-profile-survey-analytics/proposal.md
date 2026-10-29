@@ -1,4 +1,4 @@
-# dancer-profile-survey-analytics — Perfil de baile + encuesta post-social + analítica por evento
+# dancer-profile-survey-analytics; Perfil de baile + encuesta post-social + analítica por evento
 
 ## Why
 
@@ -6,9 +6,9 @@ El producto necesita métricas reales de la pista: saber quién baila qué rol (
 
 ## What Changes
 
-- **`Person.gender`** (`M|F|OTHER`, nullable) — nuevo campo declarado en perfil. **BREAKING** (schema).
-- **`EventRating.overall`** (`Int?` 1-5) — puntuación general del social. **BREAKING** (schema).
-- **Perfil bailarín**: sección "Cómo bailas" — género + estilos con rol (`LEADER`/`FOLLOWER`/`SWITCH`) y nivel; `PATCH /api/me/profile` + `GET /api/styles` (catálogo por género).
+- **`Person.gender`** (`M|F|OTHER`, nullable); nuevo campo declarado en perfil. **BREAKING** (schema).
+- **`EventRating.overall`** (`Int?` 1-5); puntuación general del social. **BREAKING** (schema).
+- **Perfil bailarín**: sección "Cómo bailas"; género + estilos con rol (`LEADER`/`FOLLOWER`/`SWITCH`) y nivel; `PATCH /api/me/profile` + `GET /api/styles` (catálogo por género).
 - **Encuesta post-social**: para asistentes con check-in real, ventana 24h post-`endsAt`. Activación por card en `/inicio` + `notifySafe` (in-app + push best-effort). UI `/eventos/[id]/evaluar` con `StarRating`: `overall` obligatorio + 3 dims bipolares con etiquetas (Música, Gente "Vacío↔Lleno", Temperatura "Frío↔Caluroso") + expandible "Evaluar más" (organization/floorComfort/lightingSound).
 - **Analítica por evento**: `GET /api/events/:id/analytics` (owner/admin) → asistentes, proporción género, proporción leader/follower (de `PersonStyleRole` de asistentes), resultados de la encuesta (k-anonymity ≥3). Sección en `/productor/eventos/[id]`.
 - **Sidebar**: analítica como módulo propio (`/analitica`); el lens admin por rol vive bajo analítica, no bajo administración.
@@ -22,7 +22,7 @@ El producto necesita métricas reales de la pista: saber quién baila qué rol (
 
 ## Impact
 
-- **Schema**: `Person.gender`, `EventRating.overall` — migración versionada.
-- **API**: `PATCH /me/profile`, `GET /styles`, `GET /events/:id/analytics`, trigger de notificación post-evento (lazy, en `GET /home/stats` o similar — sin cron nuevo).
+- **Schema**: `Person.gender`, `EventRating.overall`; migración versionada.
+- **API**: `PATCH /me/profile`, `GET /styles`, `GET /events/:id/analytics`, trigger de notificación post-evento (lazy, en `GET /home/stats` o similar; sin cron nuevo).
 - **Web**: `/perfil` sección "Cómo bailas", `/inicio` card de encuesta, `/eventos/[id]/evaluar`, `/productor/eventos/[id]` sección analítica, sidebar con módulo analítica.
 - **Docs**: architecture.md, openapi/postman.

@@ -1,11 +1,11 @@
-# Diseño — checkout de clase suelta (WORKSHOP)
+# Diseño; checkout de clase suelta (WORKSHOP)
 
 ## Decisión central
 
 Un taller pago y una "clase suelta" son el mismo mecanismo: **vender un
 asiento de `Class` a quien no lo cubre una membresía**. `ClassSeries.dropInPrice`
 ya modela el precio y ya se edita/muestra; lo único que falta es la orden de
-pago y su liquidación. No hay modelo nuevo — se reutiliza `Class`,
+pago y su liquidación. No hay modelo nuevo; se reutiliza `Class`,
 `ClassBooking`, `Attendance`, capacity y waitlist.
 
 ## Modelo de datos (migración)
@@ -23,14 +23,14 @@ y no exige inscripción.
 
 ## RefId
 
-`wks_<classId>_<uuid>` — igual que `mem_`/`sp_`: el contexto viaja en el
+`wks_<classId>_<uuid>`; igual que `mem_`/`sp_`: el contexto viaja en el
 refId porque `Payment` no tiene columna para la clase. Encode/decode en
 `order-ref.ts` siguiendo el patrón existente.
 
 ## API
 
 - `GET /checkout/class-quote?classId=` → revisión previa:
-  `{listPrice, serviceFee, total, spotsLeft, alreadyBooked}` — el sheet de
+  `{listPrice, serviceFee, total, spotsLeft, alreadyBooked}`; el sheet de
   compra declara el total real antes de ir a la pasarela.
 - `POST /checkout/class {classId}` → `{paymentUrl, paymentId, quote}`:
   - 404 clase inexistente; 400 clase cancelada/pasada o serie sin
@@ -43,9 +43,9 @@ refId porque `Payment` no tiene columna para la clase. Encode/decode en
   claim atómico →PAID + eventos del ledger (mismo `emitSettleEvents`); en la
   tx crea `ClassBooking { classId, personId, paymentId }` con `BOOKED` si
   queda cupo al liquidar, o `WAITLIST` si se llenó entre la orden y el pago
-  (el pago ya ocurrió — la academia gestiona; el usuario queda primero en la
+  (el pago ya ocurrió; la academia gestiona; el usuario queda primero en la
   cola). `notifySafe payment.paid` con el nombre de la serie.
-- `resolveQuota`: el conteo de consumo añade `paymentId: null` al filtro —
+- `resolveQuota`: el conteo de consumo añade `paymentId: null` al filtro;
   un asiento pagado nunca descuenta cuota.
 - `GET /classes/:id` detail: ya expone `series.dropInPrice` y `myBooking`;
   añade `myBookingPaid` (bool) para el copy de cancelación.
@@ -59,7 +59,7 @@ refId porque `Payment` no tiene columna para la clase. Encode/decode en
 
 ## UI
 
-- `class-booking-cta`: nueva rama — viewer sin cuota usable
+- `class-booking-cta`: nueva rama; viewer sin cuota usable
   (`!enrolled || creditsLeft===0`) + `dropInPrice` + cupo → CTA "Comprar
   clase suelta"; el sheet muestra el quote (list + fee = total) y confirma
   → POST → redirect `paymentUrl`. Quien tiene cuota nunca ve el precio como
@@ -72,9 +72,9 @@ refId porque `Payment` no tiene columna para la clase. Encode/decode en
 ## Riesgos
 
 - **Cupo en la ventana compra→pago**: se re-chequea al settle; el pagante
-  que pierde la carrera queda en WAITLIST y se notifica — la academia ve la
+  que pierde la carrera queda en WAITLIST y se notifica; la academia ve la
   venta en Cobros y decide (reembolso manual o sobrecupo). Caso raro.
 - **Doble compra**: `@@unique([classId, personId])` en ClassBooking hace que
-  un segundo settle por la misma clase choque — el checkout lo previene
+  un segundo settle por la misma clase choque; el checkout lo previene
   (409 si ya hay reserva consumidora) y el settle hace upsert defensivo.
-- **pagos legacy**: ninguno — WORKSHOP no existía antes; no hay historia.
+- **pagos legacy**: ninguno; WORKSHOP no existía antes; no hay historia.

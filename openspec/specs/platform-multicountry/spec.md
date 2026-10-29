@@ -7,13 +7,13 @@ TBD - created by archiving change multipais-currency. Update Purpose after archi
 
 ### Requirement: Moneda de cobro por país
 
-`Country` SHALL declarar `currency` (ISO-4217) — la moneda de cobro del
+`Country` SHALL declarar `currency` (ISO-4217); la moneda de cobro del
 mercado. La moneda de un actor SHALL resolverse por su contexto:
 academia → `academy.city.country.currency` (sin ciudad → CLP);
 evento → `venue.city.country.currency` (o `event.city.country`);
 productor → el país de cobro declarado al suscribir. Todo monto
 monetario SHALL persistirse como entero en la unidad menor de su
-moneda y SHALL llevar su `currency` — nunca se suman montos de monedas
+moneda y SHALL llevar su `currency`; nunca se suman montos de monedas
 distintas.
 
 #### Scenario: academia en Argentina
@@ -58,7 +58,7 @@ el provider que soporte su moneda: CLP sigue resolviendo por el param
 `payments.subscription_gateway`; otra moneda SHALL usar el primer
 adaptador registrado que implemente `SubscriptionProvider` y declare la
 moneda en `currencies` (sin declaración = sin restricción). Si ningún
-adaptador la soporta el sistema SHALL fallar con error explícito —
+adaptador la soporta el sistema SHALL fallar con error explícito;
 nunca SHALL caer en silencio a un provider de otra moneda.
 
 #### Scenario: membresía en USD
@@ -92,7 +92,7 @@ lazy con el precio vigente.
 ### Requirement: Price book administrable
 
 El admin SHALL poder listar, crear y actualizar filas `TierPrice`
-vía endpoints protegidos por `admin.access` — abrir un mercado es un
+vía endpoints protegidos por `admin.access`; abrir un mercado es un
 cambio de data, no de código.
 
 #### Scenario: abrir mercado
@@ -110,7 +110,7 @@ persiste E.164 con `+` y `phoneCountryCode` persiste el ISO-2 derivado
 del número parseado. Un `+` inicial SHALL sobreescribir el país por
 defecto (el número ya declara su país). Números inválidos SHALL
 rechazarse con `400 telefono_invalido`. La unicidad de `phone` SHALL
-evaluarse sobre el E.164 — dos formatos del mismo número SHALL
+evaluarse sobre el E.164; dos formatos del mismo número SHALL
 resolver a la misma Person.
 
 #### Scenario: formato nacional con país por defecto
@@ -129,7 +129,7 @@ resolver a la misma Person.
 - **GIVEN** una Person con `phone="+56912345678"`
 - **WHEN** otro write path ingresa `"912345678"` con default CL
 - **THEN** ambos normalizan al mismo E.164 y el lookup/conflicto opera
-  sobre la misma fila — no se crea ni permite una segunda Person
+  sobre la misma fila; no se crea ni permite una segunda Person
 
 #### Scenario: teléfono inválido
 
@@ -176,7 +176,7 @@ onboarding de planes.
 
 ### Requirement: Facturación mensual por moneda
 
-La facturación bruta mensual del productor SHALL agregarse por moneda —
+La facturación bruta mensual del productor SHALL agregarse por moneda;
 los KPIs y la resolución de tier SHALL operar sobre el desglose
 `{currency: amount}`, nunca sobre una suma de monedas distintas.
 

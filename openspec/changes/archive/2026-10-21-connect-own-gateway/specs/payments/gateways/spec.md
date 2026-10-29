@@ -6,13 +6,13 @@
 
 `ProducerGatewayAccount` SHALL aceptar provider `STRIPE` cuyas
 credenciales persisten `{accountId}` (la `acct_…` de un
-`PayoutDestination` ACTIVE del actor — sin destino activo el alta
+`PayoutDestination` ACTIVE del actor; sin destino activo el alta
 rechaza 400 guiando a conectar primero). `createOrder` SHALL crear la
 Checkout Session con header `Stripe-Account: <accountId>` (cargo
 directo en la cuenta del productor) y `refreshStatus` SHALL consultar
 la sesión con el mismo header. El desglose `OWN_GATEWAY` SHALL seguir
 idéntico al resto de providers (comisión devengada, neteada en
-payout — nunca `application_fee_amount` en el cargo).
+payout; nunca `application_fee_amount` en el cargo).
 
 #### Scenario: Alta referencia el destino del actor
 
@@ -26,14 +26,14 @@ payout — nunca `application_fee_amount` en el cargo).
 - **WHEN** un productor sin `PayoutDestination` ACTIVE intenta
   registrar STRIPE
 - **THEN** 400 indicando que primero conecte su cuenta en
-  `/productor/pagos` — nunca se persiste una cuenta sin `acct_`
+  `/productor/pagos`; nunca se persiste una cuenta sin `acct_`
 
 #### Scenario: Cobro directo en la cuenta conectada
 
 - **WHEN** se compra un ticket de un productor con cuenta STRIPE
   ACTIVE
 - **THEN** `createOrder` POSTea `/v1/checkout/sessions` con header
-  `Stripe-Account: acct_…` — la plata llega directo al productor y la
+  `Stripe-Account: acct_…`; la plata llega directo al productor y la
   orden queda `feeMode:"OWN_GATEWAY"` + `gatewayAccountId` persistido
 
 #### Scenario: Confirmación por polling en la cuenta

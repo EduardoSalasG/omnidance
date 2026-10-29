@@ -513,7 +513,7 @@ export class AdminController {
 
   /**
    * Cola de academias (spec academy-approval-gate): PENDING/REJECTED con
-   * el checklist ya evaluado server-side — el admin ve de un vistazo
+   * el checklist ya evaluado server-side; el admin ve de un vistazo
    * qué falta; la mayoría se auto-aprueba sola al completar datos.
    */
   @Get("academy-review-queue")

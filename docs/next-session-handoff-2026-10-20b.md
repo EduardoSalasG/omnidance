@@ -4,7 +4,7 @@
 
 | Commit | Slice |
 |---|---|
-| `df893ba` | feat(auth): código OTP de 6 dígitos junto al magic link — change `auth-email-otp` archivado a spec canónica |
+| `df893ba` | feat(auth): código OTP de 6 dígitos junto al magic link; change `auth-email-otp` archivado a spec canónica |
 | `f7715b6` | docs(openspec): change `academy-presale-commission` listo para implementar (no implementado) |
 
 ### auth-email-otp (archivado → `openspec/specs/auth/email-otp`)
@@ -24,7 +24,7 @@
   `\D`), redirect `/bienvenida` si `isNew` else `/inicio`, respeta `next`
   seguro. Keys `login.sent/otp*` en `es-CL.json`.
 - **ResendMailer**: sin `RESEND_API_KEY` el HTML (que ahora contiene el
-  OTP) solo se loguea si `NODE_ENV !== "production"` — antes logueaba
+  OTP) solo se loguea si `NODE_ENV !== "production"`; antes logueaba
   siempre, riesgo de credenciales en logs prod.
 - Verificación: 25/25 tests auth, typecheck api+web, `openspec validate`
   4/4, migración aplicada con `migrate deploy`, **smoke E2E real**:
@@ -39,7 +39,7 @@
 - Modelo acordado con el usuario: **canal atribuido, regularización
   externa**. La app vende a precio de lista; `Payment.soldByAcademyId` +
   `academyCommissionClp` congelan la atribución; la plataforma NO le paga
-  a la academia — solo computa la deuda productor→academia y el productor
+  a la academia; solo computa la deuda productor→academia y el productor
   la marca pagada unilateralmente (sin confirmación de la academia).
 - Artefactos: `openspec/changes/academy-presale-commission/{proposal,
   design,tasks}.md` + deltas en `checkout/ticket-purchase`,
@@ -64,7 +64,7 @@
 ## Notas
 
 - El smoke E2E recuperó el código por fuerza bruta local del hash (1e6
-  sha256) — confirma que el pepper funciona pero también que el OTP es
+  sha256); confirma que el pepper funciona pero también que el OTP es
   crackeable offline si la DB se filtra con el secreto; aceptable para
   credencial de 10 min / 5 intentos.
 - Archivos temporales de sesión eliminados (`crack-otp-temp.cjs`).

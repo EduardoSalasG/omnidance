@@ -6,7 +6,7 @@
 - [x] Seed baseline: params `crm.score.*` (attendance_weeks/attendance_pts,
       streak_cap/streak_pts, months_cap/months_pts, purchase_months/
       purchase_cap/purchase_pts, tenure_cap/tenure_pts, referral_pts,
-      core_min, new_days, brings_people_referrals) — idempotente.
+      core_min, new_days, brings_people_referrals); idempotente.
 
 ## 2. Dominio CRM (api)
 

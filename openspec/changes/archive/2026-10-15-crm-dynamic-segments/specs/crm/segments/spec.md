@@ -1,4 +1,4 @@
-# crm/segments — delta crm-dynamic-segments (capability nueva)
+# crm/segments; delta crm-dynamic-segments (capability nueva)
 
 ## ADDED Requirements
 
@@ -35,7 +35,7 @@ En cada recompute, el diff de membresía SHALL producir eventos
 `SEGMENT_ENTER`/`SEGMENT_EXIT` y config `{segmentId, action}` SHALL
 ejecutar la acción por cada persona que entra/sale: `NOTIFY`
 (notificación a la persona), `TAG_ADD`/`TAG_REMOVE` (aplicar/quitar
-ActorTag) o `NOTIFY_OWNER` (notificación al owner del actor — para
+ActorTag) o `NOTIFY_OWNER` (notificación al owner del actor; para
 ACADEMY `Academy.ownerId`, para PRODUCER el `actorId`). Dedup: máximo
 una acción por `(persona, segmento, dirección, día)`.
 

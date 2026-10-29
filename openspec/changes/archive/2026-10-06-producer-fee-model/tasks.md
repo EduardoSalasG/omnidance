@@ -39,5 +39,5 @@
   FREE 0; ACADEMY; FEE_ASSESSED; payout por líneas + netting + legacy;
   door-sale fee 0.
 - [x] Docs: `docs/flows.md` + `architecture.md`; handoff.
-- [x] openapi/postman regenerados (sin diff — el change modifica
+- [x] openapi/postman regenerados (sin diff; el change modifica
   campos de respuesta y whitelist, no paths).

@@ -1,4 +1,4 @@
-# Tasks — academy-console-v4
+# Tasks; academy-console-v4
 
 ## 1. Cobros
 - [x] 1.1 Filtros debajo de "Pagos por validar" (FilterBar movida bajo
@@ -54,7 +54,7 @@
      `/events/:id/guest-lists`, `/academies/:id/videos` con envelope
      `{items,total,page,pageSize}`; consumidores web y specs/e2e
      migrados; pickers con `pageSize` acotado. Admin user-intel
-     verificado: detalles por persona con `take` fijos por diseño —
+     verificado: detalles por persona con `take` fijos por diseño;
      no requiere envelope.
 - [x] 8.3 Helper e2e `cleanupPeople` (test/helpers/cleanup.ts) con
      retry ante notificaciones async; 25 suites migradas.

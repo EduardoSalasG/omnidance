@@ -1,4 +1,4 @@
-# Tasks — admin-users-pagination
+# Tasks; admin-users-pagination
 
 ## 1. API
 
@@ -10,7 +10,7 @@
       `{items:[],total:0,page,pageSize}`; `findMany` con `skip`/`take`
       + `person.count({where})`; responder `{items,total,page,pageSize}`.
 
-## 2. Web — /admin/usuarios
+## 2. Web; /admin/usuarios
 
 - [x] Tipo `UsersResponse` `{items,total,page,pageSize}`; estado `page`
       (default 1, reset al cambiar `q`/`role`).
@@ -19,7 +19,7 @@
       mantener hint/minChars/noResults/SkeletonList acordes al estándar
       de carga.
 
-## 3. Web — /analitica/usuarios
+## 3. Web; /analitica/usuarios
 
 - [x] Leer `items` del envelope (misma UX: buscador por nombre, primera
       página).

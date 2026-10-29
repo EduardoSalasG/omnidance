@@ -1,10 +1,10 @@
-# Handoff — 2026-10-28 (release 1.11.0 + tag infra)
+# Handoff; 2026-10-28 (release 1.11.0 + tag infra)
 
 ## Completado
 
 - **Release 1.11.0 promovida `dev → main`** (`12b2ad5b`), tag anotado
   `v1.11.0` pusheado, `dev` sincronizado de vuelta y pusheado.
-  Tags 1.8–1.10 no existían — esta sí se tagueó.
+  Tags 1.8–1.10 no existían; esta sí se tagueó.
 - **GTM `GTM-W9KC3378`** (snippet head + noscript body) y **Microsoft
   Clarity `z4swabie90`** (head) en `components/gtm.tsx` /
   `clarity.tsx`, gateados por `NEXT_PUBLIC_GTM_ID` /
@@ -21,7 +21,7 @@
 - **QA gate completo**: lint 0 errores · typecheck 0 ·
   `pnpm test` 2308/2308 · `pnpm test:e2e` 14/14 · `pnpm build` OK.
 - **3 fallos pre-existentes de `dev` corregidos** (bloqueaban CI):
-  `social-endpoints.e2e` (venue ahora expone `city` — contrato
+  `social-endpoints.e2e` (venue ahora expone `city`; contrato
   multipais), `academy-claims.service.spec` (claim.currency hereda
   `plan.currency`, snapshot estampado al crear el plan), `gap-crm.e2e`
   (fixture `proTier` STARTER→GROWTH: `crm` no está en STARTER).
@@ -41,7 +41,7 @@
    domain; activar redirect del subdominio `*.netlify.app` al primario.
 3. **Precios nuevos (params + TierPrice)**: los valores en
    `seed-common.ts` (39500/79700/120500/99700/250200) NO se aplican a
-   DBs existentes — PlatformParam y TierPrice upserts usan
+   DBs existentes; PlatformParam y TierPrice upserts usan
    `update:{}`. Requiere edición en `/admin`: los 5 params
    `*_monthly_clp` **y** las filas TierPrice CL por ciclo (la resolución
    primaria del cargo; el param es fallback). Regla documentada:
@@ -53,17 +53,17 @@
   `/para-productores` (componente compartido `Landing.tsx`, i18n ×4,
   CTAs → registerHref porque las landings no tienen lead form).
 - `e5ffc30f`: recalibración de precios (seed-common params, landing
-  JSONs, omni-dance.md sincronizado — su tabla productor estaba
+  JSONs, omni-dance.md sincronizado; su tabla productor estaba
   stale/divergente del código, `platform-billing` spec,
   fixtures de specs).
 - `ce7fb4d5`: **commit duplicado** de los test fixes que ya entraron a
-  `dev` por cherry-pick (`12b2ad5b`) — al mergear, git lo resuelve
+  `dev` por cherry-pick (`12b2ad5b`); al mergear, git lo resuelve
   limpio o conflicto trivial.
 - Pendiente: review del diff + merge a `dev` (quedó fuera de 1.11.0
   por no tener QA). Gap conocido del subagente: sin verificación
-  visual (ni dev server ni screenshots) — revisar 320px y ≥lg.
+  visual (ni dev server ni screenshots); revisar 320px y ≥lg.
 - `docs/estrategia-comercial-2026-10-22.md` y
-  `docs/competitive-references.md` tienen precios/caps stale —
+  `docs/competitive-references.md` tienen precios/caps stale;
   refresco queda como trabajo aparte (decision records históricos).
 
 ## Incidente del deploy (resuelto)
@@ -71,11 +71,11 @@
 - El primer deploy de `main` (`12b2ad5b`) murió en el health gate con
   `MODULE_NOT_FOUND libphonenumber-js` y dejó el API en ~15min de 502.
   Causa: el stage runtime del Dockerfile no copiaba
-  `packages/shared/node_modules` (symlink pnpm → store `.pnpm`) — la
+  `packages/shared/node_modules` (symlink pnpm → store `.pnpm`); la
   dep llegó con multipais-phone. Fix: `827316fd` (COPY extra en
   Dockerfile) → redeploy success (6m47s), health `ok`.
 - Lección: si `packages/shared` gana una dep de runtime nueva, el
-  Dockerfile ya la cubre — pero ojo al agregar workspace packages con
+  Dockerfile ya la cubre; pero ojo al agregar workspace packages con
   deps propias al runtime stage.
 
 ## Notas operativas
@@ -84,7 +84,7 @@
 - `git` no está en PATH del shell MSYS: usar
   `/c/Program Files/Git/cmd/git.exe` o exportarlo.
 - Deleting-lock quirk de openspec: si `archive` se interrumpe queda
-  `openspec/changes/archive/.openspec-archive.lock` — borrarlo y re-correr.
+  `openspec/changes/archive/.openspec-archive.lock`; borrarlo y re-correr.
 
 ## Post-sesión pricing (mismo día, extendido)
 
@@ -97,7 +97,7 @@
 - Bug 400 `/admin/params` = falta Content-Type JSON en apiFetch (y uno
   igual en /admin/roles); además /api/api duplicado rompía toda
   facturación/precios. Fijos en bdc39ca1 + ActionNotice + displayName.
-- Flow: transferencia 0,99%+$100 disponible — camino mínimo = habilitar
+- Flow: transferencia 0,99%+$100 disponible; camino mínimo = habilitar
   Khipu/Etpay en cuenta Flow + copy checkout (sin código). Selector
   propio tarjeta/transferencia = scope mayor (ports, fee por método,
   spec). Toku evaluado: candidato suscripciones futuro, no ahora.

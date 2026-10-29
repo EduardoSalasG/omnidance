@@ -20,7 +20,7 @@ Tailwind 3.4 con defaults (`lg` = 1024px). Ver proposal.md.
   `lg:` de Tailwind (misma filosofía que el resto del repo). Excepción
   puntual: el estado expandido/colapsado de la sidebar sí es estado React
   persistido en `localStorage` (mismo patrón que `view-mode.ts`/
-  `active-role.ts` — storage key `omnidance:sidebar` + evento).
+  `active-role.ts`; storage key `omnidance:sidebar` + evento).
 - **La sidebar vive en `BottomNav`** (el componente que ya resuelve rol,
   tabs, drawer y badge): se renombra conceptualmente a chrome pero se mantiene
   el archivo para no romper imports. En `lg` renderiza `<aside>` fija a la
@@ -29,7 +29,7 @@ Tailwind 3.4 con defaults (`lg` = 1024px). Ver proposal.md.
 - **Colapso = rail de íconos** (`w-16`), no ocultamiento total: decisión del
   usuario ("esconder y que aparezcan solo los íconos"). Los grupos colapsan
   a divisores; cada ítem conserva icono + `aria-label`/`title`.
-- **DANCER en desktop**: nueva spec `SIDEBAR_DANCER` por lente — Social:
+- **DANCER en desktop**: nueva spec `SIDEBAR_DANCER` por lente; Social:
   Inicio, Eventos, Amigos, Bailes, Prácticas, Escanear, Mi QR, Perfil;
   Academia: Inicio, Clases, Academias, Mi QR, Perfil. El `+`/sheet no
   existe en desktop: Mi QR y Escanear son ítems directos.
@@ -46,7 +46,7 @@ Tailwind 3.4 con defaults (`lg` = 1024px). Ver proposal.md.
 - **Tours (driver.js)**: `OnboardingRunner` gana guard `matchMedia("(min-
   width:1024px)")` que salta los pasos cuyo target no exista (los del chrome
   móvil). Mismo criterio que hoy para targets ausentes.
-- **Orden dentro del change**: (a) shell + sidebar primero — todo lo demás
+- **Orden dentro del change**: (a) shell + sidebar primero; todo lo demás
   hereda el marco; (b) páginas dancer; (c) páginas de consolas. Las páginas
   `/nueva` del change `console-create-flows` nacen ya con las clases
   responsive si ese change aterriza primero; si no, se cubren en (c).

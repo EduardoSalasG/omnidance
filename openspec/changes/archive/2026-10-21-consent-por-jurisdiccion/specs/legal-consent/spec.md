@@ -33,7 +33,7 @@ resuelve jurisdicción por el país y devuelve el texto/versión vigente,
 
 - **WHEN** el form de registro consulta `GET /legal/consent?country=DE`
 - **THEN** recibe `granular: true` y `requiredScopes` con los tres
-  scopes — el envío solo requiere `essential`; `marketing`/`analytics`
+  scopes; el envío solo requiere `essential`; `marketing`/`analytics`
   son opt-in registrados
 
 #### Scenario: Sin LegalText activo para la jurisdicción
@@ -57,7 +57,7 @@ Scopes no requeridos por la jurisdicción SHALL ignorarse (un scope
 - **WHEN** un usuario EU acepta `{version:"eu-v1.0",
   scopes:{essential:true,marketing:true}}`
 - **THEN** el `ConsentRecord` persiste ambos scopes, `jurisdiction:"EU"`
-  y el snapshot queda `eu-v1.0` — una auditoría puede reconstruir qué
+  y el snapshot queda `eu-v1.0`; una auditoría puede reconstruir qué
   aceptó y cuándo
 
 #### Scenario: Re-aceptación por versión de la jurisdicción

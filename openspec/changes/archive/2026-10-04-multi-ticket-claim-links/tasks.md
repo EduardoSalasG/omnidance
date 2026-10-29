@@ -5,7 +5,7 @@
 - [x] 1.1 Schema: `Ticket.claimToken String? @unique` + `claimedAt DateTime?` → `pnpm db:push` + `prisma generate`
 - [x] 1.2 `CheckoutTicketDto.quantity Int? 1..10` (default 1, `@IsInt @Min(1) @Max(10)`)
 - [x] 1.3 `purchaseTicket`: quantity explícito; `recipientIds.length ≤ quantity-1` → RecipientError; `Payment.quantity = quantity` (sin quantity → default `1+recipients`, compat)
-- [x] 1.4 Webhook: emitir `quantity` tickets — comprador + amigos + `quantity-1-R` reclamables (`claimToken` aleatorio ≥16 bytes); `Ticket.paymentId` vincula orden→ticket
+- [x] 1.4 Webhook: emitir `quantity` tickets; comprador + amigos + `quantity-1-R` reclamables (`claimToken` aleatorio ≥16 bytes); `Ticket.paymentId` vincula orden→ticket
 - [x] 1.5 `GET /tickets/mine` expone `claimToken` (para badge + share en wallet)
 - [x] 1.6 `GET /tickets/claim/:token` público → `{buyerName, event:{name,startsAt,venue}}` | 404
 - [x] 1.7 `POST /tickets/claim/:token` SessionGuard: atómico `updateMany({id, claimToken})`; self-claim 409; status≠ACTIVE 409; set `ownerId`, `giftedFromId`, `claimedAt`, `claimToken:null`; `notifySafe` al comprador
@@ -24,7 +24,7 @@
 
 ## 3. Seed + docs
 
-- [x] 3.1 `seed-dev.ts`: rosters explícitos + pool genérico determinista por weekday para TODO evento PUBLISHED (vie/sáb 6–7, jue 4–5, resto 2–3) — verificado: 0 eventos sin shows
+- [x] 3.1 `seed-dev.ts`: rosters explícitos + pool genérico determinista por weekday para TODO evento PUBLISHED (vie/sáb 6–7, jue 4–5, resto 2–3); verificado: 0 eventos sin shows
 - [x] 3.2 `export-api-docs.cjs` → openapi.json + postman regenerados (163 paths)
 - [x] 3.3 `docs/flows.md`: diagrama checkout multi-entrada + sección "Entradas reclamables"
 

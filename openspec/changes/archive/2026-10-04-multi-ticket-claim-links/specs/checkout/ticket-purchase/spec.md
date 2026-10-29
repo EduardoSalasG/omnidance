@@ -22,7 +22,7 @@ El checkout SHALL aceptar `quantity` entero 1–10 (default 1). El UI muestra un
 
 #### Scenario: más amigos que entradas extra
 - **WHEN** quantity=2 y recipientIds tiene 3 ids
-- **THEN** 400 — "elegiste más amigos que entradas disponibles"
+- **THEN** 400; "elegiste más amigos que entradas disponibles"
 
 #### Scenario: cap con cantidad
 - **WHEN** vendidos + en vuelo + quantity > presaleCap

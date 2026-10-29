@@ -1,10 +1,10 @@
-# Proposal — stripe-subs-webhook
+# Proposal; stripe-subs-webhook
 
 ## Why
 
 `multipais-currency` habilitó suscripciones no-CLP sobre Stripe Billing
 (membresías de academia y suscripciones de plataforma), pero el webhook
-de Stripe solo alimenta el Pase Social — renovaciones/fallos/cancel de
+de Stripe solo alimenta el Pase Social; renovaciones/fallos/cancel de
 membresías y subs de plataforma dependen del polling del reconcile.
 Sin billing events reales, una membresía Stripe puede quedar en grace
 innecesaria o un cancel remoto no propagarse.
@@ -19,7 +19,7 @@ innecesaria o un cancel remoto no propagarse.
   `PlatformSubscription` (remoteId/tier).
 - Cada evento SHALL liquidarse idempotente por dedup existente
   (`lastInvoiceId`/`refId` en membresías; invoice dedup en plataforma).
-- Sin comportamiento nuevo para Flow/CLP — el rail chileno intacto.
+- Sin comportamiento nuevo para Flow/CLP; el rail chileno intacto.
 
 ## Capabilities
 

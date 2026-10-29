@@ -68,7 +68,7 @@
      "EU": "União Europeia (RGPD)"
     }
    },
-   "photoError": "Não foi possível carregar a foto — tenta uma imagem mais leve (máx. 5 MB) ou JPG/PNG."
+   "photoError": "Não foi possível carregar a foto, tenta uma imagem mais leve (máx. 5 MB) ou JPG/PNG."
   },
   "reminder": {
    "title": "Completa o teu perfil",
@@ -94,7 +94,7 @@
    "title": "Segurança",
    "label": "Palavra-passe",
    "defined": "Definida",
-   "notSet": "Sem palavra-passe — entras por link no teu e-mail",
+   "notSet": "Sem palavra-passe, entras por link no teu e-mail",
    "set": "Definir palavra-passe",
    "change": "Alterar palavra-passe",
    "current": "Palavra-passe atual",

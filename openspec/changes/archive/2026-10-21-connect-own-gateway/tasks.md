@@ -1,4 +1,4 @@
-# Tasks — connect-own-gateway
+# Tasks; connect-own-gateway
 
 - [x] 1. `StripeGateway`: ctor opcional `stripeAccount` → header
   `Stripe-Account` en `call()` (createOrder/verifyWebhook/
@@ -10,7 +10,7 @@
   `StripeGateway(secretPlataforma, webhookSecret, baseUrl, onTx,
   stripeAccount)`; `keyMask` = últimos 4 del `acct_`.
 - [x] 3. `producer-gateway.controller` (PUT): STRIPE no exige
-  `apiKey`/`secret` del DTO — la `acct_` sale del destino; respuesta
+  `apiKey`/`secret` del DTO; la `acct_` sale del destino; respuesta
   masked igual.
 - [x] 4. Specs: upsert STRIPE con/sin destino, buildAdapter con
   Stripe-Account, polling por cuenta; `checkout.service.spec` caso

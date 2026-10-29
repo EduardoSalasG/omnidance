@@ -7,16 +7,16 @@ Dos brechas de UX en la navegación y el primer contacto del owner:
    residual que `accountGroup` agrega siempre), incumpliendo la spec
    `dancer-navigation` que exige navegación exclusiva por tab bar + sheet.
 2. El onboarding del dueño de academia es casi nulo: el tour de primera
-   visita (`academia`) queda reducido a **un solo paso** en desktop — su
+   visita (`academia`) queda reducido a **un solo paso** en desktop; su
    único target válido es una card de KPI, porque el segundo (la
-   hamburguesa) no existe en `≥lg` — y la checklist de activación se
+   hamburguesa) no existe en `≥lg`; y la checklist de activación se
    oculta apenas llega el primer alumno aunque falten pasos (p. ej. sin
    método de pago configurado la academia no puede cobrar).
 
 ## What Changes
 
 - **DANCER sin drawer en mobile (fix de compliance)**: el drawer móvil
-  del bailarín deja de renderizarse — `drawerGroups` no recibe el grupo
+  del bailarín deja de renderizarse; `drawerGroups` no recibe el grupo
   Cuenta residual → sin hamburguesa, sin `SideDrawer` navegable. Perfil
   ya es tab del bottom bar.
 - **Checklist de activación persistente**: se muestra mientras falte

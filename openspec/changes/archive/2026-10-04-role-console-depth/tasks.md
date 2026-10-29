@@ -1,10 +1,10 @@
-# tasks — role-console-depth
+# tasks; role-console-depth
 
 - [x] API: GET /dj/gigs/:eventId/rating (agregado music, k-anonymity, DJ asignado)
 - [x] API: /venues/:id/dashboard += tables (reservas de mesa) + flow (peak hour, permanencia)
 - [x] API: /academies/:id/dashboard += todayClasses + attendanceToday
 - [x] API: /events/mine += stats {sold, grossClp, checkins} por evento
-- [x] API: GET /events/:id/live (ventas por canal, check-ins, ocupación — owner/admin)
+- [x] API: GET /events/:id/live (ventas por canal, check-ins, ocupación; owner/admin)
 - [x] Tests: e2e por endpoint nuevo/extendido
 - [x] Web: /productor/eventos stats por card (vendidas · bruto · check-ins)
 - [x] Web: /productor/eventos/[id] sección En vivo/Operación (ventas por canal + check-ins + histograma)

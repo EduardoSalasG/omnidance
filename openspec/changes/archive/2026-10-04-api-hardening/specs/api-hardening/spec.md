@@ -1,4 +1,4 @@
-# api-hardening — deltas
+# api-hardening; deltas
 
 ## ADDED Requirements
 

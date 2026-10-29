@@ -3,7 +3,7 @@
 ## Why
 
 Dos gaps de canal vs industria: el bailarín lee WhatsApp, no push; y el
-CRM es pull (hay que entrar a mirar) — el estándar empuja un resumen
+CRM es pull (hay que entrar a mirar); el estándar empuja un resumen
 periódico al operador.
 
 ## What Changes

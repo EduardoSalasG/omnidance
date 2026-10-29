@@ -1,4 +1,4 @@
-# Proposal — academy-team-instructors
+# Proposal; academy-team-instructors
 
 ## Why
 
@@ -12,15 +12,15 @@ filas solo nacen del seed y del import CSV. El módulo Equipo
 
 - **API**: bajo `/academies/:id/instructors` (capacidad `team`, mismo
   gate que staff):
-  - `GET` — lista profesores con `{person:{id,name,email},
+  - `GET`; lista profesores con `{person:{id,name,email},
     commissionPct, createdAt}`.
-  - `POST {email, name?, commissionPct?}` — misma mecánica que staff:
+  - `POST {email, name?, commissionPct?}`; misma mecánica que staff:
     normaliza email, stub + invitación por magic link si la persona no
     existe, upsert por `(academyId, personId)`. `commissionPct`
     entero 0–100, opcional.
-  - `DELETE /:personId` — elimina la membresía (la persona conserva su
+  - `DELETE /:personId`; elimina la membresía (la persona conserva su
     cuenta; pierde acceso de instructor a esa academia).
-  - `PATCH /:personId` ya existe (comisión) — sin cambios.
+  - `PATCH /:personId` ya existe (comisión); sin cambios.
   - Mismas guardas que staff: owner no es objetivo, nadie se gestiona
     a sí mismo.
 - **Web**: `/academia/equipo` gana la sección **Profesores** (lista +

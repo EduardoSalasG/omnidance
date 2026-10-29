@@ -10,7 +10,7 @@
 
 ## 3. Dancer responsive (ambas lentes)
 
-- [x] 3.1 Anchos por arquetipo aplicados: hubs/listados `lg:max-w-5xl lg:px-8` con grids `sm:grid-cols-2 lg:grid-cols-3`; fichas `lg:max-w-4xl`; forms `lg:max-w-3xl`; CTAs fijos `lg:bottom-0`. Cubierto: `/inicio` (HomeHub), `/eventos`, `/amigos*`, `/bailes`, `/practicas*`, `/academias*`, `/clases*`, `/locales/[id]`, `/perfil*`, `/notificaciones`, `/soporte`. (No existen `/locales` listado ni `/entradas` — redirect; los checkouts son forms.)
+- [x] 3.1 Anchos por arquetipo aplicados: hubs/listados `lg:max-w-5xl lg:px-8` con grids `sm:grid-cols-2 lg:grid-cols-3`; fichas `lg:max-w-4xl`; forms `lg:max-w-3xl`; CTAs fijos `lg:bottom-0`. Cubierto: `/inicio` (HomeHub), `/eventos`, `/amigos*`, `/bailes`, `/practicas*`, `/academias*`, `/clases*`, `/locales/[id]`, `/perfil*`, `/notificaciones`, `/soporte`. (No existen `/locales` listado ni `/entradas`; redirect; los checkouts son forms.)
 - [x] 3.2 Commit `8c504e2` (20 archivos, solo clases aditivas).
 
 ## 4. Consolas responsive

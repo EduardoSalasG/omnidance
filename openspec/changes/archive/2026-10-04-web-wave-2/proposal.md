@@ -1,4 +1,4 @@
-# Change: web-wave-2 — frontend del backlog + landing de conversión
+# Change: web-wave-2; frontend del backlog + landing de conversión
 
 ## Why
 
@@ -13,7 +13,7 @@ real. Además la landing debe convertir (menos es más) y ser SEO-ready.
 |---|---|---|
 | F1 landing+seo | Conversión + SEO | `Landing.tsx`, `layout.tsx` metadata, `sitemap.ts`, `robots.ts`, JSON-LD |
 | F2 producer | Consola eventos | `app/productor/eventos/**`, `components/producer/**`, payouts view, ops por evento (pases, sugerencias, reservas, ratings, staff) |
-| F3 crm | CRM UI | `app/crm/**`, `components/crm/**` — people/tags/campaigns/triggers |
+| F3 crm | CRM UI | `app/crm/**`, `components/crm/**`; people/tags/campaigns/triggers |
 | F4 academia | Lecciones+videos | `components/academy/private-lessons.tsx`, `videos.tsx`, `app/academia` |
 | F5 consumer | Matches+pase | `app/viajes` (matches), `app/eventos/[id]` (series-pass CTA) |
 | F6 realtime | WS + push | `lib/realtime.ts`, `components/realtime/**`, push opt-in + `public/sw.js` |

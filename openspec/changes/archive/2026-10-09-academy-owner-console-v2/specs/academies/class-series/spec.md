@@ -1,4 +1,4 @@
-# Delta — academies/class-series
+# Delta; academies/class-series
 
 ## ADDED Requirements
 
@@ -21,7 +21,7 @@ duplicar slot+fecha).
 
 La serie solo deja de generar clases cuando `active=false`
 (desactivación o eliminación de slot cancelan las clases futuras y
-devuelven las reservas — comportamiento existente).
+devuelven las reservas; comportamiento existente).
 
 #### Scenario: crear sin mes
 
@@ -46,7 +46,7 @@ devuelven las reservas — comportamiento existente).
 ### Requirement: Cupos y modalidad a nivel de serie
 
 Los cupos (`quorum`) y las modalidades (`typeIds`) SHALL definirse una
-sola vez a nivel serie — `series.quorum` override del
+sola vez a nivel serie; `series.quorum` override del
 `defaultQuorum` de la academia, `series.types` para las modalidades.
 Los horarios semanales (slots) MUST NOT aceptar `capacity` ni `typeIds`
 propios en la API ni exponerlos en la UI: un slot define `weekday`,
@@ -55,7 +55,7 @@ horario).
 
 Las columnas legacy (`ClassSlot.capacity`, `ClassSlotType`) MAY seguir
 existiendo para datos históricos, pero el contrato nuevo no las
-escribe — el quórum efectivo se resuelve `slot.capacity ?? series.quorum
+escribe; el quórum efectivo se resuelve `slot.capacity ?? series.quorum
 ?? academy.defaultQuorum` como hoy.
 
 #### Scenario: agregar segundo horario

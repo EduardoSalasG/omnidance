@@ -1,10 +1,10 @@
-# Tasks — producer-exports-pdf
+# Tasks; producer-exports-pdf
 
 ## 1. API
 
 - [x] 1.1 Refactor: `exportSales/Checkins/Guestlist` retornan
   `ExportTable {headers, rows, summary}` compartidos CSV/PDF.
-- [x] 1.2 `src/common/pdf-report.ts` — `buildTablePdf` (A4, header
+- [x] 1.2 `src/common/pdf-report.ts`; `buildTablePdf` (A4, header
   repetido, paginación manual con `lineBreak:false` + truncado por
   `widthOfString`, «Página X de Y»).
 - [x] 1.3 Endpoints `GET :id/export.pdf` y

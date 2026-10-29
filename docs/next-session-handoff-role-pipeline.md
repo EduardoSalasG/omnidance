@@ -1,4 +1,4 @@
-# Handoff — role-registration-pipeline (implementación pendiente)
+# Handoff; role-registration-pipeline (implementación pendiente)
 
 Branch: dev. Stack levantado (api:4000, web:3000, db docker 5433, redis 6379).
 Git sin PATH: usar /c/Program Files/Git/cmd/git.exe.
@@ -14,7 +14,7 @@ Decisiones del usuario:
   roles.decorator(AllowSandbox), academies.controller, payments/gateway-accounts,
   admin.controller, support.controller, user-intel.controller; web: academy-gate,
   academia/nueva, usuarios/[personId], perfil, soporte, i18n parts (admin/support/analytics).
-- `/admin/perfiles-por-validar`: página dedicada — cola PENDING owner/producer con
+- `/admin/perfiles-por-validar`: página dedicada; cola PENDING owner/producer con
   checklist (nombre, email verificado, teléfono, datos del actor) → aprobar (409 si
   incompleto) / rechazar (quita rol).
 - `effectivePro` += APPROVED (PENDING no compra ni usa Pro).

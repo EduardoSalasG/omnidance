@@ -1,4 +1,4 @@
-# Tasks — admin-user-soft-delete
+# Tasks; admin-user-soft-delete
 
 - [x] 1. Schema `Person.deletedAt` + migración
 - [x] 2. `deleteUser` → soft + `reactivateUser` (audited)

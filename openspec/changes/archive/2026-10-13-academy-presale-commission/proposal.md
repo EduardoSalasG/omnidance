@@ -4,7 +4,7 @@ Las academias que se presentan en los sociales venden preventa para el
 productor y se quedan con un porcentaje (~50% típico en Santiago). Hoy eso
 es un acuerdo verbal + caja + WhatsApp. Digitalizarlo en la plataforma
 atribuye la venta (data CRM: qué academia mueve cuánta preventa) y deja la
-obligación productor→academia registrada y auditable — sin que la
+obligación productor→academia registrada y auditable; sin que la
 plataforma mueva esa plata: el productor regulariza directo con la
 academia, nosotros solo computamos y exhibimos cuánto debe.
 
@@ -20,7 +20,7 @@ academia, nosotros solo computamos y exhibimos cuánto debe.
   precio, cero cambio visible.
 - **Solo preventa**: la atribución aplica únicamente a órdenes
   `channel=PRESALE`; DOOR/series_pass/otros tipos no generan comisión.
-- **Deuda, no payout**: el payout del productor NO se descuenta — la
+- **Deuda, no payout**: el payout del productor NO se descuenta; la
   plataforma acumula la comisión devengada como obligación
   productor→academia por período. El productor la paga por fuera
   (transferencia) y la marca **pagada** en su consola; no hay
@@ -37,7 +37,7 @@ academia, nosotros solo computamos y exhibimos cuánto debe.
 ### New Capabilities
 
 - `payments/academy-presale-commission`: canal de preventa atribuido a
-  academias con comisión porcentual — acuerdo invitado por el productor,
+  academias con comisión porcentual; acuerdo invitado por el productor,
   atribución en checkout, comisión congelada por orden y regularización
   de la deuda productor→academia marcada pagada por el productor.
 
@@ -45,7 +45,7 @@ academia, nosotros solo computamos y exhibimos cuánto debe.
 
 - `checkout/ticket-purchase`: el checkout acepta atribución de academia
   (`soldByAcademyId` + `academyCommissionClp`) cuando existe acuerdo
-  ACTIVE para el evento — sin cambio de precio ni de UX del comprador.
+  ACTIVE para el evento; sin cambio de precio ni de UX del comprador.
 - `payments/fee-model`: la descomposición congelada del `Payment` gana
   `academyCommissionClp`; el neto del productor en payout sigue siendo
   `amount − platformDeduction` (la comisión es pasivo del productor, no

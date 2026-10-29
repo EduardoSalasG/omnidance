@@ -281,7 +281,7 @@ function DetailPanel({ id }: { id: string }) {
         )}
       </section>
 
-      {/* Suscripción SaaS — card link a su ficha (siempre visible) */}
+      {/* Suscripción SaaS: card link a su ficha (siempre visible) */}
       <section className="flex flex-col gap-1">
         <h2 className="text-sm font-semibold">
           {t("academies.detail.subscription")}
@@ -401,7 +401,7 @@ function DetailPanel({ id }: { id: string }) {
         </div>
       </section>
 
-      {/* Clases próximas: rail de decisión (arquetipo B) — hora ancla
+      {/* Clases próximas: rail de decisión (arquetipo B); hora ancla
           arriba, ocupación abajo; expand tras las 5 primeras. */}
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold">

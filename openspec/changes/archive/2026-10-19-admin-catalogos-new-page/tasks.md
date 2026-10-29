@@ -1,4 +1,4 @@
-# Tasks — admin-catalogos-new-page
+# Tasks; admin-catalogos-new-page
 
 ## 1. Listado
 
@@ -16,5 +16,5 @@
 ## 3. i18n + docs
 
 - [x] `adminCatalogs.new`, `newTitle` en `messages/es-CL.json`.
-- [x] `docs/qa-flows-inventory.md` — flujo catálogos.
+- [x] `docs/qa-flows-inventory.md`; flujo catálogos.
 - [x] typecheck web, eslint, i18n-audit.

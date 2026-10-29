@@ -50,7 +50,7 @@ Todos los cambios notables del proyecto se documentan aquí, siguiendo
   es PRO_GROWTH (≤$8M) y PRO_BIG queda self-serve.
 - **Copys de precios "calculados"**: academy 39.500/79.700/120.500,
   producer 79.700/169.500; notas de pasarela a costo (academias ~3,2%,
-  Starter sin pasarela — solo comprobante validado + notificaciones
+  Starter sin pasarela; solo comprobante validado + notificaciones
   push/email de cobranza).
 - **Legal genérico**: referencias públicas a "pasarela de pago" en
   vez de nombrar Flow (los textos operativos del checkout siguen
@@ -88,7 +88,7 @@ Todos los cambios notables del proyecto se documentan aquí, siguiendo
 ### Changed
 
 - **Dominio primario `omnidance.tech`**: canonical, og:url, sitemap,
-  robots y JSON-LD dejan de emitir `omnidance.netlify.app` — los share
+  robots y JSON-LD dejan de emitir `omnidance.netlify.app`; los share
   sheets móviles y buscadores resuelven el dominio real. `WEB_URL`/
   `CORS_ORIGINS` del API deben actualizarse en el `.env` de la VM.
 - **Posicionamiento SEO**: metadata global (title/description/
@@ -208,7 +208,7 @@ Todos los cambios notables del proyecto se documentan aquí, siguiendo
 
 - **Fundación multipaís** (`multipais-foundation`, slice 1):
   `Country`/`City` (slug, lat/lng, timezone IANA, geohash) +
-  `Venue.cityId` con backfill a Santiago, Chile — ciudad 0 intacta.
+  `Venue.cityId` con backfill a Santiago, Chile; ciudad 0 intacta.
 - `Event.currency` (ISO-4217, default CLP) y
   `Person.phoneCountryCode`.
 - Roadmap: Pase Social con modelo cargo-en-puerta + preventa
@@ -232,11 +232,11 @@ Todos los cambios notables del proyecto se documentan aquí, siguiendo
 
 - **Engagement de serie** (`series-engagement`): `GET
   /events/series/:id/engagement` devuelve stats verificadas por
-  check-in — asistencia promedio, ratio género y leader/follower de
-  asistentes únicos — más score agregado de reviews.
+  check-in; asistencia promedio, ratio género y leader/follower de
+  asistentes únicos; más score agregado de reviews.
 - **Reviews verificadas**: `POST /events/series/:id/review` solo para
   asistentes con check-in (upsert por persona×serie). Comentarios
-  privados del productor vía `GET /events/series/:id/reviews` —
+  privados del productor vía `GET /events/series/:id/reviews`;
   anónimos hasta para él (regla de ratings privados).
 - UI: card "La serie en números" en `/eventos/[id]` con stats +
   formulario de evaluación; card de comentarios privada en la ficha
@@ -261,7 +261,7 @@ Todos los cambios notables del proyecto se documentan aquí, siguiendo
 ### Changed
 
 - **Baja de usuarios pasa a soft delete** (`admin-user-soft-delete`):
-  `DELETE /admin/users/:id` ahora marca `Person.deletedAt` — el grafo
+  `DELETE /admin/users/:id` ahora marca `Person.deletedAt`; el grafo
   (academias, eventos, tickets, roles, historial) queda intacto. Auth
   bloqueada (sesión, password, magic link, OTP), email no liberado,
   fuera de superficies públicas. Nuevo `POST /admin/users/:id/reactivate`
@@ -272,13 +272,13 @@ Todos los cambios notables del proyecto se documentan aquí, siguiendo
 ### Changed
 
 - **Niveles de baile** (`dance-levels-catalog`): el set pasa a
-  Iniciación/Básico/Intermedio/Avanzado — la misma escala que
+  Iniciación/Básico/Intermedio/Avanzado; la misma escala que
   `ClassLevel` de academias. Migración: `principiante → basico`.
 - **Email post-registro con password**: ahora dice "Verifica tu correo"
-  (copy de verificación) en vez de "Tu acceso a Omnidance" — el usuario
+  (copy de verificación) en vez de "Tu acceso a Omnidance"; el usuario
   no había pedido un código de acceso, está confirmando su correo.
 - **Checklist del actor** (`PendingRoleCard`): el check `actorData`
-  muestra el nombre por rol — "Nombre de academia" / "Nombre de evento"
+  muestra el nombre por rol; "Nombre de academia" / "Nombre de evento"
   en vez del genérico "Datos del actor".
 
 ### Fixed
@@ -292,7 +292,7 @@ Todos los cambios notables del proyecto se documentan aquí, siguiendo
 ### Fixed
 
 - **photoUrl con folder duplicado**: el upload de foto de persona y
-  academia guardaba `/api/{people,academies}/photos/{folder}/<uuid>` —
+  academia guardaba `/api/{people,academies}/photos/{folder}/<uuid>`;
   la ruta no matcheaba y la foto quedaba rota (404 "Cannot GET"). La
   URL pública ahora lleva solo el filename y se agregaron rutas compat
   para los photoUrls ya guardados con el folder.
@@ -314,7 +314,7 @@ Todos los cambios notables del proyecto se documentan aquí, siguiendo
   aprobado") y rechazar `role.rejected`, in-app + push.
 - **Revalidación de roles sin reabrir la app**: `/me` se re-fetchea al
   volver a foreground (visibilitychange en MeProvider) y `PendingRoleCard`
-  refresca `/me` al montarse en `/perfil`/home — un rol recién aprobado
+  refresca `/me` al montarse en `/perfil`/home; un rol recién aprobado
   aparece sin cerrar la PWA.
 
 ## [1.2.0] - 2026-10-20
@@ -335,10 +335,10 @@ Todos los cambios notables del proyecto se documentan aquí, siguiendo
 ### Fixed
 
 - `PATCH /academies/:id/settings` rechazaba el `photoUrl` hosteado
-  (`/api/...`) que el propio upload persistía — guardar el perfil tras
+  (`/api/...`) que el propio upload persistía; guardar el perfil tras
   subir foto siempre fallaba con "photoUrl inválido".
 - **Uploads en prod**: `apps/api/docker-compose.yml` declara el bind
-  mount `/mnt/omnidance/uploads:/app/uploads` + `UPLOADS_DIR` — el
+  mount `/mnt/omnidance/uploads:/app/uploads` + `UPLOADS_DIR`; el
   workflow re-copia el compose a la VM y pisaba el mount manual; los
   archivos podían perderse en `--force-recreate`.
 
@@ -349,12 +349,12 @@ Todos los cambios notables del proyecto se documentan aquí, siguiendo
 - **Registro por landing con rol usable-invisible** (`role-registration-pipeline`):
   CTAs de `/para-academias` y `/para-productores` llevan a
   `/login?role=ACADEMY_OWNER|PRODUCER`; el primer login crea el
-  `PersonRole` PENDING — consola completa pero **invisible al público**
+  `PersonRole` PENDING; consola completa pero **invisible al público**
   (directorios, lineups, búsqueda) hasta que el admin aprueba.
   Nueva cola `/admin/perfiles-por-validar` con checklist de la persona.
   Se elimina el estado `SANDBOX` (migrado a `PENDING`).
 - **Control de calidad por academia** (`academy-approval-gate`):
-  `Academy.reviewStatus` PENDING/APPROVED/REJECTED — la academia solo es
+  `Academy.reviewStatus` PENDING/APPROVED/REJECTED; la academia solo es
   pública con checklist server-side completo (auto-aprobación en el GET)
   u override admin en la cola; REJECTED la oculta siempre. Card de
   visibilidad con ítems faltantes en el dashboard del owner.
@@ -459,7 +459,7 @@ seguridad en cero.
 
 ### Changed
 
-- **Stack**: Next 15.5 + React 19 + NestJS 11 — `pnpm audit` en cero.
+- **Stack**: Next 15.5 + React 19 + NestJS 11; `pnpm audit` en cero.
 - Landings estáticas; gate anónimo resuelto en middleware; locales
   inválidos responden 404.
 - Item de analítica renombrado a "Consultas" en la navegación.
@@ -474,7 +474,7 @@ seguridad en cero.
 - Confirmaciones destructivas unificadas con `ConfirmSheet` en todo el
   repo.
 - `opengraph-image`/`twitter-image` bajo `[locale]` con `metadataBase`
-  heredado — warnings de metadata a cero.
+  heredado; warnings de metadata a cero.
 - Hallazgos de auditoría Lighthouse (a11y + SEO + i18n).
 - Provider raíz con `commonMessages` (Spinner/PageLoadingHost).
 - Selector de actor del CRM oculto cuando hay uno solo.
@@ -545,7 +545,7 @@ seguridad en cero.
   `NEXT_PUBLIC_WEB_URL` estaba documentada como variable del UI de
   Netlify pero nunca se seteó, así que `metadataBase` caía al fallback
   y todos los `canonical`/`og:url` salían como `http://localhost:3000`
-  — lo que WhatsApp/crawlers leen al compartir `/para-academias` u
+ ; lo que WhatsApp/crawlers leen al compartir `/para-academias` u
   otras páginas. La var ahora va pintada en `[build.environment]` de
   `netlify.toml` (las `NEXT_PUBLIC_*` se inlinean en build, a
   diferencia del runtime serverless) y nuevo helper
@@ -565,16 +565,16 @@ seguridad en cero.
   navegando como instructor veía KPIs, Insights (incl. "quienes pagaron
   más este mes"), importación y el editor de estado/fecha del
   enrollment. Ahora la lente INSTRUCTOR degrada a vista de instructor
-  puro — su única mutación es marcar asistencia en clases de su
+  puro; su única mutación es marcar asistencia en clases de su
   plantel.
 - **Fuga de montos por API**: `GET /academies/:id/students/insights`
   devolvía `topPayersMonth` a cualquier `requireManage`. Ahora exige la
-  capacidad `payments` para computarlo — el resto recibe `[]` y ni
+  capacidad `payments` para computarlo; el resto recibe `[]` y ni
   siquiera se consultan los cobros.
 - **Filtros desde/hasta desbordados**: el `input[type=date]` impone un
   min-content (~160px) que reventaba la celda del grid y el campo
   cubría a su vecino en móvil. `min-w-0` en labels e inputs del
-  `FilterBar` compartido — aplica a todas las consolas (instructor,
+  `FilterBar` compartido; aplica a todas las consolas (instructor,
   owner, productor, admin, analítica).
 
 ### Added
@@ -582,7 +582,7 @@ seguridad en cero.
 - **Seed - transferencia universal**: toda academia sin método
   TRANSFER recibe uno activo con datos de cuenta generados (banco,
   tipo, número, titular, RUT, email) y todo `Person` con rol PRODUCER
-  aprobado recibe `ProducerPaymentMethod` TRANSFER — sus eventos lo
+  aprobado recibe `ProducerPaymentMethod` TRANSFER; sus eventos lo
   ofrecen en checkout. Idempotente: métodos existentes solo se
   reactivan si estaban apagados, sin pisar `details` reales.
 
@@ -590,7 +590,7 @@ seguridad en cero.
 
 ### Fixed
 
-- **Seed — eventos del mismo día**: `nextDay(weekday)` siempre saltaba
+- **Seed; eventos del mismo día**: `nextDay(weekday)` siempre saltaba
   al *siguiente* weekday (`|| 7`), así que correr el seed un sábado
   movía los sociales del sábado (Trilogía incluida) a la semana
   siguiente en vez de dejarlos esa misma noche. Ahora incluye el día
@@ -605,10 +605,10 @@ seguridad en cero.
 - **SSR en producción (Netlify)**: los módulos con fetch server-side
   (`/eventos`, detalle de evento, academias, clases, locales, checkouts,
   `/evaluar`, `/reclamar`) seguían cayendo a `http://localhost:4000` en
-  el runtime serverless — las vars de `[build.environment]` no llegan a
+  el runtime serverless; las vars de `[build.environment]` no llegan a
   la función y `NEXT_PUBLIC_WEB_URL` no estaba seteada. `serverApiUrl()`
   ahora resuelve a nivel request con fallback al **origin propio** vía
-  `headers()` (la web sirve `/api/*` por el rewrite — cero dependencia
+  `headers()` (la web sirve `/api/*` por el rewrite; cero dependencia
   de env vars). Reemplaza el `SERVER_API_URL` module-scope de v0.7.0.
 - **socket.io en producción**: el edge de Netlify normalizaba
   `/socket.io/` → 308 → `/socket.io` y el path sin barra no matchea
@@ -624,14 +624,14 @@ dancer y el dueño de academia ya tenían.
 ### Added
 
 - **Tour del productor** (`tour="productor"`): recorre el dashboard
-  operativo — KPIs (eventos agendados, entradas vendidas, facturación
-  del mes), cobros por revisar, tops por facturación y asistencia —
+  operativo; KPIs (eventos agendados, entradas vendidas, facturación
+  del mes), cobros por revisar, tops por facturación y asistencia;
   luego la navegación a `Mis eventos`, el menú de módulos y la campana
   de notificaciones. Copy reescrito al vocabulario de la consola v2
   (el texto anterior referenciaba liquidaciones y listas de puerta,
   módulos que salieron del sidebar).
-- **Tour del instructor** (`tour="instructor"`): recorre el home —
-  "Tu semana" (KPIs de clases/horas/alumnos), próximas clases —
+- **Tour del instructor** (`tour="instructor"`): recorre el home;
+  "Tu semana" (KPIs de clases/horas/alumnos), próximas clases;
   y la navegación a `Mis clases`, `Alumnos`, la campana y el perfil.
 
 ### Auditado (sin cambios necesarios)
@@ -717,7 +717,7 @@ dataset del piloto.
   (plantel materializado por instancia) con migración versionada +
   backfill del primario existente. `instructorId` se conserva como
   instructor principal: comisión, encuesta y liquidación siguen leyendo
-  el singular sin repartir montos — el join es el conjunto completo.
+  el singular sin repartir montos; el join es el conjunto completo.
 - **Materialización copia el plantel**: cada clase nueva recibe todos
   los co-profes del slot (primario incluido, dedup).
 - **`instructors[]` en las lecturas**: detalle de clase, roster,
@@ -761,7 +761,7 @@ chrome móvil del bailarín.
   (hamburguesa en `<lg` / sidebar en `≥lg`) y campana de notificaciones.
 - **`OnboardingRunner` espera targets async**: sondea cada 250ms hasta
   que el set de anchors quede estable (~1.5s, máx 8s) en vez de
-  resolverlos una sola vez — las secciones detrás de fetch (dashboard,
+  resolverlos una sola vez; las secciones detrás de fetch (dashboard,
   gates) ya entran al tour; las ausentes se omiten como antes.
 - **Tour de staff `/academia` resuelve en desktop**: anchors
   `nav-academy`/`nav-classes` replicados en la sidebar; el toggle de la
@@ -771,7 +771,7 @@ chrome móvil del bailarín.
 
 - **DANCER ya no ve drawer ni hamburguesa en `<lg`**: `accountGroup`
   (Perfil) se agregaba siempre al drawer aunque `DRAWER_BY_ROLE.DANCER`
-  estuviera vacío — cumple `dancer-navigation` (tab bar + sheet `+`).
+  estuviera vacío; cumple `dancer-navigation` (tab bar + sheet `+`).
 - La hamburguesa ya no flashea mientras `/me` carga (`hasDrawerItems`
   exige sesión resuelta).
 
@@ -810,11 +810,11 @@ preparación del piloto productivo con usuarios reales y dataset demo.
 - **Filtros operativos**: modalidad multiselect en `/academia/series`
   (chips en FilterBar + `typeId` CSV en el endpoint).
 - **Claim de cuenta pre-sembrada**: `POST /auth/register` sobre email
-  existente reclama la Person — password correcto → sesión; sin match
+  existente reclama la Person; password correcto → sesión; sin match
   o sin password → magic link + 409. Permite registrar usuarios reales
   sobre data sembrada.
 - **Checkout transparente**: el método de pago siempre visible en
-  eventos y membresía — sin métodos propios, la pasarela queda como
+  eventos y membresía; sin métodos propios, la pasarela queda como
   única opción marcada.
 
 ### Changed
@@ -846,7 +846,7 @@ consola financiera, check-in offline y wallet.
 ### Added
 
 - **Consola de jobs `/admin/jobs`**: `ScheduledJob` + `JobRun` en DB
-  (la DB es la fuente de verdad del horario — sobrevive deploys),
+  (la DB es la fuente de verdad del horario; sobrevive deploys),
   registro central `JOB_REGISTRY` con 5 jobs, catch-up al boot,
   `nextRunAt` real vía `cron-parser` en `America/Santiago`, editar
   cron/pausar/ejecutar-ahora e historial por corrida con contadores.

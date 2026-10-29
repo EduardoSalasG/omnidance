@@ -1,4 +1,4 @@
-# platform-billing — promos por moneda
+# platform-billing; promos por moneda
 
 ## ADDED Requirements
 

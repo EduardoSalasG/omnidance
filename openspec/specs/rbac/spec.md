@@ -7,12 +7,12 @@ TBD - created by archiving change role-registration-pipeline. Update Purpose aft
 
 ### Requirement: ciclo de vida de rol
 
-`RoleStatus` pasa a `{PENDING, APPROVED}` — se elimina SANDBOX y el
+`RoleStatus` pasa a `{PENDING, APPROVED}`; se elimina SANDBOX y el
 decorador `@AllowSandbox`. `PENDING` de ACADEMY_OWNER/PRODUCER SHALL
 permitir operar su propia consola (crear academia/eventos, completar
 perfil) pero SHALL NOT exponer al actor al público (directorio de
 academias, listados de eventos, búsqueda/lineups) hasta `APPROVED`.
-Esos dos roles SHALL NOT ser `requestable` desde `/perfil` — solo se
+Esos dos roles SHALL NOT ser `requestable` desde `/perfil`; solo se
 obtienen vía `?role=` en login desde las landings o por grant admin.
 
 #### Scenario: owner pendiente crea pero no se ve
@@ -26,7 +26,7 @@ obtienen vía `?role=` en login desde las landings o por grant admin.
 #### Scenario: solicitud interna bloqueada
 
 - **WHEN** un bailarín intenta solicitar ACADEMY_OWNER desde /perfil
-- **THEN** la API lo rechaza — el rol no es requestable en-app
+- **THEN** la API lo rechaza; el rol no es requestable en-app
 
 ### Requirement: checklist de validación visible al actor PENDING
 
@@ -36,7 +36,7 @@ evalúa la cola admin (nombre real, email verificado, teléfono, datos
 del actor: academia o evento creado) y si está completo. La app SHALL
 mostrar una card al actor con los ítems faltantes, cada uno enlazado a
 la acción que lo resuelve (perfil/datos, consola del actor, verificación
-de correo inline) — el actor nunca ve "En revisión" sin saber qué falta.
+de correo inline); el actor nunca ve "En revisión" sin saber qué falta.
 
 #### Scenario: owner ve lo que le falta
 
@@ -50,7 +50,7 @@ de correo inline) — el actor nunca ve "En revisión" sin saber qué falta.
 
 - **WHEN** todos los checks del rol PENDING pasan
 - **THEN** la card indica que el perfil está completo y en espera de
-  aprobación — sin ítems accionables
+  aprobación; sin ítems accionables
 
 #### Scenario: sin roles pendientes no hay card
 

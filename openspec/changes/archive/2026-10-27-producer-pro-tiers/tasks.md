@@ -1,11 +1,11 @@
-# Tasks — producer-pro-tiers
+# Tasks; producer-pro-tiers
 
 - [x] 1. `PRODUCER_TIER_FEATURES` con keys del enum
       (`PRO_STARTER`/`PRO_GROWTH`/`PRO_BIG`) y matriz aprobada:
       STARTER=[analytics,exports,multiStaff], GROWTH=+crm,
       BIG=todas. `PRODUCER_TIER_ORDER` alineado. `producerEffectiveTier`
       devuelve el tierCode real (trial → tier del trial si existe,
-      default PRO_STARTER — decidir y documentar).
+      default PRO_STARTER; decidir y documentar).
 - [x] 2. `PRODUCER_TIER_STAFF_LIMIT = {PRO_STARTER:1, PRO_GROWTH:2}` (BIG
       sin entrada = ilimitado). `POST /events/staff` cuenta ProducerStaff
       del productor y rechaza 403 al llegar al cupo (mensaje i18n).

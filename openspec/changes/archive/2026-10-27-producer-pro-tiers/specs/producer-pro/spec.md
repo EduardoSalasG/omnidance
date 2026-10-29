@@ -1,4 +1,4 @@
-# producer-pro — tiers nivelados
+# producer-pro; tiers nivelados
 
 ## MODIFIED Requirements
 

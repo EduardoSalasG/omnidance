@@ -1,4 +1,4 @@
-# academies/staff-roles — deltas
+# academies/staff-roles; deltas
 
 ## ADDED Requirements
 
@@ -13,17 +13,17 @@ plataforma (`admin.access`) SHALL pasar cualquier check de capacidad.
 
 Las capacidades SHALL mapear a familias de endpoints:
 
-- `students` — enrollments (alta, PATCH vigencia, listado de alumnos),
+- `students`; enrollments (alta, PATCH vigencia, listado de alumnos),
   listados de asistencia.
-- `payments` — cola/aprobación/rechazo de `PaymentClaim`, CRUD de
+- `payments`; cola/aprobación/rechazo de `PaymentClaim`, CRUD de
   `AcademyPaymentMethod`, stream de comprobantes, payouts.
-- `plans` — CRUD de `MembershipPlan`.
-- `schedule` — CRUD de `ClassSeries`, `ClassSlot`, clases manuales,
+- `plans`; CRUD de `MembershipPlan`.
+- `schedule`; CRUD de `ClassSeries`, `ClassSlot`, clases manuales,
   videos de clase.
-- `profile` — `PATCH /academies/:id/settings` (perfil público).
-- `team` — mantenedor de colaboradores e instructores (incl.
+- `profile`; `PATCH /academies/:id/settings` (perfil público).
+- `team`; mantenedor de colaboradores e instructores (incl.
   `commissionPct`).
-- `billing` — suscripción SaaS de la academia (subscribe/cancel/pago).
+- `billing`; suscripción SaaS de la academia (subscribe/cancel/pago).
 
 #### Scenario: staff con flag pasa, sin flag 403
 
@@ -41,7 +41,7 @@ Las capacidades SHALL mapear a familias de endpoints:
 
 `GET /academies/:id/access` SHALL responder a cualquier usuario con
 sesión `{isOwner, isInstructor, isStaff, caps:{students,payments,plans,
-schedule,profile,team,billing}}` — owner y ADMIN devuelven todas las
+schedule,profile,team,billing}}`; owner y ADMIN devuelven todas las
 caps en true. La consola lo usa para ocultar secciones sin permiso.
 
 #### Scenario: staff ve solo sus capacidades
@@ -63,7 +63,7 @@ Bajo `/academies/:id/staff` (capacidad `team`):
 - `DELETE /:personId` SHALL eliminar la fila (el staff pierde acceso a la
   consola pero conserva su cuenta).
 - Un staff con `team` SHALL NOT poder eliminarse ni editarse a sí mismo
-  (evita auto-bloqueo del último gestor) — 400 `cannot_modify_self`.
+  (evita auto-bloqueo del último gestor); 400 `cannot_modify_self`.
   `academy.ownerId` SHALL NOT ser objetivo de DELETE/PATCH (no es fila).
 
 #### Scenario: invitar email nuevo

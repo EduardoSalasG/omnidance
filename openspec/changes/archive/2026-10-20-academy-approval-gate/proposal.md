@@ -1,4 +1,4 @@
-# Proposal — academy-approval-gate
+# Proposal; academy-approval-gate
 
 ## Why
 
@@ -6,7 +6,7 @@ Hoy la visibilidad pública de una academia depende solo del
 `PersonRole` APPROVED del dueño: un owner ya validado crea academias
 que salen al directorio al instante, sin control de calidad. Producto
 quiere que toda academia cumpla un estándar antes de ser pública, que
-el dueño vea qué le falta, y que la revisión sea **automática** — el
+el dueño vea qué le falta, y que la revisión sea **automática**; el
 admin ve la info preprocesada y solo interviene como override, no como
 paso obligatorio.
 
@@ -23,7 +23,7 @@ paso obligatorio.
 - **Auto-aprobación**: academia PENDING cuyo checklist evalúa completo
   se trata como pública (filtros la dejan pasar) y se promueve a
   APPROVED en el mismo request (persist best-effort). REJECTED nunca
-  se auto-promueve — solo admin la restaura.
+  se auto-promueve; solo admin la restaura.
 - **Filtro público por entidad**: `GET /academies`, `GET
   /academies/public`, `GET /academies/:id/profile` y
   `GET /classes/browse` solo exponen academias visibles. Cierra el
@@ -38,7 +38,7 @@ paso obligatorio.
   `checks` evaluados; card de visibilidad en `/academia` muestra el
   estado y los ítems faltantes con links a la sección que los resuelve.
 - **`photoUrl`** editable en `/academia/configuracion/perfil` (URL
-  externa — nunca hosteada, igual que `Venue.logoUrl`).
+  externa; nunca hosteada, igual que `Venue.logoUrl`).
 - **Aprobación sticky**: editar una academia APPROVED no la re-pende.
 
 ## Capabilities
@@ -64,7 +64,7 @@ paso obligatorio.
 ## Decisión del usuario
 
 - El checklist exige también: foto, ≥1 plan de precios y ≥1 clase
-  activa futura — además del set base propuesto.
+  activa futura; además del set base propuesto.
 - La aprobación es sticky: editar post-aprobación no re-revisa.
 - Backfill: existentes → APPROVED; las 2 academias de prueba del
   usuario quedan PENDING para probar el flujo.

@@ -100,7 +100,7 @@ export class QueryController {
   constructor(private readonly query: QueryService) {}
 
   /**
-   * GET /query/catalog?role= — entidades consultables del lente con
+   * GET /query/catalog?role=; entidades consultables del lente con
    * filtros/columnas del catálogo shared + opciones FK resueltas y
    * plantillas del sistema.
    */
@@ -110,7 +110,7 @@ export class QueryController {
   }
 
   /**
-   * GET /query/options?role=&source=&scopeId= — opciones de una fuente
+   * GET /query/options?role=&source=&scopeId=; opciones de una fuente
    * FK; scopeId requerido en fuentes scope-dependientes (listas del
    * evento, planes/series/instructores de la academia).
    */
@@ -125,14 +125,14 @@ export class QueryController {
     return this.query.options(req.person!.id, role, source, scopeId);
   }
 
-  /** POST /query/run — preview: headers + rows (≤50) + total + summary. */
+  /** POST /query/run; preview: headers + rows (≤50) + total + summary. */
   @Post("run")
   run(@Req() req: Request, @Body() dto: QueryRunDto) {
     return this.query.run(req.person!.id, dto);
   }
 
   /**
-   * GET /query/export.csv?role=&entity=&<filtros> — resultado completo
+   * GET /query/export.csv?role=&entity=&<filtros>; resultado completo
    * (sin cap), BOM UTF-8 + CRLF, attachment.
    */
   @Get("export.csv")
@@ -158,7 +158,7 @@ export class QueryController {
   }
 
   /**
-   * GET /query/export.pdf?role=&entity=&<filtros> — reporte A4 con
+   * GET /query/export.pdf?role=&entity=&<filtros>; reporte A4 con
    * título es-CL, resumen, header repetido y «Página X de Y».
    */
   @Get("export.pdf")
@@ -192,7 +192,7 @@ export class QueryController {
 
   // ─── Consultas guardadas ────────────────────────────────────────────
 
-  /** GET /query/saved?role= — propias del lente + plantillas del sistema. */
+  /** GET /query/saved?role=; propias del lente + plantillas del sistema. */
   @Get("saved")
   saved(@Req() req: Request, @Query("role") role = "") {
     return this.query.listSaved(req.person!.id, role);

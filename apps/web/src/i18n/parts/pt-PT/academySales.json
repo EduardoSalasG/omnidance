@@ -20,7 +20,7 @@
     "commissionPctLabel": "{pct}% de comissão",
     "commissionPctHint": "Percentagem do preço publicado por bilhete (1 a 90).",
     "maxTickets": "Teto de bilhetes",
-    "maxTicketsHint": "Opcional — a atribuição para quando o teto é atingido.",
+    "maxTicketsHint": "Opcional, a atribuição para quando o teto é atingido.",
     "seriesScope": "Toda a série",
     "linkLabel": "O link de venda da academia",
     "copy": "Copiar",

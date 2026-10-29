@@ -2245,8 +2245,8 @@ export class PlatformSubscriptionsService {
 
     // Drift de precio (spec platform-promos): la remota debe cobrar lo
     // que chargeSpec resuelve HOY (promo vigente o precio lleno). Si
-    // difiere — promo nueva aplicable, agotada, expirada, deshabilitada,
-    // editada, o param de precio cambiado — se agenda el reprice: cancel
+    // difiere; promo nueva aplicable, agotada, expirada, deshabilitada,
+    // editada, o param de precio cambiado; se agenda el reprice: cancel
     // de la remota a fin de período + recreación con el plan vigente.
     // Con cambio de plan pendiente o cancel ya agendada no hace falta:
     // ese swap ya reprecia. Con mora no se agenda nada (el cobro está

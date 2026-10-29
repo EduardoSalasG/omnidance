@@ -1,4 +1,4 @@
-# Delta — academies/console-lists (academy-console-v4)
+# Delta; academies/console-lists (academy-console-v4)
 
 Extensión del contrato paginado a los listados de consola del
 productor y videos de academia.
@@ -8,7 +8,7 @@ productor y videos de academia.
 ### Requirement: Envelope paginado en endpoints de listado
 
 Los endpoints de listado de la consola SHALL aceptar `page` y
-`pageSize` (opcionales) y responder `{items, total, page, pageSize}` —
+`pageSize` (opcionales) y responder `{items, total, page, pageSize}`;
 ninguna vista operativa descarga la tabla completa. `page` se
 normaliza a ≥1 (default 1); `pageSize` se normaliza a ≥1 (default 25)
 y se capa a un máximo por endpoint (100 por defecto; 200 en claims).
@@ -37,7 +37,7 @@ Endpoints cubiertos (además de los ya existentes en otros cambios):
 
 Cuando un filtro de búsqueda (`q`) depende de un join (nombre de
 persona vía FK plana), el endpoint SHALL resolver los IDs que matchean
-antes de paginar — paginar y filtrar después produce páginas vacías
+antes de paginar; paginar y filtrar después produce páginas vacías
 incorrectas. Cuando el filtro se resuelve en memoria tras el join
 (`guest-lists`: q sobre dueño/invitado/etiqueta), el corte de página
 SHALL aplicarse sobre el resultado ya filtrado y el `total` refleja

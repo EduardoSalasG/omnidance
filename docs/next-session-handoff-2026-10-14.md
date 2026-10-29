@@ -1,4 +1,4 @@
-# Handoff 2026-10-14 — Preventa por códigos de academia (canal efectivo)
+# Handoff 2026-10-14; Preventa por códigos de academia (canal efectivo)
 
 ## Completado (commit `520fbb6` en `dev`)
 
@@ -28,14 +28,14 @@ El **saldo del acuerdo es neto signed** (`debtFor`): Σ comisión link −
 - `AcademySalesService.createPresaleCode` / `listPresaleCodes`
   (POST/GET `/api/academy-deals/:id/codes`): staff academia con
   capability `payments`; el productor dueño/admin también audita.
-  `ACADEMY_PRESALE` NO está en `DISCOUNT_CODE_TYPES` — solo se crea por
+  `ACADEMY_PRESALE` NO está en `DISCOUNT_CODE_TYPES`; solo se crea por
   esta ruta, no por el CRUD genérico.
 - Checkout: código de academia requiere `channel=PRESALE`, `quantity=1`,
   acuerdo ACTIVE (`InvalidDiscountError` PRESALE_ONLY / SINGLE_TICKET /
   DISABLED). El vínculo código→acuerdo manda sobre la atribución `?a=`.
 - `payment-settlement.service.ts`: consumo **atómico** del uso para
   `ACADEMY_PRESALE` (`updateMany` condicional `usedCount < maxUses` dentro
-  de la tx) — cierra la carrera check→settle en órdenes $0. El perdedor
+  de la tx); cierra la carrera check→settle en órdenes $0. El perdedor
   revierte todo (orden FREE queda PENDING sin ticket).
 - Proyección `withContextNames`: `personName`, `methodLabel`,
   `discountCodeType`, `soldByAcademyName`. Front deriva el medio vía
@@ -66,15 +66,15 @@ el contenido correcto, no requiere acción.
 
 ## Deuda conocida / próximo slice
 
-- ~~Carrera leve en emisión de códigos~~ — cerrada: check de estado/cupo
+- ~~Carrera leve en emisión de códigos~~; cerrada: check de estado/cupo
   + create van en `$transaction` con advisory lock
   `pg_advisory_xact_lock(hashtext("dealcode:<agreementId>"))`; el
   re-check corre dentro del lock con snapshot fresco. Cubierto por test
   de emisiones concurrentes en `academy-sales.service.spec.ts`.
 - `resolveAttribution` (canal link) ya descuenta códigos emitidos del
-  cupo — consistente con la regla "código emitido = cupo reservado".
+  cupo; consistente con la regla "código emitido = cupo reservado".
 - La vista de ventas no etiqueta aún el canal link vs código en la misma
   columna Medio (ambos muestran academia vendedora como subtítulo cuando
   aplica); código muestra "Preventa academia".
 - El comprador que redime código de academia no ve nada especial en
-  "Mis pagos" — solo $0.
+  "Mis pagos"; solo $0.

@@ -1,4 +1,4 @@
-# observability — deltas
+# observability; deltas
 
 ## ADDED Requirements
 

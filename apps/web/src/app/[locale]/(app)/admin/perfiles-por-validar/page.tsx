@@ -231,7 +231,7 @@ function QueuePanel() {
 /**
  * Cola de academias (spec academy-approval-gate): cada fila muestra el
  * checklist ya evaluado por el servidor. La mayoría se auto-publica al
- * completar datos — Aprobar es un override explícito, Rechazar oculta
+ * completar datos. Aprobar es un override explícito, Rechazar oculta
  * aunque esté completa (REJECTED).
  */
 function AcademyQueuePanel() {

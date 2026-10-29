@@ -1,4 +1,4 @@
-# Proposal — multipais-polish
+# Proposal; multipais-polish
 
 ## Why
 
@@ -17,7 +17,7 @@ monedas y la UI de precios no sigue console-patterns.
   `whatsapp` por `normalizePhone` (defaultCountry = país de la
   academia) y persistir E.164 sin `+` (formato wa.me); inválido → 400.
 - **Facturación por moneda**: `producerMonthlyGross` SHALL agrupar
-  `Payment.amount` por `currency` — nunca suma monedas distintas;
+  `Payment.amount` por `currency`; nunca suma monedas distintas;
   los consumidores del KPI reciben el desglose.
 - **Deuda UI**: `/admin/facturacion/precios` alinea a console-patterns
   (crear = CTA → página dedicada, fila → edición) si el diff lo permite

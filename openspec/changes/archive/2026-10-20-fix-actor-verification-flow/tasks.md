@@ -1,7 +1,7 @@
-# Tasks — fix-actor-verification-flow
+# Tasks; fix-actor-verification-flow
 
 - [x] 1. API: extraer `profileChecks` a `src/common/role-checks.ts` y usarlo en `AdminController` (mismo comportamiento)
-- [x] 2. API: `GET /me/role-checks` en `PeopleController` — checks por PersonRole PENDING usable + spec test
+- [x] 2. API: `GET /me/role-checks` en `PeopleController`; checks por PersonRole PENDING usable + spec test
 - [x] 3. API: `POST /auth/resend-verification` (SessionGuard + throttle) + auto-envío del correo de acceso en `register` (best-effort) + specs
 - [x] 4. API: `cleanPhotoUrl` acepta paths `/api/...` + spec
 - [x] 5. Web: `PendingRoleCard` con links por check + flujo OTP inline (resend + verify + refresh); montar en `/perfil` y `HomeHub`

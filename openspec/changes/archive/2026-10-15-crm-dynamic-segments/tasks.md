@@ -8,7 +8,7 @@
 ## 2. Dominio
 
 - [x] `evalRules(rules, ctx)`: match all|any sobre campos de actividad/
-      score/tags — validación de reglas al crear/editar (campos y ops
+      score/tags; validación de reglas al crear/editar (campos y ops
       permitidos).
 - [x] `syncSegmentMemberships(actorType, actorId, activityMap)`:
       evalúa segmentos del actor → diff con `ActorSegmentMembership`

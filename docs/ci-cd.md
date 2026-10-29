@@ -11,7 +11,7 @@ Dominios:
   el host publica 3002)
 - Web: `https://omnidance.tech` (dominio primario; `omnidance.netlify.app`
   sigue sirviendo como subdominio de Netlify pero canonical/og/sitemap
-  declaran .tech — spec `seo-positioning-domain`. En Netlify: Domain
+  declaran .tech; spec `seo-positioning-domain`. En Netlify: Domain
   management → omnidance.tech como primary domain; recomendado activar
   el redirect del subdominio al primario)
 
@@ -47,7 +47,7 @@ Dominios:
 3. **El bootstrap es automático y vive en el workflow**: antes de
    recrear el contenedor corre `prisma migrate deploy` one-shot
    (compara `_prisma_migrations` y aplica solo las pendientes) y **siempre**
-   el seed prod — es idempotente (upserts, no pisa params editados en
+   el seed prod; es idempotente (upserts, no pisa params editados en
    /admin) y es la única vía por la que params/baseline nuevos de cada
    release llegan a prod. `SEED_ADMIN_EMAIL` solo se exige en el primer
    boot (sin ADMIN aprobado aún).

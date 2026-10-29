@@ -13,7 +13,7 @@ lo usas en el teléfono).
   dígitos** destacado; el link sigue funcionando igual (híbrido, no reemplazo).
 - Nuevo endpoint `POST /auth/otp/verify {email, code}` que entrega sesión
   (`{ok:true}` + cookie `omnidance_session`) igual que `GET /auth/verify` pero
-  sin redirect — lo consume la app desde su propia superficie.
+  sin redirect; lo consume la app desde su propia superficie.
 - OTP con **single-use real y contador de intentos**: se persiste hasheado
   (`AuthOtp`: email, codeHash, expiresAt, attempts, consumedAt), TTL ~10 min,
   máx ~5 intentos, borrado/marcado al éxito. No JWT (un JWT no es revocable
@@ -35,7 +35,7 @@ lo usas en el teléfono).
 
 ### Modified Capabilities
 
-- (ninguna — el magic link existente no cambia de contrato; `GET
+- (ninguna; el magic link existente no cambia de contrato; `GET
   /auth/verify` sigue igual. `legal-consent` no se modifica: el consent se
   estampa al crear sesión, igual que hoy.)
 
@@ -46,7 +46,7 @@ lo usas en el teléfono).
   `schema.prisma` + migración versionada.
 - Web: flujo de login (`(marketing)/login` o el gate de sesión que lo
   invoque) + i18n `es-CL`.
-- Emails: mismo canal Resend (~100/día gratis) — un OTP por envío, sin costo
+- Emails: mismo canal Resend (~100/día gratis); un OTP por envío, sin costo
   extra.
 - Docs: regenerar `docs/openapi.json` + postman (nuevo endpoint);
   `docs/architecture.md` si describe el flujo de auth.

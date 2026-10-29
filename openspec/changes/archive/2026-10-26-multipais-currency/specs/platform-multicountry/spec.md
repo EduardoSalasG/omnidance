@@ -1,16 +1,16 @@
-# platform-multicountry — moneda por mercado (implementación)
+# platform-multicountry; moneda por mercado (implementación)
 
 ## ADDED Requirements
 
 ### Requirement: Moneda de cobro por país
 
-`Country` SHALL declarar `currency` (ISO-4217) — la moneda de cobro del
+`Country` SHALL declarar `currency` (ISO-4217); la moneda de cobro del
 mercado. La moneda de un actor SHALL resolverse por su contexto:
 academia → `academy.city.country.currency` (sin ciudad → CLP);
 evento → `venue.city.country.currency` (o `event.city.country`);
 productor → el país de cobro declarado al suscribir. Todo monto
 monetario SHALL persistirse como entero en la unidad menor de su
-moneda y SHALL llevar su `currency` — nunca se suman montos de monedas
+moneda y SHALL llevar su `currency`; nunca se suman montos de monedas
 distintas.
 
 #### Scenario: academia en Argentina
@@ -55,7 +55,7 @@ el provider que soporte su moneda: CLP sigue resolviendo por el param
 `payments.subscription_gateway`; otra moneda SHALL usar el primer
 adaptador registrado que implemente `SubscriptionProvider` y declare la
 moneda en `currencies` (sin declaración = sin restricción). Si ningún
-adaptador la soporta el sistema SHALL fallar con error explícito —
+adaptador la soporta el sistema SHALL fallar con error explícito;
 nunca SHALL caer en silencio a un provider de otra moneda.
 
 #### Scenario: membresía en USD
@@ -89,7 +89,7 @@ lazy con el precio vigente.
 ### Requirement: Price book administrable
 
 El admin SHALL poder listar, crear y actualizar filas `TierPrice`
-vía endpoints protegidos por `admin.access` — abrir un mercado es un
+vía endpoints protegidos por `admin.access`; abrir un mercado es un
 cambio de data, no de código.
 
 #### Scenario: abrir mercado

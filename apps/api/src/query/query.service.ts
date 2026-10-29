@@ -145,7 +145,7 @@ export class QueryService {
   // ─── Catálogo y opciones FK ─────────────────────────────────────────
 
   /**
-   * GET /query/catalog?role= — entidades del lente con sus filtros y
+   * GET /query/catalog?role=; entidades del lente con sus filtros y
    * columnas (del catálogo shared) + opciones FK no-scope-dependientes
    * resueltas (scope pickers del actor; fuentes globales admin).
    */
@@ -171,7 +171,7 @@ export class QueryService {
   }
 
   /**
-   * GET /query/options?role=&source=&scopeId= — resuelve una fuente FK.
+   * GET /query/options?role=&source=&scopeId=; resuelve una fuente FK.
    * Las fuentes scope-dependientes (academyPlans, academyClassSeries,
    * academyInstructors, eventGuestLists) exigen scopeId y validan
    * ownership (ajeno → lista vacía). La fuente debe estar declarada por
@@ -286,7 +286,7 @@ export class QueryService {
 
   // ─── Ejecución ──────────────────────────────────────────────────────
 
-  /** POST /query/run — preview paginado (page/pageSize) + total real. */
+  /** POST /query/run; preview paginado (page/pageSize) + total real. */
   async run(
     personId: string,
     input: {

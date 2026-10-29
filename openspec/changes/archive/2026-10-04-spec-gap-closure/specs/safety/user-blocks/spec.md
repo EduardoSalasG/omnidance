@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Cualquier bailarín puede bloquear a otra persona para que no pueda volver a invitarlo a bailar ni escanearlo — mecanismo de safety especialmente crítico para followers que reciben invitaciones no deseadas (spec §4).
+Cualquier bailarín puede bloquear a otra persona para que no pueda volver a invitarlo a bailar ni escanearlo; mecanismo de safety especialmente crítico para followers que reciben invitaciones no deseadas (spec §4).
 
 ## ADDED Requirements
 
@@ -41,7 +41,7 @@ El sistema SHALL permitir eliminar un bloqueo propio y listar los bloqueos activ
 
 ### Requirement: Enforcement en invitaciones de sesión
 
-Si el invitee tiene bloqueado al inviter, el sistema SHALL rechazar la creación de la invitación de forma silenciosa — sin revelar la existencia del bloqueo.
+Si el invitee tiene bloqueado al inviter, el sistema SHALL rechazar la creación de la invitación de forma silenciosa; sin revelar la existencia del bloqueo.
 
 #### Scenario: invitación bloqueada
 

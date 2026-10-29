@@ -1,4 +1,4 @@
-# admin — delta academy-approval-gate
+# admin; delta academy-approval-gate
 
 ## ADDED Requirements
 
@@ -8,7 +8,7 @@
 PENDING/REJECTED con el checklist ya evaluado por el servidor
 (`academyChecks`), el owner y su estado de rol. `/admin/perfiles-por-validar`
 SHALL ganar una segunda sección "Academias" que lista esa cola con los
-checks como badges — sin trabajo manual: la mayoría se auto-aprueba al
+checks como badges; sin trabajo manual: la mayoría se auto-aprueba al
 completar datos.
 
 `POST /admin/academy-review-queue/:academyId/approve` SHALL forzar
@@ -20,7 +20,7 @@ REJECTED (oculta aunque completa).
 
 - **WHEN** el admin abre `/admin/perfiles-por-validar`
 - **THEN** la sección Academias muestra cada PENDING con los checks
-  en rojo/verde ya evaluados — no hay que abrir la ficha para saber
+  en rojo/verde ya evaluados; no hay que abrir la ficha para saber
   qué falta
 
 #### Scenario: override de aprobación

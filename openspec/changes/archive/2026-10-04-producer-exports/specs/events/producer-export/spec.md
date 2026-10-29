@@ -1,10 +1,10 @@
-# producer-export — exporte CSV operativo por evento
+# producer-export; exporte CSV operativo por evento
 
 ## Purpose
 
 El productor puede llevarse los datos operativos de su evento (ventas,
-check-ins, listas de invitados) a planilla para cuadratura post-evento —
-la spec §11 promete "Exportes — CSV/PDF por evento y serie" y no existía
+check-ins, listas de invitados) a planilla para cuadratura post-evento;
+la spec §11 promete "Exportes; CSV/PDF por evento y serie" y no existía
 ningún endpoint CSV.
 
 ## ADDED Requirements
@@ -15,7 +15,7 @@ El sistema SHALL exponer `GET /events/:id/export.csv?dataset=<d>` que
 devuelve `text/csv; charset=utf-8` con `Content-Disposition: attachment`,
 BOM UTF-8 inicial y escaping CSV (campos con `,"` `\n` o `\r` entre
 comillas, comillas internas duplicadas). Autorización: owner del evento
-(`producerId`) o `admin.access` — mismo patrón que `GET /events/:id/live`.
+(`producerId`) o `admin.access`; mismo patrón que `GET /events/:id/live`.
 
 #### Scenario: descarga autorizada
 
@@ -52,8 +52,8 @@ via `ticket.paymentId`.
 
 ### Requirement: Dataset checkins
 
-El CSV `checkins` SHALL listar una fila por `Checkin` del evento —
-incluye anulados — con columnas `entrada,salida,metodo,persona,anulado,nota`.
+El CSV `checkins` SHALL listar una fila por `Checkin` del evento;
+incluye anulados; con columnas `entrada,salida,metodo,persona,anulado,nota`.
 
 #### Scenario: check-in anulado
 

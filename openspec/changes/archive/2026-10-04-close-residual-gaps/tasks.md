@@ -13,14 +13,14 @@
 ## 3. Flake e2e leads
 
 - [x] 3.1 `leads.e2e.spec.ts`: crear admin propio en `beforeAll` (patrón mkPerson, id a `personIds` para cleanup), usar su id para `adminSession` y para el lookup de la notificación `lead.new`. `pnpm vitest run test/leads.e2e.spec.ts` verde.
-- [x] 3.2 `pnpm test` (suite completa) — leads verde dentro del run paralelo, sin 401s. Causa raíz adicional: cada spec e2e levanta su propio PrismaClient (pool ~33 conn con 16 cores) → agotamiento de `max_connections` → timeouts de `beforeAll`. Fix: `test/setup.ts` capea `connection_limit=4` por worker + `hookTimeout: 60_000` en `vitest.config.ts`.
+- [x] 3.2 `pnpm test` (suite completa); leads verde dentro del run paralelo, sin 401s. Causa raíz adicional: cada spec e2e levanta su propio PrismaClient (pool ~33 conn con 16 cores) → agotamiento de `max_connections` → timeouts de `beforeAll`. Fix: `test/setup.ts` capea `connection_limit=4` por worker + `hookTimeout: 60_000` en `vitest.config.ts`.
 
 ## 4. Precios de compromiso en seed
 
-- [x] 4.1 `seed-dev.ts`: Mambo Madness Trimestral 180000→162000 y Semestral 360000→324000; bullets de descuento ("Ahorras $X vs. el mensual"). `pnpm db:seed` idempotente — re-run actualiza precio/description sin duplicar.
+- [x] 4.1 `seed-dev.ts`: Mambo Madness Trimestral 180000→162000 y Semestral 360000→324000; bullets de descuento ("Ahorras $X vs. el mensual"). `pnpm db:seed` idempotente; re-run actualiza precio/description sin duplicar.
 
 ## 5. Cierre
 
 - [x] 5.1 `tsc --noEmit` api + `pnpm --filter @omnidance/api build` limpio.
-- [x] 5.2 Docs: `docs/flows.md`/`docs/architecture.md` — revisar si el diagrama de suscripciones menciona "solo Flow"; actualizar lo que quede inexacto. `AGENTS.md` si alguna convención cambia (capability check del gateway).
+- [x] 5.2 Docs: `docs/flows.md`/`docs/architecture.md`; revisar si el diagrama de suscripciones menciona "solo Flow"; actualizar lo que quede inexacto. `AGENTS.md` si alguna convención cambia (capability check del gateway).
 - [x] 5.3 `openspec validate close-residual-gaps --strict` limpio; commit(s) en `dev`.

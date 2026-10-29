@@ -527,7 +527,7 @@ Justificación: la diferencia gestionada↔propia es exactamente el costo de pas
 |---|---|---|
 | PortalTickets (Chile) | 10% IVA incl. todo incluido | Organizador o comprador, a elección |
 | Ticketeras grandes Chile (Puntoticket…) | 10–20% | Comprador |
-| **Passline (AR/CL) — techo** | hasta ~15% (no publica, va en acuerdo) | Según acuerdo |
+| **Passline (AR/CL); techo** | hasta ~15% (no publica, va en acuerdo) | Según acuerdo |
 | Shotgun (EU electrónica) | ~15% cap €15/$30 | Comprador |
 | DICE (EU) | ~10–12% | Comprador |
 | Resident Advisor | ~9,5% + processing | Comprador |
@@ -554,7 +554,7 @@ Flow, MercadoPago y Fintoc son **adaptadores detrás de un puerto normalizado**,
 
 - **Órdenes**: `PaymentGateway.createOrder/verifyWebhook/refreshStatus` → `GatewayConfirmation` normalizado (`status/amount/feeClp/media/paidAt/raw`) - el dominio nunca parsea campos de proveedor. Webhook por proveedor `/payments/webhook/:provider`.
 - **Suscripciones**: puerto `SubscriptionProvider` con tipos normalizados (los `Flow*` salen del contrato); Flow hoy, MP preapproval/Stripe como slots.
-- **Credenciales por actor**: `ProducerGatewayAccount` cifrado (AES-256-GCM, `PRODUCER_GATEWAY_KEY`) — implementado (spec producer-gateway-accounts): el productor configura su cuenta Flow/MP desde `/productor/parametros`, el checkout cobra por su adaptador (`OWN_GATEWAY`), el webhook se enruta por `?account=<id>` y la comisión se netea en su payout.
+- **Credenciales por actor**: `ProducerGatewayAccount` cifrado (AES-256-GCM, `PRODUCER_GATEWAY_KEY`); implementado (spec producer-gateway-accounts): el productor configura su cuenta Flow/MP desde `/productor/parametros`, el checkout cobra por su adaptador (`OWN_GATEWAY`), el webhook se enruta por `?account=<id>` y la comisión se netea en su payout.
 - **Moneda**: `Payment.currency` + `Event.currency` (ISO 4217, default CLP).
 
 **Política: sin reembolsos.** Los tickets son **transferibles a otro usuario** (mismo mecanismo que gift ticket). Reembolso excepcional solo manual, a pedido del productor.
@@ -570,7 +570,7 @@ Neto omni por ticket gestionado = `(all-in% − pasarela%) / 1,19` del precio:
 | **10% lista** | $303 (5,72%) | $401 | **~$51.700** |
 | **8% promo** | $214 (4,04%) | $283 | **~$36.500** |
 
-Puerta cash registrada (32) y entrada liberada: **$0** — el valor es la data de asistencia. Rango real: **$36–52k/evento** según mezcla de tasas negociadas - equivalente al flat histórico pero con upside en preventas más caras y trazabilidad limpia.
+Puerta cash registrada (32) y entrada liberada: **$0**; el valor es la data de asistencia. Rango real: **$36–52k/evento** según mezcla de tasas negociadas - equivalente al flat histórico pero con upside en preventas más caras y trazabilidad limpia.
 
 **Sensibilidad:** si solo 50% de la preventa migra a la app → ~$18–26k/evento. La mitigación: la preventa oficial del productor es solo por la app - la transferencia muere sola cuando el ticket-QR con check-in es el único camino.
 
@@ -593,7 +593,7 @@ Lo que se mide cada mes (el `PayoutLine` + `Payment.platformFee*` dejan todo que
 
 Supuestos: ticket ponderado ~$5.5k gestionado a tasa media 9% (~5% neto tras pasarela e IVA); mezcla SaaS academia promedio ~$90k/mes; Producer Pro promedio ~$140k/mes. **Pase Social**: $15.000/mes menos pasarela (~3,2%) y menos reembolso al productor por crédito canjeado (supuesto $2.500/crédito × 4 créditos × 75% redención) → **margen ~$7k/suscriptor/mes**; la tarifa de reembolso es el supuesto que más mueve esta línea y queda por validar con productores. **Cargo puerta** (~$1.000/no-suscriptor) entra dentro del neto transaccional cuando la venta se registra por app.
 
-**Publicidad segmentada**: el cap de 1 push promocional/semana/persona limita el inventario — con ~2.000 bailarines activos la oferta semanal es escasa y eso protege el tono (y sostiene el precio). Precio de trabajo: academia PRO y producer Pro incluyen cupos en el plan; campañas extra ~$12.990 c/u. Estimación conservadora: piloto ~$0,02M/mes, tracción ~$0,15M/mes, captura ~$0,45M/mes — y su efecto real es doble: la campaña además levanta GMV de ticketing.
+**Publicidad segmentada**: el cap de 1 push promocional/semana/persona limita el inventario; con ~2.000 bailarines activos la oferta semanal es escasa y eso protege el tono (y sostiene el precio). Precio de trabajo: academia PRO y producer Pro incluyen cupos en el plan; campañas extra ~$12.990 c/u. Estimación conservadora: piloto ~$0,02M/mes, tracción ~$0,15M/mes, captura ~$0,45M/mes; y su efecto real es doble: la campaña además levanta GMV de ticketing.
 
 | Escenario | Eventos/mes | Neto ticketing | Acad. SaaS (MRR) | Producer Pro (MRR) | Pase Social (margen) | Publicidad | Total/mes | ARR run-rate |
 |---|---|---|---|---|---|---|---|---|
@@ -603,11 +603,11 @@ Supuestos: ticket ponderado ~$5.5k gestionado a tasa media 9% (~5% neto tras pas
 | **Captura escena** (20–25 eventos + 15 academias + 8 Pro + ~350 pases) | 22 | ~$1,01M | ~$1,35M | ~$1,12M | ~$2,45M | ~$0,45M | **~$6,35M** | **~$76M** |
 
 Lecturas:
-- **El SaaS pesa más que el ticketing** desde tracción — es la tesis de margen: comisión valida volumen, suscripción sostiene MRR. La comisión no puede acercarse al techo Passline porque el take total (fee + SaaS) ya es mayor.
-- **El Pase Social supera a cada línea SaaS individual en captura** con ~20% de adopción sobre asistentes activos — pero depende de dos supuestos no validados: tarifa de reembolso por crédito (cada $500 mueve ~$1,4k el margen por suscriptor) y que el productor mantenga puerta > preventa (si el gap se cierra, cae el valor percibido del pase).
-- A captura total de escena (~20–25 eventos/mes, ~15 academias): **~$76M ARR** sin contar venue-pro, marketplace de instructores, suscripción-ticket de serie (`series_pass`, ~$25k/mes fallback) ni otros países — la expansión multi-país/multi-gateway del rediseño de puertos es el siguiente multiplicador.
+- **El SaaS pesa más que el ticketing** desde tracción; es la tesis de margen: comisión valida volumen, suscripción sostiene MRR. La comisión no puede acercarse al techo Passline porque el take total (fee + SaaS) ya es mayor.
+- **El Pase Social supera a cada línea SaaS individual en captura** con ~20% de adopción sobre asistentes activos; pero depende de dos supuestos no validados: tarifa de reembolso por crédito (cada $500 mueve ~$1,4k el margen por suscriptor) y que el productor mantenga puerta > preventa (si el gap se cierra, cae el valor percibido del pase).
+- A captura total de escena (~20–25 eventos/mes, ~15 academias): **~$76M ARR** sin contar venue-pro, marketplace de instructores, suscripción-ticket de serie (`series_pass`, ~$25k/mes fallback) ni otros países; la expansión multi-país/multi-gateway del rediseño de puertos es el siguiente multiplicador.
 - Sensibilidad a la tasa: cada punto de % gestionado ≈ ±$7k/evento neto → la negociación 10→8% cuesta ~$15k/evento de neto vs lista.
-- **Fila "Tracción estresada"** modela churn 4,5%/mes + migración de preventa al 50%: ~$27M ARR — el escenario que hay que vender internamente como el piso razonable. El Piloto sigue concentrado (1 productor ≈ 50% del total) — la métrica `Concentración top-1` dispara alerta >40%.
+- **Fila "Tracción estresada"** modela churn 4,5%/mes + migración de preventa al 50%: ~$27M ARR; el escenario que hay que vender internamente como el piso razonable. El Piloto sigue concentrado (1 productor ≈ 50% del total); la métrica `Concentración top-1` dispara alerta >40%.
 
 ### Comparativa de pasarelas (investigación sep-2026)
 
@@ -615,12 +615,12 @@ Lecturas:
 |---|---|---|---|---|
 | **Flow** | 2,89% +IVA (T+3) / 3,19% (T+1) | $0 | ~$190–210 | **MVP**: una integración → Webpay + transferencia + MACH + Servipag |
 | **Webpay Plus** | Débito 1,49% / Crédito 2,29% +IVA | mín. ~$87–135 | ~$98–150 | **Escala**: migrar tarjetas aquí cuando el volumen lo justifique. Mall = split payments; Oneclick = mensualidades |
-| **Fintoc** | A2A ~1,35% +IVA; tarjetas vía Smart Checkout (a cotizar) | $0 | ~$88 (A2A) | **Candidato a rail principal CL**: suite completa (A2A + tarjetas + Apple/Google Pay + orquestación por tasa de éxito), payouts API (el PayoutRail chileno que falta), suscripciones por débito directo, webhooks verificados contra API (sin secret). Única pega: la primera autorización bancaria pide credenciales — fricción de onboarding vs tarjeta guardada |
+| **Fintoc** | A2A ~1,35% +IVA; tarjetas vía Smart Checkout (a cotizar) | $0 | ~$88 (A2A) | **Candidato a rail principal CL**: suite completa (A2A + tarjetas + Apple/Google Pay + orquestación por tasa de éxito), payouts API (el PayoutRail chileno que falta), suscripciones por débito directo, webhooks verificados contra API (sin secret). Única pega: la primera autorización bancaria pide credenciales; fricción de onboarding vs tarjeta guardada |
 | **Mercado Pago** | Link ~3,19% / QR ~2,6% +IVA | $0 | ~$170–215 | Abono inmediato, sin inicio de actividades. Sinergia: producers ya usan MP Point |
 | **Khipu** | 0,69% +IVA | **UF 0,0105 (~$410)** | ~$520 | Fee fijo mata tickets chicos. Útil para montos grandes (mensualidades, liquidaciones) |
 | **SumUp** | Link: 3,2% +IVA (3,81%) | $0 | ~$210 | Link no mejora a Flow. Su fuerza es POS físico (débito desde 1,29%+IVA) - los productores ya lo usan en puerta; integrarlo como "venta externa registrada", no como pasarela |
 
-**Efecto Fintoc en el margen** (A2A 1,35%+IVA ≈ 1,61% efectivo vs Flow ~3,8%): bajo el all-in 10% el neto omni por ticket de $5.500 sube de ~$303 a **~$388** (+28%); bajo promo 8% de ~$214 a **~$296** (+38%). Ruta sugerida: checkout ofrece débito/cuenta (Fintoc) primero y tarjeta como fallback — las cuotas no importan al bailarín (tickets chicos) pero sí a la academia/productora que paga SaaS (montos $40–300k), así que Flow queda como rail de respaldo y para billing. Prioridad de implementación: gateway A2A en checkout > `FintocPayoutRail` (desembolso automático CL) > billing por débito directo.
+**Efecto Fintoc en el margen** (A2A 1,35%+IVA ≈ 1,61% efectivo vs Flow ~3,8%): bajo el all-in 10% el neto omni por ticket de $5.500 sube de ~$303 a **~$388** (+28%); bajo promo 8% de ~$214 a **~$296** (+38%). Ruta sugerida: checkout ofrece débito/cuenta (Fintoc) primero y tarjeta como fallback; las cuotas no importan al bailarín (tickets chicos) pero sí a la academia/productora que paga SaaS (montos $40–300k), así que Flow queda como rail de respaldo y para billing. Prioridad de implementación: gateway A2A en checkout > `FintocPayoutRail` (desembolso automático CL) > billing por débito directo.
 
 ### Consolidaciones y liquidaciones (todos los perfiles)
 
@@ -646,17 +646,17 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 
 | Tier | Precio mensual | Alumnos activos | Incluye |
 |---|---|---|---|
-| **COBROS** (señuelo) | $39.500 |  ≤60 | Cobro de membresías por nuestra pasarela + lista de alumnos al día/morosos + **reporte de cobranza** (facturación mensual, quién pagó, plan top, filtros). Sin clases, sin asistencia, sin staff, sin scores/clasificación CRM en superficies de alumnos. Take ~1,5× el fee real de pasarela (~4,8% all-in) — compite con cobranza pura tipo Membrezia |
+| **COBROS** (señuelo) | $39.500 |  ≤60 | Cobro de membresías por nuestra pasarela + lista de alumnos al día/morosos + **reporte de cobranza** (facturación mensual, quién pagó, plan top, filtros). Sin clases, sin asistencia, sin staff, sin scores/clasificación CRM en superficies de alumnos. Take ~1,5× el fee real de pasarela (~4,8% all-in); compite con cobranza pura tipo Membrezia |
 | **STUDIO** (objetivo) | $79.700 | ≤150 | + planes y membresías, clases/series, reservas, asistencia por profe, export mensual CSV, check-in, KPIs operacionales (ocupación, asistencia del día). Pasarela a costo real (sin take). Sin consultas rápidas ni analítica estratégica |
 | **PRO** (top) | $120.500 | ilimitado | + analítica completa (consultas rápidas, insights, audiencia), CRM (scores/segmentos/campañas), notificaciones de marketing segmentadas, videos, **cuenta multi-academia** |
 
-- El medio es el plan que queremos vender (gestión completa); el señuelo existe para anclar — quien compara solo sticker no es el segmento.
+- El medio es el plan que queremos vender (gestión completa); el señuelo existe para anclar; quien compara solo sticker no es el segmento.
 - Descuentos por ciclo: semestral **−8%**, anual **−15%** (convención 15–20%; el −2%/−4% anterior no movía decisión).
-- Terminaciones de precio "calculadas" (**200/500/700**) — decisión de posicionamiento: se perciben derivados de costos; no usar charm pricing (.990), que se lee como "precio de descuento".
+- Terminaciones de precio "calculadas" (**200/500/700**); decisión de posicionamiento: se perciben derivados de costos; no usar charm pricing (.990), que se lee como "precio de descuento".
 - Cobro: suscripción recurrente Flow (`PlatformSubscription`, mismo motor que membresías de alumnos). Trial 30d; al superar el límite de alumnos del tier el sistema exige subir en la próxima compra.
 - **Mora**: renovación fallida → 5 días de gracia → día 6 bloqueo (`billingBlockedAt`): consola read-only, academia y clases fuera de explorar, sin reservas ni compras nuevas - **el alumno conserva todo su historial**. Un pago recuperado desbloquea solo (`RENEWAL_SETTLED`).
 - Los productos de la academia **no cobran cargo de servicio al alumno**; la academia absorbe la tarifa Flow como línea `GATEWAY_FEE_PASSTHROUGH` explícita en su payout.
-- Notificaciones: las **transaccionales** (recordatorio de clase, renovación, waitlist) viven en todos los tiers — son función core, no marketing. Solo las **campañas/pushes de marketing segmentadas** se gatean a PRO.
+- Notificaciones: las **transaccionales** (recordatorio de clase, renovación, waitlist) viven en todos los tiers; son función core, no marketing. Solo las **campañas/pushes de marketing segmentadas** se gatean a PRO.
 
 **Productor**: su monetización core es la **comisión todo incluido por venta** (cadena evento → override → tier → `fees.managed_allin_pct` 9,14; los planes bajan el fee: Standard 7,36 / Pro 6,17 - ver "Modelo de precio" arriba) **+ Producer Pro opcional** - suscripción por tier de facturación mensual media (90d) con features gateadas:
 
@@ -671,13 +671,13 @@ ya no se vende - el plan de entrada es el ticketing transaccional.
 
 El ticketing base, venta y check-in **nunca se cortan** por la suscripción (el marketplace es el funnel). Trial de lanzamiento: +90d a productores registrados. Ciclos con −8% semestral/−15% anual (mismo criterio que academias).
 
-**Promos de suscripción** (spec `platform-promos`): el admin gestiona `PlatformPromo` desde `/admin/facturacion/promos` — descuento PERCENT o FIXED_CLP sobre el cargo del ciclo, scope por línea (ACADEMY/PRODUCER/ambas), ventana validFrom/validUntil, `maxCycles` por actor (cobros PAID marcados `Payment.platformPromoId`), whitelist opcional y flag enabled. Se materializa como **plan espejo propio** (`plat_*_prm_<promoId>_<monto>`) — nunca muta el plan compartido del tier; al agotarse ciclos/vencer/deshabilitarse, el reconcile agenda `pendingReprice` (cancel remota a fin de período + recreación con el cargo vigente). La vista del actor muestra `activePromo` (tachado + oferta + vencimiento) y el MRR usa el cargo efectivo (`planChargeClp`).
+**Promos de suscripción** (spec `platform-promos`): el admin gestiona `PlatformPromo` desde `/admin/facturacion/promos`; descuento PERCENT o FIXED_CLP sobre el cargo del ciclo, scope por línea (ACADEMY/PRODUCER/ambas), ventana validFrom/validUntil, `maxCycles` por actor (cobros PAID marcados `Payment.platformPromoId`), whitelist opcional y flag enabled. Se materializa como **plan espejo propio** (`plat_*_prm_<promoId>_<monto>`); nunca muta el plan compartido del tier; al agotarse ciclos/vencer/deshabilitarse, el reconcile agenda `pendingReprice` (cancel remota a fin de período + recreación con el cargo vigente). La vista del actor muestra `activePromo` (tachado + oferta + vencimiento) y el MRR usa el cargo efectivo (`planChargeClp`).
 
-**Promos de membresía** (spec `academy-tier-v2` / `member-promos`): la academia gestiona `AcademyPromo` sobre sus planes — beca o descuento por alumno con la misma mecánica (% o CLP fijo, ventana, maxCycles, whitelist de personas, scope a planes). La whitelist admite personas no inscritas → la beca funciona como **preventa** (el descuento aplica al primer cobro aunque el alumno se inscriba recién). Nunca muta el precio del plan; audita en `Payment.academyPromoId`.
+**Promos de membresía** (spec `academy-tier-v2` / `member-promos`): la academia gestiona `AcademyPromo` sobre sus planes; beca o descuento por alumno con la misma mecánica (% o CLP fijo, ventana, maxCycles, whitelist de personas, scope a planes). La whitelist admite personas no inscritas → la beca funciona como **preventa** (el descuento aplica al primer cobro aunque el alumno se inscriba recién). Nunca muta el precio del plan; audita en `Payment.academyPromoId`.
 
-**Corte de analítica por tier**: STUDIO conserva analítica *operacional* (KPIs del día, asistencia por clase, ocupación, reservas) — lo que una academia usa a diario; PRO suma la *estratégica* (consultas rápidas, insights de audiencia, cohortes/retención, benchmark, marketing). COBROS solo tiene su analítica de cobranza. Los campos de features en superficies compartidas se ocultan (no 403): score/clasificación CRM sin `crm`, asistencia en detalle sin `attendance`, insight de audiencia sin `insights`, clases de hoy sin `classes`.
+**Corte de analítica por tier**: STUDIO conserva analítica *operacional* (KPIs del día, asistencia por clase, ocupación, reservas); lo que una academia usa a diario; PRO suma la *estratégica* (consultas rápidas, insights de audiencia, cohortes/retención, benchmark, marketing). COBROS solo tiene su analítica de cobranza. Los campos de features en superficies compartidas se ocultan (no 403): score/clasificación CRM sin `crm`, asistencia en detalle sin `attendance`, insight de audiencia sin `insights`, clases de hoy sin `classes`.
 
-**Publicidad segmentada a bailarines (nueva línea de ingreso)**: academias PRO y productores Pro Growth/Scale pueden promocionar talleres/eventos a dancers por canal notificación in-app, con guardrails duros: **frecuencia cap** (máx. 1 push promocional/semana por persona), targeting por agregados (nivel/ciudad/estilo — nunca data individual al anunciante, cumple la regla de privacidad de scores), opt-out por usuario, y la regla de pista (~5s) se mantiene — el push es glanceable, el detalle vive en el centro. Cola de aprobación admin en v1 para cuidar el tono.
+**Publicidad segmentada a bailarines (nueva línea de ingreso)**: academias PRO y productores Pro Growth/Scale pueden promocionar talleres/eventos a dancers por canal notificación in-app, con guardrails duros: **frecuencia cap** (máx. 1 push promocional/semana por persona), targeting por agregados (nivel/ciudad/estilo; nunca data individual al anunciante, cumple la regla de privacidad de scores), opt-out por usuario, y la regla de pista (~5s) se mantiene; el push es glanceable, el detalle vive en el centro. Cola de aprobación admin en v1 para cuidar el tono.
 
 **Contexto competitivo (evaluado oct-2026, decisión: no competir en precio)**:
 - **BoxMagic** (gestión deportiva): ~$39.900+IVA hasta 120 clientes - referencia del pricing de tiers.
@@ -736,7 +736,7 @@ Las academias que se presentan en los sociales venden preventa del productor y s
 - El productor **invita** una academia aprobada a un acuerdo por evento o serie (`commissionPct` 1-90, cupo `maxTickets` opcional). La academia acepta o rechaza; solo acuerdos ACTIVE atribuyen
 - **Canal link**: la academia comparte `/eventos/[id]?a=<academyId>`; el comprador paga el precio de lista normal **por la app**, sin saber ni ver la comisión. La comisión se **congela por orden** (`round(precioLista × %) × cantidad`) como **deuda del productor hacia la academia**
 - **Canal código**: la academia cobra la preventa **en efectivo/transferencia por fuera** y emite un código `ACADEMY_PRESALE` 100% off de un solo uso (`SLUG-15NOV-XXXX`, legible a mano). El comprador lo redime en el checkout → orden $0 FREE, ticket emitido, pago queda atribuido a la academia con la comisión congelada sobre el precio de lista. Restricciones: solo `channel=PRESALE`, una entrada por código, acuerdo ACTIVE al redimir; el consumo del uso es atómico en la tx de liquidación
-- **Cupo compartido**: `maxTickets` cubre ambos canales — códigos emitidos + tickets PAID por link
+- **Cupo compartido**: `maxTickets` cubre ambos canales; códigos emitidos + tickets PAID por link
 - **Saldo bidireccional, liquidación externa**: **omni-dance no mueve esa plata**. El saldo del acuerdo es neto signed: Σ comisión de ventas por link (productor debe) − Σ `precioLista − comisión` de códigos redimidos (la academia debe, porque cobró el efectivo) − marcas de pago. Saldo positivo = el productor paga a la academia; negativo = la academia paga al productor. Quien marca pago registra el monto firmado con comprobante opcional
 - **Auditoría**: cada código emitido queda ligado al acuerdo; productor y academia ven códigos emitidos, quién los redimió y el pago asociado (`Payment.discountCodeId` + `DiscountRedemption`)
 - La atribución por link es solo `channel=PRESALE` y silenciosa: sin acuerdo vigente o cupo agotado, la compra procede igual sin error. En Pagos, la columna **Medio** distingue la orden: método propio congelado, "Preventa academia" (código), medio de la pasarela o "App"
@@ -796,7 +796,7 @@ Gestión integral - el benchmark es BoxMagic (reservas con aforo, membresías, c
 
 **Privado - solo lo ve quien gestiona la academia** (owner/staff/admin: consola + `/admin`). No es gamificación para el alumno, es **CRM para la academia**: la herramienta para saber qué alumnos son claves y a quién está por perder.
 
-**Fórmula implementada** (spec `academy-score-refine`, pesos en `PlatformParam` `crm.score.*`): 0-100 por componentes con caps — asistencias últimas 8 semanas ×4, racha semanal actual ×3 (cap 8), meses continuos con actividad/membresía ×4 (cap 6), compras últimos 6 meses ×3 (cap 6 - planes, clases sueltas/talleres, particulares y comprobantes aprobados), antigüedad ×1/mes (cap 12), referrals ×5. El desglose se persiste (`RelationshipScore.breakdown`) y se muestra en la ficha del alumno. Recompute diario (job `crm.scores`, 06:00) + manual en la consola CRM.
+**Fórmula implementada** (spec `academy-score-refine`, pesos en `PlatformParam` `crm.score.*`): 0-100 por componentes con caps; asistencias últimas 8 semanas ×4, racha semanal actual ×3 (cap 8), meses continuos con actividad/membresía ×4 (cap 6), compras últimos 6 meses ×3 (cap 6 - planes, clases sueltas/talleres, particulares y comprobantes aprobados), antigüedad ×1/mes (cap 12), referrals ×5. El desglose se persiste (`RelationshipScore.breakdown`) y se muestra en la ficha del alumno. Recompute diario (job `crm.scores`, 06:00) + manual en la consola CRM.
 
 **Inputs**: clases compradas (planes/packs), tasa de asistencia, asistencia a eventos de la academia (galas, prácticas, sociales propios), antigüedad, puntualidad de pago. Mide compromiso, no técnica.
 
@@ -1030,7 +1030,7 @@ El `academy_score` generalizado: **cada actor B2B tiene un score privado de rela
 | **Academia** | Alumno | Clases compradas, asistencia, eventos de la academia, antigüedad, pago | Upsell (bootcamp/plan/clase privada), anti-churn, seguimiento de trial |
 | **Productor** | Asistente | Asistencia a SUS eventos, compra preventa temprana vs puerta, trae amigos (referrals), ratings de sus eventos | Upsell `series_pass`/pases VIP, win-back a regulares ausentes, convertir nuevos en regulares |
 
-**Implementado** (spec `producer-score-refine`, mismo esquema de params `crm.score.*`): eventos asistidos últimas 8 semanas ×4, racha de eventos consecutivos del productor ×3 (cap 8), meses continuos con checkin/compra ×4 (cap 6), compras últimos 6 meses ×3 (cap 6 — entradas y pases de serie), compras anticipadas (≥3 días antes del evento) ×2 (cap 3), antigüedad ×1/mes (cap 12), referrals ×5. La caída a AT_RISK se detecta a nivel evento: no asistir a los últimos 2 eventos tras haber ido a ≥2 de los 5 anteriores.
+**Implementado** (spec `producer-score-refine`, mismo esquema de params `crm.score.*`): eventos asistidos últimas 8 semanas ×4, racha de eventos consecutivos del productor ×3 (cap 8), meses continuos con checkin/compra ×4 (cap 6), compras últimos 6 meses ×3 (cap 6; entradas y pases de serie), compras anticipadas (≥3 días antes del evento) ×2 (cap 3), antigüedad ×1/mes (cap 12), referrals ×5. La caída a AT_RISK se detecta a nivel evento: no asistir a los últimos 2 eventos tras haber ido a ≥2 de los 5 anteriores.
 | **Venue** | Cliente del local | Asistencia al local **independiente del productor**, mesas reservadas, carta vista | Lealtad al local (cortesías, mesa prioridad), detectar churn atribuible al LOCAL (piso/ruido/trato) no al evento |
 | **DJ** | Público | Quién evalúa bien su música + **permanencia durante su bloque** (se quedan o se van cuando toca) | Menos CRM, más reputación demostrable: "mantengo/traigo público" → argumento de negociación con productores |
 | **Instructor** | Alumno (privadas) | Clases privadas tomadas, continuidad | Upsell de packs de privadas, retención |

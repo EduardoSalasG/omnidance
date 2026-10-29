@@ -1,4 +1,4 @@
-# Tasks — multipais-polish
+# Tasks; multipais-polish
 
 - [x] 1. `POST/PATCH /events` acepta `currency` (ISO-4217, validado
       contra `Country.currency`); default = venue.city.country.currency

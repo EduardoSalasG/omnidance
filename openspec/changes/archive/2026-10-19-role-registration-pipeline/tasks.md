@@ -1,4 +1,4 @@
-# Tasks — role-registration-pipeline
+# Tasks; role-registration-pipeline
 
 ## 1. Schema + migración
 - [ ] Drop SANDBOX de RoleStatus; migrar filas SANDBOX → PENDING.

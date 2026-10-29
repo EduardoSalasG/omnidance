@@ -6,7 +6,7 @@
   payoutId + líneas del payout + snapshot receptor + PDF + pdfKey),
   list, candidates, void, listMine, pdfBuffer. Spec.
 - [x] Controllers: /admin/billing (generate, list, candidates,
-  :id/pdf, :id/void) + /me/billing (list, :id/pdf) — permisos y
+  :id/pdf, :id/void) + /me/billing (list, :id/pdf); permisos y
   ownership. Spec.
 - [x] PDF: common/billing-pdf.ts layout documento (emisor, receptor,
   folio, período, líneas, neto/IVA/total, disclaimer interno).

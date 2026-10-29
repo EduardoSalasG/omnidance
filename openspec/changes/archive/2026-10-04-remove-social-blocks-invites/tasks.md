@@ -1,24 +1,24 @@
-# Tasks — remove-social-blocks-invites
+# Tasks; remove-social-blocks-invites
 
 - [x] Migración: `DROP TABLE` `UserBlock`, `PracticePartnerRequest`,
       `AvailabilityToggle` (datos históricos de DanceSession intactos)
-      → `20261008000000_drop_social_blocks_invites` (no aplicada — la
+      → `20261008000000_drop_social_blocks_invites` (no aplicada; la
       corre `migrate deploy`; diff schema↔migrations vacío)
 - [x] Schema: eliminar los 3 modelos y sus relaciones/referencias
 - [x] API: eliminar `blocks.controller.ts`,
       `partner-requests.controller.ts`, `availability.controller.ts` y
       sus imports/registro en `social.module.ts`
-- [x] API: `sessions.controller.ts` — eliminar `invite`, `confirm`,
+- [x] API: `sessions.controller.ts`; eliminar `invite`, `confirm`,
       `decline` + el chequeo `userBlock`; conservar el resto del
-      lifecycle. **Decisión**: el escaneo QR es el único alta de bailes —
+      lifecycle. **Decisión**: el escaneo QR es el único alta de bailes;
       nuevo `POST /sessions/scan` crea la sesión directamente CONFIRMED
       (el QR rotativo acredita presencia mutua; el handshake ya no es
       necesario) + notify `session.confirmed` + puntos/badges de ambos.
-      `declare` sigue creando INVITED — su resolución es backlog
+      `declare` sigue creando INVITED; su resolución es backlog
       separado.
 - [x] API: limpiar `social/infrastructure/people.controller.ts` y
       cualquier otro uso de userBlock/partnerRequest/availabilityToggle
-      (grep exhaustivo — 0 residuales en `apps/api/src` y `apps/api/test`)
+      (grep exhaustivo; 0 residuales en `apps/api/src` y `apps/api/test`)
 - [x] e2e: quitar casos de blocks/partner-requests/availability/invite
       en `gap-social.e2e.spec.ts`, `social-endpoints.e2e.spec.ts` y
       mocks relacionados; nuevo bloque `scan` en `sessions.e2e.spec.ts`

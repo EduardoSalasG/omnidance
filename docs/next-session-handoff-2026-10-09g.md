@@ -1,4 +1,4 @@
-# Handoff 2026-10-09g — Paridad consolas + CRM consola v1
+# Handoff 2026-10-09g; Paridad consolas + CRM consola v1
 
 ## Completado y commiteado en `dev` (sin push)
 
@@ -11,7 +11,7 @@
 
 ## Skill nuevo
 
-`.devin/skills/console-patterns/SKILL.md` — el patrón unificado de
+`.devin/skills/console-patterns/SKILL.md`; el patrón unificado de
 consolas (crear=CTA→page, card clickeable→ficha, acciones en ficha,
 destructivo en zona roja, FilterBar+Pager, estados/a11y). Referenciado
 desde `AGENTS.md` §Interfaz. Usarlo en toda consola nueva o refactor.
@@ -26,7 +26,7 @@ desde `AGENTS.md` §Interfaz. Usarlo en toda consola nueva o refactor.
 
 ## Pendiente / próximos slices
 
-1. **`console-parity-v5` sigue abierto** — falta archivarlo: las tasks
+1. **`console-parity-v5` sigue abierto**; falta archivarlo: las tasks
    restantes eran de verificación, ya ejecutadas. Revisar
    `openspec/changes/console-parity-v1... v5` y archivar si todo cubierto.
 2. **QA funcional del CRM**: probar ficha de contacto con actores reales

@@ -11,7 +11,7 @@ import { ConsoleHeader } from "@/components/console/console-header";
 import { useDateFmt } from "@/lib/intl";
 
 // Consola /admin/funcionalidades (spec feature-flags-admin): catálogo
-// de flags seedado desde código — el admin solo flippea `enabled`, sin
+// de flags seedado desde código; el admin solo flippea `enabled`, sin
 // alta/baja (un flag sin consumer no sirve). Toggle reversible sin
 // confirmación: optimistic flip + revert si el PATCH falla, Spinner
 // inline mientras aplica.

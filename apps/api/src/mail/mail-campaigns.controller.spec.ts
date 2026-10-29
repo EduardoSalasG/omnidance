@@ -4,7 +4,7 @@ import { MailCampaignsController } from "./mail-campaigns.controller";
 import type { MailCampaignsService } from "./mail-campaigns.service";
 
 // MailCampaignsController (spec admin-jobs-mail-campaigns): wiring de
-// rutas — create/update/test/run/cancel delegan con actor de sesión y
+// rutas; create/update/test/run/cancel delegan con actor de sesión y
 // audience-count mapea el spec ALL/ROLE/EVENT.
 
 const req = (id = "adm-1") => ({ person: { id } }) as never;

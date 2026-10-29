@@ -1,9 +1,9 @@
-# instructor-commission — comisión por instructor en clases particulares
+# instructor-commission; comisión por instructor en clases particulares
 
 ## Purpose
 
 El instructor ve cuánto le corresponde de cada clase particular y el
-owner configura la comisión que retiene la academia — hoy
+owner configura la comisión que retiene la academia; hoy
 `PrivateLesson.commissionPct` existe pero nadie lo puebla ni lo muestra.
 
 ## ADDED Requirements

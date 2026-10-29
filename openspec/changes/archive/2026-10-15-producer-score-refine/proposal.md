@@ -3,7 +3,7 @@
 ## Why
 
 El `RelationshipScore` para `actorType=PRODUCER` usa la fórmula legado
-`attendance*10 + spend/1000 + referrals*15` — el spend domina la escala
+`attendance*10 + spend/1000 + referrals*15`; el spend domina la escala
 y no distingue los patrones que el productor quiere premiar: asistir
 seguido, comprar preventa temprana, no faltar a los últimos eventos.
 Es la fase 2 anunciada del mismo trabajo ("las personas que compran
@@ -26,5 +26,5 @@ entradas y asisten a sus eventos").
 ## Out of scope
 
 - Ratings como señal (los ratings individuales nunca se exponen).
-- Nuevos actores (VENUE/DJ/INSTRUCTOR) — siguen sin universo.
+- Nuevos actores (VENUE/DJ/INSTRUCTOR); siguen sin universo.
 - Cambios en superficies web (ya renderizan breakdown genérico).

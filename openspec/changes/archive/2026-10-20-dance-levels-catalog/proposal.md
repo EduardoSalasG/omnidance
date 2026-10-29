@@ -1,4 +1,4 @@
-# Proposal — dance-levels-catalog
+# Proposal; dance-levels-catalog
 
 ## Qué
 
@@ -6,13 +6,13 @@ Alinear el nivel autodeclarado de baile (`PersonStyleRole.level`) con el
 catálogo pedagógico usado por las academias (`ClassLevel`):
 **Iniciación | Básico | Intermedio | Avanzado**.
 
-Hoy el set aceptado es `principiante | intermedio | avanzado` — falta un
+Hoy el set aceptado es `principiante | intermedio | avanzado`; falta un
 nivel y los nombres no coinciden con la escala de clases del producto.
 
 ## Por qué
 
 - El usuario pidió explícitamente estos 4 niveles en "Tu baile"
-  (`/perfil/datos`) — es la nomenclatura que usan las academias SBK.
+  (`/perfil/datos`); es la nomenclatura que usan las academias SBK.
 - Datos existentes: migración `principiante → basico` (equivalente
   semántico más cercano).
 

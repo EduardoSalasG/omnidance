@@ -1,6 +1,6 @@
 # Capability: academy-learner (delta SaaS)
 
-Acceso del alumno cuando la academia está bloqueada por mora — la
+Acceso del alumno cuando la academia está bloqueada por mora; la
 falta de solvencia del owner no castiga al alumno más allá de lo
 necesario.
 

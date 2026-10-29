@@ -4,7 +4,7 @@ import { AdminJobsController } from "./jobs.controller";
 import type { JobsService } from "../../jobs/jobs.service";
 
 // AdminJobsController (spec admin-jobs-mail-campaigns): wiring de rutas
-// — list/update/run/runs delegan al service con key + actor de sesión.
+//; list/update/run/runs delegan al service con key + actor de sesión.
 
 const req = (id = "adm-1") => ({ person: { id } }) as never;
 

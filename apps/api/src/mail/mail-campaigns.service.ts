@@ -56,7 +56,7 @@ function varsForAudience(spec: AudienceSpec): string[] {
 }
 
 // Link de baja firmado (spec platform-polish-gaps): HMAC del personId
-// con JWT_SECRET — sin sesión, sin token persistido, no falsificable.
+// con JWT_SECRET; sin sesión, sin token persistido, no falsificable.
 export function unsubscribeToken(personId: string): string {
   return createHmac("sha256", process.env.JWT_SECRET ?? "")
     .update(personId)

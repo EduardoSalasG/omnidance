@@ -7,7 +7,7 @@ una academia (ver `payments/academy-presale-commission`):
 
 - `soldByAcademyId`: academia vendedora, null si no hay atribución.
 - `academyCommissionClp`: `round(unitListPrice × commissionPct) ×
-  quantity` — snapshot del acuerdo vigente, nunca se recalcula.
+  quantity`; snapshot del acuerdo vigente, nunca se recalcula.
 
 La comisión MUST NOT alterar `producerNetClp` ni la deducción de
 plataforma: es un pasivo del productor hacia la academia que se

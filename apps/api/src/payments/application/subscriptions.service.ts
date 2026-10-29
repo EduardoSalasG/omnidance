@@ -1664,8 +1664,8 @@ export class SubscriptionsService {
 
     // Drift de precio (spec member-promos): la remota debe cobrar lo que
     // la resolución de promos da HOY (promo vigente o precio lleno). Si
-    // difiere — promo nueva aplicable, agotada, expirada, deshabilitada,
-    // editada, o precio del plan cambiado — se agenda el reprice: cancel
+    // difiere; promo nueva aplicable, agotada, expirada, deshabilitada,
+    // editada, o precio del plan cambiado; se agenda el reprice: cancel
     // de la remota a fin de período + recreación con el cargo vigente.
     // Con mora no se agenda nada (el cobro está fallando; la
     // regularización resuelve el precio después).

@@ -1,4 +1,4 @@
-# Tasks — academy-tier-cobros
+# Tasks; academy-tier-cobros
 
 - [ ] 1. Modelo de entitlements: `TIER_FEATURES` por tier en
   platform-tiers.ts + `assertAcademyTier` (patrón producer-pro) +

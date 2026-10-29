@@ -6,7 +6,7 @@ El usuario reporta: "después de reservar la clase no aparece mensaje de
 éxito, solo redirige a clases y la card se actualiza". La auditoría de
 las 4 superficies (dancer, academia, productor, admin+soporte) confirma
 el patrón: el feedback inline existe pero queda fuera del viewport tras
-la acción, y decenas de acciones mutan sin confirmación perceptible —
+la acción, y decenas de acciones mutan sin confirmación perceptible;
 incluidos fallos silenciosos en acciones de dinero.
 
 ## What Changes
@@ -29,7 +29,7 @@ incluidos fallos silenciosos en acciones de dinero.
   forms CRM como el resto de la consola.
 - Admin: notice de éxito Y error en approve/pay de finanzas, test de
   campaña, generate de facturación, convertLead, deleteSaved (con
-  ConfirmSheet — componente compartido con /analitica), editor de cron
+  ConfirmSheet; componente compartido con /analitica), editor de cron
   que no se cierra si el PATCH falla; `role="status"` faltante en el
   notice de generate.
 
@@ -38,4 +38,4 @@ incluidos fallos silenciosos en acciones de dinero.
 No se inventa un sistema de toasts global: el repo usa `notice` inline
 con `role="status"`/`role="alert"` y ConfirmSheet; `ActionNotice` es un
 atom de presentación para los casos donde el punto de acción queda fuera
-del viewport — no un event bus ni state global.
+del viewport; no un event bus ni state global.

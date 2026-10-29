@@ -2,7 +2,7 @@
 
 ## Why
 Los usuarios con contraseña (admin/dev) y magic-link-only no tienen cómo
-gestionarla. `PATCH /me` acepta `password` sin verificar la actual —
+gestionarla. `PATCH /me` acepta `password` sin verificar la actual;
 cualquier sesión activa la cambia en silencio (gap de seguridad).
 
 ## What Changes
@@ -15,4 +15,4 @@ cualquier sesión activa la cambia en silencio (gap de seguridad).
   actual (si aplica) + nueva + confirmar; validación client-side +
   ActionNotice éxito/error; "establecer contraseña" cuando no tiene.
 - `PATCH /me` deja de aceptar `password` (la superficie admin que lo
-  usaba migra al endpoint dedicado o queda prohibido — reportar uso).
+  usaba migra al endpoint dedicado o queda prohibido; reportar uso).

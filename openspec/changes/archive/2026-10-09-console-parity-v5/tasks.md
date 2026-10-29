@@ -1,4 +1,4 @@
-# Tasks — console-parity-v5
+# Tasks; console-parity-v5
 
 ## 1. Auditoría owner (fixes)
 
@@ -26,7 +26,7 @@
 ## 2. Paridad productor
 
 - [x] 2.1 Auditoría de páginas del productor (eventos, códigos,
-     listas, comprobantes, pagos, parámetros) — desviaciones mapeadas:
+     listas, comprobantes, pagos, parámetros); desviaciones mapeadas:
      `BackLink` ad-hoc en 4 páginas, `h1` duplicado en 4 páginas de
      crear, cards no clickeables, mutación inline en la cola de
      comprobantes, cancelar evento en el action row, `/me/payouts` sin
@@ -40,7 +40,7 @@
      redemptions), `/productor/listas/[id]` (invitados + alta + emitir
      pase), `/productor/pagos/[id]` (desglose por orden), y
      `/productor/comprobantes/claim/[id]` (datos + comprobante +
-     aprobar/rechazar — la cola ya no muta inline).
+     aprobar/rechazar; la cola ya no muta inline).
 - [x] 2.5 Cancelar evento movido del action row a la zona destructiva
      del pie (centrada, roja); `notFound` con `role="alert"`.
 - [x] 2.6 API para las fichas: `GET /discount-codes/:id`,
@@ -48,7 +48,7 @@
      `GET /me/payouts` paginado (envelope) y `GET /me/payouts/:id`;
      `listRedemptions` enriquecido con nombre de la persona.
 - [x] 2.7 Mutaciones de la cola de comprobantes (aprobar/rechazar)
-     movidas a la ficha — paridad con `/academia/cobros/claim/[id]`.
+     movidas a la ficha; paridad con `/academia/cobros/claim/[id]`.
 
 ## 3. Verificación
 

@@ -1,11 +1,11 @@
-# payments/claims — delta pilot-real-users
+# payments/claims; delta pilot-real-users
 
 ## ADDED Requirements
 
 ### Requirement: Selector de método siempre visible en el checkout
 
 El selector "cómo pagar" del checkout de eventos SHALL renderizarse
-siempre — aunque el productor no tenga métodos propios activos — con
+siempre; aunque el productor no tenga métodos propios activos; con
 la pasarela de la plataforma como única opción seleccionada. El
 comprador MUST poder ver con qué medio se realizará el cobro antes de
 confirmar la orden.

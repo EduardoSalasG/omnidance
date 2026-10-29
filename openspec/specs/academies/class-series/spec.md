@@ -24,7 +24,7 @@ duplicar slot+fecha).
 
 La serie solo deja de generar clases cuando `active=false`
 (desactivación o eliminación de slot cancelan las clases futuras y
-devuelven las reservas — comportamiento existente).
+devuelven las reservas; comportamiento existente).
 
 #### Scenario: crear sin mes
 
@@ -49,7 +49,7 @@ devuelven las reservas — comportamiento existente).
 ### Requirement: Cupos y modalidad a nivel de serie
 
 Los cupos (`quorum`) y las modalidades (`typeIds`) SHALL definirse una
-sola vez a nivel serie — `series.quorum` override del
+sola vez a nivel serie; `series.quorum` override del
 `defaultQuorum` de la academia, `series.types` para las modalidades.
 Los horarios semanales (slots) MUST NOT aceptar `capacity` ni `typeIds`
 propios en la API ni exponerlos en la UI: un slot define `weekday`,
@@ -58,7 +58,7 @@ horario).
 
 Las columnas legacy (`ClassSlot.capacity`, `ClassSlotType`) MAY seguir
 existiendo para datos históricos, pero el contrato nuevo no las
-escribe — el quórum efectivo se resuelve `slot.capacity ?? series.quorum
+escribe; el quórum efectivo se resuelve `slot.capacity ?? series.quorum
 ?? academy.defaultQuorum` como hoy.
 
 #### Scenario: agregar segundo horario
@@ -126,7 +126,7 @@ de modalidad y nivel junto a la búsqueda.
 ### Requirement: Detalle de clase (serie)
 
 El card de clase en el listado MUST NOT mostrar acciones visibles
-(editar, desactivar, reactivar, eliminar, agregar/quitar horario) — el
+(editar, desactivar, reactivar, eliminar, agregar/quitar horario); el
 tap navega al detalle `/academia/series/[id]`, que concentra: datos,
 edición (formulario existente), gestión de horarios (agregar/quitar),
 desactivar/reactivar/eliminar, próximas clases con reservas y clases
@@ -149,7 +149,7 @@ slot > serie).
 Marcar presente SHALL ser exclusivo del instructor efectivo de la
 clase (cualquier instructor del plantel: `class.instructorId`,
 `ClassInstructor`, `slot.instructorId`, `ClassSlotInstructor` o el
-instructor por defecto de la serie) o un admin de plataforma — el
+instructor por defecto de la serie) o un admin de plataforma; el
 owner de la academia MUST NOT registrar asistencia.
 `POST /classes/:id/attendance {personId}` exige que el alumno tenga
 reserva `BOOKED` en esa clase; duplicado → 409.
@@ -168,7 +168,7 @@ en el roster SHALL enlazar a su ficha `/academia/alumnos/:personId`.
 
 Una reserva sin asistencia marcada SHALL permanecer `BOOKED`: el
 alumno figura como no confirmado, pero su cupo sigue contando en
-`bookedCount` (quórum) y el crédito de su plan permanece consumido —
+`bookedCount` (quórum) y el crédito de su plan permanece consumido;
 la asistencia nunca libera cupo.
 
 #### Scenario: profe marca presente
@@ -204,7 +204,7 @@ la asistencia nunca libera cupo.
 
 La carga masiva CSV de horarios (ImportCard kind="schedule") SHALL
 vivir en la página de Clases junto a los filtros como acción
-"Importar clases" — las páginas standalone `/academia/horarios` y
+"Importar clases"; las páginas standalone `/academia/horarios` y
 `/academia/asistencia` se eliminan (redirect a `/academia/series`).
 
 #### Scenario: importar desde Clases
@@ -258,9 +258,9 @@ singular existente para clientes que solo muestran uno.
 ### Requirement: Notificación al asignar instructor
 
 Cuando una persona queda asignada como instructora de una serie u
-horario — `POST /academies/:id/series` (instructor de serie o de
+horario; `POST /academies/:id/series` (instructor de serie o de
 slot), `PATCH /academies/:id/series/:seriesId` (cambio de instructor
-de serie o `addSlots` con instructor) o importación de horarios — el
+de serie o `addSlots` con instructor) o importación de horarios; el
 sistema SHALL emitir una notificación `class.instructor_assigned` al
 instructor asignado con título `Te asignaron una clase` y body
 `{serie} · {academia}`.

@@ -1,11 +1,11 @@
-# Design — add-clarity
+# Design; add-clarity
 
 ## Decisiones
 
 - **Mismo patrón que GTM** (`components/gtm.tsx`): componente server
   `ClarityScript` en `apps/web/src/components/clarity.tsx`, inline
   `dangerouslySetInnerHTML` con el snippet oficial, gateado por
-  `NEXT_PUBLIC_CLARITY_ID`. Clarity no tiene variante `<noscript>` —
+  `NEXT_PUBLIC_CLARITY_ID`. Clarity no tiene variante `<noscript>`;
   solo va el script en `<head>`.
 - **CSP**: `script-src` suma `https://*.clarity.ms` (wildcard de
   subdominio: la guía de CSP de Microsoft pide `*.clarity.ms` porque el
@@ -19,7 +19,7 @@
 
 ## Riesgos
 
-- Recordings de sesión pueden capturar datos sensibles en inputs —
+- Recordings de sesión pueden capturar datos sensibles en inputs;
   mitigación nativa de Clarity (masking por defecto); cualquier
   masking extra se configura en el panel de Clarity, no en código.
 - CSP rota → tag no carga. Mitigado por el escenario de spec + smoke.

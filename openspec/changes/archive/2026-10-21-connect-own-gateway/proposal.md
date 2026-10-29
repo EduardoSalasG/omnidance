@@ -7,7 +7,7 @@ Express reutilizable) pero el productor internacional sigue cobrando
 por la pasarela de la plataforma (MANAGED). Para completar
 own-gateway multipaís falta que `ProducerGatewayAccount` acepte
 `STRIPE` y que el checkout cobre directo en la `acct_` del productor
-(direct charges con `Stripe-Account` header) — la plata llega a él
+(direct charges con `Stripe-Account` header); la plata llega a él
 sin tocar la cuenta de plataforma, y la comisión se devenga/netea
 como OWN_GATEWAY igual que Flow/MP/Fintoc.
 
@@ -15,7 +15,7 @@ como OWN_GATEWAY igual que Flow/MP/Fintoc.
 
 - `ProducerGatewayAccount` acepta provider `STRIPE`: sus
   credenciales no son un secret del productor sino el `accountId`
-  (`acct_…`) de una Connect account ya onboarded — el alta referencia
+  (`acct_…`) de una Connect account ya onboarded; el alta referencia
   un `PayoutDestination` ACTIVE del actor (mismo onboarding, una sola
   cuenta cubre cobro y desembolso). `secret`/webhook secret no aplica
   (confirmación por polling `refreshStatus` + `Stripe-Account`
@@ -27,7 +27,7 @@ como OWN_GATEWAY igual que Flow/MP/Fintoc.
   con el mismo header. `feeMode`/`OWN_GATEWAY` y el desglose de
   comisión no cambian.
 - Alta desde `/producer/gateway-account`: para STRIPE el PUT recibe
-  solo el provider — el backend resuelve la `acct_` del destino
+  solo el provider; el backend resuelve la `acct_` del destino
   ACTIVE del actor (sin destino → 400 guiando a conectar primero en
   `/productor/pagos`).
 - `GET /api/producer/gateway-account` expone `keyMask` como últimos
@@ -37,8 +37,8 @@ como OWN_GATEWAY igual que Flow/MP/Fintoc.
 
 - Webhook de cuentas conectadas (Connect webhook `account.updated` /
   `checkout.session.*` con `event.account`): v1 confirma por polling
-  `refreshStatus` como en dev/sandbox — suficiente porque el flujo
+  `refreshStatus` como en dev/sandbox; suficiente porque el flujo
   de compra siempre vuelve por `return_url` y el polling cubre.
 - `application_fee_amount` en el cargo (el modelo actual devenga la
-  comisión y la netea en el payout — no se cobra en el cargo).
+  comisión y la netea en el payout; no se cobra en el cargo).
 - Onboarding Connect separado para cobro (se reutiliza el destino).

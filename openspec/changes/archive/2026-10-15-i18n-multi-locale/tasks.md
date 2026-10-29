@@ -33,4 +33,4 @@
 - [x] alternates.languages en landings públicas (`localeAlternates` en lib/seo.ts)
 - [x] sitemap con alternates.languages por entrada
 - [x] tsc web+api, next build (367 páginas × 4 locales), smoke /en /fr /pt-PT (títulos localizados, og:image absoluto)
-- [x] Regenerar docs API (`/me` acepta `language`) — openapi.json + postman
+- [x] Regenerar docs API (`/me` acepta `language`); openapi.json + postman

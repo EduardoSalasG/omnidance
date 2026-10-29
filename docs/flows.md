@@ -129,7 +129,7 @@ flowchart TD
 
 La cadena de resolución del corte es la misma de las fees (evento → productor → global). El helper puro `resolvePresaleCutoffMinutes` en `src/common/presale-cutoff.ts` la centraliza - la usan `purchaseTicket`, `discountQuote` y el detalle de evento (`presaleEndsAt` que muestra la app). Post-medianoche: `presaleCutoffMinutes` es minutos desde las 00:00 del día local del evento, así 1500 = 01:00 del día siguiente.
 
-**Orden $0**: el comprador paga `lista − descuento` exacto (producer-fee-model: nunca se suma cargo). Si el total final es 0 (preventa gratis o cupón 100%) no hay nada que cobrar: el checkout marca el Payment `gateway="FREE"` + `feeMode=FREE` (desglose en cero, FEE_ASSESSED igual lo registra), salta `gateway.createOrder` y lo liquida por el mismo `settle(...,"PAID")` del webhook - tickets, claim links y notificaciones idénticos a un pago normal. El front recibe `paid: true` con `paymentUrl: null` y cae directo en la pantalla de éxito — no hay redirect ni pantalla de retorno.
+**Orden $0**: el comprador paga `lista − descuento` exacto (producer-fee-model: nunca se suma cargo). Si el total final es 0 (preventa gratis o cupón 100%) no hay nada que cobrar: el checkout marca el Payment `gateway="FREE"` + `feeMode=FREE` (desglose en cero, FEE_ASSESSED igual lo registra), salta `gateway.createOrder` y lo liquida por el mismo `settle(...,"PAID")` del webhook - tickets, claim links y notificaciones idénticos a un pago normal. El front recibe `paid: true` con `paymentUrl: null` y cae directo en la pantalla de éxito; no hay redirect ni pantalla de retorno.
 
 Edición: `presaleCutoffMinutes` del evento lo define el productor en el form (`type="time"`, vacío = heredar; valores post-medianoche solo por API) o el admin; el default por productor se edita en `/productor/parametros` (PUT `/producer/table-params`) y en `/admin/parametros` (`/admin/producers/:id/fee-params`).
 
@@ -186,7 +186,7 @@ sequenceDiagram
     W->>IDB: synced → sale de la cola;<br/>duplicate → conflicto visible (decisión humana)
 ```
 
-El registro **manual offline** sigue el mismo camino: el staff busca por nombre sobre el manifest cacheado (sin personId crudo) y el ítem se encola con `personId` en vez de `qrToken`. Un `clientRef` existente responde `duplicate` sin insertar — el retry del dispositivo es exacto. La integridad del QR se conserva: el dispositivo solo lee el payload para mostrar el nombre; la verificación HMAC sigue siendo exclusiva del server al sincronizar (migración a firma asimétrica para verificación offline real quedó fuera de scope).
+El registro **manual offline** sigue el mismo camino: el staff busca por nombre sobre el manifest cacheado (sin personId crudo) y el ítem se encola con `personId` en vez de `qrToken`. Un `clientRef` existente responde `duplicate` sin insertar; el retry del dispositivo es exacto. La integridad del QR se conserva: el dispositivo solo lee el payload para mostrar el nombre; la verificación HMAC sigue siendo exclusiva del server al sincronizar (migración a firma asimétrica para verificación offline real quedó fuera de scope).
 
 ## Waitlist → promoción
 

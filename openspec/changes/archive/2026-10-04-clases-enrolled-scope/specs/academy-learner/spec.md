@@ -4,7 +4,7 @@
 
 ### Requirement: El alumno explora clases priorizando sus academias
 
-`GET /classes/browse` SHALL aceptar `scope=enrolled` para acotar el listado a las academias donde el autenticado tiene Enrollment en `ACTIVE | TRIAL | ONLINE` (`PAUSED`/`FROZEN` no cuentan). Sin `scope` mantiene `all` (todas las academias activas). Cada item SHALL incluir `enrolled: boolean` — vigencia de inscripción del autenticado en la academia de la clase — para resolver el CTA de reserva sin query extra.
+`GET /classes/browse` SHALL aceptar `scope=enrolled` para acotar el listado a las academias donde el autenticado tiene Enrollment en `ACTIVE | TRIAL | ONLINE` (`PAUSED`/`FROZEN` no cuentan). Sin `scope` mantiene `all` (todas las academias activas). Cada item SHALL incluir `enrolled: boolean`; vigencia de inscripción del autenticado en la academia de la clase; para resolver el CTA de reserva sin query extra.
 
 #### Scenario: Alumno inscrito en una academia
 
@@ -61,7 +61,7 @@ La página `/clases` SHALL tener scopes `s=mias | explorar | historial` (con lay
 
 ### Requirement: Filtro Todas | Reservadas en lista y calendario
 
-El scope `mias` (en layouts list y calendar) SHALL ofrecer un filtro segmentado `scope=todas|reservadas`. `reservadas` SHALL listar las reservas futuras del alumno (BOOKED/WAITLIST) como cards wallet con link al QR — la vista `mine` desaparece y `view=mine` legado SHALL redirigir a `s=mias + scope=reservadas`.
+El scope `mias` (en layouts list y calendar) SHALL ofrecer un filtro segmentado `scope=todas|reservadas`. `reservadas` SHALL listar las reservas futuras del alumno (BOOKED/WAITLIST) como cards wallet con link al QR; la vista `mine` desaparece y `view=mine` legado SHALL redirigir a `s=mias + scope=reservadas`.
 
 #### Scenario: Ver solo lo reservado en lista
 

@@ -47,7 +47,7 @@
 - Filtros de fecha `from`/`to` fuera del listado para TODAS las lentes.
 - `dedupeOptions()` nuevo en `shared.ts`: dedup por label normalizado
   aplicado a academyPlans (alumnos), academias/series (teaching) y al
-  selector de `AcademyGate` — fix del reporte de muvet (opciones
+  selector de `AcademyGate`; fix del reporte de muvet (opciones
   repetidas por data duplicada en el origen).
 
 **Perfil** (`perfil/page.tsx`):
@@ -87,7 +87,7 @@
   `SEED_ENV=dev pnpm db:seed` contra `MIGRATION_DATABASE_URL` (idempotente,
   ahora con logs por sección).
 - **Gate de completitud del seed** en el workflow solo mira
-  roles+admin — un seed a medias pasa por completo. Sugerencia:
+  roles+admin; un seed a medias pasa por completo. Sugerencia:
   endurecer con `eventSeries > 0` o similar.
 - Sin push ni release: todo quedó en `dev`.
 

@@ -1,7 +1,7 @@
-# Tasks — stripe-subs-webhook
+# Tasks; stripe-subs-webhook
 
 - [x] 1. Dispatcher: en el controller del webhook STRIPE, enrutar
-      billing events por target — socialPass metadata → SocialPass
+      billing events por target; socialPass metadata → SocialPass
       (actual); remoteId en MembershipSubscription →
       SubscriptionsService; remoteId en PlatformSubscription →
       PlatformSubscriptionsService; sin match → ack ignorado.

@@ -1,4 +1,4 @@
-# Tasks — academy-approval-gate
+# Tasks; academy-approval-gate
 
 ## 1. Schema + migración
 - [x] `Academy.reviewStatus RoleStatus @default(PENDING)` y
@@ -11,13 +11,13 @@
       service): batch groupBy de series activas, clases futuras, planes,
       y PersonRole APPROVED de owners → mapa id → checks
 - [x] `POST /academies` nace con `reviewStatus: "PENDING"` (default
-      ya lo da el schema — actualizar comentario)
+      ya lo da el schema; actualizar comentario)
 - [x] `GET /academies` + `GET /academies/public`: filtrar por
       visibilidad (APPROVED, o PENDING con checklist completo →
       persist APPROVED best-effort). Mantener `active` +
       `billingBlockedAt: null` + owner APPROVED
 - [x] `GET /academies/:id/profile`: 404 si no visible y viewer no es
-      manager (requireManage ya resuelve privilegio — reusar)
+      manager (requireManage ya resuelve privilegio; reusar)
 - [x] `GET /classes/browse`: mismo filtro por academia
 - [x] `GET /academies/:id` + `GET /academies/mine`: incluir
       `reviewStatus` + `checks`
@@ -33,7 +33,7 @@
       (audit ACADEMY_REJECT)
 
 ## 4. Web
-- [x] `/admin/perfiles-por-validar`: sección "Academias" con la cola —
+- [x] `/admin/perfiles-por-validar`: sección "Academias" con la cola;
       badges por check, aprobar (override), rechazar
 - [x] `/academia`: card de visibilidad (estado + ítems faltantes con
       links a la sección que los resuelve)

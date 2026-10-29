@@ -147,8 +147,8 @@ reactivar, disparar una corrida manual y ver el historial de corridas
 
 ### Requirement: claim atómico de corrida multi-instancia
 
-La toma de un job para ejecutarlo MUST ser atómica a nivel DB —
-`updateMany` condicional sobre `runningRunId IS NULL` — de modo que
+La toma de un job para ejecutarlo MUST ser atómica a nivel DB;
+`updateMany` condicional sobre `runningRunId IS NULL`; de modo que
 con N instancias de API a lo sumo una ejecuta la corrida. La instancia
 que pierde la carrera descarta el `JobRun` creado: en trigger CRON el
 skip es silencioso; en MANUAL responde 409 "ya tiene una corrida
@@ -212,13 +212,13 @@ alumnos con scores de esa academia) accesible desde el hub /admin.
 
 `GET /admin/users` SHALL aceptar `q` (texto libre sobre nombre, email o
 teléfono), `role` (key del catálogo RBAC), `page` y `pageSize`, y
-responder el envelope `{items,total,page,pageSize}` — nunca un array
+responder el envelope `{items,total,page,pageSize}`; nunca un array
 plano ni la tabla completa. `page` normaliza a ≥1 (default 1) y
 `pageSize` a default 25 capado en 100; valores no numéricos caen al
 default sin error.
 
 Sin `q` de ≥2 caracteres ni `role` válido, el endpoint SHALL responder
-un envelope vacío (`items: []`, `total: 0`) — nunca un listado masivo.
+un envelope vacío (`items: []`, `total: 0`); nunca un listado masivo.
 
 #### Scenario: página de resultados por rol
 
@@ -275,7 +275,7 @@ catálogo RBAC vivo (`GET /admin/roles`), no de una lista hardcodeada.
 En la ficha `/admin/usuarios/[personId]`, cada lista dentro de las
 cards de "Actividad por rol" SHALL mostrar máximo 5 filas por defecto;
 cuando la lista supera las 5, un toggle centrado SHALL permitir ver
-todas ("Ver las {count}") y volver a colapsar ("Ver menos") — mismo
+todas ("Ver las {count}") y volver a colapsar ("Ver menos"); mismo
 patrón que las fichas de `/admin/academias/[id]`.
 
 #### Scenario: lista larga colapsada
@@ -323,10 +323,10 @@ cuando el contador es mayor a cero.
 
 Las secciones de `/admin/catalogos` SHALL listar sus valores como filas
 de lectura (nombre truncable a la izquierda; metadatos y acciones
-agrupados en la zona derecha) — no cards de contenido variable. El alta
+agrupados en la zona derecha); no cards de contenido variable. El alta
 de un valor SHALL hacerse en una página dedicada
 `/admin/catalogos/nuevo?cat=<catalogo>` alcanzada por un CTA por
-sección — nunca un form inline en el listado.
+sección; nunca un form inline en el listado.
 
 #### Scenario: fila legible en 320px
 
@@ -349,7 +349,7 @@ sección — nunca un form inline en el listado.
 ### Requirement: edición de catálogo en página dedicada
 
 La acción "Editar" de una fila de `/admin/catalogos` SHALL navegar a
-`/admin/catalogos/[cat]/[id]/editar` — página con `ConsoleHeader` de
+`/admin/catalogos/[cat]/[id]/editar`; página con `ConsoleHeader` de
 vuelta al listado, form prellenado (nombre + campo extra del catálogo),
 PATCH al endpoint y regreso a `/admin/catalogos`. El listado SHALL NOT
 renderizar forms de edición inline. `cat` desconocido cae a `styles`;
@@ -392,7 +392,7 @@ APPROVED; rechazar SHALL retirar el rol.
 PENDING/REJECTED con el checklist ya evaluado por el servidor
 (`academyChecks`), el owner y su estado de rol. `/admin/perfiles-por-validar`
 SHALL ganar una segunda sección "Academias" que lista esa cola con los
-checks como badges — sin trabajo manual: la mayoría se auto-aprueba al
+checks como badges; sin trabajo manual: la mayoría se auto-aprueba al
 completar datos.
 
 `POST /admin/academy-review-queue/:academyId/approve` SHALL forzar
@@ -404,7 +404,7 @@ REJECTED (oculta aunque completa).
 
 - **WHEN** el admin abre `/admin/perfiles-por-validar`
 - **THEN** la sección Academias muestra cada PENDING con los checks
-  en rojo/verde ya evaluados — no hay que abrir la ficha para saber
+  en rojo/verde ya evaluados; no hay que abrir la ficha para saber
   qué falta
 
 #### Scenario: override de aprobación
@@ -423,7 +423,7 @@ REJECTED (oculta aunque completa).
 ### Requirement: Baja lógica de usuario
 
 `DELETE /admin/users/:personId` SHALL marcar la cuenta como desactivada
-(`Person.deletedAt`) sin eliminar filas — el grafo de datos (academias,
+(`Person.deletedAt`) sin eliminar filas; el grafo de datos (academias,
 eventos, tickets, roles, historial) queda intacto. Una cuenta
 desactivada MUST NO poder autenticarse por ningún mecanismo (sesión,
 password, magic link, OTP) y MUST NO aparecer en superficies públicas
@@ -450,7 +450,7 @@ rechazada con 400.
 #### Scenario: Email ocupado tras desactivación
 
 - WHEN alguien registra con el email de una cuenta desactivada
-- THEN recibe 409 emailTaken — el email no se libera
+- THEN recibe 409 emailTaken; el email no se libera
 
 #### Scenario: Reactivación restaura el acceso
 
@@ -464,7 +464,7 @@ rechazada con 400.
 El sistema SHALL persistir `FeatureFlag {key, label, description?,
 enabled, updatedById?, updatedAt}` como catálogo global de
 funcionalidades activables, seedado desde código con defaults por
-flag (un flag nuevo nace con el default que declare su seed —
+flag (un flag nuevo nace con el default que declare su seed;
 `social_pass` nace `enabled:false`). `FeatureFlagsService.isEnabled`
 SHALL responder desde una cache corta (≤60s) e invalidarse al
 escritura.
@@ -486,7 +486,7 @@ escritura.
 `GET /admin/feature-flags` (`admin.access`) SHALL devolver el
 catálogo con label, descripción, estado y última modificación.
 `PATCH /admin/feature-flags/:key {enabled}` SHALL flippear el flag,
-persistir `updatedById` y auditar `FEATURE_FLAG_TOGGLE` — flag
+persistir `updatedById` y auditar `FEATURE_FLAG_TOGGLE`; flag
 inexistente → 404. `GET /features` SHALL ser público y devolver el
 mapa `{key: enabled}` de todos los flags (los flags son metadatos de
 producto, no secretos), cacheado a nivel HTTP.
@@ -516,12 +516,12 @@ en estado inconsistente.
 
 - **WHEN** el PATCH falla (red o 403)
 - **THEN** el toggle vuelve a su estado previo y se muestra el error
-  — nunca queda "encendido" visualmente contra el estado real
+ ; nunca queda "encendido" visualmente contra el estado real
 
 ### Requirement: Guía editorial por ciudad
 
 El sistema SHALL persistir `CityGuide {cityId @unique, intro,
-nightlife, practical, updatedById, updatedAt}` — una guía por ciudad
+nightlife, practical, updatedById, updatedAt}`; una guía por ciudad
 con tres secciones de texto. `GET /admin/city-guides` SHALL listar las
 ciudades con su estado de guía (vacía/borrador/completa: completa =
 las 3 secciones con texto); `GET /admin/city-guides/:cityId` devuelve
@@ -547,7 +547,7 @@ o con todas las secciones vacías.
 
 - **WHEN** una ciudad tiene solo `intro` escrito
 - **THEN** `hasGuide:true` y la landing muestra solo la sección con
-  contenido — nunca secciones vacías al visitante
+  contenido; nunca secciones vacías al visitante
 
 ### Requirement: Editor admin
 

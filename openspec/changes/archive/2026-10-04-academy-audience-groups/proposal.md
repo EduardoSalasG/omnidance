@@ -8,7 +8,7 @@ segmentos conductuales genéricos (NEW/AT_RISK/CORE/BRINGS_PEOPLE) + tags
 manuales + `personIds` (modelo existe, sin UI). Falta el grupo natural de
 su negocio: **todos los alumnos**, **por estado de inscripción**
 (ACTIVE/TRIAL/PAUSED/ONLINE/FROZEN), **por plan** y **por serie**. Además
-el envío es a ciegas — sin saber cuántas personas alcanzará — y no puede
+el envío es a ciegas; sin saber cuántas personas alcanzará; y no puede
 armar un grupo ad-hoc eligiendo alumnos.
 
 ## What Changes
@@ -27,7 +27,7 @@ armar un grupo ad-hoc eligiendo alumnos.
   select de plan + select de serie + "todos los alumnos"), picker de
   personas con checkbox (alimenta `personIds`), y contador de preview
   (debounced).
-- Las campañas manuales NO llevan cooldown — cada send es intencional y
+- Las campañas manuales NO llevan cooldown; cada send es intencional y
   DRAFT→SENT ya impide reenvío de la misma campaña (decisión: cooldown es
   para triggers automáticos).
 
@@ -37,4 +37,4 @@ armar un grupo ad-hoc eligiendo alumnos.
 - Affected code: `crm.service.ts` (parseSegment + resolveSegment +
   previewCampaign), `crm.controller.ts` (endpoint preview),
   `components/crm/campaign-form.tsx`, `types.ts`, i18n `parts/crm.json`.
-- Datos: sin migración — `segment` es JSON en `Campaign`.
+- Datos: sin migración; `segment` es JSON en `Campaign`.

@@ -3,7 +3,7 @@
 ## Why
 
 Las notificaciones que llegan al teléfono (web push + bandeja in-app) usan
-títulos largos con prefijos boilerplate ("Pago confirmado — …", "Tu reserva
+títulos largos con prefijos boilerplate ("Pago confirmado; …", "Tu reserva
 de mesa fue confirmada", "Te liquidaron la comisión de una clase
 particular"). En lockscreen el título se trunca ~40-50 chars y el body a
 ~2 líneas: el prefijo se come el espacio y la información clave (qué cosa,
@@ -24,6 +24,6 @@ quién, cuánto) queda cortada o enterrada.
 ## Impact
 
 - Affected specs: `notifications/push-copy` (nueva capability).
-- Affected code: `apps/api/src/**` — solo literales `title`/`body`.
-- Tests: ningún spec aserta sobre `title`/`body` (verificado) — no rompe
+- Affected code: `apps/api/src/**`; solo literales `title`/`body`.
+- Tests: ningún spec aserta sobre `title`/`body` (verificado); no rompe
   assertions; se agrega un test de convención (largos máximos).

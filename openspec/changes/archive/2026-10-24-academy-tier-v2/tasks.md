@@ -1,4 +1,4 @@
-# Tasks — academy-tier-v2
+# Tasks; academy-tier-v2
 
 - [x] 1. Gating fino: leaks COBROS/STUDIO en alumnos/home/detalle +
   consultas→PRO + multiAcademy PRO en CTA/ruta/API.

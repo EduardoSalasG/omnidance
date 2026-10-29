@@ -1,4 +1,4 @@
-# admin — delta admin-users-pagination
+# admin; delta admin-users-pagination
 
 ## ADDED Requirements
 
@@ -6,13 +6,13 @@
 
 `GET /admin/users` SHALL aceptar `q` (texto libre sobre nombre, email o
 teléfono), `role` (key del catálogo RBAC), `page` y `pageSize`, y
-responder el envelope `{items,total,page,pageSize}` — nunca un array
+responder el envelope `{items,total,page,pageSize}`; nunca un array
 plano ni la tabla completa. `page` normaliza a ≥1 (default 1) y
 `pageSize` a default 25 capado en 100; valores no numéricos caen al
 default sin error.
 
 Sin `q` de ≥2 caracteres ni `role` válido, el endpoint SHALL responder
-un envelope vacío (`items: []`, `total: 0`) — nunca un listado masivo.
+un envelope vacío (`items: []`, `total: 0`); nunca un listado masivo.
 
 #### Scenario: página de resultados por rol
 

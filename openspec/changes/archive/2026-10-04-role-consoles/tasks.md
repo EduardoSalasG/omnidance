@@ -1,4 +1,4 @@
-# tasks — role-consoles
+# tasks; role-consoles
 
 - [x] API: venues mine/dashboard/rentals PATCH + guard owner-or-admin
 - [x] API: dj gigs + suggestions por evento asignado

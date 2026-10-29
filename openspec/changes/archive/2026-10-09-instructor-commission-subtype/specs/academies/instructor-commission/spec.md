@@ -1,4 +1,4 @@
-# Delta — academies/instructor-commission (instructor-commission-subtype)
+# Delta; academies/instructor-commission (instructor-commission-subtype)
 
 La comisión porcentual deja de ser dato puramente histórico: vuelve
 como tercer subtipo del acuerdo económico del instructor
@@ -13,7 +13,7 @@ subtipo.
 = round(price * commissionPct / 100)` y `netClp = price -
 commissionClp` únicamente en filas con `commissionPct > 0` (lecciones
 con acuerdo COMMISSION o históricas del modelo anterior). En lecciones
-sin comisión (`commissionPct=0`) esos campos SHALL NO aparecer — un
+sin comisión (`commissionPct=0`) esos campos SHALL NO aparecer; un
 `netClp` igual al precio sugeriría que el instructor cobra el total.
 La rama `as=student` ya no existe en este endpoint (la vista del
 alumno vive en `/classes/mine`).
@@ -80,13 +80,13 @@ todos los campos económicos.
 ### Requirement: Sin snapshot de comisión en lecciones nuevas
 
 `POST /academies/:id/private-lessons` y `PATCH /private-lessons/:id`
-con `action="assign"` SHALL NO escribir `commissionPct` — las lecciones
+con `action="assign"` SHALL NO escribir `commissionPct`; las lecciones
 nuevas nacen con el default 0 y su liquidación se rige por el acuerdo
 económico. `commissionPct`/`commissionPaidAt` persisten en schema como
 histórico y `action="pay-commission"` SHALL seguir liquidando solo
 lecciones con `commissionPct > 0` (rechaza 409 las nuevas). El filtro
 `commission` de `GET /academies/:id/private-lessons` SHALL operar solo
-sobre el histórico: `paid`/`pending` implican `commissionPct > 0` —
+sobre el histórico: `paid`/`pending` implican `commissionPct > 0`;
 las lecciones nuevas no son "pendientes de comisión".
 
 #### Scenario: lección nueva sin comisión
@@ -148,7 +148,7 @@ otro subtipo (o sin acuerdo) la lección nace con `commissionPct=0`.
 **al momento del snapshot** y SHALL NOT reescribirse si el acuerdo
 cambia después. `action="pay-commission"` SHALL seguir liquidando solo
 lecciones con `commissionPct > 0` (rechaza 409 las demás) y el filtro
-`commission` SHALL seguir implicando `commissionPct > 0` — las
+`commission` SHALL seguir implicando `commissionPct > 0`; las
 lecciones sin comisión no son "pendientes de comisión".
 
 #### Scenario: lección de instructor a comisión
@@ -187,7 +187,7 @@ lecciones sin comisión no son "pendientes de comisión".
 instructors` el acuerdo (`payType`/`payAmount`/`payClasses`) y SHALL
 NO exponer `commissionPct`. Los listados/detalle de profesores bajo la
 capacidad `team` SHALL exponer `commissionPct` con valor solo cuando el
-`payType` vigente es `COMMISSION` (null en otro subtipo — la tasa de
+`payType` vigente es `COMMISSION` (null en otro subtipo; la tasa de
 un acuerdo que no es comisión no se presenta como vigente). Los
 listados/detalles de clases particulares SHALL incluir `commissionPct`/
 `commissionPaidAt` solo en filas con `commissionPct > 0` para quien

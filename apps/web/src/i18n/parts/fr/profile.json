@@ -68,7 +68,7 @@
      "EU": "Union européenne (RGPD)"
     }
    },
-   "photoError": "Impossible de téléverser la photo — essayez une image plus légère (5 Mo max) ou JPG/PNG."
+   "photoError": "Impossible de téléverser la photo, essayez une image plus légère (5 Mo max) ou JPG/PNG."
   },
   "reminder": {
    "title": "Complète ton profil",
@@ -94,7 +94,7 @@
    "title": "Sécurité",
    "label": "Mot de passe",
    "defined": "Défini",
-   "notSet": "Pas de mot de passe — tu entres via un lien dans ton e-mail",
+   "notSet": "Pas de mot de passe, tu entres via un lien dans ton e-mail",
    "set": "Définir un mot de passe",
    "change": "Changer le mot de passe",
    "current": "Mot de passe actuel",

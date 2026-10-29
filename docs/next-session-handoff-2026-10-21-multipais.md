@@ -1,4 +1,4 @@
-# Handoff 2026-10-21 — fundación multipaís + series engagement
+# Handoff 2026-10-21; fundación multipaís + series engagement
 
 ## Desplegado a main (prod)
 
@@ -28,11 +28,11 @@
 - Página `/ciudades/[slug]` (eventos/academias/prácticas) + i18n 4 loc.
 - `AdminRegion` + scoping regional en `validation-queue` y
   `academy-review-queue` (revisor sin regiones = global).
-- `TierPrice` — price book `tier×country` para multi-moneda.
+- `TierPrice`; price book `tier×country` para multi-moneda.
 
 ## Decisiones de producto tomadas
 
-- Suscripción dancer = **Pase Social** (NO academias — el baile tiene
+- Suscripción dancer = **Pase Social** (NO academias; el baile tiene
   trayectoria): créditos para sociales/prácticas/eventos + cargo de
   servicio en puerta (~$1.000) al no-suscriptor + siempre preventa
   al suscriptor. Sirve Chile hoy y viajero después.
@@ -44,23 +44,23 @@
 
 ## Próximos pasos (roadmap openspec/changes/multipais-foundation)
 
-1. **Stripe adapter + port `PayoutRail`** — pieza grande, habilita
+1. **Stripe adapter + port `PayoutRail`**; pieza grande, habilita
    cobrar fuera de Chile (gateway-registry ya es hexagonal).
 2. Consent por jurisdicción (GDPR vs Ley 19.628).
 3. City guides curadas, "Mi viaje" (trip planner), pases multi-día.
-4. Pase Social (task 12) — suscripción + créditos + cargo puerta.
+4. Pase Social (task 12); suscripción + créditos + cargo puerta.
 5. Congresos (task 13).
 
 ## Notas técnicas de la sesión
 
-- `npx` fallaba por commit de memoria Windows agotado — workaround:
+- `npx` fallaba por commit de memoria Windows agotado; workaround:
   `node node_modules/prisma/build/index.js generate` y
   `node node_modules/typescript/bin/tsc --noEmit` (spawn directo).
 - Specs de controllers que importan SessionGuard requieren
   `import "../../auth/infrastructure/auth.controller"` primero
   (dependencia circular conocida).
 - Skills verificadas en `~/.agents/skills/` (using-superpowers,
-  impeccable, ui-ux-principles, etc.) — invocarlas por nombre; el
+  impeccable, ui-ux-principles, etc.); invocarlas por nombre; el
   search del repo no las encuentra porque viven fuera.
-- `Checkin.event` es FK plana (no relación) — filtrar por `eventId in`
+- `Checkin.event` es FK plana (no relación); filtrar por `eventId in`
   tras resolver los eventos de la serie.

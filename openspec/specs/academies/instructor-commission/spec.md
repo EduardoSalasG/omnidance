@@ -13,7 +13,7 @@ owner configura la comisión que retiene la academia - hoy
 = round(price * commissionPct / 100)` y `netClp = price -
 commissionClp` únicamente en filas con `commissionPct > 0` (lecciones
 con acuerdo COMMISSION o históricas del modelo anterior). En lecciones
-sin comisión (`commissionPct=0`) esos campos SHALL NO aparecer — un
+sin comisión (`commissionPct=0`) esos campos SHALL NO aparecer; un
 `netClp` igual al precio sugeriría que el instructor cobra el total.
 La rama `as=student` ya no existe en este endpoint (la vista del
 alumno vive en `/classes/mine`).
@@ -85,7 +85,7 @@ otro subtipo (o sin acuerdo) la lección nace con `commissionPct=0`.
 **al momento del snapshot** y SHALL NOT reescribirse si el acuerdo
 cambia después. `action="pay-commission"` SHALL seguir liquidando solo
 lecciones con `commissionPct > 0` (rechaza 409 las demás) y el filtro
-`commission` SHALL seguir implicando `commissionPct > 0` — las
+`commission` SHALL seguir implicando `commissionPct > 0`; las
 lecciones sin comisión no son "pendientes de comisión".
 
 #### Scenario: lección de instructor a comisión
@@ -124,7 +124,7 @@ lecciones sin comisión no son "pendientes de comisión".
 instructors` el acuerdo (`payType`/`payAmount`/`payClasses`) y SHALL
 NO exponer `commissionPct`. Los listados/detalle de profesores bajo la
 capacidad `team` SHALL exponer `commissionPct` con valor solo cuando el
-`payType` vigente es `COMMISSION` (null en otro subtipo — la tasa de
+`payType` vigente es `COMMISSION` (null en otro subtipo; la tasa de
 un acuerdo que no es comisión no se presenta como vigente). Los
 listados/detalles de clases particulares SHALL incluir `commissionPct`/
 `commissionPaidAt` solo en filas con `commissionPct > 0` para quien

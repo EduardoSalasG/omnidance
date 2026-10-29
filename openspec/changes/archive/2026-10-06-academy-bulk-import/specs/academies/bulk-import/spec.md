@@ -1,4 +1,4 @@
-# academies/bulk-import — deltas
+# academies/bulk-import; deltas
 
 ## ADDED Requirements
 
@@ -36,7 +36,7 @@ de fila, no crash. Límite: 500 filas de datos → 400 si excede.
   actualizar `planId` al importado y `endsAt` = max(existente, importada);
   si no SHALL crear `ACTIVE{startedAt:now, planId, endsAt}`.
 - `pagado_hasta` SHALL interpretarse como fin del día Chile (mediodía
-  UTC aprox., misma convención que alta staff) — vacío → `endsAt` null.
+  UTC aprox., misma convención que alta staff); vacío → `endsAt` null.
 - Respuesta: `{total, imported, updated, invited, errors:[{row,message}]}`.
 
 #### Scenario: alumno nuevo invitado

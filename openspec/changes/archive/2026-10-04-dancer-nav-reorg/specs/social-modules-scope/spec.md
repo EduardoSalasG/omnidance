@@ -8,7 +8,7 @@ Cada módulo social del bailarín responde una sola pregunta: `/bailes` = qué b
 
 ### Requirement: Bailes muestra solo sesiones escaneadas
 
-`/bailes` SHALL listar las `DanceSession` del usuario (escaneadas por QR o retro-declaradas) con pareja, estilo, estado y rating — sin otras secciones. MUST NOT renderizar disponibilidad ni solicitudes de pareja.
+`/bailes` SHALL listar las `DanceSession` del usuario (escaneadas por QR o retro-declaradas) con pareja, estilo, estado y rating; sin otras secciones. MUST NOT renderizar disponibilidad ni solicitudes de pareja.
 
 #### Scenario: Historial limpio
 
@@ -28,5 +28,5 @@ Cada módulo social del bailarín responde una sola pregunta: `/bailes` = qué b
 
 ### Requirement: Disponibilidad y solicitudes de pareja en Bailes
 
-**Reason**: son funciones de práctica/coordinación, no de historial — mezclarlas confundía el propósito del módulo.
-**Migration**: los endpoints `/api/availability` y `/api/partner-requests` quedan vivos como superficie de API sin UI que los consuma — la re-incorporación a `/practicas` es un change aparte.
+**Reason**: son funciones de práctica/coordinación, no de historial; mezclarlas confundía el propósito del módulo.
+**Migration**: los endpoints `/api/availability` y `/api/partner-requests` quedan vivos como superficie de API sin UI que los consuma; la re-incorporación a `/practicas` es un change aparte.

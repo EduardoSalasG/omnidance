@@ -1,4 +1,4 @@
-# Design — auth-email-otp
+# Design; auth-email-otp
 
 ## Approach
 
@@ -15,7 +15,7 @@ otro dispositivo. Ambos caminos convergen en el mismo desenlace
 model AuthOtp {
   id         String   @id @default(cuid())
   email      String
-  codeHash   String   // sha256(code + pepper) — nunca el código en claro
+  codeHash   String   // sha256(code + pepper); nunca el código en claro
   consent    Boolean  @default(false)
   expiresAt  DateTime
   attempts   Int      @default(0)
@@ -39,7 +39,7 @@ patrón de secreto que ya inyecta `auth.module`).
   fallo → `attempts++`; éxito → `consumedAt`.
 - `AuthController.sendMagicLink` → emite también el OTP y pasa
   `{link, code}` a `magicLinkEmailHtml`.
-- `POST /auth/otp/verify` — body `{email, code}` (class-validator:
+- `POST /auth/otp/verify`; body `{email, code}` (class-validator:
   `IsEmail`, `Matches(/^\d{6}$/)`); `@Throttle(AUTH_THROTTLE)`; misma lógica
   de verify magic-link pero responde `{ok:true, isNew}` sin redirect. El
   front decide `/bienvenida` vs `/inicio` con `isNew`.

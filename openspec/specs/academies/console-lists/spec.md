@@ -8,7 +8,7 @@ TBD - created by archiving change academy-console-v3. Update Purpose after archi
 ### Requirement: Envelope paginado en endpoints de listado
 
 Los endpoints de listado de la consola SHALL aceptar `page` y
-`pageSize` (opcionales) y responder `{items, total, page, pageSize}` —
+`pageSize` (opcionales) y responder `{items, total, page, pageSize}`;
 ninguna vista operativa descarga la tabla completa. `page` se
 normaliza a ≥1 (default 1); `pageSize` se normaliza a ≥1 (default 25)
 y se capa a un máximo por endpoint (100 por defecto; 200 en claims).
@@ -37,7 +37,7 @@ Endpoints cubiertos (además de los ya existentes en otros cambios):
 
 Cuando un filtro de búsqueda (`q`) depende de un join (nombre de
 persona vía FK plana), el endpoint SHALL resolver los IDs que matchean
-antes de paginar — paginar y filtrar después produce páginas vacías
+antes de paginar; paginar y filtrar después produce páginas vacías
 incorrectas. Cuando el filtro se resuelve en memoria tras el join
 (`guest-lists`: q sobre dueño/invitado/etiqueta), el corte de página
 SHALL aplicarse sobre el resultado ya filtrado y el `total` refleja
@@ -106,7 +106,7 @@ Las vistas de listado de la consola SHALL renderizar el componente
 `Pager` (prev/next + "Página X de Y" + total) y resetear la página a 1
 ante cualquier cambio de filtro u orden. Los consumidores que
 necesitan el universo completo (pickers, selects de audiencia) SHALL
-pedir un `pageSize` acotado explícito o usar un endpoint de detalle —
+pedir un `pageSize` acotado explícito o usar un endpoint de detalle;
 no recorrer la lista.
 
 #### Scenario: cambiar de página
@@ -245,7 +245,7 @@ orden vigente.
 
 El owner con rol ACADEMY_OWNER (APPROVED o SANDBOX) SHALL ver un CTA
 "Nueva academia" en la consola `/academia` aunque ya tenga una o más
-academias — junto al selector cuando hay varias, solo cuando hay una.
+academias; junto al selector cuando hay varias, solo cuando hay una.
 El CTA navega a una página dedicada `/academia/nueva` (crear = página,
 no form inline en el listado) con `ConsoleHeader` de vuelta a
 `/academia`. Tras crear, la academia nueva queda seleccionada
@@ -262,7 +262,7 @@ no form inline en el listado) con `ConsoleHeader` de vuelta a
 #### Scenario: deep-link sin permiso
 
 - **WHEN** una persona sin rol ACADEMY_OWNER entra a `/academia/nueva`
-- **THEN** ve el estado "sin acceso" con CTA de salida — el form no se
+- **THEN** ve el estado "sin acceso" con CTA de salida; el form no se
   renderiza (el backend igual rechaza sin `academies.create`)
 
 #### Scenario: CTA oculto para no-owner

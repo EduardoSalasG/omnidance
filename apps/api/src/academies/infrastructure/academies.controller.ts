@@ -542,7 +542,7 @@ export class AcademiesController {
   /**
    * Filtro de visibilidad por entidad (spec academy-approval-gate): las
    * academias APPROVED pasan directo; las PENDING se evalúan contra el
-   * checklist — las que lo completan se auto-promueven a APPROVED y
+   * checklist; las que lo completan se auto-promueven a APPROVED y
    * pasan; el resto queda fuera. REJECTED ya se excluyó en SQL.
    */
   private async visibleAcademies<T extends { id: string; reviewStatus: string }>(
@@ -1015,7 +1015,7 @@ export class AcademiesController {
 
   /**
    * Stream público de la foto alojada (la ficha es pública; el storageKey
-   * es uuid — resolve() de LocalDiskStorage bloquea traversal).
+   * es uuid; resolve() de LocalDiskStorage bloquea traversal).
    */
   @Get("photos/:key")
   async servePhoto(@Param("key") key: string, @Res() res: Response) {

@@ -3,7 +3,7 @@
 ## Problema
 
 El modelo de fees (`producer-fee-model`) contempla `feeMode
-OWN_METHOD` — la venta se cobra por medios del productor
+OWN_METHOD`; la venta se cobra por medios del productor
 (transferencia, link, efectivo coordinado) y la plataforma devenga su
 comisión (`all-in − card%`) neteándola en el payout como líneas
 `OWN_METHOD_*`. Pero hoy no existe camino para que un comprador elija
@@ -35,7 +35,7 @@ el lado productor/social no.
 - **Cola del productor**: `GET /producer/claims?status=`, receipt por
   endpoint autenticado (comprador dueño o el productor),
   `POST /producer/claims/:id/approve` (flip atómico PENDING→APPROVED +
-  `settle(payment,"PAID")` — mismo camino que el webhook: tickets,
+  `settle(payment,"PAID")`; mismo camino que el webhook: tickets,
   mesa, redención de código, ledger, notificaciones) y
   `POST /producer/claims/:id/reject {note}` (notifica al comprador; la
   orden sigue PENDING → puede subir otro comprobante).

@@ -1,4 +1,4 @@
-# Design — close-residual-gaps
+# Design; close-residual-gaps
 
 ## Context
 
@@ -11,7 +11,7 @@ entre el `subscription/create` exitoso y el `updateMany` que persiste
 
 El gate de capability hoy es `gateway.name === "FLOW"` en `flow()`,
 `getForOwner`, `reconcileAll` y `reconcileSubscription` escribe
-`Payment.gateway = "FLOW"` a fuego — el stub no puede entrar al flujo.
+`Payment.gateway = "FLOW"` a fuego; el stub no puede entrar al flujo.
 
 `leads.e2e` hace `findFirstOrThrow(roles ADMIN APPROVED)` sin `orderBy`: bajo
 `vitest` paralelo puede tomar `RCD Admin`/`GE Admin`/`CRM Admin`/`GP Admin`
@@ -19,7 +19,7 @@ El gate de capability hoy es `gateway.name === "FLOW"` en `flow()`,
 SessionGuard → 401 en los ~9 tests autenticados como admin.
 
 Seed: `plan()` usa `ensure()` que hace update de `price/type/description` en
-reseed — un cambio de precio es una línea idempotente.
+reseed; un cambio de precio es una línea idempotente.
 
 ## Goals / Non-Goals
 
@@ -32,7 +32,7 @@ reseed — un cambio de precio es una línea idempotente.
 - Precio compromiso ~10% en planes largos de Mambo Madness.
 
 **Non-Goals:**
-- No se cambia el modelo de datos (ninguna migración — el sweep usa tablas
+- No se cambia el modelo de datos (ninguna migración; el sweep usa tablas
   existentes).
 - No se habilita producción Flow (sigue el gate sandbox-only de
   `resolveGateway`).
@@ -65,14 +65,14 @@ El sweep corre dentro de `reconcileAll` (mismo cron T7 + webhook trigger), no
 un job nuevo. Es idempotente: una huérfana ya cancelada en Flow responde
 status 4 → skip.
 
-Alternativa considerada: confiar solo en la persistencia temprana. Rechazada —
+Alternativa considerada: confiar solo en la persistencia temprana. Rechazada;
 reduce la ventana pero no la cierra (crash durante el round-trip HTTP sigue
 perdiendo el id); el sweep cubre exactamente ese residuo.
 
 ### 2. Persistencia temprana = escritura incondicional del id
 
 Justo tras `createSubscription`: `update` (no updateMany condicional) del
-`flowSubscriptionId` sobre la fila — aunque la fila ya no esté `ACTIVATING`,
+`flowSubscriptionId` sobre la fila; aunque la fila ya no esté `ACTIVATING`,
 persistir el id es lo que permite al sweep rastrearla. La transición de estado
 se mantiene condicional como hoy (`updateMany` por status) y el `count===0`
 sigue gatillando la compensación inmediata existente.
@@ -87,14 +87,14 @@ mismo check. `Payment.gateway` usa `this.gateway.name`.
 Estado en memoria del stub (Map por id): planes, customers
 (`creditCardType?`), register tokens (`token → customerId`), subscriptions
 (`status`, `next_invoice_date`, `invoices[]`, `cancel_at_period_end`).
-`registerCustomerCard` devuelve `${returnUrl}?token=<stub-token>` — el browser
+`registerCustomerCard` devuelve `${returnUrl}?token=<stub-token>`; el browser
 cae directo al callback real del API sin salir de localhost. `createSubscription`
 genera invoice inicial ya pagada (`status:1`, `payment.status:2`,
 `paymentData` con `media:"STUB"`) para que `reconcileSubscription` liquide el
 primer período como hace Flow. `getSubscription` de id desconocido devuelve
-`status:4` (converge a `CANCELED` tras restart — ver spec).
+`status:4` (converge a `CANCELED` tras restart; ver spec).
 
-Alternativa considerada: stub con estado en DB (tabla fake). Rechazada —
+Alternativa considerada: stub con estado en DB (tabla fake). Rechazada;
 meter tablas de simulación en el schema real es overhead; el stub es dev-only
 y la convergencia a CANCELED tras restart es aceptable (documentada).
 
@@ -111,14 +111,14 @@ borra personas del seed).
 
 Trimestral 180.000→162.000 (−10%), Semestral 360.000→324.000 (−10% sobre
 6×60.000). Copy: "Ahorras $18.000 vs. el mensual" / "Ahorras $36.000 vs. el
-mensual — el mejor valor por mes". `ensure()` propaga el cambio en reseed; los
+mensual; el mejor valor por mes". `ensure()` propaga el cambio en reseed; los
 planes sin espejo Flow en seed no requieren sync.
 
 ## Risks / Trade-offs
 
 - Sweep depende de que la auditoría escriba antes de que el proceso muera → la
   escritura del `GatewayTransaction` ocurre en el `finally` de `call()`, antes
-  de retornar al service — cubre el crash. Si la auditoría misma falla (es
+  de retornar al service; cubre el crash. Si la auditoría misma falla (es
   best-effort), la huérfana queda invisible: limitación aceptada, queda
   loggeada.
 - Stub con estado en memoria: tras restart las subs stub quedan "perdidas" →
@@ -126,7 +126,7 @@ planes sin espejo Flow en seed no requieren sync.
   próximo reconcile. Documentado, no errores.
 - `Payment.gateway = "STUB"` en renovaciones stub: filas dev honestas; ninguna
   consulta filtra por `"FLOW"` hoy (verificar en implementación).
-- Discount del seed pisa `price` de planes existentes en reseed — intencional
+- Discount del seed pisa `price` de planes existentes en reseed; intencional
   (idempotencia), pero si el usuario editó esos planes por la consola el reseed
   los restaura: comportamiento preexistente de `ensure()`, no nuevo.
 

@@ -37,7 +37,7 @@ Ejecutar desde la raíz del repo:
 - Frontend dev: `pnpm dev:web` → http://localhost:3000
 - Ambos: `pnpm dev`
 - Build completo: `pnpm build`
-- Tests: `pnpm test` (Vitest unit + componente) · `pnpm test:e2e` (Playwright smoke, chromium + mobile/WebKit — requiere stack vivo + `pnpm exec playwright install` la 1ª vez). Los 6 logins del setup golpean `/auth/login` (throttle 8/min por IP): en dev conviene `THROTTLE_AUTH_LIMIT=120` en `apps/api/.env`; el setup igual reintenta una vez tras ~65s si aparece el genericError.
+- Tests: `pnpm test` (Vitest unit + componente) · `pnpm test:e2e` (Playwright smoke, chromium + mobile/WebKit; requiere stack vivo + `pnpm exec playwright install` la 1ª vez). Los 6 logins del setup golpean `/auth/login` (throttle 8/min por IP): en dev conviene `THROTTLE_AUTH_LIMIT=120` en `apps/api/.env`; el setup igual reintenta una vez tras ~65s si aparece el genericError.
 - Lint: `pnpm lint` · Typecheck: `pnpm typecheck`
 - Prisma Studio: `pnpm db:studio`
 
@@ -45,7 +45,7 @@ Para una modificación acotada, verifica primero la superficie afectada (`pnpm -
 
 **CSS stale en dev**: si tras cambiar `tailwind.config.ts` o los tokens de `globals.css` el browser no refleja el cambio, el `.next` cache sirve el CSS viejo y HMR no lo invalida. Fix: matar el dev server, `rm -rf apps/web/.next`, reiniciar. Verificación rápida: `curl -s localhost:3000/_next/static/css/app/layout.css | grep -c '<token>'` debe dar >0.
 
-**Dev server zombie / `.next` corrupto** (visto 2026-10-18): síntomas — páginas (app) devuelven 500 con `SyntaxError: JSON.parse at position N` fijo, gotos que nunca responden, o `ECONNREFUSED` al proxy /api. Causa: procesos `nest`/`next` huérfanos de sesiones anteriores comen RAM → OOM del dev server → cache corrupto. Diagnóstico: `Get-CimInstance Win32_Process -Filter "Name='node.exe'"` (PowerShell) y mata los `start --watch`/`next dev` viejos; fix: matar el dev server, `rm -rf apps/web/.next`, reiniciar.
+**Dev server zombie / `.next` corrupto** (visto 2026-10-18): síntomas; páginas (app) devuelven 500 con `SyntaxError: JSON.parse at position N` fijo, gotos que nunca responden, o `ECONNREFUSED` al proxy /api. Causa: procesos `nest`/`next` huérfanos de sesiones anteriores comen RAM → OOM del dev server → cache corrupto. Diagnóstico: `Get-CimInstance Win32_Process -Filter "Name='node.exe'"` (PowerShell) y mata los `start --watch`/`next dev` viejos; fix: matar el dev server, `rm -rf apps/web/.next`, reiniciar.
 
 ## Flujo de trabajo
 
@@ -143,7 +143,7 @@ Roles de colaboración dentro del pipeline: Diseño (orquestador + usuario) → 
 
 - SemVer `MAJOR.MINOR.PATCH`: MAJOR = incompatible (API/datos/auth); MINOR = feature compatible; PATCH = fix/docs/mantenimiento.
 - Release gate (`dev → main`): definir incremento → actualizar versión + `CHANGELOG.md` (Keep a Changelog) + notas de release → tests/build/QA → tag anotado `vX.Y.Z` en el commit exacto de `main` → push → supervisar CI/deploy/health checks → sincronizar `main` de vuelta a `dev`.
-- **QA completo local antes de promover cuando la release toca frontend** (`apps/web/**`): obligatorio correr y citar evidencia de `pnpm lint` (0 errores), `pnpm typecheck`, `pnpm test` y `pnpm test:e2e` (stack vivo). Si la release es solo backend/docs, basta typecheck + tests del área afectada — declararlo explícitamente.
+- **QA completo local antes de promover cuando la release toca frontend** (`apps/web/**`): obligatorio correr y citar evidencia de `pnpm lint` (0 errores), `pnpm typecheck`, `pnpm test` y `pnpm test:e2e` (stack vivo). Si la release es solo backend/docs, basta typecheck + tests del área afectada; declararlo explícitamente.
 - **Rollback**: nunca re-desplegar SHA informal ni mover tags. Re-desplegar el artefacto del último tag sano + health checks + documentar motivo/impacto.
 
 ## Definition of Done

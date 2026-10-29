@@ -1,4 +1,4 @@
-# minor-polish-fixes — deltas
+# minor-polish-fixes; deltas
 
 ## ADDED Requirements
 
@@ -13,7 +13,7 @@ control de reintento que re-ejecuta la carga.
 
 - **WHEN** `/api/home` responde 500
 - **THEN** se muestra error genérico con "Reintentar" que vuelve a
-  llamar al endpoint — nunca "Tu sesión expiró".
+  llamar al endpoint; nunca "Tu sesión expiró".
 
 ### Requirement: Iconografía consistente
 

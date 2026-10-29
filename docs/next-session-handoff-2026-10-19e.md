@@ -44,7 +44,7 @@ Commits del change (en orden):
   reactivar, **eliminar lógico** (`ClassSeries.deletedAt` +
   migración), próximas clases con reservas, historial con asistencia
   e instructor.
-- Asistencia: nuevo `POST /classes/:id/attendance` — solo instructor
+- Asistencia: nuevo `POST /classes/:id/attendance`; solo instructor
   efectivo del slot o admin; alumno debe tener reserva BOOKED. Roster
   gana `canMark` + botón Presente. `POST /academies/:id/attendance`
   legacy restringido igual. `/academia/asistencia` y
@@ -77,7 +77,7 @@ Commits del change (en orden):
   (stats, clases impartidas, acuerdo editable, encuestas por mes).
 
 ### G. Clases particulares
-- Sin filtro de comisión ni sección instructor-neto — solo solicitudes
+- Sin filtro de comisión ni sección instructor-neto; solo solicitudes
   + confirmar fecha/hora. La relación económica se gestiona en Equipo.
 
 ### H. Analítica
@@ -140,8 +140,8 @@ Commits del change (en orden):
 - `commissionPct` sigue en API/DTO por compat (privadas legacy); ya no
   se renderiza en UI. Remover en un change dedicado si se decide.
 - Nada pusheado; `dev` acumula commits sobre prod (v0.3.0). El release
-  gate `dev → main` sigue pendiente de aprobación — este trabajo NO
+  gate `dev → main` sigue pendiente de aprobación; este trabajo NO
   promueve nada.
 - Queda del pedido original de analítica compartida (thread previo):
   saved queries por usuario/rol y exports de productor fuera del
-  detalle de evento — evaluar si sigue en scope en próximo change.
+  detalle de evento; evaluar si sigue en scope en próximo change.

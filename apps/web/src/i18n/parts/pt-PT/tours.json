@@ -26,7 +26,7 @@
       },
       "s6": {
         "title": "O botão +",
-        "desc": "O teu QR — o teu bilhete à porta e como registas danças na pista — mais o teu histórico de Danças e as Práticas da comunidade."
+        "desc": "O teu QR, o teu bilhete à porta e como registas danças na pista, mais o teu histórico de Danças e as Práticas da comunidade."
       },
       "s7": {
         "title": "O teu perfil",
@@ -88,7 +88,7 @@
     "clases": {
       "s1": {
         "title": "Lista ou calendário",
-        "desc": "As aulas agrupadas por dia ou o mês completo em calendário — escolhe como olhar para a semana."
+        "desc": "As aulas agrupadas por dia ou o mês completo em calendário, escolhe como olhar para a semana."
       },
       "s2": {
         "title": "O que ver",
@@ -100,7 +100,7 @@
       },
       "s4": {
         "title": "Filtra à tua medida",
-        "desc": "Estilo, nível e academia — e dentro de As minhas aulas podes alternar entre Todas e só as tuas Reservadas."
+        "desc": "Estilo, nível e academia, e dentro de As minhas aulas podes alternar entre Todas e só as tuas Reservadas."
       },
       "s5": {
         "title": "Reserva com um toque",
@@ -124,7 +124,7 @@
     "amigos": {
       "s1": {
         "title": "Monta a tua equipa",
-        "desc": "Procura-os por nome ou partilha o teu link de convite — quem o abrir aterra diretamente em adicionar-te."
+        "desc": "Procura-os por nome ou partilha o teu link de convite, quem o abrir aterra diretamente em adicionar-te."
       },
       "s2": {
         "title": "Os teus amigos vão a",
@@ -186,7 +186,7 @@
       },
       "s4": {
         "title": "A tua série",
-        "desc": "Semanas consecutivas na pista — ou nas aulas em modo Academia. Ganha-se a aparecer."
+        "desc": "Semanas consecutivas na pista, ou nas aulas em modo Academia. Ganha-se a aparecer."
       },
       "s5": {
         "title": "Distintivos",

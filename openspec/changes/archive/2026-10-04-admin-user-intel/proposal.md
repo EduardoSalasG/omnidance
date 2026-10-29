@@ -1,4 +1,4 @@
-# admin-user-intel — explorador de datos + ficha de usuario + analítica por usuario
+# admin-user-intel; explorador de datos + ficha de usuario + analítica por usuario
 
 El admin necesita conocer a las personas y la data operacional sin salir de su
 consola: buscador real (no lista masiva), ficha 360° por persona con data por
@@ -6,7 +6,7 @@ rol, y un sub-módulo "Analítica por usuario" con insights de negocio por lente
 
 Además: en `/perfil` el rol ADMIN no ve racha ni insignias (no aplican).
 
-## API — nuevos endpoints (todos `admin.access`)
+## API; nuevos endpoints (todos `admin.access`)
 
 ### `GET /admin/users?q=`
 - `q` < 2 chars o ausente → `[]` (nunca lista masiva). Busca por name/email/phone.
@@ -68,20 +68,20 @@ Filtros por query string; respuesta siempre array ≤100 filas livianas:
 
 ## Web
 
-- `components/ui/pill-tabs.tsx` — strip de pills deslizable (overflow-x-auto,
+- `components/ui/pill-tabs.tsx`; strip de pills deslizable (overflow-x-auto,
   snap, scrollbar oculto), controlled: `items[{key,label}], active, onSelect`.
   Reusable por CRM-style navs y filtros.
-- `/perfil` — racha + insignias ocultas cuando `activeRole === "ADMIN"`.
-- `/admin/usuarios` — sin carga inicial; estado vacío con hint; buscador ≥2
+- `/perfil`; racha + insignias ocultas cuando `activeRole === "ADMIN"`.
+- `/admin/usuarios`; sin carga inicial; estado vacío con hint; buscador ≥2
   chars; resultados = cards (nombre, email, badges de roles) → link a detalle.
-- `/admin/usuarios/[personId]` — datos personales, línea de tiempo de roles,
+- `/admin/usuarios/[personId]`; datos personales, línea de tiempo de roles,
   controles de gestión (setRole/revoke existentes), secciones por rol activo,
   CTA "Ver analítica" → `/analitica/usuarios/[personId]`.
-- `/analitica/usuarios` — buscador idéntico (cards nombre+email+roles).
-- `/analitica/usuarios/[personId]` — PillTabs de roles aprobados (primero
+- `/analitica/usuarios`; buscador idéntico (cards nombre+email+roles).
+- `/analitica/usuarios/[personId]`; PillTabs de roles aprobados (primero
   activo por defecto); contenido por rol; DANCER con sub-secciones
   Social + Academia.
-- `/admin/datos` — PillTabs de entidades + filtros + lista de resultados.
+- `/admin/datos`; PillTabs de entidades + filtros + lista de resultados.
 - Hub `/admin` + drawer: entrada "Datos" (`/admin/datos`); drawer analítica:
   "Por usuario" (`/analitica/usuarios`).
 

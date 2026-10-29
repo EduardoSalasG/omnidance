@@ -1,4 +1,4 @@
-# crm/contact-console — delta crm-campaign-ops
+# crm/contact-console; delta crm-campaign-ops
 
 ## ADDED Requirements
 

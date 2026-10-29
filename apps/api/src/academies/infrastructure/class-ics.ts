@@ -1,4 +1,4 @@
-// Generador .ics (RFC 5545) de una clase — spec class-calendar-ics.
+// Generador .ics (RFC 5545) de una clase; spec class-calendar-ics.
 // Función pura: el controller resuelve la clase + sede + zona horaria y
 // acá solo se serializa el VCALENDAR/VEVENT. iOS/Android abren el
 // "agregar a calendario" nativo al descargar el archivo - no hace falta
@@ -104,7 +104,7 @@ export function buildClassIcs(input: ClassIcsInput): string {
   const summary =
     input.title === input.academyName
       ? input.title
-      : `${input.title} — ${input.academyName}`;
+      : `${input.title} - ${input.academyName}`;
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",

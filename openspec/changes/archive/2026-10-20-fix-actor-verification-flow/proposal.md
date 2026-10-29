@@ -19,12 +19,12 @@ versionado en el compose de prod (se pierde en cada deploy).
 - **Checklist visible para el actor PENDING**: `GET /me/role-checks`
   devuelve por cada rol PENDING usable (ACADEMY_OWNER/PRODUCER) el mismo
   checklist que evalúa el admin (nombre, email verificado, teléfono,
-  datos del actor) — `profileChecks` se extrae a módulo compartido.
+  datos del actor); `profileChecks` se extrae a módulo compartido.
   Nueva card `PendingRoleCard` en `/perfil` y en el HomeHub con los
   ítems faltantes enlazados a su resolución (perfil/datos, consola del
   actor, y CTA "verificar correo" con flujo OTP inline).
 - **photoUrl hosteado**: `cleanPhotoUrl` acepta paths `/api/...`
-  (streams propios de uploads) además de URLs externas — subir foto ya
+  (streams propios de uploads) además de URLs externas; subir foto ya
   no rompe el guardado del perfil de academia.
 - **Infra**: `apps/api/docker-compose.yml` declara el bind mount
   `/mnt/omnidance/uploads:/app/uploads` + `UPLOADS_DIR` para que el
@@ -41,8 +41,8 @@ versionado en el compose de prod (se pierde en cada deploy).
 ### Modified Capabilities
 
 - `rbac`: el actor con rol PENDING SHALL ver su propio checklist de
-  validación (qué le falta para ser aprobado) — mismo criterio que la
-  cola admin — vía `GET /me/role-checks` + card en la app.
+  validación (qué le falta para ser aprobado); mismo criterio que la
+  cola admin; vía `GET /me/role-checks` + card en la app.
 - `academies/approval-gate`: el requisito de `photoUrl` se amplía para
   aceptar paths hosteados `/api/...` (foto subida por upload) además de
   URLs externas.

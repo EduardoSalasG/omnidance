@@ -5,7 +5,7 @@ import { clWeekStart } from "../../common/cl-time";
 /**
  * Snapshot semanal de la distribución de segmentos de score por academia.
  * Corre a diario tras el recompute de scores y hace upsert por
- * (academyId, weekStart) — la semana siempre refleja el último estado
+ * (academyId, weekStart); la semana siempre refleja el último estado
  * conocido; leer snapshots de lunes sucesivos da el desglose semanal y
  * compararlos con el mes anterior da la tendencia.
  */

@@ -1,4 +1,4 @@
-# Tasks — seo-positioning-domain
+# Tasks; seo-positioning-domain
 
 - [x] 1. `netlify.toml`: `NEXT_PUBLIC_WEB_URL = "https://omnidance.tech"`
       + ajustar comentario.

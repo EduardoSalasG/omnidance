@@ -1,4 +1,4 @@
-# platform-multicountry — contacto normalizado por país
+# platform-multicountry; contacto normalizado por país
 
 ## ADDED Requirements
 
@@ -10,7 +10,7 @@ persiste E.164 con `+` y `phoneCountryCode` persiste el ISO-2 derivado
 del número parseado. Un `+` inicial SHALL sobreescribir el país por
 defecto (el número ya declara su país). Números inválidos SHALL
 rechazarse con `400 telefono_invalido`. La unicidad de `phone` SHALL
-evaluarse sobre el E.164 — dos formatos del mismo número SHALL
+evaluarse sobre el E.164; dos formatos del mismo número SHALL
 resolver a la misma Person.
 
 #### Scenario: formato nacional con país por defecto
@@ -29,7 +29,7 @@ resolver a la misma Person.
 - **GIVEN** una Person con `phone="+56912345678"`
 - **WHEN** otro write path ingresa `"912345678"` con default CL
 - **THEN** ambos normalizan al mismo E.164 y el lookup/conflicto opera
-  sobre la misma fila — no se crea ni permite una segunda Person
+  sobre la misma fila; no se crea ni permite una segunda Person
 
 #### Scenario: teléfono inválido
 

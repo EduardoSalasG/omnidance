@@ -1,4 +1,4 @@
-# Tasks — academy-home-console
+# Tasks; academy-home-console
 
 ## 1. API (dashboard)
 
@@ -27,6 +27,6 @@
 
 - [x] 3.1 API build + tests academies (155 verdes).
 - [x] 3.2 Web tsc + i18n audit + `impeccable detect` (`[]`).
-- [x] 3.3 `openspec validate` del change — válido. Campos aditivos en
+- [x] 3.3 `openspec validate` del change; válido. Campos aditivos en
   el response; docs API no requieren regen (schema no cambia firma de
   endpoint).

@@ -1,10 +1,10 @@
-# Proposal — legal-consent
+# Proposal; legal-consent
 
 ## Why
 
 Para cobrar y operar en Chile se requieren términos de uso y política
 de privacidad alineados con la nueva Ley 21.719 (Ley sobre Protección
-de los Datos Personales — modifica la 19.628, vigente dic-2026) y su
+de los Datos Personales; modifica la 19.628, vigente dic-2026) y su
 consentimiento registrado al crear cuenta.
 
 ## What Changes
@@ -26,9 +26,9 @@ consentimiento registrado al crear cuenta.
 
 ## Out of scope
 
-- Revisión legal profesional — el texto se entrega como base sólida
+- Revisión legal profesional; el texto se entrega como base sólida
   pero se marca con puntos `[PENDIENTE]` donde falte dato societario
   (RUT, razón social, domicilio, email de contacto).
-- Geolocalización: la app NO recolecta ubicación del dispositivo — la
+- Geolocalización: la app NO recolecta ubicación del dispositivo; la
   política lo declara explícitamente; si se agrega en el futuro exigirá
   consentimiento propio.

@@ -1,4 +1,4 @@
-# crm/contact-console — delta crm-sidebar-section
+# crm/contact-console; delta crm-sidebar-section
 
 ## ADDED Requirements
 

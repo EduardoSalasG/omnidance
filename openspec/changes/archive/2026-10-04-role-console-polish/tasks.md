@@ -1,4 +1,4 @@
-# Tasks — role-console-polish
+# Tasks; role-console-polish
 
 ## 1. Schema
 

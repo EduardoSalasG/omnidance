@@ -1,4 +1,4 @@
-# Delta — academies/staff-roles (instructor-commission-subtype)
+# Delta; academies/staff-roles (instructor-commission-subtype)
 
 El mantenedor de profesores acepta el acuerdo completo (incluido el
 subtipo COMMISSION) y el acuerdo deja de tratar la comisión como
@@ -61,7 +61,7 @@ clase), `MONTHLY` (mensual por una cantidad de clases pactada) o
 `COMMISSION` (porcentaje que la academia retiene de cada clase
 particular). Campos: `payType`, `payAmount`, `payClasses` (obligatorio
 en MONTHLY), `commissionPct` (0–100, obligatorio en COMMISSION). Un solo
-subtipo SHALL estar activo — los campos de los demás subtipos quedan en
+subtipo SHALL estar activo; los campos de los demás subtipos quedan en
 null.
 
 #### Scenario: Profesor por clase

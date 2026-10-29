@@ -1,4 +1,4 @@
-# Handoff — 2026-10-26 (multipaís currency + phone)
+# Handoff; 2026-10-26 (multipaís currency + phone)
 
 ## Estado
 
@@ -6,11 +6,11 @@
 revisados (2 rondas: reviewer → fixer → verde) y archivados:
 `multipais-currency` + `multipais-phone` = tasks 2 y 3 de
 `multipais-foundation` (marcadas [x] en su tasks.md). Specs canónicas
-mergeadas — `platform-multicountry` ahora es spec propia.
+mergeadas; `platform-multicountry` ahora es spec propia.
 
 ## Entregado
 
-**multipais-currency** — cobro multi-moneda real, agnóstico de país:
+**multipais-currency**; cobro multi-moneda real, agnóstico de país:
 - Schema: `Country.currency`, `MembershipPlan.currency`+`remoteRefs`,
   `MembershipSubscription.currency`, `PaymentClaim.currency`,
   `PlatformSubscription.countryCode`, `Person.gatewayCustomerIds`
@@ -32,7 +32,7 @@ mergeadas — `platform-multicountry` ahora es spec propia.
   `20261116_person_gateway_customer_ids`. Seed: TierPrice CL para
   tiers academy+producer derivados de params (update:{} no pisa).
 
-**multipais-phone** — normalización E.164 end-to-end:
+**multipais-phone**; normalización E.164 end-to-end:
 - `normalizePhone(raw, defaultCountry)` + `normalizePhoneOrNull` en
   `@omnidance/shared` (libphonenumber-js 1.12.31); `phone`=E.164,
   `phoneCountryCode`=ISO-2 derivado; `+` overridea el default.
@@ -48,7 +48,7 @@ mergeadas — `platform-multicountry` ahora es spec propia.
 ## Verificación
 
 - vitest: payments+checkins 663, people/checkins/leads/academies 368,
-  shared 20 — todo verde post-fixes.
+  shared 20; todo verde post-fixes.
 - tsc api+web limpio; i18n-parity 0 missing/0 extra (4263 keys).
 - `migrate diff` schema↔migrations vacío; `db:seed` corrido OK.
 - `openspec validate` verde; ambos changes archivados con deltas
@@ -59,18 +59,18 @@ mergeadas — `platform-multicountry` ahora es spec propia.
 
 - **promoState build**: fix `962cd7e3` (export removido de la page).
 - **Webhook Stripe** (`a537fd7c`, change `stripe-subs-webhook`
-  archivado): `webhook.controller` despacha billing events por target —
+  archivado): `webhook.controller` despacha billing events por target;
   socialPass→Pase, remoteId MembershipSubscription→reconcile puntual,
   remoteId PlatformSubscription→RENEWAL_SETTLED/gracia/CANCELED;
   `customer.subscription.updated` cubierto; dedup estructural por
   invoice/refId (webhook+polling no doble-liquidan). vitest 637 verde.
-- **E2e**: RESUELTO 2026-10-27 — el bloqueo era el rango de puertos
+- **E2e**: RESUELTO 2026-10-27; el bloqueo era el rango de puertos
   excluidos de Windows (2809-3208, 3307-3506). `next dev -p 3600` +
   `QA_BASE_URL=http://localhost:3600 pnpm test:e2e` funciona: 11/14 en
   el run completo y los 2 tests restantes (cartelera, ciclo-evento)
-  pasan en retry — flakes de timing en dev, no regresiones. Ojo: si el
+  pasan en retry; flakes de timing en dev, no regresiones. Ojo: si el
   suite cae con "Internal Server Error" fijo, es `.next` corrupto
-  (mata next, `rm -rf apps/web/.next`, reinicia — documentado en
+  (mata next, `rm -rf apps/web/.next`, reinicia; documentado en
   AGENTS). Segundo fix de build: `promoDiscountLabel` también estaba
   exportado en promos/page (mismo patrón que promoState).
 
@@ -105,15 +105,15 @@ Producer Pro nivelado implementado:
 - **Matriz real por tier** (`actor-entitlements.ts`, keys del enum):
   `PRO_STARTER`=analytics+exports+staff≤1 · `PRO_GROWTH`=+crm,staff≤2 ·
   `PRO_BIG`=todo+staff ilimitado. `producerEffectiveTier` devuelve el
-  tierCode real — `assertActorFeature` quedó tier-aware sin tocar
+  tierCode real; `assertActorFeature` quedó tier-aware sin tocar
   endpoints. `requiredTier` = tier mínimo que cubre la feature.
 - **Trial = PRO_STARTER** (decisión en design.md): el trial de
-  lanzamiento vende el piso Pro — pierde crm/campaigns/benchmark.
+  lanzamiento vende el piso Pro; pierde crm/campaigns/benchmark.
 - **Cupo staff**: `POST /producer/staff` ahora exige feature
-  `multiStaff` (¡el roster no tenía gate Pro — FREE tenía nómina
+  `multiStaff` (¡el roster no tenía gate Pro; FREE tenía nómina
   ilimitada; quedó cerrado) + cupo por tier → 403 `{error:"staff_quota"}`.
   Re-agregar nómina existente no consume cupo; admin bypassa.
-- **Renovación→upgrade**: `enforceProducerTier` ya existía — evalúa
+- **Renovación→upgrade**: `enforceProducerTier` ya existía; evalúa
   gross 90d en moneda de la sub y fija `pendingTierCode` + notifica.
   Solo se agregó spec coverage (2 tests). Caveat conocido: su dedup por
   notificación enviada no re-fija pending si se limpió por otro flujo.
@@ -121,11 +121,11 @@ Producer Pro nivelado implementado:
   tier + cupo + features incluidas.
 - 173 tests verdes en specs tocados, i18n 0/0, builds limpios.
   (Nota: `pnpm --filter api build` OOMeó 2 veces por presión de
-  commit del SO — reintentar con `--maxWorkers=2` en vitest si pasa.)
+  commit del SO; reintentar con `--maxWorkers=2` en vitest si pasa.)
 
 ### Gaps que quedan (honestos)
 
-- **impeccable detect**: sigue sin correrse — el binario/skill no está
+- **impeccable detect**: sigue sin correrse; el binario/skill no está
   instalado en este entorno. Si se instala, correr sobre PhoneInput,
   precios/*, event-form, create-academy-form, pro-section.
 - **E2e flake**: `dancer cartelera` y `productor ciclo-evento` son
@@ -141,11 +141,11 @@ Producer Pro nivelado implementado:
 - `PayoutRail` Fintoc sigue pendiente; tarifa Pase Social sin fijar.
 - Web `next build` tiene error PRE-EXISTENTE ajeno a este cambio:
   `.next/types` rechaza export `promoState` en
-  `admin/facturacion/promos/page.tsx` (commit 99830574) — typecheck
+  `admin/facturacion/promos/page.tsx` (commit 99830574); typecheck
   limpio, pero el build de prod puede fallar; revisar antes del
   próximo release.
 - Prisma client: el dev server en watch (PID node) pudo haber quedado
-  con DLL stale tras `prisma generate` — si la API dev tira errores de
+  con DLL stale tras `prisma generate`; si la API dev tira errores de
   columna, reiniciar `pnpm dev:api`.
 - multipais-foundation sigue abierto: tasks 10 (packs), 11 (prácticas
   free), 13 (congresos).
@@ -155,7 +155,7 @@ Producer Pro nivelado implementado:
 - `pnpm add` re-resuelve links y dejó symlinks de vitest apuntando a un
   hash de peers viejo → `MODULE_NOT_FOUND`; `pnpm install` lo repara.
 - `openspec archive` deja `.openspec-archive.lock` stale si corre dos
-  veces seguidas en el mismo comando — borrar el lock y reintentar.
+  veces seguidas en el mismo comando; borrar el lock y reintentar.
 - Orquestación: 2 implementadores paralelos + 2 reviewers + 2 fixers.
   Puntos compartidos resueltos por el orquestador: schema.prisma
   (currency only), lockfile (dep pre-instalada), door-sale currency

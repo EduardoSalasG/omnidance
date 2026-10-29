@@ -1,12 +1,12 @@
-# landing-marketing Specification Delta — seo-positioning-domain
+# landing-marketing Specification Delta; seo-positioning-domain
 
 ## ADDED Requirements
 
 ### Requirement: Dominio primario en la superficie SEO
 
-Toda URL absoluta que el sitio emite para consumo externo — canonical,
+Toda URL absoluta que el sitio emite para consumo externo; canonical,
 `og:url`, `twitter:*`, JSON-LD, `sitemap.xml` y `robots.txt`
-(`Sitemap:`) — SHALL usar el dominio primario `https://omnidance.tech`
+(`Sitemap:`); SHALL usar el dominio primario `https://omnidance.tech`
 en producción, nunca el subdominio `*.netlify.app`.
 
 #### Scenario: Documento público
@@ -25,7 +25,7 @@ en producción, nunca el subdominio `*.netlify.app`.
 El metadata por defecto del sitio (title/description/keywords) SHALL
 describir el producto como la app de gestión para academias de baile y
 productores de eventos, y como referencia de sociales y congresos de
-la escena — no solo como app para bailarines.
+la escena; no solo como app para bailarines.
 
 #### Scenario: Home en snippet de búsqueda
 

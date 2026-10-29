@@ -192,7 +192,7 @@
       },
       "seatsOccupancy": "{used} lugares de {total} ocupados",
       "cancelTitle": "Cancelar a reserva?",
-      "cancelDesc": "{name} — {count, plural, one {# pessoa} other {# pessoas}}."
+      "cancelDesc": "{name}, {count, plural, one {# pessoa} other {# pessoas}}."
     },
     "ratings": {
       "notEnough": "Ainda não há avaliações suficientes para mostrar ({count}/3).",
@@ -449,11 +449,11 @@
       "emailPlaceholder": "pessoa@email.com",
       "nameLabel": "Nome (opcional)",
       "inviteSubmit": "Enviar o convite",
-      "invited": "Convite enviado — recebeu um e-mail com acesso",
+      "invited": "Convite enviado, recebeu um e-mail com acesso",
       "added": "Colaborador adicionado",
       "removeTitle": "Remover {name}?",
       "removeDesc": "Deixará de aparecer como candidato a staff nos teus eventos.",
-      "quotaFull": "O teu plano cobre até {limit} colaborador(es) — sobe de tier para adicionar mais."
+      "quotaFull": "O teu plano cobre até {limit} colaborador(es), sobe de tier para adicionar mais."
     }
   }
 }

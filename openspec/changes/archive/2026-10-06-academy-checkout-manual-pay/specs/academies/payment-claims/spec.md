@@ -1,4 +1,4 @@
-# academies/payment-claims — deltas (academy-checkout-manual-pay)
+# academies/payment-claims; deltas (academy-checkout-manual-pay)
 
 ## ADDED Requirements
 

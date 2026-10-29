@@ -170,7 +170,7 @@
       },
       "segment": "Segment",
       "pickSegment": "Choisis un segment",
-      "noSegments": "Pas de segments enregistrés — crée-en un dans la section Segments.",
+      "noSegments": "Pas de segments enregistrés, crée-en un dans la section Segments.",
       "action": "Action",
       "actions": {
         "NOTIFY": "Notifier la personne",

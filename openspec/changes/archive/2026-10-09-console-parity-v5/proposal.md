@@ -1,4 +1,4 @@
-# Console parity v5 — auditoría owner + paridad productor
+# Console parity v5; auditoría owner + paridad productor
 
 ## Why
 

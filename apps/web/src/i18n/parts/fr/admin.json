@@ -12,7 +12,7 @@
         "title": "Zone de danger",
         "body": "Désactive le compte : la personne ne peut ni se connecter ni apparaître publiquement, mais ses données restent intactes et vous pouvez le réactiver.",
         "cta": "Désactiver l'utilisateur",
-        "confirm": "Désactiver {name} ? Ses données restent enregistrées — réactivation possible ensuite."
+        "confirm": "Désactiver {name} ? Ses données restent enregistrées, réactivation possible ensuite."
       },
       "detail": {
         "personal": "Infos personnelles",
@@ -461,11 +461,11 @@
         "FAILED": "Échouée",
         "CANCELLED": "Annulée"
       },
-      "testSent": "Test envoyé — vérifie ta boîte mail."
+      "testSent": "Test envoyé, vérifie ta boîte mail."
     },
     "billing": {
       "title": "Facturation",
-      "desc": "Notes de débit internes pour les déductions de chaque règlement. Document interne — pas une facture fiscale.",
+      "desc": "Notes de débit internes pour les déductions de chaque règlement. Document interne, pas une facture fiscale.",
       "candidatesTitle": "Émettre depuis les règlements",
       "candidatesEmpty": "Pas de règlements avec des débits en attente de document.",
       "docsTitle": "Documents émis",
@@ -516,12 +516,12 @@
       "markPaid": "Marquer payé",
       "evidence": "Justificatif",
       "evidencePlaceholder": "Lien vers le justificatif de virement…",
-      "accrualEmpty": "Tout réglé — pas de paiements en attente de règlement.",
+      "accrualEmpty": "Tout réglé, pas de paiements en attente de règlement.",
       "accrualSince": "{count, plural, one {# commande} other {# commandes}} depuis le {date}",
       "accrualSplit": "Brut {gross} − déductions est. {deductions}",
       "receivable": "L'acteur doit {amount} par moyens propres (net)",
       "generate": "Générer un règlement",
-      "generated": "Règlement généré pour {name} — voir l'onglet Règlements.",
+      "generated": "Règlement généré pour {name}, voir l'onglet Règlements.",
       "generateError": "Impossible de générer le règlement.",
       "paymentsHint": "Commandes payées avec leur détail de commission figé. La chaîne d'événements complète est dans Données → Paiements.",
       "paymentSplit": "Taux {rate} · net acteur {producerNet} · passerelle {gateway}",

@@ -14,7 +14,7 @@
         "title": "Zona de peligro",
         "body": "Desactiva la cuenta: no puede entrar ni aparece en superficies públicas, pero sus datos quedan intactos y puedes reactivarla.",
         "cta": "Desactivar usuario",
-        "confirm": "¿Desactivar a {name}? Sus datos quedan guardados — puedes reactivarla después."
+        "confirm": "¿Desactivar a {name}? Sus datos quedan guardados, puedes reactivarla después."
       },
       "detail": {
         "personal": "Datos personales",
@@ -461,7 +461,7 @@
         "FAILED": "Fallida",
         "CANCELLED": "Cancelada"
       },
-      "testSent": "Prueba enviada — revisa tu correo."
+      "testSent": "Prueba enviada, revisa tu correo."
     },
     "billing": {
       "title": "Facturación",
@@ -516,12 +516,12 @@
       "markPaid": "Marcar pagada",
       "evidence": "Comprobante",
       "evidencePlaceholder": "Link al comprobante de transferencia…",
-      "accrualEmpty": "Todo liquidado — no hay pagos pendientes de liquidar.",
+      "accrualEmpty": "Todo liquidado, no hay pagos pendientes de liquidar.",
       "accrualSince": "{count, plural, one {# orden} other {# órdenes}} desde el {date}",
       "accrualSplit": "Bruto {gross} − deducciones est. {deductions}",
       "receivable": "El actor debe {amount} por métodos propios (se netea)",
       "generate": "Generar liquidación",
-      "generated": "Liquidación generada para {name} — revisa la pestaña Liquidaciones.",
+      "generated": "Liquidación generada para {name}, revisa la pestaña Liquidaciones.",
       "generateError": "No se pudo generar la liquidación.",
       "paymentsHint": "Órdenes pagadas con su desglose de comisión congelado. La cadena de eventos completa está en Datos → Pagos.",
       "paymentSplit": "Tasa {rate} · neto actor {producerNet} · pasarela {gateway}",

@@ -1,4 +1,4 @@
-# class-dropin — orden y liquidación de clase suelta
+# class-dropin; orden y liquidación de clase suelta
 
 ## Purpose
 
@@ -34,7 +34,7 @@ orden `WORKSHOP` por UNA clase con `dropInPrice` definido en su serie.
 ### Requirement: Revisión previa
 
 El sistema SHALL exponer `GET /checkout/class-quote?classId=` que devuelve
-`{listPrice, serviceFee, total, spotsLeft, alreadyBooked}` sin crear orden —
+`{listPrice, serviceFee, total, spotsLeft, alreadyBooked}` sin crear orden;
 el sheet de compra muestra el total real antes de cobrar.
 
 #### Scenario: quote de clase comprable
@@ -73,7 +73,7 @@ de la misma tx idempotente que marca el Payment.
 #### Scenario: FAILED
 
 - **WHEN** el pago confirma FAILED
-- **THEN** solo se emiten `STATUS_CONFIRMED` + `FAILED` — ninguna reserva
+- **THEN** solo se emiten `STATUS_CONFIRMED` + `FAILED`; ninguna reserva
   se crea
 
 ### Requirement: Devengado academy

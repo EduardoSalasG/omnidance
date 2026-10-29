@@ -1,9 +1,9 @@
-# Proposal — admin-catalogos-edit-page
+# Proposal; admin-catalogos-edit-page
 
 ## Why
 
 La edición de valores de catálogo seguía inline en las filas del
-listado — el patrón de consolas exige edición en página dedicada.
+listado; el patrón de consolas exige edición en página dedicada.
 
 ## What Changes
 
@@ -15,11 +15,11 @@ listado — el patrón de consolas exige edición en página dedicada.
 
 ## Capabilities
 
-- **Modified Capabilities**: `admin` — mantenedor de catálogos.
+- **Modified Capabilities**: `admin`; mantenedor de catálogos.
 
 ## Impact
 
-- `admin/catalogos/page.tsx` — sin edición inline; Editar → link.
+- `admin/catalogos/page.tsx`; sin edición inline; Editar → link.
 - Nueva `admin/catalogos/[cat]/[id]/editar/page.tsx`.
 - i18n: `adminCatalogs.editTitle`, `valueNotFound`.
 - `docs/qa-flows-inventory.md`.

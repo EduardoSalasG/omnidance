@@ -1,4 +1,4 @@
-# Tasks — dancer-nav-reorg
+# Tasks; dancer-nav-reorg
 
 ## 1. API: eliminar RSVP
 
@@ -14,9 +14,9 @@
 
 ## 3. Web: nav dancer + sheet
 
-- [x] `BottomNav`: DANCER = `[Inicio, Eventos, +, Amigos, Perfil]`; `+` abre sheet (no navega); DANCER fuera de `DRAWER_BY_ROLE` (sin hamburguesa/drawer — decidir también para DANCER_ACADEMY)
+- [x] `BottomNav`: DANCER = `[Inicio, Eventos, +, Amigos, Perfil]`; `+` abre sheet (no navega); DANCER fuera de `DRAWER_BY_ROLE` (sin hamburguesa/drawer; decidir también para DANCER_ACADEMY)
 - [x] `DancerActionsSheet` (client): `role="dialog"`, backdrop/Escape/focus, QR destacado embebido (fallback: link destacado a /qr), accesos Bailes/Prácticas/Viajes/Notificaciones, reduced-motion
-- [x] Eliminar `/entradas` del nav; /entradas fuera del nav; queda como página de gestión deep-linked (transferencia) enlazada desde view=mios y post-checkout — la agenda vive en Mis eventos
+- [x] Eliminar `/entradas` del nav; /entradas fuera del nav; queda como página de gestión deep-linked (transferencia) enlazada desde view=mios y post-checkout; la agenda vive en Mis eventos
 
 ## 4. Web: eventos
 
