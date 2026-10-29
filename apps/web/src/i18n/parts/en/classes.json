@@ -47,6 +47,7 @@
     "academyUnavailable": "The academy is unavailable at the moment",
     "academyUnavailableBadge": "Unavailable",
     "privateLesson": "Private lesson",
-    "addToCalendar": "Add to my calendar"
+    "addToCalendar": "Add to my calendar",
+    "workshop": "Workshop"
   }
 }

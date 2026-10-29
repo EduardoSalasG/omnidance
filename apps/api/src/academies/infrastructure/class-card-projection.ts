@@ -14,6 +14,7 @@ export const CLASS_CARD_SELECT = {
   slot: {
     select: {
       weekday: true,
+      oneOffDate: true,
       startTime: true,
       endTime: true,
       capacity: true,
@@ -175,6 +176,7 @@ export type ClassCardRow = {
   capacity: number | null;
   slot: {
     weekday: number;
+    oneOffDate?: Date | null;
     startTime: string;
     endTime: string;
     capacity: number | null;
@@ -236,6 +238,9 @@ export function classCardItem(
           name: instructorName.get(c.instructorId) ?? null,
         }
       : null,
+    // Taller/clase única: el card muestra el nombre de la serie y el
+    // badge, sin esto una masterclass se lee como una clase más.
+    oneOff: c.slot.oneOffDate != null,
     // Plantel completo (multi-instructor): primario primero, luego los
     // co-profes en orden de alta. `instructor` singular sigue siendo el
     // primario para clientes que solo muestran uno.
