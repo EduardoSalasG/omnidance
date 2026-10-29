@@ -33,11 +33,17 @@ export default function SlotDetailPage({
 }: {
   params: Promise<{ id: string; slotId: string }>;
 }) {
-  const { id: academyId, slotId } = use(params);
+  const { id: seriesId, slotId } = use(params);
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       <AcademyGate>
-        {() => <SlotDetail academyId={academyId} slotId={slotId} />}
+        {({ academy }) => (
+          <SlotDetail
+            key={`${academy.id}:${seriesId}`}
+            academyId={academy.id}
+            slotId={slotId}
+          />
+        )}
       </AcademyGate>
     </main>
   );

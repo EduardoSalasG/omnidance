@@ -1030,7 +1030,47 @@ export class ClassSeriesController {
       ? [...new Set(dto.instructorIds)]
       : null;
 
+    const now = new Date();
+    const todayUtc = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const weekdayChanged =
+      dto.weekday !== undefined && dto.weekday !== slot.weekday;
+
     return this.prisma.$transaction(async (tx) => {
+      if (weekdayChanged) {
+        // Las instancias futuras del día viejo ya no corresponden al
+        // horario: misma cascada que deleteSlot - se cancelan y sus
+        // reservas se liberan (el alumno nunca pierde crédito por una
+        // decisión de la academia). Las pasadas quedan como historial.
+        const stale = await tx.class.findMany({
+          where: {
+            classSlotId: slotId,
+            cancelled: false,
+            date: { gte: todayUtc },
+          },
+          select: { id: true },
+        });
+        const staleIds = stale.map((c) => c.id);
+        if (staleIds.length) {
+          await tx.class.updateMany({
+            where: { id: { in: staleIds } },
+            data: { cancelled: true },
+          });
+          await tx.classBooking.updateMany({
+            where: {
+              classId: { in: staleIds },
+              status: { in: ["BOOKED", "WAITLIST"] },
+            },
+            data: {
+              status: "CANCELLED",
+              cancelledAt: now,
+              refunded: true,
+            },
+          });
+        }
+      }
+
       if (roster !== null) {
         await tx.classSlotInstructor.deleteMany({ where: { slotId } });
         if (roster.length) {
@@ -1046,7 +1086,8 @@ export class ClassSeriesController {
           });
         }
       }
-      return tx.classSlot.update({
+
+      const updated = await tx.classSlot.update({
         where: { id: slotId },
         data: {
           weekday: dto.weekday,
@@ -1060,6 +1101,63 @@ export class ClassSeriesController {
           },
         },
       });
+
+      if (weekdayChanged) {
+        // Materializa el día nuevo en la ventana rodante (idempotente:
+        // revive canceladas y crea solo las fechas faltantes).
+        await this.materialize.materializeSlot(
+          tx,
+          {
+            id: updated.id,
+            weekday: updated.weekday,
+            instructorId: updated.instructorId,
+            instructors: (updated.instructors ?? []).map((i) => ({
+              personId: i.personId,
+            })),
+          },
+          this.materialize.rollingDates(now),
+        );
+      }
+
+      // El materializador solo escribe el plantel en clases NUEVAS - sin
+      // este sync las instancias ya creadas (o revividas) de la ventana
+      // quedan con el plantel viejo. Se reescribe solo lo futuro/vigente:
+      // el historial conserva quién dio la clase ese día.
+      if (roster !== null || weekdayChanged) {
+        const effective =
+          roster ?? (updated.instructors ?? []).map((i) => i.personId);
+        const upcoming = await tx.class.findMany({
+          where: {
+            classSlotId: slotId,
+            cancelled: false,
+            date: { gte: todayUtc },
+          },
+          select: { id: true },
+        });
+        const classIds = upcoming.map((c) => c.id);
+        if (classIds.length) {
+          await tx.classInstructor.deleteMany({
+            where: { classId: { in: classIds } },
+          });
+          if (effective.length) {
+            await tx.classInstructor.createMany({
+              data: classIds.flatMap((classId) =>
+                effective.map((personId) => ({ classId, personId })),
+              ),
+            });
+          }
+          await tx.class.updateMany({
+            where: { id: { in: classIds } },
+            data: {
+              instructorId:
+                roster !== null
+                  ? (roster[0] ?? null)
+                  : updated.instructorId,
+            },
+          });
+        }
+      }
+      return updated;
     });
   }
 

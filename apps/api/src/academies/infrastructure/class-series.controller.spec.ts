@@ -19,6 +19,7 @@ interface FakeCls {
   seriesId: string;
   date: Date;
   cancelled: boolean;
+  instructorId?: string | null;
 }
 
 interface FakeBooking {
@@ -39,25 +40,45 @@ interface FakeSeries {
 class FakePrisma {
   classes: FakeCls[] = [];
   bookings: FakeBooking[] = [];
+  classInstructors: { classId: string; personId: string }[] = [];
+  slotInstructors: { slotId: string; personId: string }[] = [];
   series = new Map<string, FakeSeries>();
-  slots = new Map<string, { id: string; academyId: string; seriesId: string }>();
+  slots = new Map<
+    string,
+    {
+      id: string;
+      academyId: string;
+      seriesId: string;
+      weekday?: number;
+      instructorId?: string | null;
+      instructors?: { personId: string }[];
+      deletedAt?: Date | null;
+    }
+  >();
+  private classSeq = 0;
 
   class = {
     findMany: async ({ where }: { where: Record<string, unknown> }) =>
-      this.classes.filter((c) => {
-        const w = where as {
-          classSlotId?: string;
-          date?: { gte?: Date };
-          cancelled?: boolean;
-          slot?: { seriesId?: string };
-        };
-        if (w.classSlotId && c.classSlotId !== w.classSlotId) return false;
-        if (w.cancelled !== undefined && c.cancelled !== w.cancelled)
-          return false;
-        if (w.date?.gte && c.date < w.date.gte) return false;
-        if (w.slot?.seriesId && c.seriesId !== w.slot.seriesId) return false;
-        return true;
-      }),
+      this.classes.filter((c) => this.classMatches(c, where)),
+    count: async ({ where }: { where: Record<string, unknown> }) =>
+      this.classes.filter((c) => this.classMatches(c, where)).length,
+    createMany: async ({
+      data,
+    }: {
+      data: { classSlotId: string; date: Date; instructorId?: string | null }[];
+    }) => {
+      for (const d of data) {
+        this.classes.push({
+          id: `gen-${++this.classSeq}`,
+          classSlotId: d.classSlotId,
+          seriesId: this.slots.get(d.classSlotId)?.seriesId ?? "",
+          date: d.date,
+          cancelled: false,
+          instructorId: d.instructorId ?? null,
+        });
+      }
+      return { count: data.length };
+    },
     updateMany: async ({
       where,
       data,
@@ -130,6 +151,83 @@ class FakePrisma {
       this.slots.delete(where.id);
       return s ?? null;
     },
+    update: async ({
+      where,
+      data,
+    }: {
+      where: { id: string };
+      data?: Record<string, unknown>;
+    }) => {
+      const s = this.slots.get(where.id);
+      if (s && data) Object.assign(s, data);
+      return s ?? null;
+    },
+  };
+
+  private classMatches(c: FakeCls, where: Record<string, unknown>): boolean {
+    const w = where as {
+      classSlotId?: string;
+      date?: { gte?: Date; in?: Date[] };
+      cancelled?: boolean;
+      slot?: { seriesId?: string };
+    };
+    if (w.classSlotId && c.classSlotId !== w.classSlotId) return false;
+    if (w.cancelled !== undefined && c.cancelled !== w.cancelled)
+      return false;
+    if (w.date?.gte && c.date < w.date.gte) return false;
+    if (
+      w.date?.in &&
+      !w.date.in.some((d) => d.getTime() === c.date.getTime())
+    )
+      return false;
+    if (w.slot?.seriesId && c.seriesId !== w.slot.seriesId) return false;
+    return true;
+  }
+
+  classInstructor = {
+    deleteMany: async ({
+      where,
+    }: {
+      where: { classId: { in: string[] } };
+    }) => {
+      this.classInstructors = this.classInstructors.filter(
+        (i) => !where.classId.in.includes(i.classId),
+      );
+      return { count: 0 };
+    },
+    createMany: async ({
+      data,
+    }: {
+      data: { classId: string; personId: string }[];
+    }) => {
+      this.classInstructors.push(...data);
+      return { count: data.length };
+    },
+  };
+
+  classSlotInstructor = {
+    deleteMany: async ({ where }: { where: { slotId: string } }) => {
+      this.slotInstructors = this.slotInstructors.filter(
+        (i) => i.slotId !== where.slotId,
+      );
+      return { count: 0 };
+    },
+    createMany: async ({
+      data,
+    }: {
+      data: { slotId: string; personId: string }[];
+    }) => {
+      this.slotInstructors.push(...data);
+      return { count: data.length };
+    },
+  };
+
+  classSeriesInstructor = {
+    createMany: async ({
+      data,
+    }: {
+      data: { seriesId: string; personId: string }[];
+    }) => ({ count: data.length }),
   };
 
   $transaction = async <T>(
@@ -139,6 +237,14 @@ class FakePrisma {
 
 const req = { person: { id: "per-admin" } } as unknown as Request;
 const future = () => new Date(Date.now() + 3 * 86_400_000);
+// Próxima fecha (medianoche UTC) que cae en el weekday dado.
+const nextWeekday = (d: number) => {
+  const t = new Date();
+  const delta = (d - t.getUTCDay() + 7) % 7 || 7;
+  return new Date(
+    Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() + delta),
+  );
+};
 
 describe("ClassSeriesController - cancelación por la academia devuelve crédito", () => {
   let prisma: FakePrisma;
@@ -216,7 +322,98 @@ describe("ClassSeriesController - cancelación por la academia devuelve crédito
     expect(b1.status).toBe("CANCELLED");
     expect(b1.refunded).toBe(true);
     expect(b1.cancelledAt).toBeInstanceOf(Date);
+    // Con historial de clases el horario queda en borrado lógico (Class.slot
+    // es Restrict) - el hard delete solo corre cuando nunca tuvo clases.
+    const slot = prisma.slots.get("slot-1") as
+      | { deletedAt?: Date | null }
+      | undefined;
+    expect(slot?.deletedAt).toBeInstanceOf(Date);
+  });
+
+  it("deleteSlot sin clases: hard delete real", async () => {
+    await ctrl.deleteSlot("acad-1", "slot-1", req);
+
     expect(prisma.slots.has("slot-1")).toBe(false);
+  });
+
+  it("updateSlot: el plantel nuevo se propaga a las clases futuras vigentes", async () => {
+    const past = new Date(Date.now() - 3 * 86_400_000);
+    prisma.classes.push(
+      { id: "c1", classSlotId: "slot-1", seriesId: "ser-1", date: future(), cancelled: false, instructorId: "old" },
+      { id: "c2", classSlotId: "slot-1", seriesId: "ser-1", date: future(), cancelled: true, instructorId: "old" },
+      { id: "c3", classSlotId: "slot-1", seriesId: "ser-1", date: past, cancelled: false, instructorId: "old" },
+    );
+    prisma.classInstructors.push(
+      { classId: "c1", personId: "old" },
+      { classId: "c3", personId: "old" },
+    );
+
+    await ctrl.updateSlot(
+      "acad-1",
+      "slot-1",
+      { instructorIds: ["p1", "p2"] },
+      req,
+    );
+
+    // Clase futura vigente: roster reemplazado + primario = roster[0].
+    expect(
+      prisma.classInstructors.filter((i) => i.classId === "c1"),
+    ).toEqual([
+      { classId: "c1", personId: "p1" },
+      { classId: "c1", personId: "p2" },
+    ]);
+    expect(prisma.classes.find((c) => c.id === "c1")!.instructorId).toBe("p1");
+    // Cancelada y pasada: el historial conserva quién dio la clase.
+    expect(prisma.classes.find((c) => c.id === "c2")!.instructorId).toBe("old");
+    expect(
+      prisma.classInstructors.filter((i) => i.classId === "c3"),
+    ).toEqual([{ classId: "c3", personId: "old" }]);
+    expect(prisma.classes.find((c) => c.id === "c3")!.instructorId).toBe("old");
+  });
+
+  it("updateSlot con cambio de día: cancela el día viejo y materializa el nuevo", async () => {
+    prisma.slots.set("slot-1", {
+      id: "slot-1",
+      academyId: "acad-1",
+      seriesId: "ser-1",
+      weekday: 1,
+      instructorId: null,
+      instructors: [],
+    });
+    const monday = nextWeekday(1);
+    prisma.classes.push({
+      id: "c1",
+      classSlotId: "slot-1",
+      seriesId: "ser-1",
+      date: monday,
+      cancelled: false,
+    });
+    prisma.bookings.push({
+      id: "b1",
+      classId: "c1",
+      status: "BOOKED",
+      cancelledAt: null,
+      refunded: false,
+    });
+
+    await ctrl.updateSlot("acad-1", "slot-1", { weekday: 3 }, req);
+
+    // La clase del día viejo se cancela y la reserva se libera con
+    // refunded (misma cascada que deleteSlot).
+    const c1 = prisma.classes.find((c) => c.id === "c1")!;
+    expect(c1.cancelled).toBe(true);
+    const b1 = prisma.bookings.find((b) => b.id === "b1")!;
+    expect(b1.status).toBe("CANCELLED");
+    expect(b1.refunded).toBe(true);
+    // El día nuevo queda materializado dentro de la ventana rodante.
+    expect(
+      prisma.classes.some(
+        (c) =>
+          c.classSlotId === "slot-1" &&
+          c.date.getUTCDay() === 3 &&
+          !c.cancelled,
+      ),
+    ).toBe(true);
   });
 
   it("deactivate = borrado lógico: active=false + deletedAt set", async () => {
