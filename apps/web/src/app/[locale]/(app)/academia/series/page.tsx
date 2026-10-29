@@ -11,9 +11,7 @@ import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { FilterBar } from "@/components/query/FilterBar";
-import { ImportCard } from "@/components/academy/import-section";
 import { SeriesInsights } from "@/components/academy/series-insights";
-import { useAcademyAccess } from "@/components/academy/use-academy-access";
 import {
   filterQuery,
   type FilterOption,
@@ -72,7 +70,6 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const t = useTranslations("academySeries");
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
-  const access = useAcademyAccess(academyId);
 
   const [series, setSeries] = useState<Series[] | null>(null);
   const [total, setTotal] = useState(0);
@@ -80,7 +77,6 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const [loadError, setLoadError] = useState(false);
   // Default del listado: solo clases activas (spec academies/class-series).
   const [filters, setFilters] = useState<QueryFilters>({ status: "active" });
-  const [importOpen, setImportOpen] = useState(false);
 
   // Opciones de los filtros fk - catálogos públicos.
   const [styleOptions, setStyleOptions] = useState<FilterOption[]>([]);
@@ -167,18 +163,6 @@ function SeriesModule({ academyId }: { academyId: string }) {
         <Button href="/academia/series/nueva" size="sm">
           + {t("new")}
         </Button>
-        {/* Carga masiva de clases embebida en el módulo (cap `schedule`)
-            - reemplaza al antiguo "importar horarios" de /academia/horarios. */}
-        {access?.caps.schedule === true && (
-          <Button
-            variant="secondary"
-            size="sm"
-            aria-expanded={importOpen}
-            onClick={() => setImportOpen((v) => !v)}
-          >
-            {t("importClasses")}
-          </Button>
-        )}
       </div>
 
       {/* Insights del módulo: KPIs primero, listas después (mismo
@@ -198,10 +182,6 @@ function SeriesModule({ academyId }: { academyId: string }) {
           classTypes: typeOptions,
         }}
       />
-
-      {importOpen && (
-        <ImportCard academyId={academyId} kind="schedule" />
-      )}
 
       {series.length === 0 ? (
         <div className="flex flex-col items-start gap-3">

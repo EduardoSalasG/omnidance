@@ -202,7 +202,8 @@
       "general": "Cours",
       "payments": "Moyens de paiement",
       "profile": "Profil de l'académie",
-      "appearance": "Apparence"
+      "appearance": "Apparence",
+      "import": "Importer des données"
     },
     "kpis": {
       "title": "Aperçu du mois",
