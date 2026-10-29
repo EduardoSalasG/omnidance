@@ -89,6 +89,7 @@ Estos pasos se incumplieron en sesiones reales - son gates, no sugerencias:
 - **Dark-first**: el tema oscuro es el default (la app se usa de noche en locales oscuros).
 - Mobile-first: verifica 320px, mobile representativo y desktop; touch targets, estados de carga/vacío/error.
 - i18n: todo string por catálogo de mensajes (next-intl), solo `es-CL` habilitado - pero las bases listas desde el día 1.
+- **Puntuación en copy y documentos**: no usar guiones largos ni dobles (`—`, `--`, ` - ` como separador de ideas); es vicio de escritura de IA. En español se usa punto, punto y coma, dos puntos o paréntesis según corresponda. Aplica a strings i18n, docs, comentarios de código, mensajes de commit y respuestas al usuario.
 - **Indicadores de carga (estándar de carga percibida)**: <100ms se siente instantáneo → no mostrar nada; un spinner visible <300ms es "flash" y hace la app sentirse más lenta. Reglas:
   - Carga de **contenido con layout conocido** (listas, cards, detalle): `SkeletonList`/`SkeletonCard`/`SkeletonText` de `components/ui` - el skeleton se percibe más corto que un spinner porque anticipa la estructura (NN/g). Todos llevan `.page-loading` (aparición diferida 200ms) y `motion-reduce` apaga el pulse.
   - Carga de **contenido con layout desconocido** (gates de sesión/rol que deciden qué renderizar): `PageLoading` - difiere su aparición 200ms vía beacon compartido.
