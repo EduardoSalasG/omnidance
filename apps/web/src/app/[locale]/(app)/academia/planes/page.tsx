@@ -133,7 +133,7 @@ function PlansModule({ academyId }: { academyId: string }) {
           mobile). Antes el sort quedaba en una fila suelta alineada a
           la derecha y se veía desalineado bajo el FilterBar. */}
       <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 w-full sm:flex-1">
           <FilterBar
             entity={PLANS_ENTITY}
             filters={filters}
@@ -144,10 +144,10 @@ function PlansModule({ academyId }: { academyId: string }) {
             options={{}}
           />
         </div>
-        <label className="flex items-center gap-2 text-xs text-ink/50">
+        <label className="flex w-full items-center gap-2 text-xs text-ink/50 sm:w-auto">
           {t("sortLabel")}
           <select
-            className={inputCls}
+            className={`${inputCls} min-w-40 flex-1 sm:flex-initial`}
             value={sort}
             onChange={(e) => {
               setSort(e.target.value as SortKey);
