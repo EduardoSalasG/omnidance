@@ -262,6 +262,18 @@ class UpdateSeriesDto {
   addSlots?: AddSeriesSlotDto[];
 }
 
+/**
+ * Reserva liberada por una cascada de la academia (baja de instancia,
+ * horario o serie, reprogramación): la fila afectada más el contexto
+ * mínimo para notificar al alumno después del commit.
+ */
+interface ReleasedBooking {
+  id: string;
+  classId: string;
+  personId: string;
+  classDate: Date | null;
+}
+
 const SERIES_INCLUDE: Prisma.ClassSeriesInclude = {
   style: { select: { id: true, name: true } },
   level: { select: { id: true, name: true } },
@@ -983,6 +995,101 @@ export class ClassSeriesController {
   }
 
   /**
+   * Cascada de reservas (dentro de la transacción del caller): cancela
+   * BOOKED/WAITLIST de las clases dadas con refunded (el alumno nunca
+   * pierde crédito por una decisión de la academia) y devuelve las
+   * filas afectadas para que el caller avise post-commit. Select
+   * previo porque updateMany solo retorna count: así se notifica solo
+   * a las reservas que efectivamente se liberaron (idempotente: las
+   * ya CANCELLED quedan fuera del filtro y del set devuelto).
+   */
+  private async releaseBookings(
+    tx: Pick<PrismaService, "classBooking">,
+    classes: { id: string; date?: Date | null }[],
+    now: Date,
+  ): Promise<ReleasedBooking[]> {
+    const classIds = classes.map((c) => c.id);
+    if (!classIds.length) return [];
+    const affected = await tx.classBooking.findMany({
+      where: {
+        classId: { in: classIds },
+        status: { in: ["BOOKED", "WAITLIST"] },
+      },
+      select: { id: true, classId: true, personId: true },
+    });
+    if (!affected.length) return [];
+    await tx.classBooking.updateMany({
+      where: {
+        id: { in: affected.map((b) => b.id) },
+        // Doble filtro de estado: una cancelación concurrente entre el
+        // select y este update no vuelve a tocar la fila.
+        status: { in: ["BOOKED", "WAITLIST"] },
+      },
+      data: { status: "CANCELLED", cancelledAt: now, refunded: true },
+    });
+    const dateByClass = new Map(classes.map((c) => [c.id, c.date ?? null]));
+    return affected.map((b) => ({
+      ...b,
+      classDate: dateByClass.get(b.classId) ?? null,
+    }));
+  }
+
+  /**
+   * Avisa a cada alumno cuya reserva liberó la academia (best-effort
+   * post-commit: un fallo del centro no revierte la cascada). type
+   * class.booking.released cae en la lente academy (prefix class.*) y
+   * data.path resuelve el deeplink en /notificaciones.
+   */
+  private async notifyReleasedBookings(
+    academyId: string,
+    released: ReleasedBooking[],
+    ctx: { seriesId: string | null; reason: string },
+  ): Promise<void> {
+    if (!released.length) return;
+    const [academy, series] = await Promise.all([
+      this.prisma.academy.findUnique({
+        where: { id: academyId },
+        select: { name: true },
+      }),
+      ctx.seriesId
+        ? this.prisma.classSeries.findFirst({
+            where: { id: ctx.seriesId, academyId },
+            select: { name: true },
+          })
+        : Promise.resolve(null),
+    ]);
+    await Promise.all(
+      released.map((b) => {
+        const body = [
+          series?.name ?? "",
+          academy?.name ?? "",
+          b.classDate ? formatClassDay(b.classDate) : "",
+          "te devolvimos el crédito",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        return this.notifications.notifySafe(b.personId, {
+          category: "SOCIAL",
+          type: "class.booking.released",
+          title: "La academia canceló tu clase",
+          body,
+          data: {
+            bookingId: b.id,
+            classId: b.classId,
+            classDate: b.classDate?.toISOString() ?? null,
+            academyId,
+            seriesId: ctx.seriesId,
+            seriesName: series?.name ?? null,
+            reason: ctx.reason,
+            refunded: true,
+            path: "/clases",
+          },
+        });
+      }),
+    );
+  }
+
+  /**
    * Borrado lógico: la serie se desactiva, se oculta de la consola
    * (deletedAt) y sus clases futuras se cancelan - las reservas
    * BOOKED/WAITLIST pasan a CANCELLED (el alumno lo ve en "mis reservas").
@@ -998,14 +1105,15 @@ export class ClassSeriesController {
     await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     await this.findSeriesOr404(id, seriesId);
 
-    return this.prisma.$transaction(async (tx) => {
+    let released: ReleasedBooking[] = [];
+    const updated = await this.prisma.$transaction(async (tx) => {
       const futureClasses = await tx.class.findMany({
         where: {
           date: { gte: new Date() },
           cancelled: false,
           slot: { seriesId },
         },
-        select: { id: true },
+        select: { id: true, date: true },
       });
       const classIds = futureClasses.map((c) => c.id);
       await tx.class.updateMany({
@@ -1014,15 +1122,17 @@ export class ClassSeriesController {
       });
       // Cancelación del lado de la academia → el crédito siempre se
       // devuelve (refunded:true), nunca quema la cuota del alumno.
-      await tx.classBooking.updateMany({
-        where: { classId: { in: classIds }, status: { in: ["BOOKED", "WAITLIST"] } },
-        data: { status: "CANCELLED", cancelledAt: new Date(), refunded: true },
-      });
+      released = await this.releaseBookings(tx, futureClasses, new Date());
       return tx.classSeries.update({
         where: { id: seriesId },
         data: { active: false, deletedAt: new Date() },
       });
     });
+    await this.notifyReleasedBookings(id, released, {
+      reason: "series.deactivated",
+      seriesId,
+    });
+    return updated;
   }
 
   /** Detalle de un horario: datos + plantel + roster habilitado de la
@@ -1106,7 +1216,8 @@ export class ClassSeriesController {
       effectiveWeekday !== slot.weekday ||
       effectiveOneOff?.getTime() !== slot.oneOffDate?.getTime();
 
-    return this.prisma.$transaction(async (tx) => {
+    let released: ReleasedBooking[] = [];
+    const updated = await this.prisma.$transaction(async (tx) => {
       if (scheduleChanged) {
         // Las instancias futuras del día viejo ya no corresponden al
         // horario: misma cascada que deleteSlot - se cancelan y sus
@@ -1118,25 +1229,14 @@ export class ClassSeriesController {
             cancelled: false,
             date: { gte: todayUtc },
           },
-          select: { id: true },
+          select: { id: true, date: true },
         });
-        const staleIds = stale.map((c) => c.id);
-        if (staleIds.length) {
+        if (stale.length) {
           await tx.class.updateMany({
-            where: { id: { in: staleIds } },
+            where: { id: { in: stale.map((c) => c.id) } },
             data: { cancelled: true },
           });
-          await tx.classBooking.updateMany({
-            where: {
-              classId: { in: staleIds },
-              status: { in: ["BOOKED", "WAITLIST"] },
-            },
-            data: {
-              status: "CANCELLED",
-              cancelledAt: now,
-              refunded: true,
-            },
-          });
+          released = await this.releaseBookings(tx, stale, now);
         }
       }
 
@@ -1233,6 +1333,14 @@ export class ClassSeriesController {
       }
       return updated;
     });
+    if (scheduleChanged) {
+      // Best-effort post-commit: un fallo del centro no revierte el slot.
+      await this.notifyReleasedBookings(id, released, {
+        reason: "slot.rescheduled",
+        seriesId: slot.seriesId,
+      });
+    }
+    return updated;
   }
 
   /**
@@ -1252,20 +1360,18 @@ export class ClassSeriesController {
     });
     if (!slot) throw new NotFoundException("horario no encontrado");
 
-    return this.prisma.$transaction(async (tx) => {
+    let released: ReleasedBooking[] = [];
+    const result = await this.prisma.$transaction(async (tx) => {
       const future = await tx.class.findMany({
         where: { classSlotId: slotId, date: { gte: new Date() } },
-        select: { id: true },
+        select: { id: true, date: true },
       });
       const ids = future.map((c) => c.id);
       await tx.class.updateMany({
         where: { id: { in: ids } },
         data: { cancelled: true },
       });
-      await tx.classBooking.updateMany({
-        where: { classId: { in: ids }, status: { in: ["BOOKED", "WAITLIST"] } },
-        data: { status: "CANCELLED", cancelledAt: new Date(), refunded: true },
-      });
+      released = await this.releaseBookings(tx, future, new Date());
       // Class.slot es Restrict: con cualquier clase asociada (pasada o
       // futura) el hard delete rompe por FK - el horario queda con
       // borrado lógico y el historial intacto. Sin clases, delete real.
@@ -1280,6 +1386,11 @@ export class ClassSeriesController {
       }
       return tx.classSlot.delete({ where: { id: slotId } });
     });
+    await this.notifyReleasedBookings(id, released, {
+      reason: "slot.deleted",
+      seriesId: slot.seriesId,
+    });
+    return result;
   }
 
   /**
@@ -1307,12 +1418,13 @@ export class ClassSeriesController {
     );
     const cls = await this.prisma.class.findFirst({
       where: { id: classId, slot: { academyId: id } },
-      select: { id: true, date: true },
+      select: { id: true, date: true, classSlotId: true },
     });
     if (!cls || cls.date < todayUtc) {
       throw new NotFoundException("clase no encontrada");
     }
-    return this.prisma.$transaction(async (tx) => {
+    let released: ReleasedBooking[] = [];
+    const updated = await this.prisma.$transaction(async (tx) => {
       // updateMany con cancelled:false: el re-cancel no reescribe
       // cancelledAt (idempotencia) y las reservas ya CANCELLED quedan
       // fuera por el filtro de estado.
@@ -1320,12 +1432,22 @@ export class ClassSeriesController {
         where: { id: classId, cancelled: false },
         data: { cancelled: true, cancelledAt: now },
       });
-      await tx.classBooking.updateMany({
-        where: { classId, status: { in: ["BOOKED", "WAITLIST"] } },
-        data: { status: "CANCELLED", cancelledAt: now, refunded: true },
-      });
+      released = await this.releaseBookings(tx, [cls], now);
       return tx.class.findUniqueOrThrow({ where: { id: classId } });
     });
+    // Serie para el copy de la notificación (best-effort: si no se
+    // resuelve, el aviso igual sale con academia + fecha).
+    const slot = released.length
+      ? await this.prisma.classSlot.findFirst({
+          where: { id: cls.classSlotId, academyId: id },
+          select: { seriesId: true },
+        })
+      : null;
+    await this.notifyReleasedBookings(id, released, {
+      reason: "class.cancelled",
+      seriesId: slot?.seriesId ?? null,
+    });
+    return updated;
   }
 
   private async findSeriesOr404(academyId: string, seriesId: string) {
@@ -1335,6 +1457,17 @@ export class ClassSeriesController {
     if (!series) throw new NotFoundException("serie no encontrada");
     return series;
   }
+}
+
+/** "sáb 15 nov" para el copy de notificaciones (UTC, misma convención
+ *  que Class.date). */
+function formatClassDay(date: Date): string {
+  return new Intl.DateTimeFormat("es-CL", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(date);
 }
 
 /** Dedup por timestamp (medianoche UTC) - la ventana rodante y un mes
