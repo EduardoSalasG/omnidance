@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, Skeleton, XIcon } from "@/components/ui";
+import { InstructorChecklist } from "./instructor-checklist";
 import {
   inputCls,
   readError,
@@ -70,7 +71,9 @@ export function SeriesForm({
   const [typeIds, setTypeIds] = useState<string[]>(
     editing ? editing.types.map((x) => x.type.id) : [],
   );
-  const [instructorId, setInstructorId] = useState(editing?.instructorId ?? "");
+  const [instructorIds, setInstructorIds] = useState<string[]>(
+    editing?.instructorId ? [editing.instructorId] : [],
+  );
   // Quórum opcional (override de serie) - string para el input controlado;
   // vacío = null = hereda el defaultQuorum de la academia.
   const [quorum, setQuorum] = useState(
@@ -196,7 +199,8 @@ export function SeriesForm({
               styleId: styleId || null,
               levelId: levelId || null,
               typeIds,
-              instructorId: instructorId || null,
+              instructorId: instructorIds[0] ?? null,
+              instructorIds,
               quorum: q,
               dropInPrice: drop,
             }),
@@ -212,7 +216,7 @@ export function SeriesForm({
               ...(styleId ? { styleId } : {}),
               ...(levelId ? { levelId } : {}),
               ...(typeIds.length ? { typeIds } : {}),
-              ...(instructorId ? { instructorId } : {}),
+              ...(instructorIds.length ? { instructorIds } : {}),
               ...(q !== null ? { quorum: q } : {}),
               ...(drop !== null ? { dropInPrice: drop } : {}),
               slots: slots.map((s) => ({
@@ -314,23 +318,15 @@ export function SeriesForm({
               </select>
             </label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{t("instructor")}</span>
-              <select
-                className={`${inputCls} disabled:opacity-50`}
-                value={instructorId}
-                onChange={(e) => setInstructorId(e.target.value)}
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-ink/50">{t("instructors")}</span>
+              <InstructorChecklist
+                options={(instructors ?? []).map((i) => ({ id: i.personId, name: i.name }))}
+                selected={instructorIds}
+                onChange={setInstructorIds}
                 disabled={instructors === null}
-                aria-busy={instructors === null}
-              >
-                <option value="">·</option>
-                {(instructors ?? []).map((i) => (
-                  <option key={i.personId} value={i.personId}>
-                    {i.name ?? i.personId.slice(0, 8)}
-                  </option>
-                ))}
-              </select>
-            </label>
+              />
+            </div>
 
             <label className="flex flex-col gap-1">
               <span className="text-xs text-ink/50">{t("quorum")}</span>

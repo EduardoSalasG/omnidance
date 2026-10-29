@@ -57,6 +57,13 @@ class SeriesSlotDto {
   @IsOptional()
   @IsString()
   instructorId?: string;
+
+  /** Plantel asignado del horario (multi-profesor); primero = primario.
+      El roster de la serie habilita quiénes son asignables. */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  instructorIds?: string[];
 }
 
 class CreateSeriesDto {
@@ -83,6 +90,13 @@ class CreateSeriesDto {
   @IsOptional()
   @IsString()
   instructorId?: string;
+
+  /** Roster de profesores habilitados de la serie; el primero queda
+      como primario/default (instructorId). */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  instructorIds?: string[];
 
   /** Cupos por defecto de la serie (null/omitido = hereda la academia). */
   @IsOptional()
@@ -136,6 +150,37 @@ class AddSeriesSlotDto {
   @IsOptional()
   @IsString()
   instructorId?: string;
+
+  /** Plantel asignado del horario (multi-profesor); primero = primario. */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  instructorIds?: string[];
+}
+
+/** PATCH de un horario: día/hora + plantel asignado (multi). */
+class UpdateSlotDto {
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(6)
+  weekday?: number;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{2}:\d{2}$/, { message: "startTime formato HH:MM" })
+  startTime?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{2}:\d{2}$/, { message: "endTime formato HH:MM" })
+  endTime?: string;
+
+  /** Plantel asignado; si llega, reemplaza el conjunto (primero = primario). */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  instructorIds?: string[];
 }
 
 class UpdateSeriesDto {
@@ -164,6 +209,12 @@ class UpdateSeriesDto {
   @IsString()
   instructorId?: string;
 
+  /** Roster de profesores habilitados; si llega, reemplaza el conjunto. */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  instructorIds?: string[];
+
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -190,7 +241,13 @@ const SERIES_INCLUDE: Prisma.ClassSeriesInclude = {
   style: { select: { id: true, name: true } },
   level: { select: { id: true, name: true } },
   types: { include: { type: { select: { id: true, name: true } } } },
+  // Roster de profesores habilitados: solo ellos son asignables a los
+  // horarios (spec serie habilita -> slot asigna).
+  instructors: {
+    include: { person: { select: { id: true, name: true } } },
+  },
   slots: {
+    where: { deletedAt: null },
     orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
     include: {
       types: { include: { type: { select: { id: true, name: true } } } },
@@ -568,20 +625,41 @@ export class ClassSeriesController {
           description: dto.description ?? null,
           styleId: dto.styleId ?? null,
           levelId: dto.levelId ?? null,
-          instructorId: dto.instructorId ?? null,
+          instructorId: dto.instructorIds?.[0] ?? dto.instructorId ?? null,
           quorum: dto.quorum ?? null,
           dropInPrice: dto.dropInPrice ?? null,
           month,
           types: dto.typeIds?.length
             ? { create: dto.typeIds.map((typeId) => ({ typeId })) }
             : undefined,
+          // Roster habilitado de la serie (spec serie habilita -> slot
+          // asigna): dedup contra el primario por si viene repetido.
+          ...(dto.instructorIds?.length
+            ? {
+                instructors: {
+                  create: [...new Set(dto.instructorIds)].map((personId) => ({
+                    personId,
+                  })),
+                },
+              }
+            : dto.instructorId
+              ? { instructors: { create: [{ personId: dto.instructorId }] } }
+              : {}),
         },
       });
 
       for (const s of dto.slots) {
         // Cupos y modalidad son de la serie (spec academies/class-series)
         // - el slot solo fija día/hora e instructor override.
-        const slotInstructorId = s.instructorId ?? dto.instructorId ?? null;
+        // Plantel del horario: lista explícita > override singular >
+        // default de la serie. El roster serie-habilita en la UI; el API
+        // auto-union al roster para compat (import/legacy).
+        const roster = s.instructorIds?.length
+          ? [...new Set(s.instructorIds)]
+          : s.instructorId
+            ? [s.instructorId]
+            : [];
+        const slotInstructorId = roster[0] ?? dto.instructorId ?? null;
         const slot = await tx.classSlot.create({
           data: {
             academyId: id,
@@ -591,11 +669,19 @@ export class ClassSeriesController {
             endTime: s.endTime,
             instructorId: slotInstructorId,
             // El primario también entra al plantel (join = conjunto).
-            ...(slotInstructorId
-              ? { instructors: { create: [{ personId: slotInstructorId }] } }
-              : {}),
+            ...(roster.length
+              ? { instructors: { create: roster.map((personId) => ({ personId })) } }
+              : slotInstructorId
+                ? { instructors: { create: [{ personId: slotInstructorId }] } }
+                : {}),
           },
         });
+        if (roster.length) {
+          await tx.classSeriesInstructor.createMany({
+            data: roster.map((personId) => ({ seriesId: series.id, personId })),
+            skipDuplicates: true,
+          });
+        }
         await this.materialize.materializeSlot(tx, slot, dates);
       }
 
@@ -652,6 +738,17 @@ export class ClassSeriesController {
           });
         }
       }
+      if (dto.instructorIds !== undefined) {
+        await tx.classSeriesInstructor.deleteMany({ where: { seriesId } });
+        if (dto.instructorIds.length) {
+          await tx.classSeriesInstructor.createMany({
+            data: [...new Set(dto.instructorIds)].map((personId) => ({
+              seriesId,
+              personId,
+            })),
+          });
+        }
+      }
       const series = await tx.classSeries.update({
         where: { id: seriesId },
         data: {
@@ -659,7 +756,10 @@ export class ClassSeriesController {
           description: dto.description,
           styleId: dto.styleId,
           levelId: dto.levelId,
-          instructorId: dto.instructorId,
+          instructorId:
+            dto.instructorIds !== undefined
+              ? (dto.instructorIds[0] ?? null)
+              : dto.instructorId,
           quorum: dto.quorum,
           dropInPrice: dto.dropInPrice,
           active: dto.active,
@@ -690,12 +790,19 @@ export class ClassSeriesController {
           }) => `${x.weekday}|${x.startTime}|${x.endTime}`;
           let slot = known.find((x) => key(x) === key(s)) ?? null;
           if (!slot) {
+            const roster = s.instructorIds?.length
+              ? [...new Set(s.instructorIds)]
+              : s.instructorId
+                ? [s.instructorId]
+                : [];
             const slotInstructorId =
-              s.instructorId ?? series.instructorId ?? null;
+              roster[0] ?? s.instructorId ?? series.instructorId ?? null;
             // Solo el override explícito es "asignación nueva" - el
             // instructor heredado de la serie ya fue avisado (o no
             // cambió con este PATCH).
-            if (s.instructorId) newAssignees.add(s.instructorId);
+            for (const pid of roster.length ? roster : s.instructorId ? [s.instructorId] : []) {
+              newAssignees.add(pid);
+            }
             slot = await tx.classSlot.create({
               data: {
                 academyId: id,
@@ -704,15 +811,27 @@ export class ClassSeriesController {
                 startTime: s.startTime,
                 endTime: s.endTime,
                 instructorId: slotInstructorId,
-                ...(slotInstructorId
+                ...(roster.length
                   ? {
                       instructors: {
-                        create: [{ personId: slotInstructorId }],
+                        create: roster.map((personId) => ({ personId })),
                       },
                     }
-                  : {}),
+                  : slotInstructorId
+                    ? {
+                        instructors: {
+                          create: [{ personId: slotInstructorId }],
+                        },
+                      }
+                    : {}),
               },
             });
+            if (roster.length) {
+              await tx.classSeriesInstructor.createMany({
+                data: roster.map((personId) => ({ seriesId, personId })),
+                skipDuplicates: true,
+              });
+            }
             known.push(slot);
           }
           await this.materialize.materializeSlot(tx, slot, futureDates);
@@ -858,6 +977,92 @@ export class ClassSeriesController {
     });
   }
 
+  /** Detalle de un horario: datos + plantel + roster habilitado de la
+      serie (para el multiselect de asignación). */
+  @Get(":id/slots/:slotId")
+  async getSlot(
+    @Param("id") id: string,
+    @Param("slotId") slotId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "schedule");
+    const slot = await this.prisma.classSlot.findFirst({
+      where: { id: slotId, academyId: id, deletedAt: null },
+      include: {
+        instructors: { include: { person: { select: { id: true, name: true } } } },
+        series: {
+          select: {
+            id: true,
+            name: true,
+            instructors: {
+              include: { person: { select: { id: true, name: true } } },
+            },
+          },
+        },
+      },
+    });
+    if (!slot) throw new NotFoundException("horario no encontrado");
+    return slot;
+  }
+
+  /** Edita un horario: día/hora y plantel asignado (multi). Los
+      instructorIds se auto-unen al roster de la serie (la UI solo
+      ofrece los habilitados). */
+  @Patch(":id/slots/:slotId")
+  async updateSlot(
+    @Param("id") id: string,
+    @Param("slotId") slotId: string,
+    @Body() dto: UpdateSlotDto,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
+    const slot = await this.prisma.classSlot.findFirst({
+      where: { id: slotId, academyId: id, deletedAt: null },
+    });
+    if (!slot) throw new NotFoundException("horario no encontrado");
+
+    const startTime = dto.startTime ?? slot.startTime;
+    const endTime = dto.endTime ?? slot.endTime;
+    if (startTime >= endTime) {
+      throw new BadRequestException("startTime debe ser menor que endTime");
+    }
+    const roster = dto.instructorIds
+      ? [...new Set(dto.instructorIds)]
+      : null;
+
+    return this.prisma.$transaction(async (tx) => {
+      if (roster !== null) {
+        await tx.classSlotInstructor.deleteMany({ where: { slotId } });
+        if (roster.length) {
+          await tx.classSlotInstructor.createMany({
+            data: roster.map((personId) => ({ slotId, personId })),
+          });
+          await tx.classSeriesInstructor.createMany({
+            data: roster.map((personId) => ({
+              seriesId: slot.seriesId,
+              personId,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+      return tx.classSlot.update({
+        where: { id: slotId },
+        data: {
+          weekday: dto.weekday,
+          startTime: dto.startTime,
+          endTime: dto.endTime,
+          ...(roster !== null ? { instructorId: roster[0] ?? null } : {}),
+        },
+        include: {
+          instructors: {
+            include: { person: { select: { id: true, name: true } } },
+          },
+        },
+      });
+    });
+  }
+
   /**
    * Elimina un horario de la serie - las clases futuras de ese slot se
    * cancelan y sus reservas se liberan.
@@ -871,7 +1076,7 @@ export class ClassSeriesController {
   ) {
     await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const slot = await this.prisma.classSlot.findFirst({
-      where: { id: slotId, academyId: id },
+      where: { id: slotId, academyId: id, deletedAt: null },
     });
     if (!slot) throw new NotFoundException("horario no encontrado");
 
@@ -889,6 +1094,18 @@ export class ClassSeriesController {
         where: { classId: { in: ids }, status: { in: ["BOOKED", "WAITLIST"] } },
         data: { status: "CANCELLED", cancelledAt: new Date(), refunded: true },
       });
+      // Class.slot es Restrict: con cualquier clase asociada (pasada o
+      // futura) el hard delete rompe por FK - el horario queda con
+      // borrado lógico y el historial intacto. Sin clases, delete real.
+      const anyClasses = await tx.class.count({
+        where: { classSlotId: slotId },
+      });
+      if (anyClasses > 0) {
+        return tx.classSlot.update({
+          where: { id: slotId },
+          data: { deletedAt: new Date() },
+        });
+      }
       return tx.classSlot.delete({ where: { id: slotId } });
     });
   }

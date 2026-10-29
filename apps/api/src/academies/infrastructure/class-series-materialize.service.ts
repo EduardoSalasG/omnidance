@@ -113,7 +113,7 @@ export class AcademyMaterializeService {
    */
   async runDaily(): Promise<Record<string, unknown>> {
     const slots = await this.prisma.classSlot.findMany({
-      where: { series: { active: true } },
+      where: { series: { active: true, deletedAt: null }, deletedAt: null },
       select: {
         id: true,
         weekday: true,
