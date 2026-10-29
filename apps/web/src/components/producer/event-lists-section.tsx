@@ -169,12 +169,6 @@ export function EventListsSection({ eventId }: { eventId: string }) {
               <p role="status" className="text-ink/70">
                 {t("listsEmpty")}
               </p>
-              <Button
-                variant="secondary"
-                href={`/productor/listas/nueva?eventId=${eventId}`}
-              >
-                {`＋ ${t("newList")}`}
-              </Button>
             </Card>
           ) : (
             <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">

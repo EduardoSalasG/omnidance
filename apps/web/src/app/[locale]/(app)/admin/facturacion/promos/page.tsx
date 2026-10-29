@@ -113,11 +113,6 @@ function PromosPanel() {
       ) : promos.length === 0 ? (
         <Card className="flex flex-col gap-3 p-4">
           <p className="text-sm text-ink/60">{t("empty")}</p>
-          <div>
-            <Link href="/admin/facturacion/promos/nueva">
-              <Button size="sm">＋ {t("new")}</Button>
-            </Link>
-          </div>
         </Card>
       ) : (
         <ul className="flex flex-col gap-2">

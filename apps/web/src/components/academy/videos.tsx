@@ -173,14 +173,7 @@ export function Videos({ academy }: { academy: Academy }) {
       )}
       {state === "ready" &&
         (videos.length === 0 ? (
-          <div className="flex flex-col items-start gap-3">
-            <p className="text-sm text-ink/50">{t.empty}</p>
-            {canAdminister && (
-              <Button href="/academia/videos/nuevo" size="sm">
-                + {t.addTitle}
-              </Button>
-            )}
-          </div>
+          <p className="text-sm text-ink/50">{t.empty}</p>
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {videos.map((v) => {

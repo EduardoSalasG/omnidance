@@ -174,9 +174,6 @@ function DiscountCodes() {
               <p role="status" className="text-ink/70">
                 {t("empty")}
               </p>
-              <Button href="/productor/codigos/nuevo">
-                {`＋ ${t("newCode")}`}
-              </Button>
             </Card>
           ))}
         {codes !== null && codes.length > 0 && (

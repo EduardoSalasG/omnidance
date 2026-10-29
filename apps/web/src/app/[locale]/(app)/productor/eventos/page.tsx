@@ -224,9 +224,6 @@ function ProducerEvents() {
                 <p role="status" className="text-ink/70">
                   {t("emptyEvents")}
                 </p>
-                <Button href="/productor/eventos/nuevo">
-                  {t("emptyEventsCta")}
-                </Button>
               </Card>
             ))}
 

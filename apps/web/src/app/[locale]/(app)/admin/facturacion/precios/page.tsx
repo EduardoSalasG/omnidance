@@ -151,16 +151,7 @@ export default function AdminTierPricesPage() {
               </p>
             </Card>
           ) : (
-            <div className="flex flex-col items-start gap-3">
-              <p className="text-sm text-ink/50">{t("empty")}</p>
-              <Button
-                size="sm"
-                variant="secondary"
-                href="/admin/facturacion/precios/nuevo"
-              >
-                {`＋ ${t("new")}`}
-              </Button>
-            </div>
+            <p className="text-sm text-ink/50">{t("empty")}</p>
           )
         ) : (
           <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
