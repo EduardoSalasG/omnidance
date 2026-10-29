@@ -32,6 +32,9 @@ export type ClassCardData = {
   } | null;
   academy: { id: string; name: string };
   instructor: { id: string; name: string | null } | null;
+  // Taller/clase única (slot.oneOffDate): el título es el nombre de la
+  // serie y se marca con chip - una masterclass no se lee como clase más.
+  oneOff?: boolean;
   // Plantel completo (multi-instructor): primario primero, luego
   // co-profes. Vacío/ausente = la clase no declara profesores.
   instructors?: { id: string; name: string | null }[];
@@ -105,14 +108,18 @@ export function ClassCard({
           {when && (
             <p className="mb-0.5 text-xs font-medium text-neon">{when}</p>
           )}
-          {/* Estilo solo como título - es lo que el dancer busca.
+          {/* Estilo como título (lo que el dancer busca); en taller el
+              nombre propio de la serie es lo identificable.
               h3: h2 lo tienen las secciones (semana / día / home). */}
           <h3 className="truncate text-base font-semibold leading-snug">
-            {style?.name ?? cls.series?.name ?? t("privateLesson")}
+            {cls.oneOff
+              ? (cls.series?.name ?? t("privateLesson"))
+              : (style?.name ?? cls.series?.name ?? t("privateLesson"))}
           </h3>
           {/* Modalidad + nivel visual (barras): una fila de tags
               compactos - el nivel ocupa ~20px sin texto */}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {cls.oneOff && <Badge variant="neon">{t("workshop")}</Badge>}
             {cls.series?.types.map((x) => (
               <Badge key={x.id} variant="outline">
                 {x.name}
