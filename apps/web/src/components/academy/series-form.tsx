@@ -9,6 +9,7 @@ import { InstructorChecklist } from "./instructor-checklist";
 import {
   inputCls,
   readError,
+  toDateInput,
   type AcademyInstructor,
   type NamedRef,
   type Series,
@@ -23,13 +24,22 @@ type SlotDraft = {
   weekday: number;
   startTime: string;
   endTime: string;
+  // "YYYY-MM-DD"; solo se usa cuando la serie es taller o clase única
+  // (spec workshop-one-off-class). En modo recurrente se ignora.
+  date: string;
 };
 
 const emptySlot = (): SlotDraft => ({
   weekday: 1,
   startTime: "19:00",
   endTime: "20:00",
+  date: "",
 });
+
+// Tipo de serie al crear: semanal recurrente (default) o taller de una
+// sola fecha. No se edita a nivel serie (cada slot es único o no por
+// sí mismo); el selector solo existe en modo crear.
+type SeriesKind = "recurring" | "oneOff";
 
 /**
  * Formulario de serie de clases - vive en la página dedicada
@@ -84,6 +94,9 @@ export function SeriesForm({
     editing?.dropInPrice != null ? String(editing.dropInPrice) : "",
   );
   const [slots, setSlots] = useState<SlotDraft[]>([emptySlot()]);
+  // Taller o clase única: un solo horario con fecha puntual en vez de
+  // weekday recurrente (spec workshop-one-off-class).
+  const [kind, setKind] = useState<SeriesKind>("recurring");
 
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -162,6 +175,16 @@ export function SeriesForm({
     setSlots((prev) => prev.map((s, j) => (j === i ? { ...s, ...patch } : s)));
   }
 
+  // Cambiar a taller colapsa los horarios a uno solo (se conserva el
+  // primero para no perder las horas ya cargadas); al volver a semanal
+  // queda ese único slot y se pueden agregar más con "+ Agregar horario".
+  function selectKind(k: SeriesKind): void {
+    setKind(k);
+    if (k === "oneOff") {
+      setSlots((prev) => (prev.length ? prev.slice(0, 1) : [emptySlot()]));
+    }
+  }
+
   // Quórum del form: "" → null (PATCH limpia el override → hereda el
   // default de la academia); número inválido → null también.
   function parsedQuorum(): number | null {
@@ -184,6 +207,9 @@ export function SeriesForm({
     const trimmed = name.trim();
     if (!trimmed) return;
     if (!editing && slots.length === 0) return;
+    // El input[type=date] lleva required; guard extra por si el browser
+    // no lo valida (submit programático).
+    if (!editing && kind === "oneOff" && !slots[0]?.date) return;
     const q = parsedQuorum();
     const drop = parsedDropIn();
     setBusy(true);
@@ -219,11 +245,26 @@ export function SeriesForm({
               ...(instructorIds.length ? { instructorIds } : {}),
               ...(q !== null ? { quorum: q } : {}),
               ...(drop !== null ? { dropInPrice: drop } : {}),
-              slots: slots.map((s) => ({
-                weekday: s.weekday,
-                startTime: s.startTime,
-                endTime: s.endTime,
-              })),
+              // Taller: el slot va con `date` ("YYYY-MM-DD") en vez de
+              // weekday; el backend deriva el weekday informativo y
+              // materializa solo esa fecha (spec workshop-one-off-class).
+              slots:
+                kind === "oneOff"
+                  ? [
+                      {
+                        date: slots[0].date,
+                        startTime: slots[0].startTime,
+                        endTime: slots[0].endTime,
+                        ...(instructorIds.length
+                          ? { instructorIds }
+                          : {}),
+                      },
+                    ]
+                  : slots.map((s) => ({
+                      weekday: s.weekday,
+                      startTime: s.startTime,
+                      endTime: s.endTime,
+                    })),
             }),
           });
       if (!res.ok) {
@@ -399,30 +440,74 @@ export function SeriesForm({
 
             {!editing && (
               <fieldset className="flex flex-col gap-2 sm:col-span-2">
-                <legend className="text-xs text-ink/50">{t("slots")}</legend>
+                <legend className="text-xs text-ink/50">
+                  {kind === "oneOff" ? t("slotsOneOff") : t("slots")}
+                </legend>
+                {/* Selector de tipo (spec workshop-one-off-class): semanal
+                    recurrente o taller de una sola fecha. Radios con la
+                    misma pauta visual que las chips de modalidad. */}
+                <div
+                  role="radiogroup"
+                  aria-label={t("kindLabel")}
+                  className="flex flex-wrap gap-2"
+                >
+                  {(["recurring", "oneOff"] as const).map((k) => (
+                    <label
+                      key={k}
+                      className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-line bg-elevated px-3 text-sm text-ink"
+                    >
+                      <input
+                        type="radio"
+                        name="series-kind"
+                        checked={kind === k}
+                        onChange={() => selectKind(k)}
+                        className="accent-neon"
+                      />
+                      {k === "recurring" ? t("kindRecurring") : t("kindOneOff")}
+                    </label>
+                  ))}
+                </div>
                 <ul className="flex flex-col gap-2">
                   {slots.map((s, i) => (
                     <li key={i} className="flex flex-wrap items-end gap-2">
-                      <label className="flex flex-col gap-1">
-                        <span className="text-xs text-ink/50">
-                          {t("weekday")}
-                        </span>
-                        <select
-                          className={inputCls}
-                          value={s.weekday}
-                          onChange={(e) =>
-                            updateSlot(i, {
-                              weekday: Number(e.target.value),
-                            })
-                          }
-                        >
-                          {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-                            <option key={d} value={d}>
-                              {ta(`weekday.${d}`)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      {kind === "oneOff" ? (
+                        <label className="flex flex-col gap-1">
+                          <span className="text-xs text-ink/50">
+                            {t("dateLabel")}
+                          </span>
+                          <input
+                            type="date"
+                            className={inputCls}
+                            value={s.date}
+                            min={toDateInput(new Date().toISOString())}
+                            onChange={(e) =>
+                              updateSlot(i, { date: e.target.value })
+                            }
+                            required
+                          />
+                        </label>
+                      ) : (
+                        <label className="flex flex-col gap-1">
+                          <span className="text-xs text-ink/50">
+                            {t("weekday")}
+                          </span>
+                          <select
+                            className={inputCls}
+                            value={s.weekday}
+                            onChange={(e) =>
+                              updateSlot(i, {
+                                weekday: Number(e.target.value),
+                              })
+                            }
+                          >
+                            {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                              <option key={d} value={d}>
+                                {ta(`weekday.${d}`)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
                       <label className="flex flex-col gap-1">
                         <span className="text-xs text-ink/50">
                           {t("start")}
@@ -449,31 +534,35 @@ export function SeriesForm({
                           required
                         />
                       </label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        aria-label={t("removeSlot")}
-                        disabled={slots.length <= 1}
-                        onClick={() =>
-                          setSlots((prev) => prev.filter((_, j) => j !== i))
-                        }
-                      >
-                        <XIcon className="h-4 w-4" />
-                      </Button>
+                      {kind === "recurring" && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          aria-label={t("removeSlot")}
+                          disabled={slots.length <= 1}
+                          onClick={() =>
+                            setSlots((prev) => prev.filter((_, j) => j !== i))
+                          }
+                        >
+                          <XIcon className="h-4 w-4" />
+                        </Button>
+                      )}
                     </li>
                   ))}
                 </ul>
-                <div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setSlots((prev) => [...prev, emptySlot()])}
-                  >
-                    + {t("addSlot")}
-                  </Button>
-                </div>
+                {kind === "recurring" && (
+                  <div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setSlots((prev) => [...prev, emptySlot()])}
+                    >
+                      + {t("addSlot")}
+                    </Button>
+                  </div>
+                )}
               </fieldset>
             )}
 

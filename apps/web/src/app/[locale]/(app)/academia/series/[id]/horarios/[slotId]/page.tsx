@@ -15,6 +15,9 @@ type Slot = {
   weekday: number;
   startTime: string;
   endTime: string;
+  // ISO medianoche UTC: presente en slots de taller o clase única
+  // (spec workshop-one-off-class). Edita fecha en vez de weekday.
+  oneOffDate?: string | null;
   instructors: { person: { id: string; name: string | null } }[];
   series: {
     id: string;
@@ -56,6 +59,8 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
   const router = useRouter();
   const [slot, setSlot] = useState<Slot | null>(null);
   const [weekday, setWeekday] = useState(1);
+  // "YYYY-MM-DD" del input[type=date]; solo se usa en slots de taller.
+  const [date, setDate] = useState("");
   const [start, setStart] = useState("19:00");
   const [end, setEnd] = useState("20:00");
   const [instructors, setInstructors] = useState<string[]>([]);
@@ -69,6 +74,10 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
       const s = (await res.json()) as Slot;
       setSlot(s);
       setWeekday(s.weekday);
+      // oneOffDate llega a medianoche UTC: el slice conserva el día
+      // civil exacto (toDateInput usa zona local y lo correría un día
+      // en UTC-3/-4).
+      setDate(s.oneOffDate ? s.oneOffDate.slice(0, 10) : "");
       setStart(s.startTime);
       setEnd(s.endTime);
       setInstructors(s.instructors.map((i) => i.person.id));
@@ -82,12 +91,20 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
 
   async function save() {
     if (busy) return;
+    // El card no es <form>: required no valida solo, cortar fecha vacía.
+    if (slot?.oneOffDate && !date) return;
     setBusy(true);
     setErr(null);
+    // Slot de taller: el PATCH manda `date` (reprogramar corre la misma
+    // cascada que cambiar weekday: cancela + reembolsa + materializa la
+    // fecha nueva). Recurrente: weekday como siempre.
+    const body = slot?.oneOffDate
+      ? { date, startTime: start, endTime: end, instructorIds: instructors }
+      : { weekday, startTime: start, endTime: end, instructorIds: instructors };
     const res = await apiFetch(`/academies/${academyId}/slots/${slotId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ weekday, startTime: start, endTime: end, instructorIds: instructors }),
+      body: JSON.stringify(body),
     });
     setBusy(false);
     if (!res.ok) {
@@ -113,14 +130,21 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
       />
       <Card className="flex flex-col gap-4">
         <div className="grid grid-cols-3 gap-3">
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-ink/50">{t("weekdayLabel")}</span>
-            <select className={inputCls} value={weekday} onChange={(e) => setWeekday(Number(e.target.value))}>
-              {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-                <option key={d} value={d}>{ta(`weekday.${d}`)}</option>
-              ))}
-            </select>
-          </label>
+          {slot.oneOffDate ? (
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-ink/50">{t("dateLabel")}</span>
+              <input type="date" className={inputCls} value={date} onChange={(e) => setDate(e.target.value)} required />
+            </label>
+          ) : (
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-ink/50">{t("weekdayLabel")}</span>
+              <select className={inputCls} value={weekday} onChange={(e) => setWeekday(Number(e.target.value))}>
+                {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                  <option key={d} value={d}>{ta(`weekday.${d}`)}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="flex flex-col gap-1">
             <span className="text-xs text-ink/50">{t("slotStart")}</span>
             <input type="time" className={inputCls} value={start} onChange={(e) => setStart(e.target.value)} />

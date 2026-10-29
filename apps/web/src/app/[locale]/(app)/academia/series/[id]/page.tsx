@@ -106,9 +106,13 @@ function SeriesDetail({
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  // Confirmación destructiva compartida: serie entera o un horario.
+  // Confirmación destructiva compartida: serie entera, un horario o la
+  // cancelación de una instancia de clase (spec workshop-one-off-class).
   const [confirm, setConfirm] = useState<
-    { kind: "series" } | { kind: "slot"; slotId: string } | null
+    | { kind: "series" }
+    | { kind: "slot"; slotId: string }
+    | { kind: "class"; classId: string }
+    | null
   >(null);
 
   // ─── mini-form "agregar horario" (PATCH addSlots) - día/hora +
@@ -131,6 +135,13 @@ function SeriesDetail({
   // no se corra en zonas negativas (mismo contrato que classDayFmt).
   const dayFmt = useDateFmt({
         weekday: "short",
+        day: "numeric",
+        month: "short",
+        timeZone: "UTC",
+      });
+  // Fecha puntual del slot de taller (oneOffDate, medianoche UTC):
+  // "15 nov" en la fila de horarios, sin weekday ni año.
+  const slotDateFmt = useDateFmt({
         day: "numeric",
         month: "short",
         timeZone: "UTC",
@@ -302,6 +313,33 @@ function SeriesDetail({
     }
   }
 
+  // Cancelación por instancia (spec workshop-one-off-class): solo esa
+  // clase queda cancelada + refunded; el resto del horario no cambia.
+  async function cancelClass(classId: string): Promise<void> {
+    setBusy(true);
+    setActionError(null);
+    setFeedback(null);
+    try {
+      const res = await apiFetch(
+        `/academies/${academyId}/classes/${classId}/cancel`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        setConfirm(null);
+        setActionError((await readError(res)) ?? t("error"));
+        return;
+      }
+      setConfirm(null);
+      setFeedback(t("updated"));
+      await reload();
+    } catch {
+      setConfirm(null);
+      setActionError(t("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loadError !== null) {
     return (
       <div className="flex items-center gap-3">
@@ -402,9 +440,16 @@ function SeriesDetail({
                   className="flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-elevated"
                 >
                   <span className="tabular-nums text-ink/80">
-                    {ta(`weekday.${slot.weekday}`)} {slot.startTime}–
-                    {slot.endTime}
+                    {/* Slot de taller: muestra su fecha puntual, no el
+                        weekday recurrente (spec workshop-one-off-class). */}
+                    {slot.oneOffDate
+                      ? slotDateFmt.format(new Date(slot.oneOffDate))
+                      : ta(`weekday.${slot.weekday}`)}{" "}
+                    {slot.startTime}–{slot.endTime}
                   </span>
+                  {slot.oneOffDate && (
+                    <Badge variant="neon">{t("workshopBadge")}</Badge>
+                  )}
                   {/* Plantel del horario (multi-instructor): co-profes
                       separados por " · " junto al horario. */}
                   {!!slot.instructors?.length && (
@@ -523,14 +568,19 @@ function SeriesDetail({
           ) : (
             <ul className="divide-y divide-line">
               {classes.upcoming.map((c) => (
-                <li key={c.id}>
+                <li key={c.id} className="flex items-center">
                   <Link
                     href={`/academia/clases/${c.id}`}
-                    className="flex min-h-11 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+                    className="flex min-h-11 min-w-0 flex-1 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium capitalize">
                         {dayFmt.format(new Date(c.date))}
+                        {c.cancelled && (
+                          <Badge variant="live" className="ml-2">
+                            {t("cancelled")}
+                          </Badge>
+                        )}
                       </span>
                       <span className="block text-xs tabular-nums text-ink/50">
                         {c.startTime}–{c.endTime}
@@ -544,6 +594,22 @@ function SeriesDetail({
                       {t("bookedCount", { count: c.bookedCount })}
                     </span>
                   </Link>
+                  {/* Cancelar solo esta instancia (feriado, profe
+                      enfermo): el horario sigue igual. ConfirmSheet al
+                      pie, misma pauta que quitar horario. */}
+                  {!c.cancelled && (
+                    <button
+                      type="button"
+                      aria-label={t("cancelClass")}
+                      disabled={busy}
+                      onClick={() =>
+                        setConfirm({ kind: "class", classId: c.id })
+                      }
+                      className="mr-1 flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-ink/40 transition-colors hover:bg-elevated hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
+                    >
+                      <XIcon className="h-4 w-4" />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -620,18 +686,29 @@ function SeriesDetail({
       <ConfirmSheet
         open={confirm !== null}
         title={
-          confirm?.kind === "slot"
-            ? t("removeSlotConfirm")
-            : t("deleteConfirm")
+          confirm?.kind === "class"
+            ? t("cancelClass")
+            : confirm?.kind === "slot"
+              ? t("removeSlotConfirm")
+              : t("deleteConfirm")
+        }
+        description={
+          confirm?.kind === "class" ? t("cancelClassDesc") : undefined
         }
         confirmLabel={
-          confirm?.kind === "slot" ? t("removeSlot") : t("delete")
+          confirm?.kind === "class"
+            ? t("cancelClass")
+            : confirm?.kind === "slot"
+              ? t("removeSlot")
+              : t("delete")
         }
         busy={busy}
         onConfirm={() =>
-          confirm?.kind === "slot"
-            ? void removeSlot(confirm.slotId)
-            : void remove()
+          confirm?.kind === "class"
+            ? void cancelClass(confirm.classId)
+            : confirm?.kind === "slot"
+              ? void removeSlot(confirm.slotId)
+              : void remove()
         }
         onClose={() => setConfirm(null)}
       />

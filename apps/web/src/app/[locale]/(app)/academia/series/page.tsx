@@ -19,7 +19,7 @@ import {
   type SeriesStyle,
 } from "@/components/academy/shared";
 import { Link } from "@/i18n/navigation";
-import { useNumFmt } from "@/lib/intl";
+import { useDateFmt, useNumFmt } from "@/lib/intl";
 
 // Las series no son entidad del catálogo ACADEMY_OWNER: EntityDef local
 // con claves del contrato (spec analytics/query-console) - q sobre el
@@ -87,6 +87,13 @@ function SeriesModule({ academyId }: { academyId: string }) {
         style: "currency",
         currency: "CLP",
         maximumFractionDigits: 0,
+      });
+  // Fecha puntual del slot de taller (oneOffDate, medianoche UTC):
+  // "15 nov" en vez del weekday recurrente.
+  const slotDateFmt = useDateFmt({
+        day: "numeric",
+        month: "short",
+        timeZone: "UTC",
       });
 
   const reload = useCallback(async () => {
@@ -244,11 +251,18 @@ function SeriesModule({ academyId }: { academyId: string }) {
                           className="flex items-center gap-2 text-sm text-ink/70"
                         >
                           {/* Cupos/modalidad viven en la serie (badges
-                              arriba) - el slot solo muestra día y hora. */}
+                              arriba) - el slot solo muestra día y hora.
+                              Slot de taller: fecha puntual + chip, no el
+                              weekday recurrente (workshop-one-off-class). */}
                           <span className="tabular-nums">
-                            {ta(`weekday.${slot.weekday}`).slice(0, 3)}{" "}
+                            {slot.oneOffDate
+                              ? slotDateFmt.format(new Date(slot.oneOffDate))
+                              : ta(`weekday.${slot.weekday}`).slice(0, 3)}{" "}
                             {slot.startTime}–{slot.endTime}
                           </span>
+                          {slot.oneOffDate && (
+                            <Badge variant="neon">{t("workshopBadge")}</Badge>
+                          )}
                         </li>
                       ))}
                     </ul>

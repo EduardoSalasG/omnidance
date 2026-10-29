@@ -5,6 +5,9 @@ import { PrismaService } from "../../prisma.service";
 type SlotLike = {
   id: string;
   weekday: number;
+  // Taller/clase única: fecha puntual a medianoche UTC. Con valor, la
+  // materialización ignora weekday y solo cubre ese día (nunca recurre).
+  oneOffDate?: Date | null;
   instructorId: string | null;
   instructors?: { personId: string }[];
 };
@@ -55,14 +58,25 @@ export class AcademyMaterializeService {
     slot: SlotLike,
     dates: Date[],
   ): Promise<{ created: number; revived: number }> {
-    const wanted = dates.filter((d) => d.getUTCDay() === slot.weekday);
+    // Un slot con oneOffDate (taller) materializa solo esa fecha si cae
+    // dentro de la ventana: una vez pasada deja de generar gratis, sin
+    // branch extra en el job diario. Recurrente: los días del weekday.
+    const oneOff = slot.oneOffDate;
+    const wanted = oneOff
+      ? dates.filter((d) => d.getTime() === oneOff.getTime())
+      : dates.filter((d) => d.getUTCDay() === slot.weekday);
     if (!wanted.length) return { created: 0, revived: 0 };
     const existing = await tx.class.findMany({
       where: { classSlotId: slot.id, date: { in: wanted } },
-      select: { id: true, date: true, cancelled: true },
+      select: { id: true, date: true, cancelled: true, cancelledAt: true },
     });
     const byTime = new Map(existing.map((c) => [c.date.getTime(), c]));
-    const toRevive = existing.filter((c) => c.cancelled).map((c) => c.id);
+    // Solo revive la cancelación de cascada (cancelledAt null). La baja
+    // individual (cancel por instancia) setea cancelledAt y no vuelve:
+    // un feriado no se reactiva solo en el próximo tick.
+    const toRevive = existing
+      .filter((c) => c.cancelled && !c.cancelledAt)
+      .map((c) => c.id);
     if (toRevive.length) {
       await tx.class.updateMany({
         where: { id: { in: toRevive } },
@@ -117,6 +131,7 @@ export class AcademyMaterializeService {
       select: {
         id: true,
         weekday: true,
+        oneOffDate: true,
         instructorId: true,
         instructors: { select: { personId: true } },
       },

@@ -40,10 +40,20 @@ import { pageParams, whitelist } from "./list-filters";
 import { ApiQuery } from "@nestjs/swagger";
 
 class SeriesSlotDto {
+  /** Día de semana 0-6 para horario recurrente; requerido sin `date`.
+      Con `date` se ignora (el persistido queda derivado de la fecha). */
+  @IsOptional()
   @IsInt()
   @Min(0)
   @Max(6)
-  weekday!: number;
+  weekday?: number;
+
+  /** Taller/clase única: "YYYY-MM-DD". Gana sobre weekday si vienen
+      ambos; debe ser fecha válida y no pasada. */
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: "date formato YYYY-MM-DD" })
+  date?: string;
 
   @IsString()
   @Matches(/^\d{2}:\d{2}$/, { message: "startTime formato HH:MM" })
@@ -134,10 +144,18 @@ class CreateSeriesDto {
  * academy.defaultQuorum), el slot solo fija día/hora e instructor.
  */
 class AddSeriesSlotDto {
+  /** Día de semana 0-6 para horario recurrente; requerido sin `date`. */
+  @IsOptional()
   @IsInt()
   @Min(0)
   @Max(6)
-  weekday!: number;
+  weekday?: number;
+
+  /** Taller/clase única: "YYYY-MM-DD". Gana sobre weekday si vienen ambos. */
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: "date formato YYYY-MM-DD" })
+  date?: string;
 
   @IsString()
   @Matches(/^\d{2}:\d{2}$/, { message: "startTime formato HH:MM" })
@@ -165,6 +183,13 @@ class UpdateSlotDto {
   @Min(0)
   @Max(6)
   weekday?: number;
+
+  /** Fecha única "YYYY-MM-DD" (taller): convierte el horario a instancia
+      única. Sin `date` un taller sigue taller; no hay des-conversión. */
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: "date formato YYYY-MM-DD" })
+  date?: string;
 
   @IsOptional()
   @IsString()
@@ -616,6 +641,13 @@ export class ClassSeriesController {
         ? monthDates(dto.month).filter((d) => d >= today)
         : []),
     ]);
+    // Programación por slot: con `date` queda taller de fecha única
+    // (oneOffDate + weekday derivado); sin ella, recurrente (weekday
+    // requerido como siempre). Validado antes de abrir la transacción.
+    const slotPlans = dto.slots.map((s) => ({
+      dto: s,
+      schedule: resolveSlotSchedule(s.date, s.weekday, today),
+    }));
 
     const created = await this.prisma.$transaction(async (tx) => {
       const series = await tx.classSeries.create({
@@ -648,7 +680,7 @@ export class ClassSeriesController {
         },
       });
 
-      for (const s of dto.slots) {
+      for (const { dto: s, schedule } of slotPlans) {
         // Cupos y modalidad son de la serie (spec academies/class-series)
         // - el slot solo fija día/hora e instructor override.
         // Plantel del horario: lista explícita > override singular >
@@ -664,7 +696,8 @@ export class ClassSeriesController {
           data: {
             academyId: id,
             seriesId: series.id,
-            weekday: s.weekday,
+            weekday: schedule.weekday,
+            oneOffDate: schedule.oneOffDate,
             startTime: s.startTime,
             endTime: s.endTime,
             instructorId: slotInstructorId,
@@ -773,6 +806,7 @@ export class ClassSeriesController {
       // Ventana rodante (hoy → fin del mes siguiente) - la serie ya no
       // está acotada a series.month, el job diario la extiende.
       const futureDates = this.materialize.rollingDates();
+      const todayUtc = futureDates[0];
 
       if (dto.addSlots?.length) {
         // Copia mutable para dedup contra slots recién creados en este PATCH.
@@ -783,12 +817,25 @@ export class ClassSeriesController {
               "startTime debe ser menor que endTime",
             );
           }
+          // `date` lo hace taller de fecha única; sin ella, recurrente
+          // por weekday (requerido, igual que en create).
+          const schedule = resolveSlotSchedule(s.date, s.weekday, todayUtc);
+          // El dedup distingue modalidad: un taller deduplica por su
+          // fecha, un recurrente por su weekday.
           const key = (x: {
             weekday: number;
+            oneOffDate?: Date | null;
             startTime: string;
             endTime: string;
-          }) => `${x.weekday}|${x.startTime}|${x.endTime}`;
-          let slot = known.find((x) => key(x) === key(s)) ?? null;
+          }) =>
+            `${x.oneOffDate ? `o${x.oneOffDate.getTime()}` : `w${x.weekday}`}|${x.startTime}|${x.endTime}`;
+          const cand = {
+            weekday: schedule.weekday,
+            oneOffDate: schedule.oneOffDate,
+            startTime: s.startTime,
+            endTime: s.endTime,
+          };
+          let slot = known.find((x) => key(x) === key(cand)) ?? null;
           if (!slot) {
             const roster = s.instructorIds?.length
               ? [...new Set(s.instructorIds)]
@@ -807,7 +854,8 @@ export class ClassSeriesController {
               data: {
                 academyId: id,
                 seriesId,
-                weekday: s.weekday,
+                weekday: schedule.weekday,
+                oneOffDate: schedule.oneOffDate,
                 startTime: s.startTime,
                 endTime: s.endTime,
                 instructorId: slotInstructorId,
@@ -1034,11 +1082,32 @@ export class ClassSeriesController {
     const todayUtc = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
     );
-    const weekdayChanged =
-      dto.weekday !== undefined && dto.weekday !== slot.weekday;
+
+    // `date` (re)programa el horario como taller de fecha única: gana
+    // sobre weekday y el día persistido queda derivado de la fecha.
+    // PATCH sin `date` no des-convierte un taller a recurrente.
+    let oneOffDate: Date | undefined;
+    if (dto.date !== undefined) {
+      const parsed = parseOneOffDate(dto.date);
+      if (!parsed) throw new BadRequestException("date inválida");
+      if (parsed < todayUtc) {
+        throw new BadRequestException("date no puede ser una fecha pasada");
+      }
+      oneOffDate = parsed;
+    }
+    const effectiveOneOff = oneOffDate ?? slot.oneOffDate;
+    const effectiveWeekday = effectiveOneOff
+      ? effectiveOneOff.getUTCDay()
+      : (dto.weekday ?? slot.weekday);
+    // Cambio de weekday recurrente o de fecha de taller corre la misma
+    // cascada: cancela las instancias futuras del esquema viejo (con
+    // refund de reservas) y materializa el nuevo.
+    const scheduleChanged =
+      effectiveWeekday !== slot.weekday ||
+      effectiveOneOff?.getTime() !== slot.oneOffDate?.getTime();
 
     return this.prisma.$transaction(async (tx) => {
-      if (weekdayChanged) {
+      if (scheduleChanged) {
         // Las instancias futuras del día viejo ya no corresponden al
         // horario: misma cascada que deleteSlot - se cancelan y sus
         // reservas se liberan (el alumno nunca pierde crédito por una
@@ -1090,7 +1159,11 @@ export class ClassSeriesController {
       const updated = await tx.classSlot.update({
         where: { id: slotId },
         data: {
-          weekday: dto.weekday,
+          // En un taller el weekday queda derivado de oneOffDate (dato
+          // informativo); en recurrente es el weekday del payload.
+          // `oneOffDate` solo se escribe si llegó `date` (undefined no toca).
+          weekday: effectiveWeekday,
+          oneOffDate,
           startTime: dto.startTime,
           endTime: dto.endTime,
           ...(roster !== null ? { instructorId: roster[0] ?? null } : {}),
@@ -1102,14 +1175,15 @@ export class ClassSeriesController {
         },
       });
 
-      if (weekdayChanged) {
-        // Materializa el día nuevo en la ventana rodante (idempotente:
-        // revive canceladas y crea solo las fechas faltantes).
+      if (scheduleChanged) {
+        // Materializa el esquema nuevo en la ventana rodante (idempotente:
+        // revive canceladas de cascada y crea solo las fechas faltantes).
         await this.materialize.materializeSlot(
           tx,
           {
             id: updated.id,
             weekday: updated.weekday,
+            oneOffDate: updated.oneOffDate,
             instructorId: updated.instructorId,
             instructors: (updated.instructors ?? []).map((i) => ({
               personId: i.personId,
@@ -1123,7 +1197,7 @@ export class ClassSeriesController {
       // este sync las instancias ya creadas (o revividas) de la ventana
       // quedan con el plantel viejo. Se reescribe solo lo futuro/vigente:
       // el historial conserva quién dio la clase ese día.
-      if (roster !== null || weekdayChanged) {
+      if (roster !== null || scheduleChanged) {
         const effective =
           roster ?? (updated.instructors ?? []).map((i) => i.personId);
         const upcoming = await tx.class.findMany({
@@ -1208,6 +1282,52 @@ export class ClassSeriesController {
     });
   }
 
+  /**
+   * Cancela una instancia individual de la serie (feriado, profe
+   * enfermo) sin tocar el horario ni el resto de las fechas: marca
+   * cancelled + cancelledAt - el timestamp la distingue de la baja por
+   * cascada (serie/horario la dejan null) y materializeSlot no la revive.
+   * Las reservas BOOKED/WAITLIST se liberan con refunded (el alumno
+   * nunca pierde crédito por una decisión de la academia). Idempotente:
+   * re-cancelar responde OK sin efecto extra. 404 si la clase no es de
+   * la academia o ya ocurrió (date < hoy UTC, misma frontera que la
+   * cascada de updateSlot).
+   */
+  @Post(":id/classes/:classId/cancel")
+  @HttpCode(200)
+  async cancelClass(
+    @Param("id") id: string,
+    @Param("classId") classId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
+    const now = new Date();
+    const todayUtc = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const cls = await this.prisma.class.findFirst({
+      where: { id: classId, slot: { academyId: id } },
+      select: { id: true, date: true },
+    });
+    if (!cls || cls.date < todayUtc) {
+      throw new NotFoundException("clase no encontrada");
+    }
+    return this.prisma.$transaction(async (tx) => {
+      // updateMany con cancelled:false: el re-cancel no reescribe
+      // cancelledAt (idempotencia) y las reservas ya CANCELLED quedan
+      // fuera por el filtro de estado.
+      await tx.class.updateMany({
+        where: { id: classId, cancelled: false },
+        data: { cancelled: true, cancelledAt: now },
+      });
+      await tx.classBooking.updateMany({
+        where: { classId, status: { in: ["BOOKED", "WAITLIST"] } },
+        data: { status: "CANCELLED", cancelledAt: now, refunded: true },
+      });
+      return tx.class.findUniqueOrThrow({ where: { id: classId } });
+    });
+  }
+
   private async findSeriesOr404(academyId: string, seriesId: string) {
     const series = await this.prisma.classSeries.findFirst({
       where: { id: seriesId, academyId },
@@ -1221,4 +1341,51 @@ export class ClassSeriesController {
  *  explícito legacy pueden superponerse. */
 function uniqueDates(dates: Date[]): Date[] {
   return [...new Map(dates.map((d) => [d.getTime(), d])).values()];
+}
+
+/**
+ * Programación de un slot en create/addSlots: con `date` "YYYY-MM-DD"
+ * queda de fecha única (oneOffDate a medianoche UTC + weekday derivado,
+ * informativo) y no puede ser pasada; sin ella es recurrente semanal y
+ * `weekday` sigue siendo requerido.
+ */
+function resolveSlotSchedule(
+  date: string | undefined,
+  weekday: number | undefined,
+  todayUtc: Date,
+): { weekday: number; oneOffDate: Date | null } {
+  if (date !== undefined) {
+    const oneOffDate = parseOneOffDate(date);
+    if (!oneOffDate) throw new BadRequestException("date inválida");
+    if (oneOffDate < todayUtc) {
+      throw new BadRequestException("date no puede ser una fecha pasada");
+    }
+    return { weekday: oneOffDate.getUTCDay(), oneOffDate };
+  }
+  if (weekday === undefined) {
+    throw new BadRequestException("weekday requerido para horario recurrente");
+  }
+  return { weekday, oneOffDate: null };
+}
+
+/**
+ * Parsea "YYYY-MM-DD" a medianoche UTC (misma convención que Class.date).
+ * null si el formato o la fecha de calendario no son válidos (Date.UTC
+ * desborda: 2026-02-30 caería en marzo sin este chequeo).
+ */
+function parseOneOffDate(date: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const parsed = new Date(Date.UTC(y, mo - 1, d));
+  if (
+    parsed.getUTCFullYear() !== y ||
+    parsed.getUTCMonth() !== mo - 1 ||
+    parsed.getUTCDate() !== d
+  ) {
+    return null;
+  }
+  return parsed;
 }
