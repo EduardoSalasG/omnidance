@@ -88,10 +88,7 @@ export function AcademyVisibilityCard({
                     ✗ {label}
                   </Link>
                 ) : (
-                  <span
-                    title={isReview ? t("ownerApprovedHint") : undefined}
-                    className="inline-flex items-center rounded-full bg-elevated px-2 py-0.5 text-[11px] text-ink/50"
-                  >
+                  <span className="inline-flex items-center rounded-full bg-elevated px-2 py-0.5 text-[11px] text-ink/50">
                     {isReview ? "⏳" : "✗"} {label}
                   </span>
                 )}
@@ -99,6 +96,11 @@ export function AcademyVisibilityCard({
             );
           })}
         </ul>
+      )}
+      {/* El tooltip no sirve en touch: cuando el único check que falta es
+          la validación del rol (aprobación admin), la nota va visible. */}
+      {missing.includes("ownerApproved") && (
+        <p className="text-[11px] text-ink/40">{t("ownerApprovedHint")}</p>
       )}
     </Card>
   );
