@@ -116,11 +116,9 @@ export function ManualPayPanel({
     void load();
   }, [load]);
 
-  // Método seleccionado pero aún sin intento → el panel tiene el CTA.
-  useEffect(() => {
-    if (!claim && selected) onBlockingChange(true);
-    if (!claim && !selected) onBlockingChange(false);
-  }, [claim, selected, onBlockingChange]);
+  // El CTA correcto cambia EN EL MISMO render que la selección: si el
+  // bloqueo del padre viajara por effect habría un frame con los dos
+  // botones (Pagar + Continuar) o sin ninguno - el "flash" al alternar.
 
   async function copy(key: string, text: string) {
     if (!navigator.clipboard) return;
@@ -201,6 +199,7 @@ export function ManualPayPanel({
       );
       if (res.ok) {
         setClaim(null);
+        onBlockingChange(false);
       } else {
         setError(true);
       }
@@ -335,7 +334,10 @@ export function ManualPayPanel({
                 type="radio"
                 name="payMethod"
                 checked={selected === null}
-                onChange={() => setSelected(null)}
+                onChange={() => {
+                  setSelected(null);
+                  onBlockingChange(false);
+                }}
                 className="h-4 w-4 accent-neon"
               />
               {t("methodGateway")}
@@ -353,7 +355,10 @@ export function ManualPayPanel({
                   type="radio"
                   name="payMethod"
                   checked={selected === m.id}
-                  onChange={() => setSelected(m.id)}
+                  onChange={() => {
+                    setSelected(m.id);
+                    onBlockingChange(true);
+                  }}
                   className="h-4 w-4 accent-neon"
                 />
                 {m.label}
