@@ -31,6 +31,11 @@ export const TRANSFER_DETAIL_KEYS = [
   ["email", "fEmail"],
 ] as const;
 
+// Tipo de cuenta bancaria chilena: select cerrado en el form de
+// transferencia (spec academy-payment-claims). Se guarda el valor tal
+// cual - son nombres de producto bancario, no copy traducible.
+export const ACCOUNT_TYPE_OPTIONS = ["Vista", "Corriente", "Ahorro"] as const;
+
 type Props = { academyId: string };
 
 /**
