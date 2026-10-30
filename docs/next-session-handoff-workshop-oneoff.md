@@ -214,3 +214,27 @@ sacar el CTA del card (renderizar el botón fuera/abajo del panel) o
 mover la rama AWAITING al final. tsc + commit. Ya verificado: tsc web
 limpio en commits previos 786cd0b0 y bfe98465 (esos fueron eventos,
 NO este archivo).
+
+## CIERRE 2026-10-30: sesión checkout/pagos + feedback
+
+Commits en dev (todos verificados: tsc api/web limpio, i18n parity/audit
+OK, specs verdes donde aplica):
+
+- `4c852be1` + `25c1ea02`: unified-action-notice (host global + ~76
+  flujos migrados) - change archivado
+- `aeb67d6c`: e2e/notice-smoke.spec.ts (2 smoke del toast, 8/8 pass)
+- `bfe98465` `a02fea88` `b6fe1ae4` `4fd2f6e3`: layout del checkout -
+  claim/panel manual al final, CTAs fuera del card, sin flash
+- `786cd0b0` `f0fb9820`: toast + vuelta a la ficha tras enviar
+  comprobante (OwnMethodClaim + ManualPayPanel returnHref)
+- `6e4f2009`: titleSingle "Confirmar clase" para plan SINGLE
+- `09a3c5f1`: private-class-checkout archivado - page
+  /academias/[id]/checkout/particular + PaymentClaim.kind
+  (migración aplicada: 20261030120000_payment_claim_kind)
+- `874e6296`: claim-cash-pending archivado - CASH nace PENDING +
+  notifyOwnerNewClaim + pendingTitleCash/DescCash ×4
+- `5a714cb5`: accountType select Vista/Corriente/Ahorro ×3 forms
+
+Pendiente (backlog): Flow para TODO cobro a Omnidance - revisar param
+`payments.subscription_gateway` en /admin, credenciales FLOW_*, cobros
+sueltos a academias por payment.create, CLP-only vs multipaís.
