@@ -26,6 +26,7 @@
     "pendingCard": "You need to register your card to activate the subscription",
     "failedCard": "We couldn’t register your card",
     "resumeCard": "Register card",
-    "nextChargeAmount": "Next charge: {date} · {amount}"
+    "nextChargeAmount": "Next charge: {date} · {amount}",
+    "cancelOk": "Subscription cancelled. You keep access until the end of the paid period."
   }
 }

@@ -248,7 +248,8 @@
     "seriesWeeklyAvgTitle": "Cours/sem par élève",
     "country": "Pays",
     "city": "Ville",
-    "noCity": "Pas de ville"
+    "noCity": "Pas de ville",
+    "created": "Académie créée"
   },
   "academySeries": {
     "addSlotHint": "Les cours futurs sont créés ce jour-là dans la fenêtre de programmation.",
@@ -275,7 +276,11 @@
     "workshopBadge": "Atelier",
     "cancelClass": "Annuler le cours",
     "cancelClassDesc": "Annule uniquement ce cours : ses réservations sont libérées et le reste de l'horaire ne change pas.",
-    "createdOneOff": "Atelier créé"
+    "createdOneOff": "Atelier créé",
+    "slotUpdated": "Horaire mis à jour",
+    "slotDeleted": "Horaire supprimé",
+    "classCancelled": "Classe annulée",
+    "seriesDeleted": "Série supprimée."
   },
   "instructor": {
     "title": "Mes cours",

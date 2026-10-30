@@ -170,6 +170,8 @@
       "rename": "Renombrar",
       "delete": "Borrar",
       "created": "Consulta guardada",
+      "renamed": "Consulta renombrada.",
+      "deleted": "Consulta eliminada.",
       "actionError": "No se pudo completar la acción.",
       "deleteTitle": "¿Borrar esta consulta?",
       "deleteDesc": "“{name}” se elimina de tus consultas guardadas."

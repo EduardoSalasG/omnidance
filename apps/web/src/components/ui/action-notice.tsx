@@ -10,9 +10,15 @@ const EXIT_MS = 200;
 /**
  * Aviso fijo post-acción, flotando sobre la BottomNav - para acciones
  * cuyo punto de origen puede quedar fuera del viewport (listas largas,
- * barras fijas). No es un sistema de toasts global: el padre guarda el
- * estado `notice` y el atom solo lo presenta - sin event bus ni estado
- * compartido (decisión del change success-feedback-audit).
+ * barras fijas).
+ *
+ * Dos vías de uso (decisión del change unified-action-notice):
+ * - Local: el padre guarda el estado `notice` y el atom solo lo
+ *   presenta; muere al desmontar la página (feedback que no navega).
+ * - Global: `showActionNotice(notice)` emite un CustomEvent y persiste
+ *   el aviso en sessionStorage; `ActionNoticeHost` (montado una vez en
+ *   el layout de (app)) lo muestra en la página destino, así un aviso
+ *   emitido justo antes de `router.push` sobrevive a la navegación.
  *
  * - `role="status"` en éxito / `role="alert"` en error: los lectores
  *   de pantalla anuncian el texto sin robar foco.
@@ -139,4 +145,93 @@ export function ActionNotice({
       </div>
     </div>
   );
+}
+
+// ─── Host global (change unified-action-notice) ───
+// `showActionNotice` anuncia el aviso por CustomEvent y lo persiste en
+// sessionStorage: el evento lo muestra al instante el host ya montado
+// y el storage lo rescata si el host remonta o la navegación recarga.
+const ACTION_NOTICE_EVENT = "omnidance:action-notice";
+const ACTION_NOTICE_STORAGE_KEY = "omnidance.action-notice";
+// El persistido solo cubre una navegación/remount inmediato; un aviso
+// más viejo se descarta para no revivir toasts de otra sesión.
+const STORAGE_TTL_MS = 10_000;
+
+function clearStoredNotice() {
+  try {
+    sessionStorage.removeItem(ACTION_NOTICE_STORAGE_KEY);
+  } catch {
+    // Storage bloqueado o lleno: el aviso en memoria alcanza.
+  }
+}
+
+/**
+ * Emite un aviso global post-acción. El último emitido gana; se muestra
+ * en la página actual y sobrevive a la navegación siguiente.
+ */
+export function showActionNotice(notice: ActionNoticeData): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(
+      ACTION_NOTICE_STORAGE_KEY,
+      JSON.stringify({ notice, at: Date.now() }),
+    );
+  } catch {
+    // Storage bloqueado o lleno: el evento en memoria alcanza.
+  }
+  window.dispatchEvent(
+    new CustomEvent<ActionNoticeData>(ACTION_NOTICE_EVENT, {
+      detail: notice,
+    }),
+  );
+}
+
+/**
+ * Host único del aviso global - montado una vez en el layout de (app).
+ * Escucha el CustomEvent y consume el pendiente de sessionStorage al
+ * montar (avisos emitidos antes de que el host existiera).
+ */
+export function ActionNoticeHost() {
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
+
+  useEffect(() => {
+    // Consume el aviso pendiente: cubre avisos emitidos antes de montar
+    // (children montan antes que el host) o tras una recarga completa.
+    try {
+      const raw = sessionStorage.getItem(ACTION_NOTICE_STORAGE_KEY);
+      if (raw) {
+        sessionStorage.removeItem(ACTION_NOTICE_STORAGE_KEY);
+        const stored = JSON.parse(raw) as {
+          notice?: ActionNoticeData;
+          at?: number;
+        };
+        if (
+          typeof stored.notice?.text === "string" &&
+          typeof stored.at === "number" &&
+          Date.now() - stored.at < STORAGE_TTL_MS
+        ) {
+          setNotice(stored.notice);
+        }
+      }
+    } catch {
+      // JSON corrupto o storage bloqueado: se descarta el pendiente.
+    }
+
+    function onNotice(event: Event) {
+      const detail = (event as CustomEvent<ActionNoticeData>).detail;
+      if (!detail) return;
+      // El persistido queda hasta el dismiss: si el layout remonta con
+      // el aviso visible, la lectura al montar lo vuelve a mostrar.
+      setNotice(detail);
+    }
+    window.addEventListener(ACTION_NOTICE_EVENT, onNotice);
+    return () => window.removeEventListener(ACTION_NOTICE_EVENT, onNotice);
+  }, []);
+
+  function dismiss() {
+    setNotice(null);
+    clearStoredNotice();
+  }
+
+  return <ActionNotice notice={notice} onDismiss={dismiss} />;
 }

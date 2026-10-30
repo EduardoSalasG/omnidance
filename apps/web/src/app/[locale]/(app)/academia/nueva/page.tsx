@@ -5,6 +5,7 @@ import { useRouter } from "@/i18n/navigation";
 import { useMe } from "@/lib/me-context";
 import { useEntitlements } from "@/lib/entitlements-context";
 import { Button, Card } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { PageLoading } from "@/components/ui/spinner";
 import { TierPaywall } from "@/components/tier-paywall";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -50,6 +51,8 @@ export default function NuevaAcademiaPage() {
     } catch {
       // Sin storage - el gate cae a la primera academia del listado.
     }
+    // Vuelve al hub: aviso global para que sobreviva el push.
+    showActionNotice({ text: t("created") });
     router.push("/academia");
   }
 

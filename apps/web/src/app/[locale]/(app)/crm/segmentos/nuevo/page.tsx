@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-
 import { useTranslations } from "next-intl";
 import { ConsoleHeader } from "@/components/console/console-header";
+import { showActionNotice } from "@/components/ui/action-notice";
 import {
   CrmGateScreen,
   useCrmContext,
@@ -18,7 +17,6 @@ export default function NuevoSegmentoPage() {
   const t = useTranslations("crm");
   const router = useRouter();
   const ctx = useCrmContext();
-  const [saved, setSaved] = useState(false);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-3xl lg:px-8">
@@ -37,17 +35,13 @@ export default function NuevoSegmentoPage() {
             // El actor no cubre "crm" - el API responde 403
             // tier.required en todos sus endpoints.
             <TierPaywall feature="crm" actorType={ctx.actor.actorType} />
-          ) : saved ? (
-            <p role="status" className="text-sm text-neon">
-              {t("actorSegments.saved")}
-            </p>
           ) : (
             <SegmentForm
               actor={ctx.actor}
               editing={null}
               onSaved={() => {
-                setSaved(true);
-                setTimeout(() => router.push("/crm/segmentos"), 900);
+                showActionNotice({ text: t("actorSegments.saved") });
+                router.push("/crm/segmentos");
               }}
               onCancel={() => router.push("/crm/segmentos")}
             />

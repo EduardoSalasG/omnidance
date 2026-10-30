@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, use } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon, SkeletonCard } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import { inputCls, readError } from "@/components/producer/shared";
@@ -32,7 +33,6 @@ function NewAcademyDeal({ eventId }: { eventId: string }) {
   const [maxTickets, setMaxTickets] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [created, setCreated] = useState(false);
 
   const loadAcademies = useCallback(async () => {
     setAcademiesError(false);
@@ -78,8 +78,8 @@ function NewAcademyDeal({ eventId }: { eventId: string }) {
         setFormError((await readError(res)) ?? tc("error"));
         return;
       }
-      setCreated(true);
-      setTimeout(() => router.push(`/productor/eventos/${eventId}`), 1200);
+      showActionNotice({ text: t("invited") });
+      router.push(`/productor/eventos/${eventId}`);
     } catch {
       setFormError(tc("error"));
     } finally {
@@ -98,18 +98,10 @@ function NewAcademyDeal({ eventId }: { eventId: string }) {
         <h2 className="text-2xl font-bold leading-tight">{t("inviteTitle")}</h2>
         <p className="text-sm text-ink/60">{t("inviteDesc")}</p>
 
-        {created && (
-          <Card className="p-6 text-center">
-            <p role="status" className="text-lg font-bold text-neon">
-              {t("invited")}
-            </p>
-          </Card>
-        )}
-
-        {!created && academies === null && !academiesError && (
+        {academies === null && !academiesError && (
           <SkeletonCard lines={2} />
         )}
-        {!created && academiesError && (
+        {academiesError && (
           <div className="flex items-center gap-3">
             <p role="alert" className="text-sm text-red-400">
               {tc("error")}
@@ -123,13 +115,13 @@ function NewAcademyDeal({ eventId }: { eventId: string }) {
             </Button>
           </div>
         )}
-        {!created && academies !== null && academies.length === 0 && (
+        {academies !== null && academies.length === 0 && (
           <p role="status" className="text-sm text-ink/50">
             {t("noAcademies")}
           </p>
         )}
 
-        {!created && academies !== null && academies.length > 0 && (
+        {academies !== null && academies.length > 0 && (
           <Card>
             <form onSubmit={submit} className="flex flex-col gap-4">
               <label className="flex flex-col gap-2">

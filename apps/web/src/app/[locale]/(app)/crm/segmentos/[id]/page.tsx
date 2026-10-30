@@ -10,6 +10,11 @@ import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
 import { SkeletonCard, SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
+  ActionNotice,
+  showActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
+import {
   CrmGateScreen,
   useCrmContext,
 } from "@/components/crm/crm-context";
@@ -44,7 +49,7 @@ export default function CrmSegmentoPage() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const deleteDialogRef = useDialogFocus<HTMLDivElement>(confirmDelete, () =>
@@ -90,6 +95,9 @@ export default function CrmSegmentoPage() {
         method: "DELETE",
       });
       if (!res.ok) return setError(true);
+      // Aviso global: la navegación desmonta la ficha, el host del
+      // layout lo muestra en el listado destino.
+      showActionNotice({ text: t("actorSegments.deleted") });
       router.push("/crm/segmentos");
     } catch {
       setError(true);
@@ -138,20 +146,13 @@ export default function CrmSegmentoPage() {
               editing={s}
               onSaved={() => {
                 setEditing(false);
-                setNotice(t("actorSegments.saved"));
+                setNotice({ text: t("actorSegments.saved") });
                 void load();
               }}
               onCancel={() => setEditing(false)}
             />
           ) : (
             <div className="flex flex-col gap-6">
-              <div aria-live="polite">
-                {notice && (
-                  <p role="status" className="text-sm font-medium text-neon">
-                    {notice}
-                  </p>
-                )}
-              </div>
               <Card className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-lg font-semibold">{s.name}</h2>
@@ -286,6 +287,8 @@ export default function CrmSegmentoPage() {
           </Card>
         </div>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </main>
   );
 }

@@ -111,6 +111,7 @@
     "fieldCreated": "Commande créée",
     "fieldChannel": "Canal",
     "methodSaved": "Moyen de paiement enregistré.",
+    "methodDeleted": "Moyen de paiement supprimé.",
     "methodNotFound": "Moyen de paiement introuvable.",
     "activeLabel": "Moyen actif (visible pour les élèves)",
     "editMethod": "Modifier le moyen de paiement",

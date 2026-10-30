@@ -6,6 +6,10 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { Button, Card } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { inputCls, readError, type Academy } from "./shared";
 
 // Mapa con pin arrastrable (spec academy-approval-gate): Leaflet no
@@ -46,8 +50,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
   const [photoUrl, setPhotoUrl] = useState(academy.photoUrl ?? "");
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const canAdminister =
     !meLoading &&
@@ -68,7 +71,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
   // ajusta a mano si quedó corrido.
   async function locateOnMap() {
     setGeocoding(true);
-    setError(null);
+    setNotice(null);
     try {
       const q = encodeURIComponent(address.trim());
       const res = await fetch(
@@ -77,12 +80,12 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
       );
       const hits = (await res.json()) as { lat: string; lon: string }[];
       if (!res.ok || hits.length === 0) {
-        setError(t("geocodeError"));
+        setNotice({ text: t("geocodeError"), error: true });
         return;
       }
       setCoords({ lat: Number(hits[0].lat), lng: Number(hits[0].lon) });
     } catch {
-      setError(t("geocodeError"));
+      setNotice({ text: t("geocodeError"), error: true });
     } finally {
       setGeocoding(false);
     }
@@ -94,7 +97,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
   async function uploadPhoto(file: File | undefined) {
     if (!file) return;
     setUploading(true);
-    setError(null);
+    setNotice(null);
     try {
       const form = new FormData();
       form.append("photo", file);
@@ -103,13 +106,13 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
         body: form,
       });
       if (!res.ok) {
-        setError((await readError(res)) ?? t("saveError"));
+        setNotice({ text: (await readError(res)) ?? t("saveError"), error: true });
         return;
       }
       const { photoUrl: url } = (await res.json()) as { photoUrl: string };
       setPhotoUrl(url);
     } catch {
-      setError(t("saveError"));
+      setNotice({ text: t("saveError"), error: true });
     } finally {
       setUploading(false);
     }
@@ -118,8 +121,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
   async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     setBusy(true);
-    setError(null);
-    setFeedback(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/academies/${academy.id}/settings`, {
         method: "PATCH",
@@ -137,12 +139,12 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
         }),
       });
       if (!res.ok) {
-        setError((await readError(res)) ?? t("saveError"));
+        setNotice({ text: (await readError(res)) ?? t("saveError"), error: true });
         return;
       }
-      setFeedback(t("saved"));
+      setNotice({ text: t("saved") });
     } catch {
-      setError(t("saveError"));
+      setNotice({ text: t("saveError"), error: true });
     } finally {
       setBusy(false);
     }
@@ -293,22 +295,13 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
             className="h-40 w-full rounded-xl border border-line object-cover lg:max-w-xl"
           />
         )}
-        {error && (
-          <p role="alert" className="text-sm text-red-400">
-            {error}
-          </p>
-        )}
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" size="sm" disabled={busy}>
             {busy ? tc("loading") : tc("save")}
           </Button>
-          {feedback && (
-            <p role="status" className="text-sm text-neon">
-              {feedback}
-            </p>
-          )}
         </div>
       </form>
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </Card>
   );
 }

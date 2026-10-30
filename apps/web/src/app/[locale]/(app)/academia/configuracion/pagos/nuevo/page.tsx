@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, Spinner } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, type Academy } from "@/components/academy/shared";
@@ -49,7 +50,6 @@ function MethodCreate({ academy }: { academy: Academy }) {
   const [order, setOrder] = useState("0");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   function setDetail(k: string, v: string) {
     setDetails((d) => ({ ...d, [k]: v }));
@@ -57,10 +57,9 @@ function MethodCreate({ academy }: { academy: Academy }) {
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
-    if (!label.trim() || busy || saved) return;
+    if (!label.trim() || busy) return;
     setBusy(true);
     setErr(null);
-    setSaved(false);
     try {
       const res = await apiFetch(
         `/academies/${academy.id}/payment-methods`,
@@ -81,9 +80,9 @@ function MethodCreate({ academy }: { academy: Academy }) {
         setErr(t("error"));
         return;
       }
-      // Notice breve antes de volver al listado (patrón de la consola).
-      setSaved(true);
-      setTimeout(() => router.push("/academia/configuracion/pagos"), 1200);
+      // Aviso global + vuelta inmediata al listado (patrón de la consola).
+      showActionNotice({ text: t("methodSaved") });
+      router.push("/academia/configuracion/pagos");
     } catch {
       setErr(t("error"));
     } finally {
@@ -174,16 +173,11 @@ function MethodCreate({ academy }: { academy: Academy }) {
             {err}
           </p>
         )}
-        {saved && (
-          <p role="status" className="text-sm text-neon">
-            {t("methodSaved")}
-          </p>
-        )}
         <div className="flex gap-2">
           <Button
             type="submit"
             size="sm"
-            disabled={!label.trim() || busy || saved}
+            disabled={!label.trim() || busy}
           >
             {busy ? <Spinner size="sm" /> : null}
             {t("save")}

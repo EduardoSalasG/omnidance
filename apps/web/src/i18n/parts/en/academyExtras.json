@@ -248,7 +248,8 @@
     "seriesWeeklyAvgTitle": "Classes/week per student",
     "country": "Country",
     "city": "City",
-    "noCity": "No city"
+    "noCity": "No city",
+    "created": "Academy created"
   },
   "academySeries": {
     "addSlotHint": "Future classes are created on that day within the scheduling window.",
@@ -275,7 +276,11 @@
     "workshopBadge": "Workshop",
     "cancelClass": "Cancel class",
     "cancelClassDesc": "Cancels only this class: its bookings are freed and the rest of the schedule stays the same.",
-    "createdOneOff": "Workshop created"
+    "createdOneOff": "Workshop created",
+    "slotUpdated": "Schedule updated",
+    "slotDeleted": "Schedule deleted",
+    "classCancelled": "Class cancelled",
+    "seriesDeleted": "Series deleted."
   },
   "instructor": {
     "title": "My classes",

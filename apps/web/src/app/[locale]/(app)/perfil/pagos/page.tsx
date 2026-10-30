@@ -6,6 +6,11 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon, Spinner } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
+import { readError } from "@/components/academy/shared";
 import { PaymentCards } from "@/components/payments/payment-cards";
 import type { PaymentAuditRow } from "@/components/payments/shared";
 import { Link } from "@/i18n/navigation";
@@ -48,6 +53,8 @@ export default function PerfilPagosPage() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [cancelBusyId, setCancelBusyId] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  // Aviso post-acción local (la página no navega tras cancelar).
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   // Refresh de solo las suscripciones (post-cancel) - no toca el gate
   // para que la página no vuelva a skeleton parpadeando.
@@ -104,10 +111,11 @@ export default function PerfilPagosPage() {
         method: "POST",
       });
       if (!res.ok) {
-        setCancelError(tc("error"));
+        setCancelError((await readError(res)) ?? tc("error"));
         return;
       }
       setConfirmId(null);
+      setNotice({ text: ts("cancelOk") });
       await refreshSubs();
     } catch {
       setCancelError(tc("error"));
@@ -266,6 +274,8 @@ export default function PerfilPagosPage() {
       ) : (
         <PaymentCards payments={payments} withLedger />
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </main>
   );
 }

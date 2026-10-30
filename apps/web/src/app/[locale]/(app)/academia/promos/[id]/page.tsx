@@ -7,6 +7,10 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, Spinner } from "@/components/ui";
 import { SkeletonCard } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { readError } from "@/components/academy/shared";
@@ -54,7 +58,7 @@ export default function AcademiaPromoDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toggling, setToggling] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [academyId, setAcademyId] = useState<string | null>(null);
 
   const load = useCallback(
@@ -147,17 +151,6 @@ export default function AcademiaPromoDetailPage() {
                 </p>
               </Card>
 
-              {saved && (
-                <p role="status" className="text-sm text-neon">
-                  {t("saved")}
-                </p>
-              )}
-              {error && promo && (
-                <p role="alert" className="text-sm text-red-400">
-                  {error}
-                </p>
-              )}
-
               <Card className="p-4">
                 <AcademyPromoForm
                   academyId={academy.id}
@@ -166,7 +159,7 @@ export default function AcademiaPromoDetailPage() {
                   busy={busy}
                   onSubmit={async (body) => {
                     setBusy(true);
-                    setSaved(false);
+                    setNotice(null);
                     const res = await apiFetch(
                       `/academies/${academy.id}/promos/${promo.id}`,
                       {
@@ -177,11 +170,11 @@ export default function AcademiaPromoDetailPage() {
                     ).catch(() => null);
                     setBusy(false);
                     if (!res || !res.ok) {
-                      setError(res ? ((await readError(res)) ?? t("error")) : t("error"));
+                      setNotice({ text: res ? ((await readError(res)) ?? t("error")) : t("error"), error: true });
                       return;
                     }
                     setPromo(await res.json());
-                    setSaved(true);
+                    setNotice({ text: t("saved") });
                   }}
                 />
               </Card>
@@ -205,7 +198,7 @@ export default function AcademiaPromoDetailPage() {
                     ).catch(() => null);
                     setToggling(false);
                     if (!res || !res.ok) {
-                      setError(res ? ((await readError(res)) ?? t("error")) : t("error"));
+                      setNotice({ text: res ? ((await readError(res)) ?? t("error")) : t("error"), error: true });
                       return;
                     }
                     setPromo(await res.json());
@@ -220,6 +213,11 @@ export default function AcademiaPromoDetailPage() {
                   </p>
                 )}
               </div>
+
+              <ActionNotice
+                notice={notice}
+                onDismiss={() => setNotice(null)}
+              />
             </section>
           );
         }}

@@ -15,6 +15,10 @@ import {
   Spinner,
 } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import { inputCls } from "@/components/producer/shared";
 import { Link } from "@/i18n/navigation";
@@ -58,9 +62,7 @@ function GuestListDetail() {
   const [personDraft, setPersonDraft] = useState("");
   const [entrySaving, setEntrySaving] = useState(false);
   const [passBusyId, setPassBusyId] = useState<string | null>(null);
-  const [msg, setMsg] = useState<"passIssued" | "addError" | "error" | null>(
-    null,
-  );
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const load = useCallback(async () => {
     const res = await apiFetch(`/guest-lists/${id}`).catch(() => null);
@@ -83,7 +85,7 @@ function GuestListDetail() {
     const personId = personDraft.trim();
     if (!personId || entrySaving) return;
     setEntrySaving(true);
-    setMsg(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/guest-lists/${id}/entries`, {
         method: "POST",
@@ -92,13 +94,13 @@ function GuestListDetail() {
       });
       if (!res.ok) {
         // 404 persona no encontrada / 409 duplicado.
-        setMsg("addError");
+        setNotice({ text: t("listDetail.addError"), error: true });
         return;
       }
       setPersonDraft("");
       await load();
     } catch {
-      setMsg("addError");
+      setNotice({ text: t("listDetail.addError"), error: true });
     } finally {
       setEntrySaving(false);
     }
@@ -106,17 +108,21 @@ function GuestListDetail() {
 
   async function issuePass(entryId: string) {
     setPassBusyId(entryId);
-    setMsg(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/guest-lists/${id}/entries/${entryId}/pass`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
       });
-      setMsg(res.ok ? "passIssued" : "error");
+      setNotice(
+        res.ok
+          ? { text: t("listDetail.passIssued") }
+          : { text: tc("error"), error: true },
+      );
       await load();
     } catch {
-      setMsg("error");
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setPassBusyId(null);
     }
@@ -275,23 +281,11 @@ function GuestListDetail() {
                 {t("addPerson")}
               </Button>
             </form>
-            {msg && (
-              <p
-                role={msg === "passIssued" ? "status" : "alert"}
-                className={`text-sm ${
-                  msg === "passIssued" ? "text-neon" : "text-red-400"
-                }`}
-              >
-                {msg === "passIssued"
-                  ? t("listDetail.passIssued")
-                  : msg === "addError"
-                    ? t("listDetail.addError")
-                    : tc("error")}
-              </p>
-            )}
           </section>
         </div>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }

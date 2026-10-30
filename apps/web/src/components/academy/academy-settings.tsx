@@ -6,6 +6,10 @@ import { apiFetch } from "@/lib/api";
 import { getNumFmt } from "@/lib/intl";
 import { useMe } from "@/lib/me-context";
 import { Button, Card } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { inputCls, readError, type Academy } from "./shared";
 
 // Quórum por defecto cuando la academia no tiene uno configurado
@@ -36,8 +40,7 @@ export function AcademySettings({ academy }: { academy: Academy }) {
     academy.defaultQuorum ?? null,
   );
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   // Precio de la clase particular (private-lesson-product): null/vacío =
   // la academia no vende particulares.
@@ -78,8 +81,7 @@ export function AcademySettings({ academy }: { academy: Academy }) {
         ? priceParsed
         : null;
     setBusy(true);
-    setError(null);
-    setFeedback(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/academies/${academy.id}/settings`, {
         method: "PATCH",
@@ -90,14 +92,14 @@ export function AcademySettings({ academy }: { academy: Academy }) {
         }),
       });
       if (!res.ok) {
-        setError((await readError(res)) ?? t("saveError"));
+        setNotice({ text: (await readError(res)) ?? t("saveError"), error: true });
         return;
       }
       setCurrent(next);
       setCurrentLessonPrice(nextPrice);
-      setFeedback(t("saved"));
+      setNotice({ text: t("saved") });
     } catch {
-      setError(t("saveError"));
+      setNotice({ text: t("saveError"), error: true });
     } finally {
       setBusy(false);
     }
@@ -146,22 +148,13 @@ export function AcademySettings({ academy }: { academy: Academy }) {
             {currentLessonPrice != null && `$${getNumFmt(locale).format(currentLessonPrice)}`}
           </span>
         </label>
-        {error && (
-          <p role="alert" className="text-sm text-red-400">
-            {error}
-          </p>
-        )}
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" size="sm" disabled={busy}>
             {busy ? tc("loading") : tc("save")}
           </Button>
-          {feedback && (
-            <p role="status" className="text-sm text-neon">
-              {feedback}
-            </p>
-          )}
         </div>
       </form>
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </Card>
   );
 }

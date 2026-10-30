@@ -14,6 +14,10 @@ import {
   RefreshIcon,
   SkeletonCard,
 } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import type {
   AcademyDealView,
   AcademyPresaleCode,
@@ -55,8 +59,7 @@ function DealDetail({
   );
   const [busy, setBusy] = useState(false);
   const [codeBusy, setCodeBusy] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
@@ -105,7 +108,7 @@ function DealDetail({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setFormError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     }
   }
 
@@ -115,23 +118,23 @@ function DealDetail({
       setCopiedCode(code);
       setTimeout(() => setCopiedCode(null), 2000);
     } catch {
-      setFormError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     }
   }
 
   /** Un código por venta cobrada en efectivo (spec academy-presale-codes). */
   async function emitCode() {
     setCodeBusy(true);
-    setFormError(null);
     setNotice(null);
     try {
       const res = await apiFetch(`/academy-deals/${agreementId}/codes`, {
         method: "POST",
       });
       if (!res.ok) {
-        setFormError(
-          res.status === 409 ? t("codeCapFull") : tc("error"),
-        );
+        setNotice({
+          text: res.status === 409 ? t("codeCapFull") : tc("error"),
+          error: true,
+        });
         return;
       }
       // Refetch solo de códigos: la fila nueva es el feedback - un
@@ -140,9 +143,9 @@ function DealDetail({
       if (codesRes.ok) {
         setCodes((await codesRes.json()) as AcademyPresaleCode[]);
       }
-      setNotice(t("codeIssued"));
+      setNotice({ text: t("codeIssued") });
     } catch {
-      setFormError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setCodeBusy(false);
     }
@@ -150,7 +153,6 @@ function DealDetail({
 
   async function respond(action: "accept" | "decline") {
     setBusy(true);
-    setFormError(null);
     setNotice(null);
     try {
       const res = await apiFetch(`/academy-deals/${agreementId}`, {
@@ -159,7 +161,7 @@ function DealDetail({
         body: JSON.stringify({ action }),
       });
       if (!res.ok) {
-        setFormError(tc("error"));
+        setNotice({ text: tc("error"), error: true });
         return;
       }
       // Update local del estado (aceptar→ACTIVE, rechazar→DECLINED):
@@ -170,9 +172,9 @@ function DealDetail({
           ? { ...d, status: action === "accept" ? "ACTIVE" : "DECLINED" }
           : d,
       );
-      setNotice(t("responded"));
+      setNotice({ text: t("responded") });
     } catch {
-      setFormError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -353,18 +355,10 @@ function DealDetail({
             </div>
           )}
 
-          {notice && (
-            <p role="status" className="text-sm text-neon">
-              {notice}
-            </p>
-          )}
-          {formError && (
-            <p role="alert" className="text-sm text-red-400">
-              {formError}
-            </p>
-          )}
         </Card>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }

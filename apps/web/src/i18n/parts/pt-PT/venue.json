@@ -46,7 +46,9 @@
         "REQUESTED": "Pedido",
         "CONFIRMED": "Confirmado",
         "CANCELLED": "Cancelado"
-      }
+      },
+      "confirmed": "Arrendamento confirmado",
+      "cancelled": "Arrendamento cancelado"
     },
     "menus": {
       "item": "Carta v{version}"

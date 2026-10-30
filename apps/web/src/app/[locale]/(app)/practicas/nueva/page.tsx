@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { Button, Card } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { PageLoading } from "@/components/ui/spinner";
 import { useRouter } from "@/i18n/navigation";
 
@@ -28,9 +29,6 @@ export default function NuevaPracticaPage() {
   const { me, loading: meLoading, refresh: refreshMe } = useMe();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(false);
-  // Éxito breve antes del redirect - la key practices.created existía
-  // sin uso; el detalle destino no puede anunciar la creación.
-  const [created, setCreated] = useState(false);
   // Fallo de GET /styles - el select quedaría solo con "Cualquiera"
   // sin aviso; la práctica se puede publicar igual sin estilo.
   const [stylesError, setStylesError] = useState(false);
@@ -105,10 +103,10 @@ export default function NuevaPracticaPage() {
         return;
       }
       const createdEv = (await res.json()) as { id: string };
-      // Feedback de éxito antes del redirect al detalle (la práctica
-      // recién creada ya vive como evento).
-      setCreated(true);
-      setTimeout(() => router.push(`/eventos/${createdEv.id}`), 1200);
+      // Aviso global + redirect al detalle (la práctica recién creada
+      // ya vive como evento).
+      showActionNotice({ text: t("created") });
+      router.push(`/eventos/${createdEv.id}`);
     } catch {
       setFormError(true);
     } finally {
@@ -145,15 +143,7 @@ export default function NuevaPracticaPage() {
         </Card>
       )}
 
-      {created && (
-        <Card className="p-6 text-center">
-          <p role="status" className="text-lg font-bold text-neon">
-            {t("created")}
-          </p>
-        </Card>
-      )}
-
-      {!!me && !created && (
+      {!!me && (
         <form onSubmit={createPractice} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-ink/70">

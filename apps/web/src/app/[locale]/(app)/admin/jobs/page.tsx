@@ -6,6 +6,10 @@ import { apiFetch } from "@/lib/api";
 import { readError } from "@/components/academy/shared";
 import { Badge, Button, Card, ConfirmSheet, SkeletonList } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
@@ -95,6 +99,8 @@ function JobsPanel() {
   const [runsError, setRunsError] = useState(false);
   // Confirmación compartida de "correr ahora" (reemplaza window.confirm).
   const [pendingRun, setPendingRun] = useState<string | null>(null);
+  // Aviso post-acción local (change unified-action-notice).
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -121,6 +127,7 @@ function JobsPanel() {
   async function patch(
     key: string,
     body: Record<string, unknown>,
+    successText: string,
   ): Promise<boolean> {
     setBusy(key);
     setError(null);
@@ -134,6 +141,7 @@ function JobsPanel() {
         setError((await readError(res)) ?? tc("error"));
         return false;
       }
+      setNotice({ text: successText });
       await load();
       return true;
     } catch {
@@ -152,7 +160,10 @@ function JobsPanel() {
         method: "POST",
       });
       if (!res.ok) setError((await readError(res)) ?? tc("error"));
-      else await load();
+      else {
+        setNotice({ text: t("jobs.runStarted") });
+        await load();
+      }
     } catch {
       setError(tc("error"));
     } finally {
@@ -246,7 +257,13 @@ function JobsPanel() {
                   className="flex flex-col gap-2 rounded-xl border border-ink/10 p-3"
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    if (await patch(job.key, { cronExpr: cronDraft })) {
+                    if (
+                      await patch(
+                        job.key,
+                        { cronExpr: cronDraft },
+                        t("jobs.saved"),
+                      )
+                    ) {
                       setEditing(null);
                     }
                   }}
@@ -291,7 +308,13 @@ function JobsPanel() {
                     variant="secondary"
                     size="sm"
                     disabled={job.orphaned || busy === job.key}
-                    onClick={() => void patch(job.key, { enabled: !job.enabled })}
+                    onClick={() =>
+                      void patch(
+                        job.key,
+                        { enabled: !job.enabled },
+                        t(job.enabled ? "jobs.paused" : "jobs.resumed"),
+                      )
+                    }
                   >
                     {job.enabled ? t("jobs.pause") : t("jobs.resume")}
                   </Button>
@@ -390,6 +413,8 @@ function JobsPanel() {
         onConfirm={() => pendingRun && void runNow(pendingRun)}
         onClose={() => setPendingRun(null)}
       />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }

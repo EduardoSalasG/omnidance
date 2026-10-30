@@ -6,6 +6,10 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
 import { readError } from "@/components/academy/shared";
 import { PromoForm, type PromoPayload } from "@/components/admin/promo-form";
@@ -49,7 +53,7 @@ function DetailPanel({ id }: { id: string }) {
   const [promo, setPromo] = useState<Promo | null>(null);
   const [state, setState] = useState<"loading" | "error" | "ready">("loading");
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -77,7 +81,7 @@ function DetailPanel({ id }: { id: string }) {
         return;
       }
       setPromo((await res.json()) as Promo);
-      setNotice({ text: t("saved"), error: false });
+      setNotice({ text: t("saved") });
     } catch {
       setNotice({ text: t("error"), error: true });
     } finally {
@@ -180,14 +184,7 @@ function DetailPanel({ id }: { id: string }) {
         <p className="text-center text-xs text-ink/40">{t("disableHint")}</p>
       </div>
 
-      {notice && (
-        <p
-          role={notice.error ? "alert" : "status"}
-          className={`text-sm ${notice.error ? "text-red-400" : "text-neon"}`}
-        >
-          {notice.text}
-        </p>
-      )}
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </section>
   );
 }

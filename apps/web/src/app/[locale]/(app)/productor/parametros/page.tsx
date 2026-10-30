@@ -6,6 +6,10 @@ import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { Button, Card, RefreshIcon, SkeletonCard } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { PRODUCER_ROLES } from "@/components/producer/shared";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
@@ -76,7 +80,7 @@ export default function ProducerParamsPage() {
   const [presaleCutoff, setPresaleCutoff] = useState("");
   const [cutoffDirty, setCutoffDirty] = useState(false);
   const [tableSaving, setTableSaving] = useState(false);
-  const [tableMsg, setTableMsg] = useState<"saved" | "error" | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const gate: Gate = meLoading
     ? "loading"
@@ -124,7 +128,7 @@ export default function ProducerParamsPage() {
 
   async function saveTables() {
     setTableSaving(true);
-    setTableMsg(null);
+    setNotice(null);
     try {
       const body: Record<string, number | null> = Object.fromEntries(
         TABLE_FIELDS.map((f) => {
@@ -145,9 +149,13 @@ export default function ProducerParamsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      setTableMsg(res.ok ? "saved" : "error");
+      setNotice(
+        res.ok
+          ? { text: tp("saved") }
+          : { text: tp("error"), error: true },
+      );
     } catch {
-      setTableMsg("error");
+      setNotice({ text: tp("error"), error: true });
     } finally {
       setTableSaving(false);
     }
@@ -280,19 +288,11 @@ export default function ProducerParamsPage() {
             >
               {tableSaving ? "…" : tp("save")}
             </Button>
-            {tableMsg === "saved" && (
-              <span role="status" className="text-sm text-neon">
-                {tp("saved")}
-              </span>
-            )}
-            {tableMsg === "error" && (
-              <span role="alert" className="text-sm text-live">
-                {tp("error")}
-              </span>
-            )}
           </div>
         </section>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </main>
   );
 }

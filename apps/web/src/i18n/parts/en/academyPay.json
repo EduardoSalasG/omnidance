@@ -111,6 +111,7 @@
     "fieldCreated": "Order created",
     "fieldChannel": "Channel",
     "methodSaved": "Payment method saved.",
+    "methodDeleted": "Payment method deleted.",
     "methodNotFound": "Payment method not found.",
     "activeLabel": "Active method (visible to students)",
     "editMethod": "Edit payment method",

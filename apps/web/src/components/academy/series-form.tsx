@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, Skeleton, XIcon } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { InstructorChecklist } from "./instructor-checklist";
 import {
   inputCls,
@@ -100,8 +101,6 @@ export function SeriesForm({
 
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  // Éxito breve antes de volver al listado (que refetchea al montar).
-  const [saved, setSaved] = useState(false);
 
   // Catálogos públicos + instructores de la academia. Si fallan se
   // resuelven a [] (selects habilitados con solo "·").
@@ -271,8 +270,14 @@ export function SeriesForm({
         setFormError((await readError(res)) ?? t("error"));
         return;
       }
-      setSaved(true);
-      setTimeout(() => router.push("/academia/series"), 1200);
+      showActionNotice({
+        text: editing
+          ? t("updated")
+          : kind === "oneOff"
+            ? t("createdOneOff")
+            : t("created"),
+      });
+      router.push("/academia/series");
     } catch {
       setFormError(t("error"));
     } finally {
@@ -282,316 +287,304 @@ export function SeriesForm({
 
   return (
     <Card>
-      {saved ? (
-        <p role="status" className="text-sm text-neon">
-          {editing
-            ? t("updated")
-            : kind === "oneOff"
-              ? t("createdOneOff")
-              : t("created")}
-        </p>
-      ) : (
-        <>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-            {editing ? t("editTitle") : t("newTitle")}
-          </h2>
-          <form
-            onSubmit={submit}
-            className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+        {editing ? t("editTitle") : t("newTitle")}
+      </h2>
+      <form
+        onSubmit={submit}
+        className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+      >
+        <label className="flex flex-col gap-1 sm:col-span-2">
+          <span className="text-xs text-ink/50">
+            {t("name")}
+            <span aria-hidden="true" className="text-neon">
+              {" "}
+              *
+            </span>
+          </span>
+          <input
+            className={inputCls}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t("namePlaceholder")}
+            required
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 sm:col-span-2">
+          <span className="text-xs text-ink/50">{t("description")}</span>
+          <textarea
+            className={inputCls}
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t("descriptionPlaceholder")}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">{t("style")}</span>
+          <select
+            className={`${inputCls} disabled:opacity-50`}
+            value={styleId}
+            onChange={(e) => setStyleId(e.target.value)}
+            disabled={styles === null}
+            aria-busy={styles === null}
           >
-            <label className="flex flex-col gap-1 sm:col-span-2">
-              <span className="text-xs text-ink/50">
-                {t("name")}
-                <span aria-hidden="true" className="text-neon">
-                  {" "}
-                  *
-                </span>
-              </span>
-              <input
-                className={inputCls}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t("namePlaceholder")}
-                required
-              />
-            </label>
+            <option value="">·</option>
+            {(styles ?? []).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
-            <label className="flex flex-col gap-1 sm:col-span-2">
-              <span className="text-xs text-ink/50">{t("description")}</span>
-              <textarea
-                className={inputCls}
-                rows={2}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t("descriptionPlaceholder")}
-              />
-            </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">{t("level")}</span>
+          <select
+            className={`${inputCls} disabled:opacity-50`}
+            value={levelId}
+            onChange={(e) => setLevelId(e.target.value)}
+            disabled={levels === null}
+            aria-busy={levels === null}
+          >
+            <option value="">·</option>
+            {(levels ?? []).map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{t("style")}</span>
-              <select
-                className={`${inputCls} disabled:opacity-50`}
-                value={styleId}
-                onChange={(e) => setStyleId(e.target.value)}
-                disabled={styles === null}
-                aria-busy={styles === null}
-              >
-                <option value="">·</option>
-                {(styles ?? []).map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">{t("instructors")}</span>
+          <InstructorChecklist
+            options={(instructors ?? []).map((i) => ({ id: i.personId, name: i.name }))}
+            selected={instructorIds}
+            onChange={setInstructorIds}
+            disabled={instructors === null}
+          />
+        </div>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{t("level")}</span>
-              <select
-                className={`${inputCls} disabled:opacity-50`}
-                value={levelId}
-                onChange={(e) => setLevelId(e.target.value)}
-                disabled={levels === null}
-                aria-busy={levels === null}
-              >
-                <option value="">·</option>
-                {(levels ?? []).map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">{t("quorum")}</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            className={inputCls}
+            value={quorum}
+            onChange={(e) => setQuorum(e.target.value)}
+          />
+          <span className="text-xs text-ink/40">{t("quorumHint")}</span>
+        </label>
 
-            <div className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{t("instructors")}</span>
-              <InstructorChecklist
-                options={(instructors ?? []).map((i) => ({ id: i.personId, name: i.name }))}
-                selected={instructorIds}
-                onChange={setInstructorIds}
-                disabled={instructors === null}
-              />
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">{t("dropIn")}</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={500}
+            className={inputCls}
+            value={dropIn}
+            onChange={(e) => setDropIn(e.target.value)}
+            placeholder="8000"
+          />
+          <span className="text-xs text-ink/40">{t("dropInHint")}</span>
+        </label>
+
+        {types === null ? (
+          /* Chips de modalidad en vuelo - skeleton con la forma de
+             las chips para que el fieldset no salte al resolver. */
+          <fieldset
+            aria-hidden="true"
+            className="flex flex-col gap-2 sm:col-span-2"
+          >
+            <legend className="text-xs text-ink/50">
+              {t("types")}
+            </legend>
+            <div className="page-loading flex flex-wrap gap-2">
+              <Skeleton className="h-11 w-24 rounded-xl" />
+              <Skeleton className="h-11 w-28 rounded-xl" />
+              <Skeleton className="h-11 w-20 rounded-xl" />
             </div>
-
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{t("quorum")}</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                step={1}
-                className={inputCls}
-                value={quorum}
-                onChange={(e) => setQuorum(e.target.value)}
-              />
-              <span className="text-xs text-ink/40">{t("quorumHint")}</span>
-            </label>
-
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{t("dropIn")}</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                step={500}
-                className={inputCls}
-                value={dropIn}
-                onChange={(e) => setDropIn(e.target.value)}
-                placeholder="8000"
-              />
-              <span className="text-xs text-ink/40">{t("dropInHint")}</span>
-            </label>
-
-            {types === null ? (
-              /* Chips de modalidad en vuelo - skeleton con la forma de
-                 las chips para que el fieldset no salte al resolver. */
-              <fieldset
-                aria-hidden="true"
-                className="flex flex-col gap-2 sm:col-span-2"
-              >
-                <legend className="text-xs text-ink/50">
-                  {t("types")}
-                </legend>
-                <div className="page-loading flex flex-wrap gap-2">
-                  <Skeleton className="h-11 w-24 rounded-xl" />
-                  <Skeleton className="h-11 w-28 rounded-xl" />
-                  <Skeleton className="h-11 w-20 rounded-xl" />
-                </div>
-              </fieldset>
-            ) : (
-              types.length > 0 && (
-              <fieldset className="flex flex-col gap-2 sm:col-span-2">
-                <legend className="text-xs text-ink/50">{t("types")}</legend>
-                <div className="flex flex-wrap gap-2">
-                  {types.map((ty) => (
-                    <label
-                      key={ty.id}
-                      className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-line bg-elevated px-3 text-sm text-ink"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={typeIds.includes(ty.id)}
-                        onChange={() => toggleType(ty.id)}
-                        className="accent-neon"
-                      />
-                      {ty.name}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-              )
-            )}
-
-            {!editing && (
-              <fieldset className="flex flex-col gap-2 sm:col-span-2">
-                <legend className="text-xs text-ink/50">
-                  {kind === "oneOff" ? t("slotsOneOff") : t("slots")}
-                </legend>
-                {/* Selector de tipo (spec workshop-one-off-class): semanal
-                    recurrente o taller de una sola fecha. Radios con la
-                    misma pauta visual que las chips de modalidad. */}
-                <div
-                  role="radiogroup"
-                  aria-label={t("kindLabel")}
-                  className="flex flex-wrap gap-2"
+          </fieldset>
+        ) : (
+          types.length > 0 && (
+          <fieldset className="flex flex-col gap-2 sm:col-span-2">
+            <legend className="text-xs text-ink/50">{t("types")}</legend>
+            <div className="flex flex-wrap gap-2">
+              {types.map((ty) => (
+                <label
+                  key={ty.id}
+                  className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-line bg-elevated px-3 text-sm text-ink"
                 >
-                  {(["recurring", "oneOff"] as const).map((k) => (
-                    <label
-                      key={k}
-                      className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-line bg-elevated px-3 text-sm text-ink"
-                    >
+                  <input
+                    type="checkbox"
+                    checked={typeIds.includes(ty.id)}
+                    onChange={() => toggleType(ty.id)}
+                    className="accent-neon"
+                  />
+                  {ty.name}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          )
+        )}
+
+        {!editing && (
+          <fieldset className="flex flex-col gap-2 sm:col-span-2">
+            <legend className="text-xs text-ink/50">
+              {kind === "oneOff" ? t("slotsOneOff") : t("slots")}
+            </legend>
+            {/* Selector de tipo (spec workshop-one-off-class): semanal
+                recurrente o taller de una sola fecha. Radios con la
+                misma pauta visual que las chips de modalidad. */}
+            <div
+              role="radiogroup"
+              aria-label={t("kindLabel")}
+              className="flex flex-wrap gap-2"
+            >
+              {(["recurring", "oneOff"] as const).map((k) => (
+                <label
+                  key={k}
+                  className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-line bg-elevated px-3 text-sm text-ink"
+                >
+                  <input
+                    type="radio"
+                    name="series-kind"
+                    checked={kind === k}
+                    onChange={() => selectKind(k)}
+                    className="accent-neon"
+                  />
+                  {k === "recurring" ? t("kindRecurring") : t("kindOneOff")}
+                </label>
+              ))}
+            </div>
+            <ul className="flex flex-col gap-2">
+              {slots.map((s, i) => (
+                <li key={i} className="flex flex-wrap items-end gap-2">
+                  {kind === "oneOff" ? (
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-ink/50">
+                        {t("dateLabel")}
+                      </span>
                       <input
-                        type="radio"
-                        name="series-kind"
-                        checked={kind === k}
-                        onChange={() => selectKind(k)}
-                        className="accent-neon"
+                        type="date"
+                        className={inputCls}
+                        value={s.date}
+                        min={toDateInput(new Date().toISOString())}
+                        onChange={(e) =>
+                          updateSlot(i, { date: e.target.value })
+                        }
+                        required
                       />
-                      {k === "recurring" ? t("kindRecurring") : t("kindOneOff")}
                     </label>
-                  ))}
-                </div>
-                <ul className="flex flex-col gap-2">
-                  {slots.map((s, i) => (
-                    <li key={i} className="flex flex-wrap items-end gap-2">
-                      {kind === "oneOff" ? (
-                        <label className="flex flex-col gap-1">
-                          <span className="text-xs text-ink/50">
-                            {t("dateLabel")}
-                          </span>
-                          <input
-                            type="date"
-                            className={inputCls}
-                            value={s.date}
-                            min={toDateInput(new Date().toISOString())}
-                            onChange={(e) =>
-                              updateSlot(i, { date: e.target.value })
-                            }
-                            required
-                          />
-                        </label>
-                      ) : (
-                        <label className="flex flex-col gap-1">
-                          <span className="text-xs text-ink/50">
-                            {t("weekday")}
-                          </span>
-                          <select
-                            className={inputCls}
-                            value={s.weekday}
-                            onChange={(e) =>
-                              updateSlot(i, {
-                                weekday: Number(e.target.value),
-                              })
-                            }
-                          >
-                            {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-                              <option key={d} value={d}>
-                                {ta(`weekday.${d}`)}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      )}
-                      <label className="flex flex-col gap-1">
-                        <span className="text-xs text-ink/50">
-                          {t("start")}
-                        </span>
-                        <input
-                          type="time"
-                          className={inputCls}
-                          value={s.startTime}
-                          onChange={(e) =>
-                            updateSlot(i, { startTime: e.target.value })
-                          }
-                          required
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1">
-                        <span className="text-xs text-ink/50">{t("end")}</span>
-                        <input
-                          type="time"
-                          className={inputCls}
-                          value={s.endTime}
-                          onChange={(e) =>
-                            updateSlot(i, { endTime: e.target.value })
-                          }
-                          required
-                        />
-                      </label>
-                      {kind === "recurring" && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          aria-label={t("removeSlot")}
-                          disabled={slots.length <= 1}
-                          onClick={() =>
-                            setSlots((prev) => prev.filter((_, j) => j !== i))
-                          }
-                        >
-                          <XIcon className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-                {kind === "recurring" && (
-                  <div>
+                  ) : (
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-ink/50">
+                        {t("weekday")}
+                      </span>
+                      <select
+                        className={inputCls}
+                        value={s.weekday}
+                        onChange={(e) =>
+                          updateSlot(i, {
+                            weekday: Number(e.target.value),
+                          })
+                        }
+                      >
+                        {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                          <option key={d} value={d}>
+                            {ta(`weekday.${d}`)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs text-ink/50">
+                      {t("start")}
+                    </span>
+                    <input
+                      type="time"
+                      className={inputCls}
+                      value={s.startTime}
+                      onChange={(e) =>
+                        updateSlot(i, { startTime: e.target.value })
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs text-ink/50">{t("end")}</span>
+                    <input
+                      type="time"
+                      className={inputCls}
+                      value={s.endTime}
+                      onChange={(e) =>
+                        updateSlot(i, { endTime: e.target.value })
+                      }
+                      required
+                    />
+                  </label>
+                  {kind === "recurring" && (
                     <Button
                       type="button"
-                      variant="secondary"
+                      variant="ghost"
                       size="sm"
-                      onClick={() => setSlots((prev) => [...prev, emptySlot()])}
+                      aria-label={t("removeSlot")}
+                      disabled={slots.length <= 1}
+                      onClick={() =>
+                        setSlots((prev) => prev.filter((_, j) => j !== i))
+                      }
                     >
-                      + {t("addSlot")}
+                      <XIcon className="h-4 w-4" />
                     </Button>
-                  </div>
-                )}
-              </fieldset>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {kind === "recurring" && (
+              <div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setSlots((prev) => [...prev, emptySlot()])}
+                >
+                  + {t("addSlot")}
+                </Button>
+              </div>
             )}
+          </fieldset>
+        )}
 
-            {formError && (
-              <p role="alert" className="text-sm text-red-400 sm:col-span-2">
-                {formError}
-              </p>
-            )}
+        {formError && (
+          <p role="alert" className="text-sm text-red-400 sm:col-span-2">
+            {formError}
+          </p>
+        )}
 
-            {/* Sin Cancelar: el abort lo da el ‹ back del chrome
-                (appbar/ConsoleHeader) en móvil y desktop. */}
-            <div className="flex flex-wrap gap-2 sm:col-span-2">
-              <Button type="submit" size="sm" disabled={busy}>
-                {busy
-                  ? editing
-                    ? tc("loading")
-                    : t("creating")
-                  : editing
-                    ? t("save")
-                    : t("create")}
-              </Button>
-            </div>
-          </form>
-        </>
-      )}
+        {/* Sin Cancelar: el abort lo da el ‹ back del chrome
+            (appbar/ConsoleHeader) en móvil y desktop. */}
+        <div className="flex flex-wrap gap-2 sm:col-span-2">
+          <Button type="submit" size="sm" disabled={busy}>
+            {busy
+              ? editing
+                ? tc("loading")
+                : t("creating")
+              : editing
+                ? t("save")
+                : t("create")}
+          </Button>
+        </div>
+      </form>
     </Card>
   );
 }

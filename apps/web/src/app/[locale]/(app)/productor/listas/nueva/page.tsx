@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { Button, Card, RefreshIcon, SkeletonCard } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import {
@@ -20,7 +21,7 @@ import { useRouter } from "@/i18n/navigation";
  * /events/:id/guest-lists). Con ?eventId= viene preseleccionado desde la
  * ficha del evento (volver = a esa ficha); sin param el selector de
  * evento se alimenta de /events/mine (todos los estados del productor).
- * Al crear vuelve a la ficha del evento tras un aviso breve.
+ * Al crear vuelve a la ficha del evento con aviso global.
  */
 function NewGuestList() {
   const t = useTranslations("producer");
@@ -46,7 +47,6 @@ function NewGuestList() {
   const [listName, setListName] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [created, setCreated] = useState(false);
 
   const loadEvents = useCallback(async () => {
     setEventsError(false);
@@ -94,8 +94,8 @@ function NewGuestList() {
         setFormError((await readError(res)) ?? tc("error"));
         return;
       }
-      setCreated(true);
-      setTimeout(() => router.push(`/productor/eventos/${eventId}`), 1200);
+      showActionNotice({ text: t("listCreated") });
+      router.push(`/productor/eventos/${eventId}`);
     } catch {
       setFormError(tc("error"));
     } finally {
@@ -110,19 +110,11 @@ function NewGuestList() {
       <section className="flex flex-col gap-4">
         <h2 className="text-2xl font-bold leading-tight">{t("newList")}</h2>
 
-        {created && (
-          <Card className="p-6 text-center">
-            <p role="status" className="text-lg font-bold text-neon">
-              {t("listCreated")}
-            </p>
-          </Card>
-        )}
-
-        {!created && events === null && !eventsError && (
+        {events === null && !eventsError && (
           <SkeletonCard lines={2} />
         )}
 
-        {!created && eventsError && (
+        {eventsError && (
           <div className="flex items-center gap-3">
             <p role="alert" className="text-sm text-red-400">
               {tc("error")}
@@ -137,7 +129,7 @@ function NewGuestList() {
           </div>
         )}
 
-        {!created && events !== null && events.length === 0 && !presetEventId && (
+        {events !== null && events.length === 0 && !presetEventId && (
           <Card className="flex flex-col items-center gap-4 py-10 text-center">
             <p role="status" className="text-ink/70">
               {t("emptyEvents")}
@@ -148,7 +140,7 @@ function NewGuestList() {
           </Card>
         )}
 
-        {!created && events !== null && (events.length > 0 || presetEventId) && (
+        {events !== null && (events.length > 0 || presetEventId) && (
           <Card>
             <form onSubmit={submit} className="flex flex-col gap-4">
               {presetEventId ? (

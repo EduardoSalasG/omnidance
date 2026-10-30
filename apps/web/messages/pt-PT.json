@@ -1071,7 +1071,8 @@
     "newTitle": "Novo valor · {catalog}",
     "editTitle": "Editar valor · {catalog}",
     "valueNotFound": "Valor não encontrado",
-    "deleteHint": "Elimina o valor do catálogo; não é reversível."
+    "deleteHint": "Elimina o valor do catálogo; não é reversível.",
+    "deleted": "Valor eliminado"
   },
   "producerParams": {
     "title": "Valores por omissão",
@@ -1175,7 +1176,11 @@
       "plan": "Plano de preços",
       "ownerApproved": "Dono validado"
     },
-    "rejectAcademyConfirm": "Rejeitar {name}? A academia fica oculta do público mesmo que complete os seus dados."
+    "rejectAcademyConfirm": "Rejeitar {name}? A academia fica oculta do público mesmo que complete os seus dados.",
+    "approved": "{name} aprovado",
+    "rejected": "{name} rejeitado",
+    "academyApproved": "{name} aprovada",
+    "academyRejected": "{name} rejeitada"
   },
   "academyReview": {
     "title": "Visibilidade pública",
@@ -1226,6 +1231,7 @@
     "actorLabels": {
       "ACADEMY_OWNER": "Nome da academia",
       "PRODUCER": "Nome do evento"
-    }
+    },
+    "verified": "E-mail verificado"
   }
 }

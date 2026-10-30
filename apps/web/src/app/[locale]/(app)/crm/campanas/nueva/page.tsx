@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { SkeletonCard } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import {
   CrmGateScreen,
   useCrmContext,
@@ -22,7 +23,6 @@ function NuevaCampanaInner() {
   const t = useTranslations("crm");
   const router = useRouter();
   const ctx = useCrmContext();
-  const [saved, setSaved] = useState(false);
   const initialIds =
     useSearchParams().get("personIds")?.split(",").filter(Boolean) ?? [];
 
@@ -38,10 +38,6 @@ function NuevaCampanaInner() {
             // El actor no cubre "crm" - el API responde 403
             // tier.required en todos sus endpoints.
             <TierPaywall feature="crm" actorType={ctx.actor.actorType} />
-          ) : saved ? (
-            <p role="status" className="text-sm text-neon">
-              {t("campaigns.created")}
-            </p>
           ) : (
             <CampaignForm
               key={actorKey(ctx.actor)}
@@ -49,8 +45,8 @@ function NuevaCampanaInner() {
               initialPersonIds={initialIds}
               onCancel={() => router.push("/crm/campanas")}
               onCreated={() => {
-                setSaved(true);
-                setTimeout(() => router.push("/crm/campanas"), 900);
+                showActionNotice({ text: t("campaigns.created") });
+                router.push("/crm/campanas");
               }}
             />
           )}

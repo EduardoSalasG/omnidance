@@ -12,6 +12,10 @@ import {
   RefreshIcon,
 } from "@/components/ui";
 import { SkeletonCard } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
   CrmGateScreen,
@@ -109,10 +113,10 @@ function PersonDetail({
   const [tagDraft, setTagDraft] = useState("");
   const [tagSaving, setTagSaving] = useState(false);
   const [tagDeleting, setTagDeleting] = useState<string | null>(null);
-  // Error de acciones sobre la ficha (tags): se muestra inline en la
-  // sección - el `error` de página es solo para el fetch del detalle,
-  // un fallo de acción no puede borrar la ficha entera.
-  const [actionError, setActionError] = useState(false);
+  // Feedback de acciones sobre la ficha (tags): aviso flotante - el
+  // `error` de página es solo para el fetch del detalle, un fallo de
+  // acción no puede borrar la ficha entera.
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const load = useCallback(async () => {
     setError(false);
@@ -148,18 +152,22 @@ function PersonDetail({
     const value = tagDraft.trim();
     if (!value || tagSaving) return;
     setTagSaving(true);
-    setActionError(false);
+    setNotice(null);
     try {
       const res = await apiFetch("/crm/people/tags", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...actorBody(actor), personId, tag: value }),
       });
-      if (!res.ok) return setActionError(true);
+      if (!res.ok) {
+        setNotice({ text: tc("error"), error: true });
+        return;
+      }
       setTagDraft("");
+      setNotice({ text: t("people.tagAdded") });
       await load();
     } catch {
-      setActionError(true);
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setTagSaving(false);
     }
@@ -168,13 +176,17 @@ function PersonDetail({
   async function deleteTag(tag: CrmTag) {
     if (tagDeleting) return;
     setTagDeleting(tag.id);
-    setActionError(false);
+    setNotice(null);
     try {
       const res = await apiFetch(`/crm/tags/${tag.id}`, { method: "DELETE" });
-      if (!res.ok) return setActionError(true);
+      if (!res.ok) {
+        setNotice({ text: tc("error"), error: true });
+        return;
+      }
+      setNotice({ text: t("people.tagRemoved") });
       await load();
     } catch {
-      setActionError(true);
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setTagDeleting(null);
     }
@@ -332,11 +344,6 @@ function PersonDetail({
         {detail.tags.length === 0 && (
           <p className="text-sm text-ink/50">{t("personDetail.tagsEmpty")}</p>
         )}
-        {actionError && (
-          <p role="alert" className="text-sm text-red-400">
-            {tc("error")}
-          </p>
-        )}
         <TagBadges
           tags={detail.tags}
           onDelete={(tg) => void deleteTag(tg)}
@@ -402,6 +409,8 @@ function PersonDetail({
           </ul>
         )}
       </section>
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }

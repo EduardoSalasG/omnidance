@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import { inputCls, readError } from "@/components/producer/shared";
@@ -38,7 +39,6 @@ function NewCollaborator() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [inviting, setInviting] = useState(false);
-  const [done, setDone] = useState<"added" | "invited" | null>(null);
 
   const backHref = "/productor/colaboradores";
 
@@ -86,8 +86,8 @@ function NewCollaborator() {
         setError(await staffError(res));
         return;
       }
-      setDone("added");
-      setTimeout(() => router.push(backHref), 1200);
+      showActionNotice({ text: t("collaborators.added") });
+      router.push(backHref);
     } catch {
       setError(tc("error"));
     } finally {
@@ -115,8 +115,12 @@ function NewCollaborator() {
         return;
       }
       const body = (await res.json()) as { invited?: boolean };
-      setDone(body.invited ? "invited" : "added");
-      setTimeout(() => router.push(backHref), 1200);
+      showActionNotice({
+        text: body.invited
+          ? t("collaborators.invited")
+          : t("collaborators.added"),
+      });
+      router.push(backHref);
     } catch {
       setError(tc("error"));
     } finally {
@@ -136,17 +140,6 @@ function NewCollaborator() {
           {t("collaborators.add")}
         </h2>
 
-        {done && (
-          <Card className="p-6 text-center">
-            <p role="status" className="text-lg font-bold text-neon">
-              {done === "invited"
-                ? t("collaborators.invited")
-                : t("collaborators.added")}
-            </p>
-          </Card>
-        )}
-
-        {!done && (
         <Card className="flex flex-col gap-3">
           <label className="flex flex-col gap-2">
             <span className="text-sm text-ink/70">
@@ -216,10 +209,8 @@ function NewCollaborator() {
             </p>
           )}
         </Card>
-        )}
 
-        {!done && (
-          <Card className="flex flex-col gap-4">
+        <Card className="flex flex-col gap-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">
               {t("collaborators.inviteByEmail")}
             </p>
@@ -260,8 +251,7 @@ function NewCollaborator() {
                   : t("collaborators.inviteSubmit")}
               </Button>
             </form>
-          </Card>
-        )}
+        </Card>
       </section>
     </>
   );

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, Spinner } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { StarRating } from "@/components/sessions/StarRating";
 import { useRouter } from "@/i18n/navigation";
 
@@ -30,7 +31,6 @@ const EXTRA_DIMS: Dim[] = [
 type Phase =
   | "form"
   | "submitting"
-  | "done"
   | "expired"
   | "forbidden"
   | "unauth"
@@ -114,7 +114,10 @@ export function SurveyForm({
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        setPhase("done");
+        // Aviso global + vuelta al inicio (el feedback es una acción
+        // pedida, no una carga: toast inmediato, sin pantalla intermedia).
+        showActionNotice({ text: t("thanks") });
+        router.push("/inicio");
         return;
       }
       if (res.status === 409) setPhase("expired");
@@ -126,24 +129,8 @@ export function SurveyForm({
     }
   }
 
-  // Éxito → confirmación breve y de vuelta al inicio (el feedback es
-  // una acción pedida, no una carga: mensaje inline + redirect).
-  useEffect(() => {
-    if (phase !== "done") return;
-    const id = setTimeout(() => router.push("/inicio"), 1400);
-    return () => clearTimeout(id);
-  }, [phase, router]);
-
   let content: React.ReactNode;
-  if (phase === "done") {
-    content = (
-      <Card className="flex flex-col items-center gap-3 py-8 text-center">
-        <p role="status" className="text-base font-semibold text-neon">
-          {t("thanks")}
-        </p>
-      </Card>
-    );
-  } else if (phase === "expired" || phase === "forbidden") {
+  if (phase === "expired" || phase === "forbidden") {
     content = (
       <Card className="flex flex-col items-center gap-4 py-8 text-center">
         <p role="alert" className="text-sm text-ink/70">

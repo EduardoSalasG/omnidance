@@ -17,6 +17,10 @@ import {
   Spinner,
 } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { sortWalletTickets } from "./wallet-sort";
 import { Link } from "@/i18n/navigation";
 
@@ -87,7 +91,7 @@ export function TicketWallet({
   const [transferEmail, setTransferEmail] = useState("");
   const [transferring, setTransferring] = useState(false);
   const [transferError, setTransferError] = useState(false);
-  const [transferSuccess, setTransferSuccess] = useState(false);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   // Focus trap + restauración del modal de transferencia
   const transferDialogRef = useDialogFocus<HTMLDivElement>(
@@ -109,7 +113,7 @@ export function TicketWallet({
     setTransferFor(ticket);
     setTransferEmail("");
     setTransferError(false);
-    setTransferSuccess(false);
+    setNotice(null);
   }
 
   function closeTransfer() {
@@ -137,7 +141,7 @@ export function TicketWallet({
       // La entrada cambia de dueño: sale de "Mis entradas" (filter local)
       setItems((ts) => ts.filter((tk) => tk.id !== transferFor.id));
       closeTransfer();
-      setTransferSuccess(true);
+      setNotice({ text: t("transferSuccess") });
     } catch {
       setTransferError(true);
     } finally {
@@ -181,12 +185,6 @@ export function TicketWallet({
 
   return (
     <>
-      {transferSuccess && (
-        <p role="status" className="text-sm font-medium text-neon">
-          {t("transferSuccess")}
-        </p>
-      )}
-
       {pendingOrders.length > 0 && (
         <ul className="mb-4 flex flex-col gap-4" aria-label={t("pendingTitle")}>
           {pendingOrders.map((o) => (
@@ -377,6 +375,8 @@ export function TicketWallet({
           </Card>
         </div>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }

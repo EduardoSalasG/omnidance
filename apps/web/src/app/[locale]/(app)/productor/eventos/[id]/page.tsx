@@ -15,6 +15,10 @@ import {
   SkeletonCard,
 } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { EventFeeInline } from "@/components/producer/event-fees-section";
 import { StaffSection } from "@/components/producer/staff-section";
 import { PassesSection } from "@/components/producer/passes-section";
@@ -75,8 +79,7 @@ export default function ProducerEventDetailPage(
 
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   // Focus trap + restauración del diálogo de confirmación
   const cancelDialogRef = useDialogFocus<HTMLDivElement>(confirmCancel);
@@ -136,20 +139,19 @@ export default function ProducerEventDetailPage(
   async function doPublish() {
     if (actionBusy) return;
     setActionBusy(true);
-    setActionError(null);
     setNotice(null);
     try {
       const res = await apiFetch(`/events/${eventId}/publish`, {
         method: "POST",
       });
       if (!res.ok) {
-        setActionError((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
-      setNotice(t("published"));
+      setNotice({ text: t("published") });
       await loadEvent();
     } catch {
-      setActionError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setActionBusy(false);
     }
@@ -158,21 +160,20 @@ export default function ProducerEventDetailPage(
   async function doCancel() {
     if (actionBusy) return;
     setActionBusy(true);
-    setActionError(null);
     setNotice(null);
     try {
       const res = await apiFetch(`/events/${eventId}/cancel`, {
         method: "POST",
       });
       if (!res.ok) {
-        setActionError((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       setConfirmCancel(false);
-      setNotice(t("cancelled"));
+      setNotice({ text: t("cancelled") });
       await loadEvent();
     } catch {
-      setActionError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setActionBusy(false);
     }
@@ -303,18 +304,6 @@ export default function ProducerEventDetailPage(
               </div>
             )}
 
-            <div aria-live="polite">
-              {notice && (
-                <p role="status" className="text-sm font-medium text-neon">
-                  {notice}
-                </p>
-              )}
-              {actionError && (
-                <p role="alert" className="text-sm text-red-400">
-                  {actionError}
-                </p>
-              )}
-            </div>
           </header>
 
           {canManage && <LiveSection eventId={eventId} status={event.status} />}
@@ -411,6 +400,8 @@ export default function ProducerEventDetailPage(
           </Card>
         </div>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </main>
   );
 }

@@ -7,6 +7,10 @@ import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
 import { Badge, Button, Card, type BadgeVariant, PriceTag, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { academyTierHas } from "@/lib/academy-features";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -113,8 +117,7 @@ function ProfileModule({
   const [statusDraft, setStatusDraft] = useState<EnrollmentStatus | "">("");
   const [endsDraft, setEndsDraft] = useState<string>("");
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [savedOk, setSavedOk] = useState(false);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -137,8 +140,7 @@ function ProfileModule({
       // Drafts inicializados con los valores reales del enrollment.
       setStatusDraft((data.enrollmentStatus as EnrollmentStatus) ?? "");
       setEndsDraft(data.enrollmentEndsAt ? toDateInput(data.enrollmentEndsAt) : "");
-      setSaveError(null);
-      setSavedOk(false);
+      setNotice(null);
       setState("ready");
     } catch {
       setState("error");
@@ -181,8 +183,7 @@ function ProfileModule({
   async function saveEnrollment() {
     if (!profile?.enrollmentId || !statusDraft) return;
     setSaving(true);
-    setSaveError(null);
-    setSavedOk(false);
+    setNotice(null);
     try {
       const res = await apiFetch(`/enrollments/${profile.enrollmentId}`, {
         method: "PATCH",
@@ -193,9 +194,10 @@ function ProfileModule({
         }),
       });
       if (!res.ok) {
-        setSaveError(
-          (await readError(res)) ?? tp("paymentSaveError"),
-        );
+        setNotice({
+          text: (await readError(res)) ?? tp("paymentSaveError"),
+          error: true,
+        });
         return;
       }
       // Refresca el header y la lista de pagos con el valor real.
@@ -217,9 +219,9 @@ function ProfileModule({
             }
           : prev,
       );
-      setSavedOk(true);
+      setNotice({ text: tp("paymentSaved") });
     } catch {
-      setSaveError(tp("paymentSaveError"));
+      setNotice({ text: tp("paymentSaveError"), error: true });
     } finally {
       setSaving(false);
     }
@@ -324,16 +326,6 @@ function ProfileModule({
                 {tc("save")}
               </Button>
             </div>
-            {saveError && (
-              <p role="alert" className="text-sm text-red-400">
-                {saveError}
-              </p>
-            )}
-            {savedOk && !saveError && (
-              <p role="status" className="text-sm text-neon">
-                {tp("paymentSaved")}
-              </p>
-            )}
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink/60">
@@ -481,6 +473,8 @@ function ProfileModule({
       </section>
       )}
       </div>
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }

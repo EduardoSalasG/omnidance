@@ -11,6 +11,10 @@ import {
   type BadgeVariant,
 } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { KpiCard } from "@/components/admin/kpi-card";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -279,10 +283,7 @@ function FinancePanel() {
   const [evidence, setEvidence] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   // Feedback de las acciones de dinero (éxito y error).
-  const [notice, setNotice] = useState<{
-    kind: "ok" | "err";
-    text: string;
-  } | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   async function approve(id: string) {
     setBusy(id);
@@ -292,13 +293,13 @@ function FinancePanel() {
         method: "POST",
       });
       if (res.ok) {
-        setNotice({ kind: "ok", text: t("finance.approved") });
+        setNotice({ text: t("finance.approved") });
         await loadPayouts();
       } else {
-        setNotice({ kind: "err", text: t("finance.actionError") });
+        setNotice({ text: t("finance.actionError"), error: true });
       }
     } catch {
-      setNotice({ kind: "err", text: t("finance.actionError") });
+      setNotice({ text: t("finance.actionError"), error: true });
     } finally {
       setBusy(null);
     }
@@ -314,14 +315,14 @@ function FinancePanel() {
         body: JSON.stringify({ evidenceUrl: evidence[id] || undefined }),
       });
       if (res.ok) {
-        setNotice({ kind: "ok", text: t("finance.paid") });
+        setNotice({ text: t("finance.paid") });
         await loadPayouts();
         void loadSummary();
       } else {
-        setNotice({ kind: "err", text: t("finance.actionError") });
+        setNotice({ text: t("finance.actionError"), error: true });
       }
     } catch {
-      setNotice({ kind: "err", text: t("finance.actionError") });
+      setNotice({ text: t("finance.actionError"), error: true });
     } finally {
       setBusy(null);
     }
@@ -343,17 +344,16 @@ function FinancePanel() {
       });
       if (res.ok) {
         setNotice({
-          kind: "ok",
           text: t("finance.generated", { name: actor.actorName }),
         });
         await loadAccrual();
         await loadPayouts();
         void loadSummary();
       } else {
-        setNotice({ kind: "err", text: t("finance.generateError") });
+        setNotice({ text: t("finance.generateError"), error: true });
       }
     } catch {
-      setNotice({ kind: "err", text: t("finance.generateError") });
+      setNotice({ text: t("finance.generateError"), error: true });
     } finally {
       setBusy(null);
     }
@@ -458,19 +458,6 @@ function FinancePanel() {
         onSelect={(k) => setTab(k as Tab)}
         ariaLabel={t("finance.tabsLabel")}
       />
-
-      {notice && (
-        <p
-          role={notice.kind === "err" ? "alert" : "status"}
-          className={`rounded-lg px-3 py-2 text-sm ${
-            notice.kind === "err"
-              ? "bg-red-500/10 text-red-300"
-              : "bg-ink/5 text-ink/70"
-          }`}
-        >
-          {notice.text}
-        </p>
-      )}
 
       {tabError && (
         <p className="text-sm text-ink/50">{t("finance.loadError")}</p>
@@ -780,6 +767,8 @@ function FinancePanel() {
             </ul>
           </>
         ))}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }

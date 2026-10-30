@@ -91,7 +91,12 @@
       "deactivated": "Desativada",
       "reactivate": {
         "cta": "Reativar conta"
-      }
+      },
+      "roleSaved": "Papel atualizado",
+      "roleAdded": "Papel atribuído",
+      "roleRevoked": "Papel revogado",
+      "reactivated": "Conta reativada",
+      "deleteOk": "Conta desativada"
     },
     "status": {
       "REJECTED": "Rejeitado"
@@ -405,7 +410,11 @@
       "trigger": {
         "CRON": "Agendado",
         "MANUAL": "Manual"
-      }
+      },
+      "saved": "Horário guardado",
+      "paused": "Job pausado",
+      "resumed": "Job reativado",
+      "runStarted": "Execução iniciada"
     },
     "campaigns": {
       "title": "Campanhas e-mail",
@@ -461,7 +470,10 @@
         "FAILED": "Falhou",
         "CANCELLED": "Cancelada"
       },
-      "testSent": "Teste enviado, verifica o teu e-mail."
+      "testSent": "Teste enviado, verifica o teu e-mail.",
+      "saved": "Campanha guardada",
+      "runStarted": "Envio iniciado",
+      "cancelled": "Campanha cancelada"
     },
     "billing": {
       "title": "Faturação",
@@ -487,7 +499,8 @@
       "voidConfirm": "Anular a nota",
       "voidReasonPlaceholder": "Motivo da anulação",
       "voidedReason": "Anulada : {reason}",
-      "generated": "Nota de cobrança emitida."
+      "generated": "Nota de cobrança emitida.",
+      "voided": "Nota anulada"
     },
     "finance": {
       "from": "De",
@@ -565,7 +578,8 @@
     "roles": {
       "superuser": "Superutilizador",
       "requestable": "Solicitável",
-      "peopleCount": "{count, plural, one {# pessoa} other {# pessoas}}"
+      "peopleCount": "{count, plural, one {# pessoa} other {# pessoas}}",
+      "saved": "Permissões atualizadas"
     },
     "navGroups": {
       "billing": "Faturação",

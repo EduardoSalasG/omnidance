@@ -8,7 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
-import { ActionNotice } from "@/components/ui/action-notice";
+import { ActionNotice, showActionNotice } from "@/components/ui/action-notice";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Link, useRouter } from "@/i18n/navigation";
 
@@ -136,9 +136,8 @@ export default function AmigoPerfilPage(
       t("requestDeclined"),
     );
   // Eliminar amistad: solo desde el pie del perfil, con confirmación.
-  // En éxito vuelve a la lista - el perfil ya no tiene acciones útiles.
-  // El aviso necesita un beat antes del push: la navegación desmonta
-  // el componente y se llevaría el toast sin mostrarlo.
+  // En éxito vuelve a la lista de una - el perfil ya no tiene acciones
+  // útiles y el aviso global sobrevive a la navegación.
   const removeRel = async (fid: string, okText: string) => {
     setBusy(true);
     try {
@@ -147,8 +146,8 @@ export default function AmigoPerfilPage(
         setNotice({ text: t("actionError"), error: true });
         return;
       }
-      setNotice({ text: okText, error: false });
-      window.setTimeout(() => router.push("/amigos"), 900);
+      showActionNotice({ text: okText });
+      router.push("/amigos");
     } catch {
       setNotice({ text: t("actionError"), error: true });
     } finally {

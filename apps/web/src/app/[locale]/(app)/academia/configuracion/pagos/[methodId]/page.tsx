@@ -5,6 +5,11 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, ConfirmSheet, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
+import {
+  ActionNotice,
+  showActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError, type Academy } from "@/components/academy/shared";
@@ -66,8 +71,7 @@ function MethodDetail({
   const [active, setActive] = useState(true);
 
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const load = useCallback(async () => {
@@ -91,8 +95,7 @@ function MethodDetail({
     setDetails(found.details ?? {});
     setOrder(String(found.order ?? 0));
     setActive(found.active);
-    setErr(null);
-    setSaved(false);
+    setNotice(null);
   }, [academy.id, methodId]);
 
   useEffect(() => {
@@ -107,8 +110,7 @@ function MethodDetail({
     e.preventDefault();
     if (!method || busy || !label.trim()) return;
     setBusy(true);
-    setErr(null);
-    setSaved(false);
+    setNotice(null);
     try {
       const res = await apiFetch(
         `/academies/${academy.id}/payment-methods/${method.id}`,
@@ -126,13 +128,13 @@ function MethodDetail({
         },
       );
       if (!res.ok) {
-        setErr((await readError(res)) ?? t("error"));
+        setNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
       setMethod((await res.json()) as Method);
-      setSaved(true);
+      setNotice({ text: t("methodSaved") });
     } catch {
-      setErr(t("error"));
+      setNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -141,7 +143,7 @@ function MethodDetail({
   async function remove() {
     if (!method) return;
     setBusy(true);
-    setErr(null);
+    setNotice(null);
     try {
       const res = await apiFetch(
         `/academies/${academy.id}/payment-methods/${method.id}`,
@@ -149,13 +151,16 @@ function MethodDetail({
       );
       if (!res.ok) {
         setConfirmDelete(false);
-        setErr((await readError(res)) ?? t("error"));
+        setNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
+      // Aviso global: la navegación desmonta esta página, el host del
+      // layout lo muestra en el listado destino.
+      showActionNotice({ text: t("methodDeleted") });
       router.push("/academia/configuracion/pagos");
     } catch {
       setConfirmDelete(false);
-      setErr(t("error"));
+      setNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -250,21 +255,11 @@ function MethodDetail({
               />
               <span className="text-ink/70">{t("activeLabel")}</span>
             </label>
-            {err && (
-              <p role="alert" className="text-sm text-red-400">
-                {err}
-              </p>
-            )}
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button type="submit" size="sm" disabled={!label.trim() || busy}>
                 {busy ? <Spinner size="sm" /> : null}
                 {t("save")}
               </Button>
-              {saved && !err && (
-                <p role="status" className="text-sm text-neon">
-                  {t("methodSaved")}
-                </p>
-              )}
             </div>
           </form>
         </Card>
@@ -292,6 +287,8 @@ function MethodDetail({
         onConfirm={() => void remove()}
         onClose={() => setConfirmDelete(false)}
       />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }

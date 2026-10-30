@@ -3,8 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, CheckIcon } from "@/components/ui";
+import { Badge, Button, Card } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { Param } from "@/components/admin/types";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -39,7 +43,7 @@ function ParamsPanel() {
   const [params, setParams] = useState<Param[] | null>(null);
   const [acting, setActing] = useState<string | null>(null);
   const [actionError, setActionError] = useState(false);
-  const [savedKey, setSavedKey] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
@@ -59,19 +63,21 @@ function ParamsPanel() {
   async function saveParam(key: string) {
     if (acting) return;
     setActing(key);
-    setActionError(false);
+    setNotice(null);
     try {
       const res = await apiFetch(`/admin/params/${key}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: parseValue(drafts[key] ?? "") }),
       });
-      if (!res.ok) return setActionError(true);
-      setSavedKey(key);
-      setTimeout(() => setSavedKey((k) => (k === key ? null : k)), 2000);
+      if (!res.ok) {
+        setNotice({ text: tc("error"), error: true });
+        return;
+      }
+      setNotice({ text: t("saved") });
       await load();
     } catch {
-      setActionError(true);
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setActing(null);
     }
@@ -120,14 +126,7 @@ function ParamsPanel() {
                     }
                     onClick={() => void saveParam(p.key)}
                   >
-                    {savedKey === p.key ? (
-                      <>
-                        <CheckIcon className="h-4 w-4" />
-                        {t("saved")}
-                      </>
-                    ) : (
-                      tc("save")
-                    )}
+                    {tc("save")}
                   </Button>
                 </div>
               </Card>
@@ -138,6 +137,8 @@ function ParamsPanel() {
       </section>
 
       <ProducerParamsSection />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }
@@ -221,8 +222,7 @@ function ProducerParamsSection() {
   const [cutoffLoadedRaw, setCutoffLoadedRaw] = useState<number | null>(null);
   const [paramsLoading, setParamsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState(false);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const loadProducers = useCallback(async () => {
     const res = await apiFetch("/admin/producers");
@@ -242,7 +242,7 @@ function ProducerParamsSection() {
     void (async () => {
       setParamsLoading(true);
       setView(null);
-      setSaveError(false);
+      setNotice(null);
       try {
         const res = await apiFetch(
           `/admin/producers/${selectedId}/fee-params`,
@@ -270,8 +270,7 @@ function ProducerParamsSection() {
   async function save() {
     if (saving || !selectedId) return;
     setSaving(true);
-    setSaveError(false);
-    setSaved(false);
+    setNotice(null);
     try {
       const res = await apiFetch(
         `/admin/producers/${selectedId}/fee-params`,
@@ -290,16 +289,18 @@ function ProducerParamsSection() {
           }),
         },
       );
-      if (!res.ok) return setSaveError(true);
+      if (!res.ok) {
+        setNotice({ text: tp("error"), error: true });
+        return;
+      }
       const data = (await res.json()) as FeeParamsView;
       setView(data);
       setDrafts(draftsFromDefaults(data.defaults));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setNotice({ text: tp("saved") });
       // Refresca el badge hasCustomParams del productor seleccionado.
       await loadProducers().catch(() => setListError(true));
     } catch {
-      setSaveError(true);
+      setNotice({ text: tp("error"), error: true });
     } finally {
       setSaving(false);
     }
@@ -412,16 +413,13 @@ function ProducerParamsSection() {
               disabled={saving}
               onClick={() => void save()}
             >
-              {saved ? tp("saved") : tp("save")}
+              {tp("save")}
             </Button>
-            {saveError && (
-              <p role="alert" className="text-sm text-red-400">
-                {tp("error")}
-              </p>
-            )}
           </div>
         </Card>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </section>
   );
 }

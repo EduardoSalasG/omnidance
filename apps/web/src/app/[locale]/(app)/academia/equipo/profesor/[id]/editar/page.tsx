@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon, SkeletonList } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError } from "@/components/academy/shared";
@@ -60,7 +61,6 @@ function EditAgreement({
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -94,7 +94,6 @@ function EditAgreement({
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (saved) return;
     const amount = payAmount.trim() === "" ? null : Number(payAmount);
     const classes = payClasses.trim() === "" ? null : Number(payClasses);
     const pct = commissionPct.trim() === "" ? null : Number(commissionPct);
@@ -122,7 +121,6 @@ function EditAgreement({
     }
     setBusy(true);
     setErr(null);
-    setSaved(false);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/instructors/${personId}`,
@@ -144,12 +142,9 @@ function EditAgreement({
         setErr((await readError(res)) ?? t("error"));
         return;
       }
-      // Notice breve antes de volver a la ficha (patrón de la consola).
-      setSaved(true);
-      setTimeout(
-        () => router.push(`/academia/equipo/profesor/${personId}`),
-        1200,
-      );
+      // Aviso global + vuelta inmediata a la ficha (patrón de la consola).
+      showActionNotice({ text: t("agreementSaved") });
+      router.push(`/academia/equipo/profesor/${personId}`);
     } catch {
       setErr(t("error"));
     } finally {
@@ -260,13 +255,8 @@ function EditAgreement({
             {err}
           </p>
         )}
-        {saved && (
-          <p role="status" className="text-sm text-neon">
-            {t("agreementSaved")}
-          </p>
-        )}
         <div>
-          <Button type="submit" size="sm" disabled={busy || saved}>
+          <Button type="submit" size="sm" disabled={busy}>
             {busy ? t("adding") : t("saveAgreement")}
           </Button>
         </div>

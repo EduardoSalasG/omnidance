@@ -15,6 +15,10 @@ import {
   SkeletonCard,
 } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import {
   inputCls,
@@ -63,8 +67,7 @@ function DealDetail({
   const [maxTickets, setMaxTickets] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [busy, setBusy] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [copied, setCopied] = useState(false);
   const [confirmDisable, setConfirmDisable] = useState(false);
   // Regularizar el saldo es una acción de dinero - confirmación previa
@@ -129,13 +132,12 @@ function DealDetail({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setFormError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     }
   }
 
   async function patch(body: Record<string, unknown>) {
     setBusy(true);
-    setFormError(null);
     setNotice(null);
     try {
       const res = await apiFetch(`/academy-deals/${agreementId}`, {
@@ -144,12 +146,12 @@ function DealDetail({
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        setFormError((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return false;
       }
       return true;
     } catch {
-      setFormError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
       return false;
     } finally {
       setBusy(false);
@@ -163,14 +165,13 @@ function DealDetail({
     const cap = maxTickets.trim() === "" ? null : Number(maxTickets);
     if (cap !== null && (!Number.isInteger(cap) || cap < 1)) return;
     if (await patch({ commissionPct: pct, maxTickets: cap })) {
-      setNotice(t("updated"));
+      setNotice({ text: t("updated") });
       await load();
     }
   }
 
   async function markPaid() {
     setBusy(true);
-    setFormError(null);
     setNotice(null);
     try {
       const res = await apiFetch(`/academy-deals/${agreementId}/mark-paid`, {
@@ -181,20 +182,21 @@ function DealDetail({
         ),
       });
       if (!res.ok) {
-        setFormError((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       setEvidenceUrl("");
       // El saldo es bidireccional: > 0 se pagó comisión a la academia,
       // < 0 se cobró la cuenta por cobrar del canal código.
-      setNotice(
-        (deal?.stats.pendingClp ?? 0) > 0
-          ? t("paidMarked")
-          : t("collectedMarked"),
-      );
+      setNotice({
+        text:
+          (deal?.stats.pendingClp ?? 0) > 0
+            ? t("paidMarked")
+            : t("collectedMarked"),
+      });
       await load();
     } catch {
-      setFormError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -203,7 +205,7 @@ function DealDetail({
   async function disable() {
     if (await patch({ action: "disable" })) {
       setConfirmDisable(false);
-      setNotice(t("disabled"));
+      setNotice({ text: t("disabled") });
       await load();
     }
   }
@@ -452,19 +454,6 @@ function DealDetail({
             </Card>
           )}
 
-          <div aria-live="polite">
-            {notice && (
-              <p role="status" className="text-sm font-medium text-neon">
-                {notice}
-              </p>
-            )}
-            {formError && (
-              <p role="alert" className="text-sm text-red-400">
-                {formError}
-              </p>
-            )}
-          </div>
-
           {/* Zona destructiva - desactivar mata la atribución futura, no
               las órdenes ya pagadas ni la deuda devengada. */}
           {deal.status === "ACTIVE" && (
@@ -556,6 +545,8 @@ function DealDetail({
           </Card>
         </div>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }

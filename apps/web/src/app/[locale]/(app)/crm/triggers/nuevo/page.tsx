@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, RefreshIcon } from "@/components/ui";
 import { SkeletonCard } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
   CrmGateScreen,
@@ -61,7 +62,6 @@ function NewTriggerBody({
 }) {
   const [keys, setKeys] = useState<string[] | null>(null);
   const [error, setError] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
     setError(false);
@@ -93,14 +93,6 @@ function NewTriggerBody({
     );
   }
 
-  if (saved) {
-    return (
-      <p role="status" className="text-sm text-neon">
-        {t("triggers.saved")}
-      </p>
-    );
-  }
-
   return (
     <TriggerForm
       actor={actor}
@@ -108,8 +100,8 @@ function NewTriggerBody({
       editing={null}
       onCancel={() => router.push("/crm/triggers")}
       onSaved={() => {
-        setSaved(true);
-        setTimeout(() => router.push("/crm/triggers"), 900);
+        showActionNotice({ text: t("triggers.saved") });
+        router.push("/crm/triggers");
       }}
     />
   );

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon, SkeletonCard } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import { EventForm } from "@/components/producer/event-form";
@@ -41,8 +42,6 @@ function EventFormPage() {
     editId ? "loading" : "idle",
   );
   const [eventNonce, setEventNonce] = useState(0);
-  // Éxito breve antes del redirect (el destino no puede anunciarlo).
-  const [done, setDone] = useState<"created" | "updated" | null>(null);
 
   // Catálogos del formulario: venues, styles y series propias
   // (/events/mine devuelve todos los estados del productor autenticado).
@@ -126,8 +125,8 @@ function EventFormPage() {
       if (!res.ok) {
         return (await readError(res)) ?? tc("error");
       }
-      setDone("created");
-      setTimeout(() => router.push("/productor/eventos"), 1200);
+      showActionNotice({ text: t("created") });
+      router.push("/productor/eventos");
       return null;
     } catch {
       return tc("error");
@@ -144,8 +143,8 @@ function EventFormPage() {
       if (!res.ok) {
         return (await readError(res)) ?? tc("error");
       }
-      setDone("updated");
-      setTimeout(() => router.push(backHref), 1200);
+      showActionNotice({ text: t("updated") });
+      router.push(backHref);
       return null;
     } catch {
       return tc("error");
@@ -169,19 +168,11 @@ function EventFormPage() {
           {editId ? t("editEvent") : t("createEvent")}
         </h2>
 
-        {done && (
-          <Card className="p-6 text-center">
-            <p role="status" className="text-lg font-bold text-neon">
-              {t(done)}
-            </p>
-          </Card>
-        )}
-
-        {!done && editId && eventState === "loading" && (
+        {editId && eventState === "loading" && (
           <SkeletonCard lines={3} />
         )}
 
-        {!done && editId && eventState === "notFound" && (
+        {editId && eventState === "notFound" && (
           <div className="flex flex-col items-start gap-3">
             <p className="text-sm text-ink/70">{t("eventNotFound")}</p>
             <Button href="/productor/eventos" variant="secondary" size="sm">
@@ -190,7 +181,7 @@ function EventFormPage() {
           </div>
         )}
 
-        {!done && editId && eventState === "error" && (
+        {editId && eventState === "error" && (
           <div className="flex flex-col items-start gap-3">
             <p role="alert" className="text-sm text-red-400">
               {tc("error")}
@@ -205,7 +196,7 @@ function EventFormPage() {
           </div>
         )}
 
-        {!done && eventState === "ok" && event && !editable && (
+        {eventState === "ok" && event && !editable && (
           <div className="flex flex-col items-start gap-3">
             <p role="status" className="text-sm text-ink/70">
               {t("notEditable")}
@@ -216,7 +207,7 @@ function EventFormPage() {
           </div>
         )}
 
-        {!done && (editId === null || editable) && (
+        {(editId === null || editable) && (
           <Card>
             <EventForm
               key={editId ?? "create"}

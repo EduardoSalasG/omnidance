@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon, SkeletonList } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
@@ -58,7 +59,6 @@ function EditCaps({
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -83,10 +83,9 @@ function EditCaps({
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!caps || saved) return;
+    if (!caps) return;
     setBusy(true);
     setErr(null);
-    setSaved(false);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/staff/${personId}`,
@@ -100,9 +99,9 @@ function EditCaps({
         setErr((await readError(res)) ?? t("error"));
         return;
       }
-      // Notice breve antes de volver a la ficha (patrón de la consola).
-      setSaved(true);
-      setTimeout(() => router.push(`/academia/equipo/${personId}`), 1200);
+      // Aviso global + vuelta inmediata a la ficha (patrón de la consola).
+      showActionNotice({ text: t("capsSaved") });
+      router.push(`/academia/equipo/${personId}`);
     } catch {
       setErr(t("error"));
     } finally {
@@ -151,13 +150,8 @@ function EditCaps({
             {err}
           </p>
         )}
-        {saved && (
-          <p role="status" className="text-sm text-neon">
-            {t("capsSaved")}
-          </p>
-        )}
         <div>
-          <Button type="submit" size="sm" disabled={busy || saved}>
+          <Button type="submit" size="sm" disabled={busy}>
             {busy ? t("adding") : t("saveCaps")}
           </Button>
         </div>

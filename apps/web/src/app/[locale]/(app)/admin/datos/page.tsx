@@ -13,6 +13,10 @@ import {
   type BadgeVariant,
 } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
@@ -247,10 +251,7 @@ function DatosPanel() {
   const [saveName, setSaveName] = useState("");
   const [saving, setSaving] = useState(false);
   // Feedback de las mutaciones de consultas/lead (éxito y error).
-  const [notice, setNotice] = useState<{
-    kind: "ok" | "err";
-    text: string;
-  } | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const statusLabel = (s: string) =>
     ta.has(`statusLabels.${s}`) ? ta(`statusLabels.${s}`) : s;
@@ -361,13 +362,13 @@ function DatosPanel() {
       });
       if (res.ok) {
         setSaveName("");
-        setNotice({ kind: "ok", text: tq("saved.created") });
+        setNotice({ text: tq("saved.created") });
         void loadSaved();
       } else {
-        setNotice({ kind: "err", text: tq("saved.actionError") });
+        setNotice({ text: tq("saved.actionError"), error: true });
       }
     } catch {
-      setNotice({ kind: "err", text: tq("saved.actionError") });
+      setNotice({ text: tq("saved.actionError"), error: true });
     } finally {
       setSaving(false);
     }
@@ -375,6 +376,7 @@ function DatosPanel() {
 
   async function renameSaved(id: string, name: string) {
     setSavedBusy(id);
+    setNotice(null);
     try {
       const res = await apiFetch(`/query/saved/${id}`, {
         method: "PATCH",
@@ -382,12 +384,13 @@ function DatosPanel() {
         body: JSON.stringify({ name }),
       });
       if (res.ok) {
+        setNotice({ text: tq("saved.renamed") });
         await loadSaved();
       } else {
-        setNotice({ kind: "err", text: tq("saved.actionError") });
+        setNotice({ text: tq("saved.actionError"), error: true });
       }
     } catch {
-      setNotice({ kind: "err", text: tq("saved.actionError") });
+      setNotice({ text: tq("saved.actionError"), error: true });
     } finally {
       setSavedBusy(null);
     }
@@ -395,15 +398,17 @@ function DatosPanel() {
 
   async function deleteSaved(id: string) {
     setSavedBusy(id);
+    setNotice(null);
     try {
       const res = await apiFetch(`/query/saved/${id}`, { method: "DELETE" });
       if (res.ok) {
+        setNotice({ text: tq("saved.deleted") });
         await loadSaved();
       } else {
-        setNotice({ kind: "err", text: tq("saved.actionError") });
+        setNotice({ text: tq("saved.actionError"), error: true });
       }
     } catch {
-      setNotice({ kind: "err", text: tq("saved.actionError") });
+      setNotice({ text: tq("saved.actionError"), error: true });
     } finally {
       setSavedBusy(null);
     }
@@ -441,13 +446,13 @@ function DatosPanel() {
         method: "POST",
       });
       if (res.ok) {
-        setNotice({ kind: "ok", text: t("datos.leadConverted") });
+        setNotice({ text: t("datos.leadConverted") });
         await load();
       } else {
-        setNotice({ kind: "err", text: tc("error") });
+        setNotice({ text: tc("error"), error: true });
       }
     } catch {
-      setNotice({ kind: "err", text: tc("error") });
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setConvertingLead(null);
     }
@@ -467,10 +472,10 @@ function DatosPanel() {
         };
         setChainResult((prev) => ({ ...prev, [paymentId]: data }));
       } else {
-        setNotice({ kind: "err", text: tc("error") });
+        setNotice({ text: tc("error"), error: true });
       }
     } catch {
-      setNotice({ kind: "err", text: tc("error") });
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setVerifying(null);
     }
@@ -906,19 +911,6 @@ function DatosPanel() {
             </span>
           </div>
 
-          <div aria-live="polite">
-            {notice && (
-              <p
-                role={notice.kind === "err" ? "alert" : "status"}
-                className={`text-sm font-medium ${
-                  notice.kind === "err" ? "text-red-400" : "text-neon"
-                }`}
-              >
-                {notice.text}
-              </p>
-            )}
-          </div>
-
           <SavedQueries
             role="ADMIN"
             saved={saved}
@@ -965,6 +957,8 @@ function DatosPanel() {
           )}
         </>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }

@@ -111,6 +111,7 @@
     "fieldCreated": "Encomenda criada",
     "fieldChannel": "Canal",
     "methodSaved": "Método de pagamento guardado.",
+    "methodDeleted": "Método de pagamento eliminado.",
     "methodNotFound": "Método de pagamento não encontrado.",
     "activeLabel": "Método ativo (visível para os alunos)",
     "editMethod": "Editar método de pagamento",

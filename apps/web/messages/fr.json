@@ -1071,7 +1071,8 @@
     "newTitle": "Nouvelle valeur · {catalog}",
     "editTitle": "Modifier la valeur · {catalog}",
     "valueNotFound": "Valeur introuvable",
-    "deleteHint": "Supprime la valeur du catalogue ; irréversible."
+    "deleteHint": "Supprime la valeur du catalogue ; irréversible.",
+    "deleted": "Valeur supprimée"
   },
   "producerParams": {
     "title": "Valeurs par défaut",
@@ -1175,7 +1176,11 @@
       "plan": "Grille tarifaire",
       "ownerApproved": "Propriétaire validé"
     },
-    "rejectAcademyConfirm": "Rejeter {name} ? L'académie sera masquée du public même si elle complète ses données."
+    "rejectAcademyConfirm": "Rejeter {name} ? L'académie sera masquée du public même si elle complète ses données.",
+    "approved": "{name} approuvé",
+    "rejected": "{name} rejeté",
+    "academyApproved": "{name} approuvée",
+    "academyRejected": "{name} rejetée"
   },
   "academyReview": {
     "title": "Visibilité publique",
@@ -1226,6 +1231,7 @@
     "actorLabels": {
       "ACADEMY_OWNER": "Nom de l'académie",
       "PRODUCER": "Nom de l'événement"
-    }
+    },
+    "verified": "E-mail vérifié"
   }
 }

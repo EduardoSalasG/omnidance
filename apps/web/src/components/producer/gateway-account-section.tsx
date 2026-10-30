@@ -12,6 +12,10 @@ import {
   Spinner,
 } from "@/components/ui";
 import { readError } from "@/components/academy/shared";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 
 /** GET /producer/gateway-account - vista segura (spec
  *  producer-gateway-accounts): nunca material plano, solo mask. */
@@ -53,10 +57,7 @@ export function GatewayAccountSection() {
   const [apiKey, setApiKey] = useState("");
   const [secret, setSecret] = useState("");
   const [busy, setBusy] = useState<"save" | "disable" | null>(null);
-  // Feedback separado: éxito → role="status", error → role="alert"
-  // (antes ambos salían por status y el error no se anunciaba).
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [confirmOff, setConfirmOff] = useState(false);
 
   const load = useCallback(async () => {
@@ -88,8 +89,7 @@ export function GatewayAccountSection() {
 
   async function save() {
     setBusy("save");
-    setMsg(null);
-    setErr(null);
+    setNotice(null);
     try {
       const res = await apiFetch("/producer/gateway-account", {
         method: "PUT",
@@ -103,7 +103,7 @@ export function GatewayAccountSection() {
         }),
       });
       if (!res.ok) {
-        setErr((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       const body = (await res.json()) as {
@@ -112,9 +112,9 @@ export function GatewayAccountSection() {
       setAccount(body.account);
       setApiKey("");
       setSecret("");
-      setMsg(t("saved"));
+      setNotice({ text: t("saved") });
     } catch {
-      setErr(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(null);
     }
@@ -122,14 +122,13 @@ export function GatewayAccountSection() {
 
   async function disable() {
     setBusy("disable");
-    setMsg(null);
-    setErr(null);
+    setNotice(null);
     try {
       const res = await apiFetch("/producer/gateway-account", {
         method: "DELETE",
       });
       if (!res.ok) {
-        setErr((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       const body = (await res.json()) as {
@@ -137,9 +136,9 @@ export function GatewayAccountSection() {
       };
       setAccount(body.account);
       setConfirmOff(false);
-      setMsg(t("disabled"));
+      setNotice({ text: t("disabled") });
     } catch {
-      setErr(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(null);
     }
@@ -339,19 +338,11 @@ export function GatewayAccountSection() {
                   {t("disable")}
                 </Button>
               ))}
-            {err && (
-              <span role="alert" className="text-sm text-red-400">
-                {err}
-              </span>
-            )}
-            {msg && (
-              <span role="status" className="text-sm text-ink/70">
-                {msg}
-              </span>
-            )}
           </div>
         </>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </section>
   );
 }

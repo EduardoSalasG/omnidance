@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { apiFetch } from "@/lib/api";
 import { Card } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { readError } from "@/components/academy/shared";
@@ -56,6 +57,8 @@ export default function AcademiaPromoNuevaPage() {
                     return;
                   }
                   const created = (await res.json()) as { id: string };
+                  // Navega a la ficha: aviso global que sobrevive el push.
+                  showActionNotice({ text: t("saved") });
                   router.push(`/academia/promos/${created.id}`);
                 }}
               />

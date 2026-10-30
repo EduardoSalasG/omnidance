@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Card } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { useRouter } from "@/i18n/navigation";
@@ -43,6 +44,8 @@ function NewPromoPanel() {
         setError((await readError(res)) ?? t("error"));
         return;
       }
+      // Vuelve al listado: aviso global para que sobreviva el push.
+      showActionNotice({ text: t("saved") });
       router.push("/admin/facturacion/promos");
     } catch {
       setError(t("error"));

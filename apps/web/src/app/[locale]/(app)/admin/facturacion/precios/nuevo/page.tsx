@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { readError, inputCls } from "@/components/academy/shared";
 import { Button, Card } from "@/components/ui";
-import { ActionNotice } from "@/components/ui/action-notice";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { useRouter } from "@/i18n/navigation";
@@ -20,7 +20,7 @@ import {
 // Alta de una fila del price book (spec multipais-currency): página
 // dedicada del CTA del listado (console-patterns: crear = CTA → página).
 // La línea (kind) se deriva del tier - no es campo del form. Éxito/error
-// van al ActionNotice flotante; tras crear vuelve al listado.
+// van al ActionNotice global; tras crear vuelve al listado de una.
 
 export default function AdminTierPriceNewPage() {
   const t = useTranslations("admin.tierPrices");
@@ -35,17 +35,12 @@ export default function AdminTierPriceNewPage() {
     currency: "CLP",
   });
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<{
-    text: string;
-    error?: boolean;
-  } | null>(null);
 
   const create = async () => {
     const price = Number.parseInt(form.price, 10);
     if (!Number.isFinite(price) || price < 0 || form.countryCode.length !== 2)
       return;
     setBusy(true);
-    setNotice(null);
     try {
       const res = await apiFetch("/admin/tier-prices", {
         method: "POST",
@@ -64,12 +59,11 @@ export default function AdminTierPriceNewPage() {
       });
       const msg = await readError(res);
       if (!res.ok) throw new Error(msg ?? "error");
-      setNotice({ text: t("created") });
-      // busy queda en true hasta la navegación - evita doble submit
-      // mientras el toast de éxito está visible.
-      setTimeout(() => router.push("/admin/facturacion/precios"), 1200);
+      showActionNotice({ text: t("created") });
+      // busy queda en true hasta la navegación - evita doble submit.
+      router.push("/admin/facturacion/precios");
     } catch (e) {
-      setNotice({
+      showActionNotice({
         text: e instanceof Error ? e.message : t("exists"),
         error: true,
       });
@@ -80,7 +74,6 @@ export default function AdminTierPriceNewPage() {
   return (
     <AdminGate>
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6">
-        <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
         <ConsoleHeader
           backHref="/admin/facturacion/precios"
           backLabel={t("title")}
