@@ -26,6 +26,7 @@
     "promoOff": "−{pct}% sur chaque paiement",
     "promoOffFixed": "−{amount} sur chaque paiement",
     "promoUntil": "jusqu'au {date}",
-    "promoCyclesLeft": "{count, plural, one {# paiement remisé} other {# paiements remisés}} restants"
+    "promoCyclesLeft": "{count, plural, one {# paiement remisé} other {# paiements remisés}} restants",
+    "titleSingle": "Confirmer le cours"
   }
 }
