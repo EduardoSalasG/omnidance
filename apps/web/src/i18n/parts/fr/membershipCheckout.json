@@ -28,5 +28,11 @@
     "promoUntil": "jusqu'au {date}",
     "promoCyclesLeft": "{count, plural, one {# paiement remisé} other {# paiements remisés}} restants",
     "titleSingle": "Confirmer le cours"
+  },
+  "privateCheckout": {
+    "title": "Confirmer le cours particulier",
+    "product": "Cours particulier",
+    "vigenciaHint": "L'académie coordonne la date et l'instructeur après le paiement.",
+    "unavailable": "Ce cours particulier n'est pas disponible pour le moment"
   }
 }

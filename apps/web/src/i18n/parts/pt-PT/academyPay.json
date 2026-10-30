@@ -78,6 +78,7 @@
     "awaitingHint": "Registámos a tua tentativa com {method}. Paga a partir da tua app e volta para enviar o comprovativo: podes sair e continuar quando quiseres.",
     "pendingTitle": "Comprovativo em revisão",
     "pendingDesc": "A academia está a validar o teu pagamento {method}. Avisamos-te quando a validade estiver pronta.",
+    "pendingDescPrivate": "A academia está a validar o teu pagamento {method}. Avisamos-te quando a tua aula particular ficar confirmada.",
     "copyAll": "Copiar tudo",
     "cancelIntent": "Mudar de método de pagamento",
     "methodGone": "A academia atualizou os métodos de pagamento: confirma os dados com ela antes de pagar.",

@@ -78,6 +78,7 @@
     "awaitingHint": "On a enregistré ton essai avec {method}. Paie depuis ton app et reviens envoyer le justificatif : tu peux partir et reprendre à tout moment.",
     "pendingTitle": "Justificatif en cours d'examen",
     "pendingDesc": "L'académie valide ton paiement {method}. On te prévient quand ta validité est prête.",
+    "pendingDescPrivate": "L'académie valide ton paiement {method}. On te prévient dès que ton cours particulier est confirmé.",
     "copyAll": "Tout copier",
     "cancelIntent": "Changer de moyen de paiement",
     "methodGone": "L'académie a mis à jour ses moyens de paiement : confirme les coordonnées avec elle avant de payer.",

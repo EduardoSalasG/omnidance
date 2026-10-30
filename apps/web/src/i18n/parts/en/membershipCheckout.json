@@ -28,5 +28,11 @@
     "promoUntil": "until {date}",
     "promoCyclesLeft": "{count, plural, one {# discounted charge} other {# discounted charges}} left",
     "titleSingle": "Confirm class"
+  },
+  "privateCheckout": {
+    "title": "Confirm private lesson",
+    "product": "Private lesson",
+    "vigenciaHint": "The academy coordinates the date and instructor after payment.",
+    "unavailable": "This private lesson is not available right now"
   }
 }

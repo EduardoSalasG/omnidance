@@ -1140,6 +1140,10 @@ model PaymentClaim {
   enrollmentId String?
   plan         MembershipPlan? @relation(fields: [planId], references: [id])
   planId       String? // lo que declara haber pagado (null = otro/suelta)
+  // Qué declara pagar el claim (spec private-class-checkout):
+  // PLAN (membresía, planId lleno) | PRIVATE_CLASS (clase suelta
+  // particular, planId null). Los claims sueltos legacy quedan PLAN.
+  kind         String      @default("PLAN")
   amount       Int     // monto declarado por el alumno (unidad menor)
   // Moneda del claim (spec multipais-currency): snapshot de la moneda
   // de la academia al declarar - `amount` se interpreta en ella.

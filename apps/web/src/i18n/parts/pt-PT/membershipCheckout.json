@@ -28,5 +28,11 @@
     "promoUntil": "até {date}",
     "promoCyclesLeft": "{count, plural, one {# cobrança com desconto} other {# cobranças com desconto}} restantes",
     "titleSingle": "Confirmar aula"
+  },
+  "privateCheckout": {
+    "title": "Confirmar aula particular",
+    "product": "Aula particular",
+    "vigenciaHint": "A academia coordena a data e o instrutor depois do pagamento.",
+    "unavailable": "Esta aula particular não está disponível de momento"
   }
 }

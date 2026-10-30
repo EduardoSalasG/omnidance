@@ -9026,6 +9026,82 @@
           }
         },
         {
+          "name": "GET /api/academies/{id}/slots/{slotId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/slots/{slotId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "slots",
+                "{slotId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "slotId",
+                  "value": ":slotId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/academies/{id}/slots/{slotId}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/slots/{slotId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "slots",
+                "{slotId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "slotId",
+                  "value": ":slotId"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "DELETE /api/academies/{id}/slots/{slotId}",
           "request": {
             "method": "DELETE",
@@ -9050,6 +9126,38 @@
                 {
                   "key": "slotId",
                   "value": ":slotId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/academies/{id}/classes/{classId}/cancel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/classes/{classId}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "classes",
+                "{classId}",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "classId",
+                  "value": ":classId"
                 }
               ],
               "query": []

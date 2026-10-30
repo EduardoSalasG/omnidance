@@ -78,6 +78,7 @@
     "awaitingHint": "We recorded your attempt with {method}. Pay from your app and come back to upload the receipt: you can leave and resume this anytime.",
     "pendingTitle": "Receipt under review",
     "pendingDesc": "The academy is validating your {method} payment. We'll let you know when your validity is ready.",
+    "pendingDescPrivate": "The academy is validating your {method} payment. We'll let you know when your private lesson is confirmed.",
     "copyAll": "Copy all",
     "cancelIntent": "Change payment method",
     "methodGone": "The academy updated its payment methods: confirm the details with them before paying.",
