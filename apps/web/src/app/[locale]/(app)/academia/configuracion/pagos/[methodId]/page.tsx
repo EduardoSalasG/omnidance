@@ -15,6 +15,7 @@ import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError, type Academy } from "@/components/academy/shared";
 import {
   TRANSFER_DETAIL_KEYS,
+  ACCOUNT_TYPE_OPTIONS,
   TYPE_KEYS,
   type Method,
 } from "@/components/academy/payment-methods-admin";
@@ -208,11 +209,34 @@ function MethodDetail({
               TRANSFER_DETAIL_KEYS.map(([key, i18n]) => (
                 <label key={key} className="flex flex-col gap-1 text-sm">
                   <span className="text-ink/60">{t(i18n)}</span>
-                  <input
-                    value={details[key] ?? ""}
-                    onChange={(e) => setDetail(key, e.target.value)}
-                    className={inputCls}
-                  />
+                  {key === "accountType" ? (
+                    <select
+                      value={details[key] ?? ""}
+                      onChange={(e) => setDetail(key, e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value=""></option>
+                      {ACCOUNT_TYPE_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                      {/* Valores legacy de texto libre: se conservan
+                          para no perder el dato al editar. */}
+                      {details[key] &&
+                        !(ACCOUNT_TYPE_OPTIONS as readonly string[]).includes(
+                          details[key],
+                        ) && (
+                          <option value={details[key]}>{details[key]}</option>
+                        )}
+                    </select>
+                  ) : (
+                    <input
+                      value={details[key] ?? ""}
+                      onChange={(e) => setDetail(key, e.target.value)}
+                      className={inputCls}
+                    />
+                  )}
                 </label>
               ))}
             {method.type === "PAYMENT_LINK" && (

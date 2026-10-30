@@ -24,6 +24,10 @@ const TYPE_KEYS = {
   CASH: "typeCash",
 } as const;
 
+// Tipo de cuenta bancaria chilena: select cerrado en el form de
+// transferencia (mismo set que payment-methods-admin).
+const ACCOUNT_TYPE_OPTIONS = ["Vista", "Corriente", "Ahorro"] as const;
+
 const TRANSFER_DETAIL_KEYS = [
   ["bank", "fBank"],
   ["accountType", "fAccountType"],
@@ -201,11 +205,32 @@ export function ProducerPaymentMethodsSection() {
             TRANSFER_DETAIL_KEYS.map(([key, i18n]) => (
               <label key={key} className="flex flex-col gap-1 text-sm">
                 <span className="text-ink/60">{t(i18n)}</span>
-                <input
-                  value={details[key] ?? ""}
-                  onChange={(e) => setDetail(key, e.target.value)}
-                  className={inputCls}
-                />
+                {key === "accountType" ? (
+                  <select
+                    value={details[key] ?? ""}
+                    onChange={(e) => setDetail(key, e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value=""></option>
+                    {ACCOUNT_TYPE_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                    {details[key] &&
+                      !(ACCOUNT_TYPE_OPTIONS as readonly string[]).includes(
+                        details[key],
+                      ) && (
+                        <option value={details[key]}>{details[key]}</option>
+                      )}
+                  </select>
+                ) : (
+                  <input
+                    value={details[key] ?? ""}
+                    onChange={(e) => setDetail(key, e.target.value)}
+                    className={inputCls}
+                  />
+                )}
               </label>
             ))}
           {type === "PAYMENT_LINK" && (
