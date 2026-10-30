@@ -515,6 +515,7 @@ export function MembershipCheckoutClient({
           planId={quote.plan.id}
           planPrice={quote.totalClp}
           onBlockingChange={setManualActive}
+          returnHref={academyHref}
         />
       )}
 
