@@ -101,13 +101,13 @@ export function buildClassIcs(input: ClassIcsInput): string {
       ? new Date(input.date.getTime() + 86_400_000)
       : input.date;
 
-  // El separador "; " va literal: escapeIcsText por parte, no sobre el
-  // string unido (RFC 5545 escapa los caracteres del contenido, no el
-  // delimitador propio del SUMMARY).
+  // "Academia: Nombre" - el separador ": " va literal: escapeIcsText
+  // por parte, no sobre el string unido (RFC 5545 escapa los caracteres
+  // del contenido, no el delimitador propio del SUMMARY).
   const summary =
     input.title === input.academyName
       ? escapeIcsText(input.title)
-      : `${escapeIcsText(input.title)}; ${escapeIcsText(input.academyName)}`;
+      : `${escapeIcsText(input.academyName)}: ${escapeIcsText(input.title)}`;
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
