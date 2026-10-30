@@ -113,3 +113,80 @@ Todo lo de "TRABAJO EN CURSO" quedó hecho y commiteado:
 
 Pendiente conocido: 2 tests `calendarIcs` fallan por drift de formato
 (`;` vs ` - ` en SUMMARY) - decidir formato correcto y alinear.
+
+## EN CURSO: verificación Playwright de unified-action-notice
+
+Stack vivo (pnpm dev en bg). Commits ya hechos: `4c852be1`
+(migración 3 fases, 114 archivos) + `25c1ea02` (archivo change).
+Resta: smoke e2e del toast + commit final.
+
+Login e2e: password `omnidance123`, emails `rol@omnidance.dev`
+(dancer|carlos=producer|muvet=academy|admin|staff|soporte); storageState
+en `e2e/.auth/<rol>.json` via `e2e/auth.setup.ts` (proyecto "setup").
+`playwright.config.ts` testDir ./e2e, baseURL :3000, locale es-CL.
+
+Toast a verificar: `[role="status"]`/`[role="alert"]` fijo bottom
+(ActionNotice). Global: showActionNotice sobrevive navegación.
+
+## EN CURSO: Flow para pagos a Omnidance (usuario lo definió)
+
+Decisión del usuario: Flow.cl = pasarela para TODO lo que se cobra
+hacia la plataforma (PLATFORM_SUB: suscripciones academia + producer Pro).
+Existe `apps/api/src/payments/infrastructure/flow.gateway.ts` + spec.
+Revisar qué implementa (create/webhook/return) y qué falta por definir:
+credenciales env, suscripción nativa Flow vs cargos mensuales,
+webhook firmado, return/cancel urls, mapeo a PLATFORM_SUB, CLP-only
+(tensión multipaís). Pagos registrados: PLATFORM_SUB 4 PAID (¿por qué
+canal hoy? claims manual probablemente).
+
+## EN CURSO: 2 frentes abiertos
+
+### A) Flow para TODO cobro a Omnidance (confirmado)
+Usuario: "utilizaremos flow para todo lo relacionado a pagos a
+omnidance" → scope TOTAL (suscripciones PLATFORM_SUB + cobros sueltos
+a academias). Flow ya integrado para PLATFORM_SUB
+(flow.gateway.ts + platform-subscriptions.service.ts). Falta revisar
+param `payments.subscription_gateway` en /admin, credenciales env
+(FLOW_API_KEY/SECRET/BASE_URL), claims manuales a academias por Flow
+(payment.create puntual), CLP-only vs multipaís. Sin implementar aún.
+
+### B) BUG checkout: botón pagar sube al card de método
+File: apps/web/src/app/[locale]/(app)/eventos/[id]/checkout/checkout-client.tsx
+Síntoma: al elegir medio de pago ≠ flow (Tarjeta/transferencia/Webpay),
+el botón pagar aparece dentro del card "Con qué medio pagas" en vez de
+al final. Investigado: OwnMethodPicker Card ~l.840-847; phase "manual"
+renderiza OwnMethodClaim ~l.965 (components/checkout/own-method-claim.tsx,
+botón submit l.165); submit principal l.986-992 se oculta cuando
+phase.kind==="manual". Revisar si OwnMethodPicker/Claim renderiza su
+botón dentro del card del método o si la estructura del form mueve el
+botón; el requisito: botón pagar SIEMPRE al final del checkout.
+Verificar con tsc + playwright notice-smoke pattern si hace falta.
+
+## UPDATE: bug checkout resuelto (commit bfe98465)
+
+`OwnMethodClaim` se renderizaba antes del botón pagar (a media altura
+del form en `/eventos/[id]/checkout`); ahora va al FINAL, después del
+submit. tsc limpio.
+
+## PENDIENTE: Flow para todo cobro a Omnidance
+
+Confirmado por el usuario: scope TOTAL. Flow ya cubre PLATFORM_SUB
+(flow.gateway.ts + platform-subscriptions.service.ts). Falta revisar/
+implementar: (1) param `payments.subscription_gateway` = flow en
+/admin; (2) credenciales env FLOW_API_KEY/SECRET/BASE_URL + sandbox;
+(3) cobros sueltos a academias vía Flow (payment.create puntual, hoy
+claims manuales por comprobante); (4) CLP-only vs multipaís.
+
+## EN CURSO: claim checkout - toast + redirect + bug botón atrás
+
+Pedido: tras adjuntar comprobante → showActionNotice (estado) +
+redirect a la página anterior (ficha evento o academia). Bug: botón
+atrás del navegador "rehizo" acciones (suscripción → pago único).
+
+Archivo: components/checkout/own-method-claim.tsx (submit ~l.78-105,
+msg inline l.157-164, claimSent key ya existe). Callers:
+checkout-client.tsx (OwnMethodClaim al final tras fix bfe98465,
+onPaid→onClaimPaid) y series-pass-cta.tsx (~l.260). Plan: prop
+`returnHref` en OwnMethodClaim; tras submit OK → showActionNotice +
+router.replace(returnHref) (replace para que atrás no vuelva al
+checkout con estado stale). i18n: claimSent ya existe.
