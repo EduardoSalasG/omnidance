@@ -190,3 +190,27 @@ onPaid→onClaimPaid) y series-pass-cta.tsx (~l.260). Plan: prop
 `returnHref` en OwnMethodClaim; tras submit OK → showActionNotice +
 router.replace(returnHref) (replace para que atrás no vuelva al
 checkout con estado stale). i18n: claimSent ya existe.
+
+## EN CURSO: bug real del botón pagar en checkout academia
+
+El botón que sube es el de `manual-pay-panel.tsx`
+(`apps/web/src/app/[locale]/(app)/academias/[id]/checkout/manual-pay-panel.tsx`,
+checkout de SUSCRIPCIÓN a academia - el copy "¿Con qué medio pagas?" es
+`academyPay.chooseMethod`, NO el OwnMethodPicker de eventos).
+
+Estructura (415 líneas): todo el panel es UNA Card titulada
+chooseMethod (l.222). Dentro:
+- `!claim` (l.332-402): radiogroup pasarela+métodos propios; al elegir
+  método aparece Button "continueMethod" (l.389-401) DENTRO del card.
+- `claim?.status==="AWAITING"` (l.237-328): instrucciones + upload +
+  Button sendReceipt (l.310) + cancelIntent.
+- `claim?.status==="PENDING"` (l.227-234): aviso en cola.
+
+Requisito del usuario: el botón de acción (continuar/pagar) debe quedar
+SIEMPRE al final del checkout, no dentro del card de método. Verificar
+qué renderiza la page padre (academias/[id]/checkout/page.tsx u otro
+componente que envuelve ManualPayPanel + el CTA de pasarela) y decidir:
+sacar el CTA del card (renderizar el botón fuera/abajo del panel) o
+mover la rama AWAITING al final. tsc + commit. Ya verificado: tsc web
+limpio en commits previos 786cd0b0 y bfe98465 (esos fueron eventos,
+NO este archivo).

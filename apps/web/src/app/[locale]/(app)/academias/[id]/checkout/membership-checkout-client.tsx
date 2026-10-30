@@ -333,18 +333,6 @@ export function MembershipCheckoutClient({
         </Card>
       )}
 
-      {/* Medio de pago: pasarela o método propio de la academia
-          (spec academy-checkout-manual-pay). Solo pago único - la
-          suscripción necesita la recurrencia de la pasarela. */}
-      {!isSub && (
-        <ManualPayPanel
-          academyId={quote.academy.id}
-          planId={quote.plan.id}
-          planPrice={quote.totalClp}
-          onBlockingChange={setManualActive}
-        />
-      )}
-
       {/* Promo de la academia vigente (spec member-promos): el descuento
           se ve antes del breakdown - precio tachado + oferta + expiración. */}
       {quote.promo && (
@@ -511,6 +499,21 @@ export function MembershipCheckoutClient({
             {tco("stillPendingRetry")}
           </Button>
         </Card>
+      )}
+
+      {/* Medio de pago: pasarela o método propio de la academia
+          (spec academy-checkout-manual-pay). Solo pago único - la
+          suscripción necesita la recurrencia de la pasarela. Va al
+          FINAL del checkout: su CTA (continuar/enviar comprobante) es
+          el botón de acción y debe quedar en la posición del pagar,
+          no a media página. */}
+      {!isSub && (
+        <ManualPayPanel
+          academyId={quote.academy.id}
+          planId={quote.plan.id}
+          planPrice={quote.totalClp}
+          onBlockingChange={setManualActive}
+        />
       )}
 
       {phase.kind === "failed" ? (
