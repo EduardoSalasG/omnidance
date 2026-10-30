@@ -7,6 +7,7 @@ import { apiFetch, isTierRequired } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { useActorEntitlements } from "@/lib/entitlements-context";
 import { Button, Card, RefreshIcon, SkeletonCard } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import { TierPaywall } from "@/components/tier-paywall";
@@ -56,7 +57,6 @@ function NewEventStaff({ eventId }: { eventId: string }) {
   // Lock detectado en el POST (403 tier.required) - complementa el
   // gateo proactivo por si los entitlements quedaron stale.
   const [serverLocked, setServerLocked] = useState(false);
-  const [added, setAdded] = useState(false);
 
   const backHref = `/productor/eventos/${eventId}`;
 
@@ -143,8 +143,8 @@ function NewEventStaff({ eventId }: { eventId: string }) {
         setFormError((await readError(res)) ?? tc("error"));
         return;
       }
-      setAdded(true);
-      setTimeout(() => router.push(backHref), 1200);
+      showActionNotice({ text: t("staffAdded") });
+      router.push(backHref);
     } catch {
       setFormError(tc("error"));
     } finally {
@@ -164,17 +164,9 @@ function NewEventStaff({ eventId }: { eventId: string }) {
           {t("staffSection.add")}
         </h2>
 
-        {added && (
-          <Card className="p-6 text-center">
-            <p role="status" className="text-lg font-bold text-neon">
-              {t("staffAdded")}
-            </p>
-          </Card>
-        )}
+        {eventState === "loading" && <SkeletonCard lines={2} />}
 
-        {!added && eventState === "loading" && <SkeletonCard lines={2} />}
-
-        {!added && eventState === "notFound" && (
+        {eventState === "notFound" && (
           <div className="flex flex-col items-start gap-3">
             <p className="text-sm text-ink/70">{t("eventNotFound")}</p>
             <Button href="/productor/eventos" variant="secondary" size="sm">
@@ -183,7 +175,7 @@ function NewEventStaff({ eventId }: { eventId: string }) {
           </div>
         )}
 
-        {!added && eventState === "error" && (
+        {eventState === "error" && (
           <div className="flex items-center gap-3">
             <p role="alert" className="text-sm text-red-400">
               {tc("error")}
@@ -198,8 +190,7 @@ function NewEventStaff({ eventId }: { eventId: string }) {
           </div>
         )}
 
-        {!added &&
-          eventState === "ok" &&
+        {eventState === "ok" &&
           (locked ? (
             <TierPaywall actorType="PRODUCER" feature="staff" />
           ) : (

@@ -15,6 +15,10 @@ import {
   RefreshIcon,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { FilterBar } from "@/components/query/FilterBar";
 
 import { filterQuery, readError, type Academy } from "./shared";
@@ -77,10 +81,7 @@ export function Videos({ academy }: { academy: Academy }) {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [state, setState] = useState<LoadState>("loading");
-  const [feedback, setFeedback] = useState<string | null>(null);
-  // Canal de error separado del feedback de éxito (alert rojo, no
-  // notice verde).
-  const [err, setErr] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   // Borrado de video con confirmación destructiva (sheet).
   const [pendingVideo, setPendingVideo] = useState<VideoItem | null>(null);
@@ -118,8 +119,7 @@ export function Videos({ academy }: { academy: Academy }) {
 
   async function remove(v: VideoItem): Promise<void> {
     setBusyId(v.id);
-    setFeedback(null);
-    setErr(null);
+    setNotice(null);
     try {
       const res = await apiFetch(
         `/academies/${academy.id}/videos/${v.id}`,
@@ -127,15 +127,15 @@ export function Videos({ academy }: { academy: Academy }) {
       );
       if (!res.ok) {
         setPendingVideo(null);
-        setErr((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       setPendingVideo(null);
-      setFeedback(t.deleted);
+      setNotice({ text: t.deleted });
       await load();
     } catch {
       setPendingVideo(null);
-      setErr(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setBusyId(null);
     }
@@ -239,15 +239,6 @@ export function Videos({ academy }: { academy: Academy }) {
         />
       )}
 
-      {err && (
-        <p role="alert" className="text-sm text-red-400">
-          {err}
-        </p>
-      )}
-      <p role="status" aria-live="polite" className="text-sm text-neon">
-        {feedback}
-      </p>
-
       <ConfirmSheet
         open={pendingVideo !== null}
         title={t.confirmDelete}
@@ -256,6 +247,8 @@ export function Videos({ academy }: { academy: Academy }) {
         onConfirm={() => pendingVideo && void remove(pendingVideo)}
         onClose={() => setPendingVideo(null)}
       />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </section>
   );
 }

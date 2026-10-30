@@ -13,6 +13,10 @@ import {
   RefreshIcon,
 } from "@/components/ui";
 import { SkeletonCard } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
   CrmGateScreen,
@@ -66,7 +70,7 @@ export default function CrmCampanaPage() {
   const [waBusy, setWaBusy] = useState(false);
   const [sending, setSending] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const sendDialogRef = useDialogFocus<HTMLDivElement>(confirmSend, () =>
     setConfirmSend(false),
   );
@@ -113,9 +117,9 @@ export default function CrmCampanaPage() {
       setConfirmSend(false);
       setCampaign(updated);
       if (updated.result?.sent != null) {
-        setNotice(
-          t("campaigns.sentResult", { count: updated.result.sent }),
-        );
+        setNotice({
+          text: t("campaigns.sentResult", { count: updated.result.sent }),
+        });
       }
     } catch {
       setError(true);
@@ -135,7 +139,7 @@ export default function CrmCampanaPage() {
       if (!res.ok) return setError(true);
       setConfirmCancel(false);
       setCampaign((await res.json()) as CrmCampaign);
-      setNotice(t("campaigns.unscheduled"));
+      setNotice({ text: t("campaigns.unscheduled") });
     } catch {
       setError(true);
     } finally {
@@ -401,14 +405,6 @@ export default function CrmCampanaPage() {
                 </Card>
               )}
 
-              <div aria-live="polite">
-                {notice && (
-                  <p role="status" className="text-sm text-neon">
-                    {notice}
-                  </p>
-                )}
-              </div>
-
               {(c.status === "DRAFT" || c.status === "SCHEDULED") && (
                 <div className="flex justify-center gap-3 border-t border-line pt-6">
                   {c.status === "SCHEDULED" && (
@@ -516,6 +512,8 @@ export default function CrmCampanaPage() {
           </Card>
         </div>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </main>
   );
 }

@@ -248,7 +248,8 @@
     "seriesWeeklyAvgTitle": "Aulas/sem por aluno",
     "country": "País",
     "city": "Cidade",
-    "noCity": "Sem cidade"
+    "noCity": "Sem cidade",
+    "created": "Academia criada"
   },
   "academySeries": {
     "addSlotHint": "As aulas futuras são criadas nesse dia dentro da janela de agendamento.",
@@ -275,7 +276,11 @@
     "workshopBadge": "Workshop",
     "cancelClass": "Cancelar aula",
     "cancelClassDesc": "Cancela apenas esta aula: as reservas são libertadas e o resto do horário não muda.",
-    "createdOneOff": "Workshop criado"
+    "createdOneOff": "Workshop criado",
+    "slotUpdated": "Horário atualizado",
+    "slotDeleted": "Horário eliminado",
+    "classCancelled": "Aula cancelada",
+    "seriesDeleted": "Série eliminada."
   },
   "instructor": {
     "title": "As minhas aulas",

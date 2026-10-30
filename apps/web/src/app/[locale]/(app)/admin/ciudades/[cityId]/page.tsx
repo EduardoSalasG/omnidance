@@ -1,15 +1,18 @@
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
   Button,
-  CheckIcon,
   RefreshIcon,
   SkeletonList,
   Spinner,
 } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -68,9 +71,7 @@ function GuideEditor({ cityId }: { cityId: string }) {
   const [saved, setSaved] = useState<Drafts | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState(false);
-  const [savedFlash, setSavedFlash] = useState(false);
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   // Navegación interna interceptada con cambios sin guardar - el href
   // pendiente abre el ConfirmSheet de "salir sin guardar".
   const [pendingHref, setPendingHref] = useState<string | null>(null);
@@ -148,18 +149,10 @@ function GuideEditor({ cityId }: { cityId: string }) {
     };
   }, [dirty]);
 
-  // Limpia el timer del flash de guardado si el componente se desmonta.
-  useEffect(
-    () => () => {
-      if (savedTimer.current) clearTimeout(savedTimer.current);
-    },
-    [],
-  );
-
   async function save() {
     if (saving || !dirty || !drafts) return;
     setSaving(true);
-    setSaveError(false);
+    setNotice(null);
     try {
       const res = await apiFetch(
         `/admin/city-guides/${encodeURIComponent(cityId)}`,
@@ -170,7 +163,7 @@ function GuideEditor({ cityId }: { cityId: string }) {
         },
       );
       if (!res.ok) {
-        setSaveError(true);
+        setNotice({ text: tc("error"), error: true });
         return;
       }
       const g = (await res.json()) as Drafts & { updatedAt: string };
@@ -197,10 +190,9 @@ function GuideEditor({ cityId }: { cityId: string }) {
             }
           : d,
       );
-      setSavedFlash(true);
-      savedTimer.current = setTimeout(() => setSavedFlash(false), 2500);
+      setNotice({ text: t("saved") });
     } catch {
-      setSaveError(true);
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setSaving(false);
     }
@@ -306,23 +298,9 @@ function GuideEditor({ cityId }: { cityId: string }) {
         </section>
       ))}
 
-      {saveError && (
-        <p role="alert" className="text-sm text-red-400">
-          {tc("error")}
-        </p>
-      )}
-
       <div className="flex items-center gap-3">
         <Button disabled={!dirty || saving} onClick={() => void save()}>
-          {saving ? (
-            <Spinner size="sm" />
-          ) : savedFlash ? (
-            <>
-              <CheckIcon className="h-4 w-4" /> {t("saved")}
-            </>
-          ) : (
-            tc("save")
-          )}
+          {saving ? <Spinner size="sm" /> : tc("save")}
         </Button>
         <Button
           variant="secondary"
@@ -331,13 +309,10 @@ function GuideEditor({ cityId }: { cityId: string }) {
         >
           {t("cities.discard")}
         </Button>
-        {/* Zona aria-live: avisa "Guardado" y el estado sin guardar. */}
+        {/* Zona aria-live del estado sin guardar (el "Guardado" lo
+            anuncia el ActionNotice flotante). */}
         <p role="status" className="text-xs text-ink/50">
-          {savedFlash
-            ? t("saved")
-            : dirty
-              ? t("cities.unsavedHint")
-              : ""}
+          {dirty ? t("cities.unsavedHint") : ""}
         </p>
       </div>
 
@@ -359,6 +334,8 @@ function GuideEditor({ cityId }: { cityId: string }) {
           if (dirty) history.pushState(null, "", location.href);
         }}
       />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }

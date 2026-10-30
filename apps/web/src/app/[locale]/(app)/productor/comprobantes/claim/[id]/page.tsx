@@ -13,6 +13,7 @@ import {
   SkeletonList,
   Spinner,
 } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import { orderLabel } from "@/components/producer/claims-queue-section";
@@ -79,11 +80,9 @@ function ClaimDetail() {
   const [busy, setBusy] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
-  // Feedback de la acción (éxito y error) - el ok queda visible el
-  // ~1.2s previo al redirect a la cola.
-  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(
-    null,
-  );
+  // Error inline de la acción; el éxito va al aviso global porque la
+  // página navega a la cola de una.
+  const [msg, setMsg] = useState<string | null>(null);
   // Aprobar liquida la orden y emite la entrada de una - confirmación
   // previa (bottom-sheet compartido).
   const [confirmApprove, setConfirmApprove] = useState(false);
@@ -114,17 +113,17 @@ function ClaimDetail() {
         body: "{}",
       });
       if (!res.ok) {
-        setMsg({ kind: "err", text: t("error") });
+        setMsg(t("error"));
         setConfirmApprove(false);
         return;
       }
-      // Resuelto → aviso breve y vuelve a la cola (el claim ya no es
+      // Resuelto → aviso global y vuelve a la cola (el claim ya no es
       // accionable).
       setConfirmApprove(false);
-      setMsg({ kind: "ok", text: tp("claimDetail.approvedMsg") });
-      setTimeout(() => router.push("/productor/comprobantes"), 1200);
+      showActionNotice({ text: tp("claimDetail.approvedMsg") });
+      router.push("/productor/comprobantes");
     } catch {
-      setMsg({ kind: "err", text: t("error") });
+      setMsg(t("error"));
       setConfirmApprove(false);
     } finally {
       setBusy(false);
@@ -142,15 +141,15 @@ function ClaimDetail() {
         body: JSON.stringify({ note: rejectNote.trim() }),
       });
       if (!res.ok) {
-        setMsg({ kind: "err", text: t("error") });
+        setMsg(t("error"));
         return;
       }
-      setMsg({ kind: "ok", text: t("rejectedMsg") });
-      setTimeout(() => router.push("/productor/comprobantes"), 1200);
+      showActionNotice({ text: t("rejectedMsg") });
+      router.push("/productor/comprobantes");
     } catch {
       // El form de rechazo queda abierto para reintentar (igual que
       // el branch !res.ok).
-      setMsg({ kind: "err", text: t("error") });
+      setMsg(t("error"));
     } finally {
       setBusy(false);
     }
@@ -300,19 +299,14 @@ function ClaimDetail() {
           {claim.status === "PENDING" && (
             <section className="flex flex-col gap-3">
               {msg && (
-                <p
-                  role={msg.kind === "err" ? "alert" : "status"}
-                  className={`text-sm ${
-                    msg.kind === "err" ? "text-red-400" : "text-neon"
-                  }`}
-                >
-                  {msg.text}
+                <p role="alert" className="text-sm text-red-400">
+                  {msg}
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
                 <Button
                   onClick={() => setConfirmApprove(true)}
-                  disabled={busy || msg?.kind === "ok"}
+                  disabled={busy}
                 >
                   {busy ? <Spinner size="sm" /> : null}
                   {t("approve")}
@@ -320,7 +314,7 @@ function ClaimDetail() {
                 <Button
                   variant="secondary"
                   onClick={() => setRejectOpen((v) => !v)}
-                  disabled={busy || msg?.kind === "ok"}
+                  disabled={busy}
                 >
                   {t("reject")}
                 </Button>
@@ -340,9 +334,7 @@ function ClaimDetail() {
                     <Button
                       size="sm"
                       onClick={() => void reject()}
-                      disabled={
-                        !rejectNote.trim() || busy || msg?.kind === "ok"
-                      }
+                      disabled={!rejectNote.trim() || busy}
                     >
                       {t("confirm")}
                     </Button>

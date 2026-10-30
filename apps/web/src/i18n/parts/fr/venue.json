@@ -46,7 +46,9 @@
         "REQUESTED": "Demandée",
         "CONFIRMED": "Confirmée",
         "CANCELLED": "Annulée"
-      }
+      },
+      "confirmed": "Location confirmée",
+      "cancelled": "Location annulée"
     },
     "menus": {
       "item": "Carte v{version}"

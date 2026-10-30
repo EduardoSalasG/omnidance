@@ -10,6 +10,10 @@ import {
   RefreshIcon,
   SkeletonList,
 } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import {
@@ -50,6 +54,9 @@ function CollaboratorsList() {
   const [pendingRemove, setPendingRemove] = useState<Collaborator | null>(
     null,
   );
+  // Aviso post-acción local: la fila se quita optimista y el aviso
+  // confirma que el DELETE persistió.
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -84,6 +91,7 @@ function CollaboratorsList() {
         return;
       }
       setItems((prev) => prev.filter((c) => c.person.id !== personId));
+      setNotice({ text: t("collaborators.removed") });
     } catch {
       setActionError(tc("error"));
     } finally {
@@ -192,6 +200,8 @@ function CollaboratorsList() {
         }
         onClose={() => setPendingRemove(null)}
       />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
 
       {/* Tour de la nómina (primera visita): con lista vacía el
           anchor collab-list no existe y el tour queda solo en el

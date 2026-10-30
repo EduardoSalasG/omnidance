@@ -6,6 +6,12 @@ import {useTranslations, useLocale } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, ClockIcon, ConfirmSheet, RefreshIcon, type BadgeVariant } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import {
+  ActionNotice,
+  showActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
+import { readError } from "@/components/academy/shared";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { RoleRow } from "@/components/admin/types";
 import { useRouter } from "@/i18n/navigation";
@@ -169,7 +175,10 @@ function UserDetailPanel({ personId }: { personId: string }) {
   const [detail, setDetail] = useState<PersonDetail | null>(null);
   const [catalog, setCatalog] = useState<RoleRow[]>([]);
   const [state, setState] = useState<LoadState>("loading");
-  const [actionError, setActionError] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  // Aviso post-acción (change unified-action-notice): la ficha no
+  // navega en las mutaciones de rol/reactivar, el aviso es local.
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [acting, setActing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   // Confirmación compartida (revocar rol o hard-delete de la cuenta).
@@ -219,55 +228,65 @@ function UserDetailPanel({ personId }: { personId: string }) {
         if (!res.ok) throw new Error("fetch failed");
         setCatalog((await res.json()) as RoleRow[]);
       })
-      .catch(() => setActionError(true));
-  }, []);
+      .catch(() => setActionError(tc("error")));
+  }, [tc]);
 
   // Toda mutación de rol pasa por aquí: serializa acciones, reporta error
   // y recarga la ficha (roleData cambia según los roles poseídos).
-  async function mutateRole(call: () => Promise<Response>) {
+  async function mutateRole(
+    call: () => Promise<Response>,
+    successText: string,
+  ) {
     if (acting) return;
     setActing(true);
-    setActionError(false);
+    setActionError(null);
     try {
       const res = await call();
       if (!res.ok) {
-        setActionError(true);
+        setActionError((await readError(res)) ?? tc("error"));
         return;
       }
       setNewRole("");
+      setNotice({ text: successText });
       await load();
     } catch {
-      setActionError(true);
+      setActionError(tc("error"));
     } finally {
       setActing(false);
     }
   }
 
   const setStatus = (role: string, status: string) =>
-    void mutateRole(() =>
-      apiFetch(`/admin/users/${personId}/roles`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, status }),
-      }),
+    void mutateRole(
+      () =>
+        apiFetch(`/admin/users/${personId}/roles`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role, status }),
+        }),
+      t("users.roleSaved"),
     );
 
   const revoke = (role: string) => {
-    void mutateRole(() =>
-      apiFetch(`/admin/users/${personId}/roles/${role}`, {
-        method: "DELETE",
-      }),
+    void mutateRole(
+      () =>
+        apiFetch(`/admin/users/${personId}/roles/${role}`, {
+          method: "DELETE",
+        }),
+      t("users.roleRevoked"),
     ).finally(() => setPending(null));
   };
 
   const addRole = () => {
     if (!newRole) return;
-    void mutateRole(() =>
-      apiFetch(`/admin/users/${personId}/roles`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: newRole, status: "APPROVED" }),
-      }),
+    void mutateRole(
+      () =>
+        apiFetch(`/admin/users/${personId}/roles`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: newRole, status: "APPROVED" }),
+        }),
+      t("users.roleAdded"),
     );
   };
 
@@ -276,21 +295,23 @@ function UserDetailPanel({ personId }: { personId: string }) {
   async function deleteUser() {
     if (!detail || deleting) return;
     setDeleting(true);
-    setActionError(false);
+    setActionError(null);
     try {
       const res = await apiFetch(`/admin/users/${personId}`, {
         method: "DELETE",
       });
       if (!res.ok) {
         setPending(null);
-        setActionError(true);
+        setActionError((await readError(res)) ?? tc("error"));
         setDeleting(false);
         return;
       }
+      // Navega al listado: aviso global para que sobreviva el push.
+      showActionNotice({ text: t("users.deleteOk") });
       router.push("/admin/usuarios");
     } catch {
       setPending(null);
-      setActionError(true);
+      setActionError(tc("error"));
       setDeleting(false);
     }
   }
@@ -298,18 +319,19 @@ function UserDetailPanel({ personId }: { personId: string }) {
   async function reactivateUser() {
     if (!detail || deleting) return;
     setDeleting(true);
-    setActionError(false);
+    setActionError(null);
     try {
       const res = await apiFetch(`/admin/users/${personId}/reactivate`, {
         method: "POST",
       });
       if (res.ok) {
+        setNotice({ text: t("users.reactivated") });
         await load();
         return;
       }
-      setActionError(true);
+      setActionError((await readError(res)) ?? tc("error"));
     } catch {
-      setActionError(true);
+      setActionError(tc("error"));
     } finally {
       setDeleting(false);
     }
@@ -346,7 +368,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
     <div className="flex flex-col gap-6">
       {actionError && (
         <p role="alert" className="text-sm text-red-400">
-          {tc("error")}
+          {actionError}
         </p>
       )}
 
@@ -672,6 +694,8 @@ function UserDetailPanel({ personId }: { personId: string }) {
         }
         onClose={() => setPending(null)}
       />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }

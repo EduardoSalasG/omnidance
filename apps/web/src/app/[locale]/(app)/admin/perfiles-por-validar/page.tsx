@@ -11,6 +11,10 @@ import {
   RefreshIcon,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { readError } from "@/components/academy/shared";
@@ -90,6 +94,9 @@ function QueuePanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingReject, setPendingReject] = useState<QueueItem | null>(null);
+  // Aviso post-acción local: la fila aprobada/rechazada desaparece de la
+  // cola, el aviso confirma que la mutación se aplicó.
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -123,6 +130,11 @@ function QueuePanel() {
         return;
       }
       setPendingReject(null);
+      setNotice({
+        text: t(action === "approve" ? "approved" : "rejected", {
+          name: item.person.name,
+        }),
+      });
       await load();
     } catch {
       setError(tc("error"));
@@ -224,6 +236,8 @@ function QueuePanel() {
         onConfirm={() => pendingReject && void act(pendingReject, "reject")}
         onClose={() => setPendingReject(null)}
       />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </section>
   );
 }
@@ -244,6 +258,9 @@ function AcademyQueuePanel() {
   const [error, setError] = useState<string | null>(null);
   const [pendingReject, setPendingReject] =
     useState<AcademyQueueItem | null>(null);
+  // Aviso post-acción local: la academia aprobada/rechazada sale de la
+  // cola, el aviso confirma que la mutación se aplicó.
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -277,6 +294,12 @@ function AcademyQueuePanel() {
         return;
       }
       setPendingReject(null);
+      setNotice({
+        text: t(
+          action === "approve" ? "academyApproved" : "academyRejected",
+          { name: item.name },
+        ),
+      });
       await load();
     } catch {
       setError(tc("error"));
@@ -390,6 +413,8 @@ function AcademyQueuePanel() {
         onConfirm={() => pendingReject && void act(pendingReject, "reject")}
         onClose={() => setPendingReject(null)}
       />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </section>
   );
 }

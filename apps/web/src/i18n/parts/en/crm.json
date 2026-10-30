@@ -51,6 +51,8 @@
       "bulkCampaign": "Campaign to selection",
       "clearSelection": "Clear",
       "addTag": "Add tag",
+      "tagAdded": "Tag added.",
+      "tagRemoved": "Tag removed.",
       "tagPlaceholder": "E.g. VIP, DJ's friend",
       "deleteTag": "Remove tag {tag}",
       "prev": "Previous",
@@ -244,6 +246,7 @@
       "edit": "Edit rules",
       "delete": "Delete segment",
       "deleteTitle": "Delete the segment?",
+      "deleted": "Segment deleted.",
       "deleteDesc": "The segment and its membership are deleted. People aren't affected.",
       "notFound": "Segment not found."
     },

@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError } from "@/components/academy/shared";
@@ -84,6 +85,8 @@ function NewValuePanel({
         setError((await readError(res)) ?? t("error"));
         return;
       }
+      // Vuelve al listado: aviso global para que sobreviva el push.
+      showActionNotice({ text: t("saved") });
       router.push("/admin/catalogos");
     } catch {
       setError(t("error"));

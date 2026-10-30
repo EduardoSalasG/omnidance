@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import {
   ENROLLMENT_STATUSES,
   fromDateInput,
@@ -41,8 +42,6 @@ export function EnrollmentForm({
   const [endsAt, setEndsAt] = useState("");
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  // Éxito breve antes de volver al listado (que refetchea al montar).
-  const [saved, setSaved] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,8 +63,8 @@ export function EnrollmentForm({
         setFormError((await readError(res)) ?? tc("error"));
         return;
       }
-      setSaved(true);
-      setTimeout(() => router.push("/academia/alumnos"), 1200);
+      showActionNotice({ text: t("enrollmentSaved") });
+      router.push("/academia/alumnos");
     } catch {
       setFormError(tc("error"));
     } finally {
@@ -87,108 +86,100 @@ export function EnrollmentForm({
 
   return (
     <Card>
-      {saved ? (
-        <p role="status" className="text-sm text-neon">
-          {t("enrollmentSaved")}
-        </p>
-      ) : (
-        <>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-            {t("newEnrollment")}
-          </h2>
-          <form
-            onSubmit={submit}
-            className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+        {t("newEnrollment")}
+      </h2>
+      <form
+        onSubmit={submit}
+        className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+      >
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">
+            {t("personId")}
+            <span aria-hidden="true" className="text-neon"> *</span>
+          </span>
+          <input
+            className={inputCls}
+            value={personId}
+            onChange={(e) => setPersonId(e.target.value)}
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">
+            {t("plans")}
+            <span aria-hidden="true" className="text-neon"> *</span>
+          </span>
+          <select
+            className={inputCls}
+            value={planId}
+            onChange={(e) => setPlanId(e.target.value)}
+            required
           >
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">
-                {t("personId")}
-                <span aria-hidden="true" className="text-neon"> *</span>
-              </span>
-              <input
-                className={inputCls}
-                value={personId}
-                onChange={(e) => setPersonId(e.target.value)}
-                required
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">
-                {t("plans")}
-                <span aria-hidden="true" className="text-neon"> *</span>
-              </span>
-              <select
-                className={inputCls}
-                value={planId}
-                onChange={(e) => setPlanId(e.target.value)}
-                required
-              >
-                <option value="" disabled>
-                  -
-                </option>
-                {plans.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{t("students")}</span>
-              <select
-                className={inputCls}
-                value={status}
-                onChange={(e) =>
-                  setStatus(e.target.value as EnrollmentStatus)
-                }
-              >
-                {ENROLLMENT_STATUSES.map((st) => (
-                  <option key={st} value={st}>
-                    {t(`status.${st}`)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{tp("startsAt")}</span>
-              <input
-                className={inputCls}
-                type="date"
-                value={startsAt}
-                onChange={(e) => setStartsAt(e.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{tp("endsAt")}</span>
-              <input
-                className={inputCls}
-                type="date"
-                value={endsAt}
-                onChange={(e) => setEndsAt(e.target.value)}
-              />
-            </label>
-            {formError && (
-              <p role="alert" className="text-sm text-red-400 sm:col-span-2">
-                {formError}
-              </p>
-            )}
-            <div className="flex items-center gap-2 sm:col-span-2">
-              <Button type="submit" size="sm" disabled={busy}>
-                {busy ? tc("loading") : tc("create")}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => router.push("/academia/alumnos")}
-              >
-                {tc("cancel")}
-              </Button>
-            </div>
-          </form>
-        </>
-      )}
+            <option value="" disabled>
+              -
+            </option>
+            {plans.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">{t("students")}</span>
+          <select
+            className={inputCls}
+            value={status}
+            onChange={(e) =>
+              setStatus(e.target.value as EnrollmentStatus)
+            }
+          >
+            {ENROLLMENT_STATUSES.map((st) => (
+              <option key={st} value={st}>
+                {t(`status.${st}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">{tp("startsAt")}</span>
+          <input
+            className={inputCls}
+            type="date"
+            value={startsAt}
+            onChange={(e) => setStartsAt(e.target.value)}
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">{tp("endsAt")}</span>
+          <input
+            className={inputCls}
+            type="date"
+            value={endsAt}
+            onChange={(e) => setEndsAt(e.target.value)}
+          />
+        </label>
+        {formError && (
+          <p role="alert" className="text-sm text-red-400 sm:col-span-2">
+            {formError}
+          </p>
+        )}
+        <div className="flex items-center gap-2 sm:col-span-2">
+          <Button type="submit" size="sm" disabled={busy}>
+            {busy ? tc("loading") : tc("create")}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => router.push("/academia/alumnos")}
+          >
+            {tc("cancel")}
+          </Button>
+        </div>
+      </form>
     </Card>
   );
 }

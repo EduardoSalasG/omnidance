@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { CheckIcon, Spinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import {
   EDITABLE_STATUSES,
   readError,
@@ -74,8 +78,7 @@ export function EventFeeInline({ event, isAdmin, isOwner, onSaved }: Props) {
     () => event.platformFeePct?.toString() ?? "",
   );
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   useEffect(() => {
     if (!editing) setDraft(event.platformFeePct?.toString() ?? "");
@@ -88,8 +91,7 @@ export function EventFeeInline({ event, isAdmin, isOwner, onSaved }: Props) {
   async function save() {
     if (saving) return;
     setSaving(true);
-    setError(null);
-    setSaved(false);
+    setNotice(null);
     try {
       const res = await apiFetch(`/events/${event.id}`, {
         method: "PATCH",
@@ -99,91 +101,80 @@ export function EventFeeInline({ event, isAdmin, isOwner, onSaved }: Props) {
         }),
       });
       if (!res.ok) {
-        setError((await readError(res)) ?? t("fees.error"));
+        setNotice({ text: (await readError(res)) ?? t("fees.error"), error: true });
         return;
       }
       setEditing(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setNotice({ text: t("fees.saved") });
       onSaved();
     } catch {
-      setError(t("fees.error"));
+      setNotice({ text: t("fees.error"), error: true });
     } finally {
       setSaving(false);
     }
   }
 
-  if (editing && canEdit) {
-    return (
-      <span className="inline-flex flex-wrap items-center gap-2 text-ink/70">
-        <label htmlFor="event-fee-platformFeePct">
-          {t("fees.platformPct")}
-        </label>
-        <input
-          id="event-fee-platformFeePct"
-          type="number"
-          inputMode="decimal"
-          min={0}
-          step="any"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          className="h-9 w-24 rounded-lg border border-ink/15 bg-canvas px-2 font-mono text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-        />
-        <button
-          type="button"
-          className="min-h-9 rounded-lg bg-neon px-3 text-sm font-semibold text-canvas disabled:opacity-60"
-          disabled={saving}
-          onClick={() => void save()}
-        >
-          {saving ? <Spinner className="size-4" /> : tc("save")}
-        </button>
-        <button
-          type="button"
-          className="min-h-9 rounded-lg px-2 text-sm text-ink/60 hover:text-ink"
-          onClick={() => {
-            setEditing(false);
-            setError(null);
-          }}
-        >
-          {tc("cancel")}
-        </button>
-        {error && (
-          <span role="alert" className="text-sm text-red-400">
-            {error}
-          </span>
-        )}
-      </span>
-    );
-  }
-
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span>
-        {t("fees.shortLabel")}:{" "}
-        {shown != null ? (
-          <strong className="font-semibold text-ink/80">{shown}%</strong>
-        ) : (
-          "-"
-        )}
-      </span>
-      {saved && (
-        <span role="status" className="inline-flex items-center">
-          <CheckIcon className="size-3.5 text-neon" />
-          <span className="sr-only">{t("fees.saved")}</span>
+    <>
+      {editing && canEdit ? (
+        <span className="inline-flex flex-wrap items-center gap-2 text-ink/70">
+          <label htmlFor="event-fee-platformFeePct">
+            {t("fees.platformPct")}
+          </label>
+          <input
+            id="event-fee-platformFeePct"
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="any"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            className="h-9 w-24 rounded-lg border border-ink/15 bg-canvas px-2 font-mono text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          />
+          <button
+            type="button"
+            className="min-h-9 rounded-lg bg-neon px-3 text-sm font-semibold text-canvas disabled:opacity-60"
+            disabled={saving}
+            onClick={() => void save()}
+          >
+            {saving ? <Spinner className="size-4" /> : tc("save")}
+          </button>
+          <button
+            type="button"
+            className="min-h-9 rounded-lg px-2 text-sm text-ink/60 hover:text-ink"
+            onClick={() => {
+              setEditing(false);
+              setNotice(null);
+            }}
+          >
+            {tc("cancel")}
+          </button>
+        </span>
+      ) : (
+        <span className="inline-flex items-center gap-1.5">
+          <span>
+            {t("fees.shortLabel")}:{" "}
+            {shown != null ? (
+              <strong className="font-semibold text-ink/80">{shown}%</strong>
+            ) : (
+              "-"
+            )}
+          </span>
+          {canEdit && (
+            <button
+              type="button"
+              className="min-h-6 rounded px-1.5 text-xs text-neon underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              onClick={() => {
+                setNotice(null);
+                setEditing(true);
+              }}
+            >
+              {t("fees.edit")}
+            </button>
+          )}
         </span>
       )}
-      {canEdit && (
-        <button
-          type="button"
-          className="min-h-6 rounded px-1.5 text-xs text-neon underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-          onClick={() => {
-            setError(null);
-            setEditing(true);
-          }}
-        >
-          {t("fees.edit")}
-        </button>
-      )}
-    </span>
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
+    </>
   );
 }

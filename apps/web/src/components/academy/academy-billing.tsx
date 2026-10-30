@@ -13,6 +13,10 @@ import {
   Spinner,
 } from "@/components/ui";
 import { PAYMENT_STATUS_VARIANT } from "@/components/payments/shared";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { planDateFmt, type Academy } from "./shared";
 import { Link } from "@/i18n/navigation";
 import { getNumFmt, useNumFmt } from "@/lib/intl";
@@ -146,10 +150,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [registerUrl, setRegisterUrl] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{
-    text: string;
-    error: boolean;
-  } | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
   const load = useCallback(async () => {
@@ -316,7 +317,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         return;
       }
       setConsent(false);
-      setNotice({ text: t("subscribeOk"), error: false });
+      setNotice({ text: t("subscribeOk") });
       await load();
     } catch {
       setNotice({ text: t("subscribeError"), error: true });
@@ -345,7 +346,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         });
         return;
       }
-      setNotice({ text: t("applyOk"), error: false });
+      setNotice({ text: t("applyOk") });
       await load();
     } catch {
       setNotice({ text: tc("error"), error: true });
@@ -371,7 +372,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         return;
       }
       setConfirmCancel(false);
-      setNotice({ text: t("cancelOk"), error: false });
+      setNotice({ text: t("cancelOk") });
       await load();
     } catch {
       setNotice({ text: tc("error"), error: true });
@@ -890,14 +891,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         )}
       </Card>
 
-      {notice && (
-        <p
-          role={notice.error ? "alert" : "status"}
-          className={`text-sm ${notice.error ? "text-red-400" : "text-neon"}`}
-        >
-          {notice.text}
-        </p>
-      )}
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </section>
   );
 }

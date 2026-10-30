@@ -7,11 +7,12 @@ import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { PhoneInput } from "@/components/people/phone-input";
 import { Button, Card, RefreshIcon } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
 import { inputCls } from "@/components/academy/shared";
 import { useRouter } from "@/i18n/navigation";
 
-type Phase = "loading" | "form" | "done" | "error";
+type Phase = "loading" | "form" | "error";
 
 /**
  * Cierre del flujo lead → usuario real: el admin convirtió el lead
@@ -100,9 +101,10 @@ export default function CompletarPerfilPage() {
         return;
       }
       if (!res.ok) throw new Error();
-      setPhase("done");
-      // La sesión ya no es demo - /inicio carga la app completa.
-      setTimeout(() => router.replace("/inicio"), 1200);
+      // Aviso global + entrada directa a /inicio (la sesión ya no es
+      // demo y la app completa carga ahí).
+      showActionNotice({ text: t("complete.success") });
+      router.replace("/inicio");
     } catch {
       setError(t("complete.error"));
     } finally {
@@ -136,14 +138,6 @@ export default function CompletarPerfilPage() {
             </Button>
           </div>
         </div>
-      )}
-
-      {phase === "done" && (
-        <Card className="p-6 text-center">
-          <p role="status" className="text-lg font-bold text-neon">
-            {t("complete.success")}
-          </p>
-        </Card>
       )}
 
       {phase === "form" && (

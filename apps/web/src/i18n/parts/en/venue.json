@@ -46,7 +46,9 @@
         "REQUESTED": "Requested",
         "CONFIRMED": "Confirmed",
         "CANCELLED": "Cancelled"
-      }
+      },
+      "confirmed": "Rental confirmed",
+      "cancelled": "Rental cancelled"
     },
     "menus": {
       "item": "Menu v{version}"

@@ -7,12 +7,17 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, ConfirmSheet, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
+import {
   OnboardingRunner,
   type TourStep,
 } from "@/components/onboarding/OnboardingRunner";
 import { QuorumBar } from "@/components/academy/quorum-bar";
 import {
   classDayFmt,
+  readError,
   shortId,
   type ClassRoster,
 } from "@/components/academy/shared";
@@ -42,10 +47,15 @@ export default function AcademiaClaseRosterPage(
   const params = use(props.params);
   const classId = params.id;
   const t = useTranslations("instructor");
+  const ts = useTranslations("academySeries");
   const tc = useTranslations("common");
 
   const [roster, setRoster] = useState<ClassRoster | null>(null);
   const [state, setState] = useState<LoadState>("loading");
+  // Aviso post-acción a nivel página: RosterDetail se desmonta durante
+  // la recarga post-cancelación (state loading → ready), el aviso debe
+  // vivir acá para sobrevivir ese ciclo.
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -124,13 +134,21 @@ export default function AcademiaClaseRosterPage(
             roster={roster}
             classId={classId}
             onChanged={markAttended}
-            onCancelled={() => void load()}
+            onCancelled={() => {
+              setNotice({ text: ts("classCancelled") });
+              void load();
+            }}
+            onCancelError={(msg) =>
+              setNotice({ text: msg, error: true })
+            }
           />
           {/* Tour de primera visita del roster - los anchors montan
               con el detalle (state ready). */}
           <ClaseTour />
         </>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </main>
   );
 }
@@ -177,11 +195,13 @@ function RosterDetail({
   classId,
   onChanged,
   onCancelled,
+  onCancelError,
 }: {
   roster: ClassRoster;
   classId: string;
   onChanged: (personId: string) => void;
   onCancelled: () => void;
+  onCancelError: (msg: string) => void;
 }) {
   const locale = useLocale();
   const t = useTranslations("instructor");
@@ -209,14 +229,24 @@ function RosterDetail({
   async function cancelClass(): Promise<void> {
     if (cancelBusy) return;
     setCancelBusy(true);
-    const res = await apiFetch(
-      `/academies/${c.academyId}/classes/${classId}/cancel`,
-      { method: "POST" },
-    );
-    setCancelBusy(false);
-    if (res.ok) {
+    try {
+      const res = await apiFetch(
+        `/academies/${c.academyId}/classes/${classId}/cancel`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        // Cierra el sheet para que el aviso de error quede visible.
+        setConfirmCancel(false);
+        onCancelError((await readError(res)) ?? tc("error"));
+        return;
+      }
       setConfirmCancel(false);
       onCancelled();
+    } catch {
+      setConfirmCancel(false);
+      onCancelError(tc("error"));
+    } finally {
+      setCancelBusy(false);
     }
   }
 

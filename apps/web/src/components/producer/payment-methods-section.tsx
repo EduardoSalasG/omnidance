@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, ConfirmSheet, SkeletonList, Spinner } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 
 type Method = {
   id: string;
@@ -48,9 +52,7 @@ export function ProducerPaymentMethodsSection() {
   const [busy, setBusy] = useState(false);
   // Feedback de la sección (éxito y error): vive fuera del form para
   // que siga visible cuando el form se cierra tras crear.
-  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(
-    null,
-  );
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   // Confirmación destructiva compartida (reemplaza window.confirm).
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
@@ -70,7 +72,7 @@ export function ProducerPaymentMethodsSection() {
   async function create() {
     if (!label.trim() || busy) return;
     setBusy(true);
-    setMsg(null);
+    setNotice(null);
     try {
       const res = await apiFetch("/producer/payment-methods", {
         method: "POST",
@@ -85,17 +87,17 @@ export function ProducerPaymentMethodsSection() {
         }),
       });
       if (!res.ok) {
-        setMsg({ kind: "err", text: t("error") });
+        setNotice({ text: t("error"), error: true });
         return;
       }
       setShowForm(false);
       setLabel("");
       setDetails({});
       setOrder("0");
-      setMsg({ kind: "ok", text: tp("created") });
+      setNotice({ text: tp("created") });
       await load();
     } catch {
-      setMsg({ kind: "err", text: t("error") });
+      setNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -104,7 +106,7 @@ export function ProducerPaymentMethodsSection() {
   async function patch(id: string, data: Record<string, unknown>) {
     if (busy) return;
     setBusy(true);
-    setMsg(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/producer/payment-methods/${id}`, {
         method: "PATCH",
@@ -112,13 +114,13 @@ export function ProducerPaymentMethodsSection() {
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        setMsg({ kind: "err", text: t("error") });
+        setNotice({ text: t("error"), error: true });
         return;
       }
-      setMsg({ kind: "ok", text: tp("updated") });
+      setNotice({ text: tp("updated") });
       await load();
     } catch {
-      setMsg({ kind: "err", text: t("error") });
+      setNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -128,19 +130,19 @@ export function ProducerPaymentMethodsSection() {
     setPendingDelete(null);
     if (busy) return;
     setBusy(true);
-    setMsg(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/producer/payment-methods/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
-        setMsg({ kind: "err", text: t("error") });
+        setNotice({ text: t("error"), error: true });
         return;
       }
-      setMsg({ kind: "ok", text: tp("removed") });
+      setNotice({ text: tp("removed") });
       await load();
     } catch {
-      setMsg({ kind: "err", text: t("error") });
+      setNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -259,15 +261,6 @@ export function ProducerPaymentMethodsSection() {
         </div>
       )}
 
-      {msg && (
-        <p
-          role={msg.kind === "err" ? "alert" : "status"}
-          className={`text-sm ${msg.kind === "err" ? "text-red-400" : "text-neon"}`}
-        >
-          {msg.text}
-        </p>
-      )}
-
       {methods === null ? (
         <SkeletonList items={2} />
       ) : methods.length === 0 ? (
@@ -311,6 +304,8 @@ export function ProducerPaymentMethodsSection() {
         onConfirm={() => pendingDelete && void remove(pendingDelete)}
         onClose={() => setPendingDelete(null)}
       />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </Card>
   );
 }

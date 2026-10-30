@@ -453,7 +453,8 @@
       "added": "Collaborator added",
       "removeTitle": "Remove {name}?",
       "removeDesc": "They will no longer appear as a staff candidate for your events.",
-      "quotaFull": "Your plan covers up to {limit} collaborator(s), upgrade to add more."
+      "quotaFull": "Your plan covers up to {limit} collaborator(s), upgrade to add more.",
+      "removed": "Collaborator removed"
     }
   }
 }

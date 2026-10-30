@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, Spinner } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import {
   PLAN_TYPES,
   inputCls,
@@ -53,8 +54,6 @@ export function PlanForm({
   const [active, setActive] = useState(plan?.active ?? true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Éxito breve antes de volver al listado (que refetchea al montar).
-  const [saved, setSaved] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -101,8 +100,8 @@ export function PlanForm({
         setError((await readError(res)) ?? tc("error"));
         return;
       }
-      setSaved(true);
-      setTimeout(() => router.push("/academia/planes"), 1200);
+      showActionNotice({ text: t("planSaved") });
+      router.push("/academia/planes");
     } catch {
       setError(tc("error"));
     } finally {
@@ -112,168 +111,160 @@ export function PlanForm({
 
   return (
     <Card>
-      {saved ? (
-        <p role="status" className="text-sm text-neon">
-          {t("planSaved")}
-        </p>
-      ) : (
-        <>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-            {plan ? t("editPlan") : t("newPlan")}
-          </h2>
-          <form
-            onSubmit={submit}
-            className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+        {plan ? t("editPlan") : t("newPlan")}
+      </h2>
+      <form
+        onSubmit={submit}
+        className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+      >
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">
+            {t("planName")}
+            <span aria-hidden="true" className="text-neon"> *</span>
+          </span>
+          <input
+            className={inputCls}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">{tp("type")}</span>
+          <select
+            className={inputCls}
+            value={type}
+            onChange={(e) => setType(e.target.value as PlanType)}
+            disabled={!!plan?.flowPlanId}
           >
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">
-                {t("planName")}
-                <span aria-hidden="true" className="text-neon"> *</span>
-              </span>
-              <input
-                className={inputCls}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{tp("type")}</span>
-              <select
-                className={inputCls}
-                value={type}
-                onChange={(e) => setType(e.target.value as PlanType)}
-                disabled={!!plan?.flowPlanId}
-              >
-                {PLAN_TYPES.map((pt) => (
-                  <option key={pt} value={pt}>
-                    {t.has(`planTypes.${pt}`) ? t(`planTypes.${pt}`) : pt}
-                  </option>
-                ))}
-              </select>
-              {plan?.flowPlanId && (
-                <span className="text-xs text-ink/40">
-                  {t("planTypeLocked")}
-                </span>
-              )}
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">
-                {t("planPrice")}
-                <span aria-hidden="true" className="text-neon"> *</span>
-              </span>
-              <input
-                className={inputCls}
-                type="number"
-                inputMode="numeric"
-                min={0}
-                step={1}
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{t("planClasses")}</span>
-              <input
-                className={inputCls}
-                type="number"
-                inputMode="numeric"
-                min={1}
-                step={1}
-                value={classCount}
-                onChange={(e) => setClassCount(e.target.value)}
-              />
-            </label>
-            {/* Cuota semanal: solo la usan los planes por tiempo
-                (mensual/trimestral/semestral); packs llevan classCount. */}
-            {(type === "MONTHLY" ||
-              type === "QUARTERLY" ||
-              type === "SEMIANNUAL") && (
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-ink/50">
-                  {t("planWeeklyClasses")}
-                </span>
-                <input
-                  className={inputCls}
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  step={1}
-                  value={weeklyClasses}
-                  onChange={(e) => setWeeklyClasses(e.target.value)}
-                />
-              </label>
+            {PLAN_TYPES.map((pt) => (
+              <option key={pt} value={pt}>
+                {t.has(`planTypes.${pt}`) ? t(`planTypes.${pt}`) : pt}
+              </option>
+            ))}
+          </select>
+          {plan?.flowPlanId && (
+            <span className="text-xs text-ink/40">
+              {t("planTypeLocked")}
+            </span>
+          )}
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">
+            {t("planPrice")}
+            <span aria-hidden="true" className="text-neon"> *</span>
+          </span>
+          <input
+            className={inputCls}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">{t("planClasses")}</span>
+          <input
+            className={inputCls}
+            type="number"
+            inputMode="numeric"
+            min={1}
+            step={1}
+            value={classCount}
+            onChange={(e) => setClassCount(e.target.value)}
+          />
+        </label>
+        {/* Cuota semanal: solo la usan los planes por tiempo
+            (mensual/trimestral/semestral); packs llevan classCount. */}
+        {(type === "MONTHLY" ||
+          type === "QUARTERLY" ||
+          type === "SEMIANNUAL") && (
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-ink/50">
+              {t("planWeeklyClasses")}
+            </span>
+            <input
+              className={inputCls}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              step={1}
+              value={weeklyClasses}
+              onChange={(e) => setWeeklyClasses(e.target.value)}
+            />
+          </label>
+        )}
+        {/* Vigencia custom: solo el tipo PERIOD la usa (los calendario
+            se derivan del tipo al pagar). */}
+        {type === "PERIOD" && (
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-ink/50">
+              {t("planPeriodDays")}
+            </span>
+            <input
+              className={inputCls}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              step={1}
+              value={periodDays}
+              onChange={(e) => setPeriodDays(e.target.value)}
+            />
+          </label>
+        )}
+        <label className="flex flex-col gap-1 sm:col-span-2">
+          <span className="text-xs text-ink/50">{t("planDesc")}</span>
+          <textarea
+            className={inputCls}
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t("planDescPlaceholder")}
+          />
+        </label>
+        {plan && (
+          <label className="flex items-center gap-2 sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={active}
+              onChange={(e) => setActive(e.target.checked)}
+              className="h-4 w-4 accent-neon"
+            />
+            <span className="text-sm text-ink/70">
+              {t("planActive")}
+            </span>
+          </label>
+        )}
+        {error && (
+          <p role="alert" className="text-sm text-red-400 sm:col-span-2">
+            {error}
+          </p>
+        )}
+        <div className="flex items-center gap-2 sm:col-span-2">
+          <Button type="submit" size="sm" disabled={busy}>
+            {busy ? (
+              <Spinner size="sm" label={tc("loading")} />
+            ) : plan ? (
+              tc("save")
+            ) : (
+              tc("create")
             )}
-            {/* Vigencia custom: solo el tipo PERIOD la usa (los calendario
-                se derivan del tipo al pagar). */}
-            {type === "PERIOD" && (
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-ink/50">
-                  {t("planPeriodDays")}
-                </span>
-                <input
-                  className={inputCls}
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  step={1}
-                  value={periodDays}
-                  onChange={(e) => setPeriodDays(e.target.value)}
-                />
-              </label>
-            )}
-            <label className="flex flex-col gap-1 sm:col-span-2">
-              <span className="text-xs text-ink/50">{t("planDesc")}</span>
-              <textarea
-                className={inputCls}
-                rows={3}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t("planDescPlaceholder")}
-              />
-            </label>
-            {plan && (
-              <label className="flex items-center gap-2 sm:col-span-2">
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={(e) => setActive(e.target.checked)}
-                  className="h-4 w-4 accent-neon"
-                />
-                <span className="text-sm text-ink/70">
-                  {t("planActive")}
-                </span>
-              </label>
-            )}
-            {error && (
-              <p role="alert" className="text-sm text-red-400 sm:col-span-2">
-                {error}
-              </p>
-            )}
-            <div className="flex items-center gap-2 sm:col-span-2">
-              <Button type="submit" size="sm" disabled={busy}>
-                {busy ? (
-                  <Spinner size="sm" label={tc("loading")} />
-                ) : plan ? (
-                  tc("save")
-                ) : (
-                  tc("create")
-                )}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => router.push("/academia/planes")}
-              >
-                {tc("cancel")}
-              </Button>
-            </div>
-          </form>
-        </>
-      )}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => router.push("/academia/planes")}
+          >
+            {tc("cancel")}
+          </Button>
+        </div>
+      </form>
     </Card>
   );
 }

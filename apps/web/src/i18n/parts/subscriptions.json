@@ -26,6 +26,7 @@
     "pendingCard": "Te falta registrar tu tarjeta para activar la suscripción",
     "failedCard": "No pudimos registrar tu tarjeta",
     "resumeCard": "Registrar tarjeta",
-    "nextChargeAmount": "Próximo cobro: {date} · {amount}"
+    "nextChargeAmount": "Próximo cobro: {date} · {amount}",
+    "cancelOk": "Suscripción cancelada. Mantienes el acceso hasta el fin del período pagado."
   }
 }

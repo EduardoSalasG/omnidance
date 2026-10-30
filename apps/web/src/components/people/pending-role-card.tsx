@@ -5,6 +5,10 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { Badge, Button, Card, Spinner } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { Link } from "@/i18n/navigation";
 
 type Checks = Record<"name" | "emailVerified" | "phone" | "actorData", boolean>;
@@ -39,6 +43,9 @@ export function PendingRoleCard() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Aviso post-acción local: tras verificar el OTP el checklist se
+  // re-evalúa en background, el aviso confirma el éxito al momento.
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const pendingRoles = (me?.roleStates ?? []).filter(
     (r) =>
@@ -94,6 +101,7 @@ export function PendingRoleCard() {
       if (res.ok) {
         setVerifyOpen(false);
         setCode("");
+        setNotice({ text: t("verified") });
         await refresh();
         await load();
         return;
@@ -204,6 +212,7 @@ export function PendingRoleCard() {
       {!verifyOpen && error && (
         <p className="text-xs text-red-400">{error}</p>
       )}
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </Card>
   );
 }

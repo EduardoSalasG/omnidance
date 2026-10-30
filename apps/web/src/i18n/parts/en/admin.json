@@ -91,7 +91,12 @@
       "deactivated": "Deactivated",
       "reactivate": {
         "cta": "Reactivate account"
-      }
+      },
+      "roleSaved": "Role updated",
+      "roleAdded": "Role assigned",
+      "roleRevoked": "Role revoked",
+      "reactivated": "Account reactivated",
+      "deleteOk": "Account deactivated"
     },
     "status": {
       "REJECTED": "Rejected"
@@ -405,7 +410,11 @@
       "trigger": {
         "CRON": "Scheduled",
         "MANUAL": "Manual"
-      }
+      },
+      "saved": "Schedule saved",
+      "paused": "Job paused",
+      "resumed": "Job resumed",
+      "runStarted": "Run launched"
     },
     "campaigns": {
       "title": "Email campaigns",
@@ -461,7 +470,10 @@
         "FAILED": "Failed",
         "CANCELLED": "Cancelled"
       },
-      "testSent": "Test sent, check your inbox."
+      "testSent": "Test sent, check your inbox.",
+      "saved": "Campaign saved",
+      "runStarted": "Send started",
+      "cancelled": "Campaign cancelled"
     },
     "billing": {
       "title": "Billing",
@@ -487,7 +499,8 @@
       "voidConfirm": "Void note",
       "voidReasonPlaceholder": "Void reason",
       "voidedReason": "Voided: {reason}",
-      "generated": "Charge note issued."
+      "generated": "Charge note issued.",
+      "voided": "Note voided"
     },
     "finance": {
       "from": "From",
@@ -565,7 +578,8 @@
     "roles": {
       "superuser": "Superuser",
       "requestable": "Requestable",
-      "peopleCount": "{count, plural, one {# person} other {# people}}"
+      "peopleCount": "{count, plural, one {# person} other {# people}}",
+      "saved": "Permissions updated"
     },
     "navGroups": {
       "billing": "Billing",

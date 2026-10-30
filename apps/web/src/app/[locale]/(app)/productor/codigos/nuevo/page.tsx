@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import {
@@ -17,7 +18,7 @@ import { useRouter } from "@/i18n/navigation";
 
 /**
  * /productor/codigos/nuevo - alta de código de descuento (POST
- * /discount-codes). Al crear vuelve al listado tras un aviso breve.
+ * /discount-codes). Al crear vuelve al listado con aviso global.
  */
 function NewDiscountCode() {
   const t = useTranslations("producer");
@@ -42,7 +43,6 @@ function NewDiscountCode() {
   });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [created, setCreated] = useState(false);
 
   const loadEvents = useCallback(async () => {
     setEventsError(false);
@@ -95,8 +95,8 @@ function NewDiscountCode() {
         setFormError((await readError(res)) ?? tc("error"));
         return;
       }
-      setCreated(true);
-      setTimeout(() => router.push("/productor/codigos"), 1200);
+      showActionNotice({ text: t("codeCreated") });
+      router.push("/productor/codigos");
     } catch {
       setFormError(tc("error"));
     } finally {
@@ -114,15 +114,7 @@ function NewDiscountCode() {
       <section className="flex flex-col gap-4">
         <h2 className="text-2xl font-bold leading-tight">{t("newCode")}</h2>
 
-        {created && (
-          <Card className="p-6 text-center">
-            <p role="status" className="text-lg font-bold text-neon">
-              {t("codeCreated")}
-            </p>
-          </Card>
-        )}
-
-        {!created && eventsError && (
+        {eventsError && (
           <div className="flex items-center gap-3">
             <p role="alert" className="text-sm text-red-400">
               {tc("error")}
@@ -137,7 +129,7 @@ function NewDiscountCode() {
           </div>
         )}
 
-        {!created && !eventsError && (
+        {!eventsError && (
           <Card>
             <form onSubmit={submit} className="flex flex-col gap-4">
               <label className="flex flex-col gap-2">

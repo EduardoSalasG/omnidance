@@ -170,6 +170,8 @@
       "rename": "Renommer",
       "delete": "Supprimer",
       "created": "Requête enregistrée",
+      "renamed": "Requête renommée.",
+      "deleted": "Requête supprimée.",
       "actionError": "Impossible de terminer l'action.",
       "deleteTitle": "Supprimer cette requête ?",
       "deleteDesc": "« {name} » sera supprimée de tes requêtes enregistrées."

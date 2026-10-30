@@ -13,6 +13,11 @@ import {
   RefreshIcon,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import {
+  ActionNotice,
+  showActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { InstructorChecklist } from "@/components/academy/instructor-checklist";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
@@ -103,8 +108,7 @@ function SeriesDetail({
   } | null>(null);
   const [loadError, setLoadError] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   // Confirmación destructiva compartida: serie entera o un horario.
   // La cancelación por instancia vive en la ficha de la clase
   // (/academia/clases/[id], zona roja - spec workshop-one-off-class).
@@ -218,8 +222,7 @@ function SeriesDetail({
   // mini-form de horario no se cierra si el PATCH falla).
   async function patch(body: Record<string, unknown>): Promise<boolean> {
     setBusy(true);
-    setActionError(null);
-    setFeedback(null);
+    setNotice(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/series/${seriesId}`,
@@ -230,14 +233,14 @@ function SeriesDetail({
         },
       );
       if (!res.ok) {
-        setActionError((await readError(res)) ?? t("error"));
+        setNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return false;
       }
-      setFeedback(t("updated"));
+      setNotice({ text: t("updated") });
       await reload();
       return true;
     } catch {
-      setActionError(t("error"));
+      setNotice({ text: t("error"), error: true });
       return false;
     } finally {
       setBusy(false);
@@ -248,7 +251,7 @@ function SeriesDetail({
   // desactiva y se oculta de la consola; sigue en analítica.
   async function remove(): Promise<void> {
     setBusy(true);
-    setActionError(null);
+    setNotice(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/series/${seriesId}`,
@@ -256,20 +259,21 @@ function SeriesDetail({
       );
       if (!res.ok) {
         setConfirm(null);
-        setActionError((await readError(res)) ?? t("error"));
+        setNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
+      showActionNotice({ text: t("seriesDeleted") });
       router.replace("/academia/series");
     } catch {
       setConfirm(null);
-      setActionError(t("error"));
+      setNotice({ text: t("error"), error: true });
       setBusy(false);
     }
   }
 
   async function addSlot(): Promise<void> {
     if (!nsStart || !nsEnd || nsStart >= nsEnd) {
-      setActionError(t("error"));
+      setNotice({ text: t("error"), error: true });
       return;
     }
     const ok = await patch({
@@ -289,8 +293,7 @@ function SeriesDetail({
 
   async function removeSlot(slotId: string): Promise<void> {
     setBusy(true);
-    setActionError(null);
-    setFeedback(null);
+    setNotice(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/slots/${slotId}`,
@@ -298,15 +301,15 @@ function SeriesDetail({
       );
       if (!res.ok) {
         setConfirm(null);
-        setActionError((await readError(res)) ?? t("error"));
+        setNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
       setConfirm(null);
-      setFeedback(t("updated"));
+      setNotice({ text: t("updated") });
       await reload();
     } catch {
       setConfirm(null);
-      setActionError(t("error"));
+      setNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -390,12 +393,6 @@ function SeriesDetail({
         )}
       </section>
 
-      {actionError && (
-        <p role="alert" className="text-sm text-red-400">
-          {actionError}
-        </p>
-      )}
-
       {/* Horarios de la serie */}
       <section aria-label={t("slotsTitle")} className="flex flex-col gap-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
@@ -449,7 +446,7 @@ function SeriesDetail({
                 setNsStart("19:00");
                 setNsEnd("20:00");
                 setNsInstructors([]);
-                setActionError(null);
+                setNotice(null);
               }}
             >
               + {t("addSlot")}
@@ -621,10 +618,6 @@ function SeriesDetail({
           403 se oculta solo); anónimas por contrato. */}
       <CourseSurveyResults academyId={academyId} seriesId={series.id} />
 
-      <p role="status" aria-live="polite" className="text-sm text-neon">
-        {feedback}
-      </p>
-
       {/* Zona destructiva al pie, centrada y en rojo - mismo patrón que
           "Eliminar amigo" (/amigos/[id]). Borrado lógico: la serie se
           desactiva y sale de la consola. */}
@@ -657,6 +650,8 @@ function SeriesDetail({
         }
         onClose={() => setConfirm(null)}
       />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }

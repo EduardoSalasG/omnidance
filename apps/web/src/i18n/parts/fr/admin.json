@@ -91,7 +91,12 @@
       "deactivated": "Désactivée",
       "reactivate": {
         "cta": "Réactiver le compte"
-      }
+      },
+      "roleSaved": "Rôle mis à jour",
+      "roleAdded": "Rôle attribué",
+      "roleRevoked": "Rôle révoqué",
+      "reactivated": "Compte réactivé",
+      "deleteOk": "Compte désactivé"
     },
     "status": {
       "REJECTED": "Refusé"
@@ -405,7 +410,11 @@
       "trigger": {
         "CRON": "Programmé",
         "MANUAL": "Manuel"
-      }
+      },
+      "saved": "Horaire enregistré",
+      "paused": "Job en pause",
+      "resumed": "Job réactivé",
+      "runStarted": "Exécution lancée"
     },
     "campaigns": {
       "title": "Campagnes e-mail",
@@ -461,7 +470,10 @@
         "FAILED": "Échouée",
         "CANCELLED": "Annulée"
       },
-      "testSent": "Test envoyé, vérifie ta boîte mail."
+      "testSent": "Test envoyé, vérifie ta boîte mail.",
+      "saved": "Campagne enregistrée",
+      "runStarted": "Envoi lancé",
+      "cancelled": "Campagne annulée"
     },
     "billing": {
       "title": "Facturation",
@@ -487,7 +499,8 @@
       "voidConfirm": "Annuler la note",
       "voidReasonPlaceholder": "Motif de l'annulation",
       "voidedReason": "Annulée : {reason}",
-      "generated": "Note de frais émise."
+      "generated": "Note de frais émise.",
+      "voided": "Note annulée"
     },
     "finance": {
       "from": "Du",
@@ -565,7 +578,8 @@
     "roles": {
       "superuser": "Superutilisateur",
       "requestable": "Demandable",
-      "peopleCount": "{count, plural, one {# personne} other {# personnes}}"
+      "peopleCount": "{count, plural, one {# personne} other {# personnes}}",
+      "saved": "Permissions mises à jour"
     },
     "navGroups": {
       "billing": "Facturation",

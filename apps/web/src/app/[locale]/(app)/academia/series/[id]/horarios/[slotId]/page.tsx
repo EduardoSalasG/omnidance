@@ -4,6 +4,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, ConfirmSheet, SkeletonCard, Spinner } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { InstructorChecklist } from "@/components/academy/instructor-checklist";
@@ -111,14 +112,32 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
       setErr((await readError(res)) ?? tc("error"));
       return;
     }
+    // Vuelve a la ficha de la serie: aviso global que sobrevive el push.
+    showActionNotice({ text: t("slotUpdated") });
     router.push(`/academia/series/${slot?.series.id}`);
   }
 
   const remove = useCallback(async () => {
     setBusy(true);
-    await apiFetch(`/academies/${academyId}/slots/${slotId}`, { method: "DELETE" });
-    router.push(`/academia/series/${slot?.series.id}`);
-  }, [academyId, slotId, router, slot]);
+    setErr(null);
+    try {
+      const res = await apiFetch(`/academies/${academyId}/slots/${slotId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        setErr((await readError(res)) ?? tc("error"));
+        setConfirmDel(false);
+        return;
+      }
+      showActionNotice({ text: t("slotDeleted") });
+      router.push(`/academia/series/${slot?.series.id}`);
+    } catch {
+      setErr(tc("error"));
+      setConfirmDel(false);
+    } finally {
+      setBusy(false);
+    }
+  }, [academyId, slotId, router, slot, t, tc]);
 
   if (!slot) return <SkeletonCard />;
 

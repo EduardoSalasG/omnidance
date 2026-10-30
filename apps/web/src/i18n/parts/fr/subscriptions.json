@@ -26,6 +26,7 @@
     "pendingCard": "Il te manque d'enregistrer ta carte pour activer l'abonnement",
     "failedCard": "Impossible d'enregistrer ta carte",
     "resumeCard": "Enregistrer la carte",
-    "nextChargeAmount": "Prochain débit : {date} · {amount}"
+    "nextChargeAmount": "Prochain débit : {date} · {amount}",
+    "cancelOk": "Abonnement annulé. Vous gardez l'accès jusqu'à la fin de la période payée."
   }
 }

@@ -12,6 +12,10 @@ import {
   RefreshIcon,
 } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { inputCls } from "@/components/academy/shared";
 import {
   OnboardingRunner,
@@ -178,6 +182,9 @@ export default function VenuePage() {
   } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  // Aviso post-acción local: el cambio de estado del arriendo es
+  // optimista en la fila, el aviso confirma la persistencia.
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   // Boot: qué venues administra el usuario.
   const boot = useCallback(async () => {
@@ -276,6 +283,13 @@ export default function VenuePage() {
             }
           : prev,
       );
+      setNotice({
+        text: t(
+          status === "CONFIRMED"
+            ? "rentals.confirmed"
+            : "rentals.cancelled",
+        ),
+      });
     } catch {
       setRowErrors((prev) => ({ ...prev, [rentalId]: tc("error") }));
     } finally {
@@ -772,6 +786,8 @@ export default function VenuePage() {
           />
         </>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </main>
   );
 }

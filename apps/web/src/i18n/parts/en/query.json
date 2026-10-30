@@ -170,6 +170,8 @@
       "rename": "Rename",
       "delete": "Delete",
       "created": "Query saved",
+      "renamed": "Query renamed.",
+      "deleted": "Query deleted.",
       "actionError": "Could not complete the action.",
       "deleteTitle": "Delete this query?",
       "deleteDesc": "“{name}” will be removed from your saved queries."

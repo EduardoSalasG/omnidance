@@ -6,6 +6,10 @@ import { apiFetch } from "@/lib/api";
 import { readError } from "@/components/academy/shared";
 import { Badge, Button, Card, SkeletonList } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
@@ -93,7 +97,9 @@ function BillingPanel() {
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [docs, setDocs] = useState<BillingDoc[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  // Feedback post-acción (éxito y error de mutación) por ActionNotice;
+  // `error` queda solo para el fallo de carga con retry.
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   // Fallo de red en la carga inicial: los arrays quedan en null y se
   // muestra error + retry en vez de skeletons infinitos.
   const [loadFailed, setLoadFailed] = useState(false);
@@ -147,13 +153,16 @@ function BillingPanel() {
         body: JSON.stringify({ payoutId }),
       });
       if (!res.ok) {
-        setError(await readError(res));
+        setNotice({
+          text: (await readError(res)) ?? tc("error"),
+          error: true,
+        });
       } else {
-        setNotice(t("generated"));
+        setNotice({ text: t("generated") });
         await load();
       }
     } catch {
-      setError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setGenerating(null);
     }
@@ -170,14 +179,19 @@ function BillingPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: voidReason.trim() }),
       });
-      if (!res.ok) setError(await readError(res));
-      else {
+      if (!res.ok) {
+        setNotice({
+          text: (await readError(res)) ?? tc("error"),
+          error: true,
+        });
+      } else {
         setVoidingId(null);
         setVoidReason("");
+        setNotice({ text: t("voided") });
         await load();
       }
     } catch {
-      setError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setVoidBusy(false);
     }
@@ -211,11 +225,6 @@ function BillingPanel() {
               </Button>
             )}
           </Card>
-        )}
-        {notice && (
-          <p role="status" className="text-sm text-neon">
-            {notice}
-          </p>
         )}
       </section>
 
@@ -366,6 +375,8 @@ function BillingPanel() {
           </ul>
         )}
       </section>
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }

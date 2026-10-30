@@ -453,7 +453,8 @@
       "added": "Colaborador adicionado",
       "removeTitle": "Remover {name}?",
       "removeDesc": "Deixará de aparecer como candidato a staff nos teus eventos.",
-      "quotaFull": "O teu plano cobre até {limit} colaborador(es), sobe de tier para adicionar mais."
+      "quotaFull": "O teu plano cobre até {limit} colaborador(es), sobe de tier para adicionar mais.",
+      "removed": "Colaborador removido"
     }
   }
 }

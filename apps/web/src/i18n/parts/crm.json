@@ -51,6 +51,8 @@
       "bulkCampaign": "Campaña a selección",
       "clearSelection": "Limpiar",
       "addTag": "Agregar tag",
+      "tagAdded": "Tag agregado.",
+      "tagRemoved": "Tag quitado.",
       "tagPlaceholder": "Ej. VIP, amigo del DJ",
       "deleteTag": "Quitar tag {tag}",
       "prev": "Anterior",
@@ -244,6 +246,7 @@
       "edit": "Editar reglas",
       "delete": "Eliminar segmento",
       "deleteTitle": "¿Eliminar el segmento?",
+      "deleted": "Segmento eliminado.",
       "deleteDesc": "Se borra el segmento y su membresía. Las personas no se ven afectadas.",
       "notFound": "Segmento no encontrado."
     },

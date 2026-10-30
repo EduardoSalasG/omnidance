@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, ConfirmSheet, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError } from "@/components/academy/shared";
@@ -113,6 +114,8 @@ function EditPanel({ cat, id }: { cat: Cat; id: string }) {
         setError((await readError(res)) ?? t("error"));
         return;
       }
+      // Vuelve al listado: aviso global para que sobreviva el push.
+      showActionNotice({ text: t("saved") });
       router.push("/admin/catalogos");
     } catch {
       setError(t("error"));
@@ -136,6 +139,7 @@ function EditPanel({ cat, id }: { cat: Cat; id: string }) {
         setError(msg ?? (res.status === 409 ? t("inUse") : t("error")));
         return;
       }
+      showActionNotice({ text: t("deleted") });
       router.push("/admin/catalogos");
     } catch {
       setConfirmDelete(false);

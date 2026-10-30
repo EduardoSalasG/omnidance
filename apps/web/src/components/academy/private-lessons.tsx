@@ -8,6 +8,10 @@ import { useMe } from "@/lib/me-context";
 import { Badge, Button, Card, ConfirmSheet, Pager, PriceTag, RefreshIcon } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { FilterBar } from "@/components/query/FilterBar";
 
 import {
@@ -133,10 +137,7 @@ export function PrivateLessons({ academy }: Props) {
   const [staffState, setStaffState] = useState<LoadState>("loading");
   const [staffFilters, setStaffFilters] = useState<QueryFilters>({});
 
-  const [feedback, setFeedback] = useState<string | null>(null);
-  // Canal de error separado del feedback de éxito: los errores se
-  // anuncian con role="alert" en rojo, nunca como notice verde.
-  const [actionErr, setActionErr] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   // Cancelar clase particular pide confirmación destructiva (sheet,
   // no window.confirm).
@@ -249,8 +250,7 @@ export function PrivateLessons({ academy }: Props) {
     extra?: { scheduledAt?: string; instructorId?: string },
   ): Promise<void> {
     setBusyId(id);
-    setFeedback(null);
-    setActionErr(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/private-lessons/${id}`, {
         method: "PATCH",
@@ -264,10 +264,10 @@ export function PrivateLessons({ academy }: Props) {
         }),
       });
       if (!res.ok) {
-        setActionErr((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
-      setFeedback(action === "assign" ? t.assigned : t.updated);
+      setNotice({ text: action === "assign" ? t.assigned : t.updated });
       setReschedId(null);
       setReschedWhen("");
       setAssignId(null);
@@ -275,7 +275,7 @@ export function PrivateLessons({ academy }: Props) {
       setAssignWhen("");
       await loadStaff();
     } catch {
-      setActionErr(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setBusyId(null);
     }
@@ -600,15 +600,6 @@ export function PrivateLessons({ academy }: Props) {
           )}
       </section>
 
-      {actionErr && (
-        <p role="alert" className="text-sm text-red-400">
-          {actionErr}
-        </p>
-      )}
-      <p role="status" aria-live="polite" className="text-sm text-neon">
-        {feedback}
-      </p>
-
       <ConfirmSheet
         open={pendingCancel !== null}
         title={t.confirmCancel}
@@ -617,6 +608,8 @@ export function PrivateLessons({ academy }: Props) {
         onConfirm={() => pendingCancel && cancel(pendingCancel)}
         onClose={() => setPendingCancel(null)}
       />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }

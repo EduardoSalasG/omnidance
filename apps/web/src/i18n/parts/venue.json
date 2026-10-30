@@ -46,7 +46,9 @@
         "REQUESTED": "Solicitado",
         "CONFIRMED": "Confirmado",
         "CANCELLED": "Cancelado"
-      }
+      },
+      "confirmed": "Arriendo confirmado",
+      "cancelled": "Arriendo cancelado"
     },
     "menus": {
       "item": "Carta v{version}"

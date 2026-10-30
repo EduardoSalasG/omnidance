@@ -248,7 +248,8 @@
     "seriesWeeklyAvgTitle": "Clases/semana por alumno",
     "country": "País",
     "city": "Ciudad",
-    "noCity": "Sin ciudad"
+    "noCity": "Sin ciudad",
+    "created": "Academia creada"
   },
   "academySeries": {
     "addSlotHint": "Se crean las clases futuras en ese día dentro de la ventana de programación.",
@@ -275,7 +276,11 @@
     "workshopBadge": "Taller",
     "cancelClass": "Cancelar clase",
     "cancelClassDesc": "Cancela solo esta clase: se liberan sus reservas y el resto del horario sigue igual.",
-    "createdOneOff": "Taller creado"
+    "createdOneOff": "Taller creado",
+    "slotUpdated": "Horario actualizado",
+    "slotDeleted": "Horario eliminado",
+    "classCancelled": "Clase cancelada",
+    "seriesDeleted": "Serie eliminada."
   },
   "instructor": {
     "title": "Mis clases",

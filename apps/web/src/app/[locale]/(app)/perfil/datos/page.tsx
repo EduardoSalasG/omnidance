@@ -23,6 +23,11 @@ import {
   Skeleton,
   XIcon,
 } from "@/components/ui";
+import {
+  ActionNotice,
+  showActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { useDateFmt } from "@/lib/intl";
 
 type DanceRole = "LEADER" | "FOLLOWER" | "SWITCH";
@@ -154,6 +159,9 @@ export default function DatosPage() {
   const router = useRouter();
   const [langBusy, setLangBusy] = useState(false);
   const [langErr, setLangErr] = useState(false);
+  // Aviso post-acción local: foto y jurisdicción no navegan. El idioma
+  // sí navega (router.replace al nuevo prefijo) → usa el aviso global.
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   // Jurisdicción legal (spec consent-por-jurisdiccion): editable en el
   // perfil - define qué texto de consentimiento aplica (CL único vs
   // EU granular GDPR).
@@ -174,6 +182,7 @@ export default function DatosPage() {
         setJurErr(true);
         return;
       }
+      setNotice({ text: t("datos.saved") });
       void refreshMe();
     } catch {
       setJurErr(true);
@@ -198,7 +207,9 @@ export default function DatosPage() {
         return;
       }
       // Persistió en el perfil; el adapter resuelve el prefijo
-      // (es-CL vuelve sin prefijo, el resto bajo /<locale>).
+      // (es-CL vuelve sin prefijo, el resto bajo /<locale>). El aviso
+      // va por el host global: el replace remonta la página.
+      showActionNotice({ text: t("datos.saved") });
       router.replace(pathname, { locale: next });
     } catch {
       setLangErr(true);
@@ -236,8 +247,12 @@ export default function DatosPage() {
         method: "POST",
         body: form,
       });
-      if (res.ok) await refreshMe();
-      else setPhotoError(t("datos.photoError"));
+      if (res.ok) {
+        setNotice({ text: t("datos.saved") });
+        await refreshMe();
+      } else {
+        setPhotoError(t("datos.photoError"));
+      }
     } catch {
       setPhotoError(t("datos.photoError"));
     } finally {
@@ -279,10 +294,6 @@ export default function DatosPage() {
     { id: string; name: string }[] | null
   >(null);
   const [srSaving, setSrSaving] = useState(false);
-  const [srErr, setSrErr] = useState(false);
-  // "Guardado" fugaz tras persistir Tu baile - mismo patrón que el
-  // personalState "saved" de datos personales.
-  const [srSaved, setSrSaved] = useState(false);
   const keySeq = useRef(0);
 
   // birthDate llega como ISO completa - el input date usa solo la
@@ -353,17 +364,19 @@ export default function DatosPage() {
         }),
       });
       if (!res.ok) {
-        setPersonalState("err");
+        setPersonalState("idle");
+        setNotice({ text: t("datos.saveError"), error: true });
         return;
       }
       // Refresh silencioso del contexto - me previo sigue pintado, el
       // refetch solo actualiza los campos (incluye styleRoles/etc.).
       void refreshMe();
       setPersonalEditing(false);
-      setPersonalState("saved");
-      setTimeout(() => setPersonalState("idle"), 2500);
+      setPersonalState("idle");
+      setNotice({ text: t("datos.saved") });
     } catch {
-      setPersonalState("err");
+      setPersonalState("idle");
+      setNotice({ text: t("datos.saveError"), error: true });
     }
   }
 
@@ -378,7 +391,6 @@ export default function DatosPage() {
       })),
     );
     setSrEditing(true);
-    setSrErr(false);
     if (!stylesCat) {
       apiFetch("/styles")
         .then(async (res) => {
@@ -398,7 +410,7 @@ export default function DatosPage() {
 
   async function saveStyleRoles() {
     setSrSaving(true);
-    setSrErr(false);
+    setNotice(null);
     try {
       const items = srDraft
         .filter((r) => r.styleId)
@@ -413,15 +425,14 @@ export default function DatosPage() {
         body: JSON.stringify({ items }),
       });
       if (!res.ok) {
-        setSrErr(true);
+        setNotice({ text: t("datos.saveError"), error: true });
         return;
       }
       void refreshMe();
       setSrEditing(false);
-      setSrSaved(true);
-      setTimeout(() => setSrSaved(false), 2500);
+      setNotice({ text: t("datos.saved") });
     } catch {
-      setSrErr(true);
+      setNotice({ text: t("datos.saveError"), error: true });
     } finally {
       setSrSaving(false);
     }
@@ -698,19 +709,9 @@ export default function DatosPage() {
             value={me.createdAt ? dateFmt.format(new Date(me.createdAt)) : "·"}
           />
         </div>
-        {personalState === "saved" && (
-          <p role="status" className="mt-2 text-xs text-neon">
-            {t("datos.saved")}
-          </p>
-        )}
         {personalState === "nameRequired" && (
           <p role="alert" className="mt-2 text-xs text-red-400">
             {t("datos.nameRequired")}
-          </p>
-        )}
-        {personalState === "err" && (
-          <p role="alert" className="mt-2 text-xs text-red-400">
-            {t("datos.saveError")}
           </p>
         )}
         {me.verifiedAt && !personalEditing && (
@@ -962,11 +963,6 @@ export default function DatosPage() {
               >
                 + {t("datos.addStyle")}
               </button>
-              {srErr && (
-                <p role="alert" className="mt-2 text-xs text-red-400">
-                  {t("datos.saveError")}
-                </p>
-              )}
               <div className="mt-2 flex justify-end gap-2">
                 <Button
                   variant="ghost"
@@ -1021,11 +1017,6 @@ export default function DatosPage() {
                   ))}
                 </ul>
               )}
-              {srSaved && (
-                <p role="status" className="mt-2 text-xs text-neon">
-                  {t("datos.saved")}
-                </p>
-              )}
               <div className="mt-3 flex justify-center">
                 <button
                   type="button"
@@ -1039,6 +1030,8 @@ export default function DatosPage() {
           )}
         </Card>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </main>
   );
 }

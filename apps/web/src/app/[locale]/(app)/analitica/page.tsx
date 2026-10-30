@@ -23,6 +23,10 @@ import {
   OnboardingRunner,
   type TourStep,
 } from "@/components/onboarding/OnboardingRunner";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { FilterBar, type QueryOption } from "@/components/query/FilterBar";
 import { QueryTable } from "@/components/query/QueryTable";
 import {
@@ -110,10 +114,7 @@ export default function AnaliticaPage() {
   const [saveName, setSaveName] = useState("");
   const [saving, setSaving] = useState(false);
   // Feedback de las mutaciones de consultas guardadas (éxito y error).
-  const [notice, setNotice] = useState<{
-    kind: "ok" | "err";
-    text: string;
-  } | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   // ── Boot: la lente es el rol activo; /analytics/roles confirma que
   // tiene acceso a analítica (403/401 o lente ausente → forbidden). ────
@@ -300,13 +301,13 @@ export default function AnaliticaPage() {
       });
       if (res.ok) {
         setSaveName("");
-        setNotice({ kind: "ok", text: t("saved.created") });
+        setNotice({ text: t("saved.created") });
         if (role) void loadSaved(role);
       } else {
-        setNotice({ kind: "err", text: t("saved.actionError") });
+        setNotice({ text: t("saved.actionError"), error: true });
       }
     } catch {
-      setNotice({ kind: "err", text: t("saved.actionError") });
+      setNotice({ text: t("saved.actionError"), error: true });
     } finally {
       setSaving(false);
     }
@@ -314,6 +315,7 @@ export default function AnaliticaPage() {
 
   async function renameSaved(id: string, name: string) {
     setSavedBusy(id);
+    setNotice(null);
     try {
       const res = await apiFetch(`/query/saved/${id}`, {
         method: "PATCH",
@@ -321,12 +323,13 @@ export default function AnaliticaPage() {
         body: JSON.stringify({ name }),
       });
       if (res.ok) {
+        setNotice({ text: t("saved.renamed") });
         if (role) await loadSaved(role);
       } else {
-        setNotice({ kind: "err", text: t("saved.actionError") });
+        setNotice({ text: t("saved.actionError"), error: true });
       }
     } catch {
-      setNotice({ kind: "err", text: t("saved.actionError") });
+      setNotice({ text: t("saved.actionError"), error: true });
     } finally {
       setSavedBusy(null);
     }
@@ -334,15 +337,17 @@ export default function AnaliticaPage() {
 
   async function deleteSaved(id: string) {
     setSavedBusy(id);
+    setNotice(null);
     try {
       const res = await apiFetch(`/query/saved/${id}`, { method: "DELETE" });
       if (res.ok) {
+        setNotice({ text: t("saved.deleted") });
         if (role) await loadSaved(role);
       } else {
-        setNotice({ kind: "err", text: t("saved.actionError") });
+        setNotice({ text: t("saved.actionError"), error: true });
       }
     } catch {
-      setNotice({ kind: "err", text: t("saved.actionError") });
+      setNotice({ text: t("saved.actionError"), error: true });
     } finally {
       setSavedBusy(null);
     }
@@ -526,19 +531,6 @@ export default function AnaliticaPage() {
                 </span>
               </div>
 
-              <div aria-live="polite">
-                {notice && (
-                  <p
-                    role={notice.kind === "err" ? "alert" : "status"}
-                    className={`text-sm font-medium ${
-                      notice.kind === "err" ? "text-red-400" : "text-neon"
-                    }`}
-                  >
-                    {notice.text}
-                  </p>
-                )}
-              </div>
-
               {runPhase === "loading" && <SkeletonText lines={3} />}
 
               {runPhase === "error" && (
@@ -663,6 +655,8 @@ export default function AnaliticaPage() {
           )}
         </>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </main>
   );
 }

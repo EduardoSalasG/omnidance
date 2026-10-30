@@ -16,6 +16,10 @@ import {
 } from "@/components/ui";
 import { readError } from "@/components/academy/shared";
 import { inputCls } from "@/components/producer/shared";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 
 /** GET /me/payout-destinations - shape del PayoutDestination de Prisma
  *  serializado (spec payouts/payout-rails): rail STRIPE_CONNECT con
@@ -86,7 +90,7 @@ export function DisbursementAccountSection() {
   const [nonce, setNonce] = useState(0);
   const [country, setCountry] = useState<string>("CL");
   const [busy, setBusy] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -128,7 +132,7 @@ export function DisbursementAccountSection() {
   async function connect() {
     if (!personId || busy) return;
     setBusy(true);
-    setFormError(null);
+    setNotice(null);
     try {
       const res = await apiFetch("/me/payout-destinations", {
         method: "POST",
@@ -152,7 +156,7 @@ export function DisbursementAccountSection() {
         return;
       }
       if (res.status === 403) {
-        setFormError(t("forbidden"));
+        setNotice({ text: t("forbidden"), error: true });
         return;
       }
       if (res.status === 503) {
@@ -160,19 +164,22 @@ export function DisbursementAccountSection() {
         return;
       }
       if (!res.ok) {
-        setFormError((await readError(res)) ?? t("connectError"));
+        setNotice({
+          text: (await readError(res)) ?? t("connectError"),
+          error: true,
+        });
         return;
       }
       const body = (await res.json()) as { onboardingUrl?: string };
       if (!body.onboardingUrl) {
-        setFormError(t("connectError"));
+        setNotice({ text: t("connectError"), error: true });
         return;
       }
       // Account Link de un solo uso: se consume al tiro; al volver a
       // /productor/desembolso el GET hace el flip PENDING→ACTIVE.
       window.location.href = body.onboardingUrl;
     } catch {
-      setFormError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -333,13 +340,10 @@ export function DisbursementAccountSection() {
             </>
           )}
 
-          {formError && (
-            <p role="alert" className="text-sm text-red-400">
-              {formError}
-            </p>
-          )}
         </>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </section>
   );
 }

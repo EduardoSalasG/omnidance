@@ -6,6 +6,7 @@ import { useMessages, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { Button, Card, SkeletonList } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 
 import { inputCls, readError, type Academy } from "./shared";
 import { useRouter } from "@/i18n/navigation";
@@ -34,8 +35,6 @@ export function VideoForm({ academy }: { academy: Academy }) {
   const [restricted, setRestricted] = useState(true);
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  // Éxito breve antes de volver al listado (que refetchea al montar).
-  const [saved, setSaved] = useState(false);
 
   const canAdminister =
     !!me && (me.roles.includes("ADMIN") || me.id === academy.ownerId);
@@ -59,8 +58,8 @@ export function VideoForm({ academy }: { academy: Academy }) {
         setFormError((await readError(res)) ?? tc("error"));
         return;
       }
-      setSaved(true);
-      setTimeout(() => router.push("/academia/videos"), 1200);
+      showActionNotice({ text: t.added });
+      router.push("/academia/videos");
     } catch {
       setFormError(tc("error"));
     } finally {
@@ -81,85 +80,77 @@ export function VideoForm({ academy }: { academy: Academy }) {
 
   return (
     <Card>
-      {saved ? (
-        <p role="status" className="text-sm text-neon">
-          {t.added}
-        </p>
-      ) : (
-        <>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-            {t.addTitle}
-          </h2>
-          <form
-            onSubmit={submit}
-            className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+        {t.addTitle}
+      </h2>
+      <form
+        onSubmit={submit}
+        className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+      >
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">
+            {t.videoTitle}
+            <span aria-hidden="true" className="text-neon"> *</span>
+          </span>
+          <input
+            className={inputCls}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">
+            {t.videoUrl}
+            <span aria-hidden="true" className="text-neon"> *</span>
+          </span>
+          <input
+            className={inputCls}
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-ink/50">{t.classId}</span>
+          <input
+            className={inputCls}
+            value={classId}
+            onChange={(e) => setClassId(e.target.value)}
+          />
+        </label>
+        <label className="flex items-end gap-2 pb-1">
+          <input
+            type="checkbox"
+            className="h-5 w-5 rounded border-line bg-elevated accent-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            checked={restricted}
+            onChange={(e) => setRestricted(e.target.checked)}
+          />
+          <span className="text-xs text-ink/70">
+            {t.restrictedLabel}
+          </span>
+        </label>
+        {formError && (
+          <p role="alert" className="text-sm text-red-400 sm:col-span-2">
+            {formError}
+          </p>
+        )}
+        <div className="flex items-center gap-2 sm:col-span-2">
+          <Button type="submit" size="sm" disabled={busy}>
+            {busy ? tc("loading") : tc("create")}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => router.push("/academia/videos")}
           >
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">
-                {t.videoTitle}
-                <span aria-hidden="true" className="text-neon"> *</span>
-              </span>
-              <input
-                className={inputCls}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">
-                {t.videoUrl}
-                <span aria-hidden="true" className="text-neon"> *</span>
-              </span>
-              <input
-                className={inputCls}
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                required
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-ink/50">{t.classId}</span>
-              <input
-                className={inputCls}
-                value={classId}
-                onChange={(e) => setClassId(e.target.value)}
-              />
-            </label>
-            <label className="flex items-end gap-2 pb-1">
-              <input
-                type="checkbox"
-                className="h-5 w-5 rounded border-line bg-elevated accent-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-                checked={restricted}
-                onChange={(e) => setRestricted(e.target.checked)}
-              />
-              <span className="text-xs text-ink/70">
-                {t.restrictedLabel}
-              </span>
-            </label>
-            {formError && (
-              <p role="alert" className="text-sm text-red-400 sm:col-span-2">
-                {formError}
-              </p>
-            )}
-            <div className="flex items-center gap-2 sm:col-span-2">
-              <Button type="submit" size="sm" disabled={busy}>
-                {busy ? tc("loading") : tc("create")}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => router.push("/academia/videos")}
-              >
-                {tc("cancel")}
-              </Button>
-            </div>
-          </form>
-        </>
-      )}
+            {tc("cancel")}
+          </Button>
+        </div>
+      </form>
     </Card>
   );
 }

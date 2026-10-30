@@ -1071,7 +1071,8 @@
     },
     "editTitle": "Editar valor · {catalog}",
     "valueNotFound": "Valor no encontrado",
-    "deleteHint": "Elimina el valor del catálogo; no se puede deshacer."
+    "deleteHint": "Elimina el valor del catálogo; no se puede deshacer.",
+    "deleted": "Valor eliminado"
   },
   "producerParams": {
     "title": "Valores por defecto",
@@ -1175,7 +1176,11 @@
       "plan": "Plan de precios",
       "ownerApproved": "Dueño validado"
     },
-    "rejectAcademyConfirm": "¿Rechazar {name}? La academia se oculta del público aunque complete sus datos."
+    "rejectAcademyConfirm": "¿Rechazar {name}? La academia se oculta del público aunque complete sus datos.",
+    "approved": "{name} aprobado",
+    "rejected": "{name} rechazado",
+    "academyApproved": "{name} aprobada",
+    "academyRejected": "{name} rechazada"
   },
   "academyReview": {
     "title": "Visibilidad pública",
@@ -1226,6 +1231,7 @@
     "actorLabels": {
       "ACADEMY_OWNER": "Nombre de academia",
       "PRODUCER": "Nombre de evento"
-    }
+    },
+    "verified": "Email verificado"
   }
 }

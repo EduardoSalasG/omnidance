@@ -3,6 +3,7 @@ import { getMessages } from "next-intl/server";
 import { ChromeShell } from "@/components/layout/ChromeShell";
 import { RealtimeProvider } from "@/components/realtime/RealtimeProvider";
 import { NavPendingOverlay } from "@/components/ui/nav-pending";
+import { ActionNoticeHost } from "@/components/ui/action-notice";
 import { ConsentBanner } from "@/components/legal/ConsentBanner";
 import { InstallPrompt } from "@/components/install/InstallPrompt";
 import { PushOptIn } from "@/components/realtime/PushOptIn";
@@ -71,6 +72,10 @@ export default async function AppLayout({
                 de MeProvider porque consulta /me - antes estaba dentro
                 de RealtimeProvider y useMe lanzaba. */}
             <PushOptIn />
+            {/* Aviso global post-acción (spec unified-action-notice):
+                un solo host para los showActionNotice() emitidos antes
+                de navegar - el aviso se muestra en la página destino. */}
+            <ActionNoticeHost />
           </FeaturesProvider>
         </MeProvider>
       </NavPendingOverlay>

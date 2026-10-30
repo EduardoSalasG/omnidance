@@ -6,6 +6,10 @@ import { apiFetch } from "@/lib/api";
 import { readError } from "@/components/academy/shared";
 import { Badge, Button, Card, ConfirmSheet, SkeletonList } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
@@ -147,7 +151,9 @@ function CampaignsPanel() {
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
   const [filters, setFilters] = useState<QueryFilters>({});
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  // Feedback post-acción (éxito y error de mutación) por ActionNotice;
+  // `error` queda solo para el fallo de carga.
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Campaign | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -186,13 +192,24 @@ function CampaignsPanel() {
         method: "POST",
       });
       if (!res.ok) {
-        setError(await readError(res));
+        setNotice({
+          text: (await readError(res)) ?? tc("error"),
+          error: true,
+        });
       } else {
-        if (action === "test") setNotice(t("campaigns.testSent"));
+        setNotice({
+          text: t(
+            action === "test"
+              ? "campaigns.testSent"
+              : action === "run"
+                ? "campaigns.runStarted"
+                : "campaigns.cancelled",
+          ),
+        });
         await load();
       }
     } catch {
-      setError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(null);
       setPending(null);
@@ -217,11 +234,6 @@ function CampaignsPanel() {
             {error}
           </Card>
         )}
-        {notice && (
-          <p role="status" className="text-sm text-neon">
-            {notice}
-          </p>
-        )}
         {!showForm && (
           <div>
             <Button variant="primary" size="sm" onClick={() => setShowForm(true)}>
@@ -241,9 +253,12 @@ function CampaignsPanel() {
           onSaved={async () => {
             setShowForm(false);
             setEditing(null);
+            setNotice({ text: t("campaigns.saved") });
             await load();
           }}
-          onError={setError}
+          onError={(msg) =>
+            setNotice(msg ? { text: msg, error: true } : null)
+          }
         />
       )}
 
@@ -350,6 +365,8 @@ function CampaignsPanel() {
         onConfirm={() => pending && void act(pending.id, pending.action)}
         onClose={() => setPending(null)}
       />
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }
@@ -475,7 +492,8 @@ function CampaignForm({
         },
       );
       if (!res.ok) {
-        onError(await readError(res));
+        // Fallback al genérico: un 4xx/5xx sin message nunca es silencioso.
+        onError((await readError(res)) ?? tc("error"));
       } else {
         await onSaved();
       }

@@ -4,6 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Card, CheckIcon, SkeletonList } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
+import { readError } from "@/components/academy/shared";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { PermissionRow, RoleRow } from "@/components/admin/types";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -33,7 +38,10 @@ function RolesPanel() {
   );
 
   const [acting, setActing] = useState<string | null>(null);
-  const [actionError, setActionError] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  // Aviso post-acción local: el toggle del chip es optimista y el cambio
+  // visual es sutil, el aviso confirma la persistencia.
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const load = useCallback(async () => {
     const [rolesRes, permsRes] = await Promise.all([
@@ -46,8 +54,8 @@ function RolesPanel() {
   }, []);
 
   useEffect(() => {
-    void load().catch(() => setActionError(true));
-  }, [load]);
+    void load().catch(() => setActionError(tc("error")));
+  }, [load, tc]);
 
   async function togglePermission(
     roleKey: string,
@@ -56,14 +64,18 @@ function RolesPanel() {
   ) {
     if (acting) return;
     setActing(roleKey + permission);
-    setActionError(false);
+    setActionError(null);
     try {
       const res = await apiFetch(`/admin/roles/${roleKey}/permissions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ permission, grant }),
       });
-      if (!res.ok) return setActionError(true);
+      if (!res.ok) {
+        setActionError((await readError(res)) ?? tc("error"));
+        return;
+      }
+      setNotice({ text: t("roles.saved") });
       setRoles((rs) =>
         (rs ?? []).map((r) =>
           r.key !== roleKey
@@ -79,7 +91,7 @@ function RolesPanel() {
         ),
       );
     } catch {
-      setActionError(true);
+      setActionError(tc("error"));
     } finally {
       setActing(null);
     }
@@ -89,7 +101,7 @@ function RolesPanel() {
     <>
       {actionError && (
         <p role="alert" className="text-sm text-red-400">
-          {tc("error")}
+          {actionError}
         </p>
       )}
 
@@ -153,6 +165,8 @@ function RolesPanel() {
         </ul>
         )}
       </section>
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }

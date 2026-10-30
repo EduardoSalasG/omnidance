@@ -452,3 +452,8 @@
   (upsert; sin check-in → 403).
 - Productor en `/productor/eventos/[id]` → card "Comentarios de la
   serie" con textos anónimos (sin autor).
+
+### Feedback post-acción (estándar `unified-action-notice`)
+- `ActionNotice` = mecanismo ÚNICO de feedback éxito/error en todos los perfiles (AGENTS.md). Notice local por página (`useState<ActionNoticeData>`) cuando el flujo se queda; `showActionNotice()` (host global, sessionStorage+evento, montado en (app)/layout) cuando navega tras mutar.
+- Migrados: ~21 done-screens (redirect sin timer), ~35 inline persistentes, ~20 silentes. `notice.action` = CTA en el aviso (ej .ics tras reservar).
+- Excepciones (sin toast): ConfirmSheet, validación inline de campo, toggles optimistas reversibles, pantallas terminales (pago/encuesta), banner `?sub=` retorno pasarela, scan en pista (~5s), marcaje asistencia in-place.

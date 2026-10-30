@@ -1071,7 +1071,8 @@
     "newTitle": "New value · {catalog}",
     "editTitle": "Edit value · {catalog}",
     "valueNotFound": "Value not found",
-    "deleteHint": "Deletes the catalog value; cannot be undone."
+    "deleteHint": "Deletes the catalog value; cannot be undone.",
+    "deleted": "Value deleted"
   },
   "producerParams": {
     "title": "Default values",
@@ -1175,7 +1176,11 @@
       "plan": "Pricing plan",
       "ownerApproved": "Owner validated"
     },
-    "rejectAcademyConfirm": "Reject {name}? The academy is hidden from the public even if it completes its data."
+    "rejectAcademyConfirm": "Reject {name}? The academy is hidden from the public even if it completes its data.",
+    "approved": "{name} approved",
+    "rejected": "{name} rejected",
+    "academyApproved": "{name} approved",
+    "academyRejected": "{name} rejected"
   },
   "academyReview": {
     "title": "Public visibility",
@@ -1226,6 +1231,7 @@
     "actorLabels": {
       "ACADEMY_OWNER": "Academy name",
       "PRODUCER": "Event name"
-    }
+    },
+    "verified": "Email verified"
   }
 }
