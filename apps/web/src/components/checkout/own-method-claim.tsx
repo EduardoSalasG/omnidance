@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, Spinner } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import {
   OwnMethodDetails,
   type OwnMethod,
@@ -29,13 +31,19 @@ export function OwnMethodClaim({
   paymentId,
   method,
   onPaid,
+  returnHref,
 }: {
   paymentId: string;
   method: OwnMethod;
   onPaid: () => void;
+  /** Destino tras enviar el comprobante (ficha del evento/academia):
+      el aviso viaja por el host global y `replace` evita que "atrás"
+      vuelva a un checkout con estado intermedio. */
+  returnHref: string;
 }) {
   const t = useTranslations("checkout");
   const tc = useTranslations("common");
+  const router = useRouter();
 
   const [file, setFile] = useState<File | null>(null);
   const [note, setNote] = useState("");
@@ -92,11 +100,14 @@ export function OwnMethodClaim({
         setMsg({ ok: false, text: tc("error") });
         return;
       }
-      setMsg({ ok: true, text: t("claimSent") });
+      // El claim quedó PENDING de revisión: aviso global + vuelta a la
+      // página de origen (el checkout no queda en history → "atrás" no
+      // vuelve a un paso intermedio que re-ejecuta la acción).
+      showActionNotice({ text: t("claimSent") });
       setFile(null);
       setNote("");
       if (fileRef.current) fileRef.current.value = "";
-      await loadClaims();
+      router.replace(returnHref);
     } catch {
       setMsg({ ok: false, text: tc("error") });
     } finally {

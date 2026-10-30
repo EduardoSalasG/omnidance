@@ -262,6 +262,7 @@ export function SeriesPassCta({
           paymentId={phase.paymentId}
           method={phase.method}
           onPaid={() => setPhase({ kind: "success" })}
+          returnHref={`/eventos/${eventId}`}
         />
       )}
 

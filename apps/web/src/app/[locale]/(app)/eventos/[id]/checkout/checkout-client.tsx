@@ -992,6 +992,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             paymentId={phase.paymentId}
             method={phase.method}
             onPaid={onClaimPaid}
+            returnHref={`/eventos/${event.id}`}
           />
         )}
 
