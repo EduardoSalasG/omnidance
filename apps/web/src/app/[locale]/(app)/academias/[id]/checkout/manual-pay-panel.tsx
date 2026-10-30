@@ -220,11 +220,12 @@ export function ManualPayPanel({
     : null;
 
   return (
-    <Card className="flex flex-col gap-4">
-      <h2 className="text-base font-semibold">{t("chooseMethod")}</h2>
+    <>
+      <Card className="flex flex-col gap-4">
+        <h2 className="text-base font-semibold">{t("chooseMethod")}</h2>
 
-      {/* Comprobante ya en la cola de la academia. */}
-      {claim?.status === "PENDING" && (
+        {/* Comprobante ya en la cola de la academia. */}
+          {claim?.status === "PENDING" && (
         <div className="flex flex-col gap-2">
           <Badge variant="muted">{t("pendingTitle")}</Badge>
           <p role="status" className="text-sm leading-relaxed text-ink/70">
@@ -307,24 +308,6 @@ export function ManualPayPanel({
               className="text-sm text-ink/70 file:mr-3 file:min-h-11 file:rounded-xl file:border-0 file:bg-raised file:px-4 file:text-sm file:text-ink"
             />
           </label>
-          <Button
-            type="button"
-            className="w-full"
-            disabled={!file || busy}
-            onClick={() => void sendReceipt()}
-          >
-            {busy ? <Spinner size="sm" /> : null}
-            {busy ? t("sending") : t("submit")}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={() => void cancelIntent()}
-          >
-            {t("cancelIntent")}
-          </Button>
         </div>
       )}
 
@@ -386,19 +369,6 @@ export function ManualPayPanel({
               </label>
             ))}
           </div>
-          {selected && (
-            <Button
-              type="button"
-              className="mt-1 w-full"
-              disabled={busy}
-              onClick={() => void confirm()}
-            >
-              {busy ? <Spinner size="sm" /> : null}
-              {t("continueMethod", {
-                label: methods.find((m) => m.id === selected)?.label ?? "",
-              })}
-            </Button>
-          )}
         </div>
       )}
 
@@ -410,6 +380,49 @@ export function ManualPayPanel({
           {tc("error")}
         </p>
       )}
-    </Card>
+      </Card>
+
+      {/* CTAs de la acción SIEMPRE fuera del card, en la posición del
+          "Pagar" de la pasarela (el checkout oculta ese botón cuando el
+          panel está activo): continuar con el método elegido o enviar
+          el comprobante del intento registrado. */}
+      {!claim && selected && (
+        <Button
+          type="button"
+          className="w-full"
+          size="lg"
+          disabled={busy}
+          onClick={() => void confirm()}
+        >
+          {busy ? <Spinner size="sm" /> : null}
+          {t("continueMethod", {
+            label: methods.find((m) => m.id === selected)?.label ?? "",
+          })}
+        </Button>
+      )}
+      {claim?.status === "AWAITING" && (
+        <div className="flex flex-col gap-2">
+          <Button
+            type="button"
+            className="w-full"
+            size="lg"
+            disabled={!file || busy}
+            onClick={() => void sendReceipt()}
+          >
+            {busy ? <Spinner size="sm" /> : null}
+            {busy ? t("sending") : t("submit")}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={() => void cancelIntent()}
+          >
+            {t("cancelIntent")}
+          </Button>
+        </div>
+      )}
+    </>
   );
 }
