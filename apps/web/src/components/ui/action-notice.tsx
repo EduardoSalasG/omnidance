@@ -22,12 +22,22 @@ const EXIT_MS = 200;
  * - No se exporta por el barrel `index.ts`: importar por path directo
  *   `@/components/ui/action-notice`.
  */
+/** Shape del aviso post-acción; los padres guardan esto en estado. */
+export type ActionNoticeData = {
+  text: string;
+  /** true pinta rojo + role="alert". */
+  error?: boolean;
+  /** CTA opcional dentro del aviso (ej. "Agregar al calendario" tras
+      reservar): link same-origin, con `download` para assets como .ics. */
+  action?: { href: string; label: string; download?: boolean };
+};
+
 export function ActionNotice({
   notice,
   onDismiss,
 }: {
   /** Texto ya traducido; `error` pinta rojo + role="alert". */
-  notice: { text: string; error?: boolean } | null;
+  notice: ActionNoticeData | null;
   /** El padre limpia `notice` - requerido para cerrar/auto-dismiss. */
   onDismiss?: () => void;
 }) {
@@ -107,6 +117,15 @@ export function ActionNotice({
         <p className="min-w-0 flex-1 text-sm font-medium text-ink">
           {notice.text}
         </p>
+        {notice.action && (
+          <a
+            href={notice.action.href}
+            {...(notice.action.download ? { download: true } : {})}
+            className="shrink-0 rounded-md text-sm font-semibold text-neon underline-offset-4 transition-colors hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon"
+          >
+            {notice.action.label}
+          </a>
+        )}
         {onDismiss && (
           <button
             type="button"

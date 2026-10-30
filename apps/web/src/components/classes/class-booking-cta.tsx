@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Button, CalendarIcon, Card, PriceTag, Spinner } from "@/components/ui";
-import { ActionNotice } from "@/components/ui/action-notice";
+import { ActionNotice, type ActionNoticeData } from "@/components/ui/action-notice";
 import { readError } from "@/components/academy/shared";
 import { Link, useRouter } from "@/i18n/navigation";
 
@@ -97,9 +97,7 @@ export function ClassBookingCta({
   const [simulating, setSimulating] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const dialogRef = useDialogFocus<HTMLDivElement>(confirming);
-  const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(
-    null,
-  );
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   // Escape cierra el sheet de confirmación.
   useEffect(() => {
@@ -110,6 +108,17 @@ export function ClassBookingCta({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [confirming]);
+
+  // CTA de calendario en el aviso post-reserva (spec class-calendar-ics):
+  // el .ics también está al pie de la ficha, pero quien reserva desde la
+  // lista o no baja hasta el pie no lo ve.
+  function calendarAction(): NonNullable<ActionNoticeData["action"]> {
+    return {
+      href: `/api/classes/${classId}/calendar.ics`,
+      label: t("addToCalendar"),
+      download: true,
+    };
+  }
 
   async function book() {
     setBusy(true);
@@ -128,6 +137,9 @@ export function ClassBookingCta({
       setNotice({
         text: status === "WAITLIST" ? t("waitlistOk") : t("bookedOk"),
         error: false,
+        // El .ics se ofrece en el propio aviso: si el usuario no abre
+        // más nada, la acción de calendario quedó visible igual.
+        ...(status === "BOOKED" ? { action: calendarAction() } : {}),
       });
       // El badge "Reservado" del header es server-rendered - refresh lo
       // sincroniza sin perder el estado local del componente.
@@ -192,7 +204,11 @@ export function ClassBookingCta({
             setAwaiting(null);
             setPaid(true);
             setBooking("BOOKED");
-            setNotice({ text: t("bookedOk"), error: false });
+            setNotice({
+              text: t("bookedOk"),
+              error: false,
+              action: calendarAction(),
+            });
             router.refresh();
           } else if (payment.status === "FAILED") {
             clearInterval(interval);

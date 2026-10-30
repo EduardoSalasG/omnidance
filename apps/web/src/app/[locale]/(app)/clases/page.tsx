@@ -17,7 +17,7 @@ import {
   OnboardingRunner,
   type TourStep,
 } from "@/components/onboarding/OnboardingRunner";
-import { ActionNotice } from "@/components/ui/action-notice";
+import { ActionNotice, type ActionNoticeData } from "@/components/ui/action-notice";
 import { readError } from "@/components/academy/shared";
 import {
   ClassCard,
@@ -217,9 +217,7 @@ function ClasesInner() {
     null,
   );
 
-  const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(
-    null,
-  );
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   // busyId = classId en vuelo (book o cancel) - compartido entre vistas.
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -372,6 +370,17 @@ function ClasesInner() {
       setNotice({
         text: booking.status === "WAITLIST" ? t("waitlistOk") : t("bookedOk"),
         error: false,
+        // .ics en el aviso: quien reserva desde la card no abre la
+        // ficha, así el "agregar a calendario" queda visible igual.
+        ...(booking.status === "BOOKED"
+          ? {
+              action: {
+                href: `/api/classes/${cls.id}/calendar.ics`,
+                label: t("addToCalendar"),
+                download: true,
+              },
+            }
+          : {}),
       });
       await Promise.all([loadBrowse(), loadMine()]);
     } catch {
