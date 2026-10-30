@@ -124,6 +124,8 @@
       "topPlanMeta": "{count, plural, one {# encaissement} other {# encaissements}} · {amount}",
       "empty": "Aucun encaissement sur la période ou avec ces filtres.",
       "forbidden": "Vous n'avez pas accès à cette section."
-    }
+    },
+    "pendingTitleCash": "Paiement à valider",
+    "pendingDescCash": "L'académie confirme ton paiement en espèces quand tu viens en cours. On te prévient dès qu'il est enregistré."
   }
 }

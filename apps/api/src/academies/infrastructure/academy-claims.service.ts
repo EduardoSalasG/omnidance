@@ -227,7 +227,7 @@ export class AcademyClaimsService {
       plan.currency ?? "CLP",
     );
 
-    return this.prisma.paymentClaim.create({
+    const created = await this.prisma.paymentClaim.create({
       data: {
         academyId,
         personId,
@@ -242,9 +242,15 @@ export class AcademyClaimsService {
         methodId: method.id,
         methodType: method.type,
         methodLabel: method.label,
-        status: "AWAITING",
+        // Efectivo en clase no tiene comprobante: nace PENDING en la
+        // cola de validación - el owner confirma el pago en persona.
+        status: method.type === "CASH" ? "PENDING" : "AWAITING",
       },
     });
+    if (method.type === "CASH") {
+      await this.notifyOwnerNewClaim(academyId, personId, created);
+    }
+    return created;
   }
 
   /**
@@ -305,7 +311,7 @@ export class AcademyClaimsService {
       select: { id: true },
     });
 
-    return this.prisma.paymentClaim.create({
+    const created = await this.prisma.paymentClaim.create({
       data: {
         academyId,
         personId,
@@ -319,9 +325,46 @@ export class AcademyClaimsService {
         methodId: method.id,
         methodType: method.type,
         methodLabel: method.label,
-        status: "AWAITING",
+        // Misma regla CASH que el intent de plan: sin comprobante, va
+        // PENDING directo a la cola de validación del owner.
+        status: method.type === "CASH" ? "PENDING" : "AWAITING",
       },
     });
+    if (method.type === "CASH") {
+      await this.notifyOwnerNewClaim(academyId, personId, created);
+    }
+    return created;
+  }
+
+  /**
+   * Notifica al owner que hay un claim nuevo por validar (mismo tipo
+   * que el upload de comprobante): los intents CASH no tienen receipt
+   * que subir, la notificación sale al crear el intento.
+   */
+  private async notifyOwnerNewClaim(
+    academyId: string,
+    personId: string,
+    claim: { id: string; amount: number; currency: string },
+  ) {
+    const [academy, person] = await Promise.all([
+      this.prisma.academy.findUnique({
+        where: { id: academyId },
+        select: { name: true, ownerId: true },
+      }),
+      this.prisma.person.findUnique({
+        where: { id: personId },
+        select: { name: true },
+      }),
+    ]);
+    if (academy) {
+      await this.notifications.notifySafe(academy.ownerId, {
+        category: "TRANSACTIONAL",
+        type: "payment_claim_new",
+        title: `Pago por validar: ${person?.name ?? "un alumno"}`,
+        body: `${academy.name} · ${claimMoney(claim.amount, claim.currency)}`,
+        data: { academyId, claimId: claim.id },
+      });
+    }
   }
 
   /**
