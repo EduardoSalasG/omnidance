@@ -124,6 +124,8 @@
       "topPlanMeta": "{count, plural, one {# cobro} other {# cobros}} · {amount}",
       "empty": "Sin cobros en el período o con estos filtros.",
       "forbidden": "No tienes acceso a esta sección."
-    }
+    },
+    "pendingTitleCash": "Pago por validar",
+    "pendingDescCash": "La academia confirma tu pago en efectivo cuando asistas a clase. Te avisamos cuando quede registrado."
   }
 }

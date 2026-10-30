@@ -141,13 +141,38 @@ export function ManualPayPanel({
   // botones (Pagar + Continuar) o sin ninguno - el "flash" al alternar.
 
   async function copy(key: string, text: string) {
-    if (!navigator.clipboard) return;
+    // Clipboard API exige contexto seguro + permiso; si no está o
+    // rechaza, cae al execCommand clásico (textarea oculto + select).
+    let ok = false;
     try {
-      await navigator.clipboard.writeText(text);
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      }
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        ok = document.execCommand("copy");
+      } catch {
+        ok = false;
+      }
+      document.body.removeChild(ta);
+    }
+    // Estado "Copiado" solo si de verdad copió: el botón muda a
+    // confirmación ~1.5s; si ambos métodos fallaron, no muestra nada
+    // (nunca un éxito falso sobre un clipboard que no funcionó).
+    if (ok) {
       setCopied(key);
       setTimeout(() => setCopied(null), 1500);
-    } catch {
-      // Clipboard rechazó: no mostrar "Copiado" sin haber copiado.
     }
   }
 
@@ -254,14 +279,21 @@ export function ManualPayPanel({
       <Card className="flex flex-col gap-4">
         <h2 className="text-base font-semibold">{t("chooseMethod")}</h2>
 
-        {/* Comprobante ya en la cola de la academia. */}
+        {/* Comprobante o pago en efectivo ya en la cola de la
+            academia: CASH no pide receipt, el intento nace PENDING. */}
           {claim?.status === "PENDING" && (
         <div className="flex flex-col gap-2">
-          <Badge variant="muted">{t("pendingTitle")}</Badge>
+          <Badge variant="muted">
+            {claim.methodType === "CASH"
+              ? t("pendingTitleCash")
+              : t("pendingTitle")}
+          </Badge>
           <p role="status" className="text-sm leading-relaxed text-ink/70">
-            {privateClass
-              ? t("pendingDescPrivate", { method: claim.methodLabel })
-              : t("pendingDesc", { method: claim.methodLabel })}
+            {claim.methodType === "CASH"
+              ? t("pendingDescCash")
+              : privateClass
+                ? t("pendingDescPrivate", { method: claim.methodLabel })
+                : t("pendingDesc", { method: claim.methodLabel })}
           </p>
         </div>
       )}

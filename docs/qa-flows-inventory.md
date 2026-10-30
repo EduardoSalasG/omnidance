@@ -171,7 +171,7 @@
 
 ### Checkout membresía `/academias/[id]/checkout?plan=&mode=once|sub`
 - `?plan` requerido; `GET /checkout/membership-quote?planId` (401→/login; 404→notfound; 400→planUnavailable; ACTIVE/CANCEL_PENDING→alreadySubscribed).
-- Review card (vigencia, extensión, total). ManualPayPanel (oculto en sub): radio pasarela vs métodos → `POST /academies/:id/claims/intent` → AWAITING → datos transferencia/copy → upload `POST .../receipt` → PENDING; cancel `POST .../cancel`; claim viva reanuda; última REJECTED muestra nota.
+- Review card (vigencia, extensión, total). ManualPayPanel (oculto en sub): radio pasarela vs métodos → `POST /academies/:id/claims/intent` → AWAITING (**CASH nace PENDING directo - sin comprobante, owner valida en clase**) → datos transferencia/copy → upload `POST .../receipt` → PENDING; cancel `POST .../cancel`; claim viva reanuda; última REJECTED muestra nota.
 - Pago una vez → `POST /checkout/membership` → redirect|stub poll → /academias/{id}.
 - Sub (solo recurring+FLOW): Segmented once/sub; consent checkbox* → `POST /checkout/membership-subscription` → needs_card→intersticial→registerUrl (vuelve ?sub=ok|error) | subscribed→poll `/subscriptions/:id`→?sub=ok; 409→perfil academia.
 

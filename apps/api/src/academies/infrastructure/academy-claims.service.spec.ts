@@ -43,6 +43,15 @@ function mkPrisma() {
       active: false,
       order: 1,
     },
+    {
+      id: "met-cash",
+      academyId: ACADEMY,
+      type: "CASH",
+      label: "Efectivo en clase",
+      details: { instructions: "paga al llegar" },
+      active: true,
+      order: 2,
+    },
   ];
   const plans: Row[] = [
     {
@@ -286,6 +295,22 @@ describe("AcademyClaimsService.createIntent", () => {
     expect(claim.planId).toBe(PLAN);
     expect(claim.enrollmentId).toBe("enr-1");
     expect(fx.data.claims).toHaveLength(1);
+  });
+
+  // Efectivo en clase no tiene comprobante: el intento nace PENDING
+  // directo en la cola del owner y notifica como el upload de receipt.
+  it("CASH: el intento nace PENDING y notifica al owner", async () => {
+    const { service, notifications } = mkService();
+    const claim = await service.createIntent(ACADEMY, PERSON, {
+      planId: PLAN,
+      methodId: "met-cash",
+    });
+    expect(claim.status).toBe("PENDING");
+    expect(claim.methodType).toBe("CASH");
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "owner-1",
+      expect.objectContaining({ type: "payment_claim_new" }),
+    );
   });
 
   it("es idempotente: re-seleccionar devuelve el claim AWAITING existente", async () => {
