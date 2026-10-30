@@ -78,6 +78,19 @@ function mkPrisma() {
     { id: "enr-1", academyId: ACADEMY, personId: PERSON, status: "ACTIVE", endsAt: null },
   ];
   const persons: Row[] = [{ id: PERSON, name: "Alumno" }];
+  const payments: Row[] = [];
+  const privateLessons: Row[] = [];
+  // Academia vendible por defecto (spec private-class-checkout):
+  // activa, con privateLessonPrice y sin bloqueo por mora.
+  const academyRow: Row = {
+    id: ACADEMY,
+    name: "Academia",
+    ownerId: "owner-1",
+    active: true,
+    privateLessonPrice: 30000,
+    billingBlockedAt: null,
+    city: { country: { currency: "CLP" } },
+  };
 
   const matchWhere = (row: Row, where: Row | undefined): boolean => {
     if (!where) return true;
@@ -109,9 +122,7 @@ function mkPrisma() {
     return base && (OR as Row[]).some((w) => matchWhere(row, w));
   };
 
-  return {
-    data: { methods, plans, claims, enrollments, persons },
-    prisma: {
+  const prisma: Row = {
       academyPaymentMethod: {
         findMany: vi.fn(async ({ where }: Row = {}) =>
           methods.filter((m) => matchWhere(m, where)),
@@ -136,6 +147,43 @@ function mkPrisma() {
           async ({ where }: Row) =>
             enrollments.find((e) => matchWhere(e, where)) ?? null,
         ),
+        findUniqueOrThrow: vi.fn(async ({ where }: Row) => {
+          const e = enrollments.find((x) => x.id === where.id);
+          if (!e) throw new Error("enrollment no encontrado");
+          return e;
+        }),
+        update: vi.fn(async ({ where, data }: Row) => {
+          const e = enrollments.find((x) => x.id === where.id);
+          if (e) Object.assign(e, data);
+          return e;
+        }),
+        create: vi.fn(async ({ data }: Row) => {
+          const row = { id: `enr-${enrollments.length + 1}`, ...data };
+          enrollments.push(row);
+          return row;
+        }),
+      },
+      payment: {
+        create: vi.fn(async ({ data }: Row) => {
+          const row = {
+            id: `pay-${payments.length + 1}`,
+            createdAt: new Date(),
+            ...data,
+          };
+          payments.push(row);
+          return row;
+        }),
+      },
+      privateLesson: {
+        create: vi.fn(async ({ data }: Row) => {
+          const row = {
+            id: `pvl-${privateLessons.length + 1}`,
+            createdAt: new Date(),
+            ...data,
+          };
+          privateLessons.push(row);
+          return row;
+        }),
       },
       paymentClaim: {
         findFirst: vi.fn(async ({ where }: Row) => {
@@ -175,15 +223,33 @@ function mkPrisma() {
       },
       academy: {
         findUnique: vi.fn(async ({ where }: Row) =>
-          where.id === ACADEMY
-            ? { id: ACADEMY, name: "Academia", ownerId: "owner-1" }
-            : null,
+          where.id === ACADEMY ? academyRow : null,
         ),
       },
       // Sin promos por defecto (spec member-promos) - el test de promo
       // siembra vía mockResolvedValue.
       academyPromo: { findMany: vi.fn(async () => [] as Row[]) },
+  };
+
+  // La tx del approve corre sobre el mismo cliente mockeado: los
+  // modelos que usa (payment, privateLesson, enrollment, paymentClaim)
+  // ya están implementados arriba.
+  prisma.$transaction = vi.fn(
+    async (cb: (tx: Row) => unknown) => cb(prisma),
+  );
+
+  return {
+    data: {
+      methods,
+      plans,
+      claims,
+      enrollments,
+      persons,
+      payments,
+      privateLessons,
+      academyRow,
     },
+    prisma,
   };
 }
 
@@ -443,5 +509,196 @@ describe("AcademyClaimsService.createIntent - moneda (spec multipais-currency)",
       methodId: METHOD,
     });
     expect(claim.currency).toBe("MXN");
+  });
+});
+
+// Intento de clase particular por método propio (spec
+// private-class-checkout): kind PRIVATE_CLASS, planId null, amount =
+// privateLessonPrice, sin promo, idempotente por kind.
+describe("AcademyClaimsService.createIntent - clase particular", () => {
+  it("crea claim kind PRIVATE_CLASS con amount = privateLessonPrice y planId null", async () => {
+    const { service, fx } = mkService();
+    const claim = await service.createIntent(ACADEMY, PERSON, {
+      privateClass: true,
+      methodId: METHOD,
+    });
+    expect(claim.kind).toBe("PRIVATE_CLASS");
+    expect(claim.planId ?? null).toBeNull();
+    expect(claim.amount).toBe(30000);
+    expect(claim.currency).toBe("CLP");
+    expect(claim.status).toBe("AWAITING");
+    expect(claim.methodLabel).toBe("Transferencia");
+    expect(fx.data.claims).toHaveLength(1);
+  });
+
+  it("es idempotente por kind: no duplica el claim vivo", async () => {
+    const { service, fx } = mkService();
+    const first = await service.createIntent(ACADEMY, PERSON, {
+      privateClass: true,
+      methodId: METHOD,
+    });
+    const second = await service.createIntent(ACADEMY, PERSON, {
+      privateClass: true,
+      methodId: METHOD,
+    });
+    expect(second.id).toBe(first.id);
+    expect(fx.data.claims).toHaveLength(1);
+  });
+
+  it("devuelve el PENDING existente en vez de duplicar", async () => {
+    const { service, fx } = mkService();
+    fx.data.claims.push({
+      id: "claim-pc",
+      academyId: ACADEMY,
+      personId: PERSON,
+      kind: "PRIVATE_CLASS",
+      planId: null,
+      status: "PENDING",
+    });
+    const claim = await service.createIntent(ACADEMY, PERSON, {
+      privateClass: true,
+      methodId: METHOD,
+    });
+    expect(claim.id).toBe("claim-pc");
+    expect(fx.data.claims).toHaveLength(1);
+  });
+
+  it("no colisiona con el claim PLAN vivo del mismo alumno", async () => {
+    const { service, fx } = mkService();
+    await service.createIntent(ACADEMY, PERSON, {
+      planId: PLAN,
+      methodId: METHOD,
+    });
+    const pc = await service.createIntent(ACADEMY, PERSON, {
+      privateClass: true,
+      methodId: METHOD,
+    });
+    expect(pc.kind).toBe("PRIVATE_CLASS");
+    expect(fx.data.claims).toHaveLength(2);
+  });
+
+  it("400 cuando la academia no vende particulares (inactiva o sin precio)", async () => {
+    const { service, fx } = mkService();
+    fx.data.academyRow.privateLessonPrice = null;
+    await expect(
+      service.createIntent(ACADEMY, PERSON, {
+        privateClass: true,
+        methodId: METHOD,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    fx.data.academyRow.privateLessonPrice = 30000;
+    fx.data.academyRow.active = false;
+    await expect(
+      service.createIntent(ACADEMY, PERSON, {
+        privateClass: true,
+        methodId: METHOD,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("400 cuando la academia está bloqueada por mora", async () => {
+    const { service, fx } = mkService();
+    fx.data.academyRow.billingBlockedAt = new Date();
+    await expect(
+      service.createIntent(ACADEMY, PERSON, {
+        privateClass: true,
+        methodId: METHOD,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("400 con planId + privateClass juntos o sin ninguna forma", async () => {
+    const { service } = mkService();
+    await expect(
+      service.createIntent(ACADEMY, PERSON, {
+        planId: PLAN,
+        privateClass: true,
+        methodId: METHOD,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.createIntent(ACADEMY, PERSON, {
+        methodId: METHOD,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+
+// Aprobación de claims (spec private-class-checkout): el claim PLAN
+// sigue creando el Payment MEMBERSHIP + vigencia; el PRIVATE_CLASS crea
+// Payment PRIVATE y materializa la PrivateLesson "por asignar".
+describe("AcademyClaimsService.approve", () => {
+  it("PRIVATE_CLASS: Payment MANUAL PRIVATE + PrivateLesson por asignar", async () => {
+    const { service, fx, notifications } = mkService();
+    fx.data.claims.push({
+      id: "claim-pc",
+      academyId: ACADEMY,
+      personId: PERSON,
+      kind: "PRIVATE_CLASS",
+      planId: null,
+      amount: 30000,
+      currency: "CLP",
+      status: "PENDING",
+      receiptKey: "claims/ac-1/rcpt.png",
+    });
+    const res = await service.approve(ACADEMY, "claim-pc", "owner-1");
+
+    expect(fx.data.payments).toHaveLength(1);
+    const pay = fx.data.payments[0];
+    expect(pay.orderType).toBe("PRIVATE");
+    expect(pay.gateway).toBe("MANUAL");
+    expect(pay.status).toBe("PAID");
+    expect(pay.refId).toBe("claim-claim-pc");
+    expect(pay.amount).toBe(30000);
+
+    expect(fx.data.privateLessons).toHaveLength(1);
+    const lesson = fx.data.privateLessons[0];
+    expect(lesson.status).toBe("REQUESTED");
+    expect(lesson.instructorId).toBeNull();
+    expect(lesson.scheduledAt).toBeNull();
+    expect(lesson.paymentId).toBe(pay.id);
+    expect(lesson.price).toBe(30000);
+    expect(lesson.personId).toBe(PERSON);
+    expect(lesson.academyId).toBe(ACADEMY);
+
+    // Sin plan: no toca enrollment ni vigencia.
+    expect(fx.data.enrollments).toHaveLength(1);
+    expect(fx.data.enrollments[0].endsAt).toBeNull();
+    expect(res.newEndsAt).toBeNull();
+    expect(res.claim.status).toBe("APPROVED");
+    expect(res.claim.reviewedById).toBe("owner-1");
+    expect(res.lessonId).toBe(lesson.id);
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      PERSON,
+      expect.objectContaining({ type: "payment_claim_approved" }),
+    );
+  });
+
+  it("PLAN: Payment MANUAL MEMBERSHIP + vigencia extendida, sin lección", async () => {
+    const { service, fx } = mkService();
+    fx.data.claims.push({
+      id: "claim-pl",
+      academyId: ACADEMY,
+      personId: PERSON,
+      kind: "PLAN",
+      planId: PLAN,
+      // El include del approve trae el plan embebido.
+      plan: { id: PLAN, type: "MONTHLY", periodDays: 30 },
+      enrollmentId: "enr-1",
+      amount: 25000,
+      currency: "CLP",
+      status: "PENDING",
+      receiptKey: "claims/ac-1/rcpt.png",
+    });
+    const res = await service.approve(ACADEMY, "claim-pl", "owner-1");
+
+    expect(fx.data.payments).toHaveLength(1);
+    expect(fx.data.payments[0].orderType).toBe("MEMBERSHIP");
+    expect(fx.data.payments[0].refId).toBe("claim-claim-pl");
+    expect(fx.data.privateLessons).toHaveLength(0);
+    const enr = fx.data.enrollments.find((e) => e.id === "enr-1");
+    expect(enr?.endsAt).toBeInstanceOf(Date);
+    expect(res.newEndsAt).toBeInstanceOf(Date);
+    expect(res.claim.status).toBe("APPROVED");
   });
 });

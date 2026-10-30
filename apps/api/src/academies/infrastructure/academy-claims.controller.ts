@@ -23,6 +23,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  ValidateIf,
 } from "class-validator";
 import type { Request, Response } from "express";
 import type { ClaimStatus } from "@prisma/client";
@@ -96,10 +97,21 @@ class UpdateMethodDto {
   active?: boolean;
 }
 
+/**
+ * Intento del checkout manual (spec private-class-checkout): una sola
+ * forma por llamada. planId se exige salvo que el intento declare
+ * privateClass:true; la combinación planId + privateClass:true la
+ * rechaza el servicio con 400 (class-validator no expresa XOR).
+ */
 class IntentClaimDto {
+  @ValidateIf((o: IntentClaimDto) => o.privateClass !== true)
   @IsString()
   @IsNotEmpty()
-  planId!: string;
+  planId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  privateClass?: boolean;
 
   @IsString()
   @IsNotEmpty()
@@ -212,9 +224,12 @@ export class AcademyClaimsController {
 
   /**
    * POST /academies/:id/claims/intent - intento de pago del checkout
-   * manual (spec academy-checkout-manual-pay): crea el claim AWAITING
-   * (sin comprobante) con snapshot del plan/método, o devuelve el
-   * existente del alumno para ese plan (idempotente - reanudable).
+   * manual (spec academy-checkout-manual-pay + private-class-checkout):
+   * crea el claim AWAITING (sin comprobante) con snapshot del
+   * plan/método, o el de clase particular con {privateClass:true}
+   * (kind PRIVATE_CLASS, planId null, amount = privateLessonPrice).
+   * Idempotente: devuelve el claim vivo del alumno para ese plan o
+   * kind (reanudable).
    */
   @Post(":id/claims/intent")
   async intent(

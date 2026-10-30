@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, Spinner } from "@/components/ui";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { useNumFmt } from "@/lib/intl";
 
 type PaymentMethod = {
@@ -23,6 +25,9 @@ type MyClaim = {
   reviewNote: string | null;
   createdAt: string;
   planId: string | null;
+  /** kind del claim (spec private-class-checkout): PLAN es el default
+      del backfill; PRIVATE_CLASS identifica el intento de particular. */
+  kind?: "PLAN" | "PRIVATE_CLASS";
 };
 
 // Orden pedido: nombre, RUT, banco, tipo de cuenta, N° de cuenta, email.
@@ -42,21 +47,35 @@ const TRANSFER_FIELDS: {
 
 /**
  * Selector de medio + flujo manual dentro del checkout de membresía
- * (spec academy-checkout-manual-pay). Si la academia publica métodos
- * propios, el alumno elige entre la pasarela y un método directo; al
- * confirmar se registra el claim AWAITING (persiste si sale a
- * transferir) y al volver reanuda instrucciones + upload. Informa al
- * padre si hay una ruta manual activa para ocultar el CTA de Flow.
+ * y de clase particular (specs academy-checkout-manual-pay y
+ * private-class-checkout). Si la academia publica métodos propios, el
+ * alumno elige entre la pasarela y un método directo; al confirmar se
+ * registra el claim AWAITING (persiste si sale a transferir) y al
+ * volver reanuda instrucciones + upload. Informa al padre si hay una
+ * ruta manual activa para ocultar el CTA de la pasarela.
  */
 export function ManualPayPanel({
   academyId,
   planId,
+  privateClass = false,
   planPrice,
+  returnHref,
   onBlockingChange,
 }: {
   academyId: string;
-  planId: string;
+  /** Checkout de plan: el intento va {planId, methodId} y el claim
+      vivo se matchea por planId. */
+  planId?: string;
+  /** Checkout de clase particular: el intento va
+      {privateClass:true, methodId} y el claim vivo se matchea por
+      kind PRIVATE_CLASS. */
+  privateClass?: boolean;
   planPrice: number;
+  /** Destino tras enviar el comprobante (ficha de la academia): el
+      aviso viaja por el host global y `replace` evita que "atrás"
+      vuelva a un paso intermedio del checkout. Sin returnHref el
+      panel queda en su estado PENDING (flujo membresía). */
+  returnHref?: string;
   /** true cuando el panel tiene el control (método elegido o claim vivo). */
   onBlockingChange: (blocked: boolean) => void;
 }) {
@@ -67,6 +86,7 @@ export function ManualPayPanel({
 });
   const t = useTranslations("academyPay");
   const tc = useTranslations("common");
+  const router = useRouter();
 
   const [methods, setMethods] = useState<PaymentMethod[] | null>(null);
   const [claim, setClaim] = useState<MyClaim | null>(null);
@@ -87,22 +107,22 @@ export function ManualPayPanel({
       const methodRows: PaymentMethod[] = m.ok ? await m.json() : [];
       const claims: MyClaim[] = c.ok ? await c.json() : [];
       setMethods(methodRows);
-      // El intento vivo de este plan manda; si el último quedó REJECTED
+      // El intento vivo de este producto manda: plan por planId,
+      // particular por kind PRIVATE_CLASS. Si el último quedó REJECTED
       // se muestra el motivo y se permite un intento nuevo.
+      const isMine = (r: MyClaim) =>
+        privateClass ? r.kind === "PRIVATE_CLASS" : r.planId === planId;
       const live = claims.find(
         (r) =>
-          r.planId === planId &&
+          isMine(r) &&
           (r.status === "AWAITING" || r.status === "PENDING"),
       );
       const lastRejected = claims.find(
-        (r) => r.planId === planId && r.status === "REJECTED",
+        (r) => isMine(r) && r.status === "REJECTED",
       );
       setClaim(live ?? null);
       setRejectedNote(!live && lastRejected ? lastRejected.reviewNote : null);
-      onBlockingChange(
-        !!live ||
-          claims.some((r) => r.planId === planId && r.status === "PENDING"),
-      );
+      onBlockingChange(!!live);
     } catch {
       // Fallo de red: el panel igual se muestra con la pasarela
       // como única opción (manualActive queda en false) + error
@@ -110,7 +130,7 @@ export function ManualPayPanel({
       setMethods([]);
       setError(true);
     }
-  }, [academyId, planId, onBlockingChange]);
+  }, [academyId, planId, privateClass, onBlockingChange]);
 
   useEffect(() => {
     void load();
@@ -147,7 +167,11 @@ export function ManualPayPanel({
       const res = await apiFetch(`/academies/${academyId}/claims/intent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, methodId: selected }),
+        body: JSON.stringify(
+          privateClass
+            ? { privateClass: true, methodId: selected }
+            : { planId, methodId: selected },
+        ),
       });
       if (!res.ok) {
         setError(true);
@@ -181,6 +205,13 @@ export function ManualPayPanel({
       setClaim(await res.json());
       setFile(null);
       if (fileRef.current) fileRef.current.value = "";
+      // Flujo particular: el claim quedó PENDING de revisión; aviso
+      // global + vuelta a la ficha de la academia (mismo estándar que
+      // OwnMethodClaim del checkout de eventos).
+      if (returnHref) {
+        showActionNotice({ text: t("sentOk") });
+        router.replace(returnHref);
+      }
     } catch {
       setError(true);
     } finally {
@@ -228,7 +259,9 @@ export function ManualPayPanel({
         <div className="flex flex-col gap-2">
           <Badge variant="muted">{t("pendingTitle")}</Badge>
           <p role="status" className="text-sm leading-relaxed text-ink/70">
-            {t("pendingDesc", { method: claim.methodLabel })}
+            {privateClass
+              ? t("pendingDescPrivate", { method: claim.methodLabel })
+              : t("pendingDesc", { method: claim.methodLabel })}
           </p>
         </div>
       )}

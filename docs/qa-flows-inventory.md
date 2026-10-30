@@ -165,7 +165,7 @@
 - `GET /academies/:id/profile` (404→notFound). Header: enrollment badge, contacto (IG/wa/web), billingBlocked→unavailable.
 - `SubscriptionManage` (si mySubscription): ACTIVE→badge+cancel 2-pasos→`POST /subscriptions/:id/cancel`; PENDING_CARD/FAILED_CARD→resumeCard→`POST /checkout/membership-subscription`→needs_card→registerUrl; ACTIVATING→spinner; CANCEL_PENDING→badge.
 - `ProfilePlansSection`: ≤2 planes+toggle; CTA → /academias/{id}/checkout?plan={id} (buyClass SINGLE; extendPlan si activo); bloqueado→unavailable; TRIAL gratis→trialAssigned.
-- `BuyPrivateClass` (privateLessonPrice>0): `POST /checkout/private-class`→gateway|stub→/checkout/return.
+- `BuyPrivateClass` (privateLessonPrice>0): navega a /academias/{id}/checkout/particular; bloqueado→disabled.
 - `AcademyClaimsMine`: claims propios read-only (+reviewNote en rechazo).
 - Clases ≤2 → /clases/{id}; más → /clases?s=explorar&academy={id}.
 
@@ -174,6 +174,12 @@
 - Review card (vigencia, extensión, total). ManualPayPanel (oculto en sub): radio pasarela vs métodos → `POST /academies/:id/claims/intent` → AWAITING → datos transferencia/copy → upload `POST .../receipt` → PENDING; cancel `POST .../cancel`; claim viva reanuda; última REJECTED muestra nota.
 - Pago una vez → `POST /checkout/membership` → redirect|stub poll → /academias/{id}.
 - Sub (solo recurring+FLOW): Segmented once/sub; consent checkbox* → `POST /checkout/membership-subscription` → needs_card→intersticial→registerUrl (vuelve ?sub=ok|error) | subscribed→poll `/subscriptions/:id`→?sub=ok; 409→perfil academia.
+
+### Checkout clase particular `/academias/[id]/checkout/particular`
+- `GET /checkout/private-class-quote?academyId` (401→/login; 404|400→notFound; academy.id≠path→notFound). Sin vigencia/suscripción/promo: pago único.
+- Quote card (academia + "Clase particular" + hint coordinación post-pago) + breakdown (producto→total). Errores del CTA vía ActionNotice global (401→acción login; 400|404→unavailable; resto→generic).
+- ManualPayPanel variante privateClass: radio pasarela vs métodos → `POST /academies/:id/claims/intent {privateClass:true,methodId}` → claim kind PRIVATE_CLASS AWAITING (reanuda por kind) → datos/copy → upload `POST .../receipt` → toast sentOk + `replace` a /academias/{id}; cancel `POST .../cancel`; REJECTED previa muestra nota.
+- CTA pasarela → `POST /checkout/private-class` → stub:// awaiting + devSim + poll `/payments/:id` (terminal o ~30s→/checkout/return?paymentId=) | URL real→`location.assign`.
 
 ### Encuesta academia `/academias/[id]/encuesta?seriesId&month&series`
 - Params inválidos → card; sin sesión → loginRequired. course★* + instructor★ opcional + comentario ≤500 → `POST /me/course-surveys` → done → volver academia.

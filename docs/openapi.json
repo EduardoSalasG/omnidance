@@ -7730,6 +7730,74 @@
       }
     },
     "/api/academies/{id}/slots/{slotId}": {
+      "get": {
+        "operationId": "ClassSeriesController_getSlot",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slotId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
+      },
+      "patch": {
+        "operationId": "ClassSeriesController_updateSlot",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slotId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSlotDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
+      },
       "delete": {
         "operationId": "ClassSeriesController_deleteSlot",
         "parameters": [
@@ -7743,6 +7811,37 @@
           },
           {
             "name": "slotId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
+      }
+    },
+    "/api/academies/{id}/classes/{classId}/cancel": {
+      "post": {
+        "operationId": "ClassSeriesController_cancelClass",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "classId",
             "required": true,
             "in": "path",
             "schema": {
@@ -11712,6 +11811,10 @@
         "properties": {}
       },
       "UpdateSeriesDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateSlotDto": {
         "type": "object",
         "properties": {}
       },

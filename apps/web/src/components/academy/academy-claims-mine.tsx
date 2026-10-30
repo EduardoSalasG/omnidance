@@ -20,6 +20,7 @@ type MyClaim = {
   reviewNote: string | null;
   createdAt: string;
   plan: { name: string } | null;
+  kind?: "PLAN" | "PRIVATE_CLASS";
 };
 
 const statusStyle: Record<
@@ -51,6 +52,7 @@ export function AcademyClaimsMine({ academyId }: { academyId: string }) {
 });
   const locale = useLocale();
   const t = useTranslations("academyPay");
+  const tp = useTranslations("privateCheckout");
   const [claims, setClaims] = useState<MyClaim[] | null>(null);
 
   useEffect(() => {
@@ -73,7 +75,9 @@ export function AcademyClaimsMine({ academyId }: { academyId: string }) {
             className="flex flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm"
           >
             <span className="font-medium">
-              {c.plan?.name ?? c.methodLabel}
+              {c.kind === "PRIVATE_CLASS"
+                ? tp("product")
+                : (c.plan?.name ?? c.methodLabel)}
             </span>
             <span className="text-ink/50">
               {clp(locale).format(c.amount)} · {dayFmt.format(new Date(c.createdAt))}

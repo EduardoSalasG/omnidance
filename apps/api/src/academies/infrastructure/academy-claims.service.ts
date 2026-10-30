@@ -159,21 +159,35 @@ export class AcademyClaimsService {
   }
 
   /**
-   * Intento de pago del checkout (spec academy-checkout-manual-pay):
-   * el alumno elige el medio de la academia y el intento queda
-   * registrado como claim AWAITING - sin comprobante todavía. Si sale
-   * de la app y vuelve, el checkout lo reanuda. Idempotente por
-   * person+plan: un AWAITING o PENDING vivo se devuelve tal cual.
+   * Intento de pago del checkout (spec academy-checkout-manual-pay y
+   * private-class-checkout): el alumno elige el medio de la academia y
+   * el intento queda registrado como claim AWAITING, sin comprobante
+   * todavía. Si sale de la app y vuelve, el checkout lo reanuda. Una
+   * sola forma por llamada: {planId} para membresía o {privateClass:
+   * true} para la particular. Idempotente: un AWAITING o PENDING vivo
+   * se devuelve tal cual (por person+plan en PLAN, por person+kind en
+   * PRIVATE_CLASS).
    */
   async createIntent(
     academyId: string,
     personId: string,
-    dto: { planId: string; methodId: string },
+    dto: { planId?: string; privateClass?: boolean; methodId: string },
   ) {
     const method = await this.prisma.academyPaymentMethod.findFirst({
       where: { id: dto.methodId, academyId, active: true },
     });
     if (!method) throw new NotFoundException("método no encontrado");
+    if (dto.privateClass === true) {
+      if (dto.planId) {
+        throw new BadRequestException(
+          "planId y privateClass son excluyentes",
+        );
+      }
+      return this.createPrivateClassIntent(academyId, personId, method);
+    }
+    if (!dto.planId) {
+      throw new BadRequestException("planId o privateClass son requeridos");
+    }
     const plan = await this.prisma.membershipPlan.findFirst({
       where: { id: dto.planId, academyId, active: true },
       select: { id: true, name: true, price: true, currency: true },
@@ -219,11 +233,89 @@ export class AcademyClaimsService {
         personId,
         enrollmentId: enrollment?.id ?? null,
         planId: plan.id,
+        kind: "PLAN",
         // Snapshot del precio vigente: el intento declara pagar el
         // plan, no un monto libre (a diferencia del claim "suelto").
         amount: promo ? promoChargeClp(plan.price, promo) : plan.price,
         currency: plan.currency ?? "CLP",
         academyPromoId: promo?.id ?? null,
+        methodId: method.id,
+        methodType: method.type,
+        methodLabel: method.label,
+        status: "AWAITING",
+      },
+    });
+  }
+
+  /**
+   * Intento de clase particular por método propio (spec
+   * private-class-checkout): la academia debe vender particulares con
+   * la misma regla del checkout de pasarela (activa, privateLessonPrice
+   * > 0, sin bloqueo por mora); mismos estados: inexistente 404,
+   * bloqueada o sin venta 400. El claim nace kind PRIVATE_CLASS con
+   * planId null, amount = privateLessonPrice en snapshot y sin promo
+   * (las promos de academia aplican solo a planes). Idempotente por
+   * person+kind: no hay planId que discrimine, la particular es una
+   * sola por academia.
+   */
+  private async createPrivateClassIntent(
+    academyId: string,
+    personId: string,
+    method: { id: string; type: string; label: string },
+  ) {
+    const academy = await this.prisma.academy.findUnique({
+      where: { id: academyId },
+      select: {
+        id: true,
+        active: true,
+        privateLessonPrice: true,
+        billingBlockedAt: true,
+      },
+    });
+    if (!academy) throw new NotFoundException("academia no encontrada");
+    if (academy.billingBlockedAt != null) {
+      throw new BadRequestException(
+        "la academia no está disponible por el momento",
+      );
+    }
+    if (!academy.active || !academy.privateLessonPrice) {
+      throw new BadRequestException(
+        "la academia no vende clases particulares",
+      );
+    }
+
+    const existing = await this.prisma.paymentClaim.findFirst({
+      where: {
+        academyId,
+        personId,
+        kind: "PRIVATE_CLASS",
+        status: { in: ["AWAITING", "PENDING"] },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing) return existing;
+
+    const enrollment = await this.prisma.enrollment.findFirst({
+      where: {
+        academyId,
+        personId,
+        status: { in: ["ACTIVE", "TRIAL", "ONLINE", "PAUSED", "FROZEN"] },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+
+    return this.prisma.paymentClaim.create({
+      data: {
+        academyId,
+        personId,
+        enrollmentId: enrollment?.id ?? null,
+        planId: null,
+        kind: "PRIVATE_CLASS",
+        // Snapshot del precio de lista: la particular es un producto
+        // único de la academia, sin cargo de servicio en método propio.
+        amount: academy.privateLessonPrice,
+        currency: await this.academyCurrency(academyId),
         methodId: method.id,
         methodType: method.type,
         methodLabel: method.label,
@@ -428,6 +520,10 @@ export class AcademyClaimsService {
         ...(pg ? { skip: pg.skip, take: pg.take } : {}),
       select: {
         id: true,
+        // kind distingue el producto del claim (spec
+        // private-class-checkout): PRIVATE_CLASS tiene planId null y la
+        // cola la rotula "Clase particular".
+        kind: true,
         amount: true,
         currency: true,
         methodType: true,
@@ -680,6 +776,7 @@ export class AcademyClaimsService {
       where: { id: claimId, academyId },
       select: {
         id: true,
+        kind: true,
         amount: true,
         currency: true,
         methodType: true,
@@ -721,6 +818,10 @@ export class AcademyClaimsService {
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
+        // kind en cada claim (spec private-class-checkout): el panel
+        // de pago manual reanuda el intento vivo por planId (PLAN) o por
+        // kind PRIVATE_CLASS según el producto en checkout.
+        kind: true,
         amount: true,
         currency: true,
         methodType: true,
@@ -744,6 +845,9 @@ export class AcademyClaimsService {
    * Aprueba el claim en una transacción: Payment MANUAL PAID para el
    * libro, enrollment asegurado y endsAt extendido con la regla de
    * vigencia del webhook Flow. Claims no-PENDING → 409.
+   * Un claim PRIVATE_CLASS cambia la orden a PRIVATE y materializa la
+   * PrivateLesson "por asignar" (misma materialización que el settle
+   * PRIVATE de la pasarela: REQUESTED, sin instructor ni fecha).
    */
   async approve(academyId: string, claimId: string, reviewerId: string) {
     const claim = await this.prisma.paymentClaim.findFirst({
@@ -757,12 +861,15 @@ export class AcademyClaimsService {
     if (claim.status !== "PENDING") {
       throw new ConflictException("el comprobante ya fue resuelto");
     }
+    const isPrivateClass = claim.kind === "PRIVATE_CLASS";
 
     const now = new Date();
     const result = await this.prisma.$transaction(async (tx) => {
       const payment = await tx.payment.create({
         data: {
-          orderType: "MEMBERSHIP",
+          // Los claims sueltos legacy (planId null, kind PLAN) siguen
+          // entrando como MEMBERSHIP, como antes del campo kind.
+          orderType: isPrivateClass ? "PRIVATE" : "MEMBERSHIP",
           refId: `claim-${claim.id}`,
           personId: claim.personId,
           amount: claim.amount,
@@ -784,6 +891,28 @@ export class AcademyClaimsService {
           producerNetClp: claim.amount,
         },
       });
+
+      // La particular aprobada materializa la clase "por asignar" en
+      // la misma tx: REQUESTED, sin instructor ni fecha (el owner los
+      // define después). Espejo de settlePrivateLesson del settle de
+      // pasarela; el price es el monto cobrado porque en método propio
+      // no hay cargo de servicio separado.
+      let lessonId: string | null = null;
+      if (isPrivateClass) {
+        const lesson = await tx.privateLesson.create({
+          data: {
+            academyId,
+            personId: claim.personId,
+            instructorId: null,
+            scheduledAt: null,
+            price: claim.amount,
+            commissionPct: 0,
+            paymentId: payment.id,
+            status: "REQUESTED",
+          },
+        });
+        lessonId = lesson.id;
+      }
 
       let enrollmentId = claim.enrollmentId;
       let newEndsAt: Date | null = null;
@@ -837,16 +966,18 @@ export class AcademyClaimsService {
             : {}),
         },
       });
-      return { claim: updated, newEndsAt };
+      return { claim: updated, newEndsAt, lessonId };
     });
 
     await this.notifications.notifySafe(claim.personId, {
       category: "TRANSACTIONAL",
       type: "payment_claim_approved",
       title: "Pago validado",
-      body: claim.plan
-        ? "Tu comprobante fue aprobado y tu plan quedó al día."
-        : "Tu comprobante fue aprobado.",
+      body: isPrivateClass
+        ? "Tu comprobante fue aprobado: la academia asignará fecha e instructor de tu clase particular."
+        : claim.plan
+          ? "Tu comprobante fue aprobado y tu plan quedó al día."
+          : "Tu comprobante fue aprobado.",
       data: { academyId, claimId: claim.id },
     });
 
