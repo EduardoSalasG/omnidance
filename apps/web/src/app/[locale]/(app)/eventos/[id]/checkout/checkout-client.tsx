@@ -962,14 +962,6 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           </Card>
         )}
 
-        {phase.kind === "manual" && (
-          <OwnMethodClaim
-            paymentId={phase.paymentId}
-            method={phase.method}
-            onPaid={onClaimPaid}
-          />
-        )}
-
         {phase.kind === "failed" ? (
           <div className="flex flex-col gap-4">
             <p role="alert" className="text-center text-red-400">
@@ -990,6 +982,17 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
               {phase.kind === "processing" ? t("processing") : t("pay")}
             </Button>
           )
+        )}
+
+        {/* Orden por método propio: instrucciones + comprobante siempre
+            al FINAL del checkout - el CTA de pago no salta a mitad del
+            form cuando se elige un medio distinto a la pasarela. */}
+        {phase.kind === "manual" && (
+          <OwnMethodClaim
+            paymentId={phase.paymentId}
+            method={phase.method}
+            onPaid={onClaimPaid}
+          />
         )}
 
         {/* Esperando confirmación + simulación dev (solo stub://) */}
