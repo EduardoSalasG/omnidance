@@ -147,7 +147,7 @@
 ### Clases `/clases`
 - URL state: `s=mias|explorar|historial`; `v=list|calendar`; `scope=todas|reservadas` (mias); `style`, `level` selects dependientes; `academy` solo explorar; `upto`, `month`, `day`.
 - Data: mias/todas `GET /classes/browse?scope=enrolled`; explorar `/classes/browse` (+refetch facets); reservadas `GET /classes/mine` (particulares sin agendar pineadas); historial `/classes/mine?scope=past`.
-- Lista: grupos por día/hora → ClassCard → /clases/{id}; acción por card: Reservar/Espera → `POST /classes/:id/book` (busyId, notice waitlistOk|bookedOk); badges booked/waitlist/dropIn/requiresEnrollment; spotsLeft urgencia.
+- Lista: grupos por día/hora → ClassCard → /clases/{id}; acción por card: Reservar/Espera → `POST /classes/:id/book` (busyId, notice waitlistOk|bookedOk **+ CTA .ics en el propio aviso cuando BOOKED**); badges booked/waitlist/dropIn/requiresEnrollment; spotsLeft urgencia.
 - Calendario igual a /eventos. Historial: conteo mensual + badges attended/cancelled.
 - Empties: mias→CTA explorar; explorar→empty; hasLater→"ver próxima semana".
 
