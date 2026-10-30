@@ -26,6 +26,7 @@
     "promoOff": "−{pct}% en cada cobro",
     "promoOffFixed": "−{amount} en cada cobro",
     "promoUntil": "hasta el {date}",
-    "promoCyclesLeft": "{count, plural, one {# cobro con descuento} other {# cobros con descuento}} restantes"
+    "promoCyclesLeft": "{count, plural, one {# cobro con descuento} other {# cobros con descuento}} restantes",
+    "titleSingle": "Confirmar clase"
   }
 }

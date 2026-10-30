@@ -26,6 +26,7 @@
     "promoOff": "−{pct}% off each charge",
     "promoOffFixed": "−{amount} off each charge",
     "promoUntil": "until {date}",
-    "promoCyclesLeft": "{count, plural, one {# discounted charge} other {# discounted charges}} left"
+    "promoCyclesLeft": "{count, plural, one {# discounted charge} other {# discounted charges}} left",
+    "titleSingle": "Confirm class"
   }
 }
