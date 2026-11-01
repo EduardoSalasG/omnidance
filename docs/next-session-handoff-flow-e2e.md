@@ -48,12 +48,20 @@ ticket `cmvy6exgx000asu6x9kdch41z` ACTIVE
 
 ## Pendiente
 
-- **Smoke suscripciones Flow** (PLATFORM_SUB + membresías):
-  disclaimer de tarjeta → `customer/register` → `subscription/create`
-  → `subscription-webhook` → reconcile diario. Path distinto al
-  one-off; mismo set de credenciales/tunnel.
+- **Smoke suscripciones Flow: VERIFICADO** (2026-11-01). Traza:
+  plans/get 401→plans/create 200 → customer/create+get+register 200
+  → platform-customer-return → getRegisterStatus → subscription/
+  create 200 → `PlatformSubscription` ACTIVE (academia La Casa del
+  Mambo, pagador salas.eduardo.cl@gmail.com). Primer cobro invoice
+  queda por confirmarse vía `subscription-webhook` (urlCallback del
+  plan apunta al tunnel) o reconcile diario. Para el smoke se hizo
+  owner a Eduardo de Mambo Madness y La Casa del Mambo + PersonRole
+  ACADEMY_OWNER APPROVED + createdAt adelantado (consola ordena por
+  createdAt asc).
+- Membresías de alumnos (mismo motor, otro caller) sin smoke
+  explícito - alto grado de confianza por el path idéntico.
 - Cobros sueltos plataforma→actor (`customer/collect` existe en
   Flow; no implementado).
 - PENDING huérfanos de los intentos fallidos (sin limpiar).
-- Git: commitear los archivos listados arriba + archivar los 2
-  changes al confirmar el smoke restante.
+- Archivar changes `order-ref-45-limit` + `flow-e2e-smoke-fixes`
+  (openspec archive) al cerrar la verificación.
