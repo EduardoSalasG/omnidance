@@ -326,3 +326,66 @@ payout; nunca `application_fee_amount` en el cargo).
 - **THEN** `refreshStatus` consulta `GET /v1/checkout/sessions/{cs_…}`
   con `Stripe-Account: <accountId>` y liquida igual que el webhook de
   plataforma
+
+### Requirement: commerceOrder dentro del límite de Flow
+
+`Payment.refId` se envía como `commerceOrder` en `payment/create`.
+Flow rechaza referencias sobre 45 caracteres; todo formato de refId
+de órdenes one-off (TICKET, SERIES_PASS, MEMBERSHIP, WORKSHOP,
+PRIVATE) debe caber en 45 caracteres con ids cuid (25) y el encoder
+debe fallar localmente si un formato lo excede. `platsub_*` queda
+exento porque nunca pasa por `payment/create`.
+
+#### Scenario: Ref de ticket con ids cuid
+
+- **WHEN** se compra un ticket para un evento con id cuid
+- **THEN** el `refId` generado tiene 45 caracteres o menos y decodifica
+  el `eventId`; el `discountCodeId` se lee de la columna `Payment`,
+  no del ref.
+
+#### Scenario: Ref de series pass con mes
+
+- **WHEN** se compra un pase de serie con `month` `YYYY-MM` e id cuid
+- **THEN** el `refId` tiene 45 caracteres o menos y decodifica
+  `seriesId` y `month`.
+
+#### Scenario: Formato que excede el límite
+
+- **WHEN** un encoder genera un `refId` sobre 45 caracteres
+- **THEN** la operación falla con error local explícito antes de llamar
+  a la pasarela.
+
+#### Scenario: Compatibilidad con refs legacy
+
+- **WHEN** el settle o un reporte decodifica un `refId` de ticket del
+  formato anterior `tkt_<eventId>_<codeId>_<uuid>`
+- **THEN** el decode devuelve `eventId` y `codeId` igual que antes.
+
+### Requirement: Retorno del pagador con sesión preservada
+
+El `urlReturn` enviado a la pasarela en `createOrder` debe ser un
+endpoint público de la API que responda `303` a la página de retorno
+de la web, de modo que la navegación resultante sea GET y transporte
+la cookie de sesión (Flow devuelve al pagador con POST cross-site y
+las cookies SameSite=Lax no viajan en ese primer request).
+
+#### Scenario: Retorno tras pago Flow
+
+- **WHEN** Flow redirige al pagador por POST a
+  `/api/payments/order-return?paymentId=<id>`
+- **THEN** la API responde `303` a
+  `${WEB_URL}/checkout/return?paymentId=<id>` y la web recibe la
+  navegación con sesión vigente (sin redirect a /login).
+
+### Requirement: Verdad monetaria de la pasarela persistida completa
+
+El settle PAID persiste además `Payment.gatewayCurrency` con la
+moneda reportada por la pasarela, auditable contra
+`Payment.currency`.
+
+#### Scenario: Orden pagada persiste moneda reportada
+
+- **WHEN** el webhook o polling confirma una orden en estado
+  terminal PAID
+- **THEN** `Payment.gatewayCurrency` guarda la moneda reportada por
+  la pasarela junto a los demás campos `gateway*`.
