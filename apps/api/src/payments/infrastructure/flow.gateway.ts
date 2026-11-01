@@ -234,7 +234,9 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
       paymentData?: Record<string, unknown>;
     }>(
       "payment/getStatusByCommerceId",
-      { apiKey: this.apiKey, commerceOrder: refId },
+      // El param se llama commerceId (no commerceOrder) - sandbox
+      // responde 400 "Missing service params: commerceId" si falta.
+      { apiKey: this.apiKey, commerceId: refId },
       { method: "GET" },
     );
     const gatewayData = data.paymentData;

@@ -1523,6 +1523,7 @@ model Payment {
   gatewayReportedAmount Int?
   gatewayMedia          String?
   gatewayPaidAt         DateTime?
+  gatewayCurrency       String? // moneda reportada por la pasarela (reconcile vs currency)
   gatewayRaw            Json?   // getStatus completo (evidencia)
   // Medio declarado de la orden (snapshot al crearla): label del método
   // propio del productor en órdenes MANUAL; null = pasarela/otros

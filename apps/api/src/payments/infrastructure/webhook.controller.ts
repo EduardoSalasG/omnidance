@@ -292,6 +292,28 @@ export class PaymentsController {
   }
 
   /**
+   * urlReturn de órdenes one-off: Flow devuelve al pagador con POST
+   * cross-site al browser y las cookies de sesión no viajan
+   * (SameSite=Lax) → una página protegida vería al usuario deslogueado.
+   * Este endpoint público convierte el retorno en un 303 a la página
+   * /checkout/return de la web: la navegación GET resultante sí lleva
+   * la sesión. Acepta GET también (otros providers redirigen con GET).
+   * El paymentId viaja en la query del urlReturn que arma el checkout.
+   */
+  @Get("order-return")
+  @Post("order-return")
+  orderReturn(
+    @Query("paymentId") paymentId: string | undefined,
+    @Res() res: Response,
+  ) {
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const to = paymentId
+      ? `${webUrl}/checkout/return?paymentId=${encodeURIComponent(paymentId)}`
+      : `${webUrl}/`;
+    return res.redirect(303, to);
+  }
+
+  /**
    * urlCallback de los Flow-plans de suscripción (registrado en
    * plans/create). Público: registra el INBOUND en GatewayTransaction y
    * dispara reconcileAll fire-and-forget - responde 200 siempre (Flow
