@@ -275,7 +275,7 @@ export class PaymentsController {
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const errorTo = (academyId?: string | null) =>
       academyId
-        ? `${webUrl}/academias/${academyId}?sub=error`
+        ? `${webUrl}/checkout/return?sub=error`
         : `${webUrl}/perfil?sub=error`;
     if (!body.token) return res.redirect(303, errorTo());
     try {
@@ -283,7 +283,7 @@ export class PaymentsController {
       if (!r.ok) return res.redirect(303, errorTo());
       const okTo =
         r.kind === "ACADEMY" && r.academyId
-          ? `${webUrl}/academias/${r.academyId}?sub=ok`
+          ? `${webUrl}/checkout/return?sub=ok`
           : `${webUrl}/productor/suscripcion?pro=ok`;
       return res.redirect(303, okTo);
     } catch {
