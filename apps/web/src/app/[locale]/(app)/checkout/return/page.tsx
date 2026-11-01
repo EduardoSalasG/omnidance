@@ -210,8 +210,8 @@ function CheckoutReturn() {
         <>
           <Badge variant="neon">{ts("activated")}</Badge>
           <h1 className="text-xl font-bold">{ts("subOk")}</h1>
-          <Button href="/academias" size="lg" className="w-full">
-            {ts("returnToAcademies")}
+          <Button href="/academia/suscripcion" size="lg" className="w-full">
+            {ts("returnToSubscription")}
           </Button>
         </>
       )}
@@ -220,8 +220,8 @@ function CheckoutReturn() {
         <>
           <Badge variant="live">{tc("error")}</Badge>
           <h1 className="text-xl font-bold">{ts("subError")}</h1>
-          <Button href="/academias" size="lg" className="w-full">
-            {ts("returnToAcademies")}
+          <Button href="/academia/suscripcion" size="lg" className="w-full">
+            {ts("returnToSubscription")}
           </Button>
         </>
       )}
