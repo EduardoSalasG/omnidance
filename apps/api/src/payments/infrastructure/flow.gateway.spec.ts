@@ -159,7 +159,7 @@ describe("FlowGateway", () => {
   });
 
   describe("refreshStatus", () => {
-    it("consulta getStatusByCommerceId con commerceOrder firmado", async () => {
+    it("consulta getStatusByCommerceId con commerceId firmado", async () => {
       const fetchSpy = mockFetch({ status: 2 });
       const out = await makeGateway().refreshStatus("mem_p1_x");
       const [url] = fetchSpy.mock.calls[0] as [string];
@@ -167,9 +167,9 @@ describe("FlowGateway", () => {
         true,
       );
       const qs = new URLSearchParams(url.split("?")[1]);
-      expect(qs.get("commerceOrder")).toBe("mem_p1_x");
+      expect(qs.get("commerceId")).toBe("mem_p1_x");
       expect(qs.get("s")).toBe(
-        expectedSignature({ apiKey: KEY, commerceOrder: "mem_p1_x" }),
+        expectedSignature({ apiKey: KEY, commerceId: "mem_p1_x" }),
       );
       expect(out.status).toBe("PAID");
     });
@@ -624,7 +624,7 @@ describe("FlowGateway", () => {
       expect(txLog[0].endpoint).toBe("payment/getStatusByCommerceId");
       expect(txLog[0].ok).toBe(true);
       const req = txLog[0].requestBody as Record<string, string>;
-      expect(req.commerceOrder).toBe("mem_p1_x");
+      expect(req.commerceId).toBe("mem_p1_x");
       expect(req.s).toMatch(/^sha256:/);
     });
 

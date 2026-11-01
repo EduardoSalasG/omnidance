@@ -1115,7 +1115,9 @@ describe("CheckoutService.purchaseTicket", () => {
     expect(p.gateway).toBe("STUB");
     const ref = decodeTicketOrderRef(p.refId as string);
     expect(ref?.eventId).toBe("evt-1");
-    expect(ref?.codeId).toBe("code-1");
+    // El codeId ya no viaja en el ref (límite 45 de Flow): la fuente de
+    // verdad es la columna discountCodeId asertada arriba.
+    expect(ref?.codeId).toBeNull();
   });
 
   it("delega el cobro al gateway con amount/email/returnUrl y persiste gatewayRef", async () => {

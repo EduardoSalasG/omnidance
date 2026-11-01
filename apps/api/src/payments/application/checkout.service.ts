@@ -956,7 +956,7 @@ export class CheckoutService {
     // refId correlaciona con la pasarela y el webhook; eventId/discountCodeId
     // también quedan desnormalizados en Payment para reporting. quantity +
     // recipients le dicen al webhook cuántos tickets emitir y a quién.
-    const refId = encodeTicketOrderRef(event.id, code?.id);
+    const refId = encodeTicketOrderRef(event.id);
     const person = await this.prisma.person.findUnique({
       where: { id: personId },
       select: { email: true },
@@ -1031,8 +1031,8 @@ export class CheckoutService {
       });
     }
 
-    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-    const returnUrl = `${webUrl}/checkout/return?paymentId=${payment.id}`;
+    const apiUrl = process.env.API_URL ?? "http://localhost:4000";
+    const returnUrl = `${apiUrl}/api/payments/order-return?paymentId=${payment.id}`;
 
     // Orden con total $0 (preventa liberada, descuento que la dejó en
     // cero o crédito del Pase Social): no hay cobro que derivar a la
@@ -1311,12 +1311,12 @@ export class CheckoutService {
       };
     }
 
-    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const apiUrl = process.env.API_URL ?? "http://localhost:4000";
     const order = await gateway!.createOrder({
       refId,
       amount: quote.total,
       email: person?.email ?? "",
-      returnUrl: `${webUrl}/checkout/return?paymentId=${payment.id}`,
+      returnUrl: `${apiUrl}/api/payments/order-return?paymentId=${payment.id}`,
       currency: payment.currency,
     });
 
@@ -1424,12 +1424,12 @@ export class CheckoutService {
       await this.academyBreakdown(quote.total),
     );
 
-    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const apiUrl = process.env.API_URL ?? "http://localhost:4000";
     const order = await gateway.createOrder({
       refId,
       amount: quote.total,
       email: person?.email ?? "",
-      returnUrl: `${webUrl}/checkout/return?paymentId=${payment.id}`,
+      returnUrl: `${apiUrl}/api/payments/order-return?paymentId=${payment.id}`,
       currency: payment.currency,
     });
 
@@ -1761,12 +1761,12 @@ export class CheckoutService {
       await this.academyBreakdown(quote.total),
     );
 
-    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const apiUrl = process.env.API_URL ?? "http://localhost:4000";
     const order = await gateway.createOrder({
       refId,
       amount: quote.total,
       email: person?.email ?? "",
-      returnUrl: `${webUrl}/checkout/return?paymentId=${payment.id}`,
+      returnUrl: `${apiUrl}/api/payments/order-return?paymentId=${payment.id}`,
       currency: payment.currency,
     });
 
@@ -1869,12 +1869,12 @@ export class CheckoutService {
       await this.academyBreakdown(quote.total),
     );
 
-    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const apiUrl = process.env.API_URL ?? "http://localhost:4000";
     const order = await gateway.createOrder({
       refId,
       amount: quote.total,
       email: person?.email ?? "",
-      returnUrl: `${webUrl}/checkout/return?paymentId=${payment.id}`,
+      returnUrl: `${apiUrl}/api/payments/order-return?paymentId=${payment.id}`,
       currency: payment.currency,
     });
 
