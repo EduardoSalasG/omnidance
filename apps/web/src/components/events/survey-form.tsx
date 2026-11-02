@@ -123,9 +123,13 @@ export function SurveyForm({
       if (res.status === 409) setPhase("expired");
       else if (res.status === 403) setPhase("forbidden");
       else if (res.status === 401) setPhase("unauth");
-      else setPhase("error");
+      else {
+        setPhase("error");
+        showActionNotice({ text: t("error"), error: true });
+      }
     } catch {
       setPhase("error");
+      showActionNotice({ text: t("error"), error: true });
     }
   }
 
@@ -221,13 +225,6 @@ export function SurveyForm({
         </div>
       </Card>
 
-      <div aria-live="polite">
-        {phase === "error" && (
-          <p role="alert" className="text-sm text-red-400">
-            {t("error")}
-          </p>
-        )}
-      </div>
 
       <Button
         size="lg"

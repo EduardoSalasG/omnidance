@@ -139,14 +139,14 @@ function EditAgreement({
         },
       );
       if (!res.ok) {
-        setErr((await readError(res)) ?? t("error"));
+        showActionNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
       // Aviso global + vuelta inmediata a la ficha (patrón de la consola).
       showActionNotice({ text: t("agreementSaved") });
       router.push(`/academia/equipo/profesor/${personId}`);
     } catch {
-      setErr(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }

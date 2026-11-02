@@ -34,7 +34,6 @@ export function VideoForm({ academy }: { academy: Academy }) {
   const [classId, setClassId] = useState("");
   const [restricted, setRestricted] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
   const canAdminister =
     !!me && (me.roles.includes("ADMIN") || me.id === academy.ownerId);
@@ -42,7 +41,6 @@ export function VideoForm({ academy }: { academy: Academy }) {
   async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     setBusy(true);
-    setFormError(null);
     try {
       const res = await apiFetch(`/academies/${academy.id}/videos`, {
         method: "POST",
@@ -55,13 +53,13 @@ export function VideoForm({ academy }: { academy: Academy }) {
         }),
       });
       if (!res.ok) {
-        setFormError((await readError(res)) ?? tc("error"));
+        showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       showActionNotice({ text: t.added });
       router.push("/academia/videos");
     } catch {
-      setFormError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -131,11 +129,6 @@ export function VideoForm({ academy }: { academy: Academy }) {
             {t.restrictedLabel}
           </span>
         </label>
-        {formError && (
-          <p role="alert" className="text-sm text-red-400 sm:col-span-2">
-            {formError}
-          </p>
-        )}
         <div className="flex items-center gap-2 sm:col-span-2">
           <Button type="submit" size="sm" disabled={busy}>
             {busy ? tc("loading") : tc("create")}

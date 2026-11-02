@@ -62,14 +62,12 @@ function NewValuePanel({
   const [genre, setGenre] = useState<Genre>("OTHER");
   const [order, setOrder] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed || busy) return;
     setBusy(true);
-    setError(null);
     try {
       const body: Record<string, unknown> = { name: trimmed };
       if (cfg.field === "genre") body.genre = genre;
@@ -82,14 +80,14 @@ function NewValuePanel({
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        setError((await readError(res)) ?? t("error"));
+        showActionNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
       // Vuelve al listado: aviso global para que sobreviva el push.
       showActionNotice({ text: t("saved") });
       router.push("/admin/catalogos");
     } catch {
-      setError(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -148,11 +146,6 @@ function NewValuePanel({
             </label>
           )}
 
-          {error && (
-            <p role="alert" className="text-sm text-red-400">
-              {error}
-            </p>
-          )}
 
           <div>
             <Button type="submit" size="sm" disabled={busy}>

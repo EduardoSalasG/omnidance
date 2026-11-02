@@ -10,6 +10,7 @@ import {
   type OwnMethod,
 } from "@/components/checkout/own-method-picker";
 import { OwnMethodClaim } from "@/components/checkout/own-method-claim";
+import { showActionNotice } from "@/components/ui/action-notice";
 
 
 
@@ -25,7 +26,10 @@ type Phase =
   | { kind: "success" }
   | { kind: "failed" };
 
-type Notice = "loginRequired" | "alreadyOwned" | "unavailable" | "generic" | null;
+// alreadyOwned queda inline: es un estado de elegibilidad que deja el
+// CTA deshabilitado, no feedback transitorio. El resto de errores de
+// acción viaja por ActionNotice.
+type Notice = "alreadyOwned" | null;
 
 const POLL_INTERVAL_MS = 2_000;
 const POLL_MAX_ATTEMPTS = 15; // ~30s - mismo criterio que checkout-client
@@ -133,7 +137,11 @@ export function SeriesPassCta({
       // Mapa de errores del controller: 404 not found / 400 inactive /
       // 409 already owned / 401 sin sesión.
       if (res.status === 401) {
-        setNotice("loginRequired");
+        showActionNotice({
+          text: tco("loginRequired"),
+          error: true,
+          action: { href: "/login", label: tc("login") },
+        });
         setPhase({ kind: "idle" });
         return;
       }
@@ -143,12 +151,12 @@ export function SeriesPassCta({
         return;
       }
       if (res.status === 400 || res.status === 404) {
-        setNotice("unavailable");
+        showActionNotice({ text: sp.unavailable, error: true });
         setPhase({ kind: "idle" });
         return;
       }
       if (!res.ok) {
-        setNotice("generic");
+        showActionNotice({ text: tc("error"), error: true });
         setPhase({ kind: "idle" });
         return;
       }
@@ -182,7 +190,7 @@ export function SeriesPassCta({
         window.location.href = data.paymentUrl;
       }
     } catch {
-      setNotice("generic");
+      showActionNotice({ text: tc("error"), error: true });
       setPhase({ kind: "idle" });
     }
   }
@@ -272,24 +280,8 @@ export function SeriesPassCta({
           {tco("failed")}
         </p>
       )}
-      {notice === "generic" && (
-        <p role="alert" className="text-sm text-red-400">
-          {tc("error")}
-        </p>
-      )}
-      {notice === "unavailable" && (
-        <p className="text-sm text-ink/60">{sp.unavailable}</p>
-      )}
       {notice === "alreadyOwned" && (
         <p className="text-sm text-ink/60">{sp.alreadyOwned}</p>
-      )}
-      {notice === "loginRequired" && (
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-ink/70">{tco("loginRequired")}</p>
-          <Button href="/login" size="sm">
-            {tc("login")}
-          </Button>
-        </div>
       )}
 
       {/* Esperando confirmación + simulación dev (solo stub://) */}

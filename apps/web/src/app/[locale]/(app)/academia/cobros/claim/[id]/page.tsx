@@ -92,7 +92,6 @@ function ClaimDetail({
   const [busy, setBusy] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
 
   const statusLabel = useMemo(
     () => ({
@@ -122,7 +121,6 @@ function ClaimDetail({
 
   async function approve() {
     setBusy(true);
-    setMsg(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/claims/${claimId}/approve`,
@@ -133,7 +131,7 @@ function ClaimDetail({
         },
       );
       if (!res.ok) {
-        setMsg(t("error"));
+        showActionNotice({ text: t("error"), error: true });
         return;
       }
       // Aprobado → aviso global y vuelve a la cola (el claim ya no es
@@ -141,7 +139,7 @@ function ClaimDetail({
       showActionNotice({ text: t("approvedMsg") });
       router.push("/academia/cobros");
     } catch {
-      setMsg(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -150,7 +148,6 @@ function ClaimDetail({
   async function reject() {
     if (!rejectNote.trim()) return;
     setBusy(true);
-    setMsg(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/claims/${claimId}/reject`,
@@ -161,13 +158,13 @@ function ClaimDetail({
         },
       );
       if (!res.ok) {
-        setMsg(t("error"));
+        showActionNotice({ text: t("error"), error: true });
         return;
       }
       showActionNotice({ text: t("rejectedMsg") });
       router.push("/academia/cobros");
     } catch {
-      setMsg(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -279,11 +276,6 @@ function ClaimDetail({
 
       {claim.status === "PENDING" && (
         <section className="flex flex-col gap-3">
-          {msg && (
-            <p role="alert" className="text-sm text-red-400">
-              {msg}
-            </p>
-          )}
           <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => void approve()}

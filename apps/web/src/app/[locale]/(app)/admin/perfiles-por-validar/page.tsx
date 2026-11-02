@@ -92,7 +92,6 @@ function QueuePanel() {
   const [items, setItems] = useState<QueueItem[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [pendingReject, setPendingReject] = useState<QueueItem | null>(null);
   // Aviso post-acción local: la fila aprobada/rechazada desaparece de la
   // cola, el aviso confirma que la mutación se aplicó.
@@ -118,14 +117,13 @@ function QueuePanel() {
 
   async function act(item: QueueItem, action: "approve" | "reject") {
     setBusy(true);
-    setError(null);
     try {
       const res = await apiFetch(
         `/admin/validation-queue/${item.id}/${action}`,
         { method: "POST" },
       );
       if (!res.ok) {
-        setError((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         setPendingReject(null);
         return;
       }
@@ -137,7 +135,7 @@ function QueuePanel() {
       });
       await load();
     } catch {
-      setError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
       setPendingReject(null);
     } finally {
       setBusy(false);
@@ -222,11 +220,6 @@ function QueuePanel() {
         </Card>
       )}
 
-      {error && (
-        <p role="alert" className="text-sm text-red-400">
-          {error}
-        </p>
-      )}
 
       <ConfirmSheet
         open={pendingReject !== null}
@@ -255,7 +248,6 @@ function AcademyQueuePanel() {
   const [items, setItems] = useState<AcademyQueueItem[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [pendingReject, setPendingReject] =
     useState<AcademyQueueItem | null>(null);
   // Aviso post-acción local: la academia aprobada/rechazada sale de la
@@ -282,14 +274,13 @@ function AcademyQueuePanel() {
 
   async function act(item: AcademyQueueItem, action: "approve" | "reject") {
     setBusy(true);
-    setError(null);
     try {
       const res = await apiFetch(
         `/admin/academy-review-queue/${item.id}/${action}`,
         { method: "POST" },
       );
       if (!res.ok) {
-        setError((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         setPendingReject(null);
         return;
       }
@@ -302,7 +293,7 @@ function AcademyQueuePanel() {
       });
       await load();
     } catch {
-      setError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
       setPendingReject(null);
     } finally {
       setBusy(false);
@@ -397,11 +388,6 @@ function AcademyQueuePanel() {
         </Card>
       )}
 
-      {error && (
-        <p role="alert" className="text-sm text-red-400">
-          {error}
-        </p>
-      )}
 
       <ConfirmSheet
         open={pendingReject !== null}

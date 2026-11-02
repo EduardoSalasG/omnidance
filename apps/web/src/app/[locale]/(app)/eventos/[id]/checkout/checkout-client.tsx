@@ -20,6 +20,7 @@ import {
   type OwnMethod,
 } from "@/components/checkout/own-method-picker";
 import { OwnMethodClaim } from "@/components/checkout/own-method-claim";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { academyAttrKey } from "@/components/checkout/academy-attribution";
 
 type Quote = {
@@ -42,13 +43,9 @@ type Phase =
   | { kind: "success"; paymentId: string }
   | { kind: "failed" };
 
-type FormError =
-  | "invalidCode"
-  | "soldOut"
-  | "tablesSoldOut"
-  | "loginRequired"
-  | "generic"
-  | null;
+// invalidCode es la única validación de campo (va junto al input de
+// descuento); el resto del feedback post-acción viaja por ActionNotice.
+type FormError = "invalidCode" | null;
 
 type FriendItem = {
   id: string;
@@ -81,7 +78,6 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
 
   const [phase, setPhase] = useState<Phase>({ kind: "form" });
   const [error, setError] = useState<FormError>(null);
-  const [serverError, setServerError] = useState<string | null>(null);
   const [discountCode, setDiscountCode] = useState("");
   // Descuento validado por GET /checkout/discount-quote (preview antes
   // de generar la orden). Se limpia al editar el código.
@@ -277,18 +273,21 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     if (!code || discountBusy || busy) return;
     setDiscountBusy(true);
     setError(null);
-    setServerError(null);
     setAppliedDiscount(null);
     try {
       const res = await apiFetch(
         `/checkout/discount-quote?eventId=${encodeURIComponent(event.id)}&code=${encodeURIComponent(code)}`,
       );
       if (res.status === 401) {
-        setError("loginRequired");
+        showActionNotice({
+          text: t("loginRequired"),
+          error: true,
+          action: { href: "/login", label: tc("login") },
+        });
         return;
       }
       if (!res.ok) {
-        setError("generic");
+        showActionNotice({ text: tc("error"), error: true });
         return;
       }
       const data = (await res.json()) as {
@@ -302,7 +301,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
       }
       setAppliedDiscount({ code, clp: data.discountClp });
     } catch {
-      setError("generic");
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setDiscountBusy(false);
     }
@@ -312,7 +311,6 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     e.preventDefault();
     if (busy) return;
     setError(null);
-    setServerError(null);
     setPhase({ kind: "processing" });
 
     try {
@@ -357,7 +355,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           ? body.message.join(" ")
           : body?.message;
         if (typeof msg === "string" && msg.length && !msg.startsWith("código")) {
-          setServerError(msg);
+          showActionNotice({ text: msg, error: true });
         } else {
           setError("invalidCode");
         }
@@ -365,7 +363,11 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         return;
       }
       if (res.status === 401) {
-        setError("loginRequired");
+        showActionNotice({
+          text: t("loginRequired"),
+          error: true,
+          action: { href: "/login", label: tc("login") },
+        });
         setPhase({ kind: "form" });
         return;
       }
@@ -378,9 +380,10 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         const msg = Array.isArray(body?.message)
           ? body.message.join(" ")
           : body?.message;
-        setServerError(
-          typeof msg === "string" && msg.length ? msg : tc("error"),
-        );
+        showActionNotice({
+          text: typeof msg === "string" && msg.length ? msg : tc("error"),
+          error: true,
+        });
         setPhase({ kind: "form" });
         return;
       }
@@ -393,16 +396,18 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         const msg = Array.isArray(body?.message)
           ? body.message.join(" ")
           : body?.message;
-        setError(
-          typeof msg === "string" && msg.startsWith("sin cupo en mesas")
-            ? "tablesSoldOut"
-            : "soldOut",
-        );
+        showActionNotice({
+          text:
+            typeof msg === "string" && msg.startsWith("sin cupo en mesas")
+              ? t("tablesSoldOut")
+              : t("soldOut"),
+          error: true,
+        });
         setPhase({ kind: "form" });
         return;
       }
       if (!res.ok) {
-        setError("generic");
+        showActionNotice({ text: tc("error"), error: true });
         setPhase({ kind: "form" });
         return;
       }
@@ -444,7 +449,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         window.location.href = data.paymentUrl;
       }
     } catch {
-      setError("generic");
+      showActionNotice({ text: tc("error"), error: true });
       setPhase({ kind: "form" });
     }
   }
@@ -950,33 +955,6 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             {t("invalidCode")}
           </p>
         )}
-        {error === "soldOut" && (
-          <p role="alert" className="text-sm text-red-400">
-            {t("soldOut")}
-          </p>
-        )}
-        {error === "tablesSoldOut" && (
-          <p role="alert" className="text-sm text-red-400">
-            {t("tablesSoldOut")}
-          </p>
-        )}
-        {serverError && (
-          <p role="alert" className="text-sm text-red-400">
-            {serverError}
-          </p>
-        )}
-        {error === "generic" && (
-          <p role="alert" className="text-sm text-red-400">
-            {tc("error")}
-          </p>
-        )}
-        {error === "loginRequired" && (
-          <Card className="flex flex-col items-center gap-4 text-center">
-            <p className="text-ink/70">{t("loginRequired")}</p>
-            <Button href="/login">{tc("login")}</Button>
-          </Card>
-        )}
-
         {phase.kind === "failed" ? (
           <div className="flex flex-col gap-4">
             <p role="alert" className="text-center text-red-400">

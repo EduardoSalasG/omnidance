@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { Badge, Button, Card, SkeletonList } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
 import { AdminGate } from "@/components/admin/admin-gate";
@@ -39,7 +40,6 @@ function FlagsPanel() {
   const [loadError, setLoadError] = useState(false);
   // Toggle en vuelo por key (uno a la vez) + error de la última acción.
   const [busy, setBusy] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   // Aviso sr-only del último cambio aplicado (role="status").
   const [announce, setAnnounce] = useState<string | null>(null);
 
@@ -65,7 +65,6 @@ function FlagsPanel() {
     if (busy) return;
     const next = !flag.enabled;
     setBusy(flag.key);
-    setActionError(null);
     // Flip optimista: el switch refleja la intención al instante; si el
     // PATCH falla se revierte al estado real (spec: nunca queda
     // "encendido" visualmente contra el estado real).
@@ -99,7 +98,7 @@ function FlagsPanel() {
           f.key === flag.key ? { ...f, enabled: flag.enabled } : f,
         ) ?? cur,
       );
-      setActionError(flag.key);
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(null);
     }
@@ -206,11 +205,6 @@ function FlagsPanel() {
                     )}
                   </p>
 
-                  {actionError === f.key && (
-                    <p role="alert" className="text-sm text-red-400">
-                      {tc("error")}
-                    </p>
-                  )}
                 </Card>
               </li>
             );

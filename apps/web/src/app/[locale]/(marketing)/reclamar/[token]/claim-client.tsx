@@ -4,13 +4,16 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, EventDate } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import type { ClaimInfo } from "./page";
 
 type State =
   | { kind: "idle" }
   | { kind: "claiming" }
   | { kind: "claimed" }
-  | { kind: "error"; self?: boolean };
 
 /**
  * Landing de invitación a entrada (claim link por WhatsApp).
@@ -29,6 +32,7 @@ export function ClaimClient({
 }) {
   const t = useTranslations("claim");
   const [state, setState] = useState<State>({ kind: "idle" });
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const next = `/reclamar/${token}`;
 
@@ -46,15 +50,20 @@ export function ClaimClient({
         const body = (await res.json().catch(() => null)) as {
           message?: string;
         } | null;
-        setState({
-          kind: "error",
-          self: body?.message?.includes("tuya") ?? false,
+        setNotice({
+          text: body?.message?.includes("tuya")
+            ? t("selfError")
+            : t("claimError"),
+          error: true,
         });
+        setState({ kind: "idle" });
       } else {
-        setState({ kind: "error" });
+        setNotice({ text: t("claimError"), error: true });
+        setState({ kind: "idle" });
       }
     } catch {
-      setState({ kind: "error" });
+      setNotice({ text: t("claimError"), error: true });
+      setState({ kind: "idle" });
     }
   }
 
@@ -93,11 +102,7 @@ export function ClaimClient({
         )}
       </Card>
 
-      {state.kind === "error" && (
-        <p role="alert" className="text-sm text-red-400">
-          {state.self ? t("selfError") : t("claimError")}
-        </p>
-      )}
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
 
       <div className="flex w-full max-w-sm flex-col gap-3 lg:max-w-md">
         {hasSession ? (

@@ -49,11 +49,9 @@ function NewEventStaff({ eventId }: { eventId: string }) {
   const [searching, setSearching] = useState(false);
   // Fallo de la búsqueda: distinto de "sin resultados" (una vacía
   // ambigua escondería un error de red).
-  const [searchError, setSearchError] = useState(false);
   const [selected, setSelected] = useState<Candidate | null>(null);
   const [role, setRole] = useState<StaffRole>("DOOR");
   const [busy, setBusy] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   // Lock detectado en el POST (403 tier.required) - complementa el
   // gateo proactivo por si los entitlements quedaron stale.
   const [serverLocked, setServerLocked] = useState(false);
@@ -90,11 +88,9 @@ function NewEventStaff({ eventId }: { eventId: string }) {
     if (selected || term.length < 2) {
       setCandidates(null);
       setSearching(false);
-      setSearchError(false);
       return;
     }
     setSearching(true);
-    setSearchError(false);
     const timer = setTimeout(() => {
       apiFetch(
         `/events/${eventId}/staff/candidates?q=${encodeURIComponent(term)}`,
@@ -104,17 +100,17 @@ function NewEventStaff({ eventId }: { eventId: string }) {
             setCandidates(await res.json());
           } else {
             setCandidates([]);
-            setSearchError(true);
+            showActionNotice({ text: tc("error"), error: true });
           }
         })
         .catch(() => {
           setCandidates([]);
-          setSearchError(true);
+          showActionNotice({ text: tc("error"), error: true });
         })
         .finally(() => setSearching(false));
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, eventId, selected]);
+  }, [query, eventId, selected, tc]);
 
   // requireProSelf: el gateo aplica solo cuando el caller ES el dueño.
   const locked =
@@ -128,7 +124,6 @@ function NewEventStaff({ eventId }: { eventId: string }) {
     e.preventDefault();
     if (!selected || busy) return;
     setBusy(true);
-    setFormError(null);
     try {
       const res = await apiFetch(`/events/${eventId}/staff`, {
         method: "POST",
@@ -140,13 +135,13 @@ function NewEventStaff({ eventId }: { eventId: string }) {
           setServerLocked(true);
           return;
         }
-        setFormError((await readError(res)) ?? tc("error"));
+        showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       showActionNotice({ text: t("staffAdded") });
       router.push(backHref);
     } catch {
-      setFormError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -245,13 +240,7 @@ function NewEventStaff({ eventId }: { eventId: string }) {
                           {tc("loading")}
                         </p>
                       )}
-                      {searchError && (
-                        <p role="alert" className="text-xs text-red-400">
-                          {tc("error")}
-                        </p>
-                      )}
-                      {!searchError &&
-                        candidates !== null &&
+                      {candidates !== null &&
                         candidates.length === 0 && (
                           <p role="status" className="text-xs text-ink/50">
                             {t("staffSection.noResults")}
@@ -303,11 +292,6 @@ function NewEventStaff({ eventId }: { eventId: string }) {
                   </select>
                 </label>
 
-                {formError && (
-                  <p role="alert" className="text-sm text-red-400">
-                    {formError}
-                  </p>
-                )}
 
                 <Button
                   type="submit"

@@ -46,7 +46,6 @@ function NewGuestList() {
   const [eventId, setEventId] = useState(presetEventId);
   const [listName, setListName] = useState("");
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
   const loadEvents = useCallback(async () => {
     setEventsError(false);
@@ -82,7 +81,6 @@ function NewGuestList() {
     e.preventDefault();
     if (!listName.trim() || !eventId || !meId || saving) return;
     setSaving(true);
-    setFormError(null);
     try {
       const res = await apiFetch(`/events/${eventId}/guest-lists`, {
         method: "POST",
@@ -91,13 +89,13 @@ function NewGuestList() {
         body: JSON.stringify({ ownerId: meId, label: listName.trim() }),
       });
       if (!res.ok) {
-        setFormError((await readError(res)) ?? tc("error"));
+        showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       showActionNotice({ text: t("listCreated") });
       router.push(`/productor/eventos/${eventId}`);
     } catch {
-      setFormError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setSaving(false);
     }
@@ -186,11 +184,6 @@ function NewGuestList() {
                 />
               </label>
 
-              {formError && (
-                <p role="alert" className="text-sm text-red-400">
-                  {formError}
-                </p>
-              )}
 
               <Button
                 type="submit"

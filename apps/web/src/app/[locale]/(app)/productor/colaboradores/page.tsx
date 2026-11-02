@@ -48,7 +48,6 @@ function CollaboratorsList() {
   const [state, setState] = useState<State>("loading");
   const [items, setItems] = useState<Collaborator[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   // Quitar de la nómina es destructivo - confirmación con el nombre de
   // la persona (bottom-sheet compartido).
   const [pendingRemove, setPendingRemove] = useState<Collaborator | null>(
@@ -81,19 +80,18 @@ function CollaboratorsList() {
     if (busyId) return;
     setPendingRemove(null);
     setBusyId(personId);
-    setActionError(null);
     try {
       const res = await apiFetch(`/producer/staff/${personId}`, {
         method: "DELETE",
       });
       if (!res.ok) {
-        setActionError((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       setItems((prev) => prev.filter((c) => c.person.id !== personId));
       setNotice({ text: t("collaborators.removed") });
     } catch {
-      setActionError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setBusyId(null);
     }
@@ -177,11 +175,6 @@ function CollaboratorsList() {
           </ul>
         )}
 
-        {actionError && (
-          <p role="alert" className="text-sm text-red-400">
-            {actionError}
-          </p>
-        )}
       </section>
 
       <ConfirmSheet

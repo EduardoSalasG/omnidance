@@ -100,7 +100,6 @@ export function SeriesForm({
   const [kind, setKind] = useState<SeriesKind>("recurring");
 
   const [busy, setBusy] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
   // Catálogos públicos + instructores de la academia. Si fallan se
   // resuelven a [] (selects habilitados con solo "·").
@@ -212,7 +211,6 @@ export function SeriesForm({
     const q = parsedQuorum();
     const drop = parsedDropIn();
     setBusy(true);
-    setFormError(null);
     try {
       const res = editing
         ? await apiFetch(`/academies/${academyId}/series/${editing.id}`, {
@@ -267,7 +265,7 @@ export function SeriesForm({
             }),
           });
       if (!res.ok) {
-        setFormError((await readError(res)) ?? t("error"));
+        showActionNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
       showActionNotice({
@@ -279,7 +277,7 @@ export function SeriesForm({
       });
       router.push("/academia/series");
     } catch {
-      setFormError(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -565,11 +563,6 @@ export function SeriesForm({
           </fieldset>
         )}
 
-        {formError && (
-          <p role="alert" className="text-sm text-red-400 sm:col-span-2">
-            {formError}
-          </p>
-        )}
 
         {/* Sin Cancelar: el abort lo da el ‹ back del chrome
             (appbar/ConsoleHeader) en móvil y desktop. */}

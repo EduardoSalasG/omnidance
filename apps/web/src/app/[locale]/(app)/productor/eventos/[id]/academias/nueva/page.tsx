@@ -32,7 +32,6 @@ function NewAcademyDeal({ eventId }: { eventId: string }) {
   const [commissionPct, setCommissionPct] = useState("50");
   const [maxTickets, setMaxTickets] = useState("");
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
   const loadAcademies = useCallback(async () => {
     setAcademiesError(false);
@@ -63,7 +62,6 @@ function NewAcademyDeal({ eventId }: { eventId: string }) {
     e.preventDefault();
     if (!academyId || !pctValid || !capValid || saving) return;
     setSaving(true);
-    setFormError(null);
     try {
       const res = await apiFetch(`/events/${eventId}/academy-deals`, {
         method: "POST",
@@ -75,13 +73,13 @@ function NewAcademyDeal({ eventId }: { eventId: string }) {
         }),
       });
       if (!res.ok) {
-        setFormError((await readError(res)) ?? tc("error"));
+        showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       showActionNotice({ text: t("invited") });
       router.push(`/productor/eventos/${eventId}`);
     } catch {
-      setFormError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setSaving(false);
     }
@@ -180,11 +178,6 @@ function NewAcademyDeal({ eventId }: { eventId: string }) {
                 </span>
               </label>
 
-              {formError && (
-                <p role="alert" className="text-sm text-red-400">
-                  {formError}
-                </p>
-              )}
 
               <Button
                 type="submit"

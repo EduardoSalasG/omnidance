@@ -80,9 +80,6 @@ function ClaimDetail() {
   const [busy, setBusy] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
-  // Error inline de la acción; el éxito va al aviso global porque la
-  // página navega a la cola de una.
-  const [msg, setMsg] = useState<string | null>(null);
   // Aprobar liquida la orden y emite la entrada de una - confirmación
   // previa (bottom-sheet compartido).
   const [confirmApprove, setConfirmApprove] = useState(false);
@@ -100,12 +97,10 @@ function ClaimDetail() {
   useEffect(() => {
     setLoadState("loading");
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load, nonce]);
 
   async function approve() {
     setBusy(true);
-    setMsg(null);
     try {
       const res = await apiFetch(`/producer/claims/${id}/approve`, {
         method: "POST",
@@ -113,7 +108,7 @@ function ClaimDetail() {
         body: "{}",
       });
       if (!res.ok) {
-        setMsg(t("error"));
+        showActionNotice({ text: t("error"), error: true });
         setConfirmApprove(false);
         return;
       }
@@ -123,7 +118,7 @@ function ClaimDetail() {
       showActionNotice({ text: tp("claimDetail.approvedMsg") });
       router.push("/productor/comprobantes");
     } catch {
-      setMsg(t("error"));
+      showActionNotice({ text: t("error"), error: true });
       setConfirmApprove(false);
     } finally {
       setBusy(false);
@@ -133,7 +128,6 @@ function ClaimDetail() {
   async function reject() {
     if (!rejectNote.trim()) return;
     setBusy(true);
-    setMsg(null);
     try {
       const res = await apiFetch(`/producer/claims/${id}/reject`, {
         method: "POST",
@@ -141,7 +135,7 @@ function ClaimDetail() {
         body: JSON.stringify({ note: rejectNote.trim() }),
       });
       if (!res.ok) {
-        setMsg(t("error"));
+        showActionNotice({ text: t("error"), error: true });
         return;
       }
       showActionNotice({ text: t("rejectedMsg") });
@@ -149,7 +143,7 @@ function ClaimDetail() {
     } catch {
       // El form de rechazo queda abierto para reintentar (igual que
       // el branch !res.ok).
-      setMsg(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -298,11 +292,6 @@ function ClaimDetail() {
 
           {claim.status === "PENDING" && (
             <section className="flex flex-col gap-3">
-              {msg && (
-                <p role="alert" className="text-sm text-red-400">
-                  {msg}
-                </p>
-              )}
               <div className="flex flex-wrap gap-2">
                 <Button
                   onClick={() => setConfirmApprove(true)}

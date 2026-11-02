@@ -34,8 +34,6 @@ type Phase =
     }
   | { kind: "failed" };
 
-type Notice = "loginRequired" | "unavailable" | "generic" | null;
-
 /** Medio de cobro de la suscripción: tarjeta Flow (cargo automático)
     o transferencia validada por la academia cada ciclo. */
 type PayVia = "CARD" | "TRANSFER";
@@ -77,8 +75,6 @@ export function MembershipCheckoutClient({
   const router = useRouter();
 
   const [phase, setPhase] = useState<Phase>({ kind: "form" });
-  const [notice, setNotice] = useState<Notice>(null);
-  const [subError, setSubError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [simulating, setSimulating] = useState(false);
   // El panel manual toma el control cuando el alumno elige un método
@@ -171,7 +167,6 @@ export function MembershipCheckoutClient({
 
   async function buy() {
     if (busy) return;
-    setNotice(null);
     setPhase({ kind: "processing" });
     try {
       const res = await apiFetch("/checkout/membership", {
@@ -180,17 +175,22 @@ export function MembershipCheckoutClient({
         body: JSON.stringify({ planId: quote.plan.id }),
       });
       if (res.status === 401) {
-        setNotice("loginRequired");
+        // Mismo aviso con CTA que private-checkout (patrón unificado).
+        showActionNotice({
+          text: tco("loginRequired"),
+          error: true,
+          action: { href: "/login", label: tc("login") },
+        });
         setPhase({ kind: "form" });
         return;
       }
       if (res.status === 400 || res.status === 404) {
-        setNotice("unavailable");
+        showActionNotice({ text: t("planUnavailable"), error: true });
         setPhase({ kind: "form" });
         return;
       }
       if (!res.ok) {
-        setNotice("generic");
+        showActionNotice({ text: tc("error"), error: true });
         setPhase({ kind: "form" });
         return;
       }
@@ -209,15 +209,13 @@ export function MembershipCheckoutClient({
         window.location.href = data.paymentUrl;
       }
     } catch {
-      setNotice("generic");
+      showActionNotice({ text: tc("error"), error: true });
       setPhase({ kind: "form" });
     }
   }
 
   async function subscribe() {
     if (busy || !consent) return;
-    setNotice(null);
-    setSubError(null);
     setPhase({ kind: "processing" });
     try {
       const res = await apiFetch("/checkout/membership-subscription", {
@@ -233,7 +231,11 @@ export function MembershipCheckoutClient({
         }),
       });
       if (res.status === 401) {
-        setNotice("loginRequired");
+        showActionNotice({
+          text: tco("loginRequired"),
+          error: true,
+          action: { href: "/login", label: tc("login") },
+        });
         setPhase({ kind: "form" });
         return;
       }
@@ -252,7 +254,7 @@ export function MembershipCheckoutClient({
           body.message.length <= 200
             ? body.message
             : null;
-        setSubError(msg ?? ts("error"));
+        showActionNotice({ text: msg ?? ts("error"), error: true });
         setPhase({ kind: "form" });
         return;
       }
@@ -302,7 +304,7 @@ export function MembershipCheckoutClient({
       }
       router.push(`${academyHref}?sub=ok`);
     } catch {
-      setSubError(ts("error"));
+      showActionNotice({ text: ts("error"), error: true });
       setPhase({ kind: "form" });
     }
   }
@@ -753,29 +755,6 @@ export function MembershipCheckoutClient({
         <p role="alert" className="text-sm text-red-400">
           {tco("failed")}
         </p>
-      )}
-      {subError && (
-        <p role="alert" className="text-sm text-red-400">
-          {subError}
-        </p>
-      )}
-      {notice === "generic" && (
-        <p role="alert" className="text-sm text-red-400">
-          {tc("error")}
-        </p>
-      )}
-      {notice === "unavailable" && (
-        <p role="alert" className="text-sm text-ink/60">
-          {t("planUnavailable")}
-        </p>
-      )}
-      {notice === "loginRequired" && (
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-ink/70">{tco("loginRequired")}</p>
-          <Button href="/login" size="sm">
-            {tc("login")}
-          </Button>
-        </div>
       )}
     </main>
   );

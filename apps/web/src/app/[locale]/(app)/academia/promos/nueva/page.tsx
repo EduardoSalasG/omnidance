@@ -23,7 +23,6 @@ export default function AcademiaPromoNuevaPage() {
   const t = useTranslations("academyPromos");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-3xl lg:px-8">
@@ -32,11 +31,6 @@ export default function AcademiaPromoNuevaPage() {
         {({ academy }) => (
           <section className="flex flex-col gap-4">
             <h2 className="text-lg font-semibold">{t("newTitle")}</h2>
-            {error && (
-              <p role="alert" className="text-sm text-red-400">
-                {error}
-              </p>
-            )}
             <Card className="p-4">
               <AcademyPromoForm
                 academyId={academy.id}
@@ -45,7 +39,6 @@ export default function AcademiaPromoNuevaPage() {
                 busy={busy}
                 onSubmit={async (body) => {
                   setBusy(true);
-                  setError(null);
                   const res = await apiFetch(`/academies/${academy.id}/promos`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -53,7 +46,7 @@ export default function AcademiaPromoNuevaPage() {
                   }).catch(() => null);
                   setBusy(false);
                   if (!res || !res.ok) {
-                    setError(res ? ((await readError(res)) ?? t("error")) : t("error"));
+                    showActionNotice({ text: res ? ((await readError(res)) ?? t("error")) : t("error"), error: true });
                     return;
                   }
                   const created = (await res.json()) as { id: string };

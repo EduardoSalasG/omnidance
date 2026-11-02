@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { useMe } from "@/lib/me-context";
 import { Button } from "@/components/ui";
 import {
@@ -200,7 +201,6 @@ export function EventForm({
   const [djsDirty, setDjsDirty] = useState(false);
 
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [invalid, setInvalid] = useState(false);
 
   // En edición, si la serie actual no está en las opciones la agregamos
@@ -247,8 +247,6 @@ export function EventForm({
     }
     if (busy) return;
     setBusy(true);
-    setError(null);
-
     const filledBlocks = blocks
       .filter((b) => b.startsAt !== "" && b.endsAt !== "")
       .map((b) => ({
@@ -347,7 +345,7 @@ export function EventForm({
     try {
       const err = await onSubmit(payload);
       if (err !== null) {
-        setError(err);
+        showActionNotice({ text: err, error: true });
         return;
       }
       if (mode === "create") {
@@ -378,7 +376,7 @@ export function EventForm({
     } catch {
       // El contrato onSubmit devuelve errores como string; un throw
       // inesperado no debe quedar silencioso.
-      setError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -829,11 +827,6 @@ export function EventForm({
       {invalid && (
         <p role="alert" className="text-sm text-red-400">
           {t("form.datesInvalid")}
-        </p>
-      )}
-      {error && (
-        <p role="alert" className="text-sm text-red-400">
-          {error}
         </p>
       )}
 

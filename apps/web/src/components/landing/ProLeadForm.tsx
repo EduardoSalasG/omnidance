@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { apiFetch } from "@/lib/api";
 import { Spinner } from "@/components/ui/spinner";
 import { ChevronRightIcon } from "@/components/ui";
@@ -66,6 +70,9 @@ export function ProLeadForm({
     : ROLE_OPTIONS;
   const [missing, setMissing] = useState<Missing[]>([]);
   const [pending, setPending] = useState(false);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
+  // Validación de campos requeridos: queda inline bajo id="lead-error"
+  // (los inputs la referencian con aria-describedby).
   const [error, setError] = useState<string | null>(null);
   const [exists, setExists] = useState(false);
   const [done, setDone] = useState(false);
@@ -125,7 +132,7 @@ export function ProLeadForm({
       if (data.accountExists) setExists(true);
       setDone(true);
     } catch {
-      setError(t.errorGeneric);
+      setNotice({ text: t.errorGeneric, error: true });
     } finally {
       setPending(false);
     }
@@ -261,11 +268,13 @@ export function ProLeadForm({
         <p
           id="lead-error"
           role="alert"
-          className="text-sm font-medium text-red-400"
+          className="text-center text-sm font-medium text-red-400"
         >
           {error}
         </p>
       )}
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
 
       <div className="mt-2 flex justify-center">
         <button

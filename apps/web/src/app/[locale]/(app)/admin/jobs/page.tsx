@@ -138,14 +138,14 @@ function JobsPanel() {
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        setError((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return false;
       }
       setNotice({ text: successText });
       await load();
       return true;
     } catch {
-      setError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
       return false;
     } finally {
       setBusy(null);
@@ -159,13 +159,13 @@ function JobsPanel() {
       const res = await apiFetch(`/admin/jobs/${encodeURIComponent(key)}/run`, {
         method: "POST",
       });
-      if (!res.ok) setError((await readError(res)) ?? tc("error"));
+      if (!res.ok) setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
       else {
         setNotice({ text: t("jobs.runStarted") });
         await load();
       }
     } catch {
-      setError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(null);
       setPendingRun(null);

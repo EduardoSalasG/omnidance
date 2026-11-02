@@ -47,7 +47,7 @@
 - Redirects de éxito típicos con timer ~1200ms (`planSaved`, `added`, `created`, `invited`); buen `waitFor` en tests.
 - `OnboardingRunner` (tours driver.js) puede tapar elementos en primera visita; sembrar `me.onboarding` o descartar el tour en setup.
 - Confirmaciones: `ConfirmSheet` / bottom-sheet inline para casi todo lo destructivo. **Sin confirmación:** cancelar reserva de mesa (productor), desactivar/reactivar plan de academia, declinar preventa, toggle de trigger CRM, toggle de grant en /admin/roles, guardar params en /admin/parametros, aprobar/pagar payouts, emitir documento de cobro, convertir lead, test-send de campaña admin, delete de consulta guardada.
-- Errores server → `readError` (Nest `message` string|array) en `role="alert"`.
+- Errores server → `readError` (Nest `message` string|array). **Errores de ACCIÓN (submit/mutación) viajan por `ActionNotice` con `error: true` (toast `role="alert"` fijo, auto-dismiss ~3s); quedan inline solo: validación de campo (junto al input / `aria-invalid`+`aria-describedby`), estados permanentes de la vista (fases terminales con retry, elegibilidad que deshabilita el CTA, banners de retorno `?sub=`) y fallos de carga.** Éxito de acción → `showActionNotice({text})` o `notice` local del padre.
 
 ### Palancas dev para QA determinístico
 - **Pagos stub:** en dev el checkout devuelve `paymentUrl` `stub://` → botones "Simular aprobar/fallar" → `POST /payments/webhook {refId, status:PAID|FAILED}`. Cubre todo el ciclo de compra sin Flow.
@@ -144,7 +144,7 @@
 - Pasos: stepper cantidad 1–10 (min 1+regalos); asignación de regalos (búsqueda sin diacríticos, chips; extras = links WhatsApp reclamables); reserva de mesa (si tablesTotal; Sí/No + partySize 1..min(seatMax,seatsLeft,12)); picker método (pasarela | TRANSFER|PAYMENT_LINK|CASH con detalles+copy); código descuento → `GET /checkout/discount-quote`; sugerencia canción ≤140.
 - Submit `POST /checkout/ticket {eventId,quantity,academyId?,discountCode?,songSuggestion?,recipientIds?,tablePartySize?,methodId?}`.
 - Ramas: `paid:true` (orden $0) → éxito directo; `paymentUrl:null` → fase manual → OwnMethodClaim (nota≤200 + archivo png/jpeg/webp/pdf → `POST /payments/:id/claims`; poll pago 3s; claim REJECTED muestra reviewNote y permite re-subir); `stub://` → poll + botones dev; URL real → redirect gateway → vuelve a /checkout/return.
-- Errores: 400 "código"→invalidCode, otros 400 verbatim (recipient/gift/presale cerrada/terminado/mesa grande); 401 loginRequired; 403 verbatim (interno sin enrollment: "evento exclusivo para alumnos de la academia"); 409 soldOut | tablesSoldOut ("sin cupo en mesas"); genérico.
+- Errores: 400 "código"→invalidCode **inline junto al input** (`aria-invalid`/`aria-describedby`); el resto va por ActionNotice error: otros 400 verbatim (recipient/gift/presale cerrada/terminado/mesa grande); 401→toast con acción login; 403 verbatim (interno sin enrollment: "evento exclusivo para alumnos de la academia"); 409 soldOut | tablesSoldOut ("sin cupo en mesas"); genérico.
 - Éxito: `GET /payments/:id/tickets` → botones WhatsApp por claimToken → /reclamar/<token>; CTA /eventos?view=mios.
 
 ### Retorno de pago `/checkout/return?paymentId=|?sub=`
@@ -183,8 +183,8 @@
 ### Checkout membresía `/academias/[id]/checkout?plan=&mode=once|sub`
 - `?plan` requerido; `GET /checkout/membership-quote?planId` (401→/login; 404→notfound; 400→planUnavailable; ACTIVE/CANCEL_PENDING→alreadySubscribed).
 - Review card (vigencia, extensión, total). ManualPayPanel (oculto en sub): radio pasarela vs métodos → `POST /academies/:id/claims/intent` → AWAITING (**CASH nace PENDING directo - sin comprobante, owner valida en clase**) → datos transferencia/copy → upload `POST .../receipt` → PENDING; cancel `POST .../cancel`; claim viva reanuda; última REJECTED muestra nota.
-- Pago una vez → `POST /checkout/membership` → redirect|stub poll → /academias/{id}.
-- Sub (solo recurring+FLOW): Segmented once/sub; consent checkbox* → `POST /checkout/membership-subscription` → needs_card→redirect directo a registerUrl (vuelve a /checkout/return?sub=ok|error&src=member) | subscribed→poll `/subscriptions/:id`→?sub=ok; 409→perfil academia.
+- Pago una vez → `POST /checkout/membership` → redirect|stub poll → /academias/{id}. Errores del CTA vía ActionNotice global (401→acción login; 400|404→unavailable; resto→generic).
+- Sub (solo recurring+FLOW): Segmented once/sub; consent checkbox* → `POST /checkout/membership-subscription` → needs_card→redirect directo a registerUrl (vuelve a /checkout/return?sub=ok|error&src=member) | subscribed→poll `/subscriptions/:id`→?sub=ok; 409→perfil academia. Error de alta → ActionNotice error (msg server <500 o ts("error")); poll FAILED → fase failed inline con retry.
 - Sub por transferencia (spec subscription-manual-transfer): si la academia publica métodos TRANSFER (`GET /academies/:id/payment-methods`), radio "Tarjeta (cargo automático)" vs "Transferencia" → `POST /checkout/membership-subscription {paymentMethod:"TRANSFER", methodId?}` → `kind:"pending_payment"` → datos bancarios + picker de cuenta (si >1) + OwnMethodClaim (variant academy, upload `POST /payments/:id/claims` con methodId, poll 3s → PAID → ficha con notice activada).
 - Primer cobro: Flow cobra la 1ª invoice al `subscription/create`; el settle vía webhook `subscription/callback` o reconcile (GET /subscriptions/:id refresh inline, cron 09:00) crea Payment `mem_<planId>_<invoiceId>` PAID + Enrollment + resguardo mail + Notification admin. Ojo sandbox: el mandato de la tarjeta registrada tiene tope (invoice que lo excede queda impaga; Flow reintenta a las 24h; `morose=2` = pendiente no vencida).
 
@@ -195,7 +195,7 @@
 - CTA pasarela → `POST /checkout/private-class` → stub:// awaiting + devSim + poll `/payments/:id` (terminal o ~30s→/checkout/return?paymentId=) | URL real→`location.assign`.
 
 ### Encuesta academia `/academias/[id]/encuesta?seriesId&month&series`
-- Params inválidos → card; sin sesión → loginRequired. course★* + instructor★ opcional + comentario ≤500 → `POST /me/course-surveys` → done → volver academia.
+- Params inválidos → card; sin sesión → loginRequired. course★* + instructor★ opcional + comentario ≤500 → `POST /me/course-surveys` → done → volver academia. Sin course★ → missing inline; error de envío → ActionNotice error (misma regla en survey-form de evento).
 
 ### Local `/locales/[id]`
 - `GET /venues/:id?days=62`. searchParams `vista=lista|calendario`, `genre`, `mes`, `dia`. Info + eventos agrupados → /eventos/{id}.

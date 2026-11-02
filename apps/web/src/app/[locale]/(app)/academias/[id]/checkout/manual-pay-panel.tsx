@@ -95,7 +95,9 @@ export function ManualPayPanel({
   const [copied, setCopied] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
+  // Solo el fallo de CARGA queda inline (el panel existe igual con la
+  // pasarela); los errores de acción van por ActionNotice.
+  const [loadError, setLoadError] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -128,7 +130,7 @@ export function ManualPayPanel({
       // como única opción (manualActive queda en false) + error
       // visible, en vez de un panel invisible sin explicación.
       setMethods([]);
-      setError(true);
+      setLoadError(true);
     }
   }, [academyId, planId, privateClass, onBlockingChange]);
 
@@ -187,7 +189,6 @@ export function ManualPayPanel({
   async function confirm() {
     if (!selected || busy) return;
     setBusy(true);
-    setError(false);
     try {
       const res = await apiFetch(`/academies/${academyId}/claims/intent`, {
         method: "POST",
@@ -199,14 +200,14 @@ export function ManualPayPanel({
         ),
       });
       if (!res.ok) {
-        setError(true);
+        showActionNotice({ text: tc("error"), error: true });
         return;
       }
       setClaim(await res.json());
       setSelected(null);
       onBlockingChange(true);
     } catch {
-      setError(true);
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -215,7 +216,6 @@ export function ManualPayPanel({
   async function sendReceipt() {
     if (!file || !claim || busy) return;
     setBusy(true);
-    setError(false);
     try {
       const fd = new FormData();
       fd.set("receipt", file, file.name);
@@ -224,7 +224,7 @@ export function ManualPayPanel({
         { method: "POST", body: fd },
       );
       if (!res.ok) {
-        setError(true);
+        showActionNotice({ text: tc("error"), error: true });
         return;
       }
       setClaim(await res.json());
@@ -238,7 +238,7 @@ export function ManualPayPanel({
         router.replace(returnHref);
       }
     } catch {
-      setError(true);
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -247,7 +247,6 @@ export function ManualPayPanel({
   async function cancelIntent() {
     if (!claim || busy) return;
     setBusy(true);
-    setError(false);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/claims/${claim.id}/cancel`,
@@ -257,10 +256,10 @@ export function ManualPayPanel({
         setClaim(null);
         onBlockingChange(false);
       } else {
-        setError(true);
+        showActionNotice({ text: tc("error"), error: true });
       }
     } catch {
-      setError(true);
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -442,10 +441,10 @@ export function ManualPayPanel({
         </div>
       )}
 
-      {/* Error común a todas las ramas (selector, AWAITING, fallo de
-          carga): antes solo se renderizaba dentro de !claim y el
-          fallo de sendReceipt quedaba invisible. */}
-      {error && (
+      {/* Fallo de carga del panel: los errores de acción viajan por
+          ActionNotice; este solo cubre cuando no se pudieron traer
+          métodos/claims (la pasarela sigue disponible). */}
+      {loadError && (
         <p role="alert" className="text-sm text-red-400">
           {tc("error")}
         </p>

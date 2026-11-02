@@ -72,7 +72,7 @@ function RolesPanel() {
         body: JSON.stringify({ permission, grant }),
       });
       if (!res.ok) {
-        setActionError((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       setNotice({ text: t("roles.saved") });
@@ -91,7 +91,7 @@ function RolesPanel() {
         ),
       );
     } catch {
-      setActionError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setActing(null);
     }

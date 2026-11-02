@@ -32,7 +32,6 @@ function NewCollaborator() {
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   // Alta por correo: persona nueva → stub + invitación por magic link;
   // existente → se suma a la nómina directo. En ambos casos gana el rol
   // DANCER si no lo tenía.
@@ -75,7 +74,6 @@ function NewCollaborator() {
   async function add(personId: string) {
     if (busyId) return;
     setBusyId(personId);
-    setError(null);
     try {
       const res = await apiFetch("/producer/staff", {
         method: "POST",
@@ -83,13 +81,13 @@ function NewCollaborator() {
         body: JSON.stringify({ personId }),
       });
       if (!res.ok) {
-        setError(await staffError(res));
+        showActionNotice({ text: (await staffError(res)) ?? tc("error"), error: true });
         return;
       }
       showActionNotice({ text: t("collaborators.added") });
       router.push(backHref);
     } catch {
-      setError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusyId(null);
     }
@@ -100,7 +98,6 @@ function NewCollaborator() {
     const trimmed = email.trim();
     if (!trimmed || inviting) return;
     setInviting(true);
-    setError(null);
     try {
       const res = await apiFetch("/producer/staff", {
         method: "POST",
@@ -111,7 +108,7 @@ function NewCollaborator() {
         }),
       });
       if (!res.ok) {
-        setError(await staffError(res));
+        showActionNotice({ text: (await staffError(res)) ?? tc("error"), error: true });
         return;
       }
       const body = (await res.json()) as { invited?: boolean };
@@ -122,7 +119,7 @@ function NewCollaborator() {
       });
       router.push(backHref);
     } catch {
-      setError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setInviting(false);
     }
@@ -203,11 +200,6 @@ function NewCollaborator() {
             </ul>
           )}
 
-          {error && (
-            <p role="alert" className="text-sm text-red-400">
-              {error}
-            </p>
-          )}
         </Card>
 
         <Card className="flex flex-col gap-4">

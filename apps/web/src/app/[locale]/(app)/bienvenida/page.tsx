@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { useMe } from "@/lib/me-context";
 import { Button, Card } from "@/components/ui";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
@@ -43,7 +44,6 @@ const selectCls =
 function BienvenidaForm() {
   const t = useTranslations("welcome");
   const tp = useTranslations("profile");
-  const tc = useTranslations("common");
   const router = useRouter();
   const params = useSearchParams();
   const next = safeInternalPath(params.get("next"));
@@ -168,7 +168,7 @@ function BienvenidaForm() {
         return;
       }
       if (!res.ok) {
-        setError("generic");
+        showActionNotice({ text: t("saveError"), error: true });
         return;
       }
       if (picked.size > 0) {
@@ -184,7 +184,7 @@ function BienvenidaForm() {
           }),
         });
         if (!srRes.ok) {
-          setError("generic");
+          showActionNotice({ text: t("saveError"), error: true });
           return;
         }
       }
@@ -192,7 +192,7 @@ function BienvenidaForm() {
       void refreshMe();
       destino();
     } catch {
-      setError("generic");
+      showActionNotice({ text: t("saveError"), error: true });
     } finally {
       setSaving(false);
     }
@@ -348,9 +348,9 @@ function BienvenidaForm() {
             )}
           </div>
 
-          {error && (
+          {error === "phoneTaken" && (
             <p role="alert" className="text-sm font-medium text-red-400">
-              {error === "phoneTaken" ? t("phoneTaken") : t("saveError")}
+              {t("phoneTaken")}
             </p>
           )}
 

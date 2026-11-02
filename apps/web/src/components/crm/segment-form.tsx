@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { Button, Card, Spinner, XIcon } from "@/components/ui";
 import type {
   CrmActor,
@@ -64,7 +65,6 @@ export function SegmentForm({
       : [emptyCondition()],
   );
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const [preview, setPreview] = useState<number | null>(null);
   const [previewing, setPreviewing] = useState(false);
 
@@ -127,7 +127,6 @@ export function SegmentForm({
     e.preventDefault();
     if (!valid || saving) return;
     setSaving(true);
-    setFormError(null);
     const payload = {
       name: name.trim(),
       rules: {
@@ -160,12 +159,12 @@ export function SegmentForm({
         const msg = Array.isArray(body?.message)
           ? body.message.join(" ")
           : body?.message;
-        setFormError(msg ?? tc("error"));
+        showActionNotice({ text: msg ?? tc("error"), error: true });
         return;
       }
       onSaved();
     } catch {
-      setFormError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setSaving(false);
     }
@@ -328,11 +327,6 @@ export function SegmentForm({
                 : t("actorSegments.previewHint")}
         </p>
 
-        {formError && (
-          <p role="alert" className="text-sm text-red-400">
-            {formError}
-          </p>
-        )}
 
         <div className="flex gap-3">
           <Button type="submit" className="flex-1" disabled={!valid || saving}>

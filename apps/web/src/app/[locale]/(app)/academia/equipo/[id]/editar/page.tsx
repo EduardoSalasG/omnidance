@@ -58,7 +58,6 @@ function EditCaps({
   const [name, setName] = useState<string>("");
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -85,7 +84,6 @@ function EditCaps({
     e.preventDefault();
     if (!caps) return;
     setBusy(true);
-    setErr(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/staff/${personId}`,
@@ -96,14 +94,14 @@ function EditCaps({
         },
       );
       if (!res.ok) {
-        setErr((await readError(res)) ?? t("error"));
+        showActionNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
       // Aviso global + vuelta inmediata a la ficha (patrón de la consola).
       showActionNotice({ text: t("capsSaved") });
       router.push(`/academia/equipo/${personId}`);
     } catch {
-      setErr(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -145,11 +143,6 @@ function EditCaps({
             />
           ))}
         </div>
-        {err && (
-          <p role="alert" className="text-sm text-red-400">
-            {err}
-          </p>
-        )}
         <div>
           <Button type="submit" size="sm" disabled={busy}>
             {busy ? t("adding") : t("saveCaps")}
