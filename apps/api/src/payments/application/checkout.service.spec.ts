@@ -17,6 +17,7 @@ import {
   AcademyNotFoundError,
   AcademyUnavailableError,
   EventNotFoundError,
+  EventExclusiveError,
   InvalidDiscountError,
   PlanNotFoundError,
   PlanNotPurchasableError,
@@ -147,6 +148,8 @@ function mkPrisma() {
       findFirst: vi.fn(
         async (): Promise<{ endsAt: Date | null } | null> => null,
       ),
+      // Regalos a sociales internos (spec internal-academy-socials).
+      findMany: vi.fn(async () => [] as { personId: string }[]),
     },
     membershipSubscription: {
       findFirst: vi.fn(
@@ -2260,5 +2263,93 @@ describe("CheckoutService - Pase Social", () => {
     await expect(
       buy({ payWithCredit: true, methodId: "pm-1" }),
     ).rejects.toThrow(/métodos propios/);
+  });
+});
+
+// Gate de exclusividad del social interno (spec internal-academy-socials):
+// compra solo con Enrollment ACTIVE de event.academyId - el comprador,
+// cada destinatario de regalo.
+describe("CheckoutService.purchaseTicket - internal-academy-socials", () => {
+  let fx: ReturnType<typeof mkPrisma>;
+  let pf: ReturnType<typeof mkParams>;
+  let gw: ReturnType<typeof mkGateway>;
+  let svc: CheckoutService;
+
+  const internalEvent = (over: Record<string, unknown> = {}) =>
+    mkEvent({
+      visibility: "INTERNAL_ACADEMY",
+      academyId: "acad-1",
+      ...over,
+    });
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    pf = mkParams();
+    gw = mkGateway();
+    fx.prisma.event.findUnique.mockResolvedValue(internalEvent());
+    academySalesStub.resolveAttribution.mockClear();
+    academySalesStub.codeAgreement.mockClear();
+    academySalesStub.codeAgreement.mockResolvedValue(null);
+    svc = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      gw.gateway,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+      { settle: vi.fn(async () => ({ ok: true, status: "PAID" as const })) } as never,
+      gw.registry,
+      accountsStub as never,
+      academySalesStub as never,
+      featuresStub as never,
+      new AcademyPromosService(fx.prisma as unknown as PrismaService),
+    );
+  });
+
+  it("comprador sin enrollment ACTIVE → EventExclusiveError", async () => {
+    await expect(
+      svc.purchaseTicket("per-1", { eventId: "evt-1" }),
+    ).rejects.toBeInstanceOf(EventExclusiveError);
+    expect(fx.prisma.enrollment.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          personId: "per-1",
+          academyId: "acad-1",
+          status: "ACTIVE",
+        }),
+      }),
+    );
+  });
+
+  it("comprador con enrollment ACTIVE → la orden se crea", async () => {
+    fx.prisma.enrollment.findFirst.mockResolvedValue({ id: "en-1" } as never);
+    const res = await svc.purchaseTicket("per-1", { eventId: "evt-1" });
+    expect(res.paymentId).toBeTruthy();
+  });
+
+  it("evento PUBLIC no consulta enrollments", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({ visibility: "PUBLIC", academyId: null }),
+    );
+    await svc.purchaseTicket("per-1", { eventId: "evt-1" });
+    expect(fx.prisma.enrollment.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("regalo a no-alumno de un interno → RecipientError nombrándolo", async () => {
+    fx.prisma.enrollment.findFirst.mockResolvedValue({ id: "en-1" } as never);
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "f-1" },
+    ]);
+    fx.prisma.enrollment.findMany.mockResolvedValue([]);
+    await expect(
+      svc.purchaseTicket("per-1", {
+        eventId: "evt-1",
+        recipientIds: ["f-1"],
+      }),
+    ).rejects.toBeInstanceOf(RecipientError);
+    await expect(
+      svc.purchaseTicket("per-1", {
+        eventId: "evt-1",
+        recipientIds: ["f-1"],
+      }),
+    ).rejects.toThrow(/no es alumno de la academia/);
   });
 });

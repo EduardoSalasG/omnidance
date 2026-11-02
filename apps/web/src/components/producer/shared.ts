@@ -186,6 +186,10 @@ export type EventDetail = {
   /** Moneda del evento (spec platform-multicountry, ISO-4217). */
   currency?: string;
   producerId?: string | null;
+  /** INTERNAL_ACADEMY = social interno (spec internal-academy-socials). */
+  visibility?: string;
+  /** Academia dueña del social interno (null en eventos sin vínculo). */
+  academyId?: string | null;
   venueId?: string | null;
   seriesId?: string | null;
   series: { id?: string; name: string } | null;
@@ -211,6 +215,9 @@ export type EventPayload = {
   name?: string;
   venueId?: string;
   seriesId?: string;
+  /** PUBLIC | INTERNAL_ACADEMY - interno exige academyId (spec). */
+  visibility?: string;
+  academyId?: string | null;
   type?: string;
   startsAt?: string;
   endsAt?: string;

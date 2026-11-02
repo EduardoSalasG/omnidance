@@ -891,7 +891,9 @@ describe("EventsController.detail - presaleEndsAt", () => {
   });
 
   it("expone presaleEndsAt = cutoff_hour (19) del día del evento, hora local", async () => {
-    const res = (await ctrl.detail("ev-1")) as { presaleEndsAt: Date };
+    const res = (await ctrl.detail("ev-1", {} as Request)) as {
+      presaleEndsAt: Date;
+    };
     const ends = new Date(res.presaleEndsAt);
     expect(ends.getFullYear()).toBe(2026);
     expect(ends.getMonth()).toBe(8);
@@ -902,7 +904,9 @@ describe("EventsController.detail - presaleEndsAt", () => {
 
   it("respeta presale.cutoff_hour del PlatformParam", async () => {
     numbers.set("presale.cutoff_hour", 21);
-    const res = (await ctrl.detail("ev-1")) as { presaleEndsAt: Date };
+    const res = (await ctrl.detail("ev-1", {} as Request)) as {
+      presaleEndsAt: Date;
+    };
     expect(new Date(res.presaleEndsAt).getHours()).toBe(21);
   });
 });

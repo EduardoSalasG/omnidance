@@ -105,6 +105,13 @@ class FakePrisma {
     findMany: async ({ where }: { where: Row }) =>
       this.referralRows.filter((r) => matchWhere(r, where)),
   };
+  // Stubs por defecto (spec internal-academy-socials): sin sociales
+  // internos ni checkins salvo que el test los siembre vía extend.
+  event = { findMany: async () => [] as Row[] };
+  checkin = {
+    groupBy: async () => [] as Row[],
+    findMany: async () => [] as Row[],
+  };
   relationshipScore = {
     findMany: async ({ where }: { where: Row }) =>
       this.scores.filter((s) => matchWhere(s, where)),
@@ -369,7 +376,7 @@ describe("CrmService.recomputeScores (PRODUCER)", () => {
   let fp: ProducerPrisma;
   const ev = (id: string, daysAgoN: number) => {
     const startsAt = daysAgo(daysAgoN);
-    fp.eventRows.push({ id, producerId: PRODUCER, startsAt, status: "PUBLISHED" });
+    fp.eventRows.push({ id, producerId: PRODUCER, startsAt, status: "PUBLISHED", visibility: "PUBLIC" });
     return startsAt;
   };
   const checkin = (personId: string, eventId: string, daysAgoN: number) =>
@@ -793,5 +800,123 @@ describe("CrmService segmentos dinámicos (crm-dynamic-segments)", () => {
     await expect(
       svc.listPeople("ACADEMY", ACAD, { segmentId: "no-existe" }),
     ).rejects.toThrow("segmento no encontrado");
+  });
+});
+
+// Spec internal-academy-socials: los checkins a sociales INTERNAL_ACADEMY
+// de la academia alimentan la dimensión de asistencia del eje ACADEMY;
+// los mismos eventos NO entran al universo PRODUCER.
+describe("CrmService - internal-academy-socials", () => {
+  const ACAD = "acad-1";
+  const PRODUCER = "prod-1";
+  let prisma: FakePrisma;
+  let svc: CrmService;
+
+  type ExtPrisma = FakePrisma & {
+    eventRows: Row[];
+    checkinRows: Row[];
+  };
+  function extend(p: FakePrisma): ExtPrisma {
+    const fp = p as ExtPrisma;
+    fp.eventRows = [];
+    fp.checkinRows = [];
+    (fp as unknown as Row).event = {
+      findMany: async ({ where }: { where: Row }) =>
+        fp.eventRows.filter((e) => matchWhere(e, where)),
+    };
+    (fp as unknown as Row).checkin = {
+      groupBy: async ({ by, where }: { by: string[]; where: Row }) => {
+        void by;
+        const rows = fp.checkinRows.filter((r) => matchWhere(r, where));
+        const byPerson = new Map<string, Row[]>();
+        for (const r of rows) {
+          const k = r.personId as string;
+          byPerson.set(k, [...(byPerson.get(k) ?? []), r]);
+        }
+        return [...byPerson.entries()].map(([personId, rs]) => ({
+          personId,
+          _count: { _all: rs.length },
+          _min: {
+            inAt: rs.reduce(
+              (m, r) => ((r.inAt as Date) < m ? (r.inAt as Date) : m),
+              rs[0].inAt as Date,
+            ),
+          },
+          _max: {
+            inAt: rs.reduce(
+              (m, r) => ((r.inAt as Date) > m ? (r.inAt as Date) : m),
+              rs[0].inAt as Date,
+            ),
+          },
+        }));
+      },
+      findMany: async ({ where }: { where: Row }) =>
+        fp.checkinRows.filter((c) => matchWhere(c, where)),
+    };
+    return fp;
+  }
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    svc = new CrmService(
+      prisma as unknown as PrismaService,
+      { notifySafe: vi.fn(async () => ({})) } as unknown as NotificationsService,
+      { getNumber: async (_k: string, d: number) => d } as unknown as ParamsService,
+    );
+  });
+
+  function enroll(personId: string, startedDaysAgo: number) {
+    prisma.enrollments.push({
+      id: `en-${personId}`,
+      academyId: ACAD,
+      personId,
+      status: "ACTIVE",
+      startedAt: daysAgo(startedDaysAgo),
+      endsAt: null,
+      pausedAt: null,
+      createdAt: daysAgo(startedDaysAgo),
+    });
+  }
+
+  it("checkin a social interno cuenta como asistencia del eje ACADEMY", async () => {
+    const fp = extend(prisma);
+    enroll("p1", 40);
+    fp.eventRows.push(
+      { id: "ev-int", academyId: ACAD, producerId: PRODUCER, visibility: "INTERNAL_ACADEMY" },
+      // un interno de OTRA academia no debe contar
+      { id: "ev-otro", academyId: "acad-2", producerId: PRODUCER, visibility: "INTERNAL_ACADEMY" },
+      // un PUBLIC de la academia tampoco es social interno
+      { id: "ev-pub", academyId: ACAD, producerId: PRODUCER, visibility: "PUBLIC" },
+    );
+    fp.checkinRows.push(
+      { personId: "p1", eventId: "ev-int", inAt: daysAgo(3), voidedAt: null },
+      { personId: "p1", eventId: "ev-int", inAt: daysAgo(6), voidedAt: null },
+      { personId: "p1", eventId: "ev-otro", inAt: daysAgo(2), voidedAt: null },
+      { personId: "p1", eventId: "ev-pub", inAt: daysAgo(1), voidedAt: null },
+      // anulado no cuenta
+      { personId: "p1", eventId: "ev-int", inAt: daysAgo(4), voidedAt: daysAgo(1) },
+    );
+
+    await svc.recomputeScores("ACADEMY", ACAD);
+    const s = scoreOf(fp.scores, "p1")!;
+    const bd = s.breakdown as Row;
+    expect(bd.attendanceRecent).toBe(2);
+    const pts = bd.points as Row;
+    expect(pts.attendanceRecent).toBe(8);
+  });
+
+  it("el universo PRODUCER excluye los eventos INTERNAL_ACADEMY", async () => {
+    const fp = extend(prisma);
+    fp.eventRows.push(
+      { id: "ev-pub", producerId: PRODUCER, startsAt: daysAgo(10), status: "PUBLISHED", visibility: "PUBLIC" },
+      { id: "ev-int", producerId: PRODUCER, startsAt: daysAgo(5), status: "PUBLISHED", visibility: "INTERNAL_ACADEMY" },
+    );
+    fp.checkinRows.push(
+      { personId: "p1", eventId: "ev-int", inAt: daysAgo(5), voidedAt: null },
+    );
+
+    await svc.recomputeScores("PRODUCER", PRODUCER);
+    // sin checkins en eventos PUBLIC → p1 no entra al universo del productor
+    expect(scoreOf(fp.scores, "p1")).toBeUndefined();
   });
 });

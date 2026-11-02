@@ -11642,11 +11642,27 @@
       },
       "CreateEventDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "INTERNAL_ACADEMY"
+            ]
+          }
+        }
       },
       "UpdateEventDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "INTERNAL_ACADEMY"
+            ]
+          }
+        }
       },
       "AddStaffDto": {
         "type": "object",

@@ -369,6 +369,21 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         setPhase({ kind: "form" });
         return;
       }
+      if (res.status === 403) {
+        // Exclusividad del social interno (spec internal-academy-socials):
+        // el API devuelve el copy ("evento exclusivo para alumnos…").
+        const body = (await res.json().catch(() => null)) as {
+          message?: string | string[];
+        } | null;
+        const msg = Array.isArray(body?.message)
+          ? body.message.join(" ")
+          : body?.message;
+        setServerError(
+          typeof msg === "string" && msg.length ? msg : tc("error"),
+        );
+        setPhase({ kind: "form" });
+        return;
+      }
       if (res.status === 409) {
         // El 409 agrupa sold-out de entradas y de mesas - el mensaje
         // del API distingue ("sin cupo en mesas…" = TableSoldOutError).

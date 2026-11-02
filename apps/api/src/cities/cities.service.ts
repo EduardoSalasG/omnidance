@@ -11,6 +11,8 @@ import {
   approvedProducerIds,
   mapPublicFeed,
   publicProducerWhere,
+  viewerAcademyIds,
+  visibilityWhere,
 } from "../common/event-feed";
 
 const CITY_LANDING_FLAG = "city_landing";
@@ -75,16 +77,25 @@ export class CitiesService {
     }
   }
 
-  /** Where base de "actividad": futuros publicados de cartelera pública. */
+  /**
+   * Where base de "actividad": futuros publicados de cartelera pública.
+   * `viewerAcademyIds` (spec internal-academy-socials) solo lo pasa
+   * "cerca de mí" cuando hay sesión: las landings de ciudad son
+   * superficie anónima y quedan en PUBLIC.
+   */
   private activityWhere(
     approvedIds: string[],
     cityIds?: string[],
+    viewerAcademies: string[] = [],
   ): Prisma.EventWhereInput {
     return {
       status: "PUBLISHED" as const,
       startsAt: { gt: new Date() },
       ...(cityIds ? { cityId: { in: cityIds } } : {}),
-      AND: [publicProducerWhere(approvedIds)],
+      AND: [
+        publicProducerWhere(approvedIds),
+        visibilityWhere(viewerAcademies),
+      ],
     };
   }
 
@@ -225,7 +236,12 @@ export class CitiesService {
    * y luego por fecha. Sin ciudades en radio → events vacío +
    * nearestCity de sugerencia (nunca error). Sin lat/lng válidas → 400.
    */
-  async nearEvents(lat: number, lng: number, radiusKm?: number) {
+  async nearEvents(
+    lat: number,
+    lng: number,
+    radiusKm?: number,
+    personId?: string,
+  ) {
     await this.assertEnabled();
     if (
       !isFinite(lat) ||
@@ -274,11 +290,15 @@ export class CitiesService {
     }
 
     const approved = await approvedProducerIds(this.prisma);
+    // Sociales internos del viewer (spec internal-academy-socials):
+    // con sesión + enrollment ACTIVE también aparecen en "cerca de mí".
+    const academyIds = await viewerAcademyIds(this.prisma, personId);
     const distByCity = new Map(inRange.map((c) => [c.id, c.distanceKm]));
     const rows = await this.prisma.event.findMany({
       where: this.activityWhere(
         approved,
         inRange.map((c) => c.id),
+        academyIds,
       ),
       select: { ...PUBLIC_FEED_SELECT, cityId: true },
     });

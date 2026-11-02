@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { getMessages } from "next-intl/server";
 import { Button } from "@/components/ui";
@@ -33,8 +34,11 @@ export type CheckoutEvent = {
 
 async function getEvent(id: string): Promise<CheckoutEvent | "error"> {
   const API_URL = await serverApiUrl();
+  // Cookie forward (spec internal-academy-socials): la ficha interna
+  // solo responde al alumno con enrollment ACTIVE.
   const res = await fetch(`${API_URL}/api/events/${id}`, {
     cache: "no-store",
+    headers: { cookie: (await cookies()).toString() },
   }).catch(() => null);
   if (res?.status === 404) notFound();
   if (!res || !res.ok) return "error";

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import "../auth/infrastructure/auth.controller"; // ciclo session.guard ⇄ auth.controller
 import {
   CitiesController,
   EventsNearController,
@@ -30,7 +31,7 @@ describe("CitiesController / EventsNearController", () => {
     const ctrl = new EventsNearController({
       nearEvents,
     } as never as CitiesService);
-    await ctrl.near({ lat: -33.45, lng: -70.66, radiusKm: 50 });
-    expect(nearEvents).toHaveBeenCalledWith(-33.45, -70.66, 50);
+    await ctrl.near({ lat: -33.45, lng: -70.66, radiusKm: 50 }, {} as never);
+    expect(nearEvents).toHaveBeenCalledWith(-33.45, -70.66, 50, undefined);
   });
 });

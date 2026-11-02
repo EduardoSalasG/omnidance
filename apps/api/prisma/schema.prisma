@@ -349,6 +349,14 @@ enum EventStatus {
   CANCELLED
 }
 
+// Visibilidad del evento (spec internal-academy-socials): PUBLIC es la
+// cartelera de siempre; INTERNAL_ACADEMY lo ve solo quien tiene
+// Enrollment ACTIVE de event.academyId (social interno de la academia).
+enum EventVisibility {
+  PUBLIC
+  INTERNAL_ACADEMY
+}
+
 model EventSeries {
   id          String  @id @default(cuid())
   name        String // "La Gozadera", "Bachatamanía"
@@ -378,6 +386,9 @@ model Event {
   producerId  String?
   hostId      String?     // host de práctica (creador bailarín)
   academyId   String?
+  // INTERNAL_ACADEMY exige academyId (validado a nivel app en
+  // create/update): social interno solo para alumnos de esa academia.
+  visibility  EventVisibility @default(PUBLIC)
   type        EventType   @default(SOCIAL)
   status      EventStatus @default(DRAFT)
   genres      Genre[]     @default([]) // vacío → hereda series.genres; standalone lo declara acá

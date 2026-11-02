@@ -3,10 +3,14 @@ import {
   Get,
   Param,
   Query,
+  Req,
+  UseGuards,
 } from "@nestjs/common";
 import { ApiQuery } from "@nestjs/swagger";
 import { IsNumber, IsOptional, Max, Min } from "class-validator";
 import { Type } from "class-transformer";
+import type { Request } from "express";
+import { OptionalSessionGuard } from "../auth/infrastructure/optional-session.guard";
 import { CitiesService } from "./cities.service";
 
 /**
@@ -47,11 +51,19 @@ export class EventsNearController {
   constructor(private readonly cities: CitiesService) {}
 
   @Get("near")
+  // Sesión opcional (spec internal-academy-socials): con login los
+  // sociales internos de sus academias también entran al resultado.
+  @UseGuards(OptionalSessionGuard)
   @ApiQuery({ name: "lat", required: true })
   @ApiQuery({ name: "lng", required: true })
   @ApiQuery({ name: "radiusKm", required: false })
-  near(@Query() dto: NearEventsQueryDto) {
-    return this.cities.nearEvents(dto.lat, dto.lng, dto.radiusKm);
+  near(@Query() dto: NearEventsQueryDto, @Req() req: Request) {
+    return this.cities.nearEvents(
+      dto.lat,
+      dto.lng,
+      dto.radiusKm,
+      req.person?.id,
+    );
   }
 }
 

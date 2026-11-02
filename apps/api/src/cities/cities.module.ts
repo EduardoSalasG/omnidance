@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { AuthModule } from "../auth/auth.module";
 import { PrismaModule } from "../prisma.module";
 import { FeaturesModule } from "../features/features.module";
 import { CitiesService } from "./cities.service";
@@ -14,7 +15,7 @@ import {
  * definitiva detrás del flag city_landing.
  */
 @Module({
-  imports: [PrismaModule, FeaturesModule],
+  imports: [PrismaModule, FeaturesModule, AuthModule],
   controllers: [
     // EventsNearController primero: mismo prefijo "events" que
     // EventsController - su @Get("near") debe registrarse antes de
