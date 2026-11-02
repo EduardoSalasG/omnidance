@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { useDialogFocus } from "@/lib/useDialogFocus";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
 import { SkeletonCard, SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -52,9 +52,7 @@ export default function CrmSegmentoPage() {
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const deleteDialogRef = useDialogFocus<HTMLDivElement>(confirmDelete, () =>
-    setConfirmDelete(false),
-  );
+
 
   const load = useCallback(async () => {
     setError(false);
@@ -246,48 +244,15 @@ export default function CrmSegmentoPage() {
         </>
       )}
 
-      {confirmDelete && s && (
-        <div
-          ref={deleteDialogRef}
-          role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
-          onClick={() => setConfirmDelete(false)}
-        >
-          <Card
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="del-segment-title"
-            className="w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="del-segment-title" className="text-lg font-semibold">
-              {t("actorSegments.deleteTitle")}
-            </h2>
-            <p className="mt-1 text-sm text-ink/60">
-              {t("actorSegments.deleteDesc")}
-            </p>
-            <p className="mt-3 text-sm font-medium">{s.name}</p>
-            <div className="mt-4 flex gap-3">
-              <Button
-                type="button"
-                variant="danger"
-                className="flex-1"
-                disabled={deleting}
-                onClick={() => void doDelete()}
-              >
-                {deleting ? tc("loading") : t("actorSegments.delete")}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setConfirmDelete(false)}
-              >
-                {tc("cancel")}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      <ConfirmSheet
+        open={confirmDelete}
+        title={t("actorSegments.deleteTitle")}
+        description={`${t("actorSegments.deleteDesc")} ${s?.name ?? ""}`}
+        confirmLabel={t("actorSegments.delete")}
+        busy={deleting}
+        onConfirm={() => void doDelete()}
+        onClose={() => setConfirmDelete(false)}
+      />
 
       <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </main>

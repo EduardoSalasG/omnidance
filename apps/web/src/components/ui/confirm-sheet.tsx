@@ -16,6 +16,7 @@ export function ConfirmSheet({
   title,
   description,
   confirmLabel,
+  confirmVariant = "danger",
   busy = false,
   onConfirm,
   onClose,
@@ -25,6 +26,9 @@ export function ConfirmSheet({
   /** Texto de apoyo - suele llevar el nombre del recurso afectado. */
   description?: string;
   confirmLabel: string;
+  /** "danger" (default) para destructivo; "primary" para confirms de
+   *  acción no destructiva (enviar campaña, confirmar compra). */
+  confirmVariant?: "primary" | "danger";
   busy?: boolean;
   onConfirm: () => void;
   onClose: () => void;
@@ -57,7 +61,7 @@ export function ConfirmSheet({
         <div className="mt-4 flex gap-3">
           <Button
             type="button"
-            variant="danger"
+            variant={confirmVariant}
             className="flex-1"
             disabled={busy}
             onClick={onConfirm}
