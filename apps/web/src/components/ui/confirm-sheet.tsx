@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Button } from "./Button";
@@ -20,6 +21,7 @@ export function ConfirmSheet({
   busy = false,
   onConfirm,
   onClose,
+  children,
 }: {
   open: boolean;
   title: string;
@@ -32,6 +34,8 @@ export function ConfirmSheet({
   busy?: boolean;
   onConfirm: () => void;
   onClose: () => void;
+  /** Contenido auxiliar bajo la fila de botones (links secundarios, etc.). */
+  children?: ReactNode;
 }) {
   const tc = useTranslations("common");
   const dialogRef = useDialogFocus<HTMLDivElement>(open, onClose);
@@ -72,6 +76,7 @@ export function ConfirmSheet({
             {tc("cancel")}
           </Button>
         </div>
+        {children}
       </Card>
     </div>
   );

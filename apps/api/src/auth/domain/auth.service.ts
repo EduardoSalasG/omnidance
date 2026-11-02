@@ -181,6 +181,14 @@ export class AuthService {
       await repo.bumpAttempts(otp.id);
       throw invalid();
     }
+    // Baja lógica (spec admin-user-soft-delete): se detecta tras probar
+    // posesión del correo pero ANTES de consumir el OTP - así el código
+    // sigue válido si el admin reactiva dentro del TTL, y el controller
+    // puede responder el motivo real sin fuga de enumeración.
+    const person = await this.repo?.findByEmail?.(otp.email);
+    if (person?.deletedAt) {
+      throw new Error("account deactivated");
+    }
     await repo.consumeOtp(otp.id);
     return { email: otp.email, consent: otp.consent, role: otp.role ?? undefined };
   }

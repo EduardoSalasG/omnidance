@@ -94,3 +94,20 @@ Primer cobro de suscripción **verificado end-to-end contra Flow sandbox**
 - Nota de entorno: `prisma generate` tuvo que re-correrse (cliente
   stale → `nest start --watch` moría con 2598 errores TS). Si la API
   no compila, correr `cd apps/api && pnpm exec prisma generate`.
+
+## Update 3 (2026-11-02): tope Cargo Automático resuelto + fix OTP
+
+- **El "tope del mandato" era otra cosa**: la doc oficial de Flow fija
+  límites default del producto Cargo Automático POR CUENTA COMERCIO:
+  $250.000/transacción, $500.000 diarios por cliente, 5 pagos/día.
+  Por eso $25k-$60k cobran y $1.223.898 no (no era el mandato Webpay;
+  re-registrar la tarjeta nunca iba a arreglarlo). **Restricción real
+  de producción**: PRO anual no cabe en el límite default; para cobrarlo
+  hay que pedir alza a soporte@flow.cl o usar el camino manual
+  (invoice por email/link de pago, sin Cargo Automático).
+- **OTP cuenta desactivada (fix)**: código válido + `deletedAt` ahora
+  responde "Tu cuenta está desactivada..." y NO consume el OTP (queda
+  válido si el admin reactiva dentro del TTL). Antes quemaba el código
+  y decía "Código inválido o expirado". Change otp-deactivated-honest.
+- **buy-ticket-cta migrado**: ConfirmSheet ganó slot `children` para el
+  link /qr; consolidación de confirms completa.
