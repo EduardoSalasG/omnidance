@@ -4,19 +4,22 @@ import { JobRegistry } from "../../jobs/registry";
 
 // Scheduler (spec admin-jobs-mail-campaigns): ya no agenda node-cron -
 // registra el job `subscriptions.reconcile` en el JOB_REGISTRY. El
-// horario vive en ScheduledJob (DB); el handler agrupa los 3 barridos
-// y reporta sus contadores a JobRun.meta.
+// horario vive en ScheduledJob (DB); el handler agrupa los barridos
+// (tarjeta + renovación manual TRANSFER + bloqueos) y reporta sus
+// contadores a JobRun.meta.
 
 function mkSubs() {
   return {
     reconcileAll: vi.fn(async () => ({ checked: 4, settled: 1 })),
+    reconcileManualRenewals: vi.fn(async () => ({ checked: 1, issued: 1 })),
   };
 }
 
-/** PlatformSubscriptionsService stub - reconcileAll + enforceAcademyBlocks. */
+/** PlatformSubscriptionsService stub - reconcileAll + manual + enforceAcademyBlocks. */
 function mkPlatSubs() {
   return {
     reconcileAll: vi.fn(async () => ({ checked: 2, settled: 0 })),
+    reconcileManualRenewals: vi.fn(async () => ({ checked: 1, issued: 0 })),
     enforceAcademyBlocks: vi.fn(async () => ({ blocked: 3 })),
   };
 }
@@ -35,7 +38,7 @@ describe("SubscriptionsScheduler", () => {
     expect(reg!.label).toBeTruthy();
   });
 
-  it("el handler corre los 3 barridos y reporta contadores a meta", async () => {
+  it("el handler corre los barridos y reporta contadores a meta", async () => {
     const registry = new JobRegistry();
     const subs = mkSubs();
     const platSubs = mkPlatSubs();
@@ -46,11 +49,15 @@ describe("SubscriptionsScheduler", () => {
     ).onModuleInit();
     const meta = await registry.get("subscriptions.reconcile")!.handler();
     expect(subs.reconcileAll).toHaveBeenCalledWith("cron");
+    expect(subs.reconcileManualRenewals).toHaveBeenCalledWith("cron");
     expect(platSubs.reconcileAll).toHaveBeenCalledWith("cron");
+    expect(platSubs.reconcileManualRenewals).toHaveBeenCalledWith("cron");
     expect(platSubs.enforceAcademyBlocks).toHaveBeenCalled();
     expect(meta).toEqual({
       memberships: { checked: 4, settled: 1 },
+      manualMemberships: { checked: 1, issued: 1 },
       platform: { checked: 2, settled: 0 },
+      manualPlatform: { checked: 1, issued: 0 },
       blocks: { blocked: 3 },
     });
   });

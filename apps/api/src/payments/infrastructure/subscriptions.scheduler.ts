@@ -7,14 +7,17 @@ import { PlatformSubscriptionsService } from "../application/platform-subscripti
  * Job diario de suscripciones (spec admin-jobs-mail-campaigns): el
  * horario vive en ScheduledJob (DB) administrable desde /admin/jobs -
  * el código solo registra handler + default (09:00 America/Santiago).
- * El handler agrupa los tres barridos: reconcileAll de membresías y de
+ * El handler agrupa los barridos: reconcileAll de membresías y de
  * suscripciones de plataforma (SaaS academias + Producer Pro - spec
  * academy-saas-billing: settle de invoices pagados, sync de
  * estado/nextInvoiceAt, reminder del cobro del día siguiente, mora y
- * cambios de plan pendientes) + enforceAcademyBlocks (S3). Los
- * contadores de cada barrido van a JobRun.meta. Es la red de seguridad
- * del webhook (subscription/callback dispara el mismo barrido) y del
- * refresh de las vistas.
+ * cambios de plan pendientes) + reconcileManualRenewals de ambas
+ * tablas (spec subscription-manual-transfer: orden PENDING del ciclo
+ * siguiente para subs TRANSFER + gracia por período vencido) +
+ * enforceAcademyBlocks (S3 - bloquea la gracia vencida, tarjeta o
+ * transferencia). Los contadores de cada barrido van a JobRun.meta. Es
+ * la red de seguridad del webhook (subscription/callback dispara el
+ * mismo barrido) y del refresh de las vistas.
  */
 @Injectable()
 export class SubscriptionsScheduler implements OnModuleInit {
@@ -33,9 +36,13 @@ export class SubscriptionsScheduler implements OnModuleInit {
       defaultCron: "0 9 * * *",
       handler: async () => {
         const memberships = await this.subs.reconcileAll("cron");
+        const manualMemberships =
+          await this.subs.reconcileManualRenewals("cron");
         const platform = await this.platformSubs.reconcileAll("cron");
+        const manualPlatform =
+          await this.platformSubs.reconcileManualRenewals("cron");
         const blocks = await this.platformSubs.enforceAcademyBlocks();
-        return { memberships, platform, blocks };
+        return { memberships, manualMemberships, platform, manualPlatform, blocks };
       },
     });
   }

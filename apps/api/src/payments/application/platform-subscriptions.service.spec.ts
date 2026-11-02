@@ -2339,4 +2339,282 @@ describe("multipais-currency", () => {
   });
 });
 
+// ─── subscription-manual-transfer: renovación por ciclo ────────────
+// Barrido diario (dentro de subscriptions.reconcile): la sub TRANSFER
+// ACTIVE cuyo currentPeriodEnd entra en la ventana lead_days recibe la
+// orden PENDING del ciclo siguiente + aviso; vencida sin claim aprobado
+// sigue la misma gracia/bloqueo que la mora de tarjeta.
+describe("reconcileManualRenewals (TRANSFER)", () => {
+  const DAY = 24 * 60 * 60_000;
+  let fx: ReturnType<typeof mkPrisma>;
+  let notifications: ReturnType<typeof mkNotifications>;
+  let svc: PlatformSubscriptionsService;
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    notifications = mkNotifications();
+    notifications.notifySafe.mockImplementation(
+      async (personId: string, input: Row) => {
+        fx.sentNotifs.push({ personId, ...input });
+      },
+    );
+    fx.academies.set("ac1", {
+      ...mkAcademy(),
+      city: { country: { code: "CL", currency: "CLP" } },
+    });
+    const prisma = fx.prisma as unknown as PrismaService;
+    const paramsSvc = {
+      get: vi.fn(async () => null),
+      getNumber: vi.fn(
+        async (k: string, f: number) => PARAMS.get(k) ?? f,
+      ),
+    } as unknown as ParamsService;
+    const notif = notifications as unknown as NotificationsService;
+    svc = new PlatformSubscriptionsService(
+      prisma,
+      paramsSvc,
+      new PaymentSettlementService(prisma, paramsSvc, notif, {
+        send: vi.fn(async () => undefined),
+      }),
+      notif,
+      new GatewayTransactionsService(prisma),
+      new GatewayRegistry(
+        [mkFlow() as unknown as PaymentGateway],
+        "FLOW",
+      ),
+    );
+  });
+
+  const mkManualPlatSub = (over: Partial<Row> = {}) =>
+    mkPlatSub({
+      status: "ACTIVE",
+      paymentMethod: "TRANSFER",
+      currency: "CLP",
+      countryCode: "CL",
+      planChargeClp: 19990,
+      currentPeriodEnd: new Date(Date.now() + 3 * DAY),
+      nextInvoiceAt: new Date(Date.now() + 3 * DAY),
+      ...over,
+    });
+
+  const pendingOrders = () =>
+    [...fx.payments.values()].filter((p) => p.status === "PENDING");
+
+  it("ACADEMY: emite la orden del ciclo siguiente + avisa con claimUrl", async () => {
+    const sub = mkManualPlatSub();
+    fx.platSubs.push(sub);
+    // El alta ya liquidó su ciclo 1 (PAID) - el barrido emite el 2.
+    await fx.prisma.payment.create({
+      data: {
+        orderType: "PLATFORM_SUB",
+        refId: `platsub_${sub.id}_manual_1`,
+        personId: "p1",
+        amount: 19990,
+        fee: 0,
+        net: 19990,
+        currency: "CLP",
+        gateway: "MANUAL",
+        status: "PAID",
+      },
+    });
+    const r = await svc.reconcileManualRenewals("spec");
+    expect(r).toEqual({ checked: 1, issued: 1 });
+    const order = pendingOrders()[0]!;
+    expect(order.refId).toBe(`platsub_${sub.id}_manual_2`);
+    expect(order.amount).toBe(19990);
+    expect(order.gateway).toBe("MANUAL");
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "p1",
+      expect.objectContaining({
+        type: "academy.transfer_renewal",
+        data: expect.objectContaining({
+          subscriptionId: sub.id,
+          paymentId: order.id,
+          claimUrl: `/payments/${order.id}/claims`,
+        }),
+      }),
+    );
+    const ev = fx.events.find((e) => e.paymentId === order.id);
+    expect(ev?.type).toBe("ORDER_CREATED");
+  });
+
+  it("idempotente: segunda pasada no duplica la orden ni re-avisa", async () => {
+    fx.platSubs.push(mkManualPlatSub());
+    await svc.reconcileManualRenewals("spec");
+    const r2 = await svc.reconcileManualRenewals("spec");
+    expect(r2.issued).toBe(0);
+    expect(pendingOrders()).toHaveLength(1);
+    const renewals = notifications.notifySafe.mock.calls.filter(
+      (c) => (c[1] as Row).type === "academy.transfer_renewal",
+    );
+    expect(renewals).toHaveLength(1);
+  });
+
+  it("sub CARD con período próximo → no emite orden manual", async () => {
+    fx.platSubs.push(
+      mkPlatSub({
+        status: "ACTIVE",
+        paymentMethod: "CARD",
+        flowSubscriptionId: "fsub-card",
+        currentPeriodEnd: new Date(Date.now() + DAY),
+        nextInvoiceAt: new Date(Date.now() + DAY),
+      }),
+    );
+    const r = await svc.reconcileManualRenewals("spec");
+    expect(r).toEqual({ checked: 0, issued: 0 });
+    expect(fx.payments.size).toBe(0);
+  });
+
+  it("ACADEMY vencida sin claim: orden emitida + gracia desde el fin del período + una sola vez", async () => {
+    const periodEnd = new Date(Date.now() - DAY);
+    fx.platSubs.push(mkManualPlatSub({ currentPeriodEnd: periodEnd }));
+    await svc.reconcileManualRenewals("spec");
+    // Orden del ciclo emitida igual (el aviso de renovación va al pagador).
+    expect(pendingOrders()).toHaveLength(1);
+    // billingGraceUntil = currentPeriodEnd + academy_billing.grace_days(5).
+    const expectedGrace = new Date(periodEnd.getTime() + 5 * DAY);
+    const ac = fx.academies.get("ac1")!;
+    expect((ac.billingGraceUntil as Date).getTime()).toBe(
+      expectedGrace.getTime(),
+    );
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "p1",
+      expect.objectContaining({ type: "academy.billing_grace" }),
+    );
+    // RENEWAL_FAILED quedó en el ledger de la orden pendiente.
+    const order = pendingOrders()[0]!;
+    const rf = fx.events.find(
+      (e) => e.paymentId === order.id && e.type === "RENEWAL_FAILED",
+    );
+    expect(rf).toBeTruthy();
+    // Segunda pasada: la gracia no se extiende ni se re-notifica.
+    await svc.reconcileManualRenewals("spec");
+    expect((fx.academies.get("ac1")!.billingGraceUntil as Date).getTime()).toBe(
+      expectedGrace.getTime(),
+    );
+    const graceNotifs = notifications.notifySafe.mock.calls.filter(
+      (c) => (c[1] as Row).type === "academy.billing_grace",
+    );
+    expect(graceNotifs).toHaveLength(1);
+  });
+
+  it("gracia vencida → enforceAcademyBlocks marca billingBlockedAt", async () => {
+    const periodEnd = new Date(Date.now() - 10 * DAY);
+    fx.platSubs.push(mkManualPlatSub({ currentPeriodEnd: periodEnd }));
+    await svc.reconcileManualRenewals("spec");
+    // Gracia = periodEnd + 5d → ya vencida hace 5 días.
+    const r = await svc.enforceAcademyBlocks();
+    expect(r.blocked).toBe(1);
+    expect(fx.academies.get("ac1")!.billingBlockedAt).toBeInstanceOf(Date);
+  });
+
+  it("PRODUCER vencida: solo avisa una vez (sin degradación de tier)", async () => {
+    fx.persons.set("p2", {
+      id: "p2",
+      name: "Prod Dos",
+      email: "p2@example.cl",
+      proTier: "PRO_GROWTH",
+    });
+    const sub = mkManualPlatSub({
+      kind: "PRODUCER",
+      academyId: null,
+      producerId: "p2",
+      personId: "p2",
+      tierCode: "PRO_GROWTH",
+      currentPeriodEnd: new Date(Date.now() - DAY),
+    });
+    fx.platSubs.push(sub);
+    await svc.reconcileManualRenewals("spec");
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "p2",
+      expect.objectContaining({ type: "producer.pro_transfer_renewal" }),
+    );
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "p2",
+      expect.objectContaining({ type: "producer.pro_renewal_failed" }),
+    );
+    // Sin degradación automática (misma política que la mora de tarjeta).
+    expect(fx.persons.get("p2")!.proTier).toBe("PRO_GROWTH");
+    expect(fx.academies.get("ac1")!.billingGraceUntil).toBeNull();
+  });
+
+  it("claim del ciclo aprobado a tiempo → currentPeriodEnd += 1 mes desde el fin previo", async () => {
+    const prevEnd = new Date(Date.now() + 3 * DAY);
+    const sub = mkManualPlatSub({ currentPeriodEnd: prevEnd });
+    fx.platSubs.push(sub);
+    await svc.reconcileManualRenewals("spec");
+    const order = pendingOrders()[0]!;
+    const paramsSvc = {
+      get: vi.fn(async () => null),
+      getNumber: vi.fn(
+        async (k: string, f: number) => PARAMS.get(k) ?? f,
+      ),
+    } as unknown as ParamsService;
+    const settle = new PaymentSettlementService(
+      fx.prisma as unknown as PrismaService,
+      paramsSvc,
+      notifications as unknown as NotificationsService,
+      { send: vi.fn(async () => undefined) },
+    );
+    // El claim aprobado corre el MISMO settle del webhook (actor claim).
+    await settle.settlePlatformSub(order as never, {
+      actor: "claim",
+      kind: "renewal",
+    });
+    expect(order.status).toBe("PAID");
+    const expected = new Date(
+      Date.UTC(
+        prevEnd.getUTCFullYear(),
+        prevEnd.getUTCMonth() + 1,
+        prevEnd.getUTCDate(),
+        prevEnd.getUTCHours(),
+        prevEnd.getUTCMinutes(),
+        prevEnd.getUTCSeconds(),
+      ),
+    );
+    expect((sub.currentPeriodEnd as Date).getTime()).toBe(
+      expected.getTime(),
+    );
+    expect(sub.status).toBe("ACTIVE");
+    expect(fx.academies.get("ac1")!.tier).toBe("COBROS");
+  });
+
+  it("claim tardío (gracia/bloqueo vigente) → desbloquea y el período corre desde el pago", async () => {
+    const periodEnd = new Date(Date.now() - DAY);
+    const sub = mkManualPlatSub({ currentPeriodEnd: periodEnd });
+    fx.platSubs.push(sub);
+    await svc.reconcileManualRenewals("spec");
+    await svc.enforceAcademyBlocks(); // periodEnd -1d + grace 5d: aún vigente
+    const ac = fx.academies.get("ac1")!;
+    ac.billingBlockedAt = new Date(); // bloqueo ya ejecutado en prod
+    const order = pendingOrders()[0]!;
+    const paramsSvc = {
+      get: vi.fn(async () => null),
+      getNumber: vi.fn(
+        async (k: string, f: number) => PARAMS.get(k) ?? f,
+      ),
+    } as unknown as ParamsService;
+    const settle = new PaymentSettlementService(
+      fx.prisma as unknown as PrismaService,
+      paramsSvc,
+      notifications as unknown as NotificationsService,
+      { send: vi.fn(async () => undefined) },
+    );
+    await settle.settlePlatformSub(order as never, {
+      actor: "claim",
+      kind: "renewal",
+    });
+    const fresh = fx.platSubs.find((s) => s.id === sub.id)!;
+    expect(order.status).toBe("PAID");
+    expect(fresh.status).toBe("ACTIVE");
+    // Período vencido: la base es el pago, no el fin previo.
+    expect(
+      (fresh.currentPeriodEnd as Date).getTime(),
+    ).toBeGreaterThanOrEqual(Date.now() + 27 * DAY);
+    expect(ac.billingGraceUntil).toBeNull();
+    expect(ac.billingBlockedAt).toBeNull();
+    expect(ac.tier).toBe("COBROS");
+  });
+});
+
 });
