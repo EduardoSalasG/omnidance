@@ -9,7 +9,7 @@ import { emailShell, escapeHtml } from "../../auth/infrastructure/emails";
 export interface PaymentReceiptEmailInput {
   payerName: string | null;
   /** Producto comprado con su referencia: "Social SBK",
-   *  "Mensual · Academia X", "Suscripción COBROS · factura inv9". */
+   *  "Mensual, Academia X", "Suscripción COBROS · factura inv9". */
   product: string;
   /** Monto total formateado es-CL ($10.500). */
   amountLabel: string;
@@ -40,7 +40,7 @@ export function paymentReceiptEmailHtml(
     ? row("Ref. pasarela", escapeHtml(input.gatewayRef))
     : "";
   return emailShell(
-    `Respaldo de tu pago - ${input.product} · ${input.amountLabel}`,
+    `Pagaste: ${input.product} · ${input.amountLabel}`,
     `
     <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;line-height:1.25;letter-spacing:-0.02em;text-align:center;">
       Pago confirmado${first}
