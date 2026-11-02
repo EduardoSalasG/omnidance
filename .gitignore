@@ -22,3 +22,6 @@ playwright-report/
 brag-output-*/
 .devin/skills/brag/
 docs/next-session-handoff-*brag*.md
+
+# dumps/backup de datos de trabajo
+backups/

@@ -33,6 +33,7 @@ Ejecutar desde la raíz del repo:
 - Levantar DB + Redis: `pnpm db:up` (docker compose)
 - Preparar esquema: `pnpm db:push` · migración versionada: `pnpm db:migrate`
 - Seed de datos: `pnpm db:seed` - idempotente (upserts por clave natural). `SEED_ENV=dev` (default) siembra baseline + demo Santiago con personas `*@omnidance.dev` logueables por magic link; `SEED_ENV=prod` solo baseline + admin (requiere `SEED_ADMIN_EMAIL`). Ambos se pueden re-correr sin duplicar ni pisar params editados en /admin.
+- Enriquecimiento demo de academias: `pnpm db:enrich` (`apps/api/scripts/enrich-academy-seed.cjs`) - corre DESPUÉS de `db:seed`; idempotente. Limpia fixtures de prueba (eventos QA/GP, personas `* Test`/`Gamif`/`GE-*`, venue/academia/serie smoke) y llena los dashboards de todas las academias: EnrollmentLevel, clases materializadas, asistencias de clases pasadas, PlatformSubscription por tier/ciclo, MembershipSubscription CARD/TRANSFER (con PENDING_PAYMENT + claim en cola), PaymentClaim por revisar, cumpleaños y check-ins de eventos.
 - Backend dev: `pnpm dev:api` → http://localhost:4000 (requiere `pnpm --filter @omnidance/shared build` antes la primera vez - la API importa `shared/dist` en runtime)
 - Frontend dev: `pnpm dev:web` → http://localhost:3000
 - Ambos: `pnpm dev`
