@@ -1097,6 +1097,23 @@ model Enrollment {
   createdAt DateTime         @default(now())
 
   claims    PaymentClaim[]
+  levels    EnrollmentLevel[]
+}
+
+// Nivel del alumno por tipo de clase (spec academies/enrollment-levels):
+// multinivel - un enrollment puede tener N filas (Iniciación+Básico en
+// Pareja). Las asigna solo el owner/staff de la academia en la ficha del
+// alumno; el alumno nunca se auto-nivela. Alimenta el KPI nivel×horario
+// del inicio Extendido (GET /academies/:id/insights/levels).
+model EnrollmentLevel {
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  enrollmentId String
+  classType    ClassType  @relation(fields: [classTypeId], references: [id])
+  classTypeId  String
+  level        ClassLevel @relation(fields: [levelId], references: [id])
+  levelId      String
+
+  @@id([enrollmentId, classTypeId, levelId])
 }
 
 // Medios de pago propios de la academia (spec academy-payment-claims):
@@ -1180,15 +1197,17 @@ model ClassLevel {
   name   String @unique // Iniciación | Básico | Intermedio | Avanzado
   order  Int    @default(0)
 
-  series ClassSeries[]
+  series           ClassSeries[]
+  enrollmentLevels EnrollmentLevel[]
 }
 
 model ClassType {
   id   String @id @default(cuid())
   name String @unique // En Pareja | Shines | Corporalidad
 
-  series ClassSeriesType[]
-  slots  ClassSlotType[]
+  series           ClassSeriesType[]
+  slots            ClassSlotType[]
+  enrollmentLevels EnrollmentLevel[]
 }
 
 // Curso recurrente mensual: agrupa 1+ horarios semanales (ClassSlot) con
