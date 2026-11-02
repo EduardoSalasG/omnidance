@@ -164,6 +164,18 @@ describe("AuthService OTP (auth-email-otp)", () => {
     await expect(svc.verifyOtp("a@b.cl", code)).rejects.toThrow();
   });
 
+  it("verifyOtp cuenta desactivada: código válido lanza deactivated sin consumir", async () => {
+    const { repo, svc } = setup();
+    const code = await svc.createOtp("a@b.cl", false);
+    (repo as unknown as { findByEmail: () => unknown }).findByEmail =
+      async () => ({ deletedAt: new Date() });
+    await expect(svc.verifyOtp("a@b.cl", code)).rejects.toThrow(
+      "account deactivated",
+    );
+    // El OTP queda vigente: si el admin reactiva dentro del TTL, sirve.
+    expect(repo.otps[0]!.consumedAt).toBeNull();
+  });
+
   it("verifyOtp código incorrecto suma intento y lanza", async () => {
     const { repo, svc } = setup();
     const code = await svc.createOtp("a@b.cl", false);

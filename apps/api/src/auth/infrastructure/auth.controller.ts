@@ -533,8 +533,16 @@ export class AuthController {
       const session = await this.auth.issueSession(person.id);
       this.setSessionCookie(res, session);
       return { ok: true, isNew: !existed };
-    } catch {
-      // Uniforme: no revela si el email existe ni por qué falló el código.
+    } catch (e) {
+      // Uniforme: no revela si el email existe ni por qué falló el
+      // código. Excepción: "account deactivated" solo se alcanza con
+      // código válido (posesión del correo probada) → se informa el
+      // motivo real para que el usuario sepa a quién escribir.
+      if (e instanceof Error && e.message === "account deactivated") {
+        throw new UnauthorizedException(
+          "Tu cuenta está desactivada. Escríbenos a soporte@omnidance.tech",
+        );
+      }
       throw new UnauthorizedException("Código inválido o expirado");
     }
   }
