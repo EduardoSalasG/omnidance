@@ -284,8 +284,15 @@ export class AuthController {
   @HttpCode(202)
   @Throttle(AUTH_THROTTLE)
   async magicLink(@Body() dto: MagicLinkDto) {
+    const email = dto.email.toLowerCase();
+    // Consent solo se exige cuando la acción crea la Person (spec
+    // login-consent-on-create): una cuenta existente no repite el
+    // check en cada login - el front muestra el checkbox tras este 400.
+    if (dto.consent !== true && !(await this.repo.findByEmail(email))) {
+      throw new BadRequestException("consent_required");
+    }
     await this.sendMagicLink(
-      dto.email.toLowerCase(),
+      email,
       dto.consent === true,
       landingRole(dto.role),
     );

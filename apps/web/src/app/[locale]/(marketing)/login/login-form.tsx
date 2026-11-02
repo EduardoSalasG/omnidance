@@ -89,6 +89,9 @@ export default function LoginForm({
   const tc = useTranslations("consent");
   const [mode, setMode] = useState<Mode>(initialMode ?? "password");
   const [consent, setConsent] = useState(false);
+  // Magic-link: el check solo aparece si el email resulta no tener
+  // cuenta (la API responde consent_required y la acción sería alta).
+  const [consentRequired, setConsentRequired] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -164,10 +167,11 @@ export default function LoginForm({
       }
     }
 
-    // Consentimiento (spec legal-consent): obligatorio para registrar y
-    // para pedir magic link - el atributo `required` del checkbox ya
+    // Consentimiento (spec legal-consent + login-consent-on-create):
+    // obligatorio para registrar; en magic solo tras el 400
+    // consent_required (email sin cuenta). El `required` del checkbox
     // bloquea el submit nativo; este check cubre submits programáticos.
-    if (mode !== "password" && !consent) {
+    if ((isRegister || consentRequired) && !consent) {
       setError(tc("checkboxRequired"));
       return;
     }
@@ -224,7 +228,23 @@ export default function LoginForm({
         return;
       }
       if (res.status === 409) setError(t("emailTaken"));
-      else if (res.status === 401 || res.status === 400)
+      else if (mode === "magic" && res.status === 400) {
+        // Email sin cuenta: el alta por magic link exige consent -
+        // se revela el checkbox y el próximo submit lo lleva.
+        const data = (await res.json().catch(() => null)) as {
+          message?: string | string[];
+        } | null;
+        const msg = data?.message;
+        const needsConsent =
+          msg === "consent_required" ||
+          (Array.isArray(msg) && msg.includes("consent_required"));
+        if (needsConsent) {
+          setConsentRequired(true);
+          setError(tc("checkboxRequired"));
+        } else {
+          setError(t("invalidEmail"));
+        }
+      } else if (res.status === 401 || res.status === 400)
         setError(
           mode === "password" ? t("invalidCredentials") : t("invalidEmail"),
         );
@@ -565,7 +585,7 @@ export default function LoginForm({
                 ))}
               </fieldset>
             )}
-            {mode !== "password" && !granular && (
+            {(isRegister || consentRequired) && !granular && (
               <label className="flex cursor-pointer items-start gap-3 text-left">
                 <input
                   type="checkbox"
