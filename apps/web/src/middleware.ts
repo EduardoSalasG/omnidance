@@ -25,6 +25,9 @@ const PUBLIC_PATHS = new Set([
   "/para-academias",
   "/para-productores",
   "/login",
+  // /e a secas (sin id): 404 limpio vía notFound del árbol en vez del
+  // rebote a login; el prefijo "/e/" de abajo solo cubre /e/<id>.
+  "/e",
   // Páginas legales (spec legal-consent) - deben leerse sin sesión,
   // incluidas desde el checkbox de consentimiento del login.
   "/terminos",
@@ -38,8 +41,13 @@ const PUBLIC_PATHS = new Set([
 // (POST) exige sesión vía SessionGuard del API. /ciudades es la
 // superficie pública de descubrimiento por ciudad (spec
 // city-discovery) - anónima y logueada la comparten (no va en
-// ANON_ONLY: el bailarín también la usa).
-const PUBLIC_PREFIXES = ["/reclamar", "/ciudades", "/pase"];
+// ANON_ONLY: el bailarín también la usa). /e/<id> es la landing
+// pública de captación del evento (spec public-event-landing): sin
+// sesión muestra la ficha y su CTA lleva a /login?next=/eventos/<id>;
+// con sesión va directo al detalle. El prefijo lleva slash final
+// ("/e/") porque el match es startsWith: "/e" sola haría pública
+// también /eventos.
+const PUBLIC_PREFIXES = ["/reclamar", "/ciudades", "/pase", "/e/"];
 
 // Solo-anónimas: con sesión van directo a /inicio. Antes lo hacía cada
 // page con cookies() -> las volvía dinámicas + no-store (y mataba el
