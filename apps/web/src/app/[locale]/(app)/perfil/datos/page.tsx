@@ -158,7 +158,6 @@ export default function DatosPage() {
   const pathname = usePathname();
   const router = useRouter();
   const [langBusy, setLangBusy] = useState(false);
-  const [langErr, setLangErr] = useState(false);
   // Aviso post-acción local: foto y jurisdicción no navegan. El idioma
   // sí navega (router.replace al nuevo prefijo) → usa el aviso global.
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
@@ -166,12 +165,10 @@ export default function DatosPage() {
   // perfil - define qué texto de consentimiento aplica (CL único vs
   // EU granular GDPR).
   const [jurBusy, setJurBusy] = useState(false);
-  const [jurErr, setJurErr] = useState(false);
 
   async function changeJurisdiction(next: "CL" | "EU") {
     if (next === (me?.jurisdiction ?? "CL") || jurBusy) return;
     setJurBusy(true);
-    setJurErr(false);
     try {
       const res = await apiFetch("/me", {
         method: "PATCH",
@@ -179,13 +176,13 @@ export default function DatosPage() {
         body: JSON.stringify({ jurisdiction: next }),
       });
       if (!res.ok) {
-        setJurErr(true);
+        showActionNotice({ text: tc("error"), error: true });
         return;
       }
       setNotice({ text: t("datos.saved") });
       void refreshMe();
     } catch {
-      setJurErr(true);
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setJurBusy(false);
     }
@@ -194,7 +191,6 @@ export default function DatosPage() {
   async function changeLanguage(next: Locale) {
     if (next === locale || langBusy) return;
     setLangBusy(true);
-    setLangErr(false);
     try {
       const res = await apiFetch("/me", {
         method: "PATCH",
@@ -202,7 +198,7 @@ export default function DatosPage() {
         body: JSON.stringify({ language: next }),
       });
       if (!res.ok) {
-        setLangErr(true);
+        showActionNotice({ text: tc("error"), error: true });
         setLangBusy(false);
         return;
       }
@@ -212,7 +208,7 @@ export default function DatosPage() {
       showActionNotice({ text: t("datos.saved") });
       router.replace(pathname, { locale: next });
     } catch {
-      setLangErr(true);
+      showActionNotice({ text: tc("error"), error: true });
       setLangBusy(false);
     }
   }
@@ -234,12 +230,10 @@ export default function DatosPage() {
   // Avatar alojado por nosotros (mismo patrón que la foto de academia):
   // POST multipart /me/photo → photoUrl = /api/people/photos/<key>;
   // refreshMe actualiza el avatar en toda la app sin reload.
-  const [photoError, setPhotoError] = useState<string | null>(null);
 
   async function uploadPhoto(file: File | undefined) {
     if (!file) return;
     setUploadingPhoto(true);
-    setPhotoError(null);
     try {
       const form = new FormData();
       form.append("photo", file);
@@ -251,10 +245,10 @@ export default function DatosPage() {
         setNotice({ text: t("datos.saved") });
         await refreshMe();
       } else {
-        setPhotoError(t("datos.photoError"));
+        showActionNotice({ text: t("datos.photoError"), error: true });
       }
     } catch {
-      setPhotoError(t("datos.photoError"));
+      showActionNotice({ text: t("datos.photoError"), error: true });
     } finally {
       setUploadingPhoto(false);
     }
@@ -616,9 +610,6 @@ export default function DatosPage() {
               }}
             />
           </div>
-          {photoError && (
-            <p className="-mt-1 pb-1 text-xs text-red-400">{photoError}</p>
-          )}
           {personalEditing ? (
             <EditField
               id="ig-input"
@@ -776,11 +767,6 @@ export default function DatosPage() {
             {tc("loading")}
           </p>
         )}
-        {langErr && (
-          <p className="mt-2 text-xs text-red-400" role="alert">
-            {tc("error")}
-          </p>
-        )}
       </Card>
 
       {/* Jurisdicción legal (spec consent-por-jurisdiccion): define el
@@ -808,11 +794,6 @@ export default function DatosPage() {
         {jurBusy && (
           <p className="mt-2 text-xs text-ink/50" role="status">
             {tc("loading")}
-          </p>
-        )}
-        {jurErr && (
-          <p className="mt-2 text-xs text-red-400" role="alert">
-            {tc("error")}
           </p>
         )}
       </Card>

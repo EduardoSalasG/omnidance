@@ -42,7 +42,6 @@ function NewDiscountCode() {
     eventId: "",
   });
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
   const loadEvents = useCallback(async () => {
     setEventsError(false);
@@ -74,7 +73,6 @@ function NewDiscountCode() {
     e.preventDefault();
     if (!codeValid || saving) return;
     setSaving(true);
-    setFormError(null);
     try {
       const res = await apiFetch("/discount-codes", {
         method: "POST",
@@ -92,13 +90,13 @@ function NewDiscountCode() {
         }),
       });
       if (!res.ok) {
-        setFormError((await readError(res)) ?? tc("error"));
+        showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       showActionNotice({ text: t("codeCreated") });
       router.push("/productor/codigos");
     } catch {
-      setFormError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setSaving(false);
     }
@@ -265,11 +263,6 @@ function NewDiscountCode() {
                 </select>
               </label>
 
-              {formError && (
-                <p role="alert" className="text-sm text-red-400">
-                  {formError}
-                </p>
-              )}
 
               <Button type="submit" disabled={!codeValid || saving}>
                 {saving ? `${tc("loading")}` : tc("create")}

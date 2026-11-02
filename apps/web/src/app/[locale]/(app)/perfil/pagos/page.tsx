@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon, Spinner } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import {
+  showActionNotice,
   ActionNotice,
   type ActionNoticeData,
 } from "@/components/ui/action-notice";
@@ -52,7 +53,6 @@ export default function PerfilPagosPage() {
   // Cancelación inline por suscripción (2-step igual que en la ficha).
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [cancelBusyId, setCancelBusyId] = useState<string | null>(null);
-  const [cancelError, setCancelError] = useState<string | null>(null);
   // Aviso post-acción local (la página no navega tras cancelar).
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
@@ -105,20 +105,19 @@ export default function PerfilPagosPage() {
   async function cancelSub(id: string) {
     if (cancelBusyId) return;
     setCancelBusyId(id);
-    setCancelError(null);
     try {
       const res = await apiFetch(`/subscriptions/${id}/cancel`, {
         method: "POST",
       });
       if (!res.ok) {
-        setCancelError((await readError(res)) ?? tc("error"));
+        showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       setConfirmId(null);
       setNotice({ text: ts("cancelOk") });
       await refreshSubs();
     } catch {
-      setCancelError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setCancelBusyId(null);
     }
@@ -238,7 +237,6 @@ export default function PerfilPagosPage() {
                         className="self-start"
                         onClick={() => {
                           setConfirmId(s.id);
-                          setCancelError(null);
                         }}
                       >
                         {ts("cancel")}
@@ -257,11 +255,6 @@ export default function PerfilPagosPage() {
               </li>
             ))}
           </ul>
-          {cancelError && (
-            <p role="alert" className="text-sm text-red-400">
-              {cancelError}
-            </p>
-          )}
         </section>
       )}
 

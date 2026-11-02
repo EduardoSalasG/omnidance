@@ -55,7 +55,6 @@ export function OwnMethodClaim({
   const [file, setFile] = useState<File | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [claims, setClaims] = useState<Claim[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -113,7 +112,6 @@ export function OwnMethodClaim({
   async function submit() {
     if (!file || busy) return;
     setBusy(true);
-    setMsg(null);
     try {
       const fd = new FormData();
       fd.set("receipt", file, file.name);
@@ -126,7 +124,7 @@ export function OwnMethodClaim({
         body: fd,
       });
       if (!res.ok) {
-        setMsg({ ok: false, text: tc("error") });
+        showActionNotice({ text: tc("error"), error: true });
         return;
       }
       // El claim quedó PENDING de revisión: aviso global + vuelta a la
@@ -138,7 +136,7 @@ export function OwnMethodClaim({
       if (fileRef.current) fileRef.current.value = "";
       router.replace(returnHref);
     } catch {
-      setMsg({ ok: false, text: tc("error") });
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -192,14 +190,6 @@ export function OwnMethodClaim({
               className="text-sm text-ink/70 file:mr-3 file:min-h-11 file:rounded-xl file:border-0 file:bg-raised file:px-4 file:text-sm file:text-ink"
             />
           </label>
-          {msg && (
-            <p
-              role={msg.ok ? "status" : "alert"}
-              className={`text-sm ${msg.ok ? "text-neon" : "text-red-400"}`}
-            >
-              {msg.text}
-            </p>
-          )}
           <Button onClick={() => void submit()} disabled={!file || busy}>
             {busy && <Spinner size="sm" />}
             {busy ? t("claimSending") : t("claimSubmit")}

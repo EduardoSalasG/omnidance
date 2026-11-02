@@ -78,10 +78,10 @@ export function PendingRoleCard() {
       if (res.ok) {
         setVerifyOpen(true);
       } else {
-        setError(t("verifyError"));
+        setNotice({ text: t("verifyError"), error: true });
       }
     } catch {
-      setError(t("verifyError"));
+      setNotice({ text: t("verifyError"), error: true });
     } finally {
       setBusy(false);
     }
@@ -106,9 +106,13 @@ export function PendingRoleCard() {
         await load();
         return;
       }
-      setError(res.status === 401 ? t("otpInvalid") : t("verifyError"));
+      if (res.status === 401) {
+        setError(t("otpInvalid"));
+      } else {
+        setNotice({ text: t("verifyError"), error: true });
+      }
     } catch {
-      setError(t("verifyError"));
+      setNotice({ text: t("verifyError"), error: true });
     } finally {
       setBusy(false);
     }
@@ -209,9 +213,7 @@ export function PendingRoleCard() {
           {error && <p className="text-xs text-red-400">{error}</p>}
         </form>
       )}
-      {!verifyOpen && error && (
-        <p className="text-xs text-red-400">{error}</p>
-      )}
+
       <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </Card>
   );

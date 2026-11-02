@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { Button, Card } from "@/components/ui";
 import type {
   CrmActor,
@@ -97,7 +98,7 @@ export function TriggerForm({
   );
   const [segments, setSegments] = useState<CrmSegment[] | null>(null);
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState(false);
+  
 
   const isEventKey = EVENT_TRIGGER_KEYS.has(key);
   const showDays = TRIGGER_KEYS_WITH_DAYS.has(key);
@@ -131,8 +132,6 @@ export function TriggerForm({
     e.preventDefault();
     if (!valid || saving) return;
     setSaving(true);
-    setFormError(false);
-
     let config: Record<string, unknown>;
     if (isEventKey) {
       const action: Record<string, unknown> = { type: actionType };
@@ -166,10 +165,13 @@ export function TriggerForm({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...actorBody(actor), key, config }),
           });
-      if (!res.ok) return setFormError(true);
+      if (!res.ok) {
+        showActionNotice({ text: tc("error"), error: true });
+        return;
+      }
       onSaved();
     } catch {
-      setFormError(true);
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setSaving(false);
     }
@@ -345,11 +347,6 @@ export function TriggerForm({
           </label>
         )}
 
-        {formError && (
-          <p role="alert" className="text-sm text-red-400">
-            {tc("error")}
-          </p>
-        )}
 
         <div className="flex gap-3">
           <Button type="submit" className="flex-1" disabled={!valid || saving}>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ENROLLMENT_STATUSES } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { Button, Card, CheckIcon } from "@/components/ui";
 import type {
   CampaignSegment,
@@ -70,7 +71,6 @@ export function CampaignForm({
   const [previewCount, setPreviewCount] = useState<number | null>(null);
 
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
   const isAcademy = actor.actorType === "ACADEMY";
 
@@ -181,7 +181,6 @@ export function CampaignForm({
     e.preventDefault();
     if (!valid || saving) return;
     setSaving(true);
-    setFormError(null);
     try {
       const res = await apiFetch("/crm/campaigns", {
         method: "POST",
@@ -219,12 +218,12 @@ export function CampaignForm({
         const msg = Array.isArray(errBody?.message)
           ? errBody.message.join(" ")
           : errBody?.message;
-        setFormError(msg ?? tc("error"));
+        showActionNotice({ text: msg ?? tc("error"), error: true });
         return;
       }
       onCreated();
     } catch {
-      setFormError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setSaving(false);
     }
@@ -584,11 +583,6 @@ export function CampaignForm({
           </span>
         </label>
 
-        {formError && (
-          <p role="alert" className="text-sm text-red-400">
-            {formError}
-          </p>
-        )}
 
         <div className="flex gap-3">
           <Button type="submit" className="flex-1" disabled={!valid || saving}>

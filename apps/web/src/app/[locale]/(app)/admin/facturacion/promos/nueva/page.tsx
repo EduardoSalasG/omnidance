@@ -28,12 +28,10 @@ function NewPromoPanel() {
   const t = useTranslations("admin.promos");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function create(body: Record<string, unknown>) {
     if (busy) return;
     setBusy(true);
-    setError(null);
     try {
       const res = await apiFetch("/admin/platform-promos", {
         method: "POST",
@@ -41,14 +39,14 @@ function NewPromoPanel() {
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        setError((await readError(res)) ?? t("error"));
+        showActionNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
       // Vuelve al listado: aviso global para que sobreviva el push.
       showActionNotice({ text: t("saved") });
       router.push("/admin/facturacion/promos");
     } catch {
-      setError(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -65,11 +63,6 @@ function NewPromoPanel() {
           busy={busy}
         />
       </Card>
-      {error && (
-        <p role="alert" className="text-sm text-red-400">
-          {error}
-        </p>
-      )}
     </section>
   );
 }

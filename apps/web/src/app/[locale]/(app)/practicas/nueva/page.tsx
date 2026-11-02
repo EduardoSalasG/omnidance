@@ -28,7 +28,7 @@ export default function NuevaPracticaPage() {
   // /me compartido (MeProvider): loading = en vuelo; null = sin sesión.
   const { me, loading: meLoading, refresh: refreshMe } = useMe();
   const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState(false);
+  
   // Fallo de GET /styles - el select quedaría solo con "Cualquiera"
   // sin aviso; la práctica se puede publicar igual sin estilo.
   const [stylesError, setStylesError] = useState(false);
@@ -72,7 +72,6 @@ export default function NuevaPracticaPage() {
     e.preventDefault();
     if (submitting) return;
     setSubmitting(true);
-    setFormError(false);
     try {
       const start = new Date(`${date}T${startTime}`);
       // Si "hasta" queda antes de "desde", la práctica cruza la medianoche.
@@ -99,7 +98,7 @@ export default function NuevaPracticaPage() {
         return;
       }
       if (!res.ok) {
-        setFormError(true);
+        showActionNotice({ text: tc("error"), error: true });
         return;
       }
       const createdEv = (await res.json()) as { id: string };
@@ -108,7 +107,7 @@ export default function NuevaPracticaPage() {
       showActionNotice({ text: t("created") });
       router.push(`/eventos/${createdEv.id}`);
     } catch {
-      setFormError(true);
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setSubmitting(false);
     }
@@ -278,11 +277,6 @@ export default function NuevaPracticaPage() {
             </label>
           </div>
 
-          {formError && (
-            <p role="alert" className="text-sm text-red-400">
-              {tc("error")}
-            </p>
-          )}
           <Button type="submit" disabled={submitting} className="w-full">
             {submitting ? tc("loading") : tc("create")}
           </Button>

@@ -66,7 +66,6 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
   const [end, setEnd] = useState("20:00");
   const [instructors, setInstructors] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
   const [confirmDel, setConfirmDel] = useState(false);
 
   useEffect(() => {
@@ -95,7 +94,6 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
     // El card no es <form>: required no valida solo, cortar fecha vacía.
     if (slot?.oneOffDate && !date) return;
     setBusy(true);
-    setErr(null);
     // Slot de taller: el PATCH manda `date` (reprogramar corre la misma
     // cascada que cambiar weekday: cancela + reembolsa + materializa la
     // fecha nueva). Recurrente: weekday como siempre.
@@ -109,7 +107,7 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
     });
     setBusy(false);
     if (!res.ok) {
-      setErr((await readError(res)) ?? tc("error"));
+      showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
       return;
     }
     // Vuelve a la ficha de la serie: aviso global que sobrevive el push.
@@ -119,20 +117,19 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
 
   const remove = useCallback(async () => {
     setBusy(true);
-    setErr(null);
     try {
       const res = await apiFetch(`/academies/${academyId}/slots/${slotId}`, {
         method: "DELETE",
       });
       if (!res.ok) {
-        setErr((await readError(res)) ?? tc("error"));
+        showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         setConfirmDel(false);
         return;
       }
       showActionNotice({ text: t("slotDeleted") });
       router.push(`/academia/series/${slot?.series.id}`);
     } catch {
-      setErr(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
       setConfirmDel(false);
     } finally {
       setBusy(false);
@@ -180,7 +177,6 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
             <p className="text-xs text-ink/40">{t("slotNoRoster")}</p>
           )}
         </div>
-        {err && <p role="alert" className="text-sm text-red-400">{err}</p>}
         <div className="flex gap-2">
           <Button size="sm" disabled={busy} onClick={() => void save()}>
             {busy ? <Spinner /> : tc("save")}

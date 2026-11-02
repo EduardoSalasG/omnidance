@@ -22,7 +22,7 @@ import {
   SkeletonList,
 } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
-import { ActionNotice } from "@/components/ui/action-notice";
+import { ActionNotice, showActionNotice } from "@/components/ui/action-notice";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import { Link } from "@/i18n/navigation";
@@ -95,7 +95,6 @@ export default function AmigosPage() {
   const [inviteCopied, setInviteCopied] = useState(false);
   // Fallo real de copia al portapapeles - visible (el catch antes era
   // silencioso y el botón parecía no hacer nada).
-  const [inviteErr, setInviteErr] = useState(false);
   // "Tus amigos van a" - agenda social de amigos (tickets activos).
   // null = fetch en vuelo → skeleton en el slot (la sección va arriba
   // de solicitudes/amigos; sin slot los empujaba al resolver).
@@ -372,8 +371,7 @@ export default function AmigosPage() {
                   if (err instanceof DOMException && err.name === "AbortError") {
                     return;
                   }
-                  setInviteErr(true);
-                  setTimeout(() => setInviteErr(false), 3000);
+                  showActionNotice({ text: t("inviteError"), error: true });
                 }
               }}
               className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line bg-elevated px-4 text-sm font-medium text-neon transition-colors hover:border-neon/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
@@ -410,11 +408,6 @@ export default function AmigosPage() {
             <Skeleton className="page-loading h-11 w-28 shrink-0 rounded-full" />
           ) : null}
         </div>
-        {inviteErr && (
-          <p role="alert" className="text-sm text-red-400">
-            {t("inviteError")}
-          </p>
-        )}
         <input
           ref={searchRef}
           type="search"

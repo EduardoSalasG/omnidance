@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, ConfirmSheet, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import {
+  showActionNotice,
   ActionNotice,
   type ActionNoticeData,
 } from "@/components/ui/action-notice";
@@ -220,7 +221,6 @@ function RosterDetail({
   // POST /classes/:id/attendance - solo si el caller es el instructor
   // efectivo (canMark del server); el owner no marca asistencia.
   const [markingId, setMarkingId] = useState<string | null>(null);
-  const [markError, setMarkError] = useState<string | null>(null);
   // Cancelación por instancia (spec workshop-one-off-class): zona roja
   // solo con cap schedule/classes (canCancel del server).
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -252,7 +252,6 @@ function RosterDetail({
 
   async function markPresent(personId: string): Promise<void> {
     setMarkingId(personId);
-    setMarkError(null);
     try {
       const res = await apiFetch(`/classes/${classId}/attendance`, {
         method: "POST",
@@ -260,12 +259,12 @@ function RosterDetail({
         body: JSON.stringify({ personId }),
       });
       if (!res.ok) {
-        setMarkError(tc("error"));
+        showActionNotice({ text: tc("error"), error: true });
         return;
       }
       onChanged(personId);
     } catch {
-      setMarkError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setMarkingId(null);
     }
@@ -382,11 +381,6 @@ function RosterDetail({
                 minute: "2-digit",
               }).format(new Date(roster.attendanceWindow.closesAt)),
             })}
-          </p>
-        )}
-        {markError && (
-          <p role="alert" className="text-sm text-red-400">
-            {markError}
           </p>
         )}
       </section>

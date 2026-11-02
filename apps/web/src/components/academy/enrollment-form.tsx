@@ -41,12 +41,10 @@ export function EnrollmentForm({
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [busy, setBusy] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setFormError(null);
     try {
       const res = await apiFetch(`/academies/${academyId}/enrollments`, {
         method: "POST",
@@ -60,13 +58,13 @@ export function EnrollmentForm({
         }),
       });
       if (!res.ok) {
-        setFormError((await readError(res)) ?? tc("error"));
+        showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       showActionNotice({ text: t("enrollmentSaved") });
       router.push("/academia/alumnos");
     } catch {
-      setFormError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -160,11 +158,6 @@ export function EnrollmentForm({
             onChange={(e) => setEndsAt(e.target.value)}
           />
         </label>
-        {formError && (
-          <p role="alert" className="text-sm text-red-400 sm:col-span-2">
-            {formError}
-          </p>
-        )}
         <div className="flex items-center gap-2 sm:col-span-2">
           <Button type="submit" size="sm" disabled={busy}>
             {busy ? tc("loading") : tc("create")}

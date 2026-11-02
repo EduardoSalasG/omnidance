@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Spinner } from "@/components/ui";
 import { planDateFmt } from "./shared";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { useRouter } from "@/i18n/navigation";
 import { getNumFmt, useNumFmt } from "@/lib/intl";
 
@@ -67,24 +68,22 @@ export function SubscriptionManage({
 
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
 
   async function cancel() {
     if (busy) return;
     setBusy(true);
-    setFailed(false);
     try {
       const res = await apiFetch(`/subscriptions/${subscription.id}/cancel`, {
         method: "POST",
       });
       if (!res.ok) {
-        setFailed(true);
+        showActionNotice({ text: tc("error"), error: true });
         return;
       }
       // at_period_end: la ficha repinta con CANCEL_PENDING.
       router.refresh();
     } catch {
-      setFailed(true);
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -99,7 +98,6 @@ export function SubscriptionManage({
   async function resumeCardRegistration() {
     if (busy) return;
     setBusy(true);
-    setFailed(false);
     try {
       const res = await apiFetch("/checkout/membership-subscription", {
         method: "POST",
@@ -110,7 +108,7 @@ export function SubscriptionManage({
         }),
       });
       if (!res.ok) {
-        setFailed(true);
+        showActionNotice({ text: tc("error"), error: true });
         setBusy(false);
         return;
       }
@@ -123,7 +121,7 @@ export function SubscriptionManage({
       }
       router.refresh();
     } catch {
-      setFailed(true);
+      showActionNotice({ text: tc("error"), error: true });
       setBusy(false);
     }
   }
@@ -148,11 +146,6 @@ export function SubscriptionManage({
           {busy && <Spinner size="sm" />}
           {ts("resumeCard")}
         </Button>
-        {failed && (
-          <p role="alert" className="text-sm text-red-400">
-            {tc("error")}
-          </p>
-        )}
       </div>
     );
   }
@@ -267,12 +260,6 @@ export function SubscriptionManage({
         >
           {ts("cancel")}
         </Button>
-      )}
-
-      {failed && (
-        <p role="alert" className="text-sm text-red-400">
-          {tc("error")}
-        </p>
       )}
     </div>
   );

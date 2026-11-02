@@ -53,12 +53,10 @@ export function PlanForm({
   );
   const [active, setActive] = useState(plan?.active ?? true);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setError(null);
     try {
       const res = await apiFetch(
         plan
@@ -97,13 +95,13 @@ export function PlanForm({
         },
       );
       if (!res.ok) {
-        setError((await readError(res)) ?? tc("error"));
+        showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       showActionNotice({ text: t("planSaved") });
       router.push("/academia/planes");
     } catch {
-      setError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -238,11 +236,6 @@ export function PlanForm({
               {t("planActive")}
             </span>
           </label>
-        )}
-        {error && (
-          <p role="alert" className="text-sm text-red-400 sm:col-span-2">
-            {error}
-          </p>
         )}
         <div className="flex items-center gap-2 sm:col-span-2">
           <Button type="submit" size="sm" disabled={busy}>

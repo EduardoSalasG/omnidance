@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 
 import { Badge, Button, Card, PriceTag, RefreshIcon, Spinner } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
@@ -50,7 +51,6 @@ function PlanDetail({
   const [plan, setPlan] = useState<PlanDetail | null>(null);
   const [loadError, setLoadError] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const dateFmt = useDateFmt({
@@ -82,7 +82,6 @@ function PlanDetail({
   async function toggleActive(): Promise<void> {
     if (!plan) return;
     setBusy(true);
-    setActionError(null);
     setNotice(null);
     try {
       const res = await apiFetch(
@@ -94,13 +93,13 @@ function PlanDetail({
         },
       );
       if (!res.ok) {
-        setActionError(tc("error"));
+        showActionNotice({ text: tc("error"), error: true });
         return;
       }
       setNotice(t("planSaved"));
       await reload();
     } catch {
-      setActionError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -151,11 +150,6 @@ function PlanDetail({
               <li key={i}>{d}</li>
             ))}
           </ul>
-        )}
-        {actionError && (
-          <p role="alert" className="text-sm text-red-400">
-            {actionError}
-          </p>
         )}
         {notice && (
           <p role="status" className="text-sm text-neon">

@@ -106,7 +106,7 @@ export default function CompletarPerfilPage() {
       showActionNotice({ text: t("complete.success") });
       router.replace("/inicio");
     } catch {
-      setError(t("complete.error"));
+      showActionNotice({ text: t("complete.error"), error: true });
     } finally {
       setSaving(false);
     }

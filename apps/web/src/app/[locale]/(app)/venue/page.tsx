@@ -13,6 +13,7 @@ import {
 } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import {
+  showActionNotice,
   ActionNotice,
   type ActionNoticeData,
 } from "@/components/ui/action-notice";
@@ -181,7 +182,6 @@ export default function VenuePage() {
     status: "CONFIRMED" | "CANCELLED";
   } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   // Aviso post-acción local: el cambio de estado del arriendo es
   // optimista en la fila, el aviso confirma la persistencia.
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
@@ -229,7 +229,6 @@ export default function VenuePage() {
     setDashPhase("loading");
     setDash(null);
     setConfirming(null);
-    setRowErrors({});
     try {
       const res = await apiFetch(`/venues/${id}/dashboard`);
       if (res.status === 401 || res.status === 403) {
@@ -254,11 +253,6 @@ export default function VenuePage() {
   async function decide(rentalId: string, status: "CONFIRMED" | "CANCELLED") {
     if (!selectedId || busyId) return;
     setBusyId(rentalId);
-    setRowErrors((prev) => {
-      const copy = { ...prev };
-      delete copy[rentalId];
-      return copy;
-    });
     try {
       const res = await apiFetch(
         `/venues/${selectedId}/rentals/${rentalId}`,
@@ -270,7 +264,7 @@ export default function VenuePage() {
       );
       if (!res.ok) {
         const msg = (await readError(res)) ?? tc("error");
-        setRowErrors((prev) => ({ ...prev, [rentalId]: msg }));
+        showActionNotice({ text: msg, error: true });
         return;
       }
       setDash((prev) =>
@@ -291,7 +285,7 @@ export default function VenuePage() {
         ),
       });
     } catch {
-      setRowErrors((prev) => ({ ...prev, [rentalId]: tc("error") }));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusyId(null);
       setConfirming(null);
@@ -693,11 +687,6 @@ export default function VenuePage() {
                             </div>
                           )}
 
-                          {rowErrors[r.id] && (
-                            <p role="alert" className="mt-2 text-sm text-red-400">
-                              {rowErrors[r.id]}
-                            </p>
-                          )}
                         </li>
                       );
                     })}

@@ -96,9 +96,6 @@ function OrderClaimDetail({
   const [busy, setBusy] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
-  // Error inline de la acción; el éxito va al aviso global porque la
-  // página navega a la cola de una.
-  const [msg, setMsg] = useState<string | null>(null);
   // Aprobar activa la suscripción con un solo click - confirmación
   // previa (bottom-sheet compartido, mismo patrón del productor).
   const [confirmApprove, setConfirmApprove] = useState(false);
@@ -130,7 +127,6 @@ function OrderClaimDetail({
 
   async function approve() {
     setBusy(true);
-    setMsg(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/order-claims/${claimId}/approve`,
@@ -141,7 +137,7 @@ function OrderClaimDetail({
         },
       );
       if (!res.ok) {
-        setMsg(t("error"));
+        showActionNotice({ text: t("error"), error: true });
         setConfirmApprove(false);
         return;
       }
@@ -149,7 +145,7 @@ function OrderClaimDetail({
       showActionNotice({ text: t("orderApprovedMsg") });
       router.push("/academia/cobros");
     } catch {
-      setMsg(t("error"));
+      showActionNotice({ text: t("error"), error: true });
       setConfirmApprove(false);
     } finally {
       setBusy(false);
@@ -159,7 +155,6 @@ function OrderClaimDetail({
   async function reject() {
     if (!rejectNote.trim()) return;
     setBusy(true);
-    setMsg(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/order-claims/${claimId}/reject`,
@@ -170,14 +165,14 @@ function OrderClaimDetail({
         },
       );
       if (!res.ok) {
-        setMsg(t("error"));
+        showActionNotice({ text: t("error"), error: true });
         return;
       }
       showActionNotice({ text: t("rejectedMsg") });
       router.push("/academia/cobros");
     } catch {
       // El form de rechazo queda abierto para reintentar.
-      setMsg(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -284,11 +279,6 @@ function OrderClaimDetail({
 
       {claim.status === "PENDING" && (
         <section className="flex flex-col gap-3">
-          {msg && (
-            <p role="alert" className="text-sm text-red-400">
-              {msg}
-            </p>
-          )}
           <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => setConfirmApprove(true)}

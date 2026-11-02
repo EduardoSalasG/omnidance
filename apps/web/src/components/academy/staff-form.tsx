@@ -39,12 +39,10 @@ export function StaffForm({ academyId }: { academyId: string }) {
   const [payClasses, setPayClasses] = useState("");
   const [commissionPct, setCommissionPct] = useState("");
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setErr(null);
     try {
       const agreement =
         kind === "instructor" && payType
@@ -79,7 +77,7 @@ export function StaffForm({ academyId }: { academyId: string }) {
         },
       );
       if (!res.ok) {
-        setErr((await readError(res)) ?? t("error"));
+        showActionNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
       const body = (await res.json()) as { invited: boolean };
@@ -92,7 +90,7 @@ export function StaffForm({ academyId }: { academyId: string }) {
       });
       router.push("/academia/equipo");
     } catch {
-      setErr(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -265,11 +263,6 @@ export function StaffForm({ academyId }: { academyId: string }) {
               ))}
             </div>
           </fieldset>
-        )}
-        {err && (
-          <p role="alert" className="text-sm text-red-400">
-            {err}
-          </p>
         )}
         <div className="flex items-center gap-2">
           <Button type="submit" size="sm" disabled={busy}>

@@ -62,7 +62,6 @@ function EditPanel({ cat, id }: { cat: Cat; id: string }) {
   const [genre, setGenre] = useState<Genre>("OTHER");
   const [order, setOrder] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const load = useCallback(async () => {
@@ -98,7 +97,6 @@ function EditPanel({ cat, id }: { cat: Cat; id: string }) {
     const trimmed = name.trim();
     if (!trimmed || busy) return;
     setBusy(true);
-    setError(null);
     try {
       const body: Record<string, unknown> = { name: trimmed };
       if (cfg.field === "genre") body.genre = genre;
@@ -111,14 +109,14 @@ function EditPanel({ cat, id }: { cat: Cat; id: string }) {
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        setError((await readError(res)) ?? t("error"));
+        showActionNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
       // Vuelve al listado: aviso global para que sobreviva el push.
       showActionNotice({ text: t("saved") });
       router.push("/admin/catalogos");
     } catch {
-      setError(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -128,7 +126,6 @@ function EditPanel({ cat, id }: { cat: Cat; id: string }) {
   // del backend lo explica; fallback a inUse.
   async function remove() {
     setBusy(true);
-    setError(null);
     try {
       const res = await apiFetch(`${cfg.endpoint}/${id}`, {
         method: "DELETE",
@@ -136,14 +133,14 @@ function EditPanel({ cat, id }: { cat: Cat; id: string }) {
       if (!res.ok) {
         setConfirmDelete(false);
         const msg = await readError(res);
-        setError(msg ?? (res.status === 409 ? t("inUse") : t("error")));
+        showActionNotice({ text: msg ?? (res.status === 409 ? t("inUse") : t("error")), error: true });
         return;
       }
       showActionNotice({ text: t("deleted") });
       router.push("/admin/catalogos");
     } catch {
       setConfirmDelete(false);
-      setError(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -223,11 +220,6 @@ function EditPanel({ cat, id }: { cat: Cat; id: string }) {
             </label>
           )}
 
-          {error && (
-            <p role="alert" className="text-sm text-red-400">
-              {error}
-            </p>
-          )}
 
           <div>
             <Button type="submit" size="sm" disabled={busy}>

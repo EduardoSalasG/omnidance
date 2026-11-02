@@ -243,14 +243,14 @@ function UserDetailPanel({ personId }: { personId: string }) {
     try {
       const res = await call();
       if (!res.ok) {
-        setActionError((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       setNewRole("");
       setNotice({ text: successText });
       await load();
     } catch {
-      setActionError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setActing(false);
     }
@@ -302,7 +302,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
       });
       if (!res.ok) {
         setPending(null);
-        setActionError((await readError(res)) ?? tc("error"));
+        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         setDeleting(false);
         return;
       }
@@ -311,7 +311,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
       router.push("/admin/usuarios");
     } catch {
       setPending(null);
-      setActionError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
       setDeleting(false);
     }
   }
@@ -329,9 +329,9 @@ function UserDetailPanel({ personId }: { personId: string }) {
         await load();
         return;
       }
-      setActionError((await readError(res)) ?? tc("error"));
+      setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
     } catch {
-      setActionError(tc("error"));
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setDeleting(false);
     }

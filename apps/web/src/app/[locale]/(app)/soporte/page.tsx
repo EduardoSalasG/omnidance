@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { Button, Card, ChevronLeftIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
@@ -132,7 +133,6 @@ export default function SoportePage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UserResult[] | null>(null);
   const [searching, setSearching] = useState(false);
-  const [searchErr, setSearchErr] = useState(false);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<UserDetail | null>(null);
@@ -165,20 +165,19 @@ export default function SoportePage() {
       if (seq !== searchSeq.current) return;
       if (res.ok) {
         setResults((await res.json()) as UserResult[]);
-        setSearchErr(false);
       } else {
         setResults([]);
-        setSearchErr(true);
+        showActionNotice({ text: t("searchError"), error: true });
       }
     } catch {
       if (seq === searchSeq.current) {
         setResults([]);
-        setSearchErr(true);
+        showActionNotice({ text: t("searchError"), error: true });
       }
     } finally {
       if (seq === searchSeq.current) setSearching(false);
     }
-  }, []);
+  }, [t]);
 
   // Debounce: busca en cada cambio tras 300ms; <2 chars limpia y muestra hint.
   useEffect(() => {
@@ -187,7 +186,6 @@ export default function SoportePage() {
       searchSeq.current++;
       setResults(null);
       setSearching(false);
-      setSearchErr(false);
       return;
     }
     setSearching(true);
@@ -261,11 +259,6 @@ export default function SoportePage() {
           <p className="text-sm text-ink/50">{t("minChars")}</p>
         )}
         {searching && <Spinner size="sm" className="page-loading" />}
-        {searchErr && (
-          <p role="alert" className="text-sm text-red-400">
-            {t("searchError")}
-          </p>
-        )}
         {!searching && results !== null && results.length === 0 && (
           <p role="status" className="text-sm text-ink/50">
             {t("noResults")}

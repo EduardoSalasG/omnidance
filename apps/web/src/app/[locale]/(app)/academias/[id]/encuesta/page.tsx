@@ -5,6 +5,7 @@ import { Suspense, use, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { useMe } from "@/lib/me-context";
 import { Button, Card, Spinner } from "@/components/ui";
 import { StarRating } from "@/components/sessions/StarRating";
@@ -77,11 +78,13 @@ function EncuestaInner({ academyId }: { academyId: string }) {
       }
       if (!res.ok) {
         setPhase("error");
+        showActionNotice({ text: t("error"), error: true });
         return;
       }
       setPhase("done");
     } catch {
       setPhase("error");
+      showActionNotice({ text: t("error"), error: true });
     }
   }
 
@@ -191,11 +194,6 @@ function EncuestaInner({ academyId }: { academyId: string }) {
         />
       </div>
 
-      {phase === "error" && (
-        <p role="alert" className="text-sm text-red-400">
-          {t("error")}
-        </p>
-      )}
 
       <Button onClick={() => void submit()} disabled={busy}>
         {busy ? <Spinner size="sm" /> : null}

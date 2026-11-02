@@ -50,7 +50,6 @@ function MethodCreate({ academy }: { academy: Academy }) {
   const [details, setDetails] = useState<Record<string, string>>({});
   const [order, setOrder] = useState("0");
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
 
   function setDetail(k: string, v: string) {
     setDetails((d) => ({ ...d, [k]: v }));
@@ -60,7 +59,6 @@ function MethodCreate({ academy }: { academy: Academy }) {
     e.preventDefault();
     if (!label.trim() || busy) return;
     setBusy(true);
-    setErr(null);
     try {
       const res = await apiFetch(
         `/academies/${academy.id}/payment-methods`,
@@ -78,14 +76,14 @@ function MethodCreate({ academy }: { academy: Academy }) {
         },
       );
       if (!res.ok) {
-        setErr(t("error"));
+        showActionNotice({ text: t("error"), error: true });
         return;
       }
       // Aviso global + vuelta inmediata al listado (patrón de la consola).
       showActionNotice({ text: t("methodSaved") });
       router.push("/academia/configuracion/pagos");
     } catch {
-      setErr(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -184,11 +182,6 @@ function MethodCreate({ academy }: { academy: Academy }) {
             className={`${inputCls} w-24`}
           />
         </label>
-        {err && (
-          <p role="alert" className="text-sm text-red-400">
-            {err}
-          </p>
-        )}
         <div className="flex gap-2">
           <Button
             type="submit"

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { Button } from "@/components/ui";
 import { inputCls, readError, type Academy } from "./shared";
 
@@ -35,7 +36,6 @@ export function CreateAcademyForm({
   const [countryCode, setCountryCode] = useState("CL");
   const [cityId, setCityId] = useState("");
   const [busy, setBusy] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
 
   // Catálogo país→ciudades para el selector (público, sin flag).
   useEffect(() => {
@@ -62,7 +62,6 @@ export function CreateAcademyForm({
   async function create(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setCreateError(null);
     try {
       const res = await apiFetch("/academies", {
         method: "POST",
@@ -74,14 +73,14 @@ export function CreateAcademyForm({
       });
       if (!res.ok) {
         // 403 = sin rol ACADEMY_OWNER - el message del server lo explica.
-        setCreateError((await readError(res)) ?? tc("error"));
+        showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
       setName("");
       setCityId("");
       await onCreated((await res.json()) as Academy);
     } catch {
-      setCreateError(tc("error"));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -136,11 +135,6 @@ export function CreateAcademyForm({
             </select>
           </label>
         </div>
-      )}
-      {createError && (
-        <p role="alert" className="text-sm text-red-400">
-          {createError}
-        </p>
       )}
       <div>
         <Button type="submit" size="sm" disabled={busy}>

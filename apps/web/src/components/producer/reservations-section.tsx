@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { Badge, Button, Card, ConfirmSheet, Pager, RefreshIcon } from "@/components/ui";
 import { ChevronDownIcon, SkeletonList } from "@/components/ui";
 import {
@@ -43,7 +44,6 @@ export function ReservationsSection({
   const [tableDrafts, setTableDrafts] = useState<Record<string, string>>({});
   const [sizeDrafts, setSizeDrafts] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   // Vista paginada dentro de la sección: 5 / 10 / "all" con scroll
   // interno (mismo patrón que PaymentsSection).
   const [page, setPage] = useState(1);
@@ -101,11 +101,6 @@ export function ReservationsSection({
   ) {
     if (busyId) return;
     setBusyId(id);
-    setRowErrors((prev) => {
-      const copy = { ...prev };
-      delete copy[id];
-      return copy;
-    });
     try {
       const res = await apiFetch(`/table-reservations/${id}`, {
         method: "PATCH",
@@ -120,12 +115,12 @@ export function ReservationsSection({
       });
       if (!res.ok) {
         const msg = (await readError(res)) ?? tc("error");
-        setRowErrors((prev) => ({ ...prev, [id]: msg }));
+        showActionNotice({ text: msg, error: true });
         return;
       }
       await load();
     } catch {
-      setRowErrors((prev) => ({ ...prev, [id]: tc("error") }));
+      showActionNotice({ text: tc("error"), error: true });
     } finally {
       setBusyId(null);
     }
@@ -393,11 +388,6 @@ export function ReservationsSection({
                         {t("reservations.cancel")}
                       </Button>
                     </div>
-                  )}
-                  {r.id && rowErrors[r.id] && (
-                    <p role="alert" className="text-sm text-red-400">
-                      {rowErrors[r.id]}
-                    </p>
                   )}
                 </Card>
               </li>

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { Badge, Button, Card } from "@/components/ui";
 import { readError } from "./shared";
 
@@ -43,13 +44,11 @@ export function ImportCard({
   const [fileName, setFileName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<RowResult[] | null>(null);
-  const [err, setErr] = useState<string | null>(null);
 
   async function upload() {
     const file = fileRef.current?.files?.[0];
     if (!file || busy) return;
     setBusy(true);
-    setErr(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
@@ -58,14 +57,14 @@ export function ImportCard({
         body: fd,
       });
       if (!res.ok) {
-        setErr((await readError(res)) ?? t("error"));
+        showActionNotice({ text: (await readError(res)) ?? t("error"), error: true });
         setResults(null);
         return;
       }
       const body = (await res.json()) as { results: RowResult[] };
       setResults(body.results);
     } catch {
-      setErr(t("error"));
+      showActionNotice({ text: t("error"), error: true });
       setResults(null);
     } finally {
       setBusy(false);
@@ -117,11 +116,6 @@ export function ImportCard({
           {busy ? t("uploading") : t("upload")}
         </Button>
       </div>
-      {err && (
-        <p role="alert" className="text-sm text-red-400">
-          {err}
-        </p>
-      )}
       {results && (
         <div className="overflow-x-auto">
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">

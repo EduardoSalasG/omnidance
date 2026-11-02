@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { showActionNotice } from "@/components/ui/action-notice";
 import { Button, Card, ConfirmSheet, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -86,7 +87,6 @@ function Detail({
   const [detail, setDetail] = useState<InstructorDetail | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   const load = useCallback(async () => {
@@ -108,7 +108,6 @@ function Detail({
   async function remove() {
     if (!detail) return;
     setBusy(true);
-    setErr(null);
     try {
       const res = await apiFetch(
         `/academies/${academyId}/instructors/${personId}`,
@@ -116,13 +115,13 @@ function Detail({
       );
       if (!res.ok) {
         setConfirmRemove(false);
-        setErr((await readError(res)) ?? t("error"));
+        showActionNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
       router.push("/academia/equipo");
     } catch {
       setConfirmRemove(false);
-      setErr(t("error"));
+      showActionNotice({ text: t("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -261,11 +260,6 @@ function Detail({
       {/* Encuestas del profe - agrupadas mes × serie, solo owner/ADMIN. */}
       <CourseSurveyResults academyId={academyId} instructorId={personId} />
 
-      {err && (
-        <p role="alert" className="text-sm text-red-400">
-          {err}
-        </p>
-      )}
       {/* Zona destructiva al pie, centrada y en rojo - mismo patrón que
           "Eliminar amigo" (/amigos/[id]). */}
       <div className="flex justify-center pt-2">
