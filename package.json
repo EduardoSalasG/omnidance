@@ -31,6 +31,7 @@
     "db:push": "pnpm --filter @omnidance/api prisma db push",
     "db:migrate": "pnpm --filter @omnidance/api prisma migrate dev",
     "db:seed": "pnpm --filter @omnidance/api prisma db seed",
+    "db:enrich": "pnpm --filter @omnidance/api exec node scripts/enrich-academy-seed.cjs",
     "db:studio": "pnpm --filter @omnidance/api prisma studio",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
