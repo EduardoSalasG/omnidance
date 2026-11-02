@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { useDialogFocus } from "@/lib/useDialogFocus";
-import { Button, Card } from "@/components/ui";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { ActionNotice } from "@/components/ui/action-notice";
 import { readError } from "@/components/academy/shared";
 import { useRouter } from "@/i18n/navigation";
@@ -31,24 +30,12 @@ export function PrivateLessonCancelCta({
 }) {
   const tl = useTranslations("academyExtras.lessons");
   const t = useTranslations("classes");
-  const tc = useTranslations("common");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const dialogRef = useDialogFocus<HTMLDivElement>(confirming);
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(
     null,
   );
-
-  // Escape cierra el sheet de confirmación.
-  useEffect(() => {
-    if (!confirming) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setConfirming(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [confirming]);
 
   async function cancel() {
     setBusy(true);
@@ -95,52 +82,20 @@ export function PrivateLessonCancelCta({
         </div>
       )}
 
-      {confirming && (
-        <div
-          ref={dialogRef}
-          role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
-          onClick={() => setConfirming(false)}
-        >
-          <Card
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="cancel-lesson-title"
-            className="w-full max-w-md space-y-4"
-            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          >
-            <h2 id="cancel-lesson-title" className="text-lg font-semibold">
-              {tl("cancel")}
-            </h2>
-            {/* El copy declara la consecuencia antes de confirmar: la
-                devolución del pago es gestión manual con la academia. */}
-            <p className="text-sm text-ink/70">
-              {tl("confirmCancel")} {t("cancelPaid")}
-            </p>
-            <div className="flex items-center justify-end gap-3">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setConfirming(false)}
-              >
-                {tc("cancel")}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={busy}
-                onClick={() => {
-                  setConfirming(false);
-                  void cancel();
-                }}
-              >
-                {tl("cancel")}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* El copy declara la consecuencia antes de confirmar: la
+          devolución del pago es gestión manual con la academia. */}
+      <ConfirmSheet
+        open={confirming}
+        title={tl("cancel")}
+        description={`${tl("confirmCancel")} ${t("cancelPaid")}`}
+        confirmLabel={tl("cancel")}
+        busy={busy}
+        onConfirm={() => {
+          setConfirming(false);
+          void cancel();
+        }}
+        onClose={() => setConfirming(false)}
+      />
     </>
   );
 }

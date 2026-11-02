@@ -7,9 +7,9 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { ActionNotice, showActionNotice } from "@/components/ui/action-notice";
-import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Link, useRouter } from "@/i18n/navigation";
 
 type FriendshipStatus = "none" | "sent" | "received" | "friends";
@@ -66,7 +66,6 @@ export default function AmigoPerfilPage(
   // Confirmación de eliminar amistad - bottom sheet (mismo patrón que
   // el modal de entrada duplicada), no window.confirm.
   const [confirmRemove, setConfirmRemove] = useState(false);
-  const dialogRef = useDialogFocus<HTMLDivElement>(confirmRemove);
 
   const load = useCallback(async () => {
     try {
@@ -154,16 +153,6 @@ export default function AmigoPerfilPage(
       setBusy(false);
     }
   };
-
-  // Escape cierra el sheet de confirmación.
-  useEffect(() => {
-    if (!confirmRemove) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setConfirmRemove(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [confirmRemove]);
 
   const roleLabels: Record<StyleRole["role"], string> = {
     LEADER: tp("datos.danceRole.LEADER"),
@@ -366,49 +355,19 @@ export default function AmigoPerfilPage(
       )}
 
       {/* Confirmación de eliminar amistad - bottom sheet */}
-      {confirmRemove && person && person.friendship?.id && (
-        <div
-          ref={dialogRef}
-          role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
-          onClick={() => setConfirmRemove(false)}
-        >
-          <Card
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="remove-friend-title"
-            className="w-full max-w-md space-y-4"
-            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          >
-            <h2 id="remove-friend-title" className="text-lg font-semibold">
-              {t("remove")}
-            </h2>
-            <p className="text-sm text-ink/70">
-              {t("removeConfirm", { name: person.name })}
-            </p>
-            <div className="flex items-center justify-end gap-3">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setConfirmRemove(false)}
-              >
-                {tc("cancel")}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={busy}
-                onClick={() => {
-                  setConfirmRemove(false);
-                  void removeRel(person.friendship!.id!, t("removed"));
-                }}
-              >
-                {t("remove")}
-              </Button>
-            </div>
-          </Card>
-        </div>
+      {person && person.friendship?.id && (
+        <ConfirmSheet
+          open={confirmRemove}
+          title={t("remove")}
+          description={t("removeConfirm", { name: person.name })}
+          confirmLabel={t("remove")}
+          busy={busy}
+          onConfirm={() => {
+            setConfirmRemove(false);
+            void removeRel(person.friendship!.id!, t("removed"));
+          }}
+          onClose={() => setConfirmRemove(false)}
+        />
       )}
     </main>
   );

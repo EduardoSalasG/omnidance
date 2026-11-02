@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { useDialogFocus } from "@/lib/useDialogFocus";
 import {
   Badge,
   Button,
@@ -12,6 +11,7 @@ import {
   PriceTag,
   RefreshIcon,
 } from "@/components/ui";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { SkeletonCard } from "@/components/ui";
 import {
   ActionNotice,
@@ -71,12 +71,6 @@ export default function CrmCampanaPage() {
   const [sending, setSending] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
-  const sendDialogRef = useDialogFocus<HTMLDivElement>(confirmSend, () =>
-    setConfirmSend(false),
-  );
-  const cancelDialogRef = useDialogFocus<HTMLDivElement>(confirmCancel, () =>
-    setConfirmCancel(false),
-  );
 
   const load = useCallback(async () => {
     setError(false);
@@ -428,89 +422,30 @@ export default function CrmCampanaPage() {
 
       {/* Confirmación de envío masivo - bottom sheet (mismo patrón que
           el de cancelación de evento). */}
-      {confirmSend && c && (
-        <div
-          ref={sendDialogRef}
-          role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
-          onClick={() => setConfirmSend(false)}
-        >
-          <Card
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="send-campaign-title"
-            className="w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="send-campaign-title" className="text-lg font-semibold">
-              {t("campaigns.sendTitle")}
-            </h2>
-            <p className="mt-1 text-sm text-ink/60">
-              {t("campaigns.sendDesc")}
-            </p>
-            <p className="mt-3 text-sm font-medium">{c.name}</p>
-            <div className="mt-4 flex gap-3">
-              <Button
-                type="button"
-                className="flex-1"
-                disabled={sending}
-                onClick={() => void doSend()}
-              >
-                {sending ? t("campaigns.sending") : t("campaigns.send")}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setConfirmSend(false)}
-              >
-                {tc("cancel")}
-              </Button>
-            </div>
-          </Card>
-        </div>
+      {c && (
+        <ConfirmSheet
+          open={confirmSend}
+          title={t("campaigns.sendTitle")}
+          description={`${t("campaigns.sendDesc")} ${c.name}`}
+          confirmLabel={t("campaigns.send")}
+          confirmVariant="primary"
+          busy={sending}
+          onConfirm={() => void doSend()}
+          onClose={() => setConfirmSend(false)}
+        />
       )}
 
       {/* Confirmación de desprogramar - bottom sheet. */}
-      {confirmCancel && c && (
-        <div
-          ref={cancelDialogRef}
-          role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
-          onClick={() => setConfirmCancel(false)}
-        >
-          <Card
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="cancel-campaign-title"
-            className="w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="cancel-campaign-title" className="text-lg font-semibold">
-              {t("campaigns.cancelTitle")}
-            </h2>
-            <p className="mt-1 text-sm text-ink/60">
-              {t("campaigns.cancelDesc")}
-            </p>
-            <p className="mt-3 text-sm font-medium">{c.name}</p>
-            <div className="mt-4 flex gap-3">
-              <Button
-                type="button"
-                className="flex-1 bg-red-500 hover:bg-red-400"
-                disabled={cancelling}
-                onClick={() => void doCancel()}
-              >
-                {cancelling ? tc("loading") : t("campaigns.cancelSchedule")}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setConfirmCancel(false)}
-              >
-                {tc("cancel")}
-              </Button>
-            </div>
-          </Card>
-        </div>
+      {c && (
+        <ConfirmSheet
+          open={confirmCancel}
+          title={t("campaigns.cancelTitle")}
+          description={`${t("campaigns.cancelDesc")} ${c.name}`}
+          confirmLabel={t("campaigns.cancelSchedule")}
+          busy={cancelling}
+          onConfirm={() => void doCancel()}
+          onClose={() => setConfirmCancel(false)}
+        />
       )}
 
       <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />

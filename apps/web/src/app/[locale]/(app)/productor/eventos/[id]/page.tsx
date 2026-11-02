@@ -5,15 +5,14 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { useActorEntitlements } from "@/lib/entitlements-context";
-import { useDialogFocus } from "@/lib/useDialogFocus";
 import {
   Badge,
   Button,
-  Card,
   EventDate,
   RefreshIcon,
   SkeletonCard,
 } from "@/components/ui";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
   ActionNotice,
@@ -81,9 +80,6 @@ export default function ProducerEventDetailPage(
   const [actionBusy, setActionBusy] = useState(false);
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
-  // Focus trap + restauración del diálogo de confirmación
-  const cancelDialogRef = useDialogFocus<HTMLDivElement>(confirmCancel);
-
   const loadEvent = useCallback(async () => {
     try {
       const res = await apiFetch(`/events/${eventId}`);
@@ -125,16 +121,6 @@ export default function ProducerEventDetailPage(
     void refreshMe();
     void loadEvent();
   }
-
-  // Escape cierra el diálogo de confirmación de cancelación.
-  useEffect(() => {
-    if (!confirmCancel) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setConfirmCancel(false);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [confirmCancel]);
 
   async function doPublish() {
     if (actionBusy) return;
@@ -359,46 +345,16 @@ export default function ProducerEventDetailPage(
 
       {/* Confirmación de cancelación - bottom sheet (mismo patrón que el
           modal de transferencia en /entradas). */}
-      {confirmCancel && event && (
-        <div
-          ref={cancelDialogRef}
-          role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
-          onClick={() => setConfirmCancel(false)}
-        >
-          <Card
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="cancel-event-title"
-            className="w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="cancel-event-title" className="text-lg font-semibold">
-              {t("cancelConfirmTitle")}
-            </h2>
-            <p className="mt-1 text-sm text-ink/60">
-              {t("cancelConfirmDesc")}
-            </p>
-            <p className="mt-3 text-sm font-medium">{event.name}</p>
-            <div className="mt-4 flex gap-3">
-              <Button
-                type="button"
-                className="flex-1"
-                disabled={actionBusy}
-                onClick={() => void doCancel()}
-              >
-                {actionBusy ? tc("loading") : t("confirmCancel")}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setConfirmCancel(false)}
-              >
-                {tc("cancel")}
-              </Button>
-            </div>
-          </Card>
-        </div>
+      {event && (
+        <ConfirmSheet
+          open={confirmCancel}
+          title={t("cancelConfirmTitle")}
+          description={`${t("cancelConfirmDesc")} ${event.name}`}
+          confirmLabel={t("confirmCancel")}
+          busy={actionBusy}
+          onConfirm={() => void doCancel()}
+          onClose={() => setConfirmCancel(false)}
+        />
       )}
 
       <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
