@@ -207,7 +207,7 @@ export function SubscriptionManage({
           <div className="flex gap-2">
             <Button
               type="button"
-              variant="secondary"
+              variant="danger"
               size="sm"
               className="flex-1"
               disabled={busy}

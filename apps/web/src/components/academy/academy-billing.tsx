@@ -755,7 +755,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                     <Button
                       type="button"
                       size="sm"
-                      variant="secondary"
+                      variant="danger"
                       disabled={busy}
                       onClick={() => void cancel()}
                     >
