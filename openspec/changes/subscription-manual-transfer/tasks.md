@@ -9,14 +9,16 @@
 - [x] API subscribe paymentMethod=TRANSFER (membresía + plataforma):
       sub PENDING_PAYMENT + Payment PENDING claim-elegible + datos
       bancarios en respuesta. (slice 1)
-- [ ] Web checkout membresía + academy-billing: opción transferencia
-      con datos bancarios + OwnMethodClaim reutilizado. (slice 2+)
+- [x] Web checkout membresía + academy-billing: opción transferencia
+      con datos bancarios + OwnMethodClaim reutilizado. (slice 2: también
+      producer pro + badges PENDING_PAYMENT; falta scheduler renovación)
 - [x] Claim approved → settle + activación (membresía y plataforma),
       rechazo → re-subida. (slice 1: settle activa sub +
       currentPeriodEnd; endpoints /academies/:id/order-claims y
       /admin/payment-claims)
-- [ ] Consolas de revisión: academia (membresías) + admin plataforma
-      (PLATFORM_SUB). (API lista en slice 1; UI web pendiente)
+- [x] Consolas de revisión: academia (membresías) + admin plataforma
+      (PLATFORM_SUB). (slice 2: OrderClaimsQueue en /academia/cobros +
+      ficha /academia/cobros/orden/[id]; /admin/facturacion/comprobantes)
 - [ ] Scheduler renovación manual: Payment PENDING por ciclo +
       notificación + gracia/suspensión. (slice 2+)
 - [~] Specs/tests suites payments + auth, typecheck, qa-flows-inventory.

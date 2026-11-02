@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 import { formatMoney } from "@/lib/intl";
@@ -8,6 +8,9 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PriceTag, Segmented, Spinner } from "@/components/ui";
 import { planDateFmt } from "@/components/academy/shared";
 import { ManualPayPanel } from "./manual-pay-panel";
+import { OwnMethodClaim } from "@/components/checkout/own-method-claim";
+import type { OwnMethod } from "@/components/checkout/own-method-picker";
+import { showActionNotice } from "@/components/ui/action-notice";
 import type { MembershipQuote } from "./page";
 import { useRouter } from "@/i18n/navigation";
 import { useNumFmt } from "@/lib/intl";
@@ -20,9 +23,22 @@ type Phase =
   // igual - la vigencia aparece en la ficha de la academia al llegar.
   | { kind: "stillPending"; paymentId: string; paymentUrl: string }
   | { kind: "activating" }
+  // Alta manual (spec subscription-manual-transfer): sub PENDING_PAYMENT
+  // + orden MANUAL PENDING - el alumno transfiere y sube el comprobante.
+  | {
+      kind: "transfer";
+      paymentId: string;
+      amount: number;
+      currency: string;
+      methods: OwnMethod[];
+    }
   | { kind: "failed" };
 
 type Notice = "loginRequired" | "unavailable" | "generic" | null;
+
+/** Medio de cobro de la suscripción: tarjeta Flow (cargo automático)
+    o transferencia validada por la academia cada ciclo. */
+type PayVia = "CARD" | "TRANSFER";
 
 const POLL_INTERVAL_MS = 2_000;
 const POLL_MAX_ATTEMPTS = 15; // ~30s - mismo criterio que checkout-client
@@ -68,6 +84,15 @@ export function MembershipCheckoutClient({
   // El panel manual toma el control cuando el alumno elige un método
   // propio de la academia o tiene un intento AWAITING/PENDING vivo.
   const [manualActive, setManualActive] = useState(false);
+  // Vía de cobro de la suscripción (spec subscription-manual-transfer):
+  // tarjeta (Flow) o transferencia. Los métodos TRANSFER de la academia
+  // se traen solo en modo sub - sin ellos la vía manual no se ofrece.
+  const [payVia, setPayVia] = useState<PayVia>("CARD");
+  const [transferMethods, setTransferMethods] = useState<OwnMethod[] | null>(
+    null,
+  );
+  // Cuenta destino elegida cuando la academia publica más de una.
+  const [methodId, setMethodId] = useState<string | null>(null);
 
   const isSub = mode === "sub";
   const busy =
@@ -80,6 +105,41 @@ export function MembershipCheckoutClient({
 
   const academyHref = `/academias/${quote.academy.id}`;
   const checkoutHref = `${academyHref}/checkout?plan=${quote.plan.id}`;
+
+  // Métodos TRANSFER de la academia para la vía manual de la
+  // suscripción (spec subscription-manual-transfer): mismo endpoint
+  // que el ManualPayPanel del pago único. Fallo de red = sin opción
+  // transferencia (la tarjeta sigue disponible).
+  useEffect(() => {
+    if (!isSub) return;
+    let cancelled = false;
+    void apiFetch(`/academies/${quote.academy.id}/payment-methods`)
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const rows = (await res.json()) as {
+          id: string;
+          type: string;
+          label: string;
+          details: Record<string, string>;
+        }[];
+        const transfers = rows
+          .filter((m) => m.type === "TRANSFER")
+          .map((m) => ({
+            id: m.id,
+            type: "TRANSFER",
+            label: m.label,
+            details: m.details,
+          }));
+        setTransferMethods(transfers);
+        setMethodId(transfers.length === 1 ? transfers[0].id : null);
+      })
+      .catch(() => {
+        if (!cancelled) setTransferMethods([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isSub, quote.academy.id]);
 
   // Polling del pago (stub dev): al PAID vuelve a la ficha - el webhook
   // ya materializó el Enrollment y el badge cambia solo. Si se agota
@@ -166,6 +226,10 @@ export function MembershipCheckoutClient({
         body: JSON.stringify({
           planId: quote.plan.id,
           acceptRecurring: true,
+          paymentMethod: payVia,
+          // Solo la vía manual: el label del método elegido queda
+          // snapshot en la orden (mismo dato que ve la academia).
+          ...(payVia === "TRANSFER" && methodId ? { methodId } : {}),
         }),
       });
       if (res.status === 401) {
@@ -194,7 +258,28 @@ export function MembershipCheckoutClient({
       }
       const data = (await res.json()) as
         | { kind: "needs_card"; registerUrl: string }
-        | { kind: "subscribed"; subscriptionId: string };
+        | { kind: "subscribed"; subscriptionId: string }
+        | {
+            // Alta manual por transferencia (spec
+            // subscription-manual-transfer): orden MANUAL PENDING +
+            // métodos TRANSFER activos de la academia.
+            kind: "pending_payment";
+            paymentId: string;
+            amount: number;
+            currency: string;
+            transfer: { methods: OwnMethod[] };
+          };
+
+      if (data.kind === "pending_payment") {
+        setPhase({
+          kind: "transfer",
+          paymentId: data.paymentId,
+          amount: data.amount,
+          currency: data.currency,
+          methods: data.transfer.methods,
+        });
+        return;
+      }
 
       if (data.kind === "needs_card") {
         // Salto directo al disclaimer de Flow (spec
@@ -332,6 +417,65 @@ export function MembershipCheckoutClient({
         </Card>
       )}
 
+      {/* Vía de cobro de la suscripción (spec subscription-manual-
+          transfer): tarjeta con cargo automático (Flow) o transferencia
+          que la academia valida por comprobante cada ciclo. Solo se
+          ofrece cuando la academia publica métodos TRANSFER. */}
+      {isSub &&
+        phase.kind !== "transfer" &&
+        (transferMethods?.length ?? 0) > 0 && (
+          <Card>
+            <h2 className="text-base font-semibold">{t("payViaTitle")}</h2>
+            <div
+              role="radiogroup"
+              aria-label={t("payViaTitle")}
+              className="mt-3 flex flex-col gap-2"
+            >
+              <label
+                className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
+                  payVia === "CARD"
+                    ? "border-neon/60 bg-neon/10"
+                    : "border-line bg-elevated"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="subPayVia"
+                  checked={payVia === "CARD"}
+                  disabled={busy}
+                  onChange={() => setPayVia("CARD")}
+                  className="h-4 w-4 accent-neon"
+                />
+                {t("payViaCard")}
+              </label>
+              <label
+                className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
+                  payVia === "TRANSFER"
+                    ? "border-neon/60 bg-neon/10"
+                    : "border-line bg-elevated"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="subPayVia"
+                  checked={payVia === "TRANSFER"}
+                  disabled={busy}
+                  onChange={() => setPayVia("TRANSFER")}
+                  className="h-4 w-4 accent-neon"
+                />
+                {t("payViaTransfer")}
+              </label>
+            </div>
+            {payVia === "TRANSFER" && (
+              <p className="mt-3 text-xs leading-relaxed text-ink/50">
+                {t("payViaTransferHint", {
+                  period: ts(`period.${quote.plan.type}`),
+                })}
+              </p>
+            )}
+          </Card>
+        )}
+
       {/* Promo de la academia vigente (spec member-promos): el descuento
           se ve antes del breakdown - precio tachado + oferta + expiración. */}
       {quote.promo && (
@@ -382,19 +526,27 @@ export function MembershipCheckoutClient({
         </dl>
       </Card>
 
-      {/* Consentimiento recurrente: monto real + período + aviso previo
-          al cobro + anticipación del registro de tarjeta en Flow. */}
-      {isSub && (
+      {/* Consentimiento: con tarjeta es el aviso de cargo automático
+          recurrente; con transferencia es el compromiso de pagar cada
+          ciclo y subir el comprobante (spec subscription-manual-transfer). */}
+      {isSub && phase.kind !== "transfer" && (
         <Card>
           <p className="text-xs leading-relaxed text-ink/60">
-            {ts("consent", {
-              amount: formatMoney(quote.totalClp, quote.currency, locale),
-              period: ts(`period.${quote.plan.type}`),
-            })}
+            {payVia === "TRANSFER"
+              ? ts("consentTransfer", {
+                  amount: formatMoney(quote.totalClp, quote.currency, locale),
+                  period: ts(`period.${quote.plan.type}`),
+                })
+              : ts("consent", {
+                  amount: formatMoney(quote.totalClp, quote.currency, locale),
+                  period: ts(`period.${quote.plan.type}`),
+                })}
           </p>
-          <p className="mt-2 text-xs leading-relaxed text-ink/50">
-            {t("cardNext")}
-          </p>
+          {payVia === "CARD" && (
+            <p className="mt-2 text-xs leading-relaxed text-ink/50">
+              {t("cardNext")}
+            </p>
+          )}
           <label className="mt-3 flex min-h-11 cursor-pointer items-start gap-2 text-sm text-ink/80">
             <input
               type="checkbox"
@@ -403,9 +555,74 @@ export function MembershipCheckoutClient({
               onChange={(e) => setConsent(e.target.checked)}
               className="mt-0.5 h-4 w-4 shrink-0 accent-neon"
             />
-            {ts("consentCheck")}
+            {payVia === "TRANSFER"
+              ? ts("consentCheckTransfer")
+              : ts("consentCheck")}
           </label>
         </Card>
+      )}
+
+      {/* Alta manual: la orden quedó creada - datos bancarios + upload
+          del comprobante (mismo OwnMethodClaim del checkout manual; la
+          academia lo valida en su cola de order-claims). */}
+      {phase.kind === "transfer" && (
+        <>
+          {phase.methods.length > 1 && (
+            <Card>
+              <h2 className="text-base font-semibold">
+                {t("transferPickAccount")}
+              </h2>
+              <div
+                role="radiogroup"
+                aria-label={t("transferPickAccount")}
+                className="mt-3 flex flex-col gap-2"
+              >
+                {phase.methods.map((m) => (
+                  <label
+                    key={m.id}
+                    className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
+                      (methodId ?? phase.methods[0].id) === m.id
+                        ? "border-neon/60 bg-neon/10"
+                        : "border-line bg-elevated"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="transferAccount"
+                      checked={(methodId ?? phase.methods[0].id) === m.id}
+                      onChange={() => setMethodId(m.id)}
+                      className="h-4 w-4 accent-neon"
+                    />
+                    {m.label}
+                  </label>
+                ))}
+              </div>
+            </Card>
+          )}
+          {/* La academia pudo haber quitado sus métodos entre el
+              checkout y el alta: método sintético sin datos (el claim
+              va sin methodId y la academia confirma los datos). */}
+          <OwnMethodClaim
+            paymentId={phase.paymentId}
+            method={
+              phase.methods.find(
+                (m) => m.id === (methodId ?? phase.methods[0]?.id),
+              ) ??
+              phase.methods[0] ?? {
+                id: "",
+                type: "TRANSFER",
+                label: t("payViaTransfer"),
+                details: {},
+              }
+            }
+            variant="academy"
+            onPaid={() => {
+              showActionNotice({ text: ts("activated") });
+              router.push(academyHref);
+            }}
+            returnHref={academyHref}
+          />
+        </>
       )}
 
 
@@ -519,11 +736,15 @@ export function MembershipCheckoutClient({
             {phase.kind === "processing"
               ? tco("processing")
               : isSub
-                ? `${ts("subscribe")} · ${formatMoney(quote.totalClp, quote.currency, locale)}/${ts(`period.${quote.plan.type}`)}`
+                ? payVia === "TRANSFER"
+                  ? `${t("payViaTransfer")} · ${formatMoney(quote.totalClp, quote.currency, locale)}/${ts(`period.${quote.plan.type}`)}`
+                  : `${ts("subscribe")} · ${formatMoney(quote.totalClp, quote.currency, locale)}/${ts(`period.${quote.plan.type}`)}`
                 : t("payTotal", { total: formatMoney(quote.totalClp, quote.currency, locale) })}
           </Button>
           <p className="text-center text-xs text-ink/40">
-            {t("trustFlow")}
+            {isSub && payVia === "TRANSFER"
+              ? t("trustTransfer")
+              : t("trustFlow")}
           </p>
         </div>
       ) : null}

@@ -7,8 +7,11 @@ import { Badge, Button, Card, PriceTag, RefreshIcon, Skeleton, SkeletonList, Spi
 import { planDateFmt, readError } from "@/components/academy/shared";
 import {
   ActionNotice,
+  showActionNotice,
   type ActionNoticeData,
 } from "@/components/ui/action-notice";
+import { OwnMethodClaim } from "@/components/checkout/own-method-claim";
+import type { OwnMethod } from "@/components/checkout/own-method-picker";
 import { getNumFmt, useNumFmt } from "@/lib/intl";
 
 const money = (locale: string, currency: string) =>
@@ -78,11 +81,19 @@ type ProView = {
   prices?: Record<string, Record<string, { price: number; currency: string } | null>>;
 };
 
-/** POST /producers/:id/pro/subscribe - needs_card → disclaimer Flow. */
+/** POST /producers/:id/pro/subscribe - needs_card → disclaimer Flow;
+    PENDING_PAYMENT → alta manual por transferencia (spec
+    subscription-manual-transfer) con datos bancarios + orden MANUAL. */
 type SubscribeResult = {
   paymentUrl: string | null;
   subscriptionId: string;
-  status: "PENDING_CARD" | "ACTIVE";
+  status: "PENDING_CARD" | "ACTIVE" | "PENDING_PAYMENT";
+  paymentId?: string;
+  amount?: number;
+  currency?: string;
+  claimUrl?: string;
+  /** Datos bancarios de Omnidance (params platform_billing.transfer.*). */
+  transfer?: Record<string, unknown>;
 };
 
 // producer_tier.<key>_*_clp - el tier no se elige: lo calcula el API por
@@ -123,6 +134,19 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [registerUrl, setRegisterUrl] = useState<string | null>(null);
+  // Vía de cobro del alta (spec subscription-manual-transfer): CARD =
+  // cargo automático Flow | TRANSFER = transferencia con comprobante
+  // que valida admin plataforma cada ciclo.
+  const [payVia, setPayVia] = useState<"CARD" | "TRANSFER">("CARD");
+  // Orden MANUAL PENDING viva (alta o retomada): datos bancarios +
+  // upload del comprobante en vez del form de contratación.
+  const [pendingOrder, setPendingOrder] = useState<{
+    paymentId: string;
+    method: OwnMethod;
+  } | null>(null);
+  // Con una sub PENDING_PAYMENT el productor puede cambiar de vía:
+  // muestra el form de contratación aunque el status siga pendiente.
+  const [forceForm, setForceForm] = useState(false);
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
@@ -200,8 +224,16 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
         : Math.max(0, chargeTotal - (promo.amountOffClp ?? 0))
       : chargeTotal;
 
-  async function subscribe() {
-    if (busy || !consent) return;
+  /**
+   * Alta de la suscripción. `via` permite forzar TRANSFER desde la
+   * retomada de una PENDING_PAYMENT (subscribe manual es idempotente:
+   * devuelve la misma orden pendiente).
+   */
+  async function subscribe(via?: "CARD" | "TRANSFER") {
+    if (busy) return;
+    const method = via ?? payVia;
+    // La retomada de una orden pendiente ya pasó por el consentimiento.
+    if (!via && !consent) return;
     setBusy(true);
     setNotice(null);
     setRegisterUrl(null);
@@ -209,7 +241,11 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
       const res = await apiFetch(`/producers/${producerId}/pro/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cycle, acceptRecurring: true }),
+        body: JSON.stringify({
+          cycle,
+          acceptRecurring: true,
+          paymentMethod: method,
+        }),
       });
       if (!res.ok) {
         const body = (await res.clone().json().catch(() => null)) as {
@@ -229,6 +265,20 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
         // Interstitial: el productor ve a dónde va ANTES del salto al
         // disclaimer de tarjeta (momento de mayor desconfianza).
         setRegisterUrl(data.paymentUrl);
+        return;
+      }
+      if (data.status === "PENDING_PAYMENT" && data.paymentId) {
+        // Alta manual: datos bancarios + upload (mismo OwnMethodClaim
+        // del checkout; la valida admin en /admin/payment-claims).
+        setPendingOrder({
+          paymentId: data.paymentId,
+          method: {
+            id: "",
+            type: "TRANSFER",
+            label: t("transferLabel"),
+            details: (data.transfer ?? {}) as Record<string, string>,
+          },
+        });
         return;
       }
       setNotice({ text: t("subscribeOk") });
@@ -279,6 +329,9 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
   const hasLiveSub = view.status === "ACTIVE" || view.status === "CANCEL_PENDING";
   const activating =
     view.status === "PENDING_CARD" || view.status === "ACTIVATING";
+  // Alta manual esperando comprobante aprobado por admin plataforma
+  // (spec subscription-manual-transfer).
+  const pendingPayment = view.status === "PENDING_PAYMENT";
   const onTrial =
     view.effectivePro &&
     view.proTier === "FREE" &&
@@ -319,6 +372,9 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
             <Badge variant="muted">{t("status.cancelPending")}</Badge>
           )}
           {activating && <Badge variant="outline">{t("status.activating")}</Badge>}
+          {pendingPayment && (
+            <Badge variant="outline">{t("status.pendingPayment")}</Badge>
+          )}
         </div>
 
         {onTrial && (
@@ -346,6 +402,30 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
           <p role="status" className="text-sm text-ink/60">
             {t("activatingHint")}
           </p>
+        )}
+        {pendingPayment && (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-ink/60">{t("pendingPaymentHint")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={busy}
+                onClick={() => void subscribe("TRANSFER")}
+              >
+                {busy && <Spinner size="sm" />}
+                {t("pendingPaymentCta")}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setForceForm(true)}
+              >
+                {t("changePayVia")}
+              </Button>
+            </div>
+          </div>
         )}
         {promo && (
           <div className="rounded-xl border border-neon/30 bg-neon/10 px-4 py-3">
@@ -466,10 +546,29 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
         )}
       </Card>
 
+      {/* Orden manual pendiente: datos bancarios + upload del
+          comprobante (spec subscription-manual-transfer). La valida
+          admin en /admin/payment-claims; al aprobar la sub queda ACTIVE. */}
+      {pendingOrder && (
+        <OwnMethodClaim
+          paymentId={pendingOrder.paymentId}
+          method={pendingOrder.method}
+          variant="platform"
+          onPaid={() => {
+            setPendingOrder(null);
+            showActionNotice({ text: t("subscribeOk") });
+            void load();
+          }}
+          returnHref="/productor/suscripcion"
+        />
+      )}
+
       {/* Contratación - solo sin suscripción viva. El tier no se elige:
           lo fija la facturación (PRO_STARTER/PRO_GROWTH); sobre el tope
-          autogestionado la contratación es manual (PRO_BIG). */}
-      {!hasLiveSub && (
+          autogestionado la contratación es manual (PRO_BIG). Con
+          PENDING_PAYMENT el form cede a la orden manual salvo que el
+          productor pida cambiar de vía (forceForm). */}
+      {!hasLiveSub && !pendingOrder && (!pendingPayment || forceForm) && (
         <Card className="flex flex-col gap-4">
           <p className="text-sm text-ink/70">{t("pitch")}</p>
           <ul className="flex flex-col gap-1.5 text-sm text-ink/70">
@@ -552,6 +651,54 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                 <Skeleton className="page-loading h-4 w-56" />
               ) : (
                 <>
+                  {/* Vía de cobro (spec subscription-manual-transfer):
+                      tarjeta con cargo automático o transferencia
+                      validada por comprobante cada ciclo. */}
+                  <fieldset className="flex flex-col gap-2">
+                    <legend className="text-xs uppercase tracking-wide text-ink/50">
+                      {t("payViaTitle")}
+                    </legend>
+                    <div
+                      role="radiogroup"
+                      aria-label={t("payViaTitle")}
+                      className="flex flex-col gap-2"
+                    >
+                      <label
+                        className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
+                          payVia === "CARD"
+                            ? "border-neon/60 bg-neon/10"
+                            : "border-line bg-elevated"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="proPayVia"
+                          checked={payVia === "CARD"}
+                          disabled={busy}
+                          onChange={() => setPayVia("CARD")}
+                          className="h-4 w-4 accent-neon"
+                        />
+                        {t("payViaCard")}
+                      </label>
+                      <label
+                        className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
+                          payVia === "TRANSFER"
+                            ? "border-neon/60 bg-neon/10"
+                            : "border-line bg-elevated"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="proPayVia"
+                          checked={payVia === "TRANSFER"}
+                          disabled={busy}
+                          onChange={() => setPayVia("TRANSFER")}
+                          className="h-4 w-4 accent-neon"
+                        />
+                        {t("payViaTransfer")}
+                      </label>
+                    </div>
+                  </fieldset>
                   <p className="text-xs leading-relaxed text-ink/50">
                     {chargeTotal != null &&
                       (promo && chargeFinal != null ? (
@@ -581,8 +728,15 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                       onChange={(e) => setConsent(e.target.checked)}
                       className="mt-0.5 h-4 w-4 shrink-0 accent-neon"
                     />
-                    {ts("consentCheck")}
+                    {payVia === "TRANSFER"
+                      ? ts("consentCheckTransfer")
+                      : ts("consentCheck")}
                   </label>
+                  {payVia === "TRANSFER" && (
+                    <p className="text-xs leading-relaxed text-ink/50">
+                      {t("payViaTransferHint")}
+                    </p>
+                  )}
                   <Button
                     type="button"
                     className="w-full"
@@ -591,10 +745,15 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                   >
                     {busy && <Spinner size="sm" />}
                     {chargeTotal != null
-                      ? t("subscribe", {
-                          amount: money(locale, chargeCurrency).format(chargeFinal ?? chargeTotal),
-                          period: t(`period.${cycle}`),
-                        })
+                      ? payVia === "TRANSFER"
+                        ? t("subscribeTransfer", {
+                            amount: money(locale, chargeCurrency).format(chargeFinal ?? chargeTotal),
+                            period: t(`period.${cycle}`),
+                          })
+                        : t("subscribe", {
+                            amount: money(locale, chargeCurrency).format(chargeFinal ?? chargeTotal),
+                            period: t(`period.${cycle}`),
+                          })
                       : t("subscribeNoPrice")}
                   </Button>
                 </>

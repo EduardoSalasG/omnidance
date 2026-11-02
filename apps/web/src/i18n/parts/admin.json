@@ -221,7 +221,8 @@
       "cities": "Ciudades",
       "citiesDesc": "Guía editorial por ciudad (escena, noches, tips)",
       "promos": "Promos",
-      "prices": "Precios"
+      "prices": "Precios",
+      "claims": "Comprobantes"
     },
     "academies": {
       "desc": "Salud de la base de alumnos por academia: score medio, distribución de segmentos y actividad.",
@@ -370,7 +371,8 @@
           "PENDING_CARD": "Tarjeta pendiente",
           "CANCEL_PENDING": "Cancelación programada",
           "CANCELED": "Cancelada",
-          "FAILED_CARD": "Tarjeta rechazada"
+          "FAILED_CARD": "Tarjeta rechazada",
+          "PENDING_PAYMENT": "Pago en revisión"
         },
         "revenue": "Ingresos de la academia",
         "noRevenue": "Sin ingresos registrados."
@@ -649,7 +651,8 @@
         "PAST_DUE": "En mora",
         "CANCEL_PENDING": "Cancela al ciclo",
         "CANCELED": "Cancelada",
-        "FAILED_CARD": "Tarjeta fallida"
+        "FAILED_CARD": "Tarjeta fallida",
+        "PENDING_PAYMENT": "Pago en revisión"
       }
     },
     "cities": {
@@ -766,6 +769,36 @@
       "cycleSemiannual": "Semestral",
       "cycleAnnual": "Anual",
       "retry": "Reintentar"
+    },
+    "claims": {
+      "title": "Comprobantes de suscripciones",
+      "desc": "Comprobantes de suscripciones de plataforma pagadas por transferencia (academias y Producer Pro).",
+      "queueTitle": "Por validar",
+      "queueDesc": "Aprueba para activar la suscripción; rechaza con un motivo que el pagador podrá ver.",
+      "queueEmpty": "Sin comprobantes pendientes.",
+      "queueEmptyDesc": "Cuando una academia o productor pague su suscripción por transferencia, aparecerá aquí.",
+      "historyTitle": "Historial",
+      "orderPlatformSub": "Suscripción",
+      "reviewedByApproved": "Aprobado por {name}",
+      "reviewedByRejected": "Rechazado por {name}",
+      "statusApproved": "Aprobado",
+      "statusRejected": "Rechazado",
+      "detailTitle": "Comprobante",
+      "fieldPayer": "Pagador",
+      "fieldOrder": "Orden",
+      "fieldAmount": "Monto",
+      "fieldMethod": "Medio",
+      "fieldOrderRef": "N° orden",
+      "fieldSentAt": "Enviado",
+      "fieldReviewedAt": "Revisado",
+      "fieldPaidAt": "Pagada",
+      "fieldReviewNote": "Motivo",
+      "approveTitle": "¿Aprobar este comprobante?",
+      "approveDesc": "Al aprobar, la orden se liquida y la suscripción queda activa.",
+      "approvedMsg": "Pago aprobado: la suscripción quedó activa.",
+      "rejectedMsg": "Comprobante rechazado.",
+      "rejectPrompt": "Motivo del rechazo (el pagador lo verá)",
+      "notFound": "No encontramos este comprobante."
     }
   }
 }

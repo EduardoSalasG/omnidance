@@ -32,14 +32,21 @@ export function OwnMethodClaim({
   method,
   onPaid,
   returnHref,
+  variant = "producer",
 }: {
   paymentId: string;
+  /** Método elegido. `id` vacío = dato de plataforma (params
+      platform_billing.transfer.*): el claim va sin methodId porque el
+      dominio PLATFORM no tiene catálogo de métodos seleccionables. */
   method: OwnMethod;
   onPaid: () => void;
   /** Destino tras enviar el comprobante (ficha del evento/academia):
       el aviso viaja por el host global y `replace` evita que "atrás"
       vuelva a un checkout con estado intermedio. */
   returnHref: string;
+  /** Dominio de revisión (spec subscription-manual-transfer): cambia
+      solo el copy - quién valida el comprobante. */
+  variant?: "producer" | "academy" | "platform";
 }) {
   const t = useTranslations("checkout");
   const tc = useTranslations("common");
@@ -82,6 +89,26 @@ export function OwnMethodClaim({
 
   const lastClaim = claims[0] ?? null;
   const hasPending = lastClaim?.status === "PENDING";
+  // Copy por dominio de revisión: el comprador siempre sabe quién
+  // valida su comprobante (productor, academia u Omnidance).
+  const pendingDesc =
+    variant === "academy"
+      ? t("ownMethodPendingDescAcademy")
+      : variant === "platform"
+        ? t("ownMethodPendingDescPlatform")
+        : t("ownMethodPendingDesc");
+  const noteLabel =
+    variant === "academy"
+      ? t("claimNoteAcademy")
+      : variant === "platform"
+        ? t("claimNotePlatform")
+        : t("claimNote");
+  const pendingLabel =
+    variant === "academy"
+      ? t("claimPendingAcademy")
+      : variant === "platform"
+        ? t("claimPendingPlatform")
+        : t("claimPending");
 
   async function submit() {
     if (!file || busy) return;
@@ -90,7 +117,9 @@ export function OwnMethodClaim({
     try {
       const fd = new FormData();
       fd.set("receipt", file, file.name);
-      fd.set("methodId", method.id);
+      // Claims PLATFORM no llevan methodId (sus datos salen de params,
+      // no de un catálogo) - mandar uno daría 404 "método no encontrado".
+      if (method.id) fd.set("methodId", method.id);
       if (note.trim()) fd.set("note", note.trim());
       const res = await apiFetch(`/payments/${paymentId}/claims`, {
         method: "POST",
@@ -120,9 +149,7 @@ export function OwnMethodClaim({
       <div>
         <Badge variant="muted">{t("ownMethodPendingTitle")}</Badge>
         <h2 className="mt-2 text-base font-semibold">{method.label}</h2>
-        <p className="mt-1 text-sm text-ink/60">
-          {t("ownMethodPendingDesc")}
-        </p>
+        <p className="mt-1 text-sm text-ink/60">{pendingDesc}</p>
       </div>
 
       <OwnMethodDetails method={method} />
@@ -141,12 +168,12 @@ export function OwnMethodClaim({
 
       {hasPending ? (
         <p role="status" className="animate-pulse text-sm text-ink/70">
-          {t("claimPending")}
+          {pendingLabel}
         </p>
       ) : (
         <div className="flex flex-col gap-3 border-t border-line pt-4">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/60">{t("claimNote")}</span>
+            <span className="text-ink/60">{noteLabel}</span>
             <input
               type="text"
               value={note}

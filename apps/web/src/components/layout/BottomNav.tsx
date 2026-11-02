@@ -804,6 +804,14 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.subscriptions",
           icon: ICONS.tag,
         },
+        // Cola de comprobantes de suscripciones por transferencia
+        // (spec subscription-manual-transfer).
+        {
+          href: "/admin/facturacion/comprobantes",
+          ns: "admin",
+          key: "modules.claims",
+          icon: ICONS.list,
+        },
         // Promos de suscripción (spec platform-promos) - descuentos
         // admin-managed sobre el cargo del ciclo.
         {
