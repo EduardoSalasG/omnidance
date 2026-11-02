@@ -8,7 +8,7 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsBoolean, IsIn, IsOptional } from "class-validator";
+import { IsBoolean, IsIn, IsOptional, IsString } from "class-validator";
 import type { Request } from "express";
 import type { BillingCycle } from "@prisma/client";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
@@ -31,6 +31,11 @@ class SubscribeAcademyDto {
   /** Consentimiento de cargo recurrente (mismo contrato que membresías). */
   @IsBoolean()
   acceptRecurring!: boolean;
+
+  /** Método de cobro (spec subscription-manual-transfer): CARD | TRANSFER. */
+  @IsOptional()
+  @IsIn(["CARD", "TRANSFER"])
+  paymentMethod?: "CARD" | "TRANSFER";
 }
 
 class UpdateAcademySubscriptionDto {
@@ -43,19 +48,33 @@ class UpdateAcademySubscriptionDto {
   cycle?: BillingCycle;
 }
 
-/** Shape uniforme del subscribe: la URL del disclaimer o "ya activa". */
+/** Shape uniforme del subscribe: la URL del disclaimer, los datos de
+ *  transferencia del alta manual o "ya activa". */
 function subscribeResponse(r: PlatformSubscribeResult) {
-  return r.kind === "needs_card"
-    ? {
-        paymentUrl: r.paymentUrl,
-        subscriptionId: r.subscriptionId,
-        status: "PENDING_CARD",
-      }
-    : {
-        paymentUrl: null,
-        subscriptionId: r.subscriptionId,
-        status: "ACTIVE",
-      };
+  if (r.kind === "needs_card") {
+    return {
+      paymentUrl: r.paymentUrl,
+      subscriptionId: r.subscriptionId,
+      status: "PENDING_CARD",
+    };
+  }
+  if (r.kind === "pending_payment") {
+    return {
+      paymentUrl: null,
+      subscriptionId: r.subscriptionId,
+      status: "PENDING_PAYMENT",
+      paymentId: r.paymentId,
+      amount: r.amount,
+      currency: r.currency,
+      claimUrl: r.claimUrl,
+      transfer: r.transfer,
+    };
+  }
+  return {
+    paymentUrl: null,
+    subscriptionId: r.subscriptionId,
+    status: "ACTIVE",
+  };
 }
 
 /**
@@ -94,6 +113,7 @@ export class AcademyBillingController {
       tier: dto.tier,
       cycle: dto.cycle,
       acceptRecurring: dto.acceptRecurring,
+      paymentMethod: dto.paymentMethod,
     });
     return subscribeResponse(r);
   }

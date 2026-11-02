@@ -34,21 +34,40 @@ class SubscribeProducerProDto {
   @IsOptional()
   @IsString()
   billingCountry?: string;
+
+  /** Método de cobro (spec subscription-manual-transfer): CARD | TRANSFER. */
+  @IsOptional()
+  @IsIn(["CARD", "TRANSFER"])
+  paymentMethod?: "CARD" | "TRANSFER";
 }
 
-/** Shape uniforme del subscribe: la URL del disclaimer o "ya activa". */
+/** Shape uniforme del subscribe: la URL del disclaimer, los datos de
+ *  transferencia del alta manual o "ya activa". */
 function subscribeResponse(r: PlatformSubscribeResult) {
-  return r.kind === "needs_card"
-    ? {
-        paymentUrl: r.paymentUrl,
-        subscriptionId: r.subscriptionId,
-        status: "PENDING_CARD",
-      }
-    : {
-        paymentUrl: null,
-        subscriptionId: r.subscriptionId,
-        status: "ACTIVE",
-      };
+  if (r.kind === "needs_card") {
+    return {
+      paymentUrl: r.paymentUrl,
+      subscriptionId: r.subscriptionId,
+      status: "PENDING_CARD",
+    };
+  }
+  if (r.kind === "pending_payment") {
+    return {
+      paymentUrl: null,
+      subscriptionId: r.subscriptionId,
+      status: "PENDING_PAYMENT",
+      paymentId: r.paymentId,
+      amount: r.amount,
+      currency: r.currency,
+      claimUrl: r.claimUrl,
+      transfer: r.transfer,
+    };
+  }
+  return {
+    paymentUrl: null,
+    subscriptionId: r.subscriptionId,
+    status: "ACTIVE",
+  };
 }
 
 /**
@@ -86,6 +105,7 @@ export class ProducerProController {
       cycle: dto.cycle,
       acceptRecurring: dto.acceptRecurring,
       billingCountry: dto.billingCountry,
+      paymentMethod: dto.paymentMethod,
     });
     return subscribeResponse(r);
   }

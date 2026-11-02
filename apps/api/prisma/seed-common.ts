@@ -155,6 +155,15 @@ const PARAM_DEFAULTS: Array<{
   { key: "academy_billing.trial_days", value: 30, description: "Días de trial de onboarding para academias nuevas (sin tarjeta upfront)" },
   { key: "academy_billing.migration_grace_days", value: 60, description: "Días de grace de lanzamiento para academias existentes al despliegue SaaS" },
   { key: "academy_billing.grace_days", value: 5, description: "Días calendario de gracia tras invoice impaga antes del bloqueo por mora" },
+  // Datos bancarios de Omnidance para suscripciones por transferencia
+  // (spec subscription-manual-transfer): los devuelve el alta manual y
+  // los edita admin en /admin/params. Placeholder hasta definir la cuenta.
+  { key: "platform_billing.transfer.bank", value: "", description: "Banco de la cuenta Omnidance para transferencias de suscripción de plataforma" },
+  { key: "platform_billing.transfer.accountType", value: "", description: "Tipo de cuenta (corriente/vista) para transferencias de suscripción de plataforma" },
+  { key: "platform_billing.transfer.accountNumber", value: "", description: "Número de cuenta Omnidance para transferencias de suscripción de plataforma" },
+  { key: "platform_billing.transfer.holder", value: "Omnidance SpA", description: "Titular de la cuenta para transferencias de suscripción de plataforma" },
+  { key: "platform_billing.transfer.rut", value: "", description: "RUT del titular para transferencias de suscripción de plataforma" },
+  { key: "platform_billing.transfer.email", value: "", description: "Email para aviso/comprobante de transferencias de suscripción de plataforma" },
   // Tiers Producer Pro: límite de facturación mensual media 90d por tier.
   { key: "producer_tier.starter_max_monthly_clp", value: 2500000, description: "Facturación mensual máxima del tier PRO_STARTER (CLP)" },
   { key: "producer_tier.growth_max_monthly_clp", value: 8000000, description: "Facturación mensual máxima del tier PRO_GROWTH (CLP)" },
