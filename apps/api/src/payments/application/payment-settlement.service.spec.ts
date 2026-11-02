@@ -4,6 +4,7 @@ import type { Payment } from "@prisma/client";
 import type { PrismaService } from "../../prisma.service";
 import type { ParamsService } from "../../params/params.service";
 import type { NotificationsService } from "../../notifications/domain/notifications.service";
+import type { Mailer } from "../../auth/domain/ports";
 import { PaymentSettlementService } from "./payment-settlement.service";
 
 // PaymentSettlementService - el foco es la instrumentación del ledger
@@ -137,7 +138,13 @@ function mkPrisma() {
       create: vi.fn(async ({ data }: { data: Row }) => data),
     },
     person: {
-      findUnique: vi.fn(async () => ({ name: "Comprador" })),
+      findUnique: vi.fn(
+        async (): Promise<{ name: string; email: string } | null> => ({
+          name: "Comprador",
+          email: "fan@example.cl",
+        }),
+      ),
+      update: vi.fn(async () => ({})),
     },
     personRole: {
       findMany: vi.fn(async () => admins),
@@ -203,6 +210,24 @@ function mkPrisma() {
         name: "Academia X",
         ownerId: "owner1",
       })),
+      update: vi.fn(async () => ({})),
+    },
+    platformSubscription: {
+      findUnique: vi.fn(async () => ({
+        id: "sub1",
+        kind: "ACADEMY",
+        personId: "p1",
+        academyId: "ac1",
+        producerId: null,
+        tierCode: "COBROS",
+        billingCycle: "MONTHLY",
+        academy: {
+          id: "ac1",
+          name: "Academia X",
+          billingGraceUntil: null,
+          billingBlockedAt: null,
+        },
+      })),
     },
     privateLesson: {
       create: vi.fn(async ({ data }: { data: Row }) => {
@@ -230,7 +255,22 @@ function mkPrisma() {
 function mkNotifications() {
   return {
     notifySafe: vi.fn(
-      async (_personId: string, _input: { type: string }) => undefined,
+      async (
+        _personId: string,
+        _input: {
+          type: string;
+          category?: string;
+          data?: Record<string, unknown>;
+        },
+      ) => undefined,
+    ),
+  };
+}
+
+function mkMailer() {
+  return {
+    send: vi.fn(
+      async (_to: string, _subject: string, _html: string) => undefined,
     ),
   };
 }
@@ -250,15 +290,18 @@ const GATEWAY_DATA = {
 describe("PaymentSettlementService", () => {
   let fx: ReturnType<typeof mkPrisma>;
   let notifications: ReturnType<typeof mkNotifications>;
+  let mailer: ReturnType<typeof mkMailer>;
   let svc: PaymentSettlementService;
 
   beforeEach(() => {
     fx = mkPrisma();
     notifications = mkNotifications();
+    mailer = mkMailer();
     svc = new PaymentSettlementService(
       fx.prisma as unknown as PrismaService,
       mkParams() as unknown as ParamsService,
       notifications as unknown as NotificationsService,
+      mailer as unknown as Mailer,
     );
   });
 
@@ -764,6 +807,108 @@ describe("PaymentSettlementService", () => {
       const payment = seed(pvtPayment());
       await svc.settle(payment, "FAILED", { actor: "webhook" });
       expect(fx.lessons).toHaveLength(0);
+    });
+  });
+
+  // spec payment-notifications: al PAID real (claim ganador) sale el
+  // resguardo por email al pagador + la Notification OPERATIONAL
+  // payment.confirmed a cada ADMIN aprobado - una sola vez por Payment.
+  describe("resguardo por email + aviso admin", () => {
+    it("MEMBERSHIP PAID → mail al pagador con producto, monto, medio y nº de transacción", async () => {
+      const payment = seed(mkPayment());
+      await svc.settle(payment, "PAID", {
+        actor: "webhook",
+        gatewayData: GATEWAY_DATA,
+      });
+
+      expect(mailer.send).toHaveBeenCalledTimes(1);
+      const [to, , html] = mailer.send.mock.calls[0]!;
+      expect(to).toBe("fan@example.cl");
+      expect(html).toContain("Mensual"); // plan comprado
+      expect(html).toContain("Academia X"); // academia asociada
+      expect(html).toContain("$10.500"); // monto es-CL
+      expect(html).toContain("Webpay Plus"); // medio reportado
+      expect(html).toContain(payment.id); // nº de transacción
+    });
+
+    it("cada ADMIN aprobado recibe payment.confirmed con orderType, monto, medio y pagador", async () => {
+      fx.admins.push({ personId: "admin1" }, { personId: "admin2" });
+      const payment = seed(mkPayment());
+      await svc.settle(payment, "PAID", {
+        actor: "webhook",
+        gatewayData: GATEWAY_DATA,
+      });
+
+      const confirmed = notifications.notifySafe.mock.calls.filter(
+        ([, input]) => input.type === "payment.confirmed",
+      );
+      expect(confirmed.map(([personId]) => personId)).toEqual([
+        "admin1",
+        "admin2",
+      ]);
+      const input = confirmed[0]![1];
+      expect(input.category).toBe("OPERATIONAL");
+      expect(input.data).toMatchObject({
+        paymentId: payment.id,
+        refId: payment.refId,
+        orderType: "MEMBERSHIP",
+        amount: 10500,
+        media: "Webpay Plus",
+        payerId: "p1",
+      });
+    });
+
+    it("re-notificación PAID → no duplica mail ni aviso admin", async () => {
+      fx.admins.push({ personId: "admin1" });
+      const payment = seed(mkPayment());
+      await svc.settle(payment, "PAID", { actor: "webhook" });
+      await svc.settle(payment, "PAID", { actor: "webhook" });
+
+      expect(mailer.send).toHaveBeenCalledTimes(1);
+      expect(
+        notifications.notifySafe.mock.calls.filter(
+          ([, input]) => input.type === "payment.confirmed",
+        ),
+      ).toHaveLength(1);
+    });
+
+    it("PLATFORM_SUB PAID → mail al suscriptor con plan, ciclo y nº de invoice", async () => {
+      const payment = seed(
+        mkPayment({
+          orderType: "PLATFORM_SUB",
+          refId: "platsub_sub1_inv9",
+        }),
+      );
+      await svc.settle(payment, "PAID", {
+        actor: "webhook",
+        gatewayData: GATEWAY_DATA,
+      });
+
+      expect(mailer.send).toHaveBeenCalledTimes(1);
+      const [to, , html] = mailer.send.mock.calls[0]!;
+      expect(to).toBe("fan@example.cl");
+      expect(html).toContain("COBROS"); // plan
+      expect(html).toContain("inv9"); // nº de invoice
+    });
+
+    it("pagador sin email → el settle igual cierra, sin mail", async () => {
+      fx.prisma.person.findUnique.mockResolvedValue(null);
+      const payment = seed(mkPayment());
+      const out = await svc.settle(payment, "PAID", { actor: "webhook" });
+      expect(out).toEqual({ ok: true, status: "PAID" });
+      expect(mailer.send).not.toHaveBeenCalled();
+    });
+
+    it("FAILED → sin mail ni payment.confirmed", async () => {
+      fx.admins.push({ personId: "admin1" });
+      const payment = seed(mkPayment());
+      await svc.settle(payment, "FAILED", { actor: "webhook" });
+      expect(mailer.send).not.toHaveBeenCalled();
+      expect(
+        notifications.notifySafe.mock.calls.some(
+          ([, input]) => input.type === "payment.confirmed",
+        ),
+      ).toBe(false);
     });
   });
 

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
 import type {
   AcademyTier,
@@ -28,6 +28,8 @@ import { sanitizeGatewayPayload } from "../infrastructure/gateway-transactions.s
 import { ParamsService } from "../../params/params.service";
 import { effectiveCapacity } from "../../academies/domain/academy.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
+import { MAILER, type Mailer } from "../../auth/domain/ports";
+import { paymentReceiptEmailHtml } from "../infrastructure/receipt-emails";
 import { SERVICE_FEE } from "@omnidance/shared";
 
 /**
@@ -125,6 +127,7 @@ export class PaymentSettlementService {
     private readonly prisma: PrismaService,
     private readonly params: ParamsService,
     private readonly notifications: NotificationsService,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
   /**
@@ -327,6 +330,81 @@ export class PaymentSettlementService {
           reported: mismatch.reported,
         },
       });
+    }
+  }
+
+  /**
+   * Resguardo post-commit de un →PAID real (spec payment-notifications):
+   * Notification OPERATIONAL payment.confirmed a cada ADMIN aprobado +
+   * mail de resguardo al pagador con los datos de la orden. Solo se
+   * llama cuando esta llamada ganó el claim atómico →PAID - una
+   * re-notificación o un polling posterior no duplica ni el aviso ni el
+   * mail. El mail es best-effort: Resend caído nunca revierte el settle
+   * (el Payment PAID ya es la verdad). `media`/fecha se leen de `gw`
+   * (la verdad de la pasarela que acaba de persistirse) porque el
+   * objeto `payment` en memoria es previo al update.
+   */
+  private async emitPaidReceipts(
+    payment: Payment,
+    gw: GatewayFields | null,
+    product: string,
+  ): Promise<void> {
+    const clp = new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: payment.currency ?? "CLP",
+      maximumFractionDigits: 0,
+    }).format(payment.amount);
+    const media = gw?.gatewayMedia ?? payment.methodLabel ?? null;
+    const admins = await this.prisma.personRole.findMany({
+      where: { role: "ADMIN", status: "APPROVED" },
+      select: { personId: true },
+    });
+    for (const admin of admins) {
+      await this.notifications.notifySafe(admin.personId, {
+        category: "OPERATIONAL",
+        type: "payment.confirmed",
+        title: "Pago confirmado",
+        body: `${payment.orderType} · ${clp}${media ? ` · ${media}` : ""}`,
+        data: {
+          paymentId: payment.id,
+          refId: payment.refId,
+          orderType: payment.orderType,
+          amount: payment.amount,
+          currency: payment.currency,
+          media,
+          payerId: payment.personId,
+        },
+      });
+    }
+    try {
+      const payer = await this.prisma.person.findUnique({
+        where: { id: payment.personId },
+        select: { name: true, email: true },
+      });
+      if (!payer?.email) return;
+      const paidAtLabel = (gw?.gatewayPaidAt ?? new Date()).toLocaleString(
+        "es-CL",
+        {
+          timeZone: "America/Santiago",
+          dateStyle: "medium",
+          timeStyle: "short",
+        },
+      );
+      await this.mailer.send(
+        payer.email,
+        `Respaldo de tu pago - ${product}`,
+        paymentReceiptEmailHtml({
+          payerName: payer.name ?? null,
+          product,
+          amountLabel: clp,
+          mediaLabel: media,
+          paidAtLabel,
+          paymentId: payment.id,
+          gatewayRef: payment.gatewayRef,
+        }),
+      );
+    } catch {
+      /* resguardo no crítico: el pago ya quedó PAID */
     }
   }
 
@@ -622,6 +700,11 @@ export class PaymentSettlementService {
         }
       }
 
+      await this.emitPaidReceipts(
+        payment,
+        gw,
+        `${payment.quantity} entrada${payment.quantity > 1 ? "s" : ""}${event ? ` · ${event.name}` : ""}`,
+      );
       if (mismatch) {
         await this.notifyAdminsAmountMismatch(payment, mismatch);
       }
@@ -702,6 +785,11 @@ export class PaymentSettlementService {
           month: order.month,
         },
       });
+      await this.emitPaidReceipts(
+        payment,
+        gw,
+        `Pase ${series?.name ?? "de serie"} · ${order.month}`,
+      );
       if (mismatch) {
         await this.notifyAdminsAmountMismatch(payment, mismatch);
       }
@@ -875,6 +963,11 @@ export class PaymentSettlementService {
           amount: payment.amount,
         },
       });
+      await this.emitPaidReceipts(
+        payment,
+        gw,
+        `${plan.name} · ${plan.academy.name}`,
+      );
       if (mismatch) {
         await this.notifyAdminsAmountMismatch(payment, mismatch);
       }
@@ -1008,6 +1101,13 @@ export class PaymentSettlementService {
           amount: payment.amount,
         },
       });
+      await this.emitPaidReceipts(
+        payment,
+        gw,
+        cls.slot.series.name
+          ? `Clase ${cls.slot.series.name}`
+          : "Clase suelta",
+      );
       if (mismatch) {
         await this.notifyAdminsAmountMismatch(payment, mismatch);
       }
@@ -1105,6 +1205,11 @@ export class PaymentSettlementService {
           amount: payment.amount,
         },
       });
+      await this.emitPaidReceipts(
+        payment,
+        gw,
+        `Clase particular · ${academy.name}`,
+      );
       if (mismatch) {
         await this.notifyAdminsAmountMismatch(payment, mismatch);
       }
@@ -1250,6 +1355,19 @@ export class PaymentSettlementService {
           },
         });
       }
+      const cycleLabel =
+        sub.billingCycle === "MONTHLY"
+          ? "mensual"
+          : sub.billingCycle === "ANNUAL"
+            ? "anual"
+            : sub.billingCycle === "SEMIANNUAL"
+              ? "semestral"
+              : sub.billingCycle;
+      await this.emitPaidReceipts(
+        payment,
+        gw,
+        `Suscripción ${sub.tierCode} · ${cycleLabel} · factura ${order.invoiceId}`,
+      );
       if (mismatch) {
         await this.notifyAdminsAmountMismatch(payment, mismatch);
       }

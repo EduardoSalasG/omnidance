@@ -595,7 +595,9 @@ describe("PlatformSubscriptionsService", () => {
     svc = new PlatformSubscriptionsService(
       prisma,
       paramsSvc,
-      new PaymentSettlementService(prisma, paramsSvc, notif),
+      new PaymentSettlementService(prisma, paramsSvc, notif, {
+        send: vi.fn(async () => undefined),
+      }),
       notif,
       new GatewayTransactionsService(prisma),
       new GatewayRegistry([flow as unknown as PaymentGateway], "FLOW"),
@@ -2171,7 +2173,9 @@ describe("multipais-currency", () => {
     return new PlatformSubscriptionsService(
       prisma,
       paramsSvc,
-      new PaymentSettlementService(prisma, paramsSvc, notif),
+      new PaymentSettlementService(prisma, paramsSvc, notif, {
+        send: vi.fn(async () => undefined),
+      }),
       notif,
       new GatewayTransactionsService(prisma),
       new GatewayRegistry(

@@ -93,7 +93,7 @@ sequenceDiagram
     WH->>WH: verifica HMAC (Flow) / stub
     alt PAID (1ª vez - flag paidNow en tx)
         WH->>DB: tx: Payment→PAID + 1 Ticket comprador<br/>+ 1 por recipientId (giftedFromId=comprador)<br/>+ (quantity-1-R) reclamables (claimToken)<br/>+ DiscountRedemption
-        WH->>N: notify payment.paid + ticket.gifted por recipient
+        WH->>N: notify payment.paid + ticket.gifted por recipient<br/>+ payment.confirmed a admins + mail resguardo al pagador
     else PAID duplicado
         WH-->>GW: {duplicated:true} - sin doble ticket
     else FAILED
@@ -104,6 +104,8 @@ sequenceDiagram
 ```
 
 El webhook resuelve la orden por `refId` (order-ref `tkt_<event>_<code>` embebido en `stub://pay/<refId>`); `eventId`/`discountCodeId` son desnormalización para reporting.
+
+**Resguardo al PAID (spec payment-notifications):** toda transición real a PAID (cualquier orderType, incluido PLATFORM_SUB) dispara post-commit dos efectos una sola vez por Payment: mail de resguardo al pagador (producto, monto, moneda, medio, fecha, nº de transacción - best-effort, un fallo de Resend no revierte el settle) y Notification in-app OPERATIONAL `payment.confirmed` a cada ADMIN aprobado.
 
 > **Flow real**: la notificación llega como `{token}` → la API consulta `payment/getStatus` firmado para confirmar (nunca confía en el body). Si la orden sigue PENDING al volver del pago, el polling de `GET /payments/:id` la consulta directamente vía `payment/getStatusByCommerceId` - mismo `settle` idempotente del webhook. Esto permite probar el sandbox de Flow desde localhost sin exponer la API (Flow no puede hacer POST a localhost).
 

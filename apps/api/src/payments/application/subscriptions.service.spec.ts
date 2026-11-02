@@ -539,7 +539,9 @@ describe("SubscriptionsService", () => {
     svc = new SubscriptionsService(
       prisma,
       paramsSvc,
-      new PaymentSettlementService(prisma, paramsSvc, notif),
+      new PaymentSettlementService(prisma, paramsSvc, notif, {
+        send: vi.fn(async () => undefined),
+      }),
       notif,
       new GatewayTransactionsService(prisma),
       new AcademyPromosService(prisma),
@@ -599,6 +601,7 @@ describe("SubscriptionsService", () => {
           prisma,
           params as unknown as ParamsService,
           notif,
+          { send: vi.fn(async () => undefined) },
         ),
         notif,
         new GatewayTransactionsService(prisma),
@@ -991,7 +994,9 @@ describe("SubscriptionsService", () => {
       const svc2 = new SubscriptionsService(
         prisma,
         params,
-        new PaymentSettlementService(prisma, params, notif),
+        new PaymentSettlementService(prisma, params, notif, {
+          send: vi.fn(async () => undefined),
+        }),
         notif,
         new GatewayTransactionsService(prisma),
         new AcademyPromosService(prisma),
@@ -1912,6 +1917,7 @@ describe("SubscriptionsService", () => {
           prisma,
           params as unknown as ParamsService,
           notif,
+          { send: vi.fn(async () => undefined) },
         ),
         notif,
         new GatewayTransactionsService(prisma),
@@ -1954,7 +1960,9 @@ describe("SubscriptionsService", () => {
       stubSvc = new SubscriptionsService(
         prisma,
         paramsSvc,
-        new PaymentSettlementService(prisma, paramsSvc, notif),
+        new PaymentSettlementService(prisma, paramsSvc, notif, {
+        send: vi.fn(async () => undefined),
+      }),
         notif,
         new GatewayTransactionsService(prisma),
         new AcademyPromosService(prisma),

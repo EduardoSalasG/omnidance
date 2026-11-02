@@ -58,6 +58,7 @@
 - Pasarelas (server, invisibles al usuario): STUB (dev), FLOW (prod), MERCADOPAGO, FINTOC.
 - Métodos propios del productor/academia (visibles en checkout): `TRANSFER | PAYMENT_LINK | CASH` → orden manual con claim + comprobante.
 - orderType: `TICKET | SERIES_PASS | MEMBERSHIP | WORKSHOP | PRIVATE | PLATFORM_SUB`. PaymentStatus: `PENDING|PAID|FAILED|REFUNDED`.
+- **Resguardo al PAID (spec payment-notifications):** todo →PAID real (webhook, polling o reconcile; una sola vez por Payment vía claim atómico) envía mail de resguardo al pagador (producto, monto, medio, fecha, nº tx; sin Resend → HTML en log API) + Notification OPERATIONAL `payment.confirmed` a cada ADMIN APPROVED (visible en /notificaciones lente admin). PLATFORM_SUB: el mail va al suscriptor con plan/ciclo/nº invoice.
 
 ---
 

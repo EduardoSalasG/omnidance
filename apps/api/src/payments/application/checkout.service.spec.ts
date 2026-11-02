@@ -1127,8 +1127,10 @@ describe("CheckoutService.purchaseTicket", () => {
     expect(orderArgs.amount).toBe(res.quote.total);
     expect(orderArgs.email).toBe("fan@example.cl");
     expect(orderArgs.refId).toBe(fx.payments[0].refId);
+    // El retorno del pagador va al endpoint API (POST cross-site de Flow
+    // no lleva cookies): order-return hace 303 a /checkout/return.
     expect(orderArgs.returnUrl).toContain(
-      `/checkout/return?paymentId=${res.paymentId}`,
+      `/api/payments/order-return?paymentId=${res.paymentId}`,
     );
     // Moneda de la orden persistida viaja al gateway (spec
     // gateway-port-normalization) - el adaptador decide si la soporta.
