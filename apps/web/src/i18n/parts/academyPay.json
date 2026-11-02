@@ -106,7 +106,7 @@
     "fieldMedia": "Medio",
     "fieldFee": "Costo pasarela",
     "fieldNet": "Neto",
-    "fieldPaidAt": "Fecha de cobro",
+    "fieldPaidAt": "Pagada",
     "fieldRef": "Referencia",
     "fieldTxn": "N° transacción",
     "fieldCreated": "Orden creada",
@@ -126,6 +126,16 @@
       "forbidden": "No tienes acceso a esta sección."
     },
     "pendingTitleCash": "Pago por validar",
-    "pendingDescCash": "La academia confirma tu pago en efectivo cuando asistas a clase. Te avisamos cuando quede registrado."
+    "pendingDescCash": "La academia confirma tu pago en efectivo cuando asistas a clase. Te avisamos cuando quede registrado.",
+    "orderQueueTitle": "Suscripciones por validar",
+    "orderQueueDesc": "Comprobantes de suscripciones pagadas por transferencia.",
+    "orderHistoryTitle": "Historial de suscripciones",
+    "orderMembership": "Suscripción",
+    "orderClaimTitle": "Comprobante de suscripción",
+    "orderApprovedMsg": "Pago aprobado: la suscripción quedó activa.",
+    "orderApproveTitle": "¿Aprobar este comprobante?",
+    "orderApproveDesc": "Al aprobar, la orden se liquida y la suscripción del alumno queda activa.",
+    "fieldOrder": "Orden",
+    "fieldOrderRef": "N° orden"
   }
 }

@@ -304,6 +304,9 @@ export default async function AcademiaDetailPage(
         <SubscriptionManage
           subscription={academy.mySubscription}
           accessUntil={academy.myEnrollment?.endsAt ?? null}
+          // Alta manual PENDING_PAYMENT: el checkout del plan retoma
+          // la orden pendiente eligiendo "Transferencia" (idempotente).
+          resumeHref={`/academias/${academy.id}/checkout?plan=${academy.mySubscription.planId}&mode=sub`}
           nextAmount={
             // Sin cargo de servicio (modelo SaaS): Flow cobra solo el
             // precio del plan - mismo amount del plan espejo en

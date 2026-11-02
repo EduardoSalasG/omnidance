@@ -15,8 +15,11 @@ import {
 import { PAYMENT_STATUS_VARIANT } from "@/components/payments/shared";
 import {
   ActionNotice,
+  showActionNotice,
   type ActionNoticeData,
 } from "@/components/ui/action-notice";
+import { OwnMethodClaim } from "@/components/checkout/own-method-claim";
+import type { OwnMethod } from "@/components/checkout/own-method-picker";
 import { planDateFmt, type Academy } from "./shared";
 import { Link } from "@/i18n/navigation";
 import { getNumFmt } from "@/lib/intl";
@@ -109,11 +112,26 @@ type BillingView = {
   prices?: Record<string, Record<string, { price: number; currency: string } | null>>;
 };
 
-/** POST /academies/:id/subscribe - needs_card → disclaimer Flow. */
+/** POST /academies/:id/subscribe - needs_card → disclaimer Flow;
+    PENDING_PAYMENT → alta manual por transferencia (spec
+    subscription-manual-transfer) con datos bancarios + orden MANUAL. */
 type SubscribeResult = {
   paymentUrl: string | null;
   subscriptionId: string;
-  status: "PENDING_CARD" | "ACTIVE";
+  status: "PENDING_CARD" | "ACTIVE" | "PENDING_PAYMENT";
+  paymentId?: string;
+  amount?: number;
+  currency?: string;
+  claimUrl?: string;
+  /** Datos bancarios de Omnidance (params platform_billing.transfer.*). */
+  transfer?: Record<string, unknown>;
+};
+
+/** Orden manual viva: la que devuelve el alta o la PENDING_PAYMENT
+    reutilizada al retomar el pago (subscribe TRANSFER es idempotente). */
+type PendingOrder = {
+  paymentId: string;
+  method: OwnMethod;
 };
 
 const dayMs = 86_400_000;
@@ -149,6 +167,16 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
   const [selCycle, setSelCycle] = useState<BillingCycle>("MONTHLY");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Vía de cobro del alta (spec subscription-manual-transfer): CARD =
+  // cargo automático Flow | TRANSFER = transferencia con comprobante
+  // que valida admin plataforma cada ciclo.
+  const [payVia, setPayVia] = useState<"CARD" | "TRANSFER">("CARD");
+  // Orden MANUAL PENDING viva (alta o retomada): muestra datos
+  // bancarios + upload del comprobante en vez del selector de plan.
+  const [pendingOrder, setPendingOrder] = useState<PendingOrder | null>(null);
+  // Con una sub PENDING_PAYMENT el owner puede cambiar de vía: muestra
+  // el form de contratación aunque el status siga pendiente.
+  const [forceForm, setForceForm] = useState(false);
 
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -261,6 +289,9 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
     view?.status === "PENDING_CARD" ||
     view?.status === "ACTIVATING" ||
     view?.status === "FAILED_CARD";
+  // Alta manual esperando comprobante aprobado por admin plataforma
+  // (spec subscription-manual-transfer).
+  const pendingPayment = view?.status === "PENDING_PAYMENT";
   const trialDaysLeft =
     view?.trialEndsAt != null
       ? Math.max(
@@ -287,8 +318,16 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
   const reverting = selectionIsCurrent && view?.pendingTier != null;
   const canApply = chargeTotal != null && (!selectionIsCurrent || reverting);
 
-  async function handleSubscribe() {
-    if (busy || !view || !consent) return;
+  /**
+   * Alta de la suscripción. `via` permite forzar TRANSFER desde la
+   * retomada de una PENDING_PAYMENT (subscribe manual es idempotente:
+   * devuelve la misma orden pendiente).
+   */
+  async function handleSubscribe(via?: "CARD" | "TRANSFER") {
+    if (busy || !view) return;
+    const method = via ?? payVia;
+    // La retomada de una orden pendiente ya pasó por el consentimiento.
+    if (!via && !consent) return;
     setBusy(true);
     setNotice(null);
     try {
@@ -299,6 +338,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           tier: selTier,
           cycle: selCycle,
           acceptRecurring: true,
+          paymentMethod: method,
         }),
       });
       if (!res.ok) {
@@ -313,6 +353,20 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         // Salto directo al disclaimer de Flow (spec
         // sub-checkout-direct-redirect).
         window.location.href = data.paymentUrl;
+        return;
+      }
+      if (data.status === "PENDING_PAYMENT" && data.paymentId) {
+        // Alta manual: datos bancarios + upload (mismo OwnMethodClaim
+        // del checkout; la valida admin en /admin/payment-claims).
+        setPendingOrder({
+          paymentId: data.paymentId,
+          method: {
+            id: "",
+            type: "TRANSFER",
+            label: t("transferLabel"),
+            details: (data.transfer ?? {}) as Record<string, string>,
+          },
+        });
         return;
       }
       setConsent(false);
@@ -434,6 +488,8 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         ? t("statusFailedCard")
         : t("statusPendingCard")}
     </Badge>
+  ) : view.status === "PENDING_PAYMENT" ? (
+    <Badge variant="outline">{t("statusPendingPayment")}</Badge>
   ) : view.status === "ACTIVATING" ? (
     <Badge variant="outline">{t("statusActivating")}</Badge>
   ) : onTrial ? (
@@ -590,9 +646,11 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                 ? t("statusTrial")
                 : view.status === "ACTIVATING"
                   ? t("statusActivating")
-                  : activating
-                    ? t("statusPendingCard")
-                    : t("statusNone")}
+                  : pendingPayment
+                    ? t("statusPendingPayment")
+                    : activating
+                      ? t("statusPendingCard")
+                      : t("statusNone")}
           </p>
           {statusBadge}
         </div>
@@ -648,6 +706,30 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         {(view.status === "PENDING_CARD" ||
           view.status === "FAILED_CARD") && (
           <p className="text-sm text-ink/60">{t("pendingCardHint")}</p>
+        )}
+        {pendingPayment && (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-ink/60">{t("pendingPaymentHint")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={busy}
+                onClick={() => void handleSubscribe("TRANSFER")}
+              >
+                {busy && <Spinner size="sm" />}
+                {t("pendingPaymentCta")}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setForceForm(true)}
+              >
+                {t("changePayVia")}
+              </Button>
+            </div>
+          </div>
         )}
         {onTrial && (
           <p className="text-sm text-ink/60">
@@ -785,8 +867,30 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         </Card>
       )}
 
-      {/* ── Contratación - sin suscripción viva o registro pendiente ── */}
-      {!hasLiveSub && view.status !== "ACTIVATING" && (
+      {/* ── Orden manual pendiente: datos bancarios + upload del
+          comprobante (spec subscription-manual-transfer). La valida
+          admin en /admin/payment-claims; al aprobar la sub queda ACTIVE. */}
+      {pendingOrder && (
+        <OwnMethodClaim
+          paymentId={pendingOrder.paymentId}
+          method={pendingOrder.method}
+          variant="platform"
+          onPaid={() => {
+            setPendingOrder(null);
+            showActionNotice({ text: t("subscribeOk") });
+            void load();
+          }}
+          returnHref="/academia/suscripcion"
+        />
+      )}
+
+      {/* ── Contratación - sin suscripción viva o registro pendiente ──
+          Con PENDING_PAYMENT el form cede a la orden manual salvo que
+          el owner pida cambiar de vía (forceForm). */}
+      {!hasLiveSub &&
+        view.status !== "ACTIVATING" &&
+        (!pendingPayment || forceForm) &&
+        !pendingOrder && (
         <Card className="flex flex-col gap-4">
           {planSelector}
           {chargeTotal == null ? (
@@ -795,6 +899,54 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
             </p>
           ) : (
             <>
+              {/* Vía de cobro (spec subscription-manual-transfer):
+                  tarjeta con cargo automático o transferencia validada
+                  por comprobante cada ciclo. */}
+              <fieldset className="flex flex-col gap-2">
+                <legend className="text-xs uppercase tracking-wide text-ink/50">
+                  {t("payViaTitle")}
+                </legend>
+                <div
+                  role="radiogroup"
+                  aria-label={t("payViaTitle")}
+                  className="flex flex-col gap-2"
+                >
+                  <label
+                    className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
+                      payVia === "CARD"
+                        ? "border-neon/60 bg-neon/10"
+                        : "border-line bg-elevated"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="billingPayVia"
+                      checked={payVia === "CARD"}
+                      disabled={busy}
+                      onChange={() => setPayVia("CARD")}
+                      className="h-4 w-4 accent-neon"
+                    />
+                    {t("payViaCard")}
+                  </label>
+                  <label
+                    className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
+                      payVia === "TRANSFER"
+                        ? "border-neon/60 bg-neon/10"
+                        : "border-line bg-elevated"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="billingPayVia"
+                      checked={payVia === "TRANSFER"}
+                      disabled={busy}
+                      onChange={() => setPayVia("TRANSFER")}
+                      className="h-4 w-4 accent-neon"
+                    />
+                    {t("payViaTransfer")}
+                  </label>
+                </div>
+              </fieldset>
               <p className="text-xs leading-relaxed text-ink/50">
                 {promo && chargeFinal != null ? (
                   <>
@@ -823,8 +975,15 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                   onChange={(e) => setConsent(e.target.checked)}
                   className="mt-0.5 h-4 w-4 shrink-0 accent-neon"
                 />
-                {ts("consentCheck")}
+                {payVia === "TRANSFER"
+                  ? ts("consentCheckTransfer")
+                  : ts("consentCheck")}
               </label>
+              {payVia === "TRANSFER" && (
+                <p className="text-xs leading-relaxed text-ink/50">
+                  {t("payViaTransferHint")}
+                </p>
+              )}
               <Button
                 type="button"
                 className="w-full"
@@ -832,7 +991,12 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                 onClick={() => void handleSubscribe()}
               >
                 {busy && <Spinner size="sm" />}
-                {t("subscribeCharge", {
+                {payVia === "TRANSFER"
+                  ? t("subscribeTransfer", {
+                      amount: money(locale, chargeCurrency).format(chargeFinal ?? chargeTotal),
+                      period: t(`period.${selCycle}`),
+                    })
+                  : t("subscribeCharge", {
                   tier: t(`tiers.${selTier}`),
                   amount: money(locale, chargeCurrency).format(chargeFinal ?? chargeTotal),
                   period: t(`period.${selCycle}`),

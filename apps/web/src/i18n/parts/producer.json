@@ -272,7 +272,8 @@
         "trial": "Período de prueba",
         "active": "Activa",
         "cancelPending": "Se cancela",
-        "activating": "Activando"
+        "activating": "Activando",
+        "pendingPayment": "Pago en revisión"
       },
       "tiers": {
         "FREE": "Plan gratuito",
@@ -322,7 +323,16 @@
       "staffLabel": "Colaboradores",
       "staffUsage": "{used} de {limit}",
       "staffUnlimited": "{used} · sin tope",
-      "featuresLabel": "Incluye"
+      "featuresLabel": "Incluye",
+      "payViaTitle": "Medio de cobro",
+      "payViaCard": "Tarjeta (cargo automático)",
+      "payViaTransfer": "Transferencia",
+      "payViaTransferHint": "Pagas por transferencia cada ciclo y subes el comprobante; lo valida el equipo de Omnidance.",
+      "subscribeTransfer": "Suscribir por transferencia · {amount}/{period}",
+      "transferLabel": "Transferencia",
+      "pendingPaymentHint": "Tu suscripción espera el comprobante aprobado. Sube el comprobante o cambia el medio de cobro.",
+      "pendingPaymentCta": "Subir comprobante",
+      "changePayVia": "Cambiar medio de cobro"
     },
     "gateway": {
       "title": "Mi pasarela de cobro",

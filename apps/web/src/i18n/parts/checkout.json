@@ -31,6 +31,12 @@
     "claimSending": "Enviando…",
     "claimSent": "Comprobante enviado. Te avisamos cuando se valide.",
     "claimPending": "Comprobante en revisión por el productor…",
-    "claimRejected": "Comprobante rechazado"
+    "claimRejected": "Comprobante rechazado",
+    "ownMethodPendingDescAcademy": "Paga con estos datos y sube el comprobante. Tu plan se activa cuando la academia valide el pago.",
+    "ownMethodPendingDescPlatform": "Paga con estos datos y sube el comprobante. Tu suscripción se activa cuando validemos el pago.",
+    "claimNoteAcademy": "Nota para la academia (opcional)",
+    "claimNotePlatform": "Nota (opcional)",
+    "claimPendingAcademy": "Comprobante en revisión por la academia…",
+    "claimPendingPlatform": "Comprobante en revisión…"
   }
 }

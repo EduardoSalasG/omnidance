@@ -36,6 +36,9 @@ type SubscriptionManageProps = {
   /** Monto real del próximo cobro (= plan.price - sin cargo al
       comprador); lo resuelve el caller desde los planes de la academia. */
   nextAmount?: number;
+  /** Checkout del plan en modo sub - CTA para completar el pago de una
+      alta manual PENDING_PAYMENT (spec subscription-manual-transfer). */
+  resumeHref?: string;
 };
 
 ;
@@ -55,6 +58,7 @@ export function SubscriptionManage({
   subscription,
   accessUntil,
   nextAmount,
+  resumeHref,
 }: SubscriptionManageProps) {
   const locale = useLocale();
   const ts = useTranslations("subscriptions");
@@ -148,6 +152,31 @@ export function SubscriptionManage({
           <p role="alert" className="text-sm text-red-400">
             {tc("error")}
           </p>
+        )}
+      </div>
+    );
+  }
+
+  // Alta manual por transferencia (spec subscription-manual-transfer):
+  // la sub espera el comprobante aprobado - el CTA vuelve al checkout
+  // del plan, donde elegir "Transferencia" retoma la misma orden
+  // pendiente (el backend la reutiliza, no crea otra).
+  if (subscription.status === "PENDING_PAYMENT") {
+    return (
+      <div className="flex flex-col gap-2 rounded-2xl border border-line p-4">
+        <Badge variant="outline" className="self-start normal-case tracking-normal">
+          {ts("pendingPaymentBadge")}
+        </Badge>
+        <p className="text-sm text-ink/70">{ts("pendingPayment")}</p>
+        {resumeHref && (
+          <Button
+            type="button"
+            size="sm"
+            className="self-start"
+            href={resumeHref}
+          >
+            {ts("pendingPaymentCta")}
+          </Button>
         )}
       </div>
     );

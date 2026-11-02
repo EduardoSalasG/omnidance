@@ -28,6 +28,11 @@
     "failedCard": "No pudimos registrar tu tarjeta",
     "resumeCard": "Registrar tarjeta",
     "nextChargeAmount": "Próximo cobro: {date} · {amount}",
-    "cancelOk": "Suscripción cancelada. Mantienes el acceso hasta el fin del período pagado."
+    "cancelOk": "Suscripción cancelada. Mantienes el acceso hasta el fin del período pagado.",
+    "consentTransfer": "Suscripción por transferencia: pagas {amount} cada {period} y subes el comprobante. Te avisaremos antes de cada vencimiento.",
+    "consentCheckTransfer": "Entiendo que pagaré por transferencia cada período",
+    "pendingPayment": "Tu suscripción espera el comprobante aprobado. Si ya pagaste, súbelo para activarla.",
+    "pendingPaymentBadge": "Pago en revisión",
+    "pendingPaymentCta": "Completar pago"
   }
 }

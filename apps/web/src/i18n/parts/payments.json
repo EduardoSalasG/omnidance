@@ -64,7 +64,8 @@
         "ACTIVE": "Activa",
         "CANCEL_PENDING": "Cancela al fin del período",
         "CANCELED": "Cancelada",
-        "FAILED_CARD": "Tarjeta rechazada"
+        "FAILED_CARD": "Tarjeta rechazada",
+        "PENDING_PAYMENT": "Pago en revisión"
       }
     },
     "byEvent": {

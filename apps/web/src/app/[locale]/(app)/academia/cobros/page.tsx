@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ClaimsQueue } from "@/components/academy/claims-queue";
+import { OrderClaimsQueue } from "@/components/academy/order-claims-queue";
 import { CobrosExpiring } from "@/components/academy/cobros-expiring";
 import { CobrosHistory } from "@/components/academy/cobros-history";
 import { CobrosKpiStrip } from "@/components/academy/cobros-kpis";
@@ -45,6 +46,10 @@ export default function AcademiaCobrosPage() {
               academyId={academy.id}
             />
             <ClaimsQueue key={`q-${academy.id}`} academyId={academy.id} />
+            {/* Comprobantes de suscripciones por transferencia (spec
+                subscription-manual-transfer) - cola aparte de los
+                claims de pago único. */}
+            <OrderClaimsQueue key={`o-${academy.id}`} academyId={academy.id} />
             <CobrosHistory key={`h-${academy.id}`} academyId={academy.id} />
             {/* Tour de primera visita del módulo - las colas vacías se
                 omiten solas (sus anchors no existen en el DOM). */}
