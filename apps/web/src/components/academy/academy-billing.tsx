@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/action-notice";
 import { planDateFmt, type Academy } from "./shared";
 import { Link } from "@/i18n/navigation";
-import { getNumFmt, useNumFmt } from "@/lib/intl";
+import { getNumFmt } from "@/lib/intl";
 
 // La vista ya trae la moneda real de la suscripción (spec
 // multipais-currency): los cargos se formatean en ella; promos fijas
@@ -149,7 +149,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
   const [selCycle, setSelCycle] = useState<BillingCycle>("MONTHLY");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [registerUrl, setRegisterUrl] = useState<string | null>(null);
+
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
@@ -290,8 +290,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
   async function handleSubscribe() {
     if (busy || !view || !consent) return;
     setBusy(true);
-    setNotice(null);
-    setRegisterUrl(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/academies/${academy.id}/subscribe`, {
         method: "POST",
@@ -311,9 +310,9 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
       }
       const data = (await res.json()) as SubscribeResult;
       if (data.status === "PENDING_CARD" && data.paymentUrl) {
-        // Interstitial pre-Flow: el owner ve a dónde va ANTES del salto
-        // al disclaimer de tarjeta (momento de mayor desconfianza).
-        setRegisterUrl(data.paymentUrl);
+        // Salto directo al disclaimer de Flow (spec
+        // sub-checkout-direct-redirect).
+        window.location.href = data.paymentUrl;
         return;
       }
       setConsent(false);
@@ -710,26 +709,10 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         )}
       </Card>
 
-      {/* ── Interstitial pre-Flow ──────────────────────────────────── */}
-      {registerUrl && (
-        <Card className="flex flex-col gap-3">
-          <h2 className="text-base font-semibold">{t("cardRedirectTitle")}</h2>
-          <p className="text-sm leading-relaxed text-ink/70">
-            {t("cardRedirectDesc")}
-          </p>
-          <Button
-            type="button"
-            onClick={() => {
-              window.location.href = registerUrl;
-            }}
-          >
-            {t("cardRedirectCta")}
-          </Button>
-        </Card>
-      )}
+      {/* needs_card → redirect directo a Flow (no interstitial). */}
 
       {/* ── Gestión del plan vigente ──────────────────────────────── */}
-      {hasLiveSub && !registerUrl && (
+      {hasLiveSub && (
         <Card className="flex flex-col gap-4">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("changePlan")}
@@ -803,7 +786,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
       )}
 
       {/* ── Contratación - sin suscripción viva o registro pendiente ── */}
-      {!hasLiveSub && view.status !== "ACTIVATING" && !registerUrl && (
+      {!hasLiveSub && view.status !== "ACTIVATING" && (
         <Card className="flex flex-col gap-4">
           {planSelector}
           {chargeTotal == null ? (

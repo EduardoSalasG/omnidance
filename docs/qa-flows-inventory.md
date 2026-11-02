@@ -174,7 +174,7 @@
 - `?plan` requerido; `GET /checkout/membership-quote?planId` (401→/login; 404→notfound; 400→planUnavailable; ACTIVE/CANCEL_PENDING→alreadySubscribed).
 - Review card (vigencia, extensión, total). ManualPayPanel (oculto en sub): radio pasarela vs métodos → `POST /academies/:id/claims/intent` → AWAITING (**CASH nace PENDING directo - sin comprobante, owner valida en clase**) → datos transferencia/copy → upload `POST .../receipt` → PENDING; cancel `POST .../cancel`; claim viva reanuda; última REJECTED muestra nota.
 - Pago una vez → `POST /checkout/membership` → redirect|stub poll → /academias/{id}.
-- Sub (solo recurring+FLOW): Segmented once/sub; consent checkbox* → `POST /checkout/membership-subscription` → needs_card→intersticial→registerUrl (vuelve ?sub=ok|error) | subscribed→poll `/subscriptions/:id`→?sub=ok; 409→perfil academia.
+- Sub (solo recurring+FLOW): Segmented once/sub; consent checkbox* → `POST /checkout/membership-subscription` → needs_card→redirect directo a registerUrl (vuelve a /checkout/return?sub=ok|error&src=member) | subscribed→poll `/subscriptions/:id`→?sub=ok; 409→perfil academia.
 - Primer cobro: Flow cobra la 1ª invoice al `subscription/create`; el settle vía webhook `subscription/callback` o reconcile (GET /subscriptions/:id refresh inline, cron 09:00) crea Payment `mem_<planId>_<invoiceId>` PAID + Enrollment + resguardo mail + Notification admin. Ojo sandbox: el mandato de la tarjeta registrada tiene tope (invoice que lo excede queda impaga; Flow reintenta a las 24h; `morose=2` = pendiente no vencida).
 
 ### Checkout clase particular `/academias/[id]/checkout/particular`
@@ -352,7 +352,7 @@
 ### Suscripción `/academia/suscripcion` (cap billing; exenta de billing.blocked)
 - `GET /academies/:id/billing` + `/params/public`; `?sub=ok|error`. Estados ACTIVE|CANCEL_PENDING|PENDING_CARD|ACTIVATING|FAILED_CARD + trial/grace/blocked; barra uso alumnos/max (≥90% warn).
 - Tier cards STARTER|PRO|STUDIO (disabled tierExceeded; ENTERPRISE→/soporte) × ciclo MONTHLY|SEMIANNUAL(5.75×)|ANNUAL(11×).
-- Subscribe: consent* → `POST /subscribe` → needs_card → intersticial → Flow registerUrl. Change (sub viva): PATCH → upgrade inmediato / downgrade+ ciclo → pendingTier/Cycle en nextInvoiceAt; re-seleccionar actual = revert. Cancel (ACTIVE) 2-pasos → POST cancel → CANCEL_PENDING. Facturas PLATFORM_SUB listadas.
+- Subscribe: consent* → `POST /subscribe` → needs_card → redirect directo a Flow registerUrl (vuelve a /checkout/return?sub=ok|error). Change (sub viva): PATCH → upgrade inmediato / downgrade+ ciclo → pendingTier/Cycle en nextInvoiceAt; re-seleccionar actual = revert. Cancel (ACTIVE) 2-pasos → POST cancel → CANCEL_PENDING. Facturas PLATFORM_SUB listadas.
 - Primer cobro PLATFORM_SUB: mismo motor que membresías: invoice cobrada → Payment `platsub_<subId>_<invoiceId>` PAID + RENEWAL_SETTLED (restaura tier/limpia gracia); impaga vencida (morose=1) → gracia `academy_billing.grace_days` → `billingBlockedAt`.
 
 ### Config `/academia/configuracion*` (cap profile/payments; canAdminister = owner|ADMIN)

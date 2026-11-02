@@ -19,9 +19,6 @@ type Phase =
   // El polling se agotó sin webhook (~30s): el pago puede confirmar
   // igual - la vigencia aparece en la ficha de la academia al llegar.
   | { kind: "stillPending"; paymentId: string; paymentUrl: string }
-  // needs_card: el usuario aún no salta a Flow - ve el interstitial que
-  // explica que la tarjeta se registra en la página oficial de Flow.
-  | { kind: "card_redirect"; registerUrl: string }
   | { kind: "activating" }
   | { kind: "failed" };
 
@@ -77,8 +74,7 @@ export function MembershipCheckoutClient({
     phase.kind === "processing" ||
     phase.kind === "awaiting" ||
     phase.kind === "stillPending" ||
-    phase.kind === "activating" ||
-    phase.kind === "card_redirect";
+    phase.kind === "activating";
   const isStub =
     phase.kind === "awaiting" && phase.paymentUrl.startsWith("stub://");
 
@@ -201,9 +197,10 @@ export function MembershipCheckoutClient({
         | { kind: "subscribed"; subscriptionId: string };
 
       if (data.kind === "needs_card") {
-        // No saltamos de inmediato: el usuario lee el interstitial y
-        // decide cuándo ir a la página de Flow (contexto del salto).
-        setPhase({ kind: "card_redirect", registerUrl: data.registerUrl });
+        // Salto directo al disclaimer de Flow (spec
+        // sub-checkout-direct-redirect) - mismo patrón que
+        // SubscriptionManage.resumeCardRegistration.
+        window.location.href = data.registerUrl;
         return;
       }
 
@@ -411,26 +408,6 @@ export function MembershipCheckoutClient({
         </Card>
       )}
 
-      {/* Interstitial pre-Flow: el usuario ve a dónde va ANTES del salto
-          de dominio (el disclaimer de tarjeta es el momento de mayor
-          desconfianza del flujo). */}
-      {phase.kind === "card_redirect" && (
-        <Card>
-          <h2 className="text-base font-semibold">{t("cardRedirectTitle")}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-ink/70">
-            {t("cardRedirectDesc")}
-          </p>
-          <Button
-            type="button"
-            className="mt-4 w-full"
-            onClick={() => {
-              window.location.href = phase.registerUrl;
-            }}
-          >
-            {t("cardRedirectCta")}
-          </Button>
-        </Card>
-      )}
 
       {phase.kind === "activating" && (
         <p className="animate-pulse text-sm text-ink/70">

@@ -240,21 +240,18 @@ export class PaymentsController {
   @Post("flow/customer-return")
   async customerReturn(@Body() body: FlowTokenDto, @Res() res: Response) {
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-    const errorTo = (academyId?: string | null) =>
-      academyId
-        ? `${webUrl}/academias/${academyId}?sub=error`
-        : `${webUrl}/academias?sub=error`;
-    if (!body.token) return res.redirect(303, errorTo());
+    const errorTo = `${webUrl}/checkout/return?sub=error&src=member`;
+    if (!body.token) return res.redirect(303, errorTo);
     try {
       const r = await this.subscriptions.customerReturn(body.token);
       return res.redirect(
         303,
         r.ok
-          ? `${webUrl}/academias/${r.academyId}?sub=ok`
-          : errorTo(r.academyId),
+          ? `${webUrl}/checkout/return?sub=ok&src=member`
+          : errorTo,
       );
     } catch {
-      return res.redirect(303, errorTo());
+      return res.redirect(303, errorTo);
     }
   }
 
