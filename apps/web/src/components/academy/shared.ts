@@ -186,6 +186,38 @@ export type AcademyDashboard = {
   upcomingBirthdays: UpcomingBirthday[];
 };
 
+// GET /academies/:id/insights/levels: card "niveles y cupos" del
+// inicio Extendido (spec academies/owner-insights). Solo owner/ADMIN
+// de la academia + feature PRO `insights`; el front la oculta en 403.
+export type AcademyLevelInsights = {
+  // Alumnos ACTIVE por tipo×nivel (multinivel: un alumno puede contar
+  // en más de un nivel del mismo tipo).
+  byType: {
+    typeId: string;
+    typeName: string;
+    levels: { levelId: string; levelName: string; count: number }[];
+  }[];
+  // Por horario: asignables (nivel del alumno matchea tipos del slot +
+  // level de la serie), capacidad efectiva y asistencia reciente.
+  bySlot: {
+    slotId: string;
+    seriesName: string;
+    levelId: string | null;
+    levelName: string | null;
+    weekday: number; // 0-6, domingo = 0
+    startTime: string; // "19:00"
+    types: { typeId: string; typeName: string }[];
+    capacity: number;
+    assigned: number;
+    // Negativo = sobrecupo (más asignables que cupos).
+    empty: number;
+    avgAttendance: number | null;
+    lastClassAttendance: number | null;
+  }[];
+  // Alumnos ACTIVE sin EnrollmentLevel del tipo (dato por completar).
+  unassigned: { typeId: string; typeName: string; count: number }[];
+};
+
 // Inscripción con vigencia próxima a terminar (GET dashboard).
 export type ExpiringEnrollment = {
   personId: string;
@@ -459,6 +491,8 @@ export type StudentProfile = {
     startedAt: string | null;
     endsAt: string | null;
     plan: { id: string; name: string; type: string; price: number } | null;
+    // Niveles por tipo de clase del alumno (spec enrollment-level-kpi).
+    levels: { classTypeId: string; levelId: string }[];
   }[];
   // Score de relación academia↔alumno (CRM): privado por actor.
   score: number | null;

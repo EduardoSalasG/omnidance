@@ -12,6 +12,7 @@ import {
   type ActionNoticeData,
 } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { EnrollmentLevelsEditor } from "@/components/academy/enrollment-levels-editor";
 import { academyTierHas } from "@/lib/academy-features";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
@@ -347,6 +348,19 @@ function ProfileModule({
           </div>
         )}
       </Card>
+
+      {/* Niveles por tipo de clase (spec academies/enrollment-levels):
+          multinivel, los asigna la academia (cap students, mismo gate
+          que la edición del enrollment); el alumno no se auto-nivela. */}
+      {canEdit && profile.enrollmentId && (
+        <EnrollmentLevelsEditor
+          enrollmentId={profile.enrollmentId}
+          initialLevels={
+            profile.enrollments.find((e) => e.id === profile.enrollmentId)
+              ?.levels ?? []
+          }
+        />
+      )}
 
       {/* Pagos: historial de membresías pagadas (plan, inicio, fin) */}
       <section aria-label={tp("payments")} className="flex flex-col gap-2">
