@@ -5,6 +5,7 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -310,5 +311,84 @@ export class ProducerClaimsController {
     const me = req.person!;
     await this.assertProducerOrAdmin(me.id, me.roles);
     return this.claims.reject(me.id, claimId, me.id, dto.note);
+  }
+
+  // ── Cola admin de plataforma (órdenes PLATFORM_SUB) ────────────────
+  // Comprobantes de suscripciones de plataforma por transferencia (spec
+  // subscription-manual-transfer): los valida admin (admin.access).
+
+  /** admin.access o 403 - la cola de plataforma es solo de admins. */
+  private async assertAdmin(roles: string[]) {
+    const isAdmin = await roleKeysHavePermission(this.prisma, roles, [
+      "admin.access",
+    ]);
+    if (!isAdmin) throw new ForbiddenException("requiere admin.access");
+  }
+
+  /** GET /admin/payment-claims - cola de comprobantes PLATFORM_SUB. */
+  @Get("admin/payment-claims")
+  async listPlatformClaims(@Query() dto: ListClaimsQueryDto, @Req() req: Request) {
+    const me = req.person!;
+    await this.assertAdmin(me.roles);
+    const pg = pageParams(dto.page, dto.pageSize);
+    const res = await this.claims.listPlatformClaims(
+      {
+        status: dto.status,
+        from: dto.from ? new Date(dto.from) : undefined,
+        to: dto.to ? new Date(dto.to) : undefined,
+      },
+      pg,
+    );
+    return { claims: res.items, total: res.total, page: pg.page, pageSize: pg.pageSize };
+  }
+
+  /** Ficha del comprobante de la cola de plataforma. */
+  @Get("admin/payment-claims/:claimId")
+  async platformClaimDetail(@Param("claimId") claimId: string, @Req() req: Request) {
+    const me = req.person!;
+    await this.assertAdmin(me.roles);
+    return this.claims.platformClaimDetail(claimId);
+  }
+
+  /** Stream autenticado del comprobante: admin o el pagador dueño. */
+  @Get("admin/payment-claims/:claimId/receipt")
+  async platformClaimReceipt(
+    @Param("claimId") claimId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const claim = await this.claims.loadClaimForReceipt(claimId);
+    if (claim.domain !== "PLATFORM") {
+      throw new NotFoundException("comprobante no encontrado");
+    }
+    const me = req.person!;
+    if (claim.personId !== me.id) {
+      await this.assertAdmin(me.roles);
+    }
+    const buffer = await this.claims.readReceipt(claim.receiptKey);
+    res.setHeader("Content-Type", mimeForKey(claim.receiptKey));
+    res.setHeader("Content-Length", buffer.length);
+    res.setHeader("Cache-Control", "private, no-store");
+    res.send(buffer);
+  }
+
+  /** Aprueba: la orden se liquida por el mismo settle del webhook. */
+  @Post("admin/payment-claims/:claimId/approve")
+  async approvePlatformClaim(@Param("claimId") claimId: string, @Req() req: Request) {
+    const me = req.person!;
+    await this.assertAdmin(me.roles);
+    return this.claims.approvePlatformClaim(claimId, me.id);
+  }
+
+  /** Rechaza con motivo obligatorio; el pagador puede re-subir. */
+  @Post("admin/payment-claims/:claimId/reject")
+  async rejectPlatformClaim(
+    @Param("claimId") claimId: string,
+    @Body() dto: RejectClaimDto,
+    @Req() req: Request,
+  ) {
+    const me = req.person!;
+    await this.assertAdmin(me.roles);
+    return this.claims.rejectPlatformClaim(claimId, me.id, dto.note);
   }
 }

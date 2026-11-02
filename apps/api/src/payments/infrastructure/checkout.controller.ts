@@ -15,6 +15,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -171,6 +172,19 @@ class CheckoutMembershipSubscriptionDto {
   /** Consentimiento explícito del cobro recurrente (aviso legal del checkout). */
   @IsBoolean()
   acceptRecurring!: boolean;
+
+  /**
+   * Método de cobro (spec subscription-manual-transfer): CARD = tarjeta
+   * Flow (default) | TRANSFER = transferencia por ciclo con comprobante.
+   */
+  @IsOptional()
+  @IsIn(["CARD", "TRANSFER"])
+  paymentMethod?: "CARD" | "TRANSFER";
+
+  /** AcademyPaymentMethod TRANSFER elegido (solo con paymentMethod=TRANSFER). */
+  @IsOptional()
+  @IsString()
+  methodId?: string;
 }
 
 @Controller("checkout")
@@ -459,6 +473,7 @@ export class CheckoutController {
       req.person!.id,
       dto.planId,
       dto.acceptRecurring,
+      { paymentMethod: dto.paymentMethod, methodId: dto.methodId },
     );
   }
 }

@@ -3872,6 +3872,163 @@
         ]
       }
     },
+    "/api/admin/payment-claims": {
+      "get": {
+        "operationId": "ProducerClaimsController_listPlatformClaims",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
+      }
+    },
+    "/api/admin/payment-claims/{claimId}": {
+      "get": {
+        "operationId": "ProducerClaimsController_platformClaimDetail",
+        "parameters": [
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
+      }
+    },
+    "/api/admin/payment-claims/{claimId}/receipt": {
+      "get": {
+        "operationId": "ProducerClaimsController_platformClaimReceipt",
+        "parameters": [
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
+      }
+    },
+    "/api/admin/payment-claims/{claimId}/approve": {
+      "post": {
+        "operationId": "ProducerClaimsController_approvePlatformClaim",
+        "parameters": [
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
+      }
+    },
+    "/api/admin/payment-claims/{claimId}/reject": {
+      "post": {
+        "operationId": "ProducerClaimsController_rejectPlatformClaim",
+        "parameters": [
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectClaimDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProducerClaims"
+        ]
+      }
+    },
     "/api/producers/{id}/pro/subscribe": {
       "post": {
         "operationId": "ProducerProController_subscribe",
@@ -6523,6 +6680,193 @@
     "/api/academies/{id}/claims/{claimId}/reject": {
       "post": {
         "operationId": "AcademyClaimsController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectClaimDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
+      }
+    },
+    "/api/academies/{id}/order-claims": {
+      "get": {
+        "operationId": "AcademyClaimsController_listOrderClaims",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
+      }
+    },
+    "/api/academies/{id}/order-claims/{claimId}": {
+      "get": {
+        "operationId": "AcademyClaimsController_orderClaimDetail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
+      }
+    },
+    "/api/academies/{id}/order-claims/{claimId}/receipt": {
+      "get": {
+        "operationId": "AcademyClaimsController_orderClaimReceipt",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
+      }
+    },
+    "/api/academies/{id}/order-claims/{claimId}/approve": {
+      "post": {
+        "operationId": "AcademyClaimsController_approveOrderClaim",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
+      }
+    },
+    "/api/academies/{id}/order-claims/{claimId}/reject": {
+      "post": {
+        "operationId": "AcademyClaimsController_rejectOrderClaim",
         "parameters": [
           {
             "name": "id",

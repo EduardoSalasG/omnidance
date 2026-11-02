@@ -126,6 +126,7 @@ import { SocialPassController } from "./infrastructure/social-pass.controller";
     PaymentSettlementService,
     PayoutSettlementService,
     PayoutDestinationService,
+    ProducerClaimsService,
     SubscriptionsService,
     PlatformSubscriptionsService,
     AcademyPromosService,

@@ -982,6 +982,7 @@ model Academy {
   academyPromos        AcademyPromo[]
   paymentMethods AcademyPaymentMethod[]
   paymentClaims  PaymentClaim[]
+  ticketClaims   TicketClaim[]
   saleAgreements AcademySaleAgreement[]
   segmentSnapshots AcademySegmentSnapshot[]
 
@@ -2049,8 +2050,20 @@ model TicketClaim {
   paymentId    String
   person       Person      @relation(fields: [personId], references: [id])
   personId     String      // comprador que sube el comprobante
-  producer     Person      @relation("TicketClaimProducer", fields: [producerId], references: [id])
-  producerId   String      // dueño de la orden (su cola de validación)
+  producer     Person?     @relation("TicketClaimProducer", fields: [producerId], references: [id])
+  // Dueño de la orden (su cola de validación) - solo domain=PRODUCER;
+  // null en los claims de academia y de plataforma.
+  producerId   String?
+  // Cola de revisión del claim (spec subscription-manual-transfer):
+  // PRODUCER = métodos propios del productor (/producer/claims);
+  // ACADEMY = orden MEMBERSHIP manual de una suscripción - la valida el
+  // owner/staff de la academia; PLATFORM = orden PLATFORM_SUB manual -
+  // la valida admin plataforma.
+  domain       String      @default("PRODUCER")
+  // Academia dueña de la cola cuando domain=ACADEMY (la orden MEMBERSHIP
+  // manual decodifica el plan del refId).
+  academy      Academy?    @relation(fields: [academyId], references: [id])
+  academyId    String?
   receiptKey   String      // storageKey en UPLOADS_DIR (claims/<producerId>/<uuid>.<ext>)
   methodType   String      // snapshot del método al momento del claim
   methodLabel  String      // snapshot
@@ -2064,6 +2077,8 @@ model TicketClaim {
   createdAt    DateTime @default(now())
 
   @@index([producerId, status])
+  @@index([academyId, status])
+  @@index([domain, status])
   @@index([paymentId])
 }
 
@@ -2123,10 +2138,19 @@ model MembershipSubscription {
   // suscribir - decide qué provider procesa la suscripción.
   currency           String         @default("CLP")
   flowSubscriptionId String?        @unique
+  // Método de cobro elegido (spec subscription-manual-transfer): CARD =
+  // motor Flow (default) | TRANSFER = comprobante por ciclo - la sub es
+  // manual y nunca toca la pasarela (flowSubscriptionId queda null).
+  paymentMethod      String         @default("CARD")
   // PENDING_CARD → ACTIVATING → ACTIVE → CANCEL_PENDING → CANCELED (+ FAILED_CARD)
   // ACTIVATING = claim transitorio entre el registro de tarjeta y el
   // subscription/create de Flow (evita doble cobro por carrera).
+  // PENDING_PAYMENT = alta manual esperando el comprobante del ciclo.
   status             String         @default("PENDING_CARD")
+  // Fin del período ya pagado de la sub manual (TRANSFER): lo fija el
+  // settle al aprobar el claim del ciclo (= endsAt del enrollment). En
+  // subs CARD la fecha real la reporta la pasarela (nextInvoiceAt).
+  currentPeriodEnd   DateTime?
   nextInvoiceAt      DateTime?      // de Flow next_invoice_date - alimenta el reminder
   lastInvoiceId      String?        // dedup de renovaciones ya liquidadas
   reminderSentFor    DateTime?      // nextInvoiceAt ya recordado (dedup alerta)
@@ -2199,9 +2223,17 @@ model PlatformSubscription {
   promoId        String?
   planChargeClp  Int?
   flowSubscriptionId String?       @unique
+  // Método de cobro elegido (spec subscription-manual-transfer): CARD =
+  // motor Flow (default) | TRANSFER = comprobante por ciclo (sub manual,
+  // sin flowSubscriptionId).
+  paymentMethod   String    @default("CARD")
   // Mismo ciclo de vida que MembershipSubscription:
   // PENDING_CARD → ACTIVATING → ACTIVE → CANCEL_PENDING → CANCELED (+ FAILED_CARD)
+  // PENDING_PAYMENT = alta manual esperando el comprobante del ciclo.
   status          String    @default("PENDING_CARD")
+  // Fin del período ya pagado de la sub manual (TRANSFER) - lo fija el
+  // settle al aprobar el claim del ciclo.
+  currentPeriodEnd DateTime?
   nextInvoiceAt   DateTime? // de Flow next_invoice_date - alimenta el reminder
   lastInvoiceId   String?   // dedup de renovaciones ya liquidadas
   reminderSentFor DateTime? // nextInvoiceAt ya recordado (dedup alerta)

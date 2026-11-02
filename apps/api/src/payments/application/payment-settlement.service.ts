@@ -21,6 +21,7 @@ import {
 } from "../domain/membership-vigency";
 import {
   ACADEMY_TIERS,
+  CYCLE_MONTHS,
   PRODUCER_PRO_TIERS,
 } from "../domain/platform-tiers";
 import { emitPaymentEvent } from "../domain/payment-ledger";
@@ -920,6 +921,28 @@ export class PaymentSettlementService {
           },
         });
       }
+
+      // Sub manual por transferencia (spec subscription-manual-transfer):
+      // la orden del alta/ciclo se liquida por este mismo settle - la
+      // sub pasa PENDING_PAYMENT→ACTIVE y su período vigente termina con
+      // el endsAt recién calculado del enrollment. Una CANCEL_PENDING no
+      // se toca: el cobro ya pagado extiende el enrollment pero la
+      // cancelación del usuario manda.
+      if (payment.gateway === "MANUAL") {
+        await tx.membershipSubscription.updateMany({
+          where: {
+            personId: payment.personId,
+            planId: plan.id,
+            paymentMethod: "TRANSFER",
+            status: { in: ["PENDING_PAYMENT", "ACTIVE"] },
+          },
+          data: {
+            status: "ACTIVE",
+            currentPeriodEnd: endsAt,
+            nextInvoiceAt: endsAt,
+          },
+        });
+      }
     });
 
     if (paidNow) {
@@ -1262,6 +1285,7 @@ export class PaymentSettlementService {
     }
 
     const gw = extractGatewayFields(meta.gatewayData);
+    const now = new Date();
     const wasDelinquent =
       sub.academy != null &&
       (sub.academy.billingBlockedAt != null ||
@@ -1311,6 +1335,40 @@ export class PaymentSettlementService {
         await tx.person.update({
           where: { id: sub.producerId },
           data: { proTier: sub.tierCode as ProducerProTier },
+        });
+      }
+
+      // Sub manual por transferencia (spec subscription-manual-transfer):
+      // el alta/ciclo de una sub TRANSFER se liquida acá - la fila pasa
+      // PENDING_PAYMENT→ACTIVE y su período corre los meses del ciclo
+      // desde el fin del período vigente si aún es futuro (renovación) o
+      // desde hoy (alta o período ya vencido).
+      if (payment.gateway === "MANUAL" && sub.paymentMethod === "TRANSFER") {
+        const months = CYCLE_MONTHS[sub.billingCycle] ?? 1;
+        const base =
+          sub.currentPeriodEnd != null && sub.currentPeriodEnd > now
+            ? sub.currentPeriodEnd
+            : now;
+        const periodEnd = new Date(
+          Date.UTC(
+            base.getUTCFullYear(),
+            base.getUTCMonth() + months,
+            base.getUTCDate(),
+            base.getUTCHours(),
+            base.getUTCMinutes(),
+            base.getUTCSeconds(),
+          ),
+        );
+        await tx.platformSubscription.updateMany({
+          where: {
+            id: sub.id,
+            status: { in: ["PENDING_PAYMENT", "ACTIVE"] },
+          },
+          data: {
+            status: "ACTIVE",
+            currentPeriodEnd: periodEnd,
+            nextInvoiceAt: periodEnd,
+          },
         });
       }
     });

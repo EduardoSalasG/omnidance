@@ -31,6 +31,23 @@ function mkPrisma() {
   const payments: Row[] = [];
   const events: Row[] = [{ id: "evt-1", producerId: PRODUCER }];
   const series: Row[] = [{ id: "ser-1", producerId: PRODUCER }];
+  const plans: Row[] = [
+    {
+      id: "plan-1",
+      academyId: "ac-1",
+      academy: { ownerId: "owner-1" },
+    },
+  ];
+  const academyMethods: Row[] = [
+    {
+      id: "amet-1",
+      academyId: "ac-1",
+      type: "TRANSFER",
+      label: "Cta Corriente",
+      active: true,
+    },
+  ];
+  const adminRoles: Row[] = [{ personId: "adm-1", role: "ADMIN", status: "APPROVED" }];
 
   const matchWhere = (row: Row, where: Row | undefined): boolean => {
     if (!where) return true;
@@ -42,8 +59,25 @@ function mkPrisma() {
   };
 
   return {
-    data: { methods, claims, payments, events, series },
+    data: { methods, claims, payments, events, series, plans, academyMethods, adminRoles },
     prisma: {
+      membershipPlan: {
+        findUnique: vi.fn(
+          async ({ where }: Row) => plans.find((p) => p.id === where.id) ?? null,
+        ),
+      },
+      academyPaymentMethod: {
+        findFirst: vi.fn(
+          async ({ where }: Row) =>
+            academyMethods.find((m) => matchWhere(m, where)) ?? null,
+        ),
+      },
+      personRole: {
+        findMany: vi.fn(
+          async ({ where }: Row = {}) =>
+            adminRoles.filter((r) => matchWhere(r, where)),
+        ),
+      },
       producerPaymentMethod: {
         findMany: vi.fn(async ({ where, orderBy }: Row = {}) => {
           const rows = methods.filter((m) => matchWhere(m, where));
@@ -84,6 +118,7 @@ function mkPrisma() {
           const row = {
             id: `clm-${claims.length + 1}`,
             status: "PENDING",
+            domain: "PRODUCER",
             createdAt: new Date(),
             ...data,
           };
@@ -322,6 +357,7 @@ describe("ProducerClaimsService; approve/reject", () => {
       paymentId: "pay-1",
       personId: BUYER,
       producerId: PRODUCER,
+      domain: "PRODUCER",
       receiptKey: "claims/prod-1/r.png",
       methodType: "TRANSFER",
       methodLabel: "Banco",
@@ -396,5 +432,133 @@ describe("ProducerClaimsService; receipt privacy", () => {
         ForbiddenException,
       );
     }
+  });
+});
+
+describe("ProducerClaimsService; dominios de suscripción (subscription-manual-transfer)", () => {
+  const memPayment = (over: Row = {}): Row => ({
+    id: "pay-mem",
+    refId: "mem_plan-1_manual_1",
+    personId: BUYER,
+    orderType: "MEMBERSHIP",
+    eventId: null,
+    gateway: "MANUAL",
+    status: "PENDING",
+    amount: 10000,
+    ...over,
+  });
+  const platPayment = (over: Row = {}): Row => ({
+    id: "pay-plat",
+    refId: "platsub_sub-1_manual_1",
+    personId: BUYER,
+    orderType: "PLATFORM_SUB",
+    eventId: null,
+    gateway: "MANUAL",
+    status: "PENDING",
+    amount: 50000,
+    ...over,
+  });
+
+  it("claim sobre orden MEMBERSHIP manual → dominio ACADEMY + academyId + aviso al owner", async () => {
+    const { svc, data, storage, notifications } = mkService();
+    data.payments.push(memPayment());
+    const claim = await svc.createClaim("pay-mem", BUYER, PNG, {
+      methodId: "amet-1",
+      note: "pagué hoy",
+    });
+    expect(claim.domain).toBe("ACADEMY");
+    expect(claim.academyId).toBe("ac-1");
+    expect(claim.producerId).toBeNull();
+    expect(claim.methodLabel).toBe("Cta Corriente");
+    expect(storage.save).toHaveBeenCalledWith(PNG, "claims/academies/ac-1");
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "owner-1",
+      expect.objectContaining({ type: "payment_claim_new" }),
+    );
+  });
+
+  it("claim sobre orden PLATFORM_SUB manual → dominio PLATFORM + aviso a admins", async () => {
+    const { svc, data, storage, notifications } = mkService();
+    data.payments.push(platPayment());
+    const claim = await svc.createClaim("pay-plat", BUYER, PNG, {});
+    expect(claim.domain).toBe("PLATFORM");
+    expect(claim.producerId).toBeNull();
+    expect(storage.save).toHaveBeenCalledWith(PNG, "claims/platform");
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "adm-1",
+      expect.objectContaining({ type: "payment_claim_new" }),
+    );
+  });
+
+  it("approveAcademyClaim → APPROVED + settle de la orden (actor claim)", async () => {
+    const { svc, data, settlement } = mkService();
+    data.payments.push(memPayment());
+    data.claims.push({
+      id: "clm-ac",
+      paymentId: "pay-mem",
+      personId: BUYER,
+      producerId: null,
+      domain: "ACADEMY",
+      academyId: "ac-1",
+      status: "PENDING",
+    });
+    await svc.approveAcademyClaim("ac-1", "clm-ac", "owner-1");
+    expect(data.claims[0].status).toBe("APPROVED");
+    expect(data.claims[0].reviewedById).toBe("owner-1");
+    expect(settlement.settle).toHaveBeenCalledWith(
+      data.payments[0],
+      "PAID",
+      { actor: "claim" },
+    );
+  });
+
+  it("approvePlatformClaim → APPROVED + settle; claim de otro dominio → 404", async () => {
+    const { svc, data, settlement } = mkService();
+    data.payments.push(platPayment());
+    data.claims.push({
+      id: "clm-pl",
+      paymentId: "pay-plat",
+      personId: BUYER,
+      producerId: null,
+      domain: "PLATFORM",
+      status: "PENDING",
+    });
+    await svc.approvePlatformClaim("clm-pl", "adm-1");
+    expect(data.claims[0].status).toBe("APPROVED");
+    expect(settlement.settle).toHaveBeenCalled();
+    // Un claim PLATFORM no entra a la cola del productor ni de la academia.
+    await expect(
+      svc.approve("prod-x", "clm-pl", "prod-x"),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      svc.approveAcademyClaim("ac-1", "clm-pl", "o"),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("rejectAcademyClaim → REJECTED, la orden sigue PENDING y admite re-subida", async () => {
+    const { svc, data, settlement } = mkService();
+    data.payments.push(memPayment());
+    data.claims.push({
+      id: "clm-ac",
+      paymentId: "pay-mem",
+      personId: BUYER,
+      producerId: null,
+      domain: "ACADEMY",
+      academyId: "ac-1",
+      status: "PENDING",
+    });
+    const res = await svc.rejectAcademyClaim(
+      "ac-1",
+      "clm-ac",
+      "owner-1",
+      "monto no calza",
+    );
+    expect(res.claim.status).toBe("REJECTED");
+    expect(data.payments[0].status).toBe("PENDING");
+    expect(settlement.settle).not.toHaveBeenCalled();
+    // Re-subida sobre la misma orden: crea un claim nuevo PENDING.
+    const again = await svc.createClaim("pay-mem", BUYER, PNG, {});
+    expect(again.id).not.toBe("clm-ac");
+    expect(again.status).toBe("PENDING");
   });
 });

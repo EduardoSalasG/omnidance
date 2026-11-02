@@ -62,7 +62,25 @@ export const REMINDER_WINDOW_MS = 24 * 60 * 60_000;
 
 type SubscribeResult =
   | { kind: "needs_card"; registerUrl: string; subscriptionId: string }
-  | { kind: "subscribed"; subscriptionId: string };
+  | { kind: "subscribed"; subscriptionId: string }
+  | {
+      /** Alta manual por transferencia (spec subscription-manual-transfer). */
+      kind: "pending_payment";
+      subscriptionId: string;
+      paymentId: string;
+      amount: number;
+      currency: string;
+      /** Endpoint multipart para subir el comprobante (OwnMethodClaim). */
+      claimUrl: string;
+      /** Métodos TRANSFER activos de la academia (datos bancarios). */
+      transfer: {
+        methods: { id: string; label: string; details: unknown }[];
+      };
+    };
+
+type PlanWithAcademy = Prisma.MembershipPlanGetPayload<{
+  include: { academy: true };
+}>;
 
 type CustomerReturnResult =
   | { ok: true; academyId: string }
@@ -393,6 +411,7 @@ export class SubscriptionsService {
     personId: string,
     planId: string,
     acceptRecurring: boolean,
+    opts?: { paymentMethod?: "CARD" | "TRANSFER"; methodId?: string },
   ): Promise<SubscribeResult> {
     if (acceptRecurring !== true) {
       throw new BadRequestException("debes aceptar el cobro recurrente");
@@ -415,6 +434,13 @@ export class SubscriptionsService {
     const intervalCount = INTERVAL_COUNT[plan.type];
     if (!intervalCount) {
       throw new BadRequestException("este plan no admite cobro recurrente");
+    }
+    // Alta manual por transferencia (spec subscription-manual-transfer):
+    // nunca toca el motor de la pasarela - la sub nace PENDING_PAYMENT
+    // con su Payment MANUAL PENDING claim-elegible y se activa al
+    // aprobar el comprobante (settleMembership).
+    if (opts?.paymentMethod === "TRANSFER") {
+      return this.subscribeTransfer(personId, plan, opts.methodId);
     }
     // Moneda del plan (spec multipais-currency): fija el provider del
     // cobro y el snapshot de la sub. Capability check ANTES de la tx:
@@ -439,7 +465,13 @@ export class SubscriptionsService {
         where: {
           personId,
           status: {
-            in: ["ACTIVE", "CANCEL_PENDING", "PENDING_CARD", "ACTIVATING"],
+            in: [
+              "ACTIVE",
+              "CANCEL_PENDING",
+              "PENDING_CARD",
+              "ACTIVATING",
+              "PENDING_PAYMENT",
+            ],
           },
         },
         orderBy: { createdAt: "desc" },
@@ -453,8 +485,15 @@ export class SubscriptionsService {
       if (existing && !reuse) {
         const replaceable =
           existing.status === "PENDING_CARD" ||
-          existing.status === "ACTIVATING";
-        if (!replaceable || fresh) {
+          existing.status === "ACTIVATING" ||
+          // El intento manual se reemplaza siempre por el de tarjeta (el
+          // usuario cambió de método) - no tiene carrera con un cobro
+          // remoto porque nunca toca Flow.
+          existing.status === "PENDING_PAYMENT";
+        if (
+          !replaceable ||
+          (fresh && existing.status !== "PENDING_PAYMENT")
+        ) {
           throw new ConflictException(
             "ya tienes una suscripción a este plan",
           );
@@ -496,6 +535,30 @@ export class SubscriptionsService {
             "la suscripción está siendo procesada - reintenta en unos segundos",
           );
         }
+      }
+      // Intento manual del mismo plan reemplazado por el de tarjeta: la
+      // fila queda CANCELED y su orden PENDING se anula - un comprobante
+      // tardío ya no puede aprobarse ni reactivar la sub (spec
+      // subscription-manual-transfer).
+      if (existing?.status === "PENDING_PAYMENT") {
+        const canceled = await tx.membershipSubscription.updateMany({
+          where: { id: existing.id, status: "PENDING_PAYMENT" },
+          data: { status: "CANCELED", canceledAt: now },
+        });
+        if (canceled.count === 0) {
+          throw new ConflictException(
+            "la suscripción está siendo procesada - reintenta en unos segundos",
+          );
+        }
+        await tx.payment.updateMany({
+          where: {
+            personId,
+            orderType: "MEMBERSHIP",
+            refId: { startsWith: `mem_${plan.id}_manual_` },
+            status: "PENDING",
+          },
+          data: { status: "FAILED" },
+        });
       }
       if (reuse) return reuse;
       return tx.membershipSubscription.create({
@@ -636,6 +699,190 @@ export class SubscriptionsService {
       });
     }
     return { kind: "subscribed", subscriptionId: sub.id };
+  }
+
+  /**
+   * Alta manual por transferencia (spec subscription-manual-transfer):
+   * la sub nace PENDING_PAYMENT con paymentMethod TRANSFER + un Payment
+   * MANUAL PENDING claim-elegible (`mem_<planId>_manual_<cycle>`), sin
+   * tocar Flow. El bailarín sube el comprobante por
+   * `POST /payments/:id/claims` (TicketClaim dominio ACADEMY) y el
+   * settle al aprobar la deja ACTIVE con su primer período.
+   *
+   * Misma sección crítica por advisory lock `sub:<personId>` que el
+   * alta de tarjeta: una PENDING_PAYMENT viva del mismo plan se
+   * reutiliza (idempotencia del retry - devuelve su misma orden);
+   * PENDING_CARD y ACTIVATING expirada del mismo plan se reemplazan;
+   * ACTIVE/CANCEL_PENDING del mismo plan y ACTIVATING fresca dan 409.
+   * Las pendientes de OTROS planes no se barren: a diferencia de
+   * tarjeta, el claim se ata a su Payment por id - no hay token
+   * ambiguo que resolver (M7 no aplica a la vía manual).
+   */
+  private async subscribeTransfer(
+    personId: string,
+    plan: PlanWithAcademy,
+    methodId?: string,
+  ): Promise<SubscribeResult> {
+    const planCurrency = plan.currency ?? "CLP";
+    // Método de transferencia elegido (opcional): solo valida que sea un
+    // TRANSFER activo de la academia - su label queda snapshot en la orden.
+    let methodLabel = "Transferencia";
+    if (methodId) {
+      const method = await this.prisma.academyPaymentMethod.findFirst({
+        where: {
+          id: methodId,
+          academyId: plan.academyId,
+          type: "TRANSFER",
+          active: true,
+        },
+      });
+      if (!method) throw new NotFoundException("método no encontrado");
+      methodLabel = method.label;
+    }
+    // Cargo con la misma resolución de promos que el alta con tarjeta
+    // (spec member-promos): el descuento se marca en la sub y en el
+    // Payment (academyPromoId) para auditoría y conteo de maxCycles.
+    const charge = await this.memberChargeSpec(
+      plan,
+      plan.academyId,
+      personId,
+      "MANUAL",
+      planCurrency,
+    );
+
+    const { sub, payment } = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`sub:${personId}`}))`;
+      const live = await tx.membershipSubscription.findMany({
+        where: {
+          personId,
+          status: {
+            in: [
+              "ACTIVE",
+              "CANCEL_PENDING",
+              "PENDING_CARD",
+              "ACTIVATING",
+              "PENDING_PAYMENT",
+            ],
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      const existing = live.find((s) => s.planId === plan.id) ?? null;
+      const now = new Date();
+      if (existing) {
+        // Intento manual vivo del mismo plan → reutiliza su orden
+        // pendiente (idempotente como la PENDING_CARD fresca de tarjeta).
+        if (existing.status === "PENDING_PAYMENT") {
+          const pending = await tx.payment.findFirst({
+            where: {
+              personId,
+              orderType: "MEMBERSHIP",
+              refId: { startsWith: `mem_${plan.id}_manual_` },
+              status: "PENDING",
+            },
+            orderBy: { createdAt: "desc" },
+          });
+          if (pending) return { sub: existing, payment: pending };
+        }
+        const replaceable =
+          existing.status === "PENDING_CARD" ||
+          existing.status === "PENDING_PAYMENT" ||
+          (existing.status === "ACTIVATING" &&
+            now.getTime() - existing.createdAt.getTime() >=
+              PENDING_CARD_TTL_MS);
+        if (!replaceable) {
+          throw new ConflictException(
+            "ya tienes una suscripción a este plan",
+          );
+        }
+        // Cancel condicional por el status leído - si la fila se movió
+        // entremedio se aborta en vez de pisar una sub activa.
+        const canceled = await tx.membershipSubscription.updateMany({
+          where: { id: existing.id, status: existing.status },
+          data: { status: "CANCELED", canceledAt: now },
+        });
+        if (canceled.count === 0) {
+          throw new ConflictException(
+            "la suscripción está siendo procesada - reintenta en unos segundos",
+          );
+        }
+        // Un intento manual reemplazado arrastra su orden pendiente:
+        // sin el void un comprobante tardío podría aprobarse y liquidar
+        // una sub ya cancelada.
+        await tx.payment.updateMany({
+          where: {
+            personId,
+            orderType: "MEMBERSHIP",
+            refId: { startsWith: `mem_${plan.id}_manual_` },
+            status: "PENDING",
+          },
+          data: { status: "FAILED" },
+        });
+      }
+      // Ciclo correlativo del refId (spec subscription-manual-transfer):
+      // la renovación manual del slice 2 seguirá el mismo contador.
+      const cycle =
+        (await tx.payment.count({
+          where: {
+            personId,
+            orderType: "MEMBERSHIP",
+            refId: { startsWith: `mem_${plan.id}_manual_` },
+          },
+        })) + 1;
+      const created = await tx.membershipSubscription.create({
+        data: {
+          personId,
+          planId: plan.id,
+          academyId: plan.academyId,
+          currency: planCurrency,
+          status: "PENDING_PAYMENT",
+          paymentMethod: "TRANSFER",
+          academyPromoId: charge.promoId,
+          planChargeClp: charge.amount,
+        },
+      });
+      const order = await tx.payment.create({
+        data: {
+          orderType: "MEMBERSHIP",
+          refId: `mem_${plan.id}_manual_${cycle}`,
+          personId,
+          amount: charge.amount,
+          fee: 0,
+          net: charge.amount,
+          currency: planCurrency,
+          gateway: "MANUAL",
+          methodLabel,
+          // Modelo SaaS (mismo que el claim manual aprobado): la plata
+          // la cobra la academia por su cuenta - queda en el libro sin
+          // comisión de plataforma y nunca entra a Payout.
+          feeMode: "ACADEMY",
+          platformFeeNetClp: 0,
+          platformFeeVatClp: 0,
+          gatewayFeeExpected: 0,
+          producerNetClp: charge.amount,
+          academyPromoId: charge.promoId,
+        },
+      });
+      return { sub: created, payment: order };
+    });
+
+    // Datos de transferencia de la academia (sus métodos propios
+    // TRANSFER activos - el mismo shape que lista el checkout manual).
+    const methods = await this.prisma.academyPaymentMethod.findMany({
+      where: { academyId: plan.academyId, type: "TRANSFER", active: true },
+      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      select: { id: true, label: true, details: true },
+    });
+
+    return {
+      kind: "pending_payment",
+      subscriptionId: sub.id,
+      paymentId: payment.id,
+      amount: payment.amount,
+      currency: payment.currency,
+      claimUrl: `/payments/${payment.id}/claims`,
+      transfer: { methods },
+    };
   }
 
   /**
@@ -1140,6 +1387,20 @@ export class SubscriptionsService {
         where: { id: sub.id },
         data: { status: "CANCELED", canceledAt: new Date() },
       });
+      // Alta manual cancelada (spec subscription-manual-transfer): su
+      // orden PENDING se anula - un comprobante tardío ya no puede
+      // aprobarla ni reactivar la sub.
+      if (sub.paymentMethod === "TRANSFER") {
+        await this.prisma.payment.updateMany({
+          where: {
+            personId,
+            orderType: "MEMBERSHIP",
+            refId: { startsWith: `mem_${sub.planId}_manual_` },
+            status: "PENDING",
+          },
+          data: { status: "FAILED" },
+        });
+      }
       return { ok: true, status: "CANCELED", subscriptionId: sub.id };
     }
 

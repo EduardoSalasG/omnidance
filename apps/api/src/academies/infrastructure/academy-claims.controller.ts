@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -34,6 +35,7 @@ import {
   CLAIM_MAX_BYTES,
   CLAIM_METHOD_TYPES,
 } from "./academy-claims.service";
+import { ProducerClaimsService } from "../../payments/infrastructure/producer-claims.service";
 import { mimeForKey } from "../../storage/storage.service";
 import { dayRange, pageParams, whitelist } from "./list-filters";
 import { ApiQuery } from "@nestjs/swagger";
@@ -137,6 +139,7 @@ export class AcademyClaimsController {
   constructor(
     private readonly access: AcademyAccess,
     private readonly claims: AcademyClaimsService,
+    private readonly orderClaims: ProducerClaimsService,
   ) {}
 
   /** Métodos activos de la academia - cualquier usuario con sesión. */
@@ -415,5 +418,111 @@ export class AcademyClaimsController {
   ) {
     await this.access.requireCapabilityWrite(id, req.person!, "payments");
     return this.claims.reject(id, claimId, req.person!.id, dto.note);
+  }
+
+  // ── Comprobantes sobre órdenes (suscripciones por transferencia) ──
+  // TicketClaim domain=ACADEMY (spec subscription-manual-transfer): la
+  // orden ya existe como Payment MANUAL PENDING - al aprobar se liquida
+  // por el mismo settle del webhook y la suscripción queda ACTIVE.
+
+  /**
+   * GET /academies/:id/order-claims - cola de comprobantes de órdenes
+   * (suscripciones por transferencia). Filtros del contrato compartido:
+   * ?status= whitelist, from/to por día, page/pageSize.
+   */
+  @Get(":id/order-claims")
+  @ApiQuery({ name: "status", required: false })
+  @ApiQuery({ name: "from", required: false })
+  @ApiQuery({ name: "to", required: false })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
+  async listOrderClaims(
+    @Param("id") id: string,
+    @Query("status") status: string | undefined,
+    @Query("from") from: string | undefined,
+    @Query("to") to: string | undefined,
+    @Query("page") page: string | undefined,
+    @Query("pageSize") pageSize: string | undefined,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "payments");
+    const statusF = whitelist(status, CLAIM_STATUSES, "status");
+    const range = dayRange(from, to);
+    const res = await this.orderClaims.listAcademyClaims(
+      id,
+      { status: statusF, from: range?.gte, to: range?.lte },
+      pageParams(page, pageSize, 200),
+    );
+    return {
+      claims: res.items,
+      total: res.total,
+      page: res.page,
+      pageSize: res.pageSize,
+    };
+  }
+
+  /** Ficha del comprobante de orden (detalle para la revisión). */
+  @Get(":id/order-claims/:claimId")
+  async orderClaimDetail(
+    @Param("id") id: string,
+    @Param("claimId") claimId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "payments");
+    return this.orderClaims.academyClaimDetail(id, claimId);
+  }
+
+  /**
+   * Stream autenticado del comprobante de orden: owner/staff con
+   * capacidad payments o el alumno dueño del claim.
+   */
+  @Get(":id/order-claims/:claimId/receipt")
+  async orderClaimReceipt(
+    @Param("id") id: string,
+    @Param("claimId") claimId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const claim = await this.orderClaims.loadClaimForReceipt(claimId);
+    if (claim.domain !== "ACADEMY" || claim.academyId !== id) {
+      // 404 deliberado: no revelar la cola de otra academia.
+      throw new NotFoundException("comprobante no encontrado");
+    }
+    if (claim.personId !== req.person!.id) {
+      await this.access.requireCapability(id, req.person!, "payments");
+    }
+    const buffer = await this.orderClaims.readReceipt(claim.receiptKey);
+    res.setHeader("Content-Type", mimeForKey(claim.receiptKey));
+    res.setHeader("Content-Length", buffer.length);
+    res.setHeader("Cache-Control", "private, no-store");
+    res.send(buffer);
+  }
+
+  /** Aprueba: la orden se liquida por el mismo settle del webhook. */
+  @Post(":id/order-claims/:claimId/approve")
+  async approveOrderClaim(
+    @Param("id") id: string,
+    @Param("claimId") claimId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapabilityWrite(id, req.person!, "payments");
+    return this.orderClaims.approveAcademyClaim(id, claimId, req.person!.id);
+  }
+
+  /** Rechaza con motivo obligatorio; el alumno puede re-subir. */
+  @Post(":id/order-claims/:claimId/reject")
+  async rejectOrderClaim(
+    @Param("id") id: string,
+    @Param("claimId") claimId: string,
+    @Body() dto: RejectClaimDto,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapabilityWrite(id, req.person!, "payments");
+    return this.orderClaims.rejectAcademyClaim(
+      id,
+      claimId,
+      req.person!.id,
+      dto.note,
+    );
   }
 }
