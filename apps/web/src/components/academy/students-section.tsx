@@ -208,10 +208,13 @@ export function StudentsSection({
                 className="block rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
               >
                 <Card className="flex h-full flex-col gap-2 p-4 transition-colors hover:border-neon/40">
+                  {/* Nombre: primera sección de la card y a fila
+                      completa; nunca compite por ancho con badges ni
+                      score, así que el truncate siempre deja leerlo. */}
+                  <span className="block truncate font-medium">
+                    {s.person.name ?? s.person.email ?? s.person.id}
+                  </span>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <span className="min-w-0 flex-1 truncate font-medium">
-                      {s.person.name ?? s.person.email ?? s.person.id}
-                    </span>
                     <Badge variant={STATUS_VARIANT[s.status]}>
                       {t(`status.${s.status}`)}
                     </Badge>

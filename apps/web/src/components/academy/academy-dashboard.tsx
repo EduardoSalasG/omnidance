@@ -8,9 +8,18 @@ import {
   setAcademyHomeMode,
   useAcademyHomeMode,
 } from "@/lib/academy-home-mode";
-import { Button, Card, RefreshIcon, Skeleton } from "@/components/ui";
+import {
+  Button,
+  Card,
+  RefreshIcon,
+  Skeleton,
+  SkeletonCard,
+} from "@/components/ui";
 import { AcademyKpiCards } from "./academy-kpi-strip";
-import { AcademyLevelsCard } from "./academy-levels-card";
+import {
+  AcademyLevelsCard,
+  useAcademyLevelInsights,
+} from "./academy-levels-card";
 import { AcademyVisibilityCard } from "./academy-visibility-card";
 import {
   birthdayFmt,
@@ -18,9 +27,10 @@ import {
   shortId,
   type Academy,
   type AcademyDashboard as AcademyDashboardData,
+  type AcademyLevelInsights,
 } from "./shared";
 import { Link } from "@/i18n/navigation";
-import { getDateFmt, getNumFmt, useDateFmt, useNumFmt } from "@/lib/intl";
+import { getDateFmt, getNumFmt, useNumFmt } from "@/lib/intl";
 
 const clpFmt = (locale: string) => getNumFmt(locale, {
   style: "currency",
@@ -32,13 +42,6 @@ const fullDayFmt = (locale: string) => getDateFmt(locale, {
   day: "numeric",
   month: "long",
 });
-const lessonWhenFmt = (locale: string) => getDateFmt(locale, {
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
 // Tope de filas por lista de insight - más allá, footer "Ver todos".
 const LIST_CAP = 6;
 
@@ -82,12 +85,9 @@ export function AcademyDashboard({
   expiringHref?: string;
   setupChecklist?: boolean;
 }) {
-  const dayFmt = useDateFmt({
-  day: "numeric",
-  month: "short",
-});
   const locale = useLocale();
   const t = useTranslations("academy");
+  const tc = useTranslations("common");
 
   // Modo de inicio (spec academies/owner-insights): Simplificado por
   // defecto (cards accionables llanas), Extendido = métricas completas
@@ -118,24 +118,23 @@ export function AcademyDashboard({
     void refresh();
   }, [refresh]);
 
-  // Split de vencimientos: hoy (endsAt ≤ hoy UTC) / esta semana (≤ +7d).
-  // Los de más allá dentro de la ventana se cuentan en "Ver todos".
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const weekStr = new Date(Date.now() + 7 * 86_400_000)
-    .toISOString()
-    .slice(0, 10);
-  const expiring = dashboard?.expiringEnrollments ?? [];
-  const expiringToday = expiring.filter(
-    (e) => e.endsAt.slice(0, 10) <= todayStr,
-  );
-  const expiringWeek = expiring.filter(
-    (e) => e.endsAt.slice(0, 10) > todayStr && e.endsAt.slice(0, 10) <= weekStr,
-  );
-  const expiringLater = expiring.length - expiringToday.length - expiringWeek.length;
-
-  const pendingClaims = dashboard?.pendingClaims;
-  const pendingLessons = dashboard?.pendingLessons;
+  // Las colas del home son KPIs de solo conteo (spec owner: la acción
+  // vive en el módulo destino, no en la lista inline).
+  const expiringCount = dashboard?.expiringEnrollments.length ?? 0;
   const birthdays = dashboard?.upcomingBirthdays ?? [];
+
+  // Insight de niveles/cupos (PRO `insights` + owner/ADMIN): alimenta
+  // el KPI "sin nivel" (ambos modos) y la card anidada (Extendido).
+  const levelInsights = useAcademyLevelInsights(academy);
+  const unassigned = (levelInsights.data?.unassigned ?? []).filter(
+    (u) => u.count > 0,
+  );
+  const unassignedTotal = unassigned.reduce((a, u) => a + u.count, 0);
+  const unassignedBreakdown = unassigned
+    .map((u) =>
+      t("levels.unassignedCount", { count: u.count, type: u.typeName }),
+    )
+    .join(" · ");
 
   // Gating fino por tier (spec academy-tier-v2): la operación de clases
   // (hoy, particulares pendientes, KPI clases/sem) es `classes`; la
@@ -247,6 +246,7 @@ export function AcademyDashboard({
           onRetry={() => void refresh()}
           expiringHref={expiringHref}
           canClasses={canClasses}
+          insights={levelInsights.data}
         />
       )}
 
@@ -307,276 +307,134 @@ export function AcademyDashboard({
         </Card>
       )}
 
-      {/* Desktop: dos columnas - operación del día a la izquierda,
-          retención a la derecha. Mobile apila en ese mismo orden.
-          Modo Extendido. */}
-      {homeMode === "extended" && (
-      <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-        <div className="flex min-w-0 flex-col gap-6">
-          {/* Hoy - clases del día + asistencia marcada (spec §13). Las
-              filas llevan al roster de la clase (marcar presente es del
-              instructor en su consola); sin clases el día se muestra
-              vacío en vez de ocultarse. Toda la sección es feature
-              `classes` (STUDIO+) y el contador `attendance` - COBROS no
-              opera clases (spec academy-tier-v2). */}
-          {dashboard && canClasses && (
-            <section aria-label={t("today.title")} data-tour="academy-today">
-              <div className="mb-3 flex items-baseline justify-between gap-3">
-                <h3 className={sectionTitleCls}>{t("today.title")}</h3>
-                {canAttendance && dashboard.todayClasses.length > 0 && (
-                  <p className="text-xs tabular-nums text-ink/50">
-                    {t("today.attendance", {
-                      count: dashboard.attendanceToday,
-                    })}
-                  </p>
-                )}
-              </div>
-              <Card padded={false}>
-                {dashboard.todayClasses.length > 0 ? (
-                  <ul className={listCls}>
-                    {dashboard.todayClasses.map((c) => (
-                      <li key={c.id}>
-                        <Link
-                          href={`/academia/clases/${c.id}`}
-                          className={rowLinkCls}
-                        >
-                          <span className="shrink-0 text-sm font-semibold tabular-nums text-neon">
-                            {c.startTime}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium">
-                              {c.seriesName ?? t("today.unnamed")}
-                            </span>
-                            {(() => {
-                              const names = (
-                                c.instructors?.length
-                                  ? c.instructors
-                                  : c.instructorName
-                                    ? [{ name: c.instructorName }]
-                                    : []
-                              )
-                                .map((i) => i.name)
-                                .filter(Boolean)
-                                .join(" · ");
-                              return names ? (
-                                <span className="block truncate text-xs text-ink/50">
-                                  {names}
-                                </span>
-                              ) : null;
-                            })()}
-                          </span>
-                          <span className="shrink-0 text-xs tabular-nums text-ink/50">
-                            {c.capacity != null
-                              ? t("today.bookedOf", {
-                                  booked: c.bookedCount,
-                                  capacity: c.capacity,
-                                })
-                              : t("today.booked", { count: c.bookedCount })}
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="flex items-center justify-between gap-3 px-4 py-4">
-                    <p className="text-sm text-ink/60">{t("today.empty")}</p>
-                    <Link
-                      href="/academia/series"
-                      className="inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 text-sm font-semibold text-neon transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-                    >
-                      {t("today.emptyCta")}
-                    </Link>
-                  </div>
-                )}
-              </Card>
-            </section>
-          )}
+      {/* Operación del día (modo Extendido): colas accionables como
+          KPIs de solo conteo + la fila de cards medianas (clases de
+          hoy a la izquierda, cumpleaños a la derecha en desktop). */}
+      {homeMode === "extended" && dashboard && (
+        <section
+          aria-label={t("sections.operation")}
+          className="flex flex-col gap-4"
+        >
+          <h3 className={sectionTitleCls}>{t("sections.operation")}</h3>
 
-          {/* Cobros declarados por alumnos pendientes de aprobar -
-              la tarea de revisión más urgente del día. */}
-          {pendingClaims && pendingClaims.count > 0 && (
-            <section
-              aria-label={t("insights.pendingClaimsTitle")}
-              data-tour="academy-pending"
-            >
-              <div className="mb-3 flex items-baseline justify-between gap-3">
-                <h3 className={sectionTitleCls}>
-                  {t("insights.pendingClaimsTitle")}
-                </h3>
-                <p className="text-xs tabular-nums text-ink/50">
-                  {t("insights.pendingClaimsSummary", {
-                    count: pendingClaims.count,
-                    amount: clpFmt(locale).format(pendingClaims.amount),
-                  })}
-                </p>
-              </div>
-              <Card padded={false}>
-                <ul className={listCls}>
-                  {pendingClaims.items.map((c) => (
-                    <li key={`${c.personId}-${c.createdAt}`}>
-                      <Link href="/academia/cobros" className={rowLinkCls}>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">
-                            {c.personName ?? shortId(c.personId)}
-                          </span>
-                          <span className="block text-xs text-ink/50">
-                            {dayFmt.format(new Date(c.createdAt))}
-                          </span>
-                        </span>
-                        <span className="shrink-0 text-sm font-semibold tabular-nums text-warn">
-                          {clpFmt(locale).format(c.amount)}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                  {pendingClaims.count > pendingClaims.items.length && (
-                    <li>
-                      <Link
-                        href="/academia/cobros"
-                        className={`${rowLinkCls} justify-center text-sm font-semibold text-neon`}
-                      >
-                        {t("insights.seeAll", { count: pendingClaims.count })}
-                      </Link>
-                    </li>
-                  )}
-                </ul>
-              </Card>
-            </section>
-          )}
-
-          {/* Particulares REQUESTED esperando asignación o confirmación -
-              segunda cola operativa del home; cada fila navega al módulo
-              (no hay ficha por lección - la acción vive en el card).
-              Cola de clases: feature `classes` (spec academy-tier-v2). */}
-          {canClasses && pendingLessons && pendingLessons.count > 0 && (
-            <section
-              aria-label={t("insights.pendingLessonsTitle")}
-              data-tour="academy-pending"
-            >
-              <div className="mb-3 flex items-baseline justify-between gap-3">
-                <h3 className={sectionTitleCls}>
-                  {t("insights.pendingLessonsTitle")}
-                </h3>
-              </div>
-              <Card padded={false}>
-                <ul className={listCls}>
-                  {pendingLessons.items.map((l) => (
-                    <li key={l.id}>
-                      <Link
-                        href="/academia/particulares"
-                        className={rowLinkCls}
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">
-                            {l.personName ?? shortId(l.personId)}
-                          </span>
-                          <span className="block truncate text-xs text-ink/50">
-                            {l.instructorName ??
-                              t("insights.lessonToAssign")}
-                          </span>
-                        </span>
-                        <span
-                          className={`shrink-0 text-xs tabular-nums ${
-                            l.scheduledAt ? "text-ink/70" : "text-warn"
-                          }`}
-                        >
-                          {l.scheduledAt
-                            ? lessonWhenFmt(locale).format(
-                                new Date(l.scheduledAt),
-                              )
-                            : t("insights.lessonToSchedule")}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                  {pendingLessons.count > pendingLessons.items.length && (
-                    <li>
-                      <Link
-                        href="/academia/particulares"
-                        className={`${rowLinkCls} justify-center text-sm font-semibold text-neon`}
-                      >
-                        {t("insights.seeAll", {
-                          count: pendingLessons.count,
-                        })}
-                      </Link>
-                    </li>
-                  )}
-                </ul>
-              </Card>
-            </section>
-          )}
-        </div>
-
-        {/* Columna de retención: vencimientos y cumpleaños. */}
-        <div className="flex min-w-0 flex-col gap-6">
-          {dashboard && expiringToday.length > 0 && (
-            <ExpiringList
-              title={t("insights.expiringTodayTitle")}
-              items={expiringToday}
-              rowHref={expiringHref}
-              dataTour="academy-alerts"
-              t={t}
+          {/* Colas del día como KPIs de solo conteo: la acción vive en
+              el módulo destino, no en una lista inline. */}
+          <ul
+            data-tour="academy-pending"
+            className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+          >
+            <MiniKpi
+              href="/academia/cobros"
+              title={t("insights.pendingClaimsTitle")}
+              count={dashboard.pendingClaims.count}
+              hint={
+                dashboard.pendingClaims.count > 0
+                  ? t("homeMode.claimsHint", {
+                      amount: clpFmt(locale).format(
+                        dashboard.pendingClaims.amount,
+                      ),
+                    })
+                  : t("homeMode.claimsDone")
+              }
             />
-          )}
-          {dashboard && (expiringWeek.length > 0 || expiringLater > 0) && (
-            <ExpiringList
+            {canClasses && (
+              <MiniKpi
+                href="/academia/particulares"
+                title={t("insights.pendingLessonsTitle")}
+                count={dashboard.pendingLessons.count}
+                hint={
+                  dashboard.pendingLessons.count > 0
+                    ? t("homeMode.lessonsHint")
+                    : t("homeMode.lessonsDone")
+                }
+              />
+            )}
+          </ul>
+
+          {/* Cards medianas: clases del día (feature `classes`,
+              STUDIO+) y próximos cumpleaños lado a lado en desktop. */}
+          <div
+            className={`grid gap-6 ${
+              canClasses && birthdays.length > 0 ? "lg:grid-cols-2" : ""
+            }`}
+          >
+            {canClasses && (
+              <TodayClassesCard
+                dashboard={dashboard}
+                canAttendance={canAttendance}
+                t={t}
+              />
+            )}
+            {birthdays.length > 0 && (
+              <BirthdaysCard birthdays={birthdays} t={t} />
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Alumnos (modo Extendido): gestión de la cartera como KPIs
+          accionables: planes por vencer y niveles por completar. */}
+      {homeMode === "extended" && dashboard && (
+        <section
+          aria-label={t("sections.students")}
+          data-tour="academy-alerts"
+          className="flex flex-col gap-4"
+        >
+          <h3 className={sectionTitleCls}>{t("sections.students")}</h3>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <MiniKpi
+              href={expiringHref ?? "/academia/alumnos"}
               title={t("insights.expiringWeekTitle")}
-              items={expiringWeek}
-              extraCount={expiringLater}
-              rowHref={expiringHref}
-              dataTour="academy-alerts"
-              t={t}
+              count={expiringCount}
+              hint={
+                expiringCount > 0
+                  ? t("homeMode.expiringHint")
+                  : t("homeMode.expiringDone")
+              }
             />
-          )}
-
-          {dashboard && birthdays.length > 0 && (
-            <section
-              aria-label={t("insights.birthdaysTitle")}
-              data-tour="academy-alerts"
-            >
-              <h3 className={`mb-3 ${sectionTitleCls}`}>
-                {t("insights.birthdaysTitle")}
-              </h3>
-              <Card padded={false}>
-                <ul className={listCls}>
-                  {birthdays.slice(0, LIST_CAP).map((b) => (
-                    <li key={b.personId}>
-                      <Link
-                        href={`/academia/alumnos/${b.personId}`}
-                        className={rowLinkCls}
-                      >
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                          {b.name}
-                        </span>
-                        <span className="shrink-0 text-xs tabular-nums text-neon">
-                          {birthdayFmt(locale).format(new Date(b.date))}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                  {birthdays.length > LIST_CAP && (
-                    <li>
-                      <Link
-                        href="/academia/alumnos"
-                        className={`${rowLinkCls} justify-center text-sm font-semibold text-neon`}
-                      >
-                        {t("insights.seeAll", { count: birthdays.length })}
-                      </Link>
-                    </li>
-                  )}
-                </ul>
-              </Card>
-            </section>
-          )}
-        </div>
-      </div>
+            {levelInsights.data && (
+              <MiniKpi
+                href="/academia/alumnos"
+                title={t("levels.unassignedTitle")}
+                count={unassignedTotal}
+                hint={
+                  unassignedTotal > 0
+                    ? unassignedBreakdown
+                    : t("homeMode.unassignedDone")
+                }
+              />
+            )}
+          </ul>
+        </section>
       )}
 
       {/* Niveles y cupos por horario (spec academies/owner-insights):
-          solo modo Extendido; la card se oculta sola si el tier no
-          cubre `insights` (PRO) o el caller no es owner/ADMIN. */}
-      {homeMode === "extended" && (
-        <AcademyLevelsCard academy={academy} />
+          solo modo Extendido; state "hidden" = tier sin `insights`
+          (PRO) o caller sin privilegio: la sección no existe. */}
+      {homeMode === "extended" && levelInsights.state === "loading" && (
+        <section aria-label={t("levels.title")}>
+          <SkeletonCard lines={3} />
+        </section>
+      )}
+      {homeMode === "extended" && levelInsights.state === "error" && (
+        <section
+          aria-label={t("levels.title")}
+          className="flex items-center gap-3"
+        >
+          <p role="alert" className="text-sm text-ink/60">
+            {t("levels.loadError")}
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={levelInsights.reload}
+          >
+            <RefreshIcon /> {tc("retry")}
+          </Button>
+        </section>
+      )}
+      {homeMode === "extended" && levelInsights.data && (
+        <AcademyLevelsCard data={levelInsights.data} />
       )}
     </div>
   );
@@ -584,10 +442,11 @@ export function AcademyDashboard({
 
 /**
  * Cards accionables del modo Simplificado (spec academies/owner-insights):
- * 3-4 ítems en lenguaje llano que responden "qué hay que hacer" y llevan
- * directo a la acción. Todo se deriva del mismo GET /dashboard, sin
- * endpoints nuevos; las colas vacías quedan en 0 (nada pendiente sigue
- * siendo información honesta, no un hueco).
+ * 3-5 ítems en lenguaje llano que responden "qué hay que hacer" y llevan
+ * directo a la acción. Todo se deriva del mismo GET /dashboard más el
+ * insight de niveles (PRO), sin endpoints nuevos; las colas vacías
+ * quedan en 0 (nada pendiente sigue siendo información honesta, no un
+ * hueco).
  */
 function SimpleHomeCards({
   dashboard,
@@ -595,12 +454,16 @@ function SimpleHomeCards({
   onRetry,
   expiringHref,
   canClasses,
+  insights,
 }: {
   dashboard: AcademyDashboardData | null;
   error: boolean;
   onRetry: () => void;
   expiringHref?: string;
   canClasses: boolean;
+  /** Insight de niveles (PRO + owner/ADMIN); null = feature fuera de
+      alcance o aún sin cargar: la card "sin nivel" no se muestra. */
+  insights: AcademyLevelInsights | null;
 }) {
   const t = useTranslations("academy");
   const tc = useTranslations("common");
@@ -642,6 +505,12 @@ function SimpleHomeCards({
       </ul>
     );
   }
+
+  // Alumnos sin nivel asignado (dato por completar): suma por tipo.
+  const unassignedTotal = (insights?.unassigned ?? []).reduce(
+    (a, u) => a + u.count,
+    0,
+  );
 
   // Cupos libres de hoy: solo clases con capacidad definida; null si
   // ninguna la informa (entonces el hint genérico toma su lugar).
@@ -714,35 +583,220 @@ function SimpleHomeCards({
                 : t("homeMode.birthdaysDone"),
           },
         ]),
+    // Alumnos sin nivel asignado (dato por completar desde la ficha):
+    // solo con el insight cargado; feature PRO `insights` + owner/ADMIN.
+    ...(insights
+      ? [
+          {
+            key: "unassigned",
+            href: "/academia/alumnos",
+            count: unassignedTotal,
+            title: t("levels.unassignedTitle"),
+            hint:
+              unassignedTotal > 0
+                ? t("homeMode.unassignedHint")
+                : t("homeMode.unassignedDone"),
+          },
+        ]
+      : []),
   ];
 
   return (
     <section aria-label={t("homeMode.simple")}>
-      <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <ul
+        className={`grid grid-cols-2 gap-3 ${
+          cards.length > 4 ? "lg:grid-cols-5" : "lg:grid-cols-4"
+        }`}
+      >
         {cards.map((c) => (
-          <li key={c.key}>
-            <Link
-              href={c.href}
-              aria-label={`${c.title}: ${c.count}`}
-              className="block h-full rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98]"
-            >
-              <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/40">
-                <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
-                  {c.title}
-                </span>
-                <span
-                  className={`text-3xl font-bold leading-none tabular-nums ${
-                    c.count > 0 ? "text-neon" : "text-ink/40"
-                  }`}
-                >
-                  {c.count}
-                </span>
-                <span className="text-xs text-ink/50">{c.hint}</span>
-              </Card>
-            </Link>
-          </li>
+          <MiniKpi
+            key={c.key}
+            href={c.href}
+            title={c.title}
+            count={c.count}
+            hint={c.hint}
+          />
         ))}
       </ul>
+    </section>
+  );
+}
+
+/**
+ * KPI accionable de solo conteo: número grande + hint, la card entera
+ * navega al módulo donde se resuelve la cola. Compartida por las cards
+ * del modo Simplificado y las secciones del Extendido.
+ */
+function MiniKpi({
+  href,
+  title,
+  count,
+  hint,
+}: {
+  href: string;
+  title: string;
+  count: number;
+  hint: string;
+}) {
+  return (
+    <li>
+      <Link
+        href={href}
+        aria-label={`${title}: ${count}`}
+        className="block h-full rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98]"
+      >
+        <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/40">
+          <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
+            {title}
+          </span>
+          <span
+            className={`text-3xl font-bold leading-none tabular-nums ${
+              count > 0 ? "text-neon" : "text-ink/40"
+            }`}
+          >
+            {count}
+          </span>
+          <span className="text-xs text-ink/50">{hint}</span>
+        </Card>
+      </Link>
+    </li>
+  );
+}
+
+/**
+ * Clases del día + asistencia marcada (spec §13). Las filas llevan al
+ * roster de la clase (marcar presente es del instructor en su
+ * consola); sin clases el día se muestra vacío en vez de ocultarse.
+ */
+function TodayClassesCard({
+  dashboard,
+  canAttendance,
+  t,
+}: {
+  dashboard: AcademyDashboardData;
+  canAttendance: boolean;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  return (
+    <section aria-label={t("today.title")} data-tour="academy-today">
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h3 className={sectionTitleCls}>{t("today.title")}</h3>
+        {canAttendance && dashboard.todayClasses.length > 0 && (
+          <p className="text-xs tabular-nums text-ink/50">
+            {t("today.attendance", {
+              count: dashboard.attendanceToday,
+            })}
+          </p>
+        )}
+      </div>
+      <Card padded={false}>
+        {dashboard.todayClasses.length > 0 ? (
+          <ul className={listCls}>
+            {dashboard.todayClasses.map((c) => (
+              <li key={c.id}>
+                <Link href={`/academia/clases/${c.id}`} className={rowLinkCls}>
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-neon">
+                    {c.startTime}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">
+                      {c.seriesName ?? t("today.unnamed")}
+                    </span>
+                    {(() => {
+                      const names = (
+                        c.instructors?.length
+                          ? c.instructors
+                          : c.instructorName
+                            ? [{ name: c.instructorName }]
+                            : []
+                      )
+                        .map((i) => i.name)
+                        .filter(Boolean)
+                        .join(" · ");
+                      return names ? (
+                        <span className="block truncate text-xs text-ink/50">
+                          {names}
+                        </span>
+                      ) : null;
+                    })()}
+                  </span>
+                  <span className="shrink-0 text-xs tabular-nums text-ink/50">
+                    {c.capacity != null
+                      ? t("today.bookedOf", {
+                          booked: c.bookedCount,
+                          capacity: c.capacity,
+                        })
+                      : t("today.booked", { count: c.bookedCount })}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="flex items-center justify-between gap-3 px-4 py-4">
+            <p className="text-sm text-ink/60">{t("today.empty")}</p>
+            <Link
+              href="/academia/series"
+              className="inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 text-sm font-semibold text-neon transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              {t("today.emptyCta")}
+            </Link>
+          </div>
+        )}
+      </Card>
+    </section>
+  );
+}
+
+/**
+ * Próximos cumpleaños (spec academies/owner-insights): la fila lleva a
+ * la ficha del alumno; el gesto es saludar, no cobrar.
+ */
+function BirthdaysCard({
+  birthdays,
+  t,
+}: {
+  birthdays: AcademyDashboardData["upcomingBirthdays"];
+  t: ReturnType<typeof useTranslations>;
+}) {
+  const locale = useLocale();
+  return (
+    <section
+      aria-label={t("insights.birthdaysTitle")}
+      data-tour="academy-alerts"
+    >
+      <h3 className={`mb-3 ${sectionTitleCls}`}>
+        {t("insights.birthdaysTitle")}
+      </h3>
+      <Card padded={false}>
+        <ul className={listCls}>
+          {birthdays.slice(0, LIST_CAP).map((b) => (
+            <li key={b.personId}>
+              <Link
+                href={`/academia/alumnos/${b.personId}`}
+                className={rowLinkCls}
+              >
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {b.name}
+                </span>
+                <span className="shrink-0 text-xs tabular-nums text-neon">
+                  {birthdayFmt(locale).format(new Date(b.date))}
+                </span>
+              </Link>
+            </li>
+          ))}
+          {birthdays.length > LIST_CAP && (
+            <li>
+              <Link
+                href="/academia/alumnos"
+                className={`${rowLinkCls} justify-center text-sm font-semibold text-neon`}
+              >
+                {t("insights.seeAll", { count: birthdays.length })}
+              </Link>
+            </li>
+          )}
+        </ul>
+      </Card>
     </section>
   );
 }

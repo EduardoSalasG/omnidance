@@ -13,6 +13,10 @@
       "lessonToSchedule": "por agendar",
       "seeAll": "Ver todos ({count})"
     },
+    "sections": {
+      "operation": "Operación del día",
+      "students": "Alumnos"
+    },
     "homeMode": {
       "label": "Vista del inicio",
       "simple": "Simplificado",
@@ -32,7 +36,9 @@
       "lessonsDone": "Nada por confirmar",
       "birthdaysTitle": "Cumpleaños próximos",
       "birthdaysHint": "alumnos que cumplen pronto",
-      "birthdaysDone": "Sin cumpleaños próximos"
+      "birthdaysDone": "Sin cumpleaños próximos",
+      "unassignedHint": "alumnos por nivelar",
+      "unassignedDone": "Todos con nivel asignado"
     },
     "levels": {
       "title": "Niveles y cupos",
@@ -48,6 +54,8 @@
       "noAttendance": "sin asistencia reciente",
       "unassignedTitle": "Sin nivel asignado",
       "unassignedCount": "{count} en {type}",
+      "unassignedInline": "sin nivel {count}",
+      "typeTotal": "{count, plural, one {# alumno} other {# alumnos}}",
       "unassignedCta": "Completar",
       "loadError": "No se pudieron cargar los niveles.",
       "editor": {
