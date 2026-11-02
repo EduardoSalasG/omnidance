@@ -57,17 +57,15 @@ export function useAcademyLevelInsights(academy: Academy): {
   return { data, state, reload: () => void reload() };
 }
 
-const subHeadCls =
-  "text-xs font-semibold uppercase tracking-wide text-ink/50";
-
 /**
  * Card "Niveles y cupos" del inicio Extendido (spec
- * academies/owner-insights): cascada tipo → nivel → cupos por horario.
- * Cada tipo de clase es una sub-card con el conteo por nivel (chips)
- * y, debajo, los horarios que sirven ese tipo con asignados/capacidad,
- * cupos libres y asistencia reciente. Un slot puede servir varios
- * tipos: se repite en cada sección que cubre; los que no matchean
- * ningún tipo van a la sección general "Cupos por horario".
+ * academies/owner-insights). Estructura por tipo de clase:
+ * subtítulo (tipo + total de alumnos), fila de KPI cards por nivel
+ * (número grande + label, mismo lenguaje que MiniKpi/KpiCard) y debajo
+ * la lista compacta de horarios que sirven ese tipo con
+ * asignados/capacidad y cupos libres en primer plano. Un slot puede
+ * servir varios tipos: se repite en cada sección que cubre; los que no
+ * matchean ningún tipo van a la sección general "Cupos por horario".
  * Presentacional: el fetch lo hace useAcademyLevelInsights en el padre.
  */
 export function AcademyLevelsCard({
@@ -96,10 +94,6 @@ export function AcademyLevelsCard({
   });
   const otherSlots = data.bySlot.filter((s) => !matchedSlotIds.has(s.slotId));
 
-  const unassignedByType = new Map(
-    data.unassigned.map((u) => [u.typeId, u.count]),
-  );
-
   return (
     <section aria-label={t("levels.title")} className="flex flex-col gap-3">
       <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
@@ -118,87 +112,94 @@ export function AcademyLevelsCard({
           </div>
         </Card>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <div className="flex flex-col gap-5">
           {slotsByType.map(({ type, slots }) => {
             const total = type.levels.reduce((a, l) => a + l.count, 0);
-            const unassigned = unassignedByType.get(type.typeId) ?? 0;
             return (
-              <li key={type.typeId}>
-                <Card padded={false} className="flex flex-col">
-                  {/* Tipo de clase: nombre + total de alumnos activos. */}
-                  <header className="flex items-baseline justify-between gap-3 px-4 pt-3">
-                    <h4 className="text-sm font-semibold">{type.typeName}</h4>
-                    <p className="text-xs tabular-nums text-ink/50">
-                      {t("levels.typeTotal", { count: total })}
-                    </p>
-                  </header>
+              <section
+                key={type.typeId}
+                aria-label={type.typeName}
+                className="flex flex-col gap-2"
+              >
+                {/* Tipo de clase: subtítulo de sección + total de alumnos
+                    activos (multinivel: un alumno puede contar en más de
+                    un nivel del mismo tipo). */}
+                <div className="flex items-baseline justify-between gap-3">
+                  <h4 className="text-sm font-semibold">{type.typeName}</h4>
+                  <p className="text-xs tabular-nums text-ink/50">
+                    {t("levels.typeTotal", { count: total })}
+                  </p>
+                </div>
 
-                  {/* Niveles del tipo (multinivel: un alumno puede
-                      contar en más de uno). El chip "sin nivel" marca
-                      el dato por completar de este tipo. */}
-                  <div className="flex flex-col gap-1.5 px-4 pb-3 pt-2">
-                    <p className={subHeadCls}>{t("levels.byTypeTitle")}</p>
-                    <ul className="flex flex-wrap gap-x-3 gap-y-1">
-                      {type.levels.map((l) => (
-                        <li
-                          key={l.levelId}
-                          className="text-sm tabular-nums text-ink/70"
+                {/* Alumnos por nivel como KPIs limpios: número grande en
+                    primer plano, nombre del nivel como label. */}
+                <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {type.levels.map((l) => (
+                    <li key={l.levelId}>
+                      <Card className="flex h-full flex-col gap-0.5 px-3 py-2.5">
+                        <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
+                          {l.levelName}
+                        </span>
+                        <span
+                          className={`text-2xl font-bold leading-none tabular-nums ${
+                            l.count > 0 ? "text-neon" : "text-ink/40"
+                          }`}
                         >
-                          {l.levelName}{" "}
-                          <span className="font-semibold text-ink">
-                            {l.count}
-                          </span>
-                        </li>
-                      ))}
-                      {unassigned > 0 && (
-                        <li className="text-sm font-medium tabular-nums text-warn">
-                          {t("levels.unassignedInline", { count: unassigned })}
-                        </li>
-                      )}
-                    </ul>
-                  </div>
+                          {l.count}
+                        </span>
+                      </Card>
+                    </li>
+                  ))}
+                </ul>
 
-                  {/* Cupos por horario del tipo: asignables/capacidad,
-                      cupos libres y asistencia reciente. */}
-                  {slots.length > 0 && (
-                    <div className="flex flex-col gap-1 border-t border-line px-4 py-2.5">
-                      <p className={subHeadCls}>{t("levels.bySlotTitle")}</p>
-                      <ul className="flex flex-col divide-y divide-line">
-                        {slots.map((s) => (
-                          <SlotRow key={s.slotId} slot={s} numFmt={numFmt} />
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </Card>
-              </li>
+                {/* Cupos por horario del tipo: ocupación y cupos libres
+                    en primer plano, asistencia como dato terciario. */}
+                {slots.length > 0 && (
+                  <Card padded={false}>
+                    <p className="px-4 pb-1 pt-2.5 text-xs font-semibold uppercase tracking-wide text-ink/50">
+                      {t("levels.bySlotTitle")}
+                    </p>
+                    <ul className="flex flex-col divide-y divide-line">
+                      {slots.map((s) => (
+                        <SlotRow key={s.slotId} slot={s} numFmt={numFmt} />
+                      ))}
+                    </ul>
+                  </Card>
+                )}
+              </section>
             );
           })}
 
           {/* Horarios sin tipo matcheable (series sin ClassType). */}
           {otherSlots.length > 0 && (
-            <li>
-              <Card padded={false} className="flex flex-col">
-                <header className="px-4 pt-3">
-                  <h4 className="text-sm font-semibold">
-                    {t("levels.bySlotTitle")}
-                  </h4>
-                </header>
-                <ul className="flex flex-col divide-y divide-line px-4 pb-2 pt-1">
+            <section
+              aria-label={t("levels.bySlotTitle")}
+              className="flex flex-col gap-2"
+            >
+              <h4 className="text-sm font-semibold">
+                {t("levels.bySlotTitle")}
+              </h4>
+              <Card padded={false}>
+                <ul className="flex flex-col divide-y divide-line">
                   {otherSlots.map((s) => (
                     <SlotRow key={s.slotId} slot={s} numFmt={numFmt} />
                   ))}
                 </ul>
               </Card>
-            </li>
+            </section>
           )}
-        </ul>
+        </div>
       )}
     </section>
   );
 }
 
-/** Fila de cupo por horario: asignados/capacidad + libres a la derecha. */
+/**
+ * Fila de cupo por horario. Primario: nombre de la serie y la
+ * ocupación (asignados/capacidad, número grande). Secundario: día y
+ * hora + estado de cupos (warn si quedan 2 o menos, o sobrecupo).
+ * Terciario: asistencia reciente.
+ */
 function SlotRow({
   slot: s,
   numFmt,
@@ -209,38 +210,47 @@ function SlotRow({
   const t = useTranslations("academy");
   const tight = s.empty <= 2;
   return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
+    <li className="flex items-center gap-3 px-4 py-2.5">
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
           {s.seriesName}
           {s.levelName ? (
-            <span className="text-ink/50"> · {s.levelName}</span>
+            <span className="font-normal text-ink/60"> · {s.levelName}</span>
           ) : null}
         </p>
-        <p className="text-xs capitalize text-ink/50">
-          {t(`weekday.${s.weekday}`)} {s.startTime}
-          {" · "}
-          {s.avgAttendance !== null
-            ? t("levels.avgAttendance", {
-                value: numFmt.format(s.avgAttendance),
-              })
-            : t("levels.noAttendance")}
-          {s.lastClassAttendance !== null &&
-            ` · ${t("levels.lastAttendance", {
-              count: s.lastClassAttendance,
-            })}`}
+        <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-xs">
+          <span className="capitalize font-medium text-ink/70">
+            {t(`weekday.${s.weekday}`)} · {s.startTime}
+          </span>
+          <span className="text-ink/50">
+            {s.avgAttendance !== null
+              ? t("levels.avgAttendance", {
+                  value: numFmt.format(s.avgAttendance),
+                })
+              : t("levels.noAttendance")}
+            {s.lastClassAttendance !== null &&
+              ` · ${t("levels.lastAttendance", {
+                count: s.lastClassAttendance,
+              })}`}
+          </span>
         </p>
       </div>
-      <div className="shrink-0 text-right text-sm tabular-nums">
-        <p className="font-semibold">
-          {t("levels.assignedOf", {
-            assigned: s.assigned,
-            capacity: s.capacity,
-          })}
+      <div className="shrink-0 text-right">
+        <p className="text-base font-semibold leading-none tabular-nums">
+          <span className="sr-only">
+            {t("levels.assignedOf", {
+              assigned: s.assigned,
+              capacity: s.capacity,
+            })}
+          </span>
+          <span aria-hidden="true">
+            {s.assigned}
+            <span className="font-normal text-ink/50">/{s.capacity}</span>
+          </span>
         </p>
         <p
-          className={`text-xs font-medium ${
-            tight ? "text-warn" : "text-ink/50"
+          className={`mt-1 text-xs font-medium tabular-nums ${
+            tight ? "text-warn" : "text-ink/70"
           }`}
         >
           {s.empty < 0
