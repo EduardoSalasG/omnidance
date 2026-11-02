@@ -52,6 +52,18 @@ Primer cobro de suscripción **verificado end-to-end contra Flow sandbox**
   el return no claimea nada porque la sub ya está ACTIVE - la gracia
   es el mandato nuevo).
 
+## Update 2026-11-02 (misma sesión, posterior)
+
+- **Re-registro de tarjeta verificado OK**: `getRegisterStatus` status "1",
+  `registerDate` 2026-11-02 12:00:42 (mismo `tbkUser`, mandato
+  renovado). El POST de Flow llegó a `platform-customer/register-return`
+  (auditado); el "redireccionando" colgado del browser es cosmético.
+- **Asunto del mail de resguardo cambiado** (commit `43a2de3e`):
+  `Pagaste: <producto>` (ej. "Pagaste: Esencial, Clave Timba");
+  producto membresía usa coma; `<title>` del shell igual prefijo.
+  Change `receipt-subject-pagaste` archivado; spec payments/notifications
+  actualizada.
+
 ## Pendiente
 
 - Completar el primer cobro PLATFORM_SUB de `sus_m0fbb9feea`:
