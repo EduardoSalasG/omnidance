@@ -664,6 +664,11 @@ export default function VenuePage() {
                                 <Button
                                   type="button"
                                   size="sm"
+                                  variant={
+                                    confirming.status === "CONFIRMED"
+                                      ? "primary"
+                                      : "danger"
+                                  }
                                   disabled={busyId === r.id}
                                   onClick={() =>
                                     void decide(r.id, confirming.status)

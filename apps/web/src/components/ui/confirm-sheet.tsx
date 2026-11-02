@@ -57,7 +57,8 @@ export function ConfirmSheet({
         <div className="mt-4 flex gap-3">
           <Button
             type="button"
-            className="flex-1 bg-red-500 hover:bg-red-400"
+            variant="danger"
+            className="flex-1"
             disabled={busy}
             onClick={onConfirm}
           >

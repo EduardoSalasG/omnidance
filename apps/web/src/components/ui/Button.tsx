@@ -2,7 +2,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Link } from "@/i18n/navigation";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
 
 const base =
@@ -16,6 +16,9 @@ const variants: Record<ButtonVariant, string> = {
   secondary:
     "border border-line bg-surface text-ink hover:border-neon/60",
   ghost: "text-ink/70 hover:text-ink",
+  // Acción destructiva/irreversible: el confirm rojo se reconoce al
+  // instante (ConfirmSheet y confirms inline de cancelación/borrado).
+  danger: "bg-red-500 text-white hover:bg-red-400",
 };
 
 // Todos los tamaños mantienen touch target >= 44px (mobile-first)
