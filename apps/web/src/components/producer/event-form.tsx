@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { Button } from "@/components/ui";
 import {
   EVENT_TYPES,
@@ -58,6 +59,7 @@ export function EventForm({
   const t = useTranslations("producer");
   const te = useTranslations("events");
   const tc = useTranslations("common");
+  const { me } = useMe();
 
   const [name, setName] = useState(initial?.name ?? "");
   const [type, setType] = useState<string>(initial?.type ?? "SOCIAL");
@@ -124,6 +126,15 @@ export function EventForm({
   const [currency, setCurrency] = useState(initial?.currency ?? "CLP");
   const [currencyDirty, setCurrencyDirty] = useState(false);
   const [currencies, setCurrencies] = useState<string[]>([]);
+  // Social interno (spec internal-academy-socials): solo si el productor
+  // también es owner de una academia (/academies/mine filtrado por ownerId).
+  const [ownedAcademies, setOwnedAcademies] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [internalOnly, setInternalOnly] = useState(
+    initial?.visibility === "INTERNAL_ACADEMY",
+  );
+  const [academyId, setAcademyId] = useState(initial?.academyId ?? "");
 
   // Opciones de moneda = monedas del catálogo geográfico (Country.currency
   // del API - mismo criterio que valida POST/PATCH /events).
@@ -141,6 +152,37 @@ export function EventForm({
       cancelled = true;
     };
   }, []);
+
+  // Academias propias del productor: el flag "solo alumnos" solo aplica
+  // si también es owner (ownerId propio - instructores/staff no cuentan).
+  useEffect(() => {
+    if (!me?.id) return;
+    let cancelled = false;
+    apiFetch("/academies/mine")
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const rows = (await res.json()) as {
+          id: string;
+          name: string;
+          ownerId: string;
+        }[];
+        if (!cancelled) {
+          setOwnedAcademies(rows.filter((a) => a.ownerId === me.id));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [me?.id]);
+
+  // Una sola academia propia → preseleccionada (aún requiere el flag).
+  useEffect(() => {
+    const only = ownedAcademies[0]?.id;
+    if (ownedAcademies.length === 1 && only && academyId === "") {
+      setAcademyId(only);
+    }
+  }, [ownedAcademies, academyId]);
 
   // Bloques: pre-cargados del detalle. style llega solo con nombre → se
   // resuelve el id contra el catálogo /styles (match por nombre exacto).
@@ -190,7 +232,11 @@ export function EventForm({
     if (b.startsAt === "" || b.endsAt === "") return false;
     return new Date(b.endsAt) > new Date(b.startsAt);
   });
-  const formValid = name.trim() !== "" && datesValid && blocksValid;
+  const formValid =
+    name.trim() !== "" &&
+    datesValid &&
+    blocksValid &&
+    (!internalOnly || academyId !== "");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -228,6 +274,16 @@ export function EventForm({
       endsAt: new Date(endsAt).toISOString(),
       ...(venueId ? { venueId } : {}),
       ...(seriesId ? { seriesId } : {}),
+      // Social interno: INTERNAL_ACADEMY + academyId; al desmarcar un
+      // evento que era interno se envía PUBLIC explícito para revertir.
+      ...(internalOnly
+        ? {
+            visibility: "INTERNAL_ACADEMY",
+            ...(academyId ? { academyId } : {}),
+          }
+        : initial?.visibility === "INTERNAL_ACADEMY"
+          ? { visibility: "PUBLIC" }
+          : {}),
       ...(currency.trim() !== ""
         ? { currency: currency.trim().toUpperCase() }
         : {}),
@@ -316,6 +372,8 @@ export function EventForm({
         setBlocksDirty(false);
         setDjsText("");
         setDjsDirty(false);
+        setInternalOnly(false);
+        setAcademyId("");
       }
     } catch {
       // El contrato onSubmit devuelve errores como string; un throw
@@ -448,6 +506,50 @@ export function EventForm({
             ))}
           </select>
         </label>
+      )}
+
+      {/* Social interno (spec internal-academy-socials): visible solo si
+          el productor es owner de al menos una academia. */}
+      {ownedAcademies.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-xl border border-line p-3">
+          <label className="flex min-h-11 items-center gap-3">
+            <input
+              type="checkbox"
+              checked={internalOnly}
+              onChange={(e) => setInternalOnly(e.target.checked)}
+              className="h-5 w-5 accent-neon"
+            />
+            <span className="text-sm text-ink/80">
+              {t("form.internalOnly")}
+            </span>
+          </label>
+          {internalOnly && (
+            <>
+              {ownedAcademies.length > 1 && (
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm text-ink/70">
+                    {t("form.internalAcademy")}
+                  </span>
+                  <select
+                    value={academyId}
+                    onChange={(e) => setAcademyId(e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">{t("form.internalAcademy")}</option>
+                    {ownedAcademies.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <p className="text-xs text-ink/40">
+                {t("form.internalOnlyHint")}
+              </p>
+            </>
+          )}
+        </div>
       )}
 
       <div className="grid grid-cols-2 gap-3">

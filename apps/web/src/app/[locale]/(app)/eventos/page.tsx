@@ -170,7 +170,12 @@ export default async function EventosPage(
   // El middleware exige sesión para esta ruta - todo visitante está
   // autenticado (no hay ramas anónimas).
   const [res, myTickets, pendingOrders] = await Promise.all([
-    fetch(`${API_URL}/api/events`, { cache: "no-store" }).catch(() => null),
+    // Cookie forward (spec internal-academy-socials): con sesión el
+    // feed incluye los sociales internos de sus academias.
+    fetch(`${API_URL}/api/events`, {
+      cache: "no-store",
+      headers: { cookie: (await cookies()).toString() },
+    }).catch(() => null),
     getMyTickets(),
     getPendingOrders(),
   ]);

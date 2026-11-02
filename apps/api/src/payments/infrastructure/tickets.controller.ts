@@ -92,6 +92,29 @@ export class TicketsController {
       throw new ConflictException("esta entrada ya no está disponible");
     }
 
+    // Social interno (spec internal-academy-socials): reclamar una
+    // entrada de un evento INTERNAL_ACADEMY exige Enrollment ACTIVE
+    // de la academia - si no, el regalo saltaría la exclusividad.
+    const target = await this.prisma.event.findUnique({
+      where: { id: ticket.eventId },
+      select: { visibility: true, academyId: true },
+    });
+    if (target?.visibility === "INTERNAL_ACADEMY" && target.academyId) {
+      const enrolled = await this.prisma.enrollment.findFirst({
+        where: {
+          personId: me.id,
+          academyId: target.academyId,
+          status: "ACTIVE",
+        },
+        select: { id: true },
+      });
+      if (!enrolled) {
+        throw new ForbiddenException(
+          "evento exclusivo para alumnos de la academia",
+        );
+      }
+    }
+
     const { count } = await this.prisma.ticket.updateMany({
       where: { id: ticket.id, claimToken: token },
       data: {
@@ -198,6 +221,28 @@ export class TicketsController {
       throw new BadRequestException(
         "no puedes transferir el ticket a ti mismo",
       );
+    }
+
+    // Social interno (spec internal-academy-socials): el destinatario
+    // también necesita Enrollment ACTIVE de la academia del evento.
+    const ev = await this.prisma.event.findUnique({
+      where: { id: ticket.eventId },
+      select: { visibility: true, academyId: true },
+    });
+    if (ev?.visibility === "INTERNAL_ACADEMY" && ev.academyId) {
+      const enrolled = await this.prisma.enrollment.findFirst({
+        where: {
+          personId: target.id,
+          academyId: ev.academyId,
+          status: "ACTIVE",
+        },
+        select: { id: true },
+      });
+      if (!enrolled) {
+        throw new ForbiddenException(
+          "evento exclusivo para alumnos de la academia",
+        );
+      }
     }
 
     // Transfer manual quema el claim link (si el ticket era reclamable)

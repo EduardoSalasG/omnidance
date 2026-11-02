@@ -1726,7 +1726,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"visibility\": \"PUBLIC\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1790,7 +1790,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"visibility\": \"PUBLIC\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

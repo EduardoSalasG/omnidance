@@ -68,6 +68,18 @@ export class EventNotFoundError extends Error {
   }
 }
 
+/**
+ * El evento es interno de una academia (spec internal-academy-socials):
+ * compra y reserva solo con Enrollment ACTIVE de event.academyId - el
+ * controller lo sirve como 403 con el copy de exclusividad.
+ */
+export class EventExclusiveError extends Error {
+  constructor() {
+    super("evento exclusivo para alumnos de la academia");
+    this.name = "EventExclusiveError";
+  }
+}
+
 export class PresaleUnavailableError extends Error {
   constructor() {
     super("evento sin preventa disponible");
@@ -582,9 +594,25 @@ export class CheckoutService {
         tableSeatMax: true,
         tableSeatsTotal: true,
         currency: true,
+        visibility: true,
+        academyId: true,
       },
     });
     if (!event) throw new EventNotFoundError();
+
+    // Social interno (spec internal-academy-socials): la compra es
+    // exclusiva de alumnos con Enrollment ACTIVE de la academia.
+    if (event.visibility === "INTERNAL_ACADEMY" && event.academyId) {
+      const enrolled = await this.prisma.enrollment.findFirst({
+        where: {
+          personId,
+          academyId: event.academyId,
+          status: "ACTIVE",
+        },
+        select: { id: true },
+      });
+      if (!enrolled) throw new EventExclusiveError();
+    }
 
     // Reserva de mesa: solo si el evento ofrece, no supera el tope por
     // mesa (default 12 sin configuración) y queda cupo sentable - el
@@ -734,6 +762,21 @@ export class CheckoutService {
         friendships.map((f) => (f.aId === personId ? f.bId : f.aId)),
       );
       const takenIds = new Set(taken.map((t) => t.ownerId));
+      // Social interno (spec internal-academy-socials): un regalo a un
+      // no-alumno saltaría la exclusividad - el destinatario también
+      // necesita Enrollment ACTIVE de la academia del evento.
+      const enrolledIds = new Set<string>();
+      if (event.visibility === "INTERNAL_ACADEMY" && event.academyId) {
+        const rows = await this.prisma.enrollment.findMany({
+          where: {
+            personId: { in: recipientIds },
+            academyId: event.academyId,
+            status: "ACTIVE",
+          },
+          select: { personId: true },
+        });
+        for (const r of rows) enrolledIds.add(r.personId);
+      }
       for (const id of recipientIds) {
         const name = byId.get(id)?.name ?? "Esa persona";
         if (!friendIds.has(id)) {
@@ -744,6 +787,14 @@ export class CheckoutService {
         if (takenIds.has(id)) {
           throw new RecipientError(
             `${name} ya tiene una entrada para este evento`,
+          );
+        }
+        if (
+          event.visibility === "INTERNAL_ACADEMY" &&
+          !enrolledIds.has(id)
+        ) {
+          throw new RecipientError(
+            `${name} no es alumno de la academia que organiza este evento`,
           );
         }
       }

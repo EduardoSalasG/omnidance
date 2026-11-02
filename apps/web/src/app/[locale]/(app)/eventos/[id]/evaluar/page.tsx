@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { SurveyForm } from "@/components/events/survey-form";
 import { serverApiUrl } from "@/lib/server-api";
@@ -11,6 +12,9 @@ async function getEventName(id: string): Promise<string | null> {
   const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/events/${id}`, {
     cache: "no-store",
+    // Cookie forward (spec internal-academy-socials): la ficha interna
+    // solo responde al alumno con enrollment ACTIVE.
+    headers: { cookie: (await cookies()).toString() },
   }).catch(() => null);
   if (res?.status === 404) notFound();
   if (!res || !res.ok) return null; // el título cae al genérico

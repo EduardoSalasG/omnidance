@@ -2,7 +2,8 @@
  "events": {
   "metaTitle": "Eventos de salsa y bachata esta semana",
   "filterByStyle": "Filtrar por estilo",
-  "genresLabel": "Géneros"
+  "genresLabel": "Géneros",
+  "internalOnly": "Solo alumnos de la academia"
  },
  "eventLanding": {
   "buyCta": "Comprar entrada",

@@ -38,6 +38,9 @@ type EventDetail = {
   name: string;
   type: string;
   status: string;
+  /** INTERNAL_ACADEMY = social interno (spec internal-academy-socials):
+      solo llega acá si el viewer es alumno/owner/staff del evento. */
+  visibility?: string;
   startsAt: string;
   endsAt: string;
   capacity: number | null;
@@ -101,8 +104,12 @@ type MissionView = {
 
 async function getEvent(id: string): Promise<EventDetail | "error"> {
   const API_URL = await serverApiUrl();
+  // Cookie forward (spec internal-academy-socials): un alumno con
+  // sesión puede ver la ficha del social interno de su academia; el
+  // anónimo real recibe 404 → notFound.
   const res = await fetch(`${API_URL}/api/events/${id}`, {
     cache: "no-store",
+    headers: { cookie: (await cookies()).toString() },
   }).catch(() => null);
   if (res?.status === 404) notFound();
   if (!res || !res.ok) return "error";
@@ -298,6 +305,11 @@ export async function EventDetailContent(
         <div className="flex flex-wrap items-center gap-2">
           {event.series && <Badge variant="neon">{event.series.name}</Badge>}
           <Badge variant="outline">{typeLabel}</Badge>
+          {/* Social interno (spec internal-academy-socials): el badge
+              explica por qué no todos ven esta ficha. */}
+          {event.visibility === "INTERNAL_ACADEMY" && (
+            <Badge variant="muted">{t.internalOnly}</Badge>
+          )}
           {event.status === "LIVE" && !isPast && (
             <Badge variant="live">{t.live}</Badge>
           )}

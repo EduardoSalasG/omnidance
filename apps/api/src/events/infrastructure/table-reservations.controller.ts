@@ -63,11 +63,28 @@ export class TableReservationsController {
   ) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, visibility: true, academyId: true },
     });
     if (!event) throw new NotFoundException("evento no encontrado");
     if (event.status === "DRAFT" || event.status === "CANCELLED") {
       throw new ConflictException("el evento no admite reservas");
+    }
+    // Social interno (spec internal-academy-socials): la reserva es
+    // exclusiva de alumnos con Enrollment ACTIVE de la academia.
+    if (event.visibility === "INTERNAL_ACADEMY" && event.academyId) {
+      const enrolled = await this.prisma.enrollment.findFirst({
+        where: {
+          personId: req.person!.id,
+          academyId: event.academyId,
+          status: "ACTIVE",
+        },
+        select: { id: true },
+      });
+      if (!enrolled) {
+        throw new ForbiddenException(
+          "evento exclusivo para alumnos de la academia",
+        );
+      }
     }
 
     const existing = await this.prisma.tableReservation.findFirst({

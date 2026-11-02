@@ -92,6 +92,7 @@
 
 ### Landing pública de evento `/e/[id]` (público; spec public-event-landing)
 - SSR `GET /events/:id` (endpoint público). 404 → pantalla "no disponible"; DRAFT → misma pantalla (no expone borradores); fallo API → error + retry a la misma ruta.
+- Evento INTERNAL_ACADEMY: 404 a anónimos y no-alumnos (no revela existencia); lo ve el alumno con Enrollment ACTIVE, productor dueño, staff asignado o admin. Regalos/claims/transfers de su ticket también exigen enrollment del destinatario (403 exclusividad). Asistencia (checkin) suma al score-academia del alumno; no alimenta el score-producer.
 - Contenido: badges serie/tipo/LIVE/cancelado/pasado, géneros + GenreMixBar (herencia serie), venue (o venueText) + address/venueNotes, precios preventa/puerta (PriceTag con currency del evento) o "Gratis", descripción.
 - CTA "Comprar entrada": anónimo → `/login?next=/eventos/{id}` (next sin locale; round-trip estándar); con sesión → `/eventos/{id}` directo. CANCELLED/pasado/CLOSED → nota sin CTA.
 - El link lo copia el productor desde la ficha del evento (`/productor/eventos/[id]` → "Copiar link público" copia `{origin}/e/{id}` con ActionNotice).
@@ -123,6 +124,7 @@
 
 ### `/eventos` (listado, SSR)
 - `GET /events` (público) + `/tickets/mine` + `/payments/mine` (PENDING) + `/venues` (mapa).
+- Visibilidad (spec internal-academy-socials): `visibility=INTERNAL_ACADEMY` solo aparece si el viewer (cookie) tiene Enrollment ACTIVE de `event.academyId`; anónimos y no-alumnos nunca lo ven. "Cerca de mí" (`GET /events/near`) aplica la misma regla con sesión; landings `/cities*` quedan solo PUBLIC.
 - searchParams SSR (deep-linkables): `view=list|calendar|mios|map`; `genre=SALSA,BACHATA,CUBANO` multi-unión; `venue=<id>`; `upto=N` (horizonte semanas, "load later"); `month`, `day` (calendario); `week` legacy.
 - Vistas: lista agrupada por día (Esta semana / Más adelante) → EventCard → /eventos/{id}; calendario mensual con dots por género + día seleccionado; mapa Leaflet pins → /locales/{id}; `mios` = wallet.
 - **Wallet (view=mios):** tickets ordenados (futuro/ACTIVE primero); badges ACTIVE/USED/CANCELLED/TRANSFERRED/claimPending; por ticket ACTIVE: link /qr, WhatsApp share de claimToken, **transferir** → modal → `POST /tickets/:id/transfer {toEmail}` (400/409/404 → transferError; éxito remueve local). Pending payments → cards "pago en validación" (sin QR). Vacío → CTA /eventos.
@@ -141,7 +143,7 @@
 - Pasos: stepper cantidad 1–10 (min 1+regalos); asignación de regalos (búsqueda sin diacríticos, chips; extras = links WhatsApp reclamables); reserva de mesa (si tablesTotal; Sí/No + partySize 1..min(seatMax,seatsLeft,12)); picker método (pasarela | TRANSFER|PAYMENT_LINK|CASH con detalles+copy); código descuento → `GET /checkout/discount-quote`; sugerencia canción ≤140.
 - Submit `POST /checkout/ticket {eventId,quantity,academyId?,discountCode?,songSuggestion?,recipientIds?,tablePartySize?,methodId?}`.
 - Ramas: `paid:true` (orden $0) → éxito directo; `paymentUrl:null` → fase manual → OwnMethodClaim (nota≤200 + archivo png/jpeg/webp/pdf → `POST /payments/:id/claims`; poll pago 3s; claim REJECTED muestra reviewNote y permite re-subir); `stub://` → poll + botones dev; URL real → redirect gateway → vuelve a /checkout/return.
-- Errores: 400 "código"→invalidCode, otros 400 verbatim (recipient/gift/presale cerrada/terminado/mesa grande); 401 loginRequired; 409 soldOut | tablesSoldOut ("sin cupo en mesas"); genérico.
+- Errores: 400 "código"→invalidCode, otros 400 verbatim (recipient/gift/presale cerrada/terminado/mesa grande); 401 loginRequired; 403 verbatim (interno sin enrollment: "evento exclusivo para alumnos de la academia"); 409 soldOut | tablesSoldOut ("sin cupo en mesas"); genérico.
 - Éxito: `GET /payments/:id/tickets` → botones WhatsApp por claimToken → /reclamar/<token>; CTA /eventos?view=mios.
 
 ### Retorno de pago `/checkout/return?paymentId=|?sub=`

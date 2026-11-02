@@ -926,11 +926,15 @@ id: { in: filtered.map((r) => r.personId) },
     const earlyCutoff = p.earlyDays * DAY_MS;
 
     // Solo eventos reales (publicados en adelante): DRAFT/CANCELLED no
-    // rompen rachas ni cuentan como evento perdido.
+    // rompen rachas ni cuentan como evento perdido. INTERNAL_ACADEMY
+    // queda fuera del eje PRODUCER (spec internal-academy-socials):
+    // esa asistencia alimenta el score-academia - doble dominio,
+    // sin doble conteo.
     const events = await this.prisma.event.findMany({
       where: {
         producerId: actorId,
         status: { in: ["PUBLISHED", "LIVE", "CLOSED"] },
+        visibility: "PUBLIC",
       },
       select: { id: true, startsAt: true },
       orderBy: { startsAt: "desc" },
@@ -1085,7 +1089,16 @@ id: { in: filtered.map((r) => r.personId) },
     const personIds = [...new Set(enrollments.map((e) => e.personId))];
     if (!personIds.length) return;
 
-    const [attTotal, attWindow, memberships, payments, claims] =
+    // Sociales internos de la academia (spec internal-academy-socials):
+    // sus checkins cuentan en la misma dimensión de asistencia que las
+    // clases (totales históricos + ventana de señales).
+    const internalEvents = await this.prisma.event.findMany({
+      where: { academyId: actorId, visibility: "INTERNAL_ACADEMY" },
+      select: { id: true },
+    });
+    const internalEventIds = internalEvents.map((e) => e.id);
+
+    const [attTotal, attWindow, memberships, payments, claims, socialTotal, socialWindow] =
       await Promise.all([
         // Totales históricos (count + último) - alimentan attendance y lastAt.
         this.prisma.attendance.groupBy({
@@ -1138,6 +1151,32 @@ id: { in: filtered.map((r) => r.personId) },
           where: { academyId: actorId, status: "APPROVED" },
           select: { personId: true, amount: true, reviewedAt: true },
         }),
+        // Checkins a sociales internos de la academia - mismas dos
+        // lecturas que las attendances (totales + ventana).
+        internalEventIds.length
+          ? this.prisma.checkin.groupBy({
+              by: ["personId"],
+              where: {
+                personId: { in: personIds },
+                eventId: { in: internalEventIds },
+                voidedAt: null,
+              },
+              _count: { _all: true },
+              _min: { inAt: true },
+              _max: { inAt: true },
+            })
+          : Promise.resolve([]),
+        internalEventIds.length
+          ? this.prisma.checkin.findMany({
+              where: {
+                personId: { in: personIds },
+                eventId: { in: internalEventIds },
+                voidedAt: null,
+                inAt: { gte: attendanceSince },
+              },
+              select: { personId: true, inAt: true },
+            })
+          : Promise.resolve([]),
       ]);
 
     for (const e of enrollments) {
@@ -1154,6 +1193,13 @@ id: { in: filtered.map((r) => r.personId) },
       a.attendance = t._count._all;
       if (t._min.checkedAt) touch(t.personId, t._min.checkedAt);
     }
+    // Los sociales internos suman al mismo conteo histórico de
+    // asistencia (spec internal-academy-socials).
+    for (const t of socialTotal) {
+      const a = touch(t.personId, t._max.inAt);
+      a.attendance += t._count._all;
+      if (t._min.inAt) touch(t.personId, t._min.inAt);
+    }
 
     // ── Señales por ventana de asistencia ──
     const recentSince = now.getTime() - p.attendanceWeeks * 7 * DAY_MS;
@@ -1161,16 +1207,22 @@ id: { in: filtered.map((r) => r.personId) },
     const recent4Start = now.getTime() - 4 * 7 * DAY_MS;
     const weeks = new Map<string, Set<number>>();
     const monthsAttended = new Map<string, Set<number>>();
-    for (const at of attWindow) {
-      const a = touch(at.personId, at.checkedAt);
-      const ms = at.checkedAt.getTime();
+    // Ventana unificada: asistencias a clases + checkins a sociales
+    // internos de la academia alimentan las mismas señales.
+    const windowRows = [
+      ...attWindow.map((r) => ({ personId: r.personId, at: r.checkedAt })),
+      ...socialWindow.map((r) => ({ personId: r.personId, at: r.inAt })),
+    ];
+    for (const w of windowRows) {
+      const a = touch(w.personId, w.at);
+      const ms = w.at.getTime();
       if (ms >= recentSince) a.attendanceRecent++;
       if (ms >= recent4Start) a.attendanceRecent4w++;
       else if (ms >= prev4Start) a.attendancePrev4w++;
-      const wk = weekIndex(at.checkedAt);
-      (weeks.get(at.personId) ?? weeks.set(at.personId, new Set()).get(at.personId)!).add(wk);
-      const mk = monthIndex(at.checkedAt);
-      (monthsAttended.get(at.personId) ?? monthsAttended.set(at.personId, new Set()).get(at.personId)!).add(mk);
+      const wk = weekIndex(w.at);
+      (weeks.get(w.personId) ?? weeks.set(w.personId, new Set()).get(w.personId)!).add(wk);
+      const mk = monthIndex(w.at);
+      (monthsAttended.get(w.personId) ?? monthsAttended.set(w.personId, new Set()).get(w.personId)!).add(mk);
     }
 
     // Meses con membresía vigente: enrollment [startedAt, endsAt|pausedAt|now]

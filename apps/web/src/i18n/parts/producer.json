@@ -101,7 +101,10 @@
       "tableSeatsTotal": "Personas sentables en mesas",
       "inheritsDefault": "Default del productor",
       "tablesHint": "El cupo sentable es la capacidad real de las mesas: distinto al aforo general, usualmente menor. Vacío hereda tu default de Parámetros.",
-      "currency": "Moneda"
+      "currency": "Moneda",
+      "internalOnly": "Solo alumnos de mi academia",
+      "internalAcademy": "Academia del social interno",
+      "internalOnlyHint": "No sale en la cartelera pública: solo lo ven y pueden comprarlo los alumnos activos de la academia elegida."
     },
     "sections": {
       "staff": "Staff de puerta",

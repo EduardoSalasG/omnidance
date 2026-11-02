@@ -3,6 +3,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   NotFoundException,
   Post,
@@ -33,6 +34,7 @@ import {
   ClassNotPurchasableError,
   ClassSoldOutError,
   DoorSoldOutError,
+  EventExclusiveError,
   EventNotFoundError,
   InvalidDiscountError,
   EventEndedError,
@@ -195,6 +197,11 @@ export class CheckoutController {
     } catch (e) {
       if (e instanceof EventNotFoundError) {
         throw new NotFoundException(e.message);
+      }
+      // Social interno sin enrollment ACTIVE (spec
+      // internal-academy-socials) - exclusividad, no validación.
+      if (e instanceof EventExclusiveError) {
+        throw new ForbiddenException(e.message);
       }
       if (
         e instanceof PresaleSoldOutError ||

@@ -19,6 +19,11 @@ export const PUBLIC_FEED_SELECT = {
   genres: true,
   genreMix: true,
   platformFeePct: true,
+  // Visibilidad + academia del evento (spec internal-academy-socials):
+  // el filtro va en el where; el campo viaja para que el front pueda
+  // marcar el social interno al alumno que sí lo ve.
+  visibility: true,
+  academyId: true,
   series: { select: { id: true, name: true, genres: true, genreMix: true } },
   venue: {
     select: { id: true, name: true, address: true, lat: true, lng: true },
@@ -69,4 +74,43 @@ export function publicProducerWhere(
   return {
     OR: [{ producerId: null }, { producerId: { in: approvedIds } }],
   };
+}
+
+/**
+ * Rama `AND` de visibilidad (spec internal-academy-socials): PUBLIC
+ * para todos; INTERNAL_ACADEMY solo cuando el viewer tiene Enrollment
+ * ACTIVE de la academia del evento (los ids los resuelve
+ * `viewerAcademyIds` desde la sesión - vacío = solo PUBLIC).
+ */
+export function visibilityWhere(
+  viewerAcademyIds: string[],
+): Prisma.EventWhereInput {
+  return viewerAcademyIds.length
+    ? {
+        OR: [
+          { visibility: "PUBLIC" },
+          {
+            visibility: "INTERNAL_ACADEMY",
+            academyId: { in: viewerAcademyIds },
+          },
+        ],
+      }
+    : { visibility: "PUBLIC" };
+}
+
+/**
+ * AcademyIds donde la persona tiene Enrollment ACTIVE - input del
+ * filtro de visibilidad del feed. Sin sesión → [] (viewer anónimo).
+ */
+export async function viewerAcademyIds(
+  prisma: PrismaService,
+  personId: string | undefined,
+): Promise<string[]> {
+  if (!personId) return [];
+  const rows = await prisma.enrollment.findMany({
+    where: { personId, status: "ACTIVE" },
+    select: { academyId: true },
+    distinct: ["academyId"],
+  });
+  return rows.map((r) => r.academyId);
 }

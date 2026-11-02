@@ -33,11 +33,18 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 import type { Request, Response } from "express";
-import type { EventStatus, EventType, Genre, Prisma } from "@prisma/client";
+import type {
+  EventStatus,
+  EventType,
+  EventVisibility,
+  Genre,
+  Prisma,
+} from "@prisma/client";
 import { EVENT_RECENT_LOOKBACK_MS } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
 import { ParamsService } from "../../params/params.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { OptionalSessionGuard } from "../../auth/infrastructure/optional-session.guard";
 import {
   RolesGuard,
   roleKeysHavePermission,
@@ -60,6 +67,8 @@ import {
   approvedProducerIds,
   mapPublicFeed,
   publicProducerWhere,
+  viewerAcademyIds,
+  visibilityWhere,
 } from "../../common/event-feed";
 import {
   PRESALE_CUTOFF_MAX_MINUTES,
@@ -76,6 +85,10 @@ const EVENT_TYPES: EventType[] = [
   "GALA",
   "CONGRESS",
   "COMPETITION",
+];
+const EVENT_VISIBILITIES: EventVisibility[] = [
+  "PUBLIC",
+  "INTERNAL_ACADEMY",
 ];
 const STAFF_ROLES = ["DOOR", "DOOR_SALES"] as const;
 type StaffRole = (typeof STAFF_ROLES)[number];
@@ -257,6 +270,16 @@ class CreateEventDto {
   @IsString()
   academyId?: string;
 
+  /**
+   * INTERNAL_ACADEMY = social interno solo para alumnos de la academia
+   * (spec internal-academy-socials): exige academyId y que el creador
+   * administre esa academia - lo valida el handler, no el DTO.
+   */
+  @IsOptional()
+  @IsIn(EVENT_VISIBILITIES)
+  @ApiPropertyOptional({ enum: EVENT_VISIBILITIES })
+  visibility?: EventVisibility;
+
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -363,6 +386,12 @@ class UpdateEventDto {
   @IsOptional()
   @IsString()
   academyId?: string;
+
+  /** Misma regla que create: INTERNAL_ACADEMY exige academyId administrada. */
+  @IsOptional()
+  @IsIn(EVENT_VISIBILITIES)
+  @ApiPropertyOptional({ enum: EVENT_VISIBILITIES })
+  visibility?: EventVisibility;
 
   @IsOptional()
   @IsArray()
@@ -779,17 +808,23 @@ export class EventsController {
    * (próximos 7 días).
    * El género expuesto en la respuesta es el resuelto: event.genres si
    * tiene, si no series.genres.
+   * Sesión opcional (spec internal-academy-socials): los sociales
+   * INTERNAL_ACADEMY solo entran al feed cuando el viewer tiene
+   * Enrollment ACTIVE de la academia del evento.
    */
   @Get()
+  @UseGuards(OptionalSessionGuard)
   @ApiQuery({ name: "genre", required: false })
   @ApiQuery({ name: "venue", required: false })
   @ApiQuery({ name: "week", required: false })
   async list(
+    @Req() req: Request,
     @Query("genre") genre?: string,
     @Query("venue") venue?: string,
     @Query("week") week?: string,
   ) {
     const approvedIds = await approvedProducerIds(this.prisma);
+    const academyIds = await viewerAcademyIds(this.prisma, req.person?.id);
     const GENRES: Genre[] = ["SALSA", "BACHATA", "CUBANO"];
     // ?genre= acepta CSV (multiselect): "SALSA,BACHATA" → unión.
     const gs = genre
@@ -829,7 +864,8 @@ export class EventsController {
       // (APPROVED) o sin productor - los PENDING quedan invisibles
       // hasta la aprobación (spec role-registration-pipeline).
       // producerId es FK escalar: ids resueltos por subquery.
-      AND: [publicProducerWhere(approvedIds)],
+      // visibilityWhere: internos solo para alumnos de su academia.
+      AND: [publicProducerWhere(approvedIds), visibilityWhere(academyIds)],
     };
 
     const rows = await this.prisma.event.findMany({
@@ -843,8 +879,15 @@ export class EventsController {
     return mapPublicFeed(rows);
   }
 
+  /**
+   * Detalle del evento. Público para PUBLIC; INTERNAL_ACADEMY responde
+   * 404 a quien no es alumno activo de la academia (no revelar la
+   * existencia del social, spec internal-academy-socials) salvo
+   * productor dueño, staff asignado o admin.
+   */
   @Get(":id")
-  async detail(@Param("id") id: string) {
+  @UseGuards(OptionalSessionGuard)
+  async detail(@Param("id") id: string, @Req() req: Request) {
     const event = await this.prisma.event.findUnique({
       where: { id },
       select: {
@@ -852,6 +895,7 @@ export class EventsController {
         name: true,
         type: true,
         status: true,
+        visibility: true,
         startsAt: true,
         endsAt: true,
         capacity: true,
@@ -910,6 +954,9 @@ export class EventsController {
       },
     });
     if (!event) throw new NotFoundException();
+    if (event.visibility === "INTERNAL_ACADEMY") {
+      await this.assertInternalEventViewer(event, req.person);
+    }
     // Event.hostId es escalar (sin relación) → join manual, como en /practices.
     const host = event.hostId
       ? await this.prisma.person.findUnique({
@@ -1010,6 +1057,17 @@ export class EventsController {
     if (dto.seriesId) {
       await this.assertOwnSeries(dto.seriesId, me.id);
     }
+    // Social interno (spec internal-academy-socials): academyId es
+    // obligatorio y el creador debe administrarla (owner o admin) -
+    // un productor sin academia no puede marcar internos.
+    if (dto.visibility === "INTERNAL_ACADEMY") {
+      if (!dto.academyId) {
+        throw new BadRequestException(
+          "el social interno requiere academyId",
+        );
+      }
+      await this.assertAcademyAdministered(dto.academyId, me);
+    }
     // Mesas (spec checkout-table-reservation): cadena evento → default del
     // productor. `tablesTotal` ausente hereda el default; `null` explícito
     // apaga el servicio en este evento aunque haya default.
@@ -1031,6 +1089,7 @@ export class EventsController {
         venueId: dto.venueId ?? null,
         seriesId: dto.seriesId ?? null,
         academyId: dto.academyId ?? null,
+        visibility: dto.visibility ?? "PUBLIC",
         currency,
         type: dto.type ?? "SOCIAL",
         status: "DRAFT",
@@ -1098,11 +1157,28 @@ export class EventsController {
       await this.assertOwnSeries(dto.seriesId, me.id);
     }
 
+    // Estado resultante de visibilidad/academia (spec
+    // internal-academy-socials): INTERNAL_ACADEMY exige academyId y que
+    // el editor la administre - se valida el merge, no solo el delta,
+    // así un PATCH que limpia academyId sobre un interno también cae.
+    const nextVisibility = dto.visibility ?? event.visibility;
+    const nextAcademyId =
+      dto.academyId !== undefined ? dto.academyId : event.academyId;
+    if (nextVisibility === "INTERNAL_ACADEMY") {
+      if (!nextAcademyId) {
+        throw new BadRequestException(
+          "el social interno requiere academyId",
+        );
+      }
+      await this.assertAcademyAdministered(nextAcademyId, me);
+    }
+
     const data: Prisma.EventUncheckedUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.venueId !== undefined) data.venueId = dto.venueId;
     if (dto.seriesId !== undefined) data.seriesId = dto.seriesId;
     if (dto.academyId !== undefined) data.academyId = dto.academyId;
+    if (dto.visibility !== undefined) data.visibility = dto.visibility;
     if (dto.startsAt !== undefined) data.startsAt = new Date(dto.startsAt);
     if (dto.endsAt !== undefined) data.endsAt = new Date(dto.endsAt);
     if (dto.capacity !== undefined) data.capacity = dto.capacity;
@@ -1370,6 +1446,74 @@ id: { in: pool },
     const event = await this.prisma.event.findUnique({ where: { id } });
     if (!event) throw new NotFoundException("evento no encontrado");
     return event;
+  }
+
+  /**
+   * Regla del social interno (spec internal-academy-socials): el actor
+   * debe administrar la academia del evento - ownerId propio o
+   * admin.access de plataforma. 404 si la academia no existe.
+   */
+  private async assertAcademyAdministered(
+    academyId: string,
+    person: { id: string; roles: string[] },
+  ): Promise<void> {
+    const academy = await this.prisma.academy.findUnique({
+      where: { id: academyId },
+      select: { ownerId: true },
+    });
+    if (!academy) throw new NotFoundException("academia no encontrada");
+    if (academy.ownerId === person.id) return;
+    if (
+      await roleKeysHavePermission(this.prisma, person.roles, [
+        "admin.access",
+      ])
+    ) {
+      return;
+    }
+    throw new ForbiddenException(
+      "el social interno requiere ser owner de la academia",
+    );
+  }
+
+  /**
+   * Lectura de un evento INTERNAL_ACADEMY (spec internal-academy-socials):
+   * alumno con Enrollment ACTIVE de event.academyId, productor dueño,
+   * staff asignado o admin. El resto recibe 404 - no se revela que el
+   * social existe.
+   */
+  private async assertInternalEventViewer(
+    event: { id: string; academyId: string | null; producerId: string | null },
+    person?: { id: string; roles: string[] },
+  ): Promise<void> {
+    if (person) {
+      if (event.producerId === person.id) return;
+      if (event.academyId) {
+        const enrolled = await this.prisma.enrollment.findFirst({
+          where: {
+            personId: person.id,
+            academyId: event.academyId,
+            status: "ACTIVE",
+          },
+          select: { id: true },
+        });
+        if (enrolled) return;
+      }
+      const staffed = await this.prisma.staffAssignment.findUnique({
+        where: {
+          eventId_personId: { eventId: event.id, personId: person.id },
+        },
+        select: { id: true },
+      });
+      if (staffed) return;
+      if (
+        await roleKeysHavePermission(this.prisma, person.roles, [
+          "admin.access",
+        ])
+      ) {
+        return;
+      }
+    }
+    throw new NotFoundException();
   }
 
   /**
