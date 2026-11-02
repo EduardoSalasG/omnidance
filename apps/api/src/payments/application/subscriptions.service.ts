@@ -554,7 +554,7 @@ export class SubscriptionsService {
           where: {
             personId,
             orderType: "MEMBERSHIP",
-            refId: { startsWith: `mem_${plan.id}_manual_` },
+            refId: { startsWith: `mem_${plan.id}_${personId}_manual_` },
             status: "PENDING",
           },
           data: { status: "FAILED" },
@@ -777,7 +777,7 @@ export class SubscriptionsService {
             where: {
               personId,
               orderType: "MEMBERSHIP",
-              refId: { startsWith: `mem_${plan.id}_manual_` },
+              refId: { startsWith: `mem_${plan.id}_${personId}_manual_` },
               status: "PENDING",
             },
             orderBy: { createdAt: "desc" },
@@ -813,7 +813,7 @@ export class SubscriptionsService {
           where: {
             personId,
             orderType: "MEMBERSHIP",
-            refId: { startsWith: `mem_${plan.id}_manual_` },
+            refId: { startsWith: `mem_${plan.id}_${personId}_manual_` },
             status: "PENDING",
           },
           data: { status: "FAILED" },
@@ -826,7 +826,7 @@ export class SubscriptionsService {
           where: {
             personId,
             orderType: "MEMBERSHIP",
-            refId: { startsWith: `mem_${plan.id}_manual_` },
+            refId: { startsWith: `mem_${plan.id}_${personId}_manual_` },
           },
         })) + 1;
       const created = await tx.membershipSubscription.create({
@@ -844,7 +844,7 @@ export class SubscriptionsService {
       const order = await tx.payment.create({
         data: {
           orderType: "MEMBERSHIP",
-          refId: `mem_${plan.id}_manual_${cycle}`,
+          refId: `mem_${plan.id}_${personId}_manual_${cycle}`,
           personId,
           amount: charge.amount,
           fee: 0,
@@ -1395,7 +1395,7 @@ export class SubscriptionsService {
           where: {
             personId,
             orderType: "MEMBERSHIP",
-            refId: { startsWith: `mem_${sub.planId}_manual_` },
+            refId: { startsWith: `mem_${sub.planId}_${sub.personId}_manual_` },
             status: "PENDING",
           },
           data: { status: "FAILED" },
@@ -1634,7 +1634,7 @@ export class SubscriptionsService {
         where: {
           personId: sub.personId,
           orderType: "MEMBERSHIP",
-          refId: { startsWith: `mem_${sub.planId}_manual_` },
+          refId: { startsWith: `mem_${sub.planId}_${sub.personId}_manual_` },
           status: "PENDING",
         },
         orderBy: { createdAt: "desc" },
@@ -1645,10 +1645,10 @@ export class SubscriptionsService {
           where: {
             personId: sub.personId,
             orderType: "MEMBERSHIP",
-            refId: { startsWith: `mem_${sub.planId}_manual_` },
+            refId: { startsWith: `mem_${sub.planId}_${sub.personId}_manual_` },
           },
         })) + 1;
-      const refId = `mem_${sub.planId}_manual_${cycle}`;
+      const refId = `mem_${sub.planId}_${sub.personId}_manual_${cycle}`;
       const order = await tx.payment.create({
         data: {
           orderType: "MEMBERSHIP",

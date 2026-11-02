@@ -2223,7 +2223,7 @@ describe("SubscriptionsService", () => {
       await fx.prisma.payment.create({
         data: {
           orderType: "MEMBERSHIP",
-          refId: "mem_plan1_manual_1",
+          refId: "mem_plan1_p1_manual_1",
           personId: "p1",
           amount: 10000,
           fee: 0,
@@ -2239,7 +2239,7 @@ describe("SubscriptionsService", () => {
         (p) => p.status === "PENDING",
       );
       expect(order).toBeTruthy();
-      expect(order!.refId).toBe("mem_plan1_manual_2");
+      expect(order!.refId).toBe("mem_plan1_p1_manual_2");
       expect(order!.amount).toBe(10000);
       expect(order!.gateway).toBe("MANUAL");
       expect(notifications.notifySafe).toHaveBeenCalledWith(
