@@ -386,11 +386,39 @@ describe("AuthController - consentimiento legal", () => {
   });
 
   it("magic-link sin consent → verify no estampa", async () => {
+    // Cuenta existente: el link sale sin consent (spec
+    // login-consent-on-create) y verify no estampa nada.
+    await repo.upsertByEmail("plain@omnidance.dev");
     await ctrl.magicLink({ email: "plain@omnidance.dev" });
     const html: string = mailer.send.mock.calls[0][2];
     const token = /token=([^"'\s]+)/.exec(html)![1];
     await ctrl.verify(token, mkRes());
     expect(stampedIds()).toEqual([]);
+  });
+
+  // spec login-consent-on-create: el consent solo se exige cuando el
+  // magic link crearía la Person (email sin cuenta).
+  it("magic-link email sin cuenta + consent:false → 400 consent_required sin mail ni OTP", async () => {
+    await expect(
+      ctrl.magicLink({ email: "nuevo@omnidance.dev" }),
+    ).rejects.toThrow("consent_required");
+    expect(mailer.send).not.toHaveBeenCalled();
+    expect(repo.otps).toHaveLength(0);
+  });
+
+  it("magic-link email sin cuenta + consent:true → envía y estampa al verify", async () => {
+    await ctrl.magicLink({ email: "nuevo@omnidance.dev", consent: true });
+    const html: string = mailer.send.mock.calls[0][2];
+    const token = /token=([^"'\s]+)/.exec(html)![1];
+    await ctrl.verify(token, mkRes());
+    const person = repo.people.get("nuevo@omnidance.dev")!;
+    expect(stampedIds()).toEqual([person.id]);
+  });
+
+  it("magic-link cuenta existente + consent:false → envía igual (sin check en cada login)", async () => {
+    await repo.upsertByEmail("socio@omnidance.dev");
+    await ctrl.magicLink({ email: "socio@omnidance.dev" });
+    expect(mailer.send).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -451,6 +479,7 @@ describe("AuthController - OTP (spec auth-email-otp)", () => {
   });
 
   it("código incorrecto → 401 uniforme y suma intento", async () => {
+    await repo.upsertByEmail("x@omnidance.dev");
     await ctrl.magicLink({ email: "x@omnidance.dev" });
     const real = extractCode(mailer.send.mock.calls[0][2]);
     const wrong = real === "000000" ? "111111" : "000000";

@@ -80,7 +80,7 @@
 ### Login `/login` (+`?mode=register`, `?next=`)
 - Modos: password (default) | magic | register. `/login` NO es anon-only.
 - Password: `POST /auth/login` → cookie → `next ?? /inicio`; 401/400 → invalidCredentials.
-- Magic: `POST /auth/magic-link` → pantalla OTP 6 dígitos → `POST /auth/otp/verify` → `isNew` ? /bienvenida : next|/inicio; 401 otpInvalid; 5 fallos → lock.
+- Magic: `POST /auth/magic-link` → pantalla OTP 6 dígitos → `POST /auth/otp/verify` → `isNew` ? /bienvenida : next|/inicio; 401 otpInvalid; 5 fallos → lock. Consent (spec login-consent-on-create): sin checkbox al pedir link; email sin cuenta → 400 `consent_required` → se revela checkbox y el retry lo lleva.
 - Register: `POST /auth/register` → /bienvenida(?next=); 409 emailTaken. Con password correcto de cuenta seed → login silencioso (claim). Cuenta nueva recibe bienvenida + correo de acceso (link+OTP = verificación de email; `verifiedAt` solo se estampa por link/OTP, nunca por password).
 - Link de email: `GET /auth/verify?token=` → cookie + 302 /inicio|/bienvenida; inválido → 401 HTML.
 - Lockout login: 10 fallos/10min por email+IP → 401.
