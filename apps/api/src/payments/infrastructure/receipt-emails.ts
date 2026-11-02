@@ -57,7 +57,7 @@ export function paymentReceiptEmailHtml(
       ${gatewayRef}
     </table>
     <p style="margin:24px 0 0 0;color:rgba(255,255,255,0.45);font-size:12px;line-height:1.6;text-align:center;">
-      Estado: confirmado. Si no reconoces este cargo, responde a este correo.
+      Estado: confirmado. Si no reconoces este cargo, escribe a soporte@omnidance.tech
     </p>`,
   );
 }

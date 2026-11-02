@@ -33,9 +33,11 @@ function CheckoutReturn() {
   const ts = useTranslations("subscriptions");
   const searchParams = useSearchParams();
   const paymentId = searchParams.get("paymentId");
-  // `sub` llega si el retorno de suscripción cae acá en vez de la ficha
-  // (el redirect real de customer-return va a /academias/:id?sub=…).
+  // `sub` = retorno del disclaimer de tarjeta (customer-return); `src`
+  // distingue la sub de bailarín (member → CTA a Mis academias) de la
+  // de actor (academia/productor → su consola de suscripción).
   const sub = searchParams.get("sub");
+  const src = searchParams.get("src");
   const [phase, setPhase] = useState<Phase>({ kind: "verifying" });
   // orderType llega con el primer poll aunque siga PENDING - los CTAs
   // de failed/stillPending/error lo usan para mandar al destino correcto
@@ -210,8 +212,12 @@ function CheckoutReturn() {
         <>
           <Badge variant="neon">{ts("activated")}</Badge>
           <h1 className="text-xl font-bold">{ts("subOk")}</h1>
-          <Button href="/academia/suscripcion" size="lg" className="w-full">
-            {ts("returnToSubscription")}
+          <Button
+            href={src === "member" ? "/academias" : "/academia/suscripcion"}
+            size="lg"
+            className="w-full"
+          >
+            {src === "member" ? t("returnToAcademies") : ts("returnToSubscription")}
           </Button>
         </>
       )}
@@ -220,8 +226,12 @@ function CheckoutReturn() {
         <>
           <Badge variant="live">{tc("error")}</Badge>
           <h1 className="text-xl font-bold">{ts("subError")}</h1>
-          <Button href="/academia/suscripcion" size="lg" className="w-full">
-            {ts("returnToSubscription")}
+          <Button
+            href={src === "member" ? "/academias" : "/academia/suscripcion"}
+            size="lg"
+            className="w-full"
+          >
+            {src === "member" ? t("returnToAcademies") : ts("returnToSubscription")}
           </Button>
         </>
       )}
