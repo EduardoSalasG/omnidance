@@ -1,6 +1,12 @@
 import type { HTMLAttributes } from "react";
 
-export type BadgeVariant = "neon" | "muted" | "outline" | "live" | "warn";
+export type BadgeVariant =
+  | "neon"
+  | "muted"
+  | "outline"
+  | "live"
+  | "warn"
+  | "success";
 
 const variants: Record<BadgeVariant, string> = {
   neon: "bg-neon/15 text-neon",
@@ -8,6 +14,7 @@ const variants: Record<BadgeVariant, string> = {
   outline: "border border-line text-ink/70",
   live: "bg-red-500/15 text-red-400",
   warn: "bg-warn/15 text-warn",
+  success: "bg-emerald-500/15 text-emerald-300",
 };
 
 type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
