@@ -273,30 +273,28 @@ function WeekCalendar({
   numFmt: Intl.NumberFormat;
 }) {
   const t = useTranslations("academy");
-  // Filas cada media hora: hay clases que parten a :00 y otras a :30;
-  // cada slot cae en la fila del piso de su media hora y una celda
-  // puede juntar varias (p.ej. 19:00 y 19:15 en la fila 19:00).
+  // Filas por hora: cada slot cae en la fila del piso de su hora y
+  // dentro de la celda se desplaza según el minuto (:30 ≈ a la mitad
+  // de la celda, como una agenda real).
   const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
-  const floor30 = (hm: string) => toMin(hm) - (toMin(hm) % 30);
+  const hourOf = (hm: string) => toMin(hm) - (toMin(hm) % 60);
   const toHHMM = (m: number) =>
     `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
   const range = slots.reduce(
     (r, s) => ({
-      min: Math.min(r.min, floor30(s.startTime)),
-      max: Math.max(r.max, floor30(s.startTime)),
+      min: Math.min(r.min, hourOf(s.startTime)),
+      max: Math.max(r.max, hourOf(s.startTime)),
     }),
     { min: Infinity, max: -Infinity },
   );
   const times: string[] = [];
-  for (let m = range.min; m <= range.max; m += 30) times.push(toHHMM(m));
+  for (let m = range.min; m <= range.max; m += 60) times.push(toHHMM(m));
   const at = (d: number, rowMin: number) =>
-    slots.filter(
-      (s) => s.weekday === d && floor30(s.startTime) === rowMin,
-    );
+    slots.filter((s) => s.weekday === d && hourOf(s.startTime) === rowMin);
   return (
     <>
-      {/* Desktop: grilla agenda - fila por media hora, hora una vez a
-          la izquierda, cada día su columna; celda vacía = dash tenue. */}
+      {/* Desktop: grilla agenda - fila por hora, la hora una vez a la
+          izquierda, cada día su columna; celda vacía = dash tenue. */}
       <div
         className="hidden md:grid md:gap-2"
         style={{
@@ -329,14 +327,26 @@ function WeekCalendar({
                     key={`${d}-${time}`}
                     className="flex min-w-0 flex-col gap-1.5"
                   >
-                    {cell.map((s) => (
-                      <SlotCard
-                        key={s.slotId}
-                        slot={s}
-                        numFmt={numFmt}
-                        rowTime={time}
-                      />
-                    ))}
+                    {cell.map((s) => {
+                      // Desplazamiento vertical proporcional al minuto
+                      // de inicio: :30 queda a media celda (~mitad de
+                      // una card de referencia de 88px).
+                      const off = Math.round(
+                        ((toMin(s.startTime) % 60) / 60) * 88,
+                      );
+                      return (
+                        <div
+                          key={s.slotId}
+                          style={off ? { marginTop: off } : undefined}
+                        >
+                          <SlotCard
+                            slot={s}
+                            numFmt={numFmt}
+                            rowTime={time}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div
