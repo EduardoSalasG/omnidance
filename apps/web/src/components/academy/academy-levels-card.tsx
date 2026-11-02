@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { academyTierHas } from "@/lib/academy-features";
@@ -257,11 +257,11 @@ function aggregateLevels(byType: AcademyLevelInsights["byType"]): {
 }
 
 /**
- * Calendario semanal unificado: una columna por día laborado de la
- * data visible con las clases ordenadas por hora. En mobile las
- * columnas se apilan y los días sin clases se ocultan (lista por
- * día); en md+ queda el grid de columnas con los días vacíos como
- * celda tenue.
+ * Calendario semanal tipo agenda: en desktop la hora va en una
+ * columna a la izquierda (una vez por horario) y cada día laborado
+ * es su columna con la clase en su celda (vacía = dash tenue). En
+ * mobile queda la lista apilada por día con la hora como etiqueta
+ * sobre cada clase.
  */
 function WeekCalendar({
   slots,
@@ -273,49 +273,71 @@ function WeekCalendar({
   numFmt: Intl.NumberFormat;
 }) {
   const t = useTranslations("academy");
+  const times = [...new Set(slots.map((s) => s.startTime))].sort();
+  const at = (d: number, time: string) =>
+    slots.find((s) => s.weekday === d && s.startTime === time);
   return (
-    <div
-      className="flex flex-col gap-3 md:grid md:gap-2"
-      style={{
-        gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`,
-      }}
-    >
-      {days.map((d) => {
-        const daySlots = slots
-          .filter((s) => s.weekday === d)
-          .sort((a, b) => a.startTime.localeCompare(b.startTime));
-        const empty = daySlots.length === 0;
-        return (
-          <section
+    <>
+      {/* Desktop: grilla agenda - fila por horario, hora una vez a la
+          izquierda, cada día su columna; celda vacía como dash tenue. */}
+      <div
+        className="hidden md:grid md:gap-2"
+        style={{
+          gridTemplateColumns: `auto repeat(${days.length}, minmax(0, 1fr))`,
+        }}
+      >
+        <span aria-hidden="true" />
+        {days.map((d) => (
+          <h5
             key={d}
-            aria-label={t(`weekday.${d}`)}
-            className={`min-w-0 flex-col gap-1.5 ${
-              empty ? "hidden md:flex" : "flex"
-            }`}
+            className="text-xs font-semibold uppercase tracking-wide text-ink/50"
           >
-            <h5
-              className={`text-xs font-semibold uppercase tracking-wide ${
-                empty ? "text-ink/30" : "text-ink/50"
-              }`}
+            <span aria-hidden="true">
+              {t(`weekday.${d}`).slice(0, 3)}
+            </span>
+            <span className="sr-only">{t(`weekday.${d}`)}</span>
+          </h5>
+        ))}
+        {times.map((time) => (
+          <Fragment key={time}>
+            <p className="flex items-start justify-end pt-1 pr-1 text-xs font-semibold tabular-nums text-ink/50">
+              {time}
+            </p>
+            {days.map((d) => {
+              const s = at(d, time);
+              return s ? (
+                <SlotCard key={`${d}-${time}`} slot={s} numFmt={numFmt} />
+              ) : (
+                <div
+                  key={`${d}-${time}`}
+                  aria-hidden="true"
+                  className="rounded-2xl border border-dashed border-line/60"
+                />
+              );
+            })}
+          </Fragment>
+        ))}
+      </div>
+
+      {/* Mobile: lista apilada por día con la hora como etiqueta de
+          agenda sobre cada clase (un grid de 8 columnas no cabe). */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {days.map((d) => {
+          const daySlots = slots
+            .filter((s) => s.weekday === d)
+            .sort((a, b) => a.startTime.localeCompare(b.startTime));
+          if (daySlots.length === 0) return null;
+          return (
+            <section
+              key={d}
+              aria-label={t(`weekday.${d}`)}
+              className="flex min-w-0 flex-col gap-1.5"
             >
-              {/* Abreviatura visible (Lun, Mar…) igual que /academia/series;
-                  el nombre completo queda para lectores de pantalla. */}
-              <span aria-hidden="true">
-                {t(`weekday.${d}`).slice(0, 3)}
-              </span>
-              <span className="sr-only">{t(`weekday.${d}`)}</span>
-            </h5>
-            {empty ? (
-              <div
-                aria-hidden="true"
-                className="h-full min-h-12 rounded-2xl border border-dashed border-line/60"
-              />
-            ) : (
+              <h5 className="text-xs font-semibold uppercase tracking-wide text-ink/50">
+                {t(`weekday.${d}`)}
+              </h5>
               <ul className="flex flex-col gap-1.5">
                 {daySlots.map((s) => (
-                  // Hora como etiqueta de agenda en la columna del día
-                  // (no dentro de la card): la columna se lee como
-                  // agenda de la semana.
                   <li key={s.slotId}>
                     <p className="mb-0.5 pl-1 text-xs font-semibold tabular-nums text-ink/50">
                       {s.startTime}
@@ -324,11 +346,11 @@ function WeekCalendar({
                   </li>
                 ))}
               </ul>
-            )}
-          </section>
-        );
-      })}
-    </div>
+            </section>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
