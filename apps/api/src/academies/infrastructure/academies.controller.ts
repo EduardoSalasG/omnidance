@@ -1762,6 +1762,16 @@ export class AcademiesController {
         ? new Date(startedAt.getTime() + plan.periodDays * 86_400_000)
         : null;
 
+    // Nivel inicial por defecto (spec enrollment-level-kpi): el alumno
+    // nuevo parte en el nivel más bajo del catálogo en cada tipo de
+    // clase; el owner lo ajusta en la ficha (multinivel por tipo).
+    const [types, base] = await Promise.all([
+      this.prisma.classType.findMany({ select: { id: true } }),
+      this.prisma.classLevel.findFirst({
+        orderBy: { order: "asc" },
+        select: { id: true },
+      }),
+    ]);
     return this.prisma.enrollment.create({
       data: {
         academyId: id,
@@ -1770,6 +1780,16 @@ export class AcademiesController {
         status: dto.status ?? "ACTIVE",
         startedAt,
         endsAt,
+        ...(types.length && base
+          ? {
+              levels: {
+                create: types.map((t) => ({
+                  classTypeId: t.id,
+                  levelId: base.id,
+                })),
+              },
+            }
+          : {}),
       },
     });
   }
@@ -2031,6 +2051,10 @@ export class AcademiesController {
         startedAt: true,
         endsAt: true,
         plan: { select: { id: true, name: true, type: true, price: true } },
+        // Niveles por tipo de clase del alumno (spec
+        // enrollment-level-kpi): la ficha los usa para abrir el
+        // editor con la marca vigente.
+        levels: { select: { classTypeId: true, levelId: true } },
       },
     });
     const enrollment = enrollments[0] ?? null;

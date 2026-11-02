@@ -4,8 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { academyTierHas } from "@/lib/academy-features";
-import { Card } from "@/components/ui";
+import {
+  setAcademyHomeMode,
+  useAcademyHomeMode,
+} from "@/lib/academy-home-mode";
+import { Button, Card, RefreshIcon, Skeleton } from "@/components/ui";
 import { AcademyKpiCards } from "./academy-kpi-strip";
+import { AcademyLevelsCard } from "./academy-levels-card";
 import { AcademyVisibilityCard } from "./academy-visibility-card";
 import {
   birthdayFmt,
@@ -83,6 +88,11 @@ export function AcademyDashboard({
 });
   const locale = useLocale();
   const t = useTranslations("academy");
+
+  // Modo de inicio (spec academies/owner-insights): Simplificado por
+  // defecto (cards accionables llanas), Extendido = métricas completas
+  // + niveles y cupos. Persistido por dispositivo vía useSyncExternalStore.
+  const homeMode = useAcademyHomeMode();
 
   const [dashboard, setDashboard] = useState<AcademyDashboardData | null>(
     null,
@@ -187,11 +197,37 @@ export function AcademyDashboard({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h2 className="text-lg font-semibold">{academy.name}</h2>
-        <p className="text-xs capitalize text-ink/50">
-          {fullDayFmt(locale).format(new Date())}
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs capitalize text-ink/50">
+            {fullDayFmt(locale).format(new Date())}
+          </p>
+          {/* Modo de inicio: Simplificado (default) / Extendido.
+              Segmented por estado (no navegación: persiste en
+              localStorage, mismo look que Segmented soft). */}
+          <div
+            role="group"
+            aria-label={t("homeMode.label")}
+            className="inline-flex rounded-full border border-ink/15 p-0.5"
+          >
+            {(["simple", "extended"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={homeMode === m}
+                onClick={() => setAcademyHomeMode(m)}
+                className={`inline-flex min-h-11 items-center justify-center rounded-full px-3 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
+                  homeMode === m
+                    ? "bg-neon/15 text-neon"
+                    : "text-ink/60 hover:text-ink"
+                }`}
+              >
+                {t(`homeMode.${m}`)}
+              </button>
+            ))}
+          </div>
+        </div>
       </header>
 
       {/* Estado de publicación (spec academy-approval-gate): visible al
@@ -201,19 +237,34 @@ export function AcademyDashboard({
         reviewChecks={academy.reviewChecks}
       />
 
+      {/* Modo Simplificado: 3-4 cards accionables en lenguaje llano
+          (qué hay que hacer hoy) derivadas del mismo dashboard, sin
+          endpoints nuevos. */}
+      {homeMode === "simple" && (
+        <SimpleHomeCards
+          dashboard={dashboard}
+          error={dashError}
+          onRetry={() => void refresh()}
+          expiringHref={expiringHref}
+          canClasses={canClasses}
+        />
+      )}
+
       {/* KPIs del mes (spec consola owner): alumnos activos con plan
           vigente, planes comprables, clases/sem, asistencia/clase,
           facturado y ticket/alumno - con delta vs el mismo tramo del
-          mes anterior donde hay base. */}
-      <AcademyKpiCards
-        data={dashboard}
-        error={dashError}
-        onRetry={() => void refresh()}
-        // Sin el split de género: en inicio no es accionable (el
-        // detalle demográfico vive en alumnos/analítica). El subset se
-        // filtra por feature del tier (spec academy-tier-v2).
-        keys={kpiKeys}
-      />
+          mes anterior donde hay base. Modo Extendido. */}
+      {homeMode === "extended" && (
+        <AcademyKpiCards
+          data={dashboard}
+          error={dashError}
+          onRetry={() => void refresh()}
+          // Sin el split de género: en inicio no es accionable (el
+          // detalle demográfico vive en alumnos/analítica). El subset se
+          // filtra por feature del tier (spec academy-tier-v2).
+          keys={kpiKeys}
+        />
+      )}
 
       {/* Checklist de activación: persiste hasta completar los 4 pasos
           de puesta en marcha (spec academies/owner-insights) - antes se
@@ -257,7 +308,9 @@ export function AcademyDashboard({
       )}
 
       {/* Desktop: dos columnas - operación del día a la izquierda,
-          retención a la derecha. Mobile apila en ese mismo orden. */}
+          retención a la derecha. Mobile apila en ese mismo orden.
+          Modo Extendido. */}
+      {homeMode === "extended" && (
       <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
         <div className="flex min-w-0 flex-col gap-6">
           {/* Hoy - clases del día + asistencia marcada (spec §13). Las
@@ -517,7 +570,180 @@ export function AcademyDashboard({
           )}
         </div>
       </div>
+      )}
+
+      {/* Niveles y cupos por horario (spec academies/owner-insights):
+          solo modo Extendido; la card se oculta sola si el tier no
+          cubre `insights` (PRO) o el caller no es owner/ADMIN. */}
+      {homeMode === "extended" && (
+        <AcademyLevelsCard academy={academy} />
+      )}
     </div>
+  );
+}
+
+/**
+ * Cards accionables del modo Simplificado (spec academies/owner-insights):
+ * 3-4 ítems en lenguaje llano que responden "qué hay que hacer" y llevan
+ * directo a la acción. Todo se deriva del mismo GET /dashboard, sin
+ * endpoints nuevos; las colas vacías quedan en 0 (nada pendiente sigue
+ * siendo información honesta, no un hueco).
+ */
+function SimpleHomeCards({
+  dashboard,
+  error,
+  onRetry,
+  expiringHref,
+  canClasses,
+}: {
+  dashboard: AcademyDashboardData | null;
+  error: boolean;
+  onRetry: () => void;
+  expiringHref?: string;
+  canClasses: boolean;
+}) {
+  const t = useTranslations("academy");
+  const tc = useTranslations("common");
+  const clpFmt = useNumFmt({
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  });
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-3">
+        <p role="alert" className="text-sm text-ink/60">
+          {tc("error")}
+        </p>
+        <Button variant="secondary" size="sm" onClick={onRetry}>
+          <RefreshIcon /> {tc("retry")}
+        </Button>
+      </div>
+    );
+  }
+
+  if (dashboard === null) {
+    // Skeleton con la forma final (mismo estándar que AcademyKpiCards).
+    return (
+      <ul
+        aria-hidden="true"
+        className="page-loading grid grid-cols-2 gap-3 lg:grid-cols-4"
+      >
+        {[0, 1, 2, 3].map((i) => (
+          <li key={i}>
+            <Card className="flex h-full flex-col gap-1 p-4">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-8 w-12" />
+              <Skeleton className="h-3 w-20" />
+            </Card>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  // Cupos libres de hoy: solo clases con capacidad definida; null si
+  // ninguna la informa (entonces el hint genérico toma su lugar).
+  const freeSpotsToday = dashboard.todayClasses.reduce<number | null>(
+    (acc, c) =>
+      c.capacity === null ? acc : (acc ?? 0) + (c.capacity - c.bookedCount),
+    null,
+  );
+
+  const cards = [
+    {
+      key: "claims",
+      href: "/academia/cobros",
+      count: dashboard.pendingClaims.count,
+      title: t("homeMode.claimsTitle"),
+      hint:
+        dashboard.pendingClaims.count > 0
+          ? t("homeMode.claimsHint", {
+              amount: clpFmt.format(dashboard.pendingClaims.amount),
+            })
+          : t("homeMode.claimsDone"),
+    },
+    {
+      key: "expiring",
+      href: expiringHref ?? "/academia/alumnos",
+      count: dashboard.expiringEnrollments.length,
+      title: t("homeMode.expiringTitle"),
+      hint:
+        dashboard.expiringEnrollments.length > 0
+          ? t("homeMode.expiringHint")
+          : t("homeMode.expiringDone"),
+    },
+    ...(canClasses
+      ? [
+          {
+            key: "today",
+            href: "/academia/series",
+            count: dashboard.todayClasses.length,
+            title: t("homeMode.todayTitle"),
+            hint:
+              dashboard.todayClasses.length > 0
+                ? freeSpotsToday !== null && freeSpotsToday > 0
+                  ? t("homeMode.todayFree", { count: freeSpotsToday })
+                  : t("homeMode.todayHint")
+                : t("homeMode.todayDone"),
+          },
+          {
+            key: "lessons",
+            href: "/academia/particulares",
+            count: dashboard.pendingLessons.count,
+            title: t("homeMode.lessonsTitle"),
+            hint:
+              dashboard.pendingLessons.count > 0
+                ? t("homeMode.lessonsHint")
+                : t("homeMode.lessonsDone"),
+          },
+        ]
+      : // Tiers sin `classes` (COBROS): la tercera card es cumpleaños,
+        // accionable igual (saludar al alumno retiene). Con classes
+        // ya hay 4; agregarla rompería el "3-4 cards" del spec.
+        [
+          {
+            key: "birthdays",
+            href: "/academia/alumnos",
+            count: dashboard.upcomingBirthdays.length,
+            title: t("homeMode.birthdaysTitle"),
+            hint:
+              dashboard.upcomingBirthdays.length > 0
+                ? t("homeMode.birthdaysHint")
+                : t("homeMode.birthdaysDone"),
+          },
+        ]),
+  ];
+
+  return (
+    <section aria-label={t("homeMode.simple")}>
+      <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {cards.map((c) => (
+          <li key={c.key}>
+            <Link
+              href={c.href}
+              aria-label={`${c.title}: ${c.count}`}
+              className="block h-full rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98]"
+            >
+              <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/40">
+                <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
+                  {c.title}
+                </span>
+                <span
+                  className={`text-3xl font-bold leading-none tabular-nums ${
+                    c.count > 0 ? "text-neon" : "text-ink/40"
+                  }`}
+                >
+                  {c.count}
+                </span>
+                <span className="text-xs text-ink/50">{c.hint}</span>
+              </Card>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
