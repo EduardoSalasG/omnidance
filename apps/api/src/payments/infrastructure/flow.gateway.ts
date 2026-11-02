@@ -34,7 +34,9 @@ import {
 interface FlowRawInvoice {
   id: number;
   status: number;
-  amount: number;
+  // Flow lo reporta como string ("25000.0000") aunque a veces llega
+  // numérico; se coerciona en normalizeInvoice.
+  amount: number | string;
   period_start?: string;
   period_end?: string;
   payment?: {
@@ -71,9 +73,13 @@ function isFlowInvoicePaid(inv: FlowRawInvoice): boolean {
 }
 
 function normalizeInvoice(inv: FlowRawInvoice): SubscriptionInvoice {
+  // El wire de Flow trae amount como string ("25000.0000"); el port
+  // exige number; NaN/no coercible → 0 y el consumer aplica su
+  // fallback de precio de plan.
+  const amount = Number(inv.amount);
   return {
     id: inv.id,
-    amount: inv.amount,
+    amount: Number.isFinite(amount) ? amount : 0,
     paid: isFlowInvoicePaid(inv),
     periodStart: inv.period_start,
     periodEnd: inv.period_end,

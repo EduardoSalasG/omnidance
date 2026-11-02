@@ -528,6 +528,39 @@ describe("FlowGateway", () => {
           false,
         ]);
       });
+
+      // Flow reporta invoices[].amount como string ("25000.0000"); el
+      // consumer lo persiste en Payment.amount (Int); sin coerción el
+      // reconcile explota y la invoice pagada nunca se liquida.
+      it("invoice.amount string → number en unidad mayor", async () => {
+        mockFetch(
+          sub({
+            status: 1,
+            invoices: [
+              { id: 1, status: 1, amount: "25000.0000" },
+              { id: 2, status: 0, amount: 8000 },
+            ],
+          }),
+        );
+        const out = await makeGateway().getSubscription("x");
+        expect(out.invoices?.[0].amount).toBe(25000);
+        expect(out.invoices?.[1].amount).toBe(8000);
+      });
+
+      it("invoice.amount ausente o no coercible → 0 (fallback del consumer)", async () => {
+        mockFetch(
+          sub({
+            status: 1,
+            invoices: [
+              { id: 1, status: 1 },
+              { id: 2, status: 1, amount: "abc" },
+            ],
+          }),
+        );
+        const out = await makeGateway().getSubscription("x");
+        expect(out.invoices?.[0].amount).toBe(0);
+        expect(out.invoices?.[1].amount).toBe(0);
+      });
     });
 
     it("cancelSubscription → at_period_end=1", async () => {
