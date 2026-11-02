@@ -64,12 +64,25 @@ Primer cobro de suscripción **verificado end-to-end contra Flow sandbox**
   Change `receipt-subject-pagaste` archivado; spec payments/notifications
   actualizada.
 
+## Update 2 (2026-11-02): primer cobro PLATFORM_SUB VERIFICADO
+
+- El re-registro NO subió el tope: el retry de la invoice `1238979`
+  ($1.223.898) ya corrió (attemp_count 2, 12:00:42) y rebotó igual.
+  El tope del mandato sandbox queda entre $39.990 y $1.223.898.
+- Smoke nuevo `smoke-platform-sub-charge.cjs` (crea academia + subscribe
+  COBROS MONTHLY + poll): academia `cmvze8fmd000e6b31e52lt5el` "Academia
+  SmokeSub" → sub `sus_wb16946391` ACTIVE → invoice `1239701` cobrada →
+  `Payment PAID $39.990` (`platsub_cmvze8fq7000h6b31ohzr58ct_1239701`),
+  ledger RENEWAL_SETTLED, academy.tier=COBROS, mail "Pagaste: Suscripción
+  COBROS · mensual · factura 1239701".
+- Ambos primeros cobros verificados E2E: MEMBERSHIP $25.000 y
+  PLATFORM_SUB $39.990.
+
 ## Pendiente
 
-- Completar el primer cobro PLATFORM_SUB de `sus_m0fbb9feea`:
-  re-registrar tarjeta con tope ≥ $1.223.898 y esperar retry de Flow,
-  o cancelar y suscribir un ciclo/tier más barato (COBROS monthly
-  $39.990 probablemente entre bajo el tope actual).
+- La invoice anual `1238979` de La Casa del Mambo seguirá impaga (tope
+  sandbox); si vence (2026-11-04) sin pagar → morose=1 → gracia →
+  billingBlockedAt (camino de mora, testeable igual).
 - `customer/collect` (cobros sueltos plataforma→actor): sin
   implementar.
 - API corriendo con PAYMENT_GATEWAY=flow + tunnel devtunnels
