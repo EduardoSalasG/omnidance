@@ -273,13 +273,30 @@ function WeekCalendar({
   numFmt: Intl.NumberFormat;
 }) {
   const t = useTranslations("academy");
-  const times = [...new Set(slots.map((s) => s.startTime))].sort();
-  const at = (d: number, time: string) =>
-    slots.find((s) => s.weekday === d && s.startTime === time);
+  // Filas cada media hora: hay clases que parten a :00 y otras a :30;
+  // cada slot cae en la fila del piso de su media hora y una celda
+  // puede juntar varias (p.ej. 19:00 y 19:15 en la fila 19:00).
+  const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
+  const floor30 = (hm: string) => toMin(hm) - (toMin(hm) % 30);
+  const toHHMM = (m: number) =>
+    `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  const range = slots.reduce(
+    (r, s) => ({
+      min: Math.min(r.min, floor30(s.startTime)),
+      max: Math.max(r.max, floor30(s.startTime)),
+    }),
+    { min: Infinity, max: -Infinity },
+  );
+  const times: string[] = [];
+  for (let m = range.min; m <= range.max; m += 30) times.push(toHHMM(m));
+  const at = (d: number, rowMin: number) =>
+    slots.filter(
+      (s) => s.weekday === d && floor30(s.startTime) === rowMin,
+    );
   return (
     <>
-      {/* Desktop: grilla agenda - fila por horario, hora una vez a la
-          izquierda, cada día su columna; celda vacía como dash tenue. */}
+      {/* Desktop: grilla agenda - fila por media hora, hora una vez a
+          la izquierda, cada día su columna; celda vacía = dash tenue. */}
       <div
         className="hidden md:grid md:gap-2"
         style={{
@@ -298,25 +315,40 @@ function WeekCalendar({
             <span className="sr-only">{t(`weekday.${d}`)}</span>
           </h5>
         ))}
-        {times.map((time) => (
-          <Fragment key={time}>
-            <p className="flex items-start justify-end pt-1 pr-1 text-xs font-semibold tabular-nums text-ink/50">
-              {time}
-            </p>
-            {days.map((d) => {
-              const s = at(d, time);
-              return s ? (
-                <SlotCard key={`${d}-${time}`} slot={s} numFmt={numFmt} />
-              ) : (
-                <div
-                  key={`${d}-${time}`}
-                  aria-hidden="true"
-                  className="rounded-2xl border border-dashed border-line/60"
-                />
-              );
-            })}
-          </Fragment>
-        ))}
+        {times.map((time) => {
+          const rowMin = toMin(time);
+          return (
+            <Fragment key={time}>
+              <p className="flex items-start justify-end pt-1 pr-1 text-xs font-semibold tabular-nums text-ink/50">
+                {time}
+              </p>
+              {days.map((d) => {
+                const cell = at(d, rowMin);
+                return cell.length > 0 ? (
+                  <div
+                    key={`${d}-${time}`}
+                    className="flex min-w-0 flex-col gap-1.5"
+                  >
+                    {cell.map((s) => (
+                      <SlotCard
+                        key={s.slotId}
+                        slot={s}
+                        numFmt={numFmt}
+                        rowTime={time}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    key={`${d}-${time}`}
+                    aria-hidden="true"
+                    className="rounded-2xl border border-dashed border-line/60"
+                  />
+                );
+              })}
+            </Fragment>
+          );
+        })}
       </div>
 
       {/* Mobile: lista apilada por día con la hora como etiqueta de
@@ -365,9 +397,13 @@ function WeekCalendar({
 function SlotCard({
   slot: s,
   numFmt,
+  rowTime,
 }: {
   slot: AcademyLevelInsights["bySlot"][number];
   numFmt: Intl.NumberFormat;
+  /** Fila de la agenda en que cayó el slot - si la clase parte fuera
+      de múltiplo :00/:30 se muestra su hora real dentro de la card. */
+  rowTime?: string;
 }) {
   const t = useTranslations("academy");
   // Estado del cupo → variant semántica del Badge: sobrecupo en rojo
@@ -389,6 +425,11 @@ function SlotCard({
       >
         {s.levelName ?? t("levels.noLevel")}
       </Badge>
+      {rowTime && s.startTime !== rowTime && (
+        <p className="text-xs font-semibold tabular-nums text-ink/50">
+          {s.startTime}
+        </p>
+      )}
       <p className="truncate text-sm font-medium">{s.seriesName}</p>
         <div className="tabular-nums">
           <p className="text-lg font-bold leading-none">
