@@ -3,6 +3,27 @@
 Brainstorming → diseño (2026-11-02). Decisiones tomadas con el owner en
 sesión; cada bloque se implementa como su propio change OpenSpec.
 
+## Principio rector (aplica a TODO el diseño de consolas)
+
+**"Don't Make Me Think"** (Krug): la interfaz se entiende sola, sin
+carga de interpretación. El owner de academia hace TODO solo (clases,
+contenido, publicidad, inscripciones) — no es técnico, no viene de
+plataformas enterprise. Reglas derivadas:
+
+- **Insight interpretado, no métrica cruda**: no "asistencia 73%",
+  sino "Lunes 19:00 · Iniciación: 3 cupos". Lenguaje llano, términos
+  de la persona (alumnos, clases, cupos) no del sistema (occupancy,
+  KPI, cohort).
+- **Zero-config**: ningún dashboard configurable; el default ES el
+  producto. Quien no tiene tiempo de analizar tampoco tiene tiempo de
+  configurar.
+- **Cards accionables**: cada card responde "qué tengo que saber/hacer
+  ahora" y linkea a la acción, no a otra vista de datos.
+- **Pocos taps**: acciones del owner medidas en taps desde el inicio
+  (meta ≤2 para cambiar horario de clase: ver clase → editar inline).
+  Wizards multi-paso solo para flujos de alta (una sola vez).
+- **Destructivo = rojo** (ya implementado: variant `danger`).
+
 ## 1. Nivel del alumno por tipo de clase + KPI nivel×horario
 
 ### Decisión del modelo
@@ -37,6 +58,19 @@ level de la serie), `capacity` del slot, cupos vacíos, promedio de
 asistencia y asistencia de la última instancia (`Attendance`/`Class`
 ya existen). Uso: el owner ve qué horario tiene cupo por nivel cuando
 llega un alumno nuevo de publicidad, sin saturar.
+
+### Inicio Simplificado vs Extendido (decisión 2026-11-02)
+
+Dos modos de lectura, NO dos packs de métricas:
+
+- **Simplificado (default)**: 3-4 cards accionables en lenguaje llano
+  (cupos disponibles hoy por clase, alumnos por vencer, comprobantes
+  por revisar). Cada card responde qué hay que hacer y linkea a la
+  acción.
+- **Extendido**: lo actual + este grid nivel×horario.
+
+Rechazado: KPIs personalizables por usuario (patrón enterprise; el
+usuario que no tiene tiempo de analizar tampoco configura).
 
 Endpoint sugerido: `GET /academies/:id/insights/levels` →
 `{byType: [{typeId, typeName, levels: [{levelId, levelName, count}]}],
