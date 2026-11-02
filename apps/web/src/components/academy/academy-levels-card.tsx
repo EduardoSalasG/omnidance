@@ -7,7 +7,6 @@ import { academyTierHas } from "@/lib/academy-features";
 import {
   Badge,
   Card,
-  ClockIcon,
   PillTabs,
   UsersIcon,
   type BadgeVariant,
@@ -314,7 +313,15 @@ function WeekCalendar({
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {daySlots.map((s) => (
-                  <SlotCard key={s.slotId} slot={s} numFmt={numFmt} />
+                  // Hora como etiqueta de agenda en la columna del día
+                  // (no dentro de la card): la columna se lee como
+                  // agenda de la semana.
+                  <li key={s.slotId}>
+                    <p className="mb-0.5 pl-1 text-xs font-semibold tabular-nums text-ink/50">
+                      {s.startTime}
+                    </p>
+                    <SlotCard slot={s} numFmt={numFmt} />
+                  </li>
                 ))}
               </ul>
             )}
@@ -342,16 +349,10 @@ function SlotCard({
 }) {
   const t = useTranslations("academy");
   // Estado del cupo → variant semántica del Badge: sobrecupo en rojo
-  // (problema), lleno en neon (cupo completo = meta ok), 1-2 libres en
-  // warn (atención), el resto neutro.
+  // (problema), lleno en neon (cupo completo = meta ok), libres en
+  // verde (hay espacio para alumnos nuevos).
   const statusVariant: BadgeVariant =
-    s.empty < 0
-      ? "live"
-      : s.empty === 0
-        ? "neon"
-        : s.empty <= 2
-          ? "warn"
-          : "muted";
+    s.empty < 0 ? "live" : s.empty === 0 ? "neon" : "success";
   const statusText =
     s.empty < 0
       ? t("levels.overbooked", { count: -s.empty })
@@ -359,19 +360,14 @@ function SlotCard({
         ? t("levels.full")
         : t("levels.spotsLeft", { count: s.empty });
   return (
-    <li>
-      <Card className="flex h-full flex-col gap-1.5 px-3 py-2.5">
-        <Badge
-          variant={s.levelName ? "outline" : "muted"}
-          className="max-w-full self-start"
-        >
-          {s.levelName ?? t("levels.noLevel")}
-        </Badge>
-        <p className="flex items-center gap-1 text-xs font-semibold tabular-nums text-ink/60">
-          <ClockIcon className="h-3.5 w-3.5 shrink-0" />
-          {s.startTime}
-        </p>
-        <p className="truncate text-sm font-medium">{s.seriesName}</p>
+    <Card className="flex h-full flex-col gap-1.5 px-3 py-2.5">
+      <Badge
+        variant={s.levelName ? "outline" : "muted"}
+        className="max-w-full self-start"
+      >
+        {s.levelName ?? t("levels.noLevel")}
+      </Badge>
+      <p className="truncate text-sm font-medium">{s.seriesName}</p>
         <div className="tabular-nums">
           <p className="text-lg font-bold leading-none">
             <span className="sr-only">
@@ -406,7 +402,6 @@ function SlotCard({
         <Badge variant={statusVariant} className="max-w-full self-start">
           {statusText}
         </Badge>
-      </Card>
-    </li>
+    </Card>
   );
 }
