@@ -4,7 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { academyTierHas } from "@/lib/academy-features";
-import { Card } from "@/components/ui";
+import {
+  Badge,
+  Card,
+  ClockIcon,
+  PillTabs,
+  UsersIcon,
+  type BadgeVariant,
+} from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 import { useNumFmt } from "@/lib/intl";
 import type { Academy, AcademyLevelInsights } from "./shared";
@@ -59,15 +66,25 @@ export function useAcademyLevelInsights(academy: Academy): {
 
 /**
  * Card "Niveles y cupos" del inicio Extendido (spec
- * academies/owner-insights). Estructura por tipo de clase:
- * subtítulo (tipo + total de alumnos), fila de KPI cards por nivel
- * (número grande + label, mismo lenguaje que MiniKpi/KpiCard) y debajo
- * la lista compacta de horarios que sirven ese tipo con
- * asignados/capacidad y cupos libres en primer plano. Un slot puede
- * servir varios tipos: se repite en cada sección que cubre; los que no
- * matchean ningún tipo van a la sección general "Cupos por horario".
+ * academies/owner-insights). Un solo set de KPI cards por nivel
+ * (número grande + label, mismo lenguaje que MiniKpi/KpiCard) y un
+ * solo calendario semanal con una card por horario: ocupación y cupos
+ * libres en primer plano, asistencia como dato terciario.
+ * El header lleva un filtro de tipo (PillTabs, mismo patrón de
+ * /analitica) y ambos bloques le responden: un tipo concreto muestra
+ * sus niveles y solo sus horarios (la semana usa solo sus días);
+ * "Todos" agrega los niveles por nombre sumando entre tipos (un
+ * alumno puede contar en más de uno: el total del pie lo aclara) y
+ * junta todos los horarios en la semana unificada, incluidos los que
+ * no matchean ningún tipo. Un slot que sirve varios tipos aparece
+ * una sola vez.
  * Presentacional: el fetch lo hace useAcademyLevelInsights en el padre.
  */
+
+// Orden de columnas del calendario: la semana visual parte en lunes
+// (convención es-CL del repo, ver WEEKDAY_HEADERS en lib/calendar.ts)
+// pero weekday vale 0-6 con domingo=0.
+const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
 export function AcademyLevelsCard({
   data,
 }: {
@@ -77,28 +94,77 @@ export function AcademyLevelsCard({
   // Asistencia promedio con un decimal (el server ya redondea a 0.1).
   const numFmt = useNumFmt({ maximumFractionDigits: 1 });
 
+  // Filtro por tipo de clase con el mismo patrón de /analitica
+  // (PillTabs: pills tablist de estado local). "all" = vista completa.
+  const [typeFilter, setTypeFilter] = useState("all");
+
   // Sin horarios ni niveles: la card explica qué falta en vez de
   // mostrar una grilla de ceros.
   const nothingYet =
     data.bySlot.length === 0 &&
     data.byType.every((ty) => ty.levels.every((l) => l.count === 0));
 
-  // Slots por tipo + los que no matchean ninguno (series sin tipo).
-  const matchedSlotIds = new Set<string>();
-  const slotsByType = data.byType.map((ty) => {
-    const slots = data.bySlot.filter((s) =>
-      s.types.some((st) => st.typeId === ty.typeId),
-    );
-    for (const s of slots) matchedSlotIds.add(s.slotId);
-    return { type: ty, slots };
-  });
-  const otherSlots = data.bySlot.filter((s) => !matchedSlotIds.has(s.slotId));
+  // Si la data recargada ya no trae el tipo elegido, el filtro cae a
+  // "all" sin necesidad de un efecto.
+  const activeType = data.byType.some((ty) => ty.typeId === typeFilter)
+    ? typeFilter
+    : "all";
+
+  // KPIs por nivel, reactivos al filtro: "Todos" agrega por nombre de
+  // nivel sumando entre tipos (Iniciación de En Pareja + Iniciación de
+  // Shines en la misma card); un tipo concreto usa sus niveles tal como
+  // vienen del server.
+  const visibleLevels =
+    activeType === "all"
+      ? aggregateLevels(data.byType)
+      : (data.byType
+          .find((ty) => ty.typeId === activeType)
+          ?.levels.map((l) => ({
+            key: l.levelId,
+            name: l.levelName,
+            count: l.count,
+          })) ?? []);
+  const levelTotal = visibleLevels.reduce((a, l) => a + l.count, 0);
+
+  // Un solo calendario: "Todos" junta cada horario una sola vez (los
+  // que no matchean ningún tipo también entran); filtrado deja solo
+  // los del tipo activo y los sin tipo se ocultan.
+  const visibleSlots =
+    activeType === "all"
+      ? data.bySlot
+      : data.bySlot.filter((s) =>
+          s.types.some((st) => st.typeId === activeType),
+        );
+  // Columnas = días laborados de la data visible, en orden lun-dom:
+  // con un tipo filtrado la semana usa solo sus días y las cards
+  // ganan ancho.
+  const weekDays = WEEK_ORDER.filter((d) =>
+    visibleSlots.some((s) => s.weekday === d),
+  );
 
   return (
     <section aria-label={t("levels.title")} className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-        {t("levels.title")}
-      </h3>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+          {t("levels.title")}
+        </h3>
+        {/* Con un solo tipo "Todos" y ese tipo son la misma vista: el
+            filtro solo aparece cuando la data trae 2 o más tipos. */}
+        {!nothingYet && data.byType.length > 1 && (
+          <PillTabs
+            ariaLabel={t("levels.typeFilterLabel")}
+            active={activeType}
+            onSelect={setTypeFilter}
+            items={[
+              { key: "all", label: t("levels.allTypes") },
+              ...data.byType.map((ty) => ({
+                key: ty.typeId,
+                label: ty.typeName,
+              })),
+            ]}
+          />
+        )}
+      </div>
       {nothingYet ? (
         <Card padded={false}>
           <div className="flex items-center justify-between gap-3 px-4 py-4">
@@ -112,81 +178,52 @@ export function AcademyLevelsCard({
           </div>
         </Card>
       ) : (
-        <div className="flex flex-col gap-5">
-          {slotsByType.map(({ type, slots }) => {
-            const total = type.levels.reduce((a, l) => a + l.count, 0);
-            return (
-              <section
-                key={type.typeId}
-                aria-label={type.typeName}
-                className="flex flex-col gap-2"
-              >
-                {/* Tipo de clase: subtítulo de sección + total de alumnos
-                    activos (multinivel: un alumno puede contar en más de
-                    un nivel del mismo tipo). */}
-                <div className="flex items-baseline justify-between gap-3">
-                  <h4 className="text-sm font-semibold">{type.typeName}</h4>
-                  <p className="text-xs tabular-nums text-ink/50">
-                    {t("levels.typeTotal", { count: total })}
-                  </p>
-                </div>
-
-                {/* Alumnos por nivel como KPIs limpios: número grande en
-                    primer plano, nombre del nivel como label. */}
-                <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {type.levels.map((l) => (
-                    <li key={l.levelId}>
-                      <Card className="flex h-full flex-col gap-0.5 px-3 py-2.5">
-                        <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
-                          {l.levelName}
-                        </span>
-                        <span
-                          className={`text-2xl font-bold leading-none tabular-nums ${
-                            l.count > 0 ? "text-neon" : "text-ink/40"
-                          }`}
-                        >
-                          {l.count}
-                        </span>
-                      </Card>
-                    </li>
-                  ))}
-                </ul>
-
-                {/* Cupos por horario del tipo: ocupación y cupos libres
-                    en primer plano, asistencia como dato terciario. */}
-                {slots.length > 0 && (
-                  <Card padded={false}>
-                    <p className="px-4 pb-1 pt-2.5 text-xs font-semibold uppercase tracking-wide text-ink/50">
-                      {t("levels.bySlotTitle")}
-                    </p>
-                    <ul className="flex flex-col divide-y divide-line">
-                      {slots.map((s) => (
-                        <SlotRow key={s.slotId} slot={s} numFmt={numFmt} />
-                      ))}
-                    </ul>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            {/* Alumnos por nivel como KPIs limpios: número grande en
+                primer plano, nombre del nivel como label. */}
+            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {visibleLevels.map((l) => (
+                <li key={l.key}>
+                  <Card className="flex h-full flex-col gap-0.5 px-3 py-2.5">
+                    <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
+                      {l.name}
+                    </span>
+                    <span
+                      className={`text-2xl font-bold leading-none tabular-nums ${
+                        l.count > 0 ? "text-neon" : "text-ink/40"
+                      }`}
+                    >
+                      {l.count}
+                    </span>
                   </Card>
-                )}
-              </section>
-            );
-          })}
+                </li>
+              ))}
+            </ul>
+            {/* Total del pie: en "Todos" con varios tipos aclara que
+                la suma es por tipo (un alumno puede contar en más de
+                uno); con un solo tipo o filtrado es el total plano. */}
+            <p className="text-xs tabular-nums text-ink/50">
+              {activeType === "all" && data.byType.length > 1
+                ? t("levels.allTotal", { count: levelTotal })
+                : t("levels.typeTotal", { count: levelTotal })}
+            </p>
+          </div>
 
-          {/* Horarios sin tipo matcheable (series sin ClassType). */}
-          {otherSlots.length > 0 && (
-            <section
-              aria-label={t("levels.bySlotTitle")}
-              className="flex flex-col gap-2"
-            >
-              <h4 className="text-sm font-semibold">
-                {t("levels.bySlotTitle")}
-              </h4>
-              <Card padded={false}>
-                <ul className="flex flex-col divide-y divide-line">
-                  {otherSlots.map((s) => (
-                    <SlotRow key={s.slotId} slot={s} numFmt={numFmt} />
-                  ))}
-                </ul>
-              </Card>
-            </section>
+          {/* Cupos por horario como un solo calendario semanal: una
+              columna por día laborado, una card por clase. */}
+          {visibleSlots.length > 0 ? (
+            <WeekCalendar
+              slots={visibleSlots}
+              days={weekDays}
+              numFmt={numFmt}
+            />
+          ) : (
+            <p className="text-xs text-ink/50">
+              {activeType === "all"
+                ? t("levels.noSlots")
+                : t("levels.noSlotsForType")}
+            </p>
           )}
         </div>
       )}
@@ -195,12 +232,108 @@ export function AcademyLevelsCard({
 }
 
 /**
- * Fila de cupo por horario. Primario: nombre de la serie y la
- * ocupación (asignados/capacidad, número grande). Secundario: día y
- * hora + estado de cupos (warn si quedan 2 o menos, o sobrecupo).
- * Terciario: asistencia reciente.
+ * Agrega niveles por nombre entre tipos para la vista "Todos":
+ * Iniciación de En Pareja e Iniciación de Shines suman en la misma
+ * KPI card. El orden resultante es el de primera aparición en
+ * byType (orden que ya trae el server).
  */
-function SlotRow({
+function aggregateLevels(byType: AcademyLevelInsights["byType"]): {
+  key: string;
+  name: string;
+  count: number;
+}[] {
+  const agg = new Map<string, { key: string; name: string; count: number }>();
+  for (const ty of byType) {
+    for (const l of ty.levels) {
+      const k = l.levelName.trim().toLowerCase();
+      const prev = agg.get(k);
+      if (prev) {
+        prev.count += l.count;
+      } else {
+        agg.set(k, { key: l.levelId, name: l.levelName, count: l.count });
+      }
+    }
+  }
+  return [...agg.values()];
+}
+
+/**
+ * Calendario semanal unificado: una columna por día laborado de la
+ * data visible con las clases ordenadas por hora. En mobile las
+ * columnas se apilan y los días sin clases se ocultan (lista por
+ * día); en md+ queda el grid de columnas con los días vacíos como
+ * celda tenue.
+ */
+function WeekCalendar({
+  slots,
+  days,
+  numFmt,
+}: {
+  slots: AcademyLevelInsights["bySlot"];
+  days: readonly number[];
+  numFmt: Intl.NumberFormat;
+}) {
+  const t = useTranslations("academy");
+  return (
+    <div
+      className="flex flex-col gap-3 md:grid md:gap-2"
+      style={{
+        gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`,
+      }}
+    >
+      {days.map((d) => {
+        const daySlots = slots
+          .filter((s) => s.weekday === d)
+          .sort((a, b) => a.startTime.localeCompare(b.startTime));
+        const empty = daySlots.length === 0;
+        return (
+          <section
+            key={d}
+            aria-label={t(`weekday.${d}`)}
+            className={`min-w-0 flex-col gap-1.5 ${
+              empty ? "hidden md:flex" : "flex"
+            }`}
+          >
+            <h5
+              className={`text-xs font-semibold uppercase tracking-wide ${
+                empty ? "text-ink/30" : "text-ink/50"
+              }`}
+            >
+              {/* Abreviatura visible (Lun, Mar…) igual que /academia/series;
+                  el nombre completo queda para lectores de pantalla. */}
+              <span aria-hidden="true">
+                {t(`weekday.${d}`).slice(0, 3)}
+              </span>
+              <span className="sr-only">{t(`weekday.${d}`)}</span>
+            </h5>
+            {empty ? (
+              <div
+                aria-hidden="true"
+                className="h-full min-h-12 rounded-2xl border border-dashed border-line/60"
+              />
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {daySlots.map((s) => (
+                  <SlotCard key={s.slotId} slot={s} numFmt={numFmt} />
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Card de clase dentro del calendario semanal (arquetipo lectura de
+ * ui-cards). Arriba la clasificación: chip con el nivel de la serie
+ * (neutro "Sin nivel" si no tiene). Contexto: hora con reloj y nombre
+ * de la serie. Primario: ocupación asignados/capacidad con icono de
+ * personas, con el chip de estado del cupo junto al número que lo
+ * motiva. Terciario: asistencia reciente en muted.
+ */
+function SlotCard({
   slot: s,
   numFmt,
 }: {
@@ -208,58 +341,65 @@ function SlotRow({
   numFmt: Intl.NumberFormat;
 }) {
   const t = useTranslations("academy");
-  const tight = s.empty <= 2;
+  // Estado del cupo → variant semántica del Badge: sobrecupo en rojo
+  // (problema), lleno en neon (cupo completo = meta ok), 1-2 libres en
+  // warn (atención), el resto neutro.
+  const statusVariant: BadgeVariant =
+    s.empty < 0
+      ? "live"
+      : s.empty === 0
+        ? "neon"
+        : s.empty <= 2
+          ? "warn"
+          : "muted";
+  const statusText =
+    s.empty < 0
+      ? t("levels.overbooked", { count: -s.empty })
+      : s.empty === 0
+        ? t("levels.full")
+        : t("levels.spotsLeft", { count: s.empty });
   return (
-    <li className="flex items-center gap-3 px-4 py-2.5">
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">
-          {s.seriesName}
-          {s.levelName ? (
-            <span className="font-normal text-ink/60"> · {s.levelName}</span>
-          ) : null}
+    <li>
+      <Card className="flex h-full flex-col gap-1.5 px-3 py-2.5">
+        <Badge
+          variant={s.levelName ? "outline" : "muted"}
+          className="max-w-full self-start"
+        >
+          {s.levelName ?? t("levels.noLevel")}
+        </Badge>
+        <p className="flex items-center gap-1 text-xs font-semibold tabular-nums text-ink/60">
+          <ClockIcon className="h-3.5 w-3.5 shrink-0" />
+          {s.startTime}
         </p>
-        <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-xs">
-          <span className="capitalize font-medium text-ink/70">
-            {t(`weekday.${s.weekday}`)} · {s.startTime}
-          </span>
-          <span className="text-ink/50">
-            {s.avgAttendance !== null
-              ? t("levels.avgAttendance", {
-                  value: numFmt.format(s.avgAttendance),
-                })
-              : t("levels.noAttendance")}
-            {s.lastClassAttendance !== null &&
-              ` · ${t("levels.lastAttendance", {
-                count: s.lastClassAttendance,
-              })}`}
-          </span>
-        </p>
-      </div>
-      <div className="shrink-0 text-right">
-        <p className="text-base font-semibold leading-none tabular-nums">
+        <p className="truncate text-sm font-medium">{s.seriesName}</p>
+        <p className="text-lg font-bold leading-none tabular-nums">
           <span className="sr-only">
             {t("levels.assignedOf", {
               assigned: s.assigned,
               capacity: s.capacity,
             })}
           </span>
-          <span aria-hidden="true">
+          <span aria-hidden="true" className="flex items-center gap-1">
+            <UsersIcon className="h-4 w-4 text-ink/50" />
             {s.assigned}
             <span className="font-normal text-ink/50">/{s.capacity}</span>
           </span>
         </p>
-        <p
-          className={`mt-1 text-xs font-medium tabular-nums ${
-            tight ? "text-warn" : "text-ink/70"
-          }`}
-        >
-          {s.empty < 0
-            ? t("levels.overbooked", { count: -s.empty })
-            : s.empty === 0
-              ? t("levels.full")
-              : t("levels.spotsLeft", { count: s.empty })}
+        <Badge variant={statusVariant} className="max-w-full self-start">
+          {statusText}
+        </Badge>
+        <p className="text-[11px] leading-snug text-ink/40">
+          {s.avgAttendance !== null
+            ? t("levels.avgAttendance", {
+                value: numFmt.format(s.avgAttendance),
+              })
+            : t("levels.noAttendance")}
+          {s.lastClassAttendance !== null &&
+            ` · ${t("levels.lastAttendance", {
+              count: s.lastClassAttendance,
+            })}`}
         </p>
-      </div>
+      </Card>
     </li>
   );
 }

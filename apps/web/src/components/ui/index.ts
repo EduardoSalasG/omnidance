@@ -28,6 +28,7 @@ export {
   CheckIcon,
   XIcon,
   PlusIcon,
+  UsersIcon,
   PlayIcon,
   StarIcon,
 } from "./icons";

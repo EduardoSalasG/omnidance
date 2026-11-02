@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, SkeletonList, Spinner } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  SkeletonList,
+  Spinner,
+  type BadgeVariant,
+} from "@/components/ui";
 import type { PaymentAuditRow } from "@/components/payments/shared";
 import {
   PAYMENT_STATUS_VARIANT,
@@ -12,7 +19,7 @@ import {
 } from "@/components/payments/shared";
 import type { QueueClaim } from "./claims-queue";
 import { Link } from "@/i18n/navigation";
-import { getNumFmt, useDateFmt, useNumFmt } from "@/lib/intl";
+import { getNumFmt, useDateFmt } from "@/lib/intl";
 
 const clp = (locale: string) => getNumFmt(locale, {
   style: "currency",
@@ -29,7 +36,7 @@ type Row = {
   subtitle: string;
   status: string;
   statusLabel: string;
-  variant: "neon" | "live" | "muted" | "outline";
+  variant: BadgeVariant;
   date: string;
 };
 
@@ -121,7 +128,7 @@ export function CobrosHistory({ academyId }: { academyId: string }) {
         .slice(0, shown),
     );
     setLoadingMore(false);
-  }, [academyId, shown, t, tp]);
+  }, [academyId, shown, locale, t, tp]);
 
   useEffect(() => {
     void load();
