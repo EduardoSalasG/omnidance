@@ -165,6 +165,19 @@ export default function ProducerEventDetailPage(
     }
   }
 
+  // Link público de captación (spec public-event-landing): /e/<id> es
+  // la landing sin sesión que el productor comparte por redes/WhatsApp.
+  async function copyPublicLink() {
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/e/${eventId}`,
+      );
+      setNotice({ text: t("publicLinkCopied") });
+    } catch {
+      setNotice({ text: tc("error"), error: true });
+    }
+  }
+
   const canManage =
     event != null &&
     (event.producerId === undefined ||
@@ -287,6 +300,13 @@ export default function ProducerEventDetailPage(
                     {t("editEvent")}
                   </Button>
                 )}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void copyPublicLink()}
+                >
+                  {t("copyPublicLink")}
+                </Button>
               </div>
             )}
 

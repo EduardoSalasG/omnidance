@@ -51,6 +51,8 @@
     "updated": "Evento actualizado.",
     "published": "Evento publicado.",
     "cancelled": "Evento cancelado.",
+    "copyPublicLink": "Copiar link público",
+    "publicLinkCopied": "Link público copiado.",
     "publish": "Publicar",
     "cancelEvent": "Cancelar evento",
     "cancelConfirmTitle": "¿Cancelar el evento?",

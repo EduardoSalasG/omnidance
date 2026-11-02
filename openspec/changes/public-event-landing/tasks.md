@@ -1,5 +1,5 @@
 # Tasks; public-event-landing
-- [ ] `/e` en PUBLIC_PREFIXES del middleware.
-- [ ] Page (marketing)/e/[id]: landing del evento + CTA login con next.
-- [ ] Link copiable en consola productor.
-- [ ] i18n + tsc/eslint + qa-flows-inventory.
+- [x] `/e` en PUBLIC_PREFIXES del middleware.
+- [x] Page (marketing)/e/[id]: landing del evento + CTA login con next.
+- [x] Link copiable en consola productor.
+- [x] i18n + tsc/eslint + qa-flows-inventory.

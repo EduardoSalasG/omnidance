@@ -4,6 +4,19 @@
   "filterByStyle": "Filtrar por estilo",
   "genresLabel": "Géneros"
  },
+ "eventLanding": {
+  "buyCta": "Comprar entrada",
+  "buyHint": "Para comprar entras con tu cuenta o creas una gratis al continuar.",
+  "unavailableTitle": "Este evento no está disponible",
+  "unavailableDesc": "El link pudo vencer o el evento fue retirado de la venta.",
+  "cancelledNote": "Este evento fue cancelado por su productor.",
+  "pastNote": "Este evento ya pasó.",
+  "errorTitle": "No pudimos cargar el evento",
+  "errorDesc": "Revisa tu conexión e inténtalo de nuevo.",
+  "exploreCta": "Explorar Omnidance",
+  "metaDescription": "{name} · {date} en {venue}. Compra tu entrada en Omnidance.",
+  "metaDescriptionNoVenue": "{name} · {date}. Compra tu entrada en Omnidance."
+ },
  "seriesEngagement": {
   "title": "La serie en números",
   "avgAttendance": "Asistencia / noche",

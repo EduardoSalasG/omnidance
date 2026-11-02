@@ -90,6 +90,12 @@
 - SSR `GET /tickets/claim/:token` → 404 → pantalla "gone". Anon → CTAs register/login con `next` round-trip.
 - Logueado → `POST /tickets/claim/:token` → éxito → `/eventos?view=mios`; 409 "tuya" → selfError; otros 409/404 → claimError.
 
+### Landing pública de evento `/e/[id]` (público; spec public-event-landing)
+- SSR `GET /events/:id` (endpoint público). 404 → pantalla "no disponible"; DRAFT → misma pantalla (no expone borradores); fallo API → error + retry a la misma ruta.
+- Contenido: badges serie/tipo/LIVE/cancelado/pasado, géneros + GenreMixBar (herencia serie), venue (o venueText) + address/venueNotes, precios preventa/puerta (PriceTag con currency del evento) o "Gratis", descripción.
+- CTA "Comprar entrada": anónimo → `/login?next=/eventos/{id}` (next sin locale; round-trip estándar); con sesión → `/eventos/{id}` directo. CANCELLED/pasado/CLOSED → nota sin CTA.
+- El link lo copia el productor desde la ficha del evento (`/productor/eventos/[id]` → "Copiar link público" copia `{origin}/e/{id}` con ActionNotice).
+
 ### Legales `/terminos`, `/privacidad`
 - Estático; links de retorno/cruce. Sin API.
 
@@ -248,7 +254,7 @@
 
 ### Ficha evento `/productor/eventos/[id]` (consola operativa)
 - `GET /events/:id` + `useMe`; canManage = producerId===me.id||admin.
-- Acciones header (canManage): **Publicar** (solo DRAFT) `POST /events/:id/publish` (409) sin confirm; **Editar** → /nuevo?edit=; **Cancelar** (DRAFT|PUBLISHED|LIVE) → bottom-sheet confirm → `POST /events/:id/cancel` (409).
+- Acciones header (canManage): **Publicar** (solo DRAFT) `POST /events/:id/publish` (409) sin confirm; **Editar** → /nuevo?edit=; **Copiar link público** → clipboard `{origin}/e/{id}` (landing de captación, ver §1) con ActionNotice; **Cancelar** (DRAFT|PUBLISHED|LIVE) → bottom-sheet confirm → `POST /events/:id/cancel` (409).
 - Secciones: FeeInline (admin+editable: PATCH platformFeePct); Live (PUBLISHED/LIVE/CLOSED: ventas, checkins, ocupación, barras por hora); Staff (lista + CTA nuevo [Pro-gated]); Passes (read-only tipos PAID|ARTIST|STAFF|COMP|LIST|FREE_WINDOW); Payments (`/payments/by-event`, filtros status+perPage); AcademySales (deals propios+serie → academias/{dealId}, CTA nueva); Suggestions (top-20); Reservations (`/table-reservations/manage`, filtro status, expandible editar partySize/tableNo→PATCH CONFIRMED, **cancelar sin confirm**); EventLists (guest-lists del evento → /listas/{id}, CTA nueva?eventId); Ratings summary (k-anon <3→notEnough); Analytics (**Pro-gated**, <3 asistentes→insufficient).
 - Edge: CLOSED→recap; DRAFT/CANCELLED→sin live; no-owner→canManage false.
 
