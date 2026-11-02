@@ -2199,6 +2199,160 @@ describe("SubscriptionsService", () => {
     });
   });
 
+  // ─── subscription-manual-transfer: renovación por ciclo ──────────
+  // Barrido diario (dentro de subscriptions.reconcile): la sub TRANSFER
+  // ACTIVE cuyo currentPeriodEnd entra en la ventana lead_days recibe la
+  // orden PENDING del ciclo siguiente + aviso; idempotente por orden
+  // viva. El settle del claim extiende el período desde el fin previo.
+  describe("reconcileManualRenewals (TRANSFER)", () => {
+    const DAY = 24 * 60 * 60_000;
+    const mkManualSub = (over: Partial<Row> = {}) =>
+      mkSub({
+        status: "ACTIVE",
+        paymentMethod: "TRANSFER",
+        currency: "CLP",
+        planChargeClp: 10000,
+        currentPeriodEnd: new Date(Date.now() + 3 * DAY),
+        nextInvoiceAt: new Date(Date.now() + 3 * DAY),
+        ...over,
+      });
+
+    it("emite la orden PENDING del ciclo siguiente + avisa con la URL del claim", async () => {
+      fx.subs.push(mkManualSub());
+      // El alta ya liquidó su ciclo 1 (PAID) - el barrido emite el 2.
+      await fx.prisma.payment.create({
+        data: {
+          orderType: "MEMBERSHIP",
+          refId: "mem_plan1_manual_1",
+          personId: "p1",
+          amount: 10000,
+          fee: 0,
+          net: 10000,
+          currency: "CLP",
+          gateway: "MANUAL",
+          status: "PAID",
+        },
+      });
+      const r = await svc.reconcileManualRenewals("spec");
+      expect(r).toEqual({ checked: 1, issued: 1 });
+      const order = [...fx.payments.values()].find(
+        (p) => p.status === "PENDING",
+      );
+      expect(order).toBeTruthy();
+      expect(order!.refId).toBe("mem_plan1_manual_2");
+      expect(order!.amount).toBe(10000);
+      expect(order!.gateway).toBe("MANUAL");
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "p1",
+        expect.objectContaining({
+          type: "membership.transfer_renewal",
+          data: expect.objectContaining({
+            subscriptionId: fx.subs[0]!.id,
+            paymentId: order!.id,
+            claimUrl: `/payments/${order!.id}/claims`,
+          }),
+        }),
+      );
+      // Evidencia ledger: ORDER_CREATED sobre la orden emitida.
+      const ev = fx.events.find((e) => e.paymentId === order!.id);
+      expect(ev?.type).toBe("ORDER_CREATED");
+    });
+
+    it("idempotente: segunda pasada no duplica la orden ni re-avisa", async () => {
+      fx.subs.push(mkManualSub());
+      await svc.reconcileManualRenewals("spec");
+      const r2 = await svc.reconcileManualRenewals("spec");
+      expect(r2.issued).toBe(0);
+      const pendings = [...fx.payments.values()].filter(
+        (p) => p.status === "PENDING",
+      );
+      expect(pendings).toHaveLength(1);
+      expect(notifications.notifySafe).toHaveBeenCalledTimes(1);
+    });
+
+    it("sub CARD con período próximo → no emite orden manual", async () => {
+      fx.subs.push(
+        mkSub({
+          status: "ACTIVE",
+          paymentMethod: "CARD",
+          flowSubscriptionId: "fsub-card",
+          nextInvoiceAt: new Date(Date.now() + DAY),
+          currentPeriodEnd: new Date(Date.now() + DAY),
+        }),
+      );
+      const r = await svc.reconcileManualRenewals("spec");
+      expect(r).toEqual({ checked: 0, issued: 0 });
+      expect([...fx.payments.values()]).toHaveLength(0);
+    });
+
+    it("currentPeriodEnd fuera de la ventana → nada que emitir", async () => {
+      fx.subs.push(
+        mkManualSub({ currentPeriodEnd: new Date(Date.now() + 30 * DAY) }),
+      );
+      const r = await svc.reconcileManualRenewals("spec");
+      expect(r).toEqual({ checked: 0, issued: 0 });
+    });
+
+    it("período vencido sin comprobante: emite la orden y la sub queda ACTIVE (la gracia la da el enrollment)", async () => {
+      fx.subs.push(
+        mkManualSub({ currentPeriodEnd: new Date(Date.now() - 2 * DAY) }),
+      );
+      const r = await svc.reconcileManualRenewals("spec");
+      expect(r.issued).toBe(1);
+      // La suspensión del acceso corre por resolveQuota/grace_days del
+      // enrollment - la sub no se cancela (misma política que la mora
+      // de tarjeta) y la orden queda disponible para regularizar.
+      expect(fx.subs[0]!.status).toBe("ACTIVE");
+      const order = [...fx.payments.values()].find(
+        (p) => p.status === "PENDING",
+      );
+      expect(order).toBeTruthy();
+    });
+
+    it("aprobar el claim del ciclo nuevo extiende el período desde el fin previo", async () => {
+      const prevEnd = new Date(Date.now() + 3 * DAY);
+      fx.subs.push(mkManualSub({ currentPeriodEnd: prevEnd }));
+      fx.enrollments.push({
+        id: "e1",
+        academyId: "ac1",
+        personId: "p1",
+        planId: "plan1",
+        status: "ACTIVE",
+        startedAt: new Date(Date.now() - 30 * DAY),
+        endsAt: prevEnd,
+        createdAt: new Date(Date.now() - 30 * DAY),
+      });
+      await svc.reconcileManualRenewals("spec");
+      const order = [...fx.payments.values()].find(
+        (p) => p.status === "PENDING",
+      )!;
+      // El claim aprobado llama al MISMO settle del webhook (actor claim).
+      const params = mkParams();
+      const settle = new PaymentSettlementService(
+        fx.prisma as unknown as PrismaService,
+        params as unknown as ParamsService,
+        notifications as unknown as NotificationsService,
+        { send: vi.fn(async () => undefined) },
+      );
+      await settle.settleMembership(order as never, {
+        actor: "claim",
+        kind: "renewal",
+      });
+      expect(order.status).toBe("PAID");
+      const enr = fx.enrollments[0]!;
+      // MONTHLY extiende al fin del mes calendario siguiente a la base
+      // (prevEnd + 1d) - nunca desde hoy: renovar no come días.
+      expect((enr.endsAt as Date).getTime()).toBeGreaterThan(
+        prevEnd.getTime(),
+      );
+      const sub = fx.subs[0]!;
+      expect((sub.currentPeriodEnd as Date).getTime()).toBe(
+        (enr.endsAt as Date).getTime(),
+      );
+      expect(sub.status).toBe("ACTIVE");
+    });
+  });
+
   // ─── multipais-currency: snapshot + remoteRefs ───────────────────
   describe("multipais-currency", () => {
     it("plan USD → sub.currency snapshot + espejo en remoteRefs (flowPlanId intacto)", async () => {

@@ -1537,6 +1537,174 @@ export class SubscriptionsService {
   }
 
   /**
+   * Barrido de renovaciones manuales por transferencia (spec
+   * subscription-manual-transfer) - corre dentro del mismo job diario
+   * `subscriptions.reconcile` que el reconcile de tarjeta.
+   *
+   * Una sub TRANSFER ACTIVE cuyo `currentPeriodEnd` entra en la ventana
+   * de anticipación (`billing.manual_renewal.lead_days`, default 5 -
+   * transferir + revisar el comprobante necesita días reales, no las
+   * 24h del reminder de tarjeta) recibe el Payment PENDING del ciclo
+   * siguiente (`mem_<planId>_manual_<n+1>`, mismo correlativo del alta)
+   * + aviso al alumno con la URL del claim.
+   *
+   * Idempotente por orden: una PENDING viva del par (person, plan)
+   * cubre el ciclo en curso - el barrido no duplica ni re-avisa. El
+   * cargo se re-resuelve en cada ciclo con la misma regla de promos del
+   * alta (member-promos): una promo expirada/agotada cae a precio lleno
+   * sin reprice remoto (la sub manual no tiene espejo en Flow).
+   *
+   * Vencida sin claim aprobado (currentPeriodEnd < now): la suspensión
+   * del acceso la hace la gracia del Enrollment - resolveQuota habilita
+   * reservas solo hasta endsAt + academy.renewal.grace_days y
+   * AcademyRemindersService ya manda el aviso de regularización. La sub
+   * queda ACTIVE con su orden PENDING: un comprobante tardío la
+   * reactiva (misma política que la mora de tarjeta, que tampoco
+   * cancela automáticamente).
+   */
+  async reconcileManualRenewals(
+    actor = "reconcile",
+  ): Promise<{ checked: number; issued: number }> {
+    const leadDays = await this.params.getNumber(
+      "billing.manual_renewal.lead_days",
+      5,
+    );
+    const horizon = new Date(Date.now() + leadDays * 24 * 60 * 60_000);
+    const subs = await this.prisma.membershipSubscription.findMany({
+      where: {
+        paymentMethod: "TRANSFER",
+        status: "ACTIVE",
+        currentPeriodEnd: { lte: horizon },
+      },
+    });
+    let issued = 0;
+    for (const sub of subs) {
+      try {
+        if (await this.issueManualMembershipCycle(sub, actor)) issued++;
+      } catch (e) {
+        this.logger.error(
+          `renovación manual sub ${sub.id}: ${e instanceof Error ? e.message : e}`,
+        );
+      }
+    }
+    return { checked: subs.length, issued };
+  }
+
+  /**
+   * Emite la orden del ciclo siguiente de una sub manual (sección
+   * crítica con advisory lock `sub:<personId>` - el mismo del alta:
+   * serializa contra un subscribe concurrente que cancelaría la sub y
+   * anularía sus pendientes). Devuelve true si se creó la orden (el
+   * aviso va fuera de la tx). El cargo emitido queda en la fila como
+   * la verdad del ciclo (academyPromoId/planChargeClp - no hay espejo
+   * remoto que sincronizar).
+   */
+  private async issueManualMembershipCycle(
+    sub: MembershipSubscription,
+    actor: string,
+  ): Promise<boolean> {
+    const plan = await this.prisma.membershipPlan.findUnique({
+      where: { id: sub.planId },
+      include: { academy: true },
+    });
+    if (!plan) return false;
+    const cur = sub.currency ?? plan.currency ?? "CLP";
+    const charge = await this.memberChargeSpec(
+      plan,
+      sub.academyId,
+      sub.personId,
+      "MANUAL",
+      cur,
+    );
+    const payment = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`sub:${sub.personId}`}))`;
+      // Re-check dentro del lock: una sub que se canceló (o mutó a
+      // tarjeta) en la ventana no recibe orden nueva.
+      const fresh = await tx.membershipSubscription.findUnique({
+        where: { id: sub.id },
+      });
+      if (
+        !fresh ||
+        fresh.status !== "ACTIVE" ||
+        fresh.paymentMethod !== "TRANSFER"
+      ) {
+        return null;
+      }
+      const pending = await tx.payment.findFirst({
+        where: {
+          personId: sub.personId,
+          orderType: "MEMBERSHIP",
+          refId: { startsWith: `mem_${sub.planId}_manual_` },
+          status: "PENDING",
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      if (pending) return null;
+      const cycle =
+        (await tx.payment.count({
+          where: {
+            personId: sub.personId,
+            orderType: "MEMBERSHIP",
+            refId: { startsWith: `mem_${sub.planId}_manual_` },
+          },
+        })) + 1;
+      const refId = `mem_${sub.planId}_manual_${cycle}`;
+      const order = await tx.payment.create({
+        data: {
+          orderType: "MEMBERSHIP",
+          refId,
+          personId: sub.personId,
+          amount: charge.amount,
+          fee: 0,
+          net: charge.amount,
+          currency: cur,
+          gateway: "MANUAL",
+          methodLabel: "Transferencia",
+          // Modelo SaaS igual que el alta manual: la plata la cobra la
+          // academia fuera de la plataforma - sin comisión ni Payout.
+          feeMode: "ACADEMY",
+          platformFeeNetClp: 0,
+          platformFeeVatClp: 0,
+          gatewayFeeExpected: 0,
+          producerNetClp: charge.amount,
+          academyPromoId: charge.promoId,
+        },
+      });
+      await emitPaymentEvent(tx, order.id, "ORDER_CREATED", actor, {
+        refId,
+        subscriptionId: sub.id,
+        cycle,
+      });
+      await tx.membershipSubscription.update({
+        where: { id: sub.id },
+        data: {
+          academyPromoId: charge.promoId,
+          planChargeClp: charge.amount,
+        },
+      });
+      return order;
+    });
+    if (!payment) return false;
+    await this.notifications.notifySafe(sub.personId, {
+      category: "TRANSACTIONAL",
+      type: "membership.transfer_renewal",
+      title: "Renueva tu plan",
+      body: `${plan.name} · ${plan.academy.name} - sube el comprobante del próximo período`,
+      data: {
+        subscriptionId: sub.id,
+        paymentId: payment.id,
+        planId: plan.id,
+        academyId: sub.academyId,
+        amount: payment.amount,
+        currency: payment.currency,
+        claimUrl: `/payments/${payment.id}/claims`,
+        currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
+      },
+    });
+    return true;
+  }
+
+  /**
    * Sweep de suscripciones huérfanas: contrasta los `subscription/create`
    * exitosos auditados en GatewayTransaction contra las filas locales.
    * Un id remoto sin cobertura local viva significa que el proceso murió

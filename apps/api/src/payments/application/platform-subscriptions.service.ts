@@ -2248,6 +2248,278 @@ export class PlatformSubscriptionsService {
   }
 
   /**
+   * Barrido de renovaciones manuales por transferencia (spec
+   * subscription-manual-transfer) - mismo barrido que membresías,
+   * dentro del job diario `subscriptions.reconcile`.
+   *
+   * Una sub TRANSFER ACTIVE cuyo `currentPeriodEnd` entra en la ventana
+   * de anticipación (`billing.manual_renewal.lead_days`, default 5)
+   * recibe el Payment PENDING del ciclo siguiente
+   * (`platsub_<subId>_manual_<n+1>`, correlativo del alta) + aviso al
+   * pagador con la URL del claim. Idempotente: una orden PENDING viva
+   * de la sub cubre el ciclo - no duplica ni re-avisa. El cargo se
+   * re-resuelve por ciclo con chargeSpec (price book del país + promo
+   * vigente del actor): promo expirada/agotada cae a precio lleno sin
+   * reprice remoto.
+   *
+   * Vencida sin claim aprobado (currentPeriodEnd < now), espejo de la
+   * mora de tarjeta:
+   * - ACADEMY: `billingGraceUntil` = currentPeriodEnd +
+   *   `academy_billing.grace_days` (la gracia corre desde el fin del
+   *   período pagado, no desde la detección) + aviso `academy.billing_grace`
+   *   una vez por período; el bloqueo efectivo lo ejecuta
+   *   `enforceAcademyBlocks` en el mismo job y el settle del claim lo
+   *   deshace (limpia gracia/bloqueo al PAID).
+   * - PRODUCER: solo aviso `producer.pro_renewal_failed` una vez por
+   *   período (igual que la mora de tarjeta - ninguna degradación
+   *   automática de proTier hoy).
+   * La sub queda ACTIVE con su orden PENDING: un comprobante tardío la
+   * reactiva y el período corre desde el fin del ciclo previo.
+   */
+  async reconcileManualRenewals(
+    actor = "reconcile",
+  ): Promise<{ checked: number; issued: number }> {
+    const leadDays = await this.params.getNumber(
+      "billing.manual_renewal.lead_days",
+      5,
+    );
+    const horizon = new Date(Date.now() + leadDays * 24 * 60 * 60_000);
+    const subs = await this.prisma.platformSubscription.findMany({
+      where: {
+        paymentMethod: "TRANSFER",
+        status: "ACTIVE",
+        currentPeriodEnd: { lte: horizon },
+      },
+    });
+    let issued = 0;
+    for (const sub of subs) {
+      try {
+        if (await this.issueManualPlatformCycle(sub, actor)) issued++;
+        if (
+          sub.currentPeriodEnd != null &&
+          sub.currentPeriodEnd.getTime() < Date.now()
+        ) {
+          await this.handleManualPlatformLapse(sub, actor);
+        }
+      } catch (e) {
+        this.logger.error(
+          `renovación manual platsub ${sub.id}: ${e instanceof Error ? e.message : e}`,
+        );
+      }
+    }
+    return { checked: subs.length, issued };
+  }
+
+  /**
+   * Emite la orden del ciclo siguiente de una sub manual de plataforma
+   * (misma sección crítica por advisory lock `platsub:<personId>` del
+   * alta). Devuelve true si se creó (el aviso va fuera de la tx). Un
+   * tier sin precio autogestionado ("a convenir") no emite orden - la
+   * renovación se acuerda por billing.
+   */
+  private async issueManualPlatformCycle(
+    sub: PlatformSubscription,
+    actor: string,
+  ): Promise<boolean> {
+    let charge: ChargeSpec;
+    try {
+      charge = await this.chargeSpec(
+        sub.kind,
+        sub.tierCode,
+        sub.billingCycle,
+        sub.countryCode,
+        this.promoActorOf(sub),
+      );
+    } catch {
+      this.logger.warn(
+        `renovación manual platsub ${sub.id}: tier ${sub.tierCode} sin cargo autogestionado`,
+      );
+      return false;
+    }
+    const payment = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`platsub:${sub.personId}`}))`;
+      // Re-check dentro del lock: una sub que se canceló o mutó a
+      // tarjeta en la ventana no recibe orden nueva.
+      const fresh = await tx.platformSubscription.findUnique({
+        where: { id: sub.id },
+      });
+      if (
+        !fresh ||
+        fresh.status !== "ACTIVE" ||
+        fresh.paymentMethod !== "TRANSFER"
+      ) {
+        return null;
+      }
+      const pending = await tx.payment.findFirst({
+        where: {
+          orderType: "PLATFORM_SUB",
+          refId: { startsWith: `platsub_${sub.id}_manual_` },
+          status: "PENDING",
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      if (pending) return null;
+      const cycle =
+        (await tx.payment.count({
+          where: {
+            orderType: "PLATFORM_SUB",
+            refId: { startsWith: `platsub_${sub.id}_manual_` },
+          },
+        })) + 1;
+      const refId = `platsub_${sub.id}_manual_${cycle}`;
+      const order = await tx.payment.create({
+        data: {
+          orderType: "PLATFORM_SUB",
+          refId,
+          personId: sub.personId,
+          amount: charge.amount,
+          fee: 0,
+          net: charge.amount,
+          currency: charge.currency,
+          gateway: "MANUAL",
+          methodLabel: "Transferencia",
+          // Auditoría del cobro descontado (spec platform-promos) - base
+          // del conteo de maxCycles por actor, igual que el alta.
+          platformPromoId: charge.promoId,
+        },
+      });
+      await emitPaymentEvent(tx, order.id, "ORDER_CREATED", actor, {
+        refId,
+        subscriptionId: sub.id,
+        kind: sub.kind,
+        cycle,
+      });
+      // El cargo emitido es la verdad del ciclo (promoId/planChargeClp -
+      // la sub manual no tiene espejo remoto que sincronizar).
+      await tx.platformSubscription.update({
+        where: { id: sub.id },
+        data: {
+          promoId: charge.promoId,
+          planChargeClp: charge.amount,
+          currency: charge.currency,
+        },
+      });
+      return order;
+    });
+    if (!payment) return false;
+    await this.notifications.notifySafe(sub.personId, {
+      category: "TRANSACTIONAL",
+      type:
+        sub.kind === "ACADEMY"
+          ? "academy.transfer_renewal"
+          : "producer.pro_transfer_renewal",
+      title: "Renueva tu suscripción",
+      body: `Sube el comprobante del próximo ciclo de ${sub.tierCode} (${CYCLE_LABEL[sub.billingCycle]})`,
+      data: {
+        subscriptionId: sub.id,
+        paymentId: payment.id,
+        academyId: sub.academyId,
+        producerId: sub.producerId,
+        amount: payment.amount,
+        currency: payment.currency,
+        claimUrl: `/payments/${payment.id}/claims`,
+        currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
+      },
+    });
+    return true;
+  }
+
+  /**
+   * Sub manual con el período pagado ya vencido y sin claim aprobado:
+   * espejo de `handleMorose` - ACADEMY fija `billingGraceUntil` (desde
+   * el fin del período pagado) y PRODUCER solo avisa; ambos emiten
+   * RENEWAL_FAILED sobre la orden pendiente del ciclo, una sola vez por
+   * período (dedup por subscriptionId + periodEnd en la notificación).
+   */
+  private async handleManualPlatformLapse(
+    sub: PlatformSubscription,
+    actor: string,
+  ): Promise<void> {
+    const pending = await this.prisma.payment.findFirst({
+      where: {
+        orderType: "PLATFORM_SUB",
+        refId: { startsWith: `platsub_${sub.id}_manual_` },
+        status: "PENDING",
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+    // El caller solo invoca con currentPeriodEnd definido (la rama
+    // "vencida" del barrido) - es la clave del episodio para el dedup.
+    const periodEnd = sub.currentPeriodEnd!.toISOString();
+    const type =
+      sub.kind === "ACADEMY"
+        ? "academy.billing_grace"
+        : "producer.pro_renewal_failed";
+    const already = await this.prisma.notification.findFirst({
+      where: {
+        personId: sub.personId,
+        type,
+        AND: [
+          { data: { path: ["subscriptionId"], equals: sub.id } },
+          { data: { path: ["periodEnd"], equals: periodEnd } },
+        ],
+      },
+      select: { id: true },
+    });
+    let graceDays: number | null = null;
+    if (sub.kind === "ACADEMY" && sub.academyId && sub.currentPeriodEnd) {
+      graceDays = await this.params.getNumber(
+        "academy_billing.grace_days",
+        5,
+      );
+      // La gracia corre desde el fin del período pagado: si el barrido
+      // se atrasó, billingGraceUntil ya puede estar en el pasado y el
+      // bloqueo aplica de inmediato (enforceAcademyBlocks corre en el
+      // mismo job). Misma escritura condicional de handleMorose: una
+      // gracia vigente nunca se extiende.
+      await this.prisma.academy.updateMany({
+        where: {
+          id: sub.academyId,
+          OR: [
+            { billingGraceUntil: null },
+            { billingGraceUntil: { lt: new Date() } },
+          ],
+        },
+        data: {
+          billingGraceUntil: new Date(
+            sub.currentPeriodEnd.getTime() + graceDays * 24 * 60 * 60_000,
+          ),
+        },
+      });
+    }
+    if (already) return;
+    if (pending) {
+      await this.prisma.$transaction((tx) =>
+        emitPaymentEvent(tx, pending.id, "RENEWAL_FAILED", actor, {
+          subscriptionId: sub.id,
+          kind: sub.kind,
+          periodEnd,
+          manual: true,
+        }),
+      );
+    }
+    await this.notifications.notifySafe(sub.personId, {
+      category: "TRANSACTIONAL",
+      type,
+      title: "Pago de suscripción pendiente",
+      body:
+        sub.kind === "ACADEMY"
+          ? `Tienes ${graceDays ?? 5} días de gracia para subir el comprobante antes del bloqueo`
+          : "Sube el comprobante de tu ciclo pendiente para mantener Producer Pro",
+      data: {
+        subscriptionId: sub.id,
+        academyId: sub.academyId,
+        producerId: sub.producerId,
+        paymentId: pending?.id ?? null,
+        claimUrl: pending ? `/payments/${pending.id}/claims` : null,
+        periodEnd,
+        graceDays,
+      },
+    });
+  }
+
+  /**
    * Reconcile de una PlatformSubscription contra Flow - espejo de
    * `SubscriptionsService.reconcileSubscription`:
    * - invoices pagadas → Payment `platsub_<subId>_<invoiceId>` +

@@ -164,6 +164,11 @@ const PARAM_DEFAULTS: Array<{
   { key: "platform_billing.transfer.holder", value: "Omnidance SpA", description: "Titular de la cuenta para transferencias de suscripción de plataforma" },
   { key: "platform_billing.transfer.rut", value: "", description: "RUT del titular para transferencias de suscripción de plataforma" },
   { key: "platform_billing.transfer.email", value: "", description: "Email para aviso/comprobante de transferencias de suscripción de plataforma" },
+  // Anticipación de la orden pendiente del ciclo siguiente en subs por
+  // transferencia (spec subscription-manual-transfer): el barrido diario
+  // la emite cuando currentPeriodEnd entra en esta ventana - transferir
+  // + revisar el comprobante necesita días, no las 24h del cobro con tarjeta.
+  { key: "billing.manual_renewal.lead_days", value: 5, description: "Días antes de currentPeriodEnd para emitir la orden PENDING del ciclo siguiente en suscripciones por transferencia (membresías y plataforma)" },
   // Tiers Producer Pro: límite de facturación mensual media 90d por tier.
   { key: "producer_tier.starter_max_monthly_clp", value: 2500000, description: "Facturación mensual máxima del tier PRO_STARTER (CLP)" },
   { key: "producer_tier.growth_max_monthly_clp", value: 8000000, description: "Facturación mensual máxima del tier PRO_GROWTH (CLP)" },

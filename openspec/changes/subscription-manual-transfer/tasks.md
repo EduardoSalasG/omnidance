@@ -19,8 +19,16 @@
 - [x] Consolas de revisión: academia (membresías) + admin plataforma
       (PLATFORM_SUB). (slice 2: OrderClaimsQueue en /academia/cobros +
       ficha /academia/cobros/orden/[id]; /admin/facturacion/comprobantes)
-- [ ] Scheduler renovación manual: Payment PENDING por ciclo +
-      notificación + gracia/suspensión. (slice 2+)
+- [x] Scheduler renovación manual: Payment PENDING por ciclo +
+      notificación + gracia/suspensión. (slice 3: barridos
+      `reconcileManualRenewals` en ambos services dentro del job
+      `subscriptions.reconcile` - ventana `billing.manual_renewal.lead_days`
+      (param nuevo, default 5), idempotente por orden PENDING viva;
+      gracia membresía = grace_days del enrollment, gracia academia =
+      billingGraceUntil desde currentPeriodEnd + bloqueo vía
+      enforceAcademyBlocks, productor = aviso solamente)
 - [~] Specs/tests suites payments + auth, typecheck, qa-flows-inventory.
       (slice 1: claims por dominio testeados; falta cobertura de
-      subscribeTransfer y de los hooks del settle)
+      subscribeTransfer y de los hooks del settle; slice 3: barrido de
+      renovación, gracia/bloqueo y extensión de período por settle
+      testeados en ambos dominios)
