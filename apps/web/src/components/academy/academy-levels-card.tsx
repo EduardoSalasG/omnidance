@@ -372,33 +372,40 @@ function SlotCard({
           {s.startTime}
         </p>
         <p className="truncate text-sm font-medium">{s.seriesName}</p>
-        <p className="text-lg font-bold leading-none tabular-nums">
-          <span className="sr-only">
-            {t("levels.assignedOf", {
-              assigned: s.assigned,
-              capacity: s.capacity,
-            })}
-          </span>
-          <span aria-hidden="true" className="flex items-center gap-1">
-            <UsersIcon className="h-4 w-4 text-ink/50" />
-            {s.assigned}
+        <div className="tabular-nums">
+          <p className="text-lg font-bold leading-none">
+            <span className="sr-only">
+              {t("levels.avgOfCapacity", {
+                avg:
+                  s.avgAttendance !== null
+                    ? numFmt.format(s.avgAttendance)
+                    : "0",
+                capacity: s.capacity,
+              })}
+            </span>
+            <span aria-hidden="true" className="flex items-center gap-1">
+              <UsersIcon className="h-4 w-4 text-ink/50" />
+              <span className="text-xs font-normal text-ink/50">
+                {t("levels.avgShort")}
+              </span>
+              {s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"}
+              <span className="font-normal text-ink/50">/{s.capacity}</span>
+            </span>
+          </p>
+          <p
+            aria-hidden="true"
+            className="mt-1 flex items-center gap-1 text-sm font-semibold text-ink/60"
+          >
+            <span className="text-xs font-normal text-ink/50">
+              {t("levels.lastShort")}
+            </span>
+            {s.lastClassAttendance !== null ? s.lastClassAttendance : "—"}
             <span className="font-normal text-ink/50">/{s.capacity}</span>
-          </span>
-        </p>
+          </p>
+        </div>
         <Badge variant={statusVariant} className="max-w-full self-start">
           {statusText}
         </Badge>
-        <p className="text-[11px] leading-snug text-ink/40">
-          {s.avgAttendance !== null
-            ? t("levels.avgAttendance", {
-                value: numFmt.format(s.avgAttendance),
-              })
-            : t("levels.noAttendance")}
-          {s.lastClassAttendance !== null &&
-            ` · ${t("levels.lastAttendance", {
-              count: s.lastClassAttendance,
-            })}`}
-        </p>
       </Card>
     </li>
   );
