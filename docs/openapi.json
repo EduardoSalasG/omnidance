@@ -3003,6 +3003,20 @@
         ]
       }
     },
+    "/api/payments/order-return": {
+      "get": {
+        "operationId": "PaymentsController_orderReturn",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
     "/api/payments/subscription-webhook": {
       "post": {
         "operationId": "PaymentsController_subscriptionWebhook",
@@ -5859,6 +5873,29 @@
         ]
       }
     },
+    "/api/academies/{id}/insights/levels": {
+      "get": {
+        "operationId": "AcademiesController_levelInsights",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Academies"
+        ]
+      }
+    },
     "/api/academies/{id}/dashboard": {
       "get": {
         "operationId": "AcademiesController_dashboard",
@@ -7060,6 +7097,39 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UpdateEnrollmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Enrollments"
+        ]
+      }
+    },
+    "/api/enrollments/{id}/levels": {
+      "patch": {
+        "operationId": "EnrollmentsController_setLevels",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetEnrollmentLevelsDto"
               }
             }
           }
@@ -11799,6 +11869,10 @@
         "properties": {}
       },
       "UpdateEnrollmentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SetEnrollmentLevelsDto": {
         "type": "object",
         "properties": {}
       },

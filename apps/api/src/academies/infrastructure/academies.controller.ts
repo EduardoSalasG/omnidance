@@ -32,7 +32,9 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from "class-validator";
+import { Type } from "class-transformer";
 import type { Request } from "express";
 import type { EnrollmentStatus, PlanType, Prisma } from "@prisma/client";
 import { normalizePhone } from "@omnidance/shared";
@@ -45,6 +47,7 @@ import {
   computeActiveStudentsKpis,
   computeDashboard,
   computeUpcomingBirthdays,
+  effectiveCapacity,
   InvalidEnrollmentTransitionError,
 } from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
@@ -207,6 +210,25 @@ class UpdateEnrollmentDto {
   @IsOptional()
   @IsISO8601()
   endsAt?: string | null;
+}
+
+/** Niveles del alumno dentro de un tipo de clase (multinivel). */
+class EnrollmentLevelSetDto {
+  @IsString()
+  classTypeId!: string;
+
+  /** Set completo de niveles del tipo; [] deja al alumno sin nivel ahí. */
+  @IsArray()
+  @IsString({ each: true })
+  levelIds!: string[];
+}
+
+class SetEnrollmentLevelsDto {
+  /** Reemplazo completo: una entrada por tipo de clase del alumno. */
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EnrollmentLevelSetDto)
+  levels!: EnrollmentLevelSetDto[];
 }
 
 class UpdateAcademySettingsDto {
@@ -2152,6 +2174,182 @@ export class AcademiesController {
     });
   }
 
+  /**
+   * GET /academies/:id/insights/levels - card "niveles y cupos" del
+   * inicio Extendido (spec academies/owner-insights): alumnos ACTIVE
+   * por tipo×nivel; por horario los asignables (EnrollmentLevel con
+   * type ∈ tipos del slot y level = level de la serie), capacidad
+   * efectiva, cupos vacíos y asistencia reciente. Alumnos sin nivel se
+   * agrupan en `unassigned` por tipo para que el owner complete el
+   * dato. Solo owner/ADMIN + feature PRO `insights` (mismo gate que
+   * /surveys).
+   */
+  @Get(":id/insights/levels")
+  @UseGuards(SessionGuard)
+  async levelInsights(@Param("id") id: string, @Req() req: Request) {
+    const { academy } = await this.access.requireAdminister(
+      id,
+      req.person!,
+      "insights",
+    );
+    const now = new Date();
+    // Class.date vive a medianoche UTC (misma convención del dashboard):
+    // la asistencia reciente mira solo clases ya dictadas (< hoy), la
+    // de hoy puede no haber ocurrido y arrastraría el promedio a 0.
+    const todayUTC = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    // Ventana de ~10 semanas: sobra para las 8 clases recientes de un
+    // slot semanal sin barrer todo el historial de la academia.
+    const attendanceSince = new Date(todayUTC.getTime() - 70 * 86_400_000);
+    const [types, levels, slots, enrollmentLevels, activeCount, classes] =
+      await Promise.all([
+        this.prisma.classType.findMany({ orderBy: { name: "asc" } }),
+        this.prisma.classLevel.findMany({ orderBy: { order: "asc" } }),
+        this.prisma.classSlot.findMany({
+          where: { academyId: id, deletedAt: null },
+          orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+          select: {
+            id: true,
+            weekday: true,
+            startTime: true,
+            capacity: true,
+            types: { select: { typeId: true } },
+            series: {
+              select: {
+                name: true,
+                quorum: true,
+                levelId: true,
+                types: { select: { typeId: true } },
+              },
+            },
+          },
+        }),
+        this.prisma.enrollmentLevel.findMany({
+          where: { enrollment: { academyId: id, status: "ACTIVE" } },
+          select: {
+            enrollmentId: true,
+            classTypeId: true,
+            levelId: true,
+          },
+        }),
+        this.prisma.enrollment.count({
+          where: { academyId: id, status: "ACTIVE" },
+        }),
+        this.prisma.class.findMany({
+          where: {
+            cancelled: false,
+            date: { gte: attendanceSince, lt: todayUTC },
+            slot: { academyId: id },
+          },
+          orderBy: { date: "desc" },
+          select: {
+            classSlotId: true,
+            _count: { select: { attendances: true } },
+          },
+        }),
+      ]);
+
+    const levelName = new Map(levels.map((l) => [l.id, l.name]));
+    const typeName = new Map(types.map((t) => [t.id, t.name]));
+
+    // Conteos por (tipo, nivel): la PK compuesta garantiza una fila por
+    // (enrollment, tipo, nivel) - filas = alumnos en ese nivel.
+    const countByTypeLevel = new Map<string, number>();
+    const enrollmentsByType = new Map<string, Set<string>>();
+    for (const el of enrollmentLevels) {
+      const key = `${el.classTypeId}:${el.levelId}`;
+      countByTypeLevel.set(key, (countByTypeLevel.get(key) ?? 0) + 1);
+      let set = enrollmentsByType.get(el.classTypeId);
+      if (!set) enrollmentsByType.set(el.classTypeId, (set = new Set()));
+      set.add(el.enrollmentId);
+    }
+
+    const byType = types.map((t) => ({
+      typeId: t.id,
+      typeName: t.name,
+      levels: levels.map((l) => ({
+        levelId: l.id,
+        levelName: l.name,
+        count: countByTypeLevel.get(`${t.id}:${l.id}`) ?? 0,
+      })),
+    }));
+
+    // "Sin nivel asignado": enrollments ACTIVE sin EnrollmentLevel de
+    // ese tipo (un alumno puede tener nivel en Pareja y faltarle Shines).
+    const unassigned = types.map((t) => ({
+      typeId: t.id,
+      typeName: t.name,
+      count: activeCount - (enrollmentsByType.get(t.id)?.size ?? 0),
+    }));
+
+    // Asistencia reciente por slot: últimas 8 clases dictadas, ya en
+    // orden desc por la query.
+    const attendanceBySlot = new Map<string, number[]>();
+    for (const c of classes) {
+      let arr = attendanceBySlot.get(c.classSlotId);
+      if (!arr) attendanceBySlot.set(c.classSlotId, (arr = []));
+      if (arr.length < 8) arr.push(c._count.attendances);
+    }
+
+    const bySlot = slots.map((s) => {
+      // Modalidades del horario: slot.types vacío hereda las de la
+      // serie (misma regla que ClassSlotType/materialización).
+      const slotTypeIds = (s.types.length ? s.types : s.series.types).map(
+        (t) => t.typeId,
+      );
+      const seriesLevelId = s.series.levelId;
+      // Alumnos únicos asignables: EnrollmentLevel con type ∈ tipos del
+      // slot y level = level de la serie. Serie sin levelId es clase
+      // sin nivel: cuenta cualquier level del tipo.
+      const assigned = new Set(
+        enrollmentLevels
+          .filter(
+            (el) =>
+              slotTypeIds.includes(el.classTypeId) &&
+              (seriesLevelId == null || el.levelId === seriesLevelId),
+          )
+          .map((el) => el.enrollmentId),
+      ).size;
+      // Cupos del horario: slot.capacity → series.quorum →
+      // academy.defaultQuorum → 20 (effectiveCapacity, cadena sin el
+      // escalón Class.capacity que es override por instancia).
+      const capacity = effectiveCapacity({
+        slotCapacity: s.capacity,
+        seriesQuorum: s.series.quorum,
+        academyDefaultQuorum: academy.defaultQuorum,
+      });
+      const recent = attendanceBySlot.get(s.id) ?? [];
+      const avgAttendance = recent.length
+        ? Math.round(
+            (recent.reduce((acc, n) => acc + n, 0) / recent.length) * 10,
+          ) / 10
+        : null;
+      return {
+        slotId: s.id,
+        seriesName: s.series.name,
+        levelId: seriesLevelId,
+        levelName: seriesLevelId
+          ? (levelName.get(seriesLevelId) ?? null)
+          : null,
+        weekday: s.weekday,
+        startTime: s.startTime,
+        types: slotTypeIds.map((typeId) => ({
+          typeId,
+          typeName: typeName.get(typeId) ?? "",
+        })),
+        capacity,
+        assigned,
+        // Negativo = sobrecupo (más asignables que cupos).
+        empty: capacity - assigned,
+        avgAttendance,
+        lastClassAttendance: recent[0] ?? null,
+      };
+    });
+
+    return { byType, bySlot, unassigned };
+  }
+
   // ─── dashboard ───
 
   @Get(":id/dashboard")
@@ -2652,5 +2850,85 @@ export class EnrollmentsController {
           : {}),
       },
     });
+  }
+
+  /**
+   * PATCH /enrollments/:id/levels - niveles del alumno por tipo de
+   * clase (spec academies/enrollment-levels). Reemplazo completo del
+   * set: cada entrada fija los niveles del tipo y las filas fuera del
+   * body se borran (levels: [] deja al alumno sin nivel en todo). La
+   * asigna la academia (cap `students`, la misma que gestiona el
+   * enrollment); el alumno nunca se auto-nivela.
+   */
+  @Patch(":id/levels")
+  @UseGuards(SessionGuard)
+  async setLevels(
+    @Param("id") id: string,
+    @Body() dto: SetEnrollmentLevelsDto,
+    @Req() req: Request,
+  ) {
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { id },
+    });
+    if (!enrollment) throw new NotFoundException("enrollment no encontrado");
+    await this.access.requireCapabilityWrite(
+      enrollment.academyId,
+      req.person!,
+      "students",
+    );
+
+    // Un classTypeId por entrada: repetido haría ambiguo el "reemplazo
+    // completo" (¿gana la primera o la última?). Mejor 400 explícito.
+    const typeIds = dto.levels.map((l) => l.classTypeId);
+    if (new Set(typeIds).size !== typeIds.length) {
+      throw new BadRequestException(
+        "cada tipo de clase puede venir una sola vez",
+      );
+    }
+    const levelIds = [...new Set(dto.levels.flatMap((l) => l.levelIds))];
+
+    // Validación contra catálogos: types/levels los edita el negocio en
+    // /admin/catalogos, ids desconocidos son 400 (no 404: es el body).
+    const [typesFound, levelsFound] = await Promise.all([
+      typeIds.length
+        ? this.prisma.classType.findMany({
+            where: { id: { in: typeIds } },
+            select: { id: true },
+          })
+        : Promise.resolve([]),
+      levelIds.length
+        ? this.prisma.classLevel.findMany({
+            where: { id: { in: levelIds } },
+            select: { id: true },
+          })
+        : Promise.resolve([]),
+    ]);
+    if (typesFound.length !== typeIds.length) {
+      throw new BadRequestException("tipo de clase no encontrado");
+    }
+    if (levelsFound.length !== levelIds.length) {
+      throw new BadRequestException("nivel no encontrado");
+    }
+
+    const rows = dto.levels.flatMap((l) =>
+      [...new Set(l.levelIds)].map((levelId) => ({
+        enrollmentId: id,
+        classTypeId: l.classTypeId,
+        levelId,
+      })),
+    );
+    await this.prisma.$transaction(async (tx) => {
+      await tx.enrollmentLevel.deleteMany({ where: { enrollmentId: id } });
+      if (rows.length) {
+        await tx.enrollmentLevel.createMany({ data: rows });
+      }
+    });
+    return {
+      enrollmentId: id,
+      levels: dto.levels.map((l) => ({
+        classTypeId: l.classTypeId,
+        levelIds: [...new Set(l.levelIds)],
+      })),
+    };
   }
 }
