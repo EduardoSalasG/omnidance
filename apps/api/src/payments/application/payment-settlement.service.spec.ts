@@ -822,8 +822,9 @@ describe("PaymentSettlementService", () => {
       });
 
       expect(mailer.send).toHaveBeenCalledTimes(1);
-      const [to, , html] = mailer.send.mock.calls[0]!;
+      const [to, subject, html] = mailer.send.mock.calls[0]!;
       expect(to).toBe("fan@example.cl");
+      expect(subject).toBe("Pagaste: Mensual, Academia X");
       expect(html).toContain("Mensual"); // plan comprado
       expect(html).toContain("Academia X"); // academia asociada
       expect(html).toContain("$10.500"); // monto es-CL

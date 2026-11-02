@@ -392,7 +392,7 @@ export class PaymentSettlementService {
       );
       await this.mailer.send(
         payer.email,
-        `Respaldo de tu pago - ${product}`,
+        `Pagaste: ${product}`,
         paymentReceiptEmailHtml({
           payerName: payer.name ?? null,
           product,
@@ -966,7 +966,7 @@ export class PaymentSettlementService {
       await this.emitPaidReceipts(
         payment,
         gw,
-        `${plan.name} · ${plan.academy.name}`,
+        `${plan.name}, ${plan.academy.name}`,
       );
       if (mismatch) {
         await this.notifyAdminsAmountMismatch(payment, mismatch);
