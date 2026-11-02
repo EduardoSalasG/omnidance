@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { useDialogFocus } from "@/lib/useDialogFocus";
-import { Button, CalendarIcon, Card, PriceTag, Spinner } from "@/components/ui";
+import { Button, CalendarIcon, PriceTag, Spinner } from "@/components/ui";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { ActionNotice, type ActionNoticeData } from "@/components/ui/action-notice";
 import { readError } from "@/components/academy/shared";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -81,7 +81,6 @@ export function ClassBookingCta({
   closedLabel?: string;
 }) {
   const t = useTranslations("classes");
-  const tc = useTranslations("common");
   const tco = useTranslations("checkout");
   const router = useRouter();
   const [booking, setBooking] = useState<Booking>(initialBooking);
@@ -96,18 +95,7 @@ export function ClassBookingCta({
   } | null>(null);
   const [simulating, setSimulating] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const dialogRef = useDialogFocus<HTMLDivElement>(confirming);
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
-
-  // Escape cierra el sheet de confirmación.
-  useEffect(() => {
-    if (!confirming) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setConfirming(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [confirming]);
 
   // CTA de calendario en el aviso post-reserva (spec class-calendar-ics):
   // el .ics también está al pie de la ficha, pero quien reserva desde la
@@ -521,60 +509,32 @@ export function ClassBookingCta({
         </div>
       )}
 
-      {/* Confirmación de cancelar reserva - bottom sheet */}
-      {confirming && (
-        <div
-          ref={dialogRef}
-          role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
-          onClick={() => setConfirming(false)}
-        >
-          <Card
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="cancel-booking-title"
-            className="w-full max-w-md space-y-4"
-            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          >
-            <h2 id="cancel-booking-title" className="text-lg font-semibold">
-              {t("cancelBooking")}
-            </h2>
-            {/* El copy declara la consecuencia antes de confirmar: dentro
-                de la ventana el crédito vuelve al plan; fuera, el cupo
-                se libera pero la clase se consume. */}
-            <p className="text-sm text-ink/70">
-              {t("cancelConfirm")}{" "}
-              {booking === "BOOKED" &&
-                (paid
+      {/* Confirmación de cancelar reserva - bottom sheet. El copy
+          declara la consecuencia antes de confirmar: dentro de la
+          ventana el crédito vuelve al plan; fuera, el cupo se libera
+          pero la clase se consume. */}
+      <ConfirmSheet
+        open={confirming}
+        title={t("cancelBooking")}
+        description={
+          booking === "BOOKED"
+            ? `${t("cancelConfirm")} ${
+                paid
                   ? t("cancelPaid")
                   : refundable
                     ? t("cancelRefundable")
-                    : t("cancelLate"))}
-            </p>
-            <div className="flex items-center justify-end gap-3">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setConfirming(false)}
-              >
-                {tc("cancel")}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={busy}
-                onClick={() => {
-                  setConfirming(false);
-                  void cancel();
-                }}
-              >
-                {t("cancelBooking")}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+                    : t("cancelLate")
+              }`
+            : t("cancelConfirm")
+        }
+        confirmLabel={t("cancelBooking")}
+        busy={busy}
+        onConfirm={() => {
+          setConfirming(false);
+          void cancel();
+        }}
+        onClose={() => setConfirming(false)}
+      />
     </>
   );
 }
