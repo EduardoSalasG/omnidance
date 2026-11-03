@@ -518,3 +518,47 @@ describe("AcademiesController.deleteAcademyLevels", () => {
     expect(prisma.classLevel.deleteMany).not.toHaveBeenCalled();
   });
 });
+
+// ─── GET /academies/:id/students/:personId - set vigente en la ficha ───
+// El editor de niveles abre con la marca actual: levels viaja en cada
+// enrollment del perfil (spec academies/enrollment-levels).
+
+describe("AcademiesController.studentDetail - niveles vigentes", () => {
+  it("cada enrollment del perfil incluye su set de niveles", async () => {
+    const prisma = {
+      person: {
+        findUnique: vi
+          .fn()
+          .mockResolvedValue({ id: "p-1", name: "Alumna" }),
+      },
+      enrollment: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "e-1",
+            status: "ACTIVE",
+            startedAt: new Date("2026-01-01"),
+            endsAt: null,
+            plan: { id: "pl-1", name: "Mensual", type: "PERIOD", price: 50000 },
+            levels: [
+              { classTypeId: "ct-pareja", levelId: "lv-bas" },
+            ],
+          },
+        ]),
+      },
+      attendance: { findMany: vi.fn().mockResolvedValue([]) },
+      classBooking: { findMany: vi.fn().mockResolvedValue([]) },
+      relationshipScore: { findUnique: vi.fn().mockResolvedValue(null) },
+    };
+    const access = {
+      requireManage: vi.fn().mockResolvedValue({ academy: {}, ctx: {} }),
+      requireCapability: vi.fn().mockResolvedValue({ academy: {}, ctx: {} }),
+    };
+    const ctrl = makeAcademiesCtrl(prisma, access);
+
+    const res = await ctrl.studentDetail("acad-1", "p-1", reqAs(OWNER));
+
+    expect(res.enrollments[0]?.levels).toEqual([
+      { classTypeId: "ct-pareja", levelId: "lv-bas" },
+    ]);
+  });
+});
