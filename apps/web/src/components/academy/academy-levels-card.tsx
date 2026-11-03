@@ -644,7 +644,7 @@ function GenderBar({
   // completo - nunca se solapan en celdas estrechas.
   return (
     <span
-      className={`flex w-full flex-wrap items-center gap-x-1 rounded px-0.5 text-[13px] font-semibold tabular-nums ${
+      className={`flex w-full flex-wrap items-center gap-x-1 rounded px-0.5 text-[12px] font-semibold tabular-nums ${
         skewed ? "bg-warn/15" : ""
       }`}
     >
