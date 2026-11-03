@@ -400,7 +400,12 @@ function WeekCalendar({
 
   const pos = (s: AcademyLevelInsights["bySlot"][number]) => ({
     top: ((startMinOf(s) - gridStart) / 30) * ROW_H,
-    height: Math.max(ROW_H - 4, ((endMinOf(s) - startMinOf(s)) / 30) * ROW_H - 4),
+    // Alto tope por contenido (~152px): una clase larga no estira la
+    // card - el resto de su celda queda libre y no hay aire interno.
+    height: Math.min(
+      Math.max(ROW_H - 4, ((endMinOf(s) - startMinOf(s)) / 30) * ROW_H - 4),
+      152,
+    ),
   });
   return (
     <>
