@@ -266,7 +266,10 @@ export function AcademyDashboard({
                 <MiniKpi
                   href="/academia/asistencia"
                   title={t("kpis.attendanceToday")}
-                  count={dashboard.attendanceToday}
+                  count={dashboard.todayClasses.reduce(
+                    (a, c) => a + c.bookedCount,
+                    0,
+                  )}
                   hint={
                     dashboard.attendanceToday > 0
                       ? t("homeMode.todayHint")
