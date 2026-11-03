@@ -659,7 +659,7 @@ function GenderBar({
     >
       {/* m/f como un solo token nowrap: nunca se parte en celdas
           estrechas; el ! va pegado y el conjunto envuelve junto. */}
-      <span className="flex items-center gap-0.5 whitespace-nowrap">
+      <span className="mx-auto flex items-center gap-0.5 whitespace-nowrap">
         {skewed ? (
           <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-warn/30 text-[9px] font-bold text-warn">
             !
