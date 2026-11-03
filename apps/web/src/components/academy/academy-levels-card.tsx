@@ -553,12 +553,24 @@ function ToggleChips({
         ? "bg-neon/15 text-neon"
         : "border border-line text-ink/60 hover:border-ink/30"
     }`;
+  // Seleccionar todas las opciones equivale a "Todos" - el set se
+  // vacía solo en vez de quedar todas marcadas.
+  const toggle = (key: string) => {
+    const next = new Set(selected);
+    next.add(key);
+    if (!selected.has(key) && next.size === options.length) onClear();
+    else onToggle(key);
+  };
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs font-medium uppercase tracking-wide text-ink/40">
+      <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-ink/40">
         {label}
       </span>
-      <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
+      <div
+        role="group"
+        aria-label={label}
+        className="flex flex-nowrap gap-1.5 overflow-x-auto"
+      >
         <button
           type="button"
           onClick={onClear}
@@ -571,10 +583,10 @@ function ToggleChips({
           <button
             key={o.key}
             type="button"
-            onClick={() => onToggle(o.key)}
+            onClick={() => toggle(o.key)}
             aria-pressed={selected.has(o.key)}
             aria-label={o.ariaLabel ?? o.label}
-            className={chipCls(selected.has(o.key))}
+            className={`${chipCls(selected.has(o.key))} shrink-0`}
           >
             {o.label}
           </button>
