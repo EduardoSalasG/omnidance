@@ -340,10 +340,10 @@ export function AcademyDashboard({
         </Card>
       )}
 
-      {/* Operación del día (modo Extendido): colas accionables como
+      {/* Operación del día (ambos modos): colas accionables como
           KPIs de solo conteo + la fila de cards medianas (clases de
           hoy a la izquierda, cumpleaños a la derecha en desktop). */}
-      {homeMode === "extended" && dashboard && (
+      {dashboard && (
         <section
           aria-label={t("sections.operation")}
           className="flex flex-col gap-4"
@@ -546,40 +546,6 @@ function SimpleHomeCards({
       count: clpFmt.format(dashboard.kpis.billedMonth),
       title: t("kpis.billedMonth"),
       hint: t("kpis.billedMonthHint"),
-    },
-    {
-      key: "operations",
-      href: "/academia/cobros",
-      count: pendingToday,
-      title: t("sections.operation"),
-      hint:
-        pendingToday > 0
-          ? t("homeMode.claimsHint", {
-              amount: clpFmt.format(dashboard.pendingClaims.amount),
-            })
-          : t("homeMode.claimsDone"),
-    },
-    {
-      key: "today",
-      href: "/academia/series",
-      count: dashboard.todayClasses.length,
-      title: t("homeMode.todayTitle"),
-      hint:
-        dashboard.todayClasses.length > 0
-          ? freeSpotsToday !== null && freeSpotsToday > 0
-            ? t("homeMode.todayFree", { count: freeSpotsToday })
-            : t("homeMode.todayHint")
-          : t("homeMode.todayDone"),
-    },
-    {
-      key: "birthdays",
-      href: "/academia/alumnos",
-      count: dashboard.upcomingBirthdays.length,
-      title: t("homeMode.birthdaysTitle"),
-      hint:
-        dashboard.upcomingBirthdays.length > 0
-          ? t("homeMode.birthdaysHint")
-          : t("homeMode.birthdaysDone"),
     },
   ];
 
