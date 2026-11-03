@@ -428,11 +428,19 @@ export async function seedCommon(prisma: PrismaClient) {
 
   // ─── Catálogos de clases (nivel/tipo) - upsert por nombre unique ───
   for (const l of CLASS_LEVEL_CATALOG) {
-    await prisma.classLevel.upsert({
-      where: { name: l.name },
-      update: { order: l.order },
-      create: l,
+    // La unique compuesta no acepta null en el where (la línea global
+    // es academyId null): findFirst + update/create manual.
+    const prev = await prisma.classLevel.findFirst({
+      where: { name: l.name, academyId: null },
     });
+    if (prev) {
+      await prisma.classLevel.update({
+        where: { id: prev.id },
+        data: { order: l.order },
+      });
+    } else {
+      await prisma.classLevel.create({ data: l });
+    }
   }
   // Rename "En Pareja" → "Pareja" (nombre corto del catálogo) - preserva
   // el id y los ClassSeriesType existentes; si ambos ya existen no choca.
