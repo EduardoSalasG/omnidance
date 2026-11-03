@@ -843,7 +843,7 @@ function SlotCard({
         aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
       >
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-        <p className="line-clamp-2 min-w-0 flex-1 text-base font-bold leading-tight">
+        <p className="line-clamp-2 min-w-0 flex-1 text-sm font-bold leading-tight">
           {s.seriesName}
         </p>
         <Badge
