@@ -541,7 +541,7 @@ function MetricsGrid({
 }) {
   const t = useTranslations("academy");
   return (
-    <div className="flex justify-between gap-2">
+    <div className="mt-1 flex justify-between gap-2">
       <MetricCell
         label={t("levels.lastShort")}
         value={s.lastClassAttendance ?? "—"}
