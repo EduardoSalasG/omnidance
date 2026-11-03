@@ -2482,6 +2482,25 @@ export class AcademiesController {
             )
           : null;
       const avgAttendance = avgOf("n");
+      // Los promedios de género se redondean por separado y pueden no
+      // sumar el total (6+5 != 10); se ajusta el mayor para que cuadre.
+      let avgMale = avgOf("m");
+      let avgFemale = avgOf("f");
+      if (
+        avgAttendance !== null &&
+        avgMale !== null &&
+        avgFemale !== null &&
+        avgMale + avgFemale !== avgAttendance
+      ) {
+        const diff = avgAttendance - avgMale - avgFemale;
+        if (avgMale >= avgFemale) {
+          avgMale = Math.max(0, avgMale + diff);
+          avgFemale = avgAttendance - avgMale;
+        } else {
+          avgFemale = Math.max(0, avgFemale + diff);
+          avgMale = avgAttendance - avgFemale;
+        }
+      }
       const next = nextBySlot.get(s.id);
       return {
         slotId: s.id,
@@ -2503,8 +2522,8 @@ export class AcademiesController {
         // Split de género por métrica: promedio de asistentes, última
         // clase dictada y reservas de la próxima (agregado, no por
         // persona - OTHER no se muestra en la proporción).
-        avgMale: avgOf("m"),
-        avgFemale: avgOf("f"),
+        avgMale,
+        avgFemale,
         lastMale: recent[0]?.m ?? null,
         lastFemale: recent[0]?.f ?? null,
         nextBooked: next?.booked ?? null,
