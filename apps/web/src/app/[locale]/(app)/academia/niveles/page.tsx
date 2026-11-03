@@ -50,6 +50,10 @@ function LevelsModule({ academyId }: { academyId: string }) {
 
   const load = useCallback(async () => {
     const res = await apiFetch(`/academies/${academyId}/class-levels`);
+    if (!res.ok) {
+      setNotice({ text: t("levelsConfig.error"), error: true });
+      return;
+    }
     setData((await res.json()) as LevelsResp);
   }, [academyId]);
 
@@ -86,7 +90,7 @@ function LevelsModule({ academyId }: { academyId: string }) {
 
   if (!data) return <SkeletonList />;
 
-  const levels = data.usingGlobal ? [] : data.custom;
+  const levels = data.usingGlobal ? [] : (data.custom ?? []);
 
   return (
     <div className="flex flex-col gap-4">

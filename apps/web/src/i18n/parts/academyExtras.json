@@ -13,6 +13,17 @@
       "lessonToSchedule": "por agendar",
       "seeAll": "Ver todos ({count})"
     },
+    "levelsConfig": {
+      "globalHint": "Tu academia usa la línea global de niveles (la que usan los sociales). Si defines los tuyos, reemplazan a la global solo para tu academia.",
+      "customHint": "Orden numerado: los chips de filtros y de la agenda muestran el numero 1..N en este orden.",
+      "personalize": "Personalizar niveles",
+      "personalized": "Niveles personalizados para tu academia",
+      "newPlaceholder": "Nuevo nivel…",
+      "add": "Agregar",
+      "nameLabel": "Nombre del nivel {index}",
+      "delete": "Eliminar nivel",
+      "error": "No se pudo guardar el nivel"
+    },
     "sections": {
       "overview": "Resumen",
       "billing": "Facturación",
@@ -60,17 +71,6 @@
       "femaleShort": "M",
       "gotoClasses": "Ver clases",
       "ofCapacity": "de {count}",
-      "levelsConfig": {
-        "globalHint": "Tu academia usa la línea global de niveles (la que usan los sociales). Si defines los tuyos, reemplazan a la global solo para tu academia.",
-        "customHint": "Orden numerado: los chips de filtros y de la agenda muestran el numero 1..N en este orden.",
-        "personalize": "Personalizar niveles",
-        "personalized": "Niveles personalizados para tu academia",
-        "newPlaceholder": "Nuevo nivel…",
-        "add": "Agregar",
-        "nameLabel": "Nombre del nivel {index}",
-        "delete": "Eliminar nivel",
-        "error": "No se pudo guardar el nivel"
-      },
       "spotsLeft": "{count, plural, one {# libre} other {# libres}}",
       "full": "Lleno",
       "overbooked": "+{count} sobrecupo",
