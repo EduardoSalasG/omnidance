@@ -714,7 +714,7 @@ function MetricsGrid({
   // El desbalance de género solo es accionable en clases de pareja.
   const partner = s.types.some((x) => /pareja/i.test(x.typeName));
   return (
-    <div className="mt-1 grid grid-cols-3 gap-1">
+    <div className="mt-1.5 grid grid-cols-3 gap-1">
       <MetricCell
         label={t("levels.lastShort")}
         value={s.lastClassAttendance ?? "—"}
@@ -831,7 +831,7 @@ function SlotCard({
   }
   return (
     <Card
-      className="flex h-full w-full min-w-0 flex-col gap-1 overflow-hidden px-2 pb-0 pt-1.5"
+      className="flex h-full w-full min-w-0 flex-col overflow-hidden px-2 pb-0 pt-1.5"
     >
       <Link
         href={
