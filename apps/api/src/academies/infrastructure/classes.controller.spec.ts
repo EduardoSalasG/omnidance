@@ -33,6 +33,7 @@ interface FakeClass {
   cancelled: boolean;
   instructorId: string | null;
   capacity: number | null;
+  classSlotId: string;
   // Plantel de la clase (ClassInstructor) - override del slot.
   instructors?: { personId: string }[];
   slot: {
@@ -118,6 +119,7 @@ class FakePrisma {
       cancelled: false,
       instructorId: null,
       capacity: null,
+      classSlotId: `slot-${id}`,
       ...rest,
       slot: {
         capacity: 1,

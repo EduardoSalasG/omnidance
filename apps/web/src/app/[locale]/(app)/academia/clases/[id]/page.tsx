@@ -16,14 +16,16 @@ import {
   type TourStep,
 } from "@/components/onboarding/OnboardingRunner";
 import { QuorumBar } from "@/components/academy/quorum-bar";
+import { MetricsGrid } from "@/components/academy/academy-levels-card";
 import {
   classDayFmt,
   readError,
   shortId,
+  type AcademyLevelInsights,
   type ClassRoster,
 } from "@/components/academy/shared";
 import { Link } from "@/i18n/navigation";
-import { getDateFmt } from "@/lib/intl";
+import { getDateFmt, useNumFmt } from "@/lib/intl";
 
 type LoadState =
   | "loading"
@@ -323,6 +325,11 @@ function RosterDetail({
       </Card>
       </div>
 
+      {/* Métricas del horario: mismas mini-stats ÚLT./PROM./PRÓX. de
+          la agenda "Niveles y cupos" del inicio (solo quien tiene
+          acceso a insights las ve; el resto ni siquiera ve la sección). */}
+      <SlotCupos academyId={c.academyId} slotId={c.classSlotId} />
+
       {/* Reservados */}
       <section
         aria-label={t("booked")}
@@ -447,5 +454,81 @@ function RosterDetail({
         onClose={() => setConfirmCancel(false)}
       />
     </div>
+  );
+}
+
+/** Métricas de cupo del horario de esta clase (ÚLT./PROM./PRÓX. con
+    desglose de género): el mismo bloque de la agenda "Niveles y
+    cupos" del inicio. Fetch propio contra insights/levels - ese
+    endpoint es owner/ADMIN + feature `insights`, así que en 403/404
+    (instructor u otro lente sin privilegio) la sección no se
+    renderiza, igual que la card del inicio. Sin skeleton: para ese
+    perfil el estado "loading" siempre termina oculto y un skeleton
+    sería un flash vacío; la sección aparece solo con data lista. */
+function SlotCupos({
+  academyId,
+  slotId,
+}: {
+  academyId: string;
+  slotId: string;
+}) {
+  const ta = useTranslations("academy");
+  // Mismo formato de la agenda: promedio con un decimal.
+  const numFmt = useNumFmt({ maximumFractionDigits: 1 });
+  const [slot, setSlot] = useState<
+    AcademyLevelInsights["bySlot"][number] | null
+  >(null);
+  const [state, setState] = useState<
+    "loading" | "ready" | "hidden" | "error"
+  >("loading");
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await apiFetch(
+          `/academies/${academyId}/insights/levels`,
+        );
+        if (!alive) return;
+        if (res.status === 403 || res.status === 404) {
+          setState("hidden");
+          return;
+        }
+        if (!res.ok) {
+          setState("error");
+          return;
+        }
+        const data = (await res.json()) as AcademyLevelInsights;
+        const found =
+          data.bySlot.find((x) => x.slotId === slotId) ?? null;
+        setSlot(found);
+        // Slot borrado o sin historial aún: nada que mostrar.
+        setState(found ? "ready" : "hidden");
+      } catch {
+        if (alive) setState("error");
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [academyId, slotId]);
+
+  if (state === "loading" || state === "hidden") return null;
+  return (
+    <section
+      aria-label={ta("levels.title")}
+      className="flex flex-col gap-2"
+    >
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+        {ta("levels.title")}
+      </h3>
+      {state === "error" || !slot ? (
+        <p className="text-xs text-ink/50">{ta("levels.loadError")}</p>
+      ) : (
+        <Card className="px-4 py-3">
+          <MetricsGrid slot={slot} numFmt={numFmt} divided={false} />
+        </Card>
+      )}
+    </section>
   );
 }

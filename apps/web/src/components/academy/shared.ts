@@ -457,6 +457,9 @@ export type ClassRoster = {
     id: string;
     date: string; // ISO - medianoche UTC
     cancelled: boolean;
+    // Horario al que pertenece la clase - llave para buscar sus
+    // métricas en AcademyLevelInsights.bySlot (insights/levels).
+    classSlotId: string;
     startTime: string;
     endTime: string;
     academyId: string;
