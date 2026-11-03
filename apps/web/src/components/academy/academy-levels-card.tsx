@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { academyTierHas } from "@/lib/academy-features";
@@ -273,92 +273,153 @@ function WeekCalendar({
   numFmt: Intl.NumberFormat;
 }) {
   const t = useTranslations("academy");
-  // Filas por hora: cada slot cae en la fila del piso de su hora y
-  // dentro de la celda se desplaza según el minuto (:30 ≈ a la mitad
-  // de la celda, como una agenda real).
+  // Agenda real: unidad de 30min por fila (ROW_H px). La card se
+  // posiciona absoluta por su hora de inicio y ocupa su duración -
+  // una clase 19:30-20:30 arranca a media fila de las 19 y termina a
+  // media fila de las 20. Clases traslapadas en un día se reparten
+  // la columna en carriles (lanes) lado a lado.
+  const ROW_H = 56; // px por cada 30min
   const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
-  const hourOf = (hm: string) => toMin(hm) - (toMin(hm) % 60);
+  const floor30 = (m: number) => m - (m % 30);
+  const endMinOf = (s: AcademyLevelInsights["bySlot"][number]) =>
+    s.endTime ? toMin(s.endTime) : toMin(s.startTime) + 60;
+  const startMinOf = (
+    s: AcademyLevelInsights["bySlot"][number],
+  ) => toMin(s.startTime);
+  const gridStart = floor30(
+    Math.min(...slots.map((s) => {
+      const m = toMin(s.startTime);
+      return m - (m % 60);
+    })),
+  );
+  const gridEnd = Math.max(
+    ...slots.map((s) => {
+      const e = endMinOf(s);
+      return e + ((30 - (e % 30)) % 30); // techo a la media hora
+    }),
+  );
+  const totalH = ((gridEnd - gridStart) / 30) * ROW_H;
+  const hours: number[] = [];
+  for (let m = gridStart; m <= gridEnd; m += 60) hours.push(m);
   const toHHMM = (m: number) =>
     `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-  const range = slots.reduce(
-    (r, s) => ({
-      min: Math.min(r.min, hourOf(s.startTime)),
-      max: Math.max(r.max, hourOf(s.startTime)),
-    }),
-    { min: Infinity, max: -Infinity },
-  );
-  const times: string[] = [];
-  for (let m = range.min; m <= range.max; m += 60) times.push(toHHMM(m));
-  const at = (d: number, rowMin: number) =>
-    slots.filter((s) => s.weekday === d && hourOf(s.startTime) === rowMin);
+
+  // Carriles por día: grupos de slots traslapados → lane/lanes.
+  const lanesByDay = new Map<number, Map<string, { lane: number; lanes: number }>>();
+  for (const d of days) {
+    const meta = new Map<string, { lane: number; lanes: number }>();
+    const ds = slots
+      .filter((s) => s.weekday === d)
+      .sort((a, b) => startMinOf(a) - startMinOf(b) || endMinOf(a) - endMinOf(b));
+    let cluster: typeof ds = [];
+    let clusterEnd = -1;
+    const flush = () => {
+      if (!cluster.length) return;
+      const ends: number[] = [];
+      for (const s of cluster) {
+        const st = startMinOf(s);
+        let i = ends.findIndex((e) => st >= e);
+        if (i < 0) {
+          i = ends.length;
+          ends.push(0);
+        }
+        ends[i] = endMinOf(s);
+        meta.set(s.slotId, { lane: i, lanes: 0 });
+      }
+      const lanes = ends.length;
+      for (const s of cluster) meta.get(s.slotId)!.lanes = lanes;
+      cluster = [];
+      clusterEnd = -1;
+    };
+    for (const s of ds) {
+      if (cluster.length && startMinOf(s) >= clusterEnd) flush();
+      cluster.push(s);
+      clusterEnd = Math.max(clusterEnd, endMinOf(s));
+    }
+    flush();
+    lanesByDay.set(d, meta);
+  }
+
+  const pos = (s: AcademyLevelInsights["bySlot"][number]) => ({
+    top: ((startMinOf(s) - gridStart) / 30) * ROW_H,
+    height: Math.max(ROW_H - 4, ((endMinOf(s) - startMinOf(s)) / 30) * ROW_H - 4),
+  });
   return (
     <>
-      {/* Desktop: grilla agenda - fila por hora, la hora una vez a la
-          izquierda, cada día su columna; celda vacía = dash tenue. */}
-      <div
-        className="hidden md:grid md:gap-2"
-        style={{
-          gridTemplateColumns: `auto repeat(${days.length}, minmax(0, 1fr))`,
-        }}
-      >
-        <span aria-hidden="true" />
-        {days.map((d) => (
-          <h5
-            key={d}
-            className="text-xs font-semibold uppercase tracking-wide text-ink/50"
+      <div className="hidden md:block">
+        {/* Header de días */}
+        <div className="flex gap-2">
+          <div className="w-9 shrink-0" />
+          {days.map((d) => (
+            <h5
+              key={d}
+              className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-wide text-ink/50"
+            >
+              <span aria-hidden="true">{t(`weekday.${d}`).slice(0, 3)}</span>
+              <span className="sr-only">{t(`weekday.${d}`)}</span>
+            </h5>
+          ))}
+        </div>
+        {/* Gutter de horas + columnas de día posicionadas */}
+        <div className="mt-1 flex gap-2">
+          <div
+            className="relative w-9 shrink-0"
+            style={{ height: totalH }}
           >
-            <span aria-hidden="true">
-              {t(`weekday.${d}`).slice(0, 3)}
-            </span>
-            <span className="sr-only">{t(`weekday.${d}`)}</span>
-          </h5>
-        ))}
-        {times.map((time) => {
-          const rowMin = toMin(time);
-          return (
-            <Fragment key={time}>
-              <p className="flex items-start justify-end pt-1 pr-1 text-xs font-semibold tabular-nums text-ink/50">
-                {time}
+            {hours.map((m) => (
+              <p
+                key={m}
+                className="absolute right-0 -translate-y-1/2 text-xs font-semibold tabular-nums text-ink/50"
+                style={{ top: ((m - gridStart) / 30) * ROW_H }}
+              >
+                {toHHMM(m)}
               </p>
-              {days.map((d) => {
-                const cell = at(d, rowMin);
-                return cell.length > 0 ? (
+            ))}
+          </div>
+          {days.map((d) => {
+            const meta = lanesByDay.get(d) ?? new Map();
+            return (
+              <div
+                key={d}
+                className="relative min-w-0 flex-1"
+                style={{ height: totalH }}
+                aria-label={t(`weekday.${d}`)}
+              >
+                {hours.map((m) => (
                   <div
-                    key={`${d}-${time}`}
-                    className="flex min-w-0 flex-col gap-1.5"
-                  >
-                    {cell.map((s) => {
-                      // Desplazamiento vertical proporcional al minuto
-                      // de inicio: :30 queda a media celda (~mitad de
-                      // una card de referencia de 88px).
-                      const off = Math.round(
-                        ((toMin(s.startTime) % 60) / 60) * 88,
-                      );
-                      return (
-                        <div
-                          key={s.slotId}
-                          style={off ? { marginTop: off } : undefined}
-                        >
-                          <SlotCard
-                            slot={s}
-                            numFmt={numFmt}
-                            rowTime={time}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div
-                    key={`${d}-${time}`}
+                    key={m}
                     aria-hidden="true"
-                    className="rounded-2xl border border-dashed border-line/60"
+                    className="absolute inset-x-0 border-t border-line/40"
+                    style={{ top: ((m - gridStart) / 30) * ROW_H }}
                   />
-                );
-              })}
-            </Fragment>
-          );
-        })}
+                ))}
+                {slots
+                  .filter((s) => s.weekday === d)
+                  .map((s) => {
+                    const { lane, lanes } = meta.get(s.slotId) ?? {
+                      lane: 0,
+                      lanes: 1,
+                    };
+                    const { top, height } = pos(s);
+                    return (
+                      <div
+                        key={s.slotId}
+                        className="absolute min-w-0"
+                        style={{
+                          top,
+                          height,
+                          left: `${(lane / lanes) * 100}%`,
+                          width: `calc(${100 / lanes}% - 2px)`,
+                        }}
+                      >
+                        <SlotCard slot={s} numFmt={numFmt} />
+                      </div>
+                    );
+                  })}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Mobile: lista apilada por día con la hora como etiqueta de
@@ -407,13 +468,9 @@ function WeekCalendar({
 function SlotCard({
   slot: s,
   numFmt,
-  rowTime,
 }: {
   slot: AcademyLevelInsights["bySlot"][number];
   numFmt: Intl.NumberFormat;
-  /** Fila de la agenda en que cayó el slot - si la clase parte fuera
-      de múltiplo :00/:30 se muestra su hora real dentro de la card. */
-  rowTime?: string;
 }) {
   const t = useTranslations("academy");
   // Estado del cupo → variant semántica del Badge: sobrecupo en rojo
@@ -428,18 +485,13 @@ function SlotCard({
         ? t("levels.full")
         : t("levels.spotsLeft", { count: s.empty });
   return (
-    <Card className="flex h-full flex-col gap-1.5 px-3 py-2.5">
+    <Card className="flex h-full flex-col gap-1.5 overflow-hidden px-3 py-2.5">
       <Badge
         variant={s.levelName ? "outline" : "muted"}
         className="max-w-full self-start"
       >
         {s.levelName ?? t("levels.noLevel")}
       </Badge>
-      {rowTime && s.startTime !== rowTime && (
-        <p className="text-xs font-semibold tabular-nums text-ink/50">
-          {s.startTime}
-        </p>
-      )}
       <p className="truncate text-sm font-medium">{s.seriesName}</p>
         <div className="tabular-nums">
           <p className="text-lg font-bold leading-none">

@@ -206,6 +206,7 @@ export type AcademyLevelInsights = {
     levelName: string | null;
     weekday: number; // 0-6, domingo = 0
     startTime: string; // "19:00"
+    endTime?: string; // "20:30" - si falta se asume 1h
     types: { typeId: string; typeName: string }[];
     capacity: number;
     assigned: number;
