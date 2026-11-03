@@ -860,7 +860,7 @@ function SlotCard({
       <div className="flex flex-col gap-0.5">
         <Badge
           variant={s.levelName ? "violet" : "muted"}
-          className="self-start text-[9px]"
+          className="self-end text-[9px]"
           title={s.levelName ?? undefined}
         >
           {s.levelName ? (levelNum ?? s.levelName) : t("levels.noLevel")}
