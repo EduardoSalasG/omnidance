@@ -644,7 +644,7 @@ function GenderBar({
   // completo - nunca se solapan en celdas estrechas.
   return (
     <span
-      className={`flex w-full flex-wrap items-center gap-x-1 rounded px-0.5 text-[9px] font-semibold tabular-nums ${
+      className={`flex w-full flex-wrap items-center gap-x-1 rounded px-0.5 text-[11px] font-semibold tabular-nums ${
         skewed ? "bg-warn/15" : ""
       }`}
     >
@@ -693,10 +693,10 @@ function MetricCell({
 }) {
   return (
     <div className="flex flex-col items-center gap-0.5 text-center tabular-nums">
-      <span className="text-[9px] font-medium uppercase tracking-wide text-ink/60">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-ink/60">
         {label}
       </span>
-      <span className="text-[11px] font-bold">{value}</span>
+      <span className="text-[13px] font-bold">{value}</span>
       <GenderBar m={male} f={female} partner={partner} />
     </div>
   );
@@ -843,7 +843,7 @@ function SlotCard({
         aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
       >
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-        <p className="line-clamp-2 min-w-0 flex-1 text-sm font-bold leading-tight">
+        <p className="line-clamp-2 min-w-0 flex-1 text-base font-bold leading-tight">
           {s.seriesName}
         </p>
         <Badge
