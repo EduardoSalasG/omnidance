@@ -124,7 +124,12 @@ export class CatalogsController {
 
   @Get("class-levels")
   levels() {
-    return this.prisma.classLevel.findMany({ orderBy: { order: "asc" } });
+    // Solo la linea global: los niveles custom de cada academia se
+    // editan desde su consola (/academia/niveles).
+    return this.prisma.classLevel.findMany({
+      where: { academyId: null },
+      orderBy: { order: "asc" },
+    });
   }
 
   @Post("class-levels")
