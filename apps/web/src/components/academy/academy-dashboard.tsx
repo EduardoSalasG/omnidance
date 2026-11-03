@@ -287,6 +287,7 @@ export function AcademyDashboard({
       {homeMode === "extended" && (
         <section
           aria-label={t("sections.billing")}
+          data-tour="academy-billing"
           className="flex flex-col gap-4"
         >
           <h3 className={sectionTitleCls}>{t("sections.billing")}</h3>

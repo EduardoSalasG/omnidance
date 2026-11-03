@@ -282,7 +282,7 @@
     "academiaOwner": {
       "s1": {
         "title": "Tu mes de un vistazo",
-        "desc": "Alumnos activos, planes vendibles, clases semanales, asistencia y facturado, con la comparativa contra el mes anterior."
+        "desc": "Alumnos activos, clases de la semana, asistencia promedio y reservas de hoy, con la comparativa contra el mes anterior."
       },
       "s2": {
         "title": "Puesta en marcha",
@@ -294,7 +294,7 @@
       },
       "s4": {
         "title": "Lo urgente",
-        "desc": "Comprobantes por validar y clases particulares por confirmar: la cola que conviene dejar en cero cada día."
+        "desc": "Comprobantes por validar, particulares por confirmar, planes que vencen y alumnos sin nivel: la cola que conviene dejar en cero cada día."
       },
       "s5": {
         "title": "Lo que viene",
