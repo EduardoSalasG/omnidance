@@ -7,7 +7,6 @@ import { academyTierHas } from "@/lib/academy-features";
 import {
   Badge,
   Card,
-  PillTabs,
   type BadgeVariant,
 } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
@@ -94,9 +93,10 @@ export function AcademyLevelsCard({
 
   // Filtro por tipo de clase con el mismo patrón de /analitica
   // (PillTabs: pills tablist de estado local). "all" = vista completa.
-  const [typeFilter, setTypeFilter] = useState("all");
-  // Estilo y nivel son multiselect (sets de keys activos; vacío =
-  // todos). Filtran solo el agenda - los KPIs van por tipo.
+  // Tipo, estilo y nivel son multiselect (sets de keys activos;
+  // vacío = todos). Estilo/nivel filtran el agenda; tipo también
+  // acota los KPIs por nivel.
+  const [typeSel, setTypeSel] = useState<Set<string>>(new Set());
   const [styleSel, setStyleSel] = useState<Set<string>>(new Set());
   const [levelSel, setLevelSel] = useState<Set<string>>(new Set());
   const toggleIn = (set: Set<string>, key: string) => {
@@ -112,26 +112,13 @@ export function AcademyLevelsCard({
     data.bySlot.length === 0 &&
     data.byType.every((ty) => ty.levels.every((l) => l.count === 0));
 
-  // Si la data recargada ya no trae el tipo elegido, el filtro cae a
-  // "all" sin necesidad de un efecto.
-  const activeType = data.byType.some((ty) => ty.typeId === typeFilter)
-    ? typeFilter
-    : "all";
-
-  // KPIs por nivel, reactivos al filtro: "Todos" agrega por nombre de
-  // nivel sumando entre tipos (Iniciación de En Pareja + Iniciación de
-  // Shines en la misma card); un tipo concreto usa sus niveles tal como
-  // vienen del server.
-  const visibleLevels =
-    activeType === "all"
-      ? aggregateLevels(data.byType)
-      : (data.byType
-          .find((ty) => ty.typeId === activeType)
-          ?.levels.map((l) => ({
-            key: l.levelId,
-            name: l.levelName,
-            count: l.count,
-          })) ?? []);
+  // KPIs por nivel: agregan por nombre de nivel sobre los tipos
+  // seleccionados (vacío = todos). "Todos" junta Iniciación de Pareja
+  // + Iniciación de Shines en la misma card.
+  const selectedTypes = data.byType.filter(
+    (ty) => typeSel.size === 0 || typeSel.has(ty.typeId),
+  );
+  const visibleLevels = aggregateLevels(selectedTypes);
   const levelTotal = visibleLevels.reduce((a, l) => a + l.count, 0);
 
   // Un solo calendario: "Todos" junta cada horario una sola vez (los
@@ -144,18 +131,18 @@ export function AcademyLevelsCard({
       data.bySlot.map((s) => s.styleName).filter((x): x is string => !!x),
     ),
   ];
+  // Los 4 niveles de la academia (vienen ordenados del server), no
+  // solo los que tienen horario - un nivel sin clases igual se filtra.
   const levelOptions = [
     ...new Map(
-      data.bySlot
-        .filter((s) => s.levelId && s.levelName)
-        .map((s) => [s.levelId, s.levelName] as [string, string]),
+      data.byType.flatMap((ty) =>
+        ty.levels.map((l) => [l.levelId, l.levelName] as [string, string]),
+      ),
     ).values(),
   ];
   const visibleSlots = data.bySlot
     .filter(
-      (s) =>
-        activeType === "all" ||
-        s.types.some((st) => st.typeId === activeType),
+      (s) => typeSel.size === 0 || s.types.some((st) => typeSel.has(st.typeId)),
     )
     .filter(
       (s) =>
@@ -181,17 +168,16 @@ export function AcademyLevelsCard({
         {/* Con un solo tipo "Todos" y ese tipo son la misma vista: el
             filtro solo aparece cuando la data trae 2 o más tipos. */}
         {!nothingYet && data.byType.length > 1 && (
-          <PillTabs
-            ariaLabel={t("levels.typeFilterLabel")}
-            active={activeType}
-            onSelect={setTypeFilter}
-            items={[
-              { key: "all", label: t("levels.allTypes") },
-              ...data.byType.map((ty) => ({
-                key: ty.typeId,
-                label: ty.typeName,
-              })),
-            ]}
+          <ToggleChips
+            label={t("levels.typeFilterLabel")}
+            allLabel={t("levels.allTypes")}
+            options={data.byType.map((ty) => ({
+              key: ty.typeId,
+              label: ty.typeName,
+            }))}
+            selected={typeSel}
+            onToggle={(k) => setTypeSel(toggleIn(typeSel, k))}
+            onClear={() => setTypeSel(new Set())}
           />
         )}
       </div>
@@ -211,9 +197,9 @@ export function AcademyLevelsCard({
             <ToggleChips
               label={t("levels.levelFilterLabel")}
               allLabel={t("levels.allLevels")}
-              options={levelOptions.map(([id, name]) => ({
+              options={levelOptions.map(([id, name], i) => ({
                 key: id,
-                label: name,
+                label: `${i + 1} ${name}`,
               }))}
               selected={levelSel}
               onToggle={(k) => setLevelSel(toggleIn(levelSel, k))}
@@ -261,7 +247,7 @@ export function AcademyLevelsCard({
                 la suma es por tipo (un alumno puede contar en más de
                 uno); con un solo tipo o filtrado es el total plano. */}
             <p className="text-xs tabular-nums text-ink/50">
-              {activeType === "all" && data.byType.length > 1
+              {typeSel.size === 0 && data.byType.length > 1
                 ? t("levels.allTotal", { count: levelTotal })
                 : t("levels.typeTotal", { count: levelTotal })}
             </p>
@@ -277,7 +263,7 @@ export function AcademyLevelsCard({
             />
           ) : (
             <p className="text-xs text-ink/50">
-              {activeType === "all"
+              {typeSel.size === 0
                 ? t("levels.noSlots")
                 : t("levels.noSlotsForType")}
             </p>
