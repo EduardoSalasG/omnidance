@@ -506,7 +506,14 @@ function GenderBar({
   // conteo dominante pasan a warning como signal accionable.
   const skewed = !!partner && (mp >= 70 || mp <= 30);
   return (
-    <span className="flex items-center gap-1 text-[11px] font-semibold tabular-nums">
+    <span className={`flex items-center gap-1 rounded px-1 text-[11px] font-semibold tabular-nums ${
+      skewed ? "bg-warning/15" : ""
+    }`}>
+      {skewed ? (
+        <span className="inline-flex h-3 w-3 items-center justify-center rounded-full bg-warning/25 text-[9px] font-bold text-warning">
+          !
+        </span>
+      ) : null}
       <span className={skewed && mp >= 70 ? "text-warning" : "text-sky-400"}>
         {m}
       </span>
