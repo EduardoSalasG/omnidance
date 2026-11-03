@@ -123,7 +123,7 @@ export function AcademyKpiCards({
         },
         {
           key: "avgAttendance",
-          href: "/academia/series",
+          href: "/academia/asistencia",
           value:
             data.kpis.avgAttendancePerClassMonth === null
               ? null
