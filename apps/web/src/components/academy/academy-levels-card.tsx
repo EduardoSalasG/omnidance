@@ -119,16 +119,7 @@ export function AcademyLevelsCard({
     (ty) => typeSel.size === 0 || typeSel.has(ty.typeId),
   );
   const visibleLevels = aggregateLevels(selectedTypes);
-  // levelId -> numero 1-4 (mismo orden que los chips de filtro).
-  const levelNum = new Map(
-    [
-      ...new Map(
-        data.byType.flatMap((ty) =>
-          ty.levels.map((l) => [l.levelId, l.levelName] as [string, string]),
-        ),
-      ).keys(),
-    ].map((id, i) => [id, i + 1] as const),
-  );
+
   const levelTotal = visibleLevels.reduce((a, l) => a + l.count, 0);
 
   // Un solo calendario: "Todos" junta cada horario una sola vez (los
@@ -209,7 +200,7 @@ export function AcademyLevelsCard({
               allLabel={t("levels.allLevels")}
               options={levelOptions.map(([id, name], i) => ({
                 key: id,
-                label: `${i + 1} ${name}`,
+                label: `${i + 1}`,
               }))}
               selected={levelSel}
               onToggle={(k) => setLevelSel(toggleIn(levelSel, k))}
@@ -270,7 +261,6 @@ export function AcademyLevelsCard({
               slots={visibleSlots}
               days={weekDays}
               numFmt={numFmt}
-              levelNum={levelNum}
             />
           ) : (
             <p className="text-xs text-ink/50">
@@ -322,12 +312,10 @@ function WeekCalendar({
   slots,
   days,
   numFmt,
-  levelNum,
 }: {
   slots: AcademyLevelInsights["bySlot"];
   days: readonly number[];
   numFmt: Intl.NumberFormat;
-  levelNum: ReadonlyMap<string, number>;
 }) {
   const t = useTranslations("academy");
   // Agenda real: unidad de 30min por fila (ROW_H px). La card se
@@ -470,11 +458,7 @@ function WeekCalendar({
                           width: `calc(${100 / lanes}% - 2px)`,
                         }}
                       >
-                        <SlotCard
-                          slot={s}
-                          numFmt={numFmt}
-                          levelNum={s.levelId ? levelNum.get(s.levelId) : undefined}
-                        />
+                        <SlotCard slot={s} numFmt={numFmt} />
                       </div>
                     );
                   })}
@@ -507,12 +491,7 @@ function WeekCalendar({
               </h5>
               <ul className="flex flex-col gap-1.5">
                 {daySlots.map((s) => (
-                  <MobileSlotRow
-                    key={s.slotId}
-                    slot={s}
-                    numFmt={numFmt}
-                    levelNum={s.levelId ? levelNum.get(s.levelId) : undefined}
-                  />
+                  <MobileSlotRow key={s.slotId} slot={s} numFmt={numFmt} />
                 ))}
               </ul>
             </section>
@@ -725,11 +704,9 @@ function MetricsGrid({
 function MobileSlotRow({
   slot: s,
   numFmt,
-  levelNum,
 }: {
   slot: AcademyLevelInsights["bySlot"][number];
   numFmt: Intl.NumberFormat;
-  levelNum?: number;
 }) {
   const t = useTranslations("academy");
   const { variant, text } = slotStatus(s, t);
@@ -755,9 +732,8 @@ function MobileSlotRow({
           <Badge
             variant={s.levelName ? "violet" : "muted"}
             className="shrink-0"
-            title={s.levelName ?? undefined}
           >
-            {s.levelName ? (levelNum ?? "·") : t("levels.noLevel")}
+            {s.levelName ?? t("levels.noLevel")}
           </Badge>
         </div>
         <MetricsGrid slot={s} numFmt={numFmt} />
@@ -776,11 +752,9 @@ function MobileSlotRow({
 function SlotCard({
   slot: s,
   numFmt,
-  levelNum,
 }: {
   slot: AcademyLevelInsights["bySlot"][number];
   numFmt: Intl.NumberFormat;
-  levelNum?: number;
 }) {
   const t = useTranslations("academy");
   const { variant: statusVariant, text: statusText } = slotStatus(s, t);
@@ -805,9 +779,8 @@ function SlotCard({
         <Badge
           variant={s.levelName ? "violet" : "muted"}
           className="shrink-0"
-          title={s.levelName ?? undefined}
         >
-          {s.levelName ? (levelNum ?? "·") : t("levels.noLevel")}
+          {s.levelName ?? t("levels.noLevel")}
         </Badge>
       </div>
       <MetricsGrid slot={s} numFmt={numFmt} />
