@@ -2324,7 +2324,9 @@ export class AcademiesController {
           orderBy: { date: "desc" },
           select: {
             classSlotId: true,
-            _count: { select: { attendances: true } },
+            // Género de cada asistente para la proporción por fila
+            // (agregado por horario - nunca por persona).
+            attendances: { select: { personId: true } },
           },
         }),
         // Próximas clases de cada slot con sus reservas BOOKED: la
@@ -2339,8 +2341,9 @@ export class AcademiesController {
           select: {
             classSlotId: true,
             date: true,
-            _count: {
-              select: { bookings: { where: { status: "BOOKED" } } },
+            bookings: {
+              where: { status: "BOOKED" },
+              select: { personId: true },
             },
           },
         }),
@@ -2379,43 +2382,65 @@ export class AcademiesController {
       count: activeCount - (enrollmentsByType.get(t.id)?.size ?? 0),
     }));
 
-    // Asistencia reciente por slot: últimas 8 clases dictadas, ya en
-    // orden desc por la query.
-    const attendanceBySlot = new Map<string, number[]>();
-    for (const c of classes) {
-      let arr = attendanceBySlot.get(c.classSlotId);
-      if (!arr) attendanceBySlot.set(c.classSlotId, (arr = []));
-      if (arr.length < 8) arr.push(c._count.attendances);
-    }
-    // Próxima clase por slot (vienen asc): reservas BOOKED de la fecha
-    // que viene. Solo la primera aparición importa.
-    const nextBySlot = new Map<string, { date: Date; booked: number }>();
-    for (const c of futureClasses) {
-      if (!nextBySlot.has(c.classSlotId)) {
-        nextBySlot.set(c.classSlotId, {
-          date: c.date,
-          booked: c._count.bookings,
-        });
-      }
-    }
-    // Género por enrollment (un nivel puede repetir el enrollment):
-    // enrollment -> personId -> gender, en un solo fetch extra.
-    const personIds = [
-      ...new Set(enrollmentLevels.map((el) => el.enrollment.personId)),
-    ];
-    const persons = personIds.length
+    // Género en UN solo lookup para las tres fuentes (enrollments,
+    // asistentes recientes y reservas de la próxima clase).
+    const personIds = new Set<string>();
+    for (const el of enrollmentLevels)
+      personIds.add(el.enrollment.personId);
+    for (const c of classes)
+      for (const a of c.attendances) personIds.add(a.personId);
+    for (const c of futureClasses)
+      for (const b of c.bookings) personIds.add(b.personId);
+    const persons = personIds.size
       ? await this.prisma.person.findMany({
-          where: { id: { in: personIds } },
+          where: { id: { in: [...personIds] } },
           select: { id: true, gender: true },
         })
       : [];
     const genderByPerson = new Map(persons.map((p) => [p.id, p.gender]));
-    const genderByEnrollment = new Map(
-      enrollmentLevels.map((el) => [
-        el.enrollmentId,
-        genderByPerson.get(el.enrollment.personId),
-      ]),
-    );
+    const genderOf = (pid: string) => genderByPerson.get(pid);
+
+    // Asistencia reciente por slot: últimas 8 clases dictadas, ya en
+    // orden desc por la query - cada entrada guarda total y split H/M.
+    const attendanceBySlot = new Map<
+      string,
+      { n: number; m: number; f: number }[]
+    >();
+    for (const c of classes) {
+      let arr = attendanceBySlot.get(c.classSlotId);
+      if (!arr) attendanceBySlot.set(c.classSlotId, (arr = []));
+      if (arr.length >= 8) continue;
+      let m = 0;
+      let f = 0;
+      for (const a of c.attendances) {
+        const g = genderOf(a.personId);
+        if (g === "M") m += 1;
+        else if (g === "F") f += 1;
+      }
+      arr.push({ n: c.attendances.length, m, f });
+    }
+    // Próxima clase por slot (vienen asc): reservas BOOKED de la fecha
+    // que viene, con su split de género. Solo la primera aparición.
+    const nextBySlot = new Map<
+      string,
+      { date: Date; booked: number; m: number; f: number }
+    >();
+    for (const c of futureClasses) {
+      if (nextBySlot.has(c.classSlotId)) continue;
+      let m = 0;
+      let f = 0;
+      for (const b of c.bookings) {
+        const g = genderOf(b.personId);
+        if (g === "M") m += 1;
+        else if (g === "F") f += 1;
+      }
+      nextBySlot.set(c.classSlotId, {
+        date: c.date,
+        booked: c.bookings.length,
+        m,
+        f,
+      });
+    }
 
     const bySlot = slots.map((s) => {
       // Modalidades del horario: slot.types vacío hereda las de la
@@ -2436,15 +2461,6 @@ export class AcademiesController {
           )
           .map((el) => el.enrollmentId),
       );
-      // Proporción hombre/mujer de los asignables (agregado por
-      // horario - nunca por persona).
-      let male = 0;
-      let female = 0;
-      for (const eid of assignedIds) {
-        const g = genderByEnrollment.get(eid);
-        if (g === "M") male += 1;
-        else if (g === "F") female += 1;
-      }
       const assigned = assignedIds.size;
       // Cupos del horario: slot.capacity → series.quorum →
       // academy.defaultQuorum → 20 (effectiveCapacity, cadena sin el
@@ -2455,11 +2471,15 @@ export class AcademiesController {
         academyDefaultQuorum: academy.defaultQuorum,
       });
       const recent = attendanceBySlot.get(s.id) ?? [];
-      const avgAttendance = recent.length
-        ? Math.round(
-            (recent.reduce((acc, n) => acc + n, 0) / recent.length) * 10,
-          ) / 10
-        : null;
+      const avgOf = (k: "n" | "m" | "f") =>
+        recent.length
+          ? Math.round(
+              (recent.reduce((acc, r) => acc + r[k], 0) / recent.length) *
+                10,
+            ) / 10
+          : null;
+      const avgAttendance = avgOf("n");
+      const next = nextBySlot.get(s.id);
       return {
         slotId: s.id,
         seriesName: s.series.name,
@@ -2476,14 +2496,21 @@ export class AcademiesController {
         })),
         capacity,
         assigned,
-        male,
-        female,
-        nextBooked: nextBySlot.get(s.id)?.booked ?? null,
-        nextDate: nextBySlot.get(s.id)?.date ?? null,
+        // Split de género por métrica: promedio de asistentes, última
+        // clase dictada y reservas de la próxima (agregado, no por
+        // persona - OTHER no se muestra en la proporción).
+        avgMale: avgOf("m"),
+        avgFemale: avgOf("f"),
+        lastMale: recent[0]?.m ?? null,
+        lastFemale: recent[0]?.f ?? null,
+        nextBooked: next?.booked ?? null,
+        nextMale: next?.m ?? null,
+        nextFemale: next?.f ?? null,
+        nextDate: next?.date ?? null,
         // Negativo = sobrecupo (más asignables que cupos).
         empty: capacity - assigned,
         avgAttendance,
-        lastClassAttendance: recent[0] ?? null,
+        lastClassAttendance: recent[0]?.n ?? null,
       };
     });
 

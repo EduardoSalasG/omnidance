@@ -210,11 +210,16 @@ export type AcademyLevelInsights = {
     types: { typeId: string; typeName: string }[];
     capacity: number;
     assigned: number;
-    // Proporción de asignables por género (agregado, no por alumno).
-    male: number;
-    female: number;
+    // Split de género POR métrica (agregado por horario): promedio,
+    // última clase y reservas de la próxima.
+    avgMale: number | null;
+    avgFemale: number | null;
+    lastMale: number | null;
+    lastFemale: number | null;
     // Reservas BOOKED de la próxima clase del horario (null = sin fecha).
     nextBooked: number | null;
+    nextMale: number | null;
+    nextFemale: number | null;
     nextDate: string | null;
     // Negativo = sobrecupo (más asignables que cupos).
     empty: number;
