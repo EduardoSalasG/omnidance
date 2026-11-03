@@ -656,7 +656,9 @@ function GenderBar({
       <span className={skewed && mp >= 70 ? "text-warn" : "text-sky-400"}>
         {m}
       </span>
-      <span className={skewed && mp <= 30 ? "text-warn" : "text-pink-400"}>
+      <span
+        className={`ml-auto ${skewed && mp <= 30 ? "text-warn" : "text-pink-400"}`}
+      >
         {f}
       </span>
       <span className="flex h-1 basis-full overflow-hidden rounded-full bg-ink/10">
