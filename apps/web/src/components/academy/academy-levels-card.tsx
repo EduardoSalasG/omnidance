@@ -531,9 +531,7 @@ function MetricRow({
       <span className="text-xs font-normal text-ink/50">{label}</span>
       {value}
       <span className="font-normal text-ink/50">/{capacity}</span>
-      <span className="ml-auto">
-        <GenderBar m={male} f={female} />
-      </span>
+      <GenderBar m={male} f={female} />
     </p>
   );
 }
@@ -555,7 +553,8 @@ function MobileSlotRow({
         {s.startTime}
       </p>
       <Card className="min-w-0 flex-1 px-3 py-2">
-        <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-sm font-medium">{s.seriesName}</p>
+        <div className="mt-0.5 flex items-center gap-1.5">
           <Badge
             variant={s.levelName ? "outline" : "muted"}
             className="min-w-0 truncate"
@@ -566,7 +565,6 @@ function MobileSlotRow({
             {text}
           </Badge>
         </div>
-        <p className="mt-0.5 truncate text-sm font-medium">{s.seriesName}</p>
         <div className="mt-1 flex flex-col gap-0.5">
           <MetricRow
             label={t("levels.avgShort")}
@@ -607,14 +605,19 @@ function SlotCard({
   const t = useTranslations("academy");
   const { variant: statusVariant, text: statusText } = slotStatus(s, t);
   return (
-    <Card className="flex h-full flex-col gap-1.5 overflow-hidden px-3 py-2.5">
-      <Badge
-        variant={s.levelName ? "outline" : "muted"}
-        className="max-w-full self-start"
-      >
-        {s.levelName ?? t("levels.noLevel")}
-      </Badge>
+    <Card className="flex h-full flex-col gap-1.5 overflow-hidden px-2.5 py-2">
       <p className="truncate text-sm font-medium">{s.seriesName}</p>
+      <div className="flex items-center gap-1.5">
+        <Badge
+          variant={s.levelName ? "outline" : "muted"}
+          className="min-w-0 truncate"
+        >
+          {s.levelName ?? t("levels.noLevel")}
+        </Badge>
+        <Badge variant={statusVariant} className="shrink-0">
+          {statusText}
+        </Badge>
+      </div>
         <div className="flex flex-col gap-0.5">
           <p className="flex items-center gap-1 text-base font-bold leading-tight">
             <UsersIcon className="h-4 w-4 shrink-0 text-ink/50" />
@@ -653,9 +656,6 @@ function SlotCard({
             female={s.nextFemale}
           />
         </div>
-        <Badge variant={statusVariant} className="max-w-full self-start">
-          {statusText}
-        </Badge>
     </Card>
   );
 }
