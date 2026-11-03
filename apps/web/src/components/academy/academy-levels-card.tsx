@@ -640,19 +640,26 @@ function GenderBar({
   // Desbalance >=70% (clave en clases de pareja): la barra y el
   // conteo dominante pasan a warning como signal accionable.
   const skewed = !!partner && (mp >= 70 || mp <= 30);
+  // Conteos en una linea (con ! si aplica) y la barra abajo a ancho
+  // completo - nunca se solapan en celdas estrechas.
   return (
-    <span className={`flex items-center gap-1 rounded px-1 text-[11px] font-semibold tabular-nums ${
-      skewed ? "bg-warn/15" : ""
-    }`}>
+    <span
+      className={`flex w-full flex-wrap items-center gap-x-1 rounded px-0.5 text-[9px] font-semibold tabular-nums ${
+        skewed ? "bg-warn/15" : ""
+      }`}
+    >
       {skewed ? (
-        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-warn/30 text-[10px] font-bold text-warn">
+        <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-warn/30 text-[9px] font-bold text-warn">
           !
         </span>
       ) : null}
       <span className={skewed && mp >= 70 ? "text-warn" : "text-sky-400"}>
         {m}
       </span>
-      <span className="flex h-1.5 w-8 overflow-hidden rounded-full bg-ink/10">
+      <span className={skewed && mp <= 30 ? "text-warn" : "text-pink-400"}>
+        {f}
+      </span>
+      <span className="flex h-1 basis-full overflow-hidden rounded-full bg-ink/10">
         <span
           className={skewed && mp >= 70 ? "bg-warn" : "bg-sky-400"}
           style={{ width: `${mp}%` }}
@@ -661,9 +668,6 @@ function GenderBar({
           className={skewed && mp <= 30 ? "bg-warn" : "bg-pink-400"}
           style={{ width: `${100 - mp}%` }}
         />
-      </span>
-      <span className={skewed && mp <= 30 ? "text-warn" : "text-pink-400"}>
-        {f}
       </span>
     </span>
   );
@@ -837,9 +841,8 @@ function SlotCard({
         aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
       >
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-        <p className="min-w-0 flex-1 text-sm font-bold">
+        <p className="line-clamp-2 min-w-0 flex-1 text-sm font-bold leading-tight">
           {s.seriesName}
-          {s.styleName ? ` · ${s.styleName}` : ""}
         </p>
         <Badge
           variant={s.levelName ? "violet" : "muted"}
