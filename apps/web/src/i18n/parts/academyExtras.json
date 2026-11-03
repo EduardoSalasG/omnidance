@@ -15,6 +15,7 @@
     },
     "sections": {
       "overview": "Resumen",
+      "billing": "Facturación",
       "operation": "Operación del día",
       "students": "Alumnos"
     },

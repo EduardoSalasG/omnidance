@@ -294,6 +294,23 @@ export function AcademyDashboard({
         </section>
       )}
 
+      {/* Facturación del mes como sección propia (Extendido): lo que se
+          cobra, no la operación del día. */}
+      {homeMode === "extended" && (
+        <section
+          aria-label={t("sections.billing")}
+          className="flex flex-col gap-4"
+        >
+          <h3 className={sectionTitleCls}>{t("sections.billing")}</h3>
+          <AcademyKpiCards
+            data={dashboard}
+            error={dashError}
+            onRetry={() => void refresh()}
+            keys={["billedMonth", "avgTicket"]}
+          />
+        </section>
+      )}
+
       {/* Checklist de activación: persiste hasta completar los 4 pasos
           de puesta en marcha (spec academies/owner-insights) - antes se
           escondía con el primer alumno aunque faltara configuración. */}
