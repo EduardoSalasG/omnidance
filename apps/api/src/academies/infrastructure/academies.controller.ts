@@ -2280,7 +2280,18 @@ export class AcademiesController {
       futureClasses,
     ] = await Promise.all([
         this.prisma.classType.findMany({ orderBy: { name: "asc" } }),
-        this.prisma.classLevel.findMany({ orderBy: { order: "asc" } }),
+        // Niveles: si la academia tiene los suyos, solo esos; si no, la
+        // linea global por defecto (academyId null).
+        this.prisma.classLevel
+          .findMany({ where: { academyId: id }, orderBy: { order: "asc" } })
+          .then((custom) =>
+            custom.length
+              ? custom
+              : this.prisma.classLevel.findMany({
+                  where: { academyId: null },
+                  orderBy: { order: "asc" },
+                }),
+          ),
         this.prisma.classSlot.findMany({
           where: { academyId: id, deletedAt: null },
           orderBy: [{ weekday: "asc" }, { startTime: "asc" }],

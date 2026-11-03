@@ -987,6 +987,7 @@ model Academy {
   segmentSnapshots AcademySegmentSnapshot[]
 
   @@index([cityId])
+  classLevels ClassLevel[]
 }
 
 model AcademyInstructor {
@@ -1205,9 +1206,15 @@ model PaymentClaim {
 // Catálogos mantenibles por admin - los valores los edita el negocio,
 // no el código (mantenedor en /admin/catalogos).
 model ClassLevel {
-  id     String @id @default(cuid())
-  name   String @unique // Iniciación | Básico | Intermedio | Avanzado
-  order  Int    @default(0)
+  id        String   @id @default(cuid())
+  // null = linea global por defecto (sociales, academias sin custom);
+  // seteado = nivel propio de esa academia (ella decide cuantos y nombres).
+  academy   Academy? @relation(fields: [academyId], references: [id])
+  academyId String?
+  name      String
+  order     Int      @default(0)
+
+  @@unique([academyId, name])
 
   series           ClassSeries[]
   enrollmentLevels EnrollmentLevel[]
