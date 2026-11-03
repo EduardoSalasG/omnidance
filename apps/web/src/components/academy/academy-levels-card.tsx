@@ -562,14 +562,14 @@ function ToggleChips({
     else onToggle(key);
   };
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
       <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-ink/40">
         {label}
       </span>
       <div
         role="group"
         aria-label={label}
-        className="flex flex-nowrap gap-1.5 overflow-x-auto"
+        className="flex max-w-full flex-nowrap gap-1.5 overflow-x-auto"
       >
         <button
           type="button"
