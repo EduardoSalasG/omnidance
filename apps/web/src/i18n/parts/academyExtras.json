@@ -22,7 +22,10 @@
       "add": "Agregar",
       "nameLabel": "Nombre del nivel {index}",
       "delete": "Eliminar nivel",
-      "error": "No se pudo guardar el nivel"
+      "error": "No se pudo guardar el nivel",
+      "backToGlobal": "Volver a la línea global",
+      "backToGlobalBody": "Se borran tus {count} niveles propios y la academia vuelve a usar la línea global (la de los sociales). Los niveles en uso por series o alumnos bloquean el reset.",
+      "backToGlobalDone": "Volviste a la línea global"
     },
     "sections": {
       "overview": "Resumen",

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/action-notice";
 import { readError, type NamedRef, type SeriesLevel } from "./shared";
 
-// Chip multinivel del editor: mismo lenguaje visual que los toggles de
+// Chip del editor: mismo lenguaje visual que los toggles de
 // género (pills con aria-pressed, activo neon).
 const chipBase =
   "inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon active:scale-[0.98] motion-reduce:active:scale-100 disabled:pointer-events-none disabled:opacity-50";
@@ -21,7 +21,7 @@ type LoadState = "loading" | "ready" | "error";
 /**
  * Editor de niveles del alumno por tipo de clase (spec
  * academies/enrollment-levels): por cada ClassType un grupo de chips
- * multinivel (un alumno de iniciación también va a básico). PATCH
+ * de selección única (un nivel por tipo). PATCH
  * /enrollments/:id/levels reemplaza el set completo: se envían todos
  * los tipos del catálogo para que un tipo sin marca quede vacío.
  *

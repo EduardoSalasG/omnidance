@@ -277,7 +277,16 @@ export function AcademyDashboard({
                       : t("homeMode.todayDone")
                   }
                 />
-              ) : null
+              ) : (
+                // Slot "Reservas hoy" reservado en carga: sin él la fila
+                // pasa de 3 a 4 cards al resolver (spec loading-states).
+                <li>
+                  <Card className="flex h-full flex-col gap-1 p-4">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-8 w-16" />
+                  </Card>
+                </li>
+              )
             }
           />
         </section>

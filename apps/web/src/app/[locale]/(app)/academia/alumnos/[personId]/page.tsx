@@ -349,8 +349,8 @@ function ProfileModule({
         )}
       </Card>
 
-      {/* Niveles por tipo de clase (spec academies/enrollment-levels):
-          multinivel, los asigna la academia (cap students, mismo gate
+      {/* Nivel por tipo de clase (spec academies/enrollment-levels):
+          uno por tipo, lo asigna la academia (cap students, mismo gate
           que la edición del enrollment); el alumno no se auto-nivela. */}
       {canEdit && profile.enrollmentId && (
         <EnrollmentLevelsEditor

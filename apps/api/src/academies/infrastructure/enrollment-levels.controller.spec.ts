@@ -9,8 +9,8 @@ import {
   EnrollmentsController,
 } from "./academies.controller";
 
-// spec academies/enrollment-levels: niveles del alumno por tipo de
-// clase (multinivel), gestionados solo por la academia; KPI
+// spec academies/enrollment-levels: nivel del alumno por tipo de
+// clase (uno por tipo), gestionado solo por la academia; KPI
 // tipo×nivel/horario del inicio Extendido (owner-insights).
 
 type Person = { id: string; roles: string[] };
@@ -69,7 +69,7 @@ const makeEnrollmentsCtrl = (prisma: unknown, access: unknown) =>
   new EnrollmentsController(prisma as never, access as never);
 
 describe("EnrollmentsController.setLevels", () => {
-  it("reemplazo completo multinivel: deleteMany + createMany dentro de $transaction", async () => {
+  it("reemplazo completo, un nivel por tipo: deleteMany + createMany dentro de $transaction", async () => {
     const prisma = makeLevelsPrisma();
     const ctrl = makeEnrollmentsCtrl(prisma, makeLevelsAccess());
 
@@ -77,7 +77,7 @@ describe("EnrollmentsController.setLevels", () => {
       "enr-1",
       {
         levels: [
-          { classTypeId: "ct-pareja", levelIds: ["lv-ini", "lv-bas"] },
+          { classTypeId: "ct-pareja", levelIds: ["lv-bas"] },
           { classTypeId: "ct-shines", levelIds: ["lv-ini"] },
         ],
       } as never,
@@ -90,7 +90,6 @@ describe("EnrollmentsController.setLevels", () => {
     });
     expect(prisma.tx.enrollmentLevel.createMany).toHaveBeenCalledWith({
       data: [
-        { enrollmentId: "enr-1", classTypeId: "ct-pareja", levelId: "lv-ini" },
         { enrollmentId: "enr-1", classTypeId: "ct-pareja", levelId: "lv-bas" },
         { enrollmentId: "enr-1", classTypeId: "ct-shines", levelId: "lv-ini" },
       ],
@@ -98,10 +97,31 @@ describe("EnrollmentsController.setLevels", () => {
     expect(res).toEqual({
       enrollmentId: "enr-1",
       levels: [
-        { classTypeId: "ct-pareja", levelIds: ["lv-ini", "lv-bas"] },
+        { classTypeId: "ct-pareja", levelIds: ["lv-bas"] },
         { classTypeId: "ct-shines", levelIds: ["lv-ini"] },
       ],
     });
+  });
+
+  it("400 si un tipo trae más de un levelId (un nivel por tipo)", async () => {
+    const prisma = makeLevelsPrisma();
+    const ctrl = makeEnrollmentsCtrl(prisma, makeLevelsAccess());
+
+    // Van los dos tipos para pasar el check de catálogo: el 400 tiene
+    // que salir por el multi-nivel, no por "tipo no encontrado".
+    await expect(
+      ctrl.setLevels(
+        "enr-1",
+        {
+          levels: [
+            { classTypeId: "ct-pareja", levelIds: ["lv-ini", "lv-bas"] },
+            { classTypeId: "ct-shines", levelIds: ["lv-ini"] },
+          ],
+        } as never,
+        reqAs(OWNER),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("gate: exige cap students sobre la academia del enrollment", async () => {
@@ -255,7 +275,8 @@ function makeInsightsPrisma() {
       findMany: vi.fn().mockResolvedValue([
         // e-1: Iniciación Pareja → cuenta en slot-1 y en byType Pareja/Ini.
         { enrollmentId: "e-1", classTypeId: "ct-pareja", levelId: "lv-ini", enrollment: { personId: "p-1" } },
-        // e-1 multinivel: también Básico Pareja.
+        // e-1 con dos filas en el mismo tipo (dato legacy previo a la
+        // regla de un nivel por tipo): cuenta en ambos niveles.
         { enrollmentId: "e-1", classTypeId: "ct-pareja", levelId: "lv-bas", enrollment: { personId: "p-1" } },
         // e-2: Básico Shines → cuenta en slot-2.
         { enrollmentId: "e-2", classTypeId: "ct-shines", levelId: "lv-bas", enrollment: { personId: "p-2" } },
@@ -316,7 +337,7 @@ describe("AcademiesController.levelInsights", () => {
     );
   });
 
-  it("byType cuenta alumnos multinivel en cada nivel", async () => {
+  it("byType cuenta al alumno en cada nivel que tenga fila", async () => {
     const ctrl = makeAcademiesCtrl(
       makeInsightsPrisma(),
       makeInsightsAccess(),
@@ -408,5 +429,92 @@ describe("AcademiesController.levelInsights", () => {
     const slot1 = res.bySlot.find((s) => s.slotId === "slot-1")!;
     expect(slot1.assigned).toBe(5);
     expect(slot1.empty).toBe(-1);
+  });
+});
+
+// ─── DELETE /academies/:id/class-levels (reset a la línea global) ───
+
+function makeResetPrisma(opts?: {
+  custom?: { id: string; name: string }[];
+  seriesUse?: string[];
+  enrollmentUse?: string[];
+}) {
+  const custom = opts?.custom ?? [
+    { id: "lv-c1", name: "Pro" },
+    { id: "lv-c2", name: "Elite" },
+  ];
+  return {
+    classLevel: {
+      findMany: vi.fn().mockResolvedValue(custom),
+      deleteMany: vi.fn().mockResolvedValue({ count: custom.length }),
+    },
+    classSeries: {
+      findMany: vi
+        .fn()
+        .mockResolvedValue(
+          (opts?.seriesUse ?? []).map((levelId) => ({ levelId })),
+        ),
+    },
+    enrollmentLevel: {
+      findMany: vi
+        .fn()
+        .mockResolvedValue(
+          (opts?.enrollmentUse ?? []).map((levelId) => ({ levelId })),
+        ),
+    },
+  };
+}
+
+describe("AcademiesController.deleteAcademyLevels", () => {
+  it("gate: exige escritura de schedule sobre la academia", async () => {
+    const prisma = makeResetPrisma();
+    const access = makeLevelsAccess();
+    const ctrl = makeAcademiesCtrl(prisma, access);
+
+    await ctrl.deleteAcademyLevels("acad-1", reqAs(OWNER));
+
+    expect(access.requireCapabilityWrite).toHaveBeenCalledWith(
+      "acad-1",
+      expect.anything(),
+      "schedule",
+    );
+  });
+
+  it("borra todos los niveles custom en una sola operación", async () => {
+    const prisma = makeResetPrisma();
+    const ctrl = makeAcademiesCtrl(prisma, makeLevelsAccess());
+
+    const res = await ctrl.deleteAcademyLevels("acad-1", reqAs(OWNER));
+
+    expect(prisma.classLevel.deleteMany).toHaveBeenCalledWith({
+      where: { academyId: "acad-1" },
+    });
+    expect(res).toEqual({ ok: true, deleted: 2 });
+  });
+
+  it("idempotente: sin customs no borra nada", async () => {
+    const prisma = makeResetPrisma({ custom: [] });
+    const ctrl = makeAcademiesCtrl(prisma, makeLevelsAccess());
+
+    const res = await ctrl.deleteAcademyLevels("acad-1", reqAs(OWNER));
+
+    expect(res).toEqual({ ok: true, deleted: 0 });
+    expect(prisma.classLevel.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("409 con los nombres en uso: no borra nada", async () => {
+    const prisma = makeResetPrisma({
+      seriesUse: ["lv-c1"],
+      enrollmentUse: ["lv-c2"],
+    });
+    const ctrl = makeAcademiesCtrl(prisma, makeLevelsAccess());
+
+    await expect(
+      ctrl.deleteAcademyLevels("acad-1", reqAs(OWNER)),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      ctrl.deleteAcademyLevels("acad-1", reqAs(OWNER)),
+    ).rejects.toThrow(/Pro.*Elite|Elite.*Pro/);
+    expect(prisma.classLevel.deleteMany).not.toHaveBeenCalled();
   });
 });

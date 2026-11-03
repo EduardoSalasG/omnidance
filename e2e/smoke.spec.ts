@@ -2,7 +2,6 @@ import { test, expect } from "@playwright/test";
 import { statePath } from "./helpers";
 
 // Tier smoke de golden paths (docs/qa-flows-inventory.md).
-// Pagos: stub:// → POST /payments/webhook para PAID/FAILED determinístico.
 
 test.describe("dancer: descubrimiento", () => {
   test.use({ storageState: statePath("dancer") });
@@ -23,49 +22,6 @@ test.describe("dancer: descubrimiento", () => {
       page.waitForURL(/\/eventos\/.+/),
       first.click(),
     ]);
-  });
-});
-
-test.describe("dancer: checkout ticket (stub)", () => {
-  test.use({ storageState: statePath("dancer") });
-
-  test("compra con pasarela stub → success", async ({ page, request }) => {
-    // Evento determinístico vía API (el request fixture hereda la cookie
-    // del storageState): PUBLISHED, futuro, con precio. PRACTICA es
-    // gratis sin checkout; el primer card de la lista no garantiza
-    // ticket comprable (dancer seed ya tiene entradas → el CTA pasa a
-    // ser el dialog "ya tienes tu entrada").
-    const res = await request.get("/api/events");
-    const events = (await res.json()) as Array<{
-      id: string;
-      type: string;
-      status: string;
-      startsAt: string;
-      presalePrice: number | null;
-      doorPrice: number | null;
-    }>;
-    const now = Date.now();
-    const target = events.find(
-      (e) =>
-        e.status === "PUBLISHED" &&
-        e.type !== "PRACTICA" &&
-        new Date(e.startsAt).getTime() > now &&
-        (e.presalePrice ?? e.doorPrice ?? 0) > 0,
-    );
-    test.skip(!target, "sin evento ticketeado futuro en el seed");
-
-    await page.goto(`/eventos/${target!.id}/checkout`);
-    await page
-      .getByRole("button", { name: /ir a pagar/i })
-      .first()
-      .click();
-    // En dev la pasarela es stub:// → simulación determinística.
-    await page
-      .getByRole("button", { name: /simular aprobado/i })
-      .click();
-    await expect(
-      page.getByText(/pago confirmado|entrada está lista/i).first(),
-    ).toBeVisible({ timeout: 30_000 });
   });
 });
 

@@ -190,8 +190,8 @@ export type AcademyDashboard = {
 // inicio Extendido (spec academies/owner-insights). Solo owner/ADMIN
 // de la academia + feature PRO `insights`; el front la oculta en 403.
 export type AcademyLevelInsights = {
-  // Alumnos ACTIVE por tipo×nivel (multinivel: un alumno puede contar
-  // en más de un nivel del mismo tipo).
+  // Alumnos ACTIVE por tipo×nivel (un nivel por tipo: cada alumno
+  // cuenta a lo sumo una vez dentro del tipo).
   byType: {
     typeId: string;
     typeName: string;
