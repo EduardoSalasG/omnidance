@@ -174,6 +174,7 @@ export function AcademyLevelsCard({
           levelOptions.length > 1) && (
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
           {data.byType.length > 1 && (
+          <div className="sm:rounded-xl sm:border sm:border-line/50 sm:bg-ink/[0.03] sm:px-3 sm:py-1.5">
             <ToggleChips
               label={t("levels.typeFilterLabel")}
               allLabel={t("levels.allTypes")}
@@ -185,8 +186,10 @@ export function AcademyLevelsCard({
               onToggle={(k) => setTypeSel(toggleIn(typeSel, k))}
               onClear={() => setTypeSel(new Set())}
             />
+          </div>
           )}
           {styleOptions.length > 1 && (
+          <div className="sm:rounded-xl sm:border sm:border-line/50 sm:bg-ink/[0.03] sm:px-3 sm:py-1.5">
             <ToggleChips
               label={t("levels.styleFilterLabel")}
               allLabel={t("levels.allStyles")}
@@ -195,8 +198,10 @@ export function AcademyLevelsCard({
               onToggle={(k) => setStyleSel(toggleIn(styleSel, k))}
               onClear={() => setStyleSel(new Set())}
             />
+          </div>
           )}
           {levelOptions.length > 1 && (
+          <div className="sm:rounded-xl sm:border sm:border-line/50 sm:bg-ink/[0.03] sm:px-3 sm:py-1.5">
             <ToggleChips
               label={t("levels.levelFilterLabel")}
               allLabel={t("levels.allLevels")}
@@ -209,6 +214,7 @@ export function AcademyLevelsCard({
               onToggle={(k) => setLevelSel(toggleIn(levelSel, k))}
               onClear={() => setLevelSel(new Set())}
             />
+          </div>
           )}
         </div>
       )}
