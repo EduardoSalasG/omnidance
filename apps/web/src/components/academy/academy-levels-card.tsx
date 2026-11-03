@@ -168,11 +168,7 @@ export function AcademyLevelsCard({
           <div className="flex items-center justify-between gap-3 px-4 py-4">
             <p className="text-sm text-ink/60">{t("levels.empty")}</p>
             <Link
-              href={
-          s.nextClassId
-            ? `/academia/clases/${s.nextClassId}`
-            : "/academia/alumnos"
-        }
+              href="/academia/alumnos"
               className="inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 text-sm font-semibold text-neon transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
               {t("levels.unassignedCta")}
