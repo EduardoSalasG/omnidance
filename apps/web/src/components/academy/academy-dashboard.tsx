@@ -529,85 +529,58 @@ function SimpleHomeCards({
     null,
   );
 
+  // Colas pendientes del día (cobros por revisar + particulares):
+  // una sola card "Operación del día" en el set simplificado.
+  const pendingToday = dashboard.pendingClaims.count + dashboard.pendingLessons.count;
   const cards = [
     {
-      key: "claims",
+      key: "activeStudents",
+      href: "/academia/alumnos",
+      count: dashboard.kpis.activeStudentsMonth,
+      title: t("kpis.activeStudents"),
+      hint: t("kpis.activeStudentsHint"),
+    },
+    {
+      key: "billed",
       href: "/academia/cobros",
-      count: dashboard.pendingClaims.count,
-      title: t("homeMode.claimsTitle"),
+      count: clpFmt.format(dashboard.kpis.billedMonth),
+      title: t("kpis.billedMonth"),
+      hint: t("kpis.billedMonthHint"),
+    },
+    {
+      key: "operations",
+      href: "/academia/cobros",
+      count: pendingToday,
+      title: t("sections.operation"),
       hint:
-        dashboard.pendingClaims.count > 0
+        pendingToday > 0
           ? t("homeMode.claimsHint", {
               amount: clpFmt.format(dashboard.pendingClaims.amount),
             })
           : t("homeMode.claimsDone"),
     },
     {
-      key: "expiring",
-      href: expiringHref ?? "/academia/alumnos",
-      count: dashboard.expiringEnrollments.length,
-      title: t("homeMode.expiringTitle"),
+      key: "today",
+      href: "/academia/series",
+      count: dashboard.todayClasses.length,
+      title: t("homeMode.todayTitle"),
       hint:
-        dashboard.expiringEnrollments.length > 0
-          ? t("homeMode.expiringHint")
-          : t("homeMode.expiringDone"),
+        dashboard.todayClasses.length > 0
+          ? freeSpotsToday !== null && freeSpotsToday > 0
+            ? t("homeMode.todayFree", { count: freeSpotsToday })
+            : t("homeMode.todayHint")
+          : t("homeMode.todayDone"),
     },
-    ...(canClasses
-      ? [
-          {
-            key: "today",
-            href: "/academia/series",
-            count: dashboard.todayClasses.length,
-            title: t("homeMode.todayTitle"),
-            hint:
-              dashboard.todayClasses.length > 0
-                ? freeSpotsToday !== null && freeSpotsToday > 0
-                  ? t("homeMode.todayFree", { count: freeSpotsToday })
-                  : t("homeMode.todayHint")
-                : t("homeMode.todayDone"),
-          },
-          {
-            key: "lessons",
-            href: "/academia/particulares",
-            count: dashboard.pendingLessons.count,
-            title: t("homeMode.lessonsTitle"),
-            hint:
-              dashboard.pendingLessons.count > 0
-                ? t("homeMode.lessonsHint")
-                : t("homeMode.lessonsDone"),
-          },
-        ]
-      : // Tiers sin `classes` (COBROS): la tercera card es cumpleaños,
-        // accionable igual (saludar al alumno retiene). Con classes
-        // ya hay 4; agregarla rompería el "3-4 cards" del spec.
-        [
-          {
-            key: "birthdays",
-            href: "/academia/alumnos",
-            count: dashboard.upcomingBirthdays.length,
-            title: t("homeMode.birthdaysTitle"),
-            hint:
-              dashboard.upcomingBirthdays.length > 0
-                ? t("homeMode.birthdaysHint")
-                : t("homeMode.birthdaysDone"),
-          },
-        ]),
-    // Alumnos sin nivel asignado (dato por completar desde la ficha):
-    // solo con el insight cargado; feature PRO `insights` + owner/ADMIN.
-    ...(insights
-      ? [
-          {
-            key: "unassigned",
-            href: "/academia/alumnos",
-            count: unassignedTotal,
-            title: t("levels.unassignedTitle"),
-            hint:
-              unassignedTotal > 0
-                ? t("homeMode.unassignedHint")
-                : t("homeMode.unassignedDone"),
-          },
-        ]
-      : []),
+    {
+      key: "birthdays",
+      href: "/academia/alumnos",
+      count: dashboard.upcomingBirthdays.length,
+      title: t("homeMode.birthdaysTitle"),
+      hint:
+        dashboard.upcomingBirthdays.length > 0
+          ? t("homeMode.birthdaysHint")
+          : t("homeMode.birthdaysDone"),
+    },
   ];
 
   return (
@@ -644,7 +617,7 @@ function MiniKpi({
 }: {
   href: string;
   title: string;
-  count: number;
+  count: number | string;
   hint: string;
 }) {
   return (
@@ -660,7 +633,9 @@ function MiniKpi({
           </span>
           <span
             className={`text-3xl font-bold leading-none tabular-nums ${
-              count > 0 ? "text-neon" : "text-ink/40"
+              Number(String(count).replace(/[^0-9]/g, "")) > 0
+                ? "text-neon"
+                : "text-ink/40"
             }`}
           >
             {count}
