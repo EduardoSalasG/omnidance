@@ -8,7 +8,6 @@ import {
   Badge,
   Card,
   PillTabs,
-  UsersIcon,
   type BadgeVariant,
 } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
@@ -502,39 +501,69 @@ function GenderBar({ m, f }: { m: number | null; f: number | null }) {
   );
 }
 
-/** Fila de métrica del insight: izquierda etiqueta + total/cupo,
-    derecha la barra de proporción de género de esa métrica. */
-function MetricRow({
+/** Mini-stat en columna: label arriba, total/cupo, barra de
+    proporción de género abajo. Tres columnas alineadas = lectura
+    horizontal instantánea vs filas con labels distintos. */
+function MetricCell({
   label,
   value,
   capacity,
   male,
   female,
-  primary,
 }: {
   label: string;
   value: string | number;
   capacity: number;
   male: number | null;
   female: number | null;
-  primary?: boolean;
 }) {
   return (
-    <p
-      aria-hidden="true"
-      className={`flex items-center gap-2 tabular-nums ${
-        primary
-          ? "text-base font-bold"
-          : "text-sm font-semibold"
-      }`}
-    >
-      <span className="text-xs font-normal text-ink/40">{label}</span>
-      {value}
-      <span className="font-normal text-ink/40">/{capacity}</span>
-      <span className="ml-auto">
-        <GenderBar m={male} f={female} />
+    <div className="flex flex-col gap-0.5 tabular-nums">
+      <span className="text-[10px] font-medium uppercase tracking-wide text-ink/40">
+        {label}
       </span>
-    </p>
+      <span className="text-sm font-bold">
+        {value}
+        <span className="font-normal text-ink/40">/{capacity}</span>
+      </span>
+      <GenderBar m={male} f={female} />
+    </div>
+  );
+}
+
+/** Bloque de 3 métricas como mini-stats horizontales. */
+function MetricsGrid({
+  slot: s,
+  numFmt,
+}: {
+  slot: AcademyLevelInsights["bySlot"][number];
+  numFmt: Intl.NumberFormat;
+}) {
+  const t = useTranslations("academy");
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      <MetricCell
+        label={t("levels.avgShort")}
+        value={s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"}
+        capacity={s.capacity}
+        male={s.avgMale}
+        female={s.avgFemale}
+      />
+      <MetricCell
+        label={t("levels.lastShort")}
+        value={s.lastClassAttendance ?? "—"}
+        capacity={s.capacity}
+        male={s.lastMale}
+        female={s.lastFemale}
+      />
+      <MetricCell
+        label={t("levels.nextShort")}
+        value={s.nextBooked ?? "—"}
+        capacity={s.capacity}
+        male={s.nextMale}
+        female={s.nextFemale}
+      />
+    </div>
   );
 }
 
@@ -566,31 +595,7 @@ function MobileSlotRow({
             {s.levelName ?? t("levels.noLevel")}
           </Badge>
         </div>
-        <div className="mt-1 flex flex-col gap-0.5">
-          <MetricRow
-            label={t("levels.avgShort")}
-            value={
-              s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"
-            }
-            capacity={s.capacity}
-            male={s.avgMale}
-            female={s.avgFemale}
-          />
-          <MetricRow
-            label={t("levels.lastShort")}
-            value={s.lastClassAttendance ?? "—"}
-            capacity={s.capacity}
-            male={s.lastMale}
-            female={s.lastFemale}
-          />
-          <MetricRow
-            label={t("levels.nextShort")}
-            value={s.nextBooked ?? "—"}
-            capacity={s.capacity}
-            male={s.nextMale}
-            female={s.nextFemale}
-          />
-        </div>
+        <MetricsGrid slot={s} numFmt={numFmt} />
         <div className="mt-1 border-t border-line/50 pt-1.5">
           <Badge variant={variant} className="self-start">
             {text}
@@ -623,44 +628,7 @@ function SlotCard({
           {s.levelName ?? t("levels.noLevel")}
         </Badge>
       </div>
-      <div className="flex flex-col gap-0.5">
-          <p className="flex items-center gap-1 text-base font-bold leading-tight">
-            <UsersIcon className="h-4 w-4 shrink-0 text-ink/50" />
-            <span className="sr-only">
-              {t("levels.avgOfCapacity", {
-                avg:
-                  s.avgAttendance !== null
-                    ? numFmt.format(s.avgAttendance)
-                    : "0",
-                capacity: s.capacity,
-              })}
-            </span>
-          </p>
-          <MetricRow
-            label={t("levels.avgShort")}
-            value={
-              s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"
-            }
-            capacity={s.capacity}
-            male={s.avgMale}
-            female={s.avgFemale}
-            primary
-          />
-          <MetricRow
-            label={t("levels.lastShort")}
-            value={s.lastClassAttendance ?? "—"}
-            capacity={s.capacity}
-            male={s.lastMale}
-            female={s.lastFemale}
-          />
-          <MetricRow
-            label={t("levels.nextShort")}
-            value={s.nextBooked ?? "—"}
-            capacity={s.capacity}
-            male={s.nextMale}
-            female={s.nextFemale}
-          />
-        </div>
+      <MetricsGrid slot={s} numFmt={numFmt} />
         <div className="mt-1 border-t border-line/50 pt-1.5">
           <Badge variant={statusVariant} className="self-start">
             {statusText}
