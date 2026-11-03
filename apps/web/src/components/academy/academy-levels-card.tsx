@@ -166,24 +166,25 @@ export function AcademyLevelsCard({
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("levels.title")}
         </h3>
-        {/* Con un solo tipo "Todos" y ese tipo son la misma vista: el
-            filtro solo aparece cuando la data trae 2 o más tipos. */}
-        {!nothingYet && data.byType.length > 1 && (
-          <ToggleChips
-            label={t("levels.typeFilterLabel")}
-            allLabel={t("levels.allTypes")}
-            options={data.byType.map((ty) => ({
-              key: ty.typeId,
-              label: ty.typeName,
-            }))}
-            selected={typeSel}
-            onToggle={(k) => setTypeSel(toggleIn(typeSel, k))}
-            onClear={() => setTypeSel(new Set())}
-          />
-        )}
       </div>
-      {!nothingYet && (styleOptions.length > 1 || levelOptions.length > 1) && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      {!nothingYet &&
+        (data.byType.length > 1 ||
+          styleOptions.length > 1 ||
+          levelOptions.length > 1) && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
+          {data.byType.length > 1 && (
+            <ToggleChips
+              label={t("levels.typeFilterLabel")}
+              allLabel={t("levels.allTypes")}
+              options={data.byType.map((ty) => ({
+                key: ty.typeId,
+                label: ty.typeName,
+              }))}
+              selected={typeSel}
+              onToggle={(k) => setTypeSel(toggleIn(typeSel, k))}
+              onClear={() => setTypeSel(new Set())}
+            />
+          )}
           {styleOptions.length > 1 && (
             <ToggleChips
               label={t("levels.styleFilterLabel")}
@@ -324,6 +325,7 @@ function WeekCalendar({
   // media fila de las 20. Clases traslapadas en un día se reparten
   // la columna en carriles (lanes) lado a lado.
   const ROW_H = 76; // px por cada 30min (1h ≈ 148px: la card se lee completa)
+  const today = new Date().getDay();
   const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
   const floor30 = (m: number) => m - (m % 30);
   const endMinOf = (s: AcademyLevelInsights["bySlot"][number]) =>
@@ -399,7 +401,11 @@ function WeekCalendar({
           {days.map((d) => (
             <h5
               key={d}
-              className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-wide text-ink/50"
+              className={`min-w-0 flex-1 border-b-2 text-xs font-semibold uppercase tracking-wide ${
+                d === today
+                  ? "border-violet-400/70 text-violet-300"
+                  : "border-transparent text-ink/50"
+              }`}
             >
               <span aria-hidden="true">{t(`weekday.${d}`).slice(0, 3)}</span>
               <span className="sr-only">{t(`weekday.${d}`)}</span>
@@ -427,7 +433,9 @@ function WeekCalendar({
             return (
               <div
                 key={d}
-                className="relative min-w-0 flex-1"
+                className={`relative min-w-0 flex-1 ${
+                  d === today ? "bg-violet-600/5" : ""
+                }`}
                 style={{ height: totalH }}
                 aria-label={t(`weekday.${d}`)}
               >
@@ -458,7 +466,11 @@ function WeekCalendar({
                           width: `calc(${100 / lanes}% - 2px)`,
                         }}
                       >
-                        <SlotCard slot={s} numFmt={numFmt} />
+                        <SlotCard
+                          slot={s}
+                          numFmt={numFmt}
+                          compact={height < 120}
+                        />
                       </div>
                     );
                   })}
@@ -764,12 +776,35 @@ function MobileSlotRow({
 function SlotCard({
   slot: s,
   numFmt,
+  compact,
 }: {
   slot: AcademyLevelInsights["bySlot"][number];
   numFmt: Intl.NumberFormat;
+  /** Clase corta (alto < 120px): solo titulo + chips, sin metricas. */
+  compact?: boolean;
 }) {
   const t = useTranslations("academy");
   const { variant: statusVariant, text: statusText } = slotStatus(s, t);
+  if (compact) {
+    return (
+      <Card className="flex h-full w-full min-w-0 flex-col justify-center gap-1 overflow-hidden px-2.5 py-1.5">
+        <div className="flex items-center gap-1.5">
+          <p className="min-w-0 flex-1 truncate text-xs font-semibold">
+            {s.seriesName}
+          </p>
+          <Badge
+            variant={s.levelName ? "violet" : "muted"}
+            className="shrink-0"
+          >
+            {s.levelName ?? t("levels.noLevel")}
+          </Badge>
+        </div>
+        <Badge variant={statusVariant} className="self-start">
+          {statusText}
+        </Badge>
+      </Card>
+    );
+  }
   return (
     <Card
       className="flex h-full w-fit min-w-0 max-w-full flex-col gap-1.5 overflow-hidden px-2.5 py-2"
