@@ -40,5 +40,5 @@ Hallazgos de la sesión:
 
 - **Env local con Flow real**: el `.env` raíz tiene `PAYMENT_GATEWAY=flow` + credenciales - el checkout pega a sandbox.flow.cl y rechaza emails `*@omnidance.dev` (HTTP 400). Es el modo de trabajo del owner, no un bug.
 - **Test e2e eliminado**: `smoke.spec.ts` "dancer: checkout ticket (stub)" dependía de `stub://` - con Flow real nunca aparece el botón "simular aprobado". Cobertura del ciclo de pago sigue en `apps/api/test/checkout.e2e.spec.ts` (mocks, no live).
-- **Gap de API sin cerrar** (pre-existente, anotado en qa-inventory): el editor de niveles abre sin marca inicial - el set vigente no viaja en `students/:personId` ni hay `GET /enrollments/:id/levels`.
+- **Gap del editor de niveles cerrado**: `students/:personId` seleccionaba `levels` pero el map de respuesta los descartaba → el editor abría sin marca. Fix: `levels` agregado al map (test `studentDetail - niveles vigentes`).
 - Insight byType sigue contando por fila `EnrollmentLevel` (alumno con filas legacy multi del mismo tipo cuenta en cada nivel).

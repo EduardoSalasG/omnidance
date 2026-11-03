@@ -2220,6 +2220,7 @@ export class AcademiesController {
         startedAt: e.startedAt,
         endsAt: e.endsAt,
         plan: e.plan,
+        levels: e.levels,
       })),
       score: relScore?.score ?? null,
       segment: relScore?.segment ?? null,
