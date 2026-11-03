@@ -18,7 +18,7 @@ type AcademyExtras = (typeof import("@/i18n/parts/academyExtras.json"))["academy
 export default function AcademiaNuevoVideoPage() {
   const t = (useMessages() as { academyExtras: { videos: Record<string,string> } }).academyExtras.videos;
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-3xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/academia/videos" backLabel={t.title} />
       <AcademyGate>
         {({ academy }) => (
