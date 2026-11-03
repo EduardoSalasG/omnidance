@@ -25,3 +25,6 @@ docs/next-session-handoff-*brag*.md
 
 # dumps/backup de datos de trabajo
 backups/
+
+# Local Netlify folder
+.netlify
