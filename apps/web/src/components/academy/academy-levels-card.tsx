@@ -556,7 +556,7 @@ function MobileSlotRow({
       </p>
       <Card className="min-w-0 flex-1 px-3 py-2">
         <div className="flex items-center gap-1.5">
-          <p className="min-w-0 flex-1 truncate text-base font-semibold">
+          <p className="min-w-0 flex-1 truncate text-base font-bold">
             {s.seriesName}
           </p>
           <Badge
@@ -613,7 +613,7 @@ function SlotCard({
   return (
     <Card className="flex h-full w-fit min-w-0 max-w-full flex-col gap-1.5 overflow-hidden px-2.5 py-2">
       <div className="flex items-center gap-1.5">
-        <p className="min-w-0 flex-1 truncate text-base font-semibold">
+        <p className="min-w-0 flex-1 truncate text-base font-bold">
           {s.seriesName}
         </p>
         <Badge
