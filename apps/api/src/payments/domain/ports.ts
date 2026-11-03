@@ -173,6 +173,13 @@ export interface SubscriptionInvoice {
   paid: boolean;
   periodStart?: string;
   periodEnd?: string;
+  /**
+   * Próximo reintento programado por el proveedor (Flow
+   * `next_attemp_date`): `null` = el motor ya no reintentará la
+   * invoice (elegible para collect on-demand); `undefined` = el
+   * adaptador no puede saberlo.
+   */
+  nextAttemptDate?: string | null;
   payment?: {
     /** id de orden/cobro en el proveedor (Flow: flowOrder). */
     orderRef?: string;
@@ -198,6 +205,25 @@ export interface RemoteSubscription {
 /** Opciones por llamada: propaga el correlationId de negocio a la auditoría. */
 export interface SubscriptionCallOpts {
   correlationId?: string;
+}
+
+/**
+ * Resultado normalizado de `collect()` (spec overdue-invoice-collect):
+ * el cargo on-demand sobre el medio de pago del customer. El
+ * adaptador traduce la respuesta cruda del proveedor:
+ * - COLLECTED: cobro sincrónico exitoso; `gatewayData` = verdad
+ *   monetaria (NormalizedGatewayData) para persistir en gateway*.
+ * - PENDING: el proveedor no pudo cobrar la tarjeta y degradó a cobro
+ *   por link/email, o el resultado quedó no-terminal; `paymentUrl`
+ *   lleva el link cuando el proveedor lo emite.
+ * - FAILED: el cargo a la tarjeta fue rechazado.
+ */
+export interface CollectResult {
+  outcome: "COLLECTED" | "PENDING" | "FAILED";
+  /** id de orden/cobro en el proveedor (Flow: flowOrder). */
+  flowOrder?: string;
+  paymentUrl?: string;
+  gatewayData?: NormalizedGatewayData;
 }
 
 /**
@@ -319,6 +345,27 @@ export interface SubscriptionProvider {
     subscriptionId: string,
     opts?: SubscriptionCallOpts,
   ): Promise<RemoteSubscription>;
+
+  /**
+   * Cargo on-demand al customer (spec overdue-invoice-collect): cobra
+   * `amount` sobre el medio de pago registrado, independiente del
+   * motor de suscripciones (Flow `customer/collect`). `commerceOrder`
+   * es la correlación con el Payment local (mismo límite de 45 chars
+   * de Flow); `returnUrl` es la vuelta del pagador cuando el proveedor
+   * degrada a link de pago. Opcional - los consumers verifican
+   * `typeof provider.collect === "function"`.
+   */
+  collect?(
+    p: {
+      customerId: string;
+      amount: number;
+      subject: string;
+      commerceOrder: string;
+      returnUrl: string;
+      currency?: string;
+    },
+    opts?: SubscriptionCallOpts,
+  ): Promise<CollectResult>;
 
   /**
    * Cancela al fin del período ya pagado. Con `immediate: true` la

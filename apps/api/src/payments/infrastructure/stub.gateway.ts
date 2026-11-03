@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type {
+  CollectResult,
   PaymentGateway,
   RemoteSubscription,
   SubscriptionCallOpts,
@@ -225,6 +226,33 @@ export class StubGateway implements PaymentGateway, SubscriptionProvider {
             invoices: [],
           },
     );
+  }
+
+  // Cargo on-demand simulado (spec overdue-invoice-collect): customer
+  // con tarjeta → COLLECTED siempre; sin tarjeta → PENDING con un link
+  // stub, igual que Flow degrada a cobro por link/email.
+  collect(
+    p: { customerId: string; amount: number; commerceOrder: string },
+    _opts?: SubscriptionCallOpts,
+  ): Promise<CollectResult> {
+    const c = this.customers.get(p.customerId);
+    if (c?.hasCard !== true) {
+      return Promise.resolve({
+        outcome: "PENDING",
+        flowOrder: String(++this.orderSeq),
+        paymentUrl: `stub://collect/${p.commerceOrder}`,
+      });
+    }
+    return Promise.resolve({
+      outcome: "COLLECTED",
+      flowOrder: String(++this.orderSeq),
+      gatewayData: {
+        amount: p.amount,
+        fee: 0,
+        media: "STUB",
+        transferDate: new Date().toISOString(),
+      },
+    });
   }
 
   // cancel al fin del período por default; immediate solo para la
