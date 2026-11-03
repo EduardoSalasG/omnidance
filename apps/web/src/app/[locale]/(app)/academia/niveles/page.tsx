@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, Spinner } from "@/components/ui";
+import { Button, Card, Spinner, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -41,6 +41,7 @@ export default function AcademiaNivelesPage() {
 
 function LevelsModule({ academyId }: { academyId: string }) {
   const t = useTranslations("academy");
+  const tc = useTranslations("common");
   const [data, setData] = useState<LevelsResp | null>(null);
   const [newName, setNewName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -88,7 +89,27 @@ function LevelsModule({ academyId }: { academyId: string }) {
       setNotice({ text: t("levelsConfig.personalized") });
     });
 
-  if (!data) return <SkeletonList />;
+  if (!data) {
+    // Error de carga: el aviso queda visible sobre el skeleton en vez
+    // de quedar cargando para siempre.
+    return (
+      <div className="flex flex-col gap-4">
+        {notice ? (
+          <ActionNotice
+            notice={notice}
+            onDismiss={() => setNotice(null)}
+          />
+        ) : null}
+        {notice?.error ? (
+          <Button variant="secondary" size="sm" onClick={() => void load()}>
+            <RefreshIcon /> {tc("retry")}
+          </Button>
+        ) : (
+          <SkeletonList />
+        )}
+      </div>
+    );
+  }
 
   const levels = data.usingGlobal ? [] : (data.custom ?? []);
 
