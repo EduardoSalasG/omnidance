@@ -680,7 +680,7 @@ function MetricCell({
       <span className="text-[10px] font-medium uppercase tracking-wide text-ink/60">
         {label}
       </span>
-      <span className="text-sm font-bold">{value}</span>
+      <span className="text-xs font-bold">{value}</span>
       <GenderBar m={male} f={female} partner={partner} />
     </div>
   );
@@ -698,7 +698,7 @@ function MetricsGrid({
   // El desbalance de género solo es accionable en clases de pareja.
   const partner = s.types.some((x) => /pareja/i.test(x.typeName));
   return (
-    <div className="mt-1 flex justify-between gap-2">
+    <div className="mt-1 grid grid-cols-3 gap-1">
       <MetricCell
         label={t("levels.lastShort")}
         value={s.lastClassAttendance ?? "—"}
@@ -751,7 +751,7 @@ function MobileSlotRow({
           aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
         >
         <div className="flex items-center gap-1.5">
-          <p className="min-w-0 flex-1 truncate text-base font-bold">
+          <p className="min-w-0 flex-1 truncate text-sm font-bold">
             {s.seriesName}
           </p>
           <Badge
@@ -808,7 +808,7 @@ function SlotCard({
   }
   return (
     <Card
-      className="flex h-full w-full min-w-0 flex-col gap-1.5 overflow-hidden px-2.5 py-2"
+      className="flex h-full w-full min-w-0 flex-col gap-1.5 overflow-hidden px-2 py-1.5"
     >
       <Link
         href={
@@ -820,7 +820,7 @@ function SlotCard({
         aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
       >
       <div className="flex items-center gap-1.5">
-        <p className="min-w-0 flex-1 truncate text-base font-bold">
+        <p className="min-w-0 flex-1 truncate text-sm font-bold">
           {s.seriesName}
           {s.styleName ? ` · ${s.styleName}` : ""}
         </p>
