@@ -692,7 +692,6 @@ function GenderBar({
     horizontal instantánea vs filas con labels distintos. */
 function MetricCell({
   label,
-  icon,
   value,
   male,
   female,
