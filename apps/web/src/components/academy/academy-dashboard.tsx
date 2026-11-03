@@ -205,6 +205,7 @@ export function AcademyDashboard({
           <div
             role="group"
             aria-label={t("homeMode.label")}
+            data-tour="academy-home-mode"
             className="inline-flex rounded-full border border-ink/15 p-0.5"
           >
             {(["simple", "extended"] as const).map((m) => (
