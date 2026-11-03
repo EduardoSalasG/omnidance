@@ -95,10 +95,16 @@ export function AcademyLevelsCard({
   // Filtro por tipo de clase con el mismo patrón de /analitica
   // (PillTabs: pills tablist de estado local). "all" = vista completa.
   const [typeFilter, setTypeFilter] = useState("all");
-  // Mismo patrón para estilo y nivel: filtran solo el agenda (los
-  // KPIs son por tipo de clase).
-  const [styleFilter, setStyleFilter] = useState("all");
-  const [levelFilter, setLevelFilter] = useState("all");
+  // Estilo y nivel son multiselect (sets de keys activos; vacío =
+  // todos). Filtran solo el agenda - los KPIs van por tipo.
+  const [styleSel, setStyleSel] = useState<Set<string>>(new Set());
+  const [levelSel, setLevelSel] = useState<Set<string>>(new Set());
+  const toggleIn = (set: Set<string>, key: string) => {
+    const next = new Set(set);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    return next;
+  };
 
   // Sin horarios ni niveles: la card explica qué falta en vez de
   // mostrar una grilla de ceros.
@@ -145,19 +151,20 @@ export function AcademyLevelsCard({
         .map((s) => [s.levelId, s.levelName] as [string, string]),
     ).values(),
   ];
-  const activeStyle = styleOptions.includes(styleFilter) ? styleFilter : "all";
-  const activeLevel = levelOptions.some(([id]) => id === levelFilter)
-    ? levelFilter
-    : "all";
-
   const visibleSlots = data.bySlot
     .filter(
       (s) =>
         activeType === "all" ||
         s.types.some((st) => st.typeId === activeType),
     )
-    .filter((s) => activeStyle === "all" || s.styleName === activeStyle)
-    .filter((s) => activeLevel === "all" || s.levelId === activeLevel);
+    .filter(
+      (s) =>
+        styleSel.size === 0 ||
+        (s.styleName !== null && styleSel.has(s.styleName)),
+    )
+    .filter(
+      (s) => levelSel.size === 0 || (s.levelId && levelSel.has(s.levelId)),
+    );
   // Columnas = días laborados de la data visible, en orden lun-dom:
   // con un tipo filtrado la semana usa solo sus días y las cards
   // ganan ancho.
@@ -191,39 +198,27 @@ export function AcademyLevelsCard({
       {!nothingYet && (styleOptions.length > 1 || levelOptions.length > 1) && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {styleOptions.length > 1 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-wide text-ink/40">
-                {t("levels.styleFilterLabel")}
-              </span>
-              <PillTabs
-                ariaLabel={t("levels.styleFilterLabel")}
-                active={activeStyle}
-                onSelect={setStyleFilter}
-                items={[
-                  { key: "all", label: t("levels.allStyles") },
-                  ...styleOptions.map((name) => ({ key: name, label: name })),
-                ]}
-              />
-            </div>
+            <ToggleChips
+              label={t("levels.styleFilterLabel")}
+              allLabel={t("levels.allStyles")}
+              options={styleOptions.map((name) => ({ key: name, label: name }))}
+              selected={styleSel}
+              onToggle={(k) => setStyleSel(toggleIn(styleSel, k))}
+              onClear={() => setStyleSel(new Set())}
+            />
           )}
           {levelOptions.length > 1 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-wide text-ink/40">
-                {t("levels.levelFilterLabel")}
-              </span>
-              <PillTabs
-                ariaLabel={t("levels.levelFilterLabel")}
-                active={activeLevel}
-                onSelect={setLevelFilter}
-                items={[
-                  { key: "all", label: t("levels.allLevels") },
-                  ...levelOptions.map(([id, name]) => ({
-                    key: id,
-                    label: name ?? id,
-                  })),
-                ]}
-              />
-            </div>
+            <ToggleChips
+              label={t("levels.levelFilterLabel")}
+              allLabel={t("levels.allLevels")}
+              options={levelOptions.map(([id, name]) => ({
+                key: id,
+                label: name,
+              }))}
+              selected={levelSel}
+              onToggle={(k) => setLevelSel(toggleIn(levelSel, k))}
+              onClear={() => setLevelSel(new Set())}
+            />
           )}
         </div>
       )}
@@ -546,6 +541,59 @@ function slotStatus(
           ? t("levels.full")
           : t("levels.spotsLeft", { count: s.empty }),
   };
+}
+
+/** Chips multiselect para estilo/nivel: cada opción es un toggle y
+    "Todos" limpia el set. Estilo pill coherente con PillTabs. */
+function ToggleChips({
+  label,
+  allLabel,
+  options,
+  selected,
+  onToggle,
+  onClear,
+}: {
+  label: string;
+  allLabel: string;
+  options: { key: string; label: string }[];
+  selected: Set<string>;
+  onToggle: (key: string) => void;
+  onClear: () => void;
+}) {
+  const chipCls = (on: boolean) =>
+    `inline-flex min-h-8 items-center rounded-full px-3 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+      on
+        ? "bg-neon/15 text-neon"
+        : "border border-line text-ink/60 hover:border-ink/30"
+    }`;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-medium uppercase tracking-wide text-ink/40">
+        {label}
+      </span>
+      <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={onClear}
+          aria-pressed={selected.size === 0}
+          className={chipCls(selected.size === 0)}
+        >
+          {allLabel}
+        </button>
+        {options.map((o) => (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => onToggle(o.key)}
+            aria-pressed={selected.has(o.key)}
+            className={chipCls(selected.has(o.key))}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /** Mini barra de proporción ♂/♀ por métrica (como la línea de
