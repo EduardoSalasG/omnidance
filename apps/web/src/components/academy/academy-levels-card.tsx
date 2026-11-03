@@ -329,7 +329,7 @@ function WeekCalendar({
   // una clase 19:30-20:30 arranca a media fila de las 19 y termina a
   // media fila de las 20. Clases traslapadas en un día se reparten
   // la columna en carriles (lanes) lado a lado.
-  const ROW_H = 88; // px por cada 30min (1h ≈ 148px: la card se lee completa)
+  const ROW_H = 72; // px por cada 30min (1h ≈ 148px: la card se lee completa)
   const today = new Date().getDay();
   const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
   const floor30 = (m: number) => m - (m % 30);
@@ -474,7 +474,7 @@ function WeekCalendar({
                         <SlotCard
                           slot={s}
                           numFmt={numFmt}
-                          compact={height < 130}
+                          compact={height < 110}
                           levelNum={s.levelId ? levelNum.get(s.levelId) : undefined}
                         />
                       </div>
@@ -831,7 +831,7 @@ function SlotCard({
   }
   return (
     <Card
-      className="flex h-full w-full min-w-0 flex-col justify-between overflow-hidden px-2 pb-0.5 pt-1.5"
+      className="flex h-full w-full min-w-0 flex-col gap-1 overflow-hidden px-2 pb-0.5 pt-1.5"
     >
       <Link
         href={
