@@ -148,6 +148,28 @@ const ICONS = {
   zap: "M13 2 3 14h9l-1 8 10-12h-9l1-8z",
   // Banco - cuenta de desembolso del actor (spec producer-pro).
   bank: "M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11m4-11v11m8-11v11m4-11v11",
+  // Íconos únicos por ítem dentro de cada sidebar. Semántica por
+  // destino: niveles (capas), promos (%), cobros/finanzas ($),
+  // suscripciones (estrella), comprobantes (doc), importación (flecha
+  // arriba), consultas (barras), validación (tilde), catálogos
+  // (grilla), difusión (avión), datos (db), explorador de usuarios
+  // (lupa), funcionalidades (banderín), auditoría (libro).
+  layers: "M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
+  percent:
+    "M19 5 5 19M9 6.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0zM20 17.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z",
+  money: "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
+  star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+  doc: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8m8 4H8m-6-8h2",
+  upload:
+    "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12",
+  chart: "M18 20V10M12 20V4M6 20v-6",
+  check: "M20 6 9 17l-5-5",
+  grid: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z",
+  send: "M22 2 11 13M22 2l-7 20-4-9-9-4z",
+  db: "M12 8c4.97 0 9-1.34 9-3s-4.03-3-9-3-9 1.34-9 3 4.03 3 9 3zM21 12c0 1.66-4.03 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5",
+  search: "M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0zM21 21l-4.35-4.35",
+  flag: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7",
+  book: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
 };
 
 const HOME_TAB: Tab = { href: "/inicio", key: "home", icon: icon(ICONS.home) };
@@ -392,7 +414,7 @@ const ANALYTICS_ITEM: DrawerSpec = {
   href: "/analitica",
   ns: "analytics",
   key: "nav.queries",
-  icon: ICONS.slider,
+  icon: ICONS.chart,
   // exact: el admin también lista /analitica/usuarios en el mismo grupo.
   exact: true,
   // Lente academia: la consola de consultas es feature `analytics`
@@ -514,7 +536,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/productor/comprobantes",
           ns: "producer",
           key: "modules.claims",
-          icon: ICONS.card,
+          icon: ICONS.doc,
         },
         // Mis pagos es data operativa (liquidaciones), no
         // configuración - vive con los módulos junto a Comprobantes.
@@ -563,7 +585,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/productor/suscripcion",
           ns: "producer",
           key: "configPages.subscription",
-          icon: ICONS.tag,
+          icon: ICONS.star,
         },
         {
           href: "/productor/apariencia",
@@ -601,7 +623,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/academia/niveles",
           ns: "academy",
           key: "modules.levels",
-          icon: ICONS.dances,
+          icon: ICONS.layers,
           academyFeature: "classes",
         },
         {
@@ -628,7 +650,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/academia/alumnos",
           ns: "academy",
           key: "modules.students",
-          icon: ICONS.users,
+          icon: ICONS.academy,
         },
       ],
     },
@@ -648,13 +670,13 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/academia/promos",
           ns: "academy",
           key: "modules.promos",
-          icon: ICONS.tag,
+          icon: ICONS.percent,
         },
         {
           href: "/academia/cobros",
           ns: "academy",
           key: "modules.payments",
-          icon: ICONS.card,
+          icon: ICONS.money,
         },
         // Preventa por comisión (spec academy-presale-commission):
         // acuerdos con productores, link de venta y comisión devengada.
@@ -662,7 +684,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/academia/preventas",
           ns: "academy",
           key: "modules.presales",
-          icon: ICONS.tag,
+          icon: ICONS.tickets,
           academyFeature: "presales",
         },
         {
@@ -693,7 +715,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/academia/configuracion/pagos",
           ns: "academy",
           key: "configPages.payments",
-          icon: ICONS.card,
+          icon: ICONS.bank,
         },
         {
           href: "/academia/configuracion/perfil",
@@ -705,7 +727,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/academia/configuracion/apariencia",
           ns: "academy",
           key: "configPages.appearance",
-          icon: ICONS.slider,
+          icon: ICONS.moon,
         },
         // Cargas masivas CSV (alumnos/clases): setup de una vez, no
         // operación diaria - por eso viven en Configuración.
@@ -713,13 +735,13 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/academia/configuracion/importar",
           ns: "academy",
           key: "configPages.import",
-          icon: ICONS.slider,
+          icon: ICONS.upload,
         },
         {
           href: "/academia/suscripcion",
           ns: "academy",
           key: "modules.subscription",
-          icon: ICONS.tag,
+          icon: ICONS.star,
         },
       ],
     },
@@ -770,7 +792,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/admin/perfiles-por-validar",
           ns: "admin",
           key: "modules.validation",
-          icon: ICONS.tag,
+          icon: ICONS.check,
         },
         {
           href: "/admin/roles",
@@ -788,7 +810,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/admin/catalogos",
           ns: "adminCatalogs",
           key: "title",
-          icon: ICONS.tag,
+          icon: ICONS.grid,
         },
       ],
     },
@@ -809,7 +831,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/admin/facturacion/suscripciones",
           ns: "admin",
           key: "modules.subscriptions",
-          icon: ICONS.tag,
+          icon: ICONS.star,
         },
         // Cola de comprobantes de suscripciones por transferencia
         // (spec subscription-manual-transfer).
@@ -817,7 +839,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/admin/facturacion/comprobantes",
           ns: "admin",
           key: "modules.claims",
-          icon: ICONS.list,
+          icon: ICONS.doc,
         },
         // Promos de suscripción (spec platform-promos) - descuentos
         // admin-managed sobre el cargo del ciclo.
@@ -825,7 +847,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/admin/facturacion/promos",
           ns: "admin",
           key: "modules.promos",
-          icon: ICONS.tag,
+          icon: ICONS.percent,
         },
         // Price book de tiers por país/ciclo (spec multipais-currency).
         {
@@ -845,7 +867,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/admin/finanzas",
           ns: "admin",
           key: "modules.finanzas",
-          icon: ICONS.slider,
+          icon: ICONS.money,
         },
       ],
     },
@@ -884,7 +906,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/admin/campanas",
           ns: "admin",
           key: "modules.broadcast",
-          icon: ICONS.megaphone,
+          icon: ICONS.send,
         },
       ],
     },
@@ -896,13 +918,13 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
         href: "/admin/datos",
         ns: "admin",
         key: "modules.datos",
-        icon: ICONS.list,
+        icon: ICONS.db,
       },
       {
         href: "/analitica/usuarios",
         ns: "admin",
         key: "modules.analyticsUser",
-        icon: ICONS.users,
+        icon: ICONS.search,
       },
     ]),
     // Plataforma: configuración operativa y observabilidad.
@@ -929,7 +951,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/admin/funcionalidades",
           ns: "admin",
           key: "modules.features",
-          icon: ICONS.zap,
+          icon: ICONS.flag,
         },
         {
           href: "/admin/jobs",
@@ -941,7 +963,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           href: "/admin/auditoria",
           ns: "admin",
           key: "modules.audit",
-          icon: ICONS.list,
+          icon: ICONS.book,
         },
       ],
     },
