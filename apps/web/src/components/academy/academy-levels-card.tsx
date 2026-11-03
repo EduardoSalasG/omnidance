@@ -119,7 +119,6 @@ export function AcademyLevelsCard({
     (ty) => typeSel.size === 0 || typeSel.has(ty.typeId),
   );
   const visibleLevels = aggregateLevels(selectedTypes);
-  const levelNum = new Map(levelOptions.map(([id], i) => [id, i + 1] as const));
 
   const levelTotal = visibleLevels.reduce((a, l) => a + l.count, 0);
 
@@ -142,6 +141,7 @@ export function AcademyLevelsCard({
       ),
     ).values(),
   ];
+  const levelNum = new Map(levelOptions.map(([id], i) => [id, i + 1] as const));
   const visibleSlots = data.bySlot
     .filter(
       (s) => typeSel.size === 0 || s.types.some((st) => typeSel.has(st.typeId)),
@@ -509,7 +509,12 @@ function WeekCalendar({
               </h5>
               <ul className="flex flex-col gap-1.5">
                 {daySlots.map((s) => (
-                  <MobileSlotRow key={s.slotId} slot={s} numFmt={numFmt} />
+                  <MobileSlotRow
+                    key={s.slotId}
+                    slot={s}
+                    numFmt={numFmt}
+                    levelNum={s.levelId ? levelNum.get(s.levelId) : undefined}
+                  />
                 ))}
               </ul>
             </section>
@@ -734,9 +739,11 @@ function MetricsGrid({
 function MobileSlotRow({
   slot: s,
   numFmt,
+  levelNum,
 }: {
   slot: AcademyLevelInsights["bySlot"][number];
   numFmt: Intl.NumberFormat;
+  levelNum?: number;
 }) {
   const t = useTranslations("academy");
   const { variant, text } = slotStatus(s, t);
