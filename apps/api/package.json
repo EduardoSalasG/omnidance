@@ -1,6 +1,6 @@
 {
   "name": "@omnidance/api",
-  "version": "1.15.3",
+  "version": "1.15.4",
   "private": true,
   "scripts": {
     "dev": "nest start --watch",
