@@ -24,6 +24,8 @@ export {
   RefreshIcon,
   CalendarIcon,
   ClockIcon,
+  FemaleIcon,
+  MaleIcon,
   ArrowUpRightIcon,
   CheckIcon,
   XIcon,

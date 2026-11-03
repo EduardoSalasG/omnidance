@@ -7,8 +7,6 @@ import { academyTierHas } from "@/lib/academy-features";
 import {
   Badge,
   Card,
-  FemaleIcon,
-  MaleIcon,
   PillTabs,
   UsersIcon,
   type BadgeVariant,
@@ -483,6 +481,63 @@ function slotStatus(
   };
 }
 
+/** Mini barra de proporción ♂/♀ por métrica (como la línea de
+    géneros de un evento): azul hombres, rosa mujeres, con el conteo
+    de cada sexo a su lado en su color. */
+function GenderBar({ m, f }: { m: number | null; f: number | null }) {
+  const tot = (m ?? 0) + (f ?? 0);
+  if (!tot) {
+    return <span className="h-1.5 w-10 rounded-full bg-ink/10" />;
+  }
+  const mp = Math.round(((m ?? 0) / tot) * 100);
+  return (
+    <span className="flex items-center gap-1 text-[11px] font-semibold tabular-nums">
+      <span className="text-sky-400">{m}</span>
+      <span className="flex h-1.5 w-8 overflow-hidden rounded-full bg-ink/10">
+        <span className="bg-sky-400" style={{ width: `${mp}%` }} />
+        <span className="bg-pink-400" style={{ width: `${100 - mp}%` }} />
+      </span>
+      <span className="text-pink-400">{f}</span>
+    </span>
+  );
+}
+
+/** Fila de métrica del insight: izquierda etiqueta + total/cupo,
+    derecha la barra de proporción de género de esa métrica. */
+function MetricRow({
+  label,
+  value,
+  capacity,
+  male,
+  female,
+  primary,
+}: {
+  label: string;
+  value: string | number;
+  capacity: number;
+  male: number | null;
+  female: number | null;
+  primary?: boolean;
+}) {
+  return (
+    <p
+      aria-hidden="true"
+      className={`flex items-center gap-2 tabular-nums ${
+        primary
+          ? "text-base font-bold"
+          : "text-sm font-semibold text-ink/60"
+      }`}
+    >
+      <span className="text-xs font-normal text-ink/50">{label}</span>
+      {value}
+      <span className="font-normal text-ink/50">/{capacity}</span>
+      <span className="ml-auto">
+        <GenderBar m={male} f={female} />
+      </span>
+    </p>
+  );
+}
+
 /** Fila compacta de mobile (rail ui-lists): hora al costado, card con
     nivel + chip en la fila de título y las métricas en una línea. */
 function MobileSlotRow({
@@ -512,19 +567,31 @@ function MobileSlotRow({
           </Badge>
         </div>
         <p className="mt-0.5 truncate text-sm font-medium">{s.seriesName}</p>
-        <p className="mt-0.5 text-xs tabular-nums text-ink/60">
-          {t("levels.avgShort")}{" "}
-          {s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"}
-          {" · "}
-          {t("levels.lastShort")} {s.lastClassAttendance ?? "—"}
-          {" · "}
-          {t("levels.nextShort")} {s.nextBooked ?? "—"}
-          <span className="text-ink/40">/{s.capacity}</span>
-        </p>
-        <p className="mt-0.5 flex items-center gap-1.5 text-xs tabular-nums text-ink/50">
-          <MaleIcon className="h-3.5 w-3.5 text-sky-400" /> {s.male}
-          <FemaleIcon className="ml-1 h-3.5 w-3.5 text-pink-400" /> {s.female}
-        </p>
+        <div className="mt-1 flex flex-col gap-0.5">
+          <MetricRow
+            label={t("levels.avgShort")}
+            value={
+              s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"
+            }
+            capacity={s.capacity}
+            male={s.avgMale}
+            female={s.avgFemale}
+          />
+          <MetricRow
+            label={t("levels.lastShort")}
+            value={s.lastClassAttendance ?? "—"}
+            capacity={s.capacity}
+            male={s.lastMale}
+            female={s.lastFemale}
+          />
+          <MetricRow
+            label={t("levels.nextShort")}
+            value={s.nextBooked ?? "—"}
+            capacity={s.capacity}
+            male={s.nextMale}
+            female={s.nextFemale}
+          />
+        </div>
       </Card>
     </li>
   );
@@ -548,8 +615,9 @@ function SlotCard({
         {s.levelName ?? t("levels.noLevel")}
       </Badge>
       <p className="truncate text-sm font-medium">{s.seriesName}</p>
-        <div className="tabular-nums">
+        <div className="flex flex-col gap-0.5">
           <p className="flex items-center gap-1 text-base font-bold leading-tight">
+            <UsersIcon className="h-4 w-4 shrink-0 text-ink/50" />
             <span className="sr-only">
               {t("levels.avgOfCapacity", {
                 avg:
@@ -559,42 +627,31 @@ function SlotCard({
                 capacity: s.capacity,
               })}
             </span>
-            <span aria-hidden="true" className="flex items-center gap-1">
-              <UsersIcon className="h-4 w-4 text-ink/50" />
-              <span className="text-xs font-normal text-ink/50">
-                {t("levels.avgShort")}
-              </span>
-              {s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"}
-              <span className="font-normal text-ink/50">/{s.capacity}</span>
-            </span>
           </p>
-          <p
-            aria-hidden="true"
-            className="mt-0.5 flex items-center gap-1 text-sm font-semibold text-ink/60"
-          >
-            <span className="text-xs font-normal text-ink/50">
-              {t("levels.lastShort")}
-            </span>
-            {s.lastClassAttendance !== null ? s.lastClassAttendance : "—"}
-            <span className="font-normal text-ink/50">/{s.capacity}</span>
-          </p>
-          <p
-            aria-hidden="true"
-            className="mt-0.5 flex items-center gap-1 text-sm font-semibold text-ink/60"
-          >
-            <span className="text-xs font-normal text-ink/50">
-              {t("levels.nextShort")}
-            </span>
-            {s.nextBooked !== null ? s.nextBooked : "—"}
-            <span className="font-normal text-ink/50">/{s.capacity}</span>
-          </p>
-          <p
-            aria-hidden="true"
-            className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-ink/50"
-          >
-            <MaleIcon className="h-3.5 w-3.5 text-sky-400" /> {s.male}
-            <FemaleIcon className="ml-1 h-3.5 w-3.5 text-pink-400" /> {s.female}
-          </p>
+          <MetricRow
+            label={t("levels.avgShort")}
+            value={
+              s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"
+            }
+            capacity={s.capacity}
+            male={s.avgMale}
+            female={s.avgFemale}
+            primary
+          />
+          <MetricRow
+            label={t("levels.lastShort")}
+            value={s.lastClassAttendance ?? "—"}
+            capacity={s.capacity}
+            male={s.lastMale}
+            female={s.lastFemale}
+          />
+          <MetricRow
+            label={t("levels.nextShort")}
+            value={s.nextBooked ?? "—"}
+            capacity={s.capacity}
+            male={s.nextMale}
+            female={s.nextFemale}
+          />
         </div>
         <Badge variant={statusVariant} className="max-w-full self-start">
           {statusText}
