@@ -770,6 +770,7 @@ Gestión integral - el benchmark es BoxMagic (reservas con aforo, membresías, c
 
 ### Clases y asistencia
 
+- `class_level`: nivel de clase. Línea global por defecto (`academyId` null, la usan sociales y academias sin custom) editable por admin en /admin/catalogos; cada academia puede definir los suyos (`academyId` propio, N niveles con nombre+orden) en /academia/niveles — los custom reemplazan a la global solo para esa academia (insight, filtros, niveles de alumno).
 - `class_series`: serie recurrente (nivel/modalidad, slots semanales con cupos) con **borrado lógico** (`deletedAt`); cada instancia materializada es una `class` con su fecha.
 - **Cuota del plan**: los planes por tiempo llevan `weeklyClasses` (clases por semana ISO; `null` = ilimitado); los packs llevan `classCount` total. Reservar exige inscripción vigente + cuota disponible; la lista de espera no consume crédito hasta promover, y al promover se salta a quien no tenga saldo.
 - **Cancelación de reserva**: siempre libera el cupo físico; el crédito vuelve solo si se cancela antes del corte `classes.cancel_refund_minutes` (default 60, param operativo). Después del corte el alumno puede cancelar pero la clase se consume igual. Cancelaciones originadas por la academia siempre devuelven el crédito.
