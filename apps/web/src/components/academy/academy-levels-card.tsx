@@ -900,7 +900,7 @@ function SlotCard({
       </div>
       <MetricsGrid slot={s} numFmt={numFmt} />
       </Link>
-        <div className="mt-auto flex items-center justify-center border-t border-line/50 pt-1 pb-1 leading-none">
+        <div className="mt-auto flex items-center justify-center border-t border-line/50 pt-1.5 pb-1.5 leading-none">
           <Badge variant={statusVariant} className="!py-0 text-[10px]">{statusText}</Badge>
           <span className="ml-1 text-[10px] text-ink/50">
             {t("levels.ofCapacity", { count: s.capacity })}
