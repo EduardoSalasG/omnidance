@@ -538,6 +538,18 @@ type SlotStatus = { variant: BadgeVariant; text: string };
 // Estado del cupo → variant semántica del Badge: sobrecupo en rojo
 // (problema), lleno en neon (cupo completo = meta ok), libres en
 // verde (hay espacio para alumnos nuevos).
+/** Nombre corto del horario: abrevia todas las palabras menos la
+    ultima cuando el nombre pasa de ~15 chars ("Movimiento Corporal"
+    -> "Mov. Corporal"). El completo sigue en title. */
+function shortSlotName(name: string): string {
+  if (name.length <= 15) return name;
+  const words = name.split(" ");
+  if (words.length < 2) return name;
+  return [...words.slice(0, -1).map((w) => `${w.slice(0, 3)}.`), words.at(-1)].join(
+    " ",
+  );
+}
+
 /** Estado del cupo del slot: compara la capacidad contra la
     ocupacion real (promedio de asistencia; si no hay historial, el
     asignado estructural por nivel). */
@@ -866,7 +878,7 @@ function SlotCard({
           {s.levelName ? (levelNum ?? s.levelName) : t("levels.noLevel")}
         </Badge>
         <p className="line-clamp-2 min-w-0 text-sm font-bold leading-tight" title={s.seriesName}>
-          {s.seriesName}
+          {shortSlotName(s.seriesName)}
         </p>
       </div>
       <MetricsGrid slot={s} numFmt={numFmt} />
