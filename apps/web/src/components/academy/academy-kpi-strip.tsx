@@ -26,6 +26,7 @@ export function AcademyKpiCards({
   error,
   onRetry,
   keys,
+  extra,
 }: {
   data: AcademyDashboard | null;
   error?: boolean;
@@ -33,6 +34,8 @@ export function AcademyKpiCards({
   /** Subset de cards por página (módulo alumnos solo muestra 3); sin
    *  `keys` se muestran todas en el orden del dashboard. */
   keys?: string[];
+  /** Items extra (MiniKpi de la página) dentro de la misma fila. */
+  extra?: React.ReactNode;
 }) {
   const clpFmt = useNumFmt({
   style: "currency",
@@ -232,6 +235,7 @@ export function AcademyKpiCards({
               </li>
             );
           })}
+          {extra}
         </ul>
       )}
     </section>
