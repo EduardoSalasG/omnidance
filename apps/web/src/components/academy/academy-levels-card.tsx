@@ -538,18 +538,27 @@ type SlotStatus = { variant: BadgeVariant; text: string };
 // Estado del cupo → variant semántica del Badge: sobrecupo en rojo
 // (problema), lleno en neon (cupo completo = meta ok), libres en
 // verde (hay espacio para alumnos nuevos).
+/** Estado del cupo del slot: compara la capacidad contra la
+    ocupacion real (promedio de asistencia; si no hay historial, el
+    asignado estructural por nivel). */
 function slotStatus(
   s: AcademyLevelInsights["bySlot"][number],
   t: ReturnType<typeof useTranslations>,
 ): SlotStatus {
+  const occupied = s.avgAttendance ?? s.assigned;
   return {
-    variant: s.empty < 0 ? "live" : s.empty === 0 ? "neon" : "success",
+    variant:
+      occupied > s.capacity
+        ? "live"
+        : occupied === s.capacity
+          ? "neon"
+          : "success",
     text:
-      s.empty < 0
-        ? t("levels.overbooked", { count: -s.empty })
-        : s.empty === 0
+      occupied > s.capacity
+        ? t("levels.overbooked", { count: occupied - s.capacity })
+        : occupied === s.capacity
           ? t("levels.full")
-          : t("levels.spotsLeft", { count: s.empty }),
+          : t("levels.spotsLeft", { count: s.capacity - occupied }),
   };
 }
 
