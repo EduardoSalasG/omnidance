@@ -768,7 +768,7 @@ function MobileSlotRow({
           </p>
           <Badge
             variant={s.levelName ? "violet" : "muted"}
-            className="shrink-0"
+            className="shrink-0 text-[11px]"
             title={s.levelName ?? undefined}
           >
             {s.levelName ? (levelNum ?? s.levelName) : t("levels.noLevel")}
@@ -811,7 +811,7 @@ function SlotCard({
           </p>
           <Badge
             variant={s.levelName ? "violet" : "muted"}
-            className="shrink-0"
+            className="shrink-0 text-[11px]"
             title={s.levelName ?? undefined}
           >
             {s.levelName ? (levelNum ?? s.levelName) : t("levels.noLevel")}
