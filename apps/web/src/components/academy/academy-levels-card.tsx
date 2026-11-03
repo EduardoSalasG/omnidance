@@ -531,7 +531,9 @@ function MetricRow({
       <span className="text-xs font-normal text-ink/50">{label}</span>
       {value}
       <span className="font-normal text-ink/50">/{capacity}</span>
-      <GenderBar m={male} f={female} />
+      <span className="ml-auto">
+        <GenderBar m={male} f={female} />
+      </span>
     </p>
   );
 }
@@ -605,7 +607,7 @@ function SlotCard({
   const t = useTranslations("academy");
   const { variant: statusVariant, text: statusText } = slotStatus(s, t);
   return (
-    <Card className="flex h-full flex-col gap-1.5 overflow-hidden px-2.5 py-2">
+    <Card className="flex h-full w-fit min-w-0 max-w-full flex-col gap-1.5 overflow-hidden px-2.5 py-2">
       <p className="truncate text-sm font-medium">{s.seriesName}</p>
       <div className="flex items-center gap-1.5">
         <Badge
