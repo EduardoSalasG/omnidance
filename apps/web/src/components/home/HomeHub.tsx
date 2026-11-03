@@ -634,7 +634,7 @@ export function HomeHub() {
   // pt-4 (no p-6): el saludo va pegado al appbar - 40px de aire
   // quedaba lejano. px/pb se conservan.
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 px-6 pb-6 pt-4 lg:max-w-5xl lg:px-8">
+    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 px-6 pb-6 pt-4 lg:max-w-none lg:px-4">
       <header className="flex flex-col gap-1">
         {/* El saludo es texto, no encabezado: el h1 de la página es el
             nombre de la sección en el appbar ("Inicio" - visible en
