@@ -507,13 +507,11 @@ function GenderBar({ m, f }: { m: number | null; f: number | null }) {
 function MetricCell({
   label,
   value,
-  capacity,
   male,
   female,
 }: {
   label: string;
   value: string | number;
-  capacity: number;
   male: number | null;
   female: number | null;
 }) {
@@ -522,10 +520,7 @@ function MetricCell({
       <span className="text-[10px] font-medium uppercase tracking-wide text-ink/60">
         {label}
       </span>
-      <span className="text-sm font-bold">
-        {value}
-        <span className="font-normal text-ink/60">/{capacity}</span>
-      </span>
+      <span className="text-sm font-bold">{value}</span>
       <GenderBar m={male} f={female} />
     </div>
   );
@@ -545,21 +540,18 @@ function MetricsGrid({
       <MetricCell
         label={t("levels.lastShort")}
         value={s.lastClassAttendance ?? "—"}
-        capacity={s.capacity}
         male={s.lastMale}
         female={s.lastFemale}
       />
       <MetricCell
         label={t("levels.avgShort")}
         value={s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"}
-        capacity={s.capacity}
         male={s.avgMale}
         female={s.avgFemale}
       />
       <MetricCell
         label={t("levels.nextShort")}
         value={s.nextBooked ?? "—"}
-        capacity={s.capacity}
         male={s.nextMale}
         female={s.nextFemale}
       />
@@ -597,9 +589,10 @@ function MobileSlotRow({
         </div>
         <MetricsGrid slot={s} numFmt={numFmt} />
         <div className="mt-1 flex justify-center border-t border-line/50 pt-1.5">
-          <Badge variant={variant} className="self-start">
-            {text}
-          </Badge>
+          <Badge variant={variant}>{text}</Badge>
+          <span className="ml-1 self-center text-xs text-ink/50">
+            {t("levels.ofCapacity", { count: s.capacity })}
+          </span>
         </div>
       </Card>
     </li>
@@ -630,9 +623,10 @@ function SlotCard({
       </div>
       <MetricsGrid slot={s} numFmt={numFmt} />
         <div className="mt-1 flex justify-center border-t border-line/50 pt-1.5">
-          <Badge variant={statusVariant} className="self-start">
-            {statusText}
-          </Badge>
+          <Badge variant={statusVariant}>{statusText}</Badge>
+          <span className="ml-1 self-center text-xs text-ink/50">
+            {t("levels.ofCapacity", { count: s.capacity })}
+          </span>
         </div>
     </Card>
   );

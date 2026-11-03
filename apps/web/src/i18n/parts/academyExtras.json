@@ -52,6 +52,7 @@
       "nextShort": "Próxima",
       "maleShort": "H",
       "femaleShort": "M",
+      "ofCapacity": "de {count}",
       "spotsLeft": "{count, plural, one {# libre} other {# libres}}",
       "full": "Lleno",
       "overbooked": "+{count} sobrecupo",
