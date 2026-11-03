@@ -224,6 +224,9 @@ export function AcademyKpiCards({
                         {deltaText} {t("kpis.vsPrevMonth")}
                       </span>
                     )}
+                    <span className="text-[11px] leading-tight text-ink/50">
+                      {k.hint}
+                    </span>
                   </Card>
                 </Link>
               </li>
