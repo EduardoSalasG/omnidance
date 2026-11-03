@@ -518,7 +518,7 @@ function MetricCell({
   female: number | null;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 tabular-nums">
+    <div className="flex flex-col items-center gap-0.5 text-center tabular-nums">
       <span className="text-[10px] font-medium uppercase tracking-wide text-ink/40">
         {label}
       </span>
@@ -596,7 +596,7 @@ function MobileSlotRow({
           </Badge>
         </div>
         <MetricsGrid slot={s} numFmt={numFmt} />
-        <div className="mt-1 flex justify-end border-t border-line/50 pt-1.5">
+        <div className="mt-1 flex justify-center border-t border-line/50 pt-1.5">
           <Badge variant={variant} className="self-start">
             {text}
           </Badge>
@@ -629,7 +629,7 @@ function SlotCard({
         </Badge>
       </div>
       <MetricsGrid slot={s} numFmt={numFmt} />
-        <div className="mt-1 flex justify-end border-t border-line/50 pt-1.5">
+        <div className="mt-1 flex justify-center border-t border-line/50 pt-1.5">
           <Badge variant={statusVariant} className="self-start">
             {statusText}
           </Badge>
