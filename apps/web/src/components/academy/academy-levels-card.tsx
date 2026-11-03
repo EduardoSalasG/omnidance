@@ -755,8 +755,8 @@ export function MetricsGrid({
   const partner = s.types.some((x) => /pareja/i.test(x.typeName));
   return (
     <div
-      className={`grid grid-cols-3 gap-1${
-        divided ? " mt-1.5 border-t border-line/50 pt-1.5" : ""
+      className={`grid grid-cols-3 gap-1 pb-1.5${
+        divided ? " mt-1.5 border-t border-line/50 pb-1.5 pt-1.5" : ""
       }`}
     >
       <MetricCell
