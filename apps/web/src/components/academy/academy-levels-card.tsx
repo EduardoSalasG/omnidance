@@ -347,8 +347,9 @@ function WeekCalendar({
   return (
     <>
       <div className="hidden md:block">
-        {/* Header de días */}
-        <div className="flex gap-2">
+        {/* Header de días sticky bajo el appbar (h-14): al bajar la
+            agenda sigue de referencia, como fijar filas en Excel. */}
+        <div className="sticky top-14 z-30 -mx-1 flex gap-2 bg-canvas/90 px-1 pb-1 backdrop-blur">
           <div className="w-9 shrink-0" />
           {days.map((d) => (
             <h5
