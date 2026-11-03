@@ -14,9 +14,21 @@ Branch `dev`. API :4000 y web :3000 corriendo (`pnpm dev` por lado). Login demo:
 - **Seed (`enrich-academy-seed.cjs`)**: un nivel por (enrollment,tipo) y el owner de cada academia excluido de rosters de asistencia/reserva (no es alumno).
 - **Docs**: `openapi.json` + postman regenerados (366 paths); inventario QA actualizado con la estructura nueva del home.
 
+## Deploy / release (cierre de sesión)
+
+- **`v1.15.4` en producción**: Netlify `omnidance.tech` ready, `Deploy omnidance API` en main verde, QA verde en main y dev.
+- **Gitflow usado**: dev → merge a main → `release: X.Y.Z` (bump 3 package.json) → tag `vX.Y.Z` → push main + tag.
+- **Bucle de fixes de deploy** (QA/Deploy morían en cadena):
+  1. seed `ClassLevel`: upsert por `name` inválido con unique compuesta → `findFirst` + update/create (el `where` compuesto no acepta `academyId: null`)
+  2. spec `enrollment-levels.controller.spec.ts`: mocks sin `enrollment`/`attendances`/`bookings`/`person` (el select real) — nunca corrían porque el workflow moría antes en el seed
+  3. `ClassLevel.academyId` se había subido por `db push` sin migración → `migrations/20261123000000_academy_class_levels`
+  4. `PaymentClaim.kind` + FK `TicketClaim.producerId` (SET NULL) → `migrations/20261124000000_paymentclaim_kind_ticketclaim_fk`; `migrate diff --from-migrations --to-schema-datamodel` confirma cero drift
+- **Regla reforzada**: TODO cambio de schema va por migración versionada (`prisma migrate dev` o archivo manual + `migrate resolve`), nunca `db push` — el CI aplica migraciones a una DB limpia y cualquier drift rompe el seed ahí.
+- **Netlify**: repo vinculado localmente (`apps/web/.netlify`, site `omnidance` id 20e676ea); `netlify api listSiteDeploys` para estado.
+- Idea registrada en la spec: asistente IA de academia (módulo Analítica, solo tier PRO).
+
 ## Gaps / próximos
 
-- `docs/openapi.json` regen OK pero `classSlotId` del roster no se verificó dentro de los 4 hits.
 - E2E Playwright del home nuevo no corrido esta sesión.
 - La fila KPI Extendido queda con 4 cards solo si `dashboard` cargó (el extra `Reservas hoy` depende de todayClasses).
 - Insight "one level per type" se cumple en editor+seed; la API `PATCH /enrollments/:id/levels` aún acepta levelIds[] multi por tipo (el editor ya no los manda).
