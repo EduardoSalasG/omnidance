@@ -264,13 +264,13 @@ export function AcademyDashboard({
             extra={
               dashboard ? (
                 <MiniKpi
-                  href={expiringHref ?? "/academia/alumnos"}
-                  title={t("insights.expiringWeekTitle")}
-                  count={expiringCount}
+                  href="/academia/asistencia"
+                  title={t("kpis.attendanceToday")}
+                  count={dashboard.attendanceToday}
                   hint={
-                    expiringCount > 0
-                      ? t("homeMode.expiringHint")
-                      : t("homeMode.expiringDone")
+                    dashboard.attendanceToday > 0
+                      ? t("homeMode.todayHint")
+                      : t("homeMode.todayDone")
                   }
                 />
               ) : null
@@ -379,6 +379,16 @@ export function AcademyDashboard({
                 }
               />
             )}
+            <MiniKpi
+              href={expiringHref ?? "/academia/alumnos"}
+              title={t("insights.expiringWeekTitle")}
+              count={expiringCount}
+              hint={
+                expiringCount > 0
+                  ? t("homeMode.expiringHint")
+                  : t("homeMode.expiringDone")
+              }
+            />
             {levelInsights.data && (
               <MiniKpi
                 href="/academia/alumnos"
