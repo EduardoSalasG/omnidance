@@ -763,7 +763,7 @@ function MobileSlotRow({
           aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
         >
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-          <p className="min-w-0 flex-1 truncate text-sm font-bold">
+          <p className="min-w-0 flex-1 text-sm font-bold">
             {s.seriesName}
           </p>
           <Badge
@@ -806,7 +806,7 @@ function SlotCard({
     return (
       <Card className="flex h-full w-full min-w-0 flex-col justify-center gap-1 overflow-hidden px-2.5 py-1.5">
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-          <p className="min-w-0 flex-1 truncate text-xs font-semibold">
+          <p className="min-w-0 flex-1 text-xs font-semibold">
             {s.seriesName}
           </p>
           <Badge
@@ -837,7 +837,7 @@ function SlotCard({
         aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
       >
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-        <p className="min-w-0 flex-1 truncate text-sm font-bold">
+        <p className="min-w-0 flex-1 text-sm font-bold">
           {s.seriesName}
           {s.styleName ? ` · ${s.styleName}` : ""}
         </p>
