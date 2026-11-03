@@ -556,11 +556,11 @@ function MobileSlotRow({
       </p>
       <Card className="min-w-0 flex-1 px-3 py-2">
         <div className="flex items-center gap-1.5">
-          <p className="min-w-0 flex-1 truncate text-sm font-medium">
+          <p className="min-w-0 flex-1 truncate text-base font-semibold">
             {s.seriesName}
           </p>
           <Badge
-            variant={s.levelName ? "neon" : "muted"}
+            variant={s.levelName ? "violet" : "muted"}
             className="shrink-0"
           >
             {s.levelName ?? t("levels.noLevel")}
@@ -613,11 +613,11 @@ function SlotCard({
   return (
     <Card className="flex h-full w-fit min-w-0 max-w-full flex-col gap-1.5 overflow-hidden px-2.5 py-2">
       <div className="flex items-center gap-1.5">
-        <p className="min-w-0 flex-1 truncate text-sm font-medium">
+        <p className="min-w-0 flex-1 truncate text-base font-semibold">
           {s.seriesName}
         </p>
         <Badge
-          variant={s.levelName ? "neon" : "muted"}
+          variant={s.levelName ? "violet" : "muted"}
           className="shrink-0"
         >
           {s.levelName ?? t("levels.noLevel")}
