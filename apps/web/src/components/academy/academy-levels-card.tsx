@@ -491,7 +491,16 @@ function slotStatus(
 /** Mini barra de proporción ♂/♀ por métrica (como la línea de
     géneros de un evento): azul hombres, rosa mujeres, con el conteo
     de cada sexo a su lado en su color. */
-function GenderBar({ m, f }: { m: number | null; f: number | null }) {
+function GenderBar({
+  m,
+  f,
+  partner,
+}: {
+  m: number | null;
+  f: number | null;
+  /** Desbalance solo accionable en clases de pareja. */
+  partner?: boolean;
+}) {
   const tot = (m ?? 0) + (f ?? 0);
   if (!tot) {
     return <span className="h-1.5 w-10 rounded-full bg-ink/10" />;
@@ -499,7 +508,7 @@ function GenderBar({ m, f }: { m: number | null; f: number | null }) {
   const mp = Math.round(((m ?? 0) / tot) * 100);
   // Desbalance >=70% (clave en clases de pareja): la barra y el
   // conteo dominante pasan a warning como signal accionable.
-  const skewed = mp >= 70 || mp <= 30;
+  const skewed = !!partner && (mp >= 70 || mp <= 30);
   return (
     <span className="flex items-center gap-1 text-[11px] font-semibold tabular-nums">
       <span className={skewed && mp >= 70 ? "text-warning" : "text-sky-400"}>
@@ -530,11 +539,13 @@ function MetricCell({
   value,
   male,
   female,
+  partner,
 }: {
   label: string;
   value: string | number;
   male: number | null;
   female: number | null;
+  partner?: boolean;
 }) {
   return (
     <div className="flex flex-col items-center gap-0.5 text-center tabular-nums">
@@ -542,7 +553,7 @@ function MetricCell({
         {label}
       </span>
       <span className="text-sm font-bold">{value}</span>
-      <GenderBar m={male} f={female} />
+      <GenderBar m={male} f={female} partner={partner} />
     </div>
   );
 }
@@ -556,6 +567,8 @@ function MetricsGrid({
   numFmt: Intl.NumberFormat;
 }) {
   const t = useTranslations("academy");
+  // El desbalance de género solo es accionable en clases de pareja.
+  const partner = s.types.some((x) => /pareja/i.test(x.typeName));
   return (
     <div className="mt-1 flex justify-between gap-2">
       <MetricCell
@@ -563,18 +576,21 @@ function MetricsGrid({
         value={s.lastClassAttendance ?? "—"}
         male={s.lastMale}
         female={s.lastFemale}
+        partner={partner}
       />
       <MetricCell
         label={t("levels.avgShort")}
         value={s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"}
         male={s.avgMale}
         female={s.avgFemale}
+        partner={partner}
       />
       <MetricCell
         label={t("levels.nextShort")}
         value={s.nextBooked ?? "—"}
         male={s.nextMale}
         female={s.nextFemale}
+        partner={partner}
       />
     </div>
   );
