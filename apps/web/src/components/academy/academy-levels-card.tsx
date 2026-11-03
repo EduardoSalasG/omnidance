@@ -555,18 +555,20 @@ function MobileSlotRow({
         {s.startTime}
       </p>
       <Card className="min-w-0 flex-1 px-3 py-2">
-        <p className="truncate text-sm font-medium">{s.seriesName}</p>
-        <div className="mt-0.5 flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <p className="min-w-0 flex-1 truncate text-sm font-medium">
+            {s.seriesName}
+          </p>
           <Badge
             variant={s.levelName ? "outline" : "muted"}
-            className="min-w-0 truncate"
+            className="shrink-0"
           >
             {s.levelName ?? t("levels.noLevel")}
           </Badge>
-          <Badge variant={variant} className="shrink-0">
-            {text}
-          </Badge>
         </div>
+        <Badge variant={variant} className="mt-0.5 self-start">
+          {text}
+        </Badge>
         <div className="mt-1 flex flex-col gap-0.5">
           <MetricRow
             label={t("levels.avgShort")}
@@ -608,18 +610,20 @@ function SlotCard({
   const { variant: statusVariant, text: statusText } = slotStatus(s, t);
   return (
     <Card className="flex h-full w-fit min-w-0 max-w-full flex-col gap-1.5 overflow-hidden px-2.5 py-2">
-      <p className="truncate text-sm font-medium">{s.seriesName}</p>
       <div className="flex items-center gap-1.5">
+        <p className="min-w-0 flex-1 truncate text-sm font-medium">
+          {s.seriesName}
+        </p>
         <Badge
           variant={s.levelName ? "outline" : "muted"}
-          className="min-w-0 truncate"
+          className="shrink-0"
         >
           {s.levelName ?? t("levels.noLevel")}
         </Badge>
-        <Badge variant={statusVariant} className="shrink-0">
-          {statusText}
-        </Badge>
       </div>
+      <Badge variant={statusVariant} className="self-start">
+        {statusText}
+      </Badge>
         <div className="flex flex-col gap-0.5">
           <p className="flex items-center gap-1 text-base font-bold leading-tight">
             <UsersIcon className="h-4 w-4 shrink-0 text-ink/50" />
