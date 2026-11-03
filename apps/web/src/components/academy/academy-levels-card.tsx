@@ -436,7 +436,11 @@ function WeekCalendar({
               aria-label={t(`weekday.${d}`)}
               className="flex min-w-0 flex-col gap-2 border-t border-line/60 pt-2.5 first:border-t-0 first:pt-0"
             >
-              <h5 className="text-sm font-bold uppercase tracking-wide">
+              <h5
+                className={`text-sm font-bold uppercase tracking-wide ${
+                  d === new Date().getDay() ? "text-violet-300" : ""
+                }`}
+              >
                 {t(`weekday.${d}`)}
               </h5>
               <ul className="flex flex-col gap-1.5">
@@ -589,6 +593,11 @@ function MobileSlotRow({
         {s.startTime}
       </p>
       <Card className="min-w-0 flex-1 px-3 py-2">
+        <Link
+          href="/academia/clases"
+          className="block"
+          aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
+        >
         <div className="flex items-center gap-1.5">
           <p className="min-w-0 flex-1 truncate text-base font-bold">
             {s.seriesName}
@@ -607,6 +616,7 @@ function MobileSlotRow({
             {t("levels.ofCapacity", { count: s.capacity })}
           </span>
         </div>
+        </Link>
       </Card>
     </li>
   );
