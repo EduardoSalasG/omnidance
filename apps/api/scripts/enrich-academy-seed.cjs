@@ -514,7 +514,7 @@ async function main() {
     ? (await prisma.class.findMany({ where: { slot: { academyId: tumbao.id }, date: { gte: prevMonthStart, lt: afterNextStart } }, select: { id: true } })).map((c) => c.id)
     : [];
   if (tumbaoClassIds.length) {
-    const roster = (await prisma.enrollment.findMany({ where: { academyId: tumbao.id, status: "ACTIVE" }, select: { personId: true } })).map((e) => e.personId);
+    const roster = (await prisma.enrollment.findMany({ where: { academyId: tumbao.id, status: "ACTIVE" }, select: { personId: true } })).map((e) => e.personId).filter((p) => p !== tumbao.ownerId);
     const bk = [];
     for (const cid of tumbaoClassIds) {
       const off = h(cid) % roster.length;

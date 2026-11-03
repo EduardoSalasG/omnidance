@@ -6076,6 +6076,130 @@
         ]
       }
     },
+    "/api/academies/{id}/class-levels": {
+      "get": {
+        "operationId": "AcademiesController_academyClassLevels",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Academies"
+        ]
+      },
+      "post": {
+        "operationId": "AcademiesController_createAcademyLevel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcademyClassLevelDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Academies"
+        ]
+      }
+    },
+    "/api/academies/{id}/class-levels/{levelId}": {
+      "patch": {
+        "operationId": "AcademiesController_updateAcademyLevel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "levelId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcademyClassLevelDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Academies"
+        ]
+      },
+      "delete": {
+        "operationId": "AcademiesController_deleteAcademyLevel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "levelId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Academies"
+        ]
+      }
+    },
     "/api/academies/{id}/subscribe": {
       "post": {
         "operationId": "AcademyBillingController_subscribe",
@@ -7478,130 +7602,6 @@
             }
           }
         },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Enrollments"
-        ]
-      }
-    },
-    "/api/enrollments/{id}/class-levels": {
-      "get": {
-        "operationId": "EnrollmentsController_academyClassLevels",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Enrollments"
-        ]
-      },
-      "post": {
-        "operationId": "EnrollmentsController_createAcademyLevel",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AcademyClassLevelDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Enrollments"
-        ]
-      }
-    },
-    "/api/enrollments/{id}/class-levels/{levelId}": {
-      "patch": {
-        "operationId": "EnrollmentsController_updateAcademyLevel",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "levelId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AcademyClassLevelDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Enrollments"
-        ]
-      },
-      "delete": {
-        "operationId": "EnrollmentsController_deleteAcademyLevel",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "levelId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": ""
@@ -12324,6 +12324,10 @@
         "type": "object",
         "properties": {}
       },
+      "AcademyClassLevelDto": {
+        "type": "object",
+        "properties": {}
+      },
       "SubscribeAcademyDto": {
         "type": "object",
         "properties": {}
@@ -12357,10 +12361,6 @@
         "properties": {}
       },
       "SetEnrollmentLevelsDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "AcademyClassLevelDto": {
         "type": "object",
         "properties": {}
       },
