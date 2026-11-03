@@ -519,12 +519,12 @@ function MetricCell({
 }) {
   return (
     <div className="flex flex-col items-center gap-0.5 text-center tabular-nums">
-      <span className="text-[10px] font-medium uppercase tracking-wide text-ink/40">
+      <span className="text-[10px] font-medium uppercase tracking-wide text-ink/60">
         {label}
       </span>
       <span className="text-sm font-bold">
         {value}
-        <span className="font-normal text-ink/40">/{capacity}</span>
+        <span className="font-normal text-ink/60">/{capacity}</span>
       </span>
       <GenderBar m={male} f={female} />
     </div>
