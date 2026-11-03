@@ -9,7 +9,8 @@ import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ActionNotice } from "@/components/ui/action-notice";
-import { inputCls } from "@/components/academy/shared";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
+import { inputCls, readError } from "@/components/academy/shared";
 
 type Level = { id: string; name: string; order: number };
 
@@ -45,6 +46,7 @@ function LevelsModule({ academyId }: { academyId: string }) {
   const [data, setData] = useState<LevelsResp | null>(null);
   const [newName, setNewName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(
     null,
   );
@@ -88,6 +90,24 @@ function LevelsModule({ academyId }: { academyId: string }) {
       }
       setNotice({ text: t("levelsConfig.personalized") });
     });
+
+  // Reset a la línea global (spec academies/class-levels): un solo
+  // DELETE bulk. Si algún nivel está en uso el server responde 409 con
+  // los nombres - el mensaje viaja tal cual al ActionNotice.
+  const resetToGlobal = () =>
+    act(async () => {
+      const res = await apiFetch(`/academies/${academyId}/class-levels`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        setNotice({
+          text: (await readError(res)) ?? t("levelsConfig.error"),
+          error: true,
+        });
+        return;
+      }
+      setNotice({ text: t("levelsConfig.backToGlobalDone") });
+    }).finally(() => setConfirmReset(false));
 
   if (!data) {
     // Error de carga: el aviso queda visible sobre el skeleton en vez
@@ -202,8 +222,32 @@ function LevelsModule({ academyId }: { academyId: string }) {
               {t("levelsConfig.add")}
             </Button>
           </form>
+          {/* Zona destructiva al pie (patrón de consolas): volver a la
+              línea global borra todos los niveles propios de una vez. */}
+          <div className="flex justify-center border-t border-line/50 pt-3">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => setConfirmReset(true)}
+              className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
+            >
+              {t("levelsConfig.backToGlobal")}
+            </button>
+          </div>
         </Card>
       )}
+
+      <ConfirmSheet
+        open={confirmReset}
+        title={t("levelsConfig.backToGlobal")}
+        description={t("levelsConfig.backToGlobalBody", {
+          count: levels.length,
+        })}
+        confirmLabel={t("levelsConfig.backToGlobal")}
+        busy={saving}
+        onConfirm={() => void resetToGlobal()}
+        onClose={() => setConfirmReset(false)}
+      />
     </div>
   );
 }

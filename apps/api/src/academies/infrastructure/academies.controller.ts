@@ -215,7 +215,6 @@ class UpdateEnrollmentDto {
   endsAt?: string | null;
 }
 
-/** Niveles del alumno dentro de un tipo de clase (multinivel). */
 class AcademyClassLevelDto {
   @IsString()
   @IsNotEmpty()
@@ -225,6 +224,7 @@ class AcademyClassLevelDto {
   order?: number;
 }
 
+/** Nivel del alumno dentro de un tipo de clase (a lo más uno). */
 class EnrollmentLevelSetDto {
   @IsString()
   classTypeId!: string;
@@ -1776,7 +1776,7 @@ export class AcademiesController {
 
     // Nivel inicial por defecto (spec enrollment-level-kpi): el alumno
     // nuevo parte en el nivel más bajo del catálogo en cada tipo de
-    // clase; el owner lo ajusta en la ficha (multinivel por tipo).
+    // clase; el owner lo ajusta en la ficha (un nivel por tipo).
     const [types, base] = await Promise.all([
       this.prisma.classType.findMany({ select: { id: true } }),
       this.prisma.classLevel.findFirst({
@@ -3124,6 +3124,51 @@ export class AcademiesController {
     await this.prisma.classLevel.delete({ where: { id: levelId } });
     return { ok: true };
   }
+
+  /**
+   * DELETE /academies/:id/class-levels - reset a la línea global
+   * (spec academies/class-levels): borra todos los niveles custom en
+   * una operación; sin customs es idempotente. Todo o nada: si alguno
+   * está en uso (series o alumnos) responde 409 con los nombres, para
+   * que el owner los libere antes de reintentar.
+   */
+  @Delete(":id/class-levels")
+  @HttpCode(200)
+  @UseGuards(SessionGuard)
+  async deleteAcademyLevels(@Param("id") id: string, @Req() req: Request) {
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    const custom = await this.prisma.classLevel.findMany({
+      where: { academyId: id },
+      select: { id: true, name: true },
+    });
+    if (!custom.length) return { ok: true, deleted: 0 };
+    const ids = custom.map((l) => l.id);
+    const [seriesUse, enrollmentUse] = await Promise.all([
+      this.prisma.classSeries.findMany({
+        where: { levelId: { in: ids } },
+        select: { levelId: true },
+      }),
+      this.prisma.enrollmentLevel.findMany({
+        where: { levelId: { in: ids } },
+        select: { levelId: true },
+      }),
+    ]);
+    const used = new Set([
+      ...seriesUse.map((s) => s.levelId),
+      ...enrollmentUse.map((e) => e.levelId),
+    ]);
+    if (used.size) {
+      const names = custom
+        .filter((l) => used.has(l.id))
+        .map((l) => l.name)
+        .join(", ");
+      throw new ConflictException(
+        `no se puede volver a la línea global: niveles en uso (${names})`,
+      );
+    }
+    await this.prisma.classLevel.deleteMany({ where: { academyId: id } });
+    return { ok: true, deleted: custom.length };
+  }
 }
 
 @Controller("enrollments")
@@ -3168,12 +3213,12 @@ export class EnrollmentsController {
   }
 
   /**
-   * PATCH /enrollments/:id/levels - niveles del alumno por tipo de
+   * PATCH /enrollments/:id/levels - nivel del alumno por tipo de
    * clase (spec academies/enrollment-levels). Reemplazo completo del
-   * set: cada entrada fija los niveles del tipo y las filas fuera del
-   * body se borran (levels: [] deja al alumno sin nivel en todo). La
-   * asigna la academia (cap `students`, la misma que gestiona el
-   * enrollment); el alumno nunca se auto-nivela.
+   * set: cada entrada fija el nivel del tipo (a lo más uno) y las
+   * filas fuera del body se borran (levels: [] deja al alumno sin
+   * nivel en todo). La asigna la academia (cap `students`, la misma
+   * que gestiona el enrollment); el alumno nunca se auto-nivela.
    */
   @Patch(":id/levels")
   @UseGuards(SessionGuard)
@@ -3198,6 +3243,15 @@ export class EnrollmentsController {
     if (new Set(typeIds).size !== typeIds.length) {
       throw new BadRequestException(
         "cada tipo de clase puede venir una sola vez",
+      );
+    }
+    // Un nivel por tipo (spec academies/enrollment-levels): el alumno
+    // no acumula niveles del mismo tipo - evita conteos duplicados en
+    // "Niveles y cupos". El editor ya manda uno; esto cierra la
+    // puerta a payloads directos.
+    if (dto.levels.some((l) => new Set(l.levelIds).size > 1)) {
+      throw new BadRequestException(
+        "cada tipo de clase admite un solo nivel",
       );
     }
     const levelIds = [...new Set(dto.levels.flatMap((l) => l.levelIds))];

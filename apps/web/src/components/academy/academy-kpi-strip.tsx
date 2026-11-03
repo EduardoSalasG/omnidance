@@ -34,7 +34,9 @@ export function AcademyKpiCards({
   /** Subset de cards por página (módulo alumnos solo muestra 3); sin
    *  `keys` se muestran todas en el orden del dashboard. */
   keys?: string[];
-  /** Items extra (MiniKpi de la página) dentro de la misma fila. */
+  /** Items extra (MiniKpi de la página) dentro de la misma fila. Se
+   *  renderiza también en el estado skeleton: el caller decide si el
+   *  slot tiene forma de carga (spec loading-states, sin pop-in). */
   extra?: React.ReactNode;
 }) {
   const clpFmt = useNumFmt({
@@ -166,7 +168,7 @@ export function AcademyKpiCards({
           aria-hidden="true"
           className="page-loading grid grid-cols-2 gap-3 sm:grid-cols-4"
         >
-          {[0, 1, 2, 3, 4, 5].map((i) => (
+          {Array.from({ length: keys?.length ?? 6 }, (_, i) => (
             <li key={i}>
               <Card className="flex h-full flex-col gap-1 p-4">
                 <Skeleton className="h-3 w-20" />
@@ -174,6 +176,7 @@ export function AcademyKpiCards({
               </Card>
             </li>
           ))}
+          {extra}
         </ul>
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
