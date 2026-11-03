@@ -756,7 +756,7 @@ export function MetricsGrid({
   return (
     <div
       className={`grid grid-cols-3 gap-1${
-        divided ? " mt-1 border-t border-line/50 pt-1" : ""
+        divided ? " mt-1.5 border-t border-line/50 pt-1.5" : ""
       }`}
     >
       <MetricCell
