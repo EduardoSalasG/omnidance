@@ -831,7 +831,7 @@ function SlotCard({
   }
   return (
     <Card
-      className="flex h-full w-full min-w-0 flex-col gap-1.5 overflow-hidden px-2 pb-0.5 pt-1.5"
+      className="flex h-full w-full min-w-0 flex-col gap-1 overflow-hidden px-2 pb-0 pt-1.5"
     >
       <Link
         href={
