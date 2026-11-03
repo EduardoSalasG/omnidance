@@ -24,6 +24,7 @@ export {
   RefreshIcon,
   CalendarIcon,
   ClockIcon,
+  SigmaIcon,
   FemaleIcon,
   MaleIcon,
   ArrowUpRightIcon,

@@ -88,6 +88,15 @@ export function ClockIcon(props: IconProps) {
   );
 }
 
+/** Sigma - promedio/agregado. */
+export function SigmaIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M18 7V5H6l7 7-7 7v2h12v-2H10l7-7-7-7h8z" />
+    </Svg>
+  );
+}
+
 /** Link externo (WhatsApp, mapas, video) - antes `↗`. */
 export function ArrowUpRightIcon(props: IconProps) {
   return (
