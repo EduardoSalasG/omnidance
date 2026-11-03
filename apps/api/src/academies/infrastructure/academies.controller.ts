@@ -2339,6 +2339,7 @@ export class AcademiesController {
           },
           orderBy: { date: "asc" },
           select: {
+            id: true,
             classSlotId: true,
             date: true,
             bookings: {
@@ -2423,7 +2424,7 @@ export class AcademiesController {
     // que viene, con su split de género. Solo la primera aparición.
     const nextBySlot = new Map<
       string,
-      { date: Date; booked: number; m: number; f: number }
+      { id: string; date: Date; booked: number; m: number; f: number }
     >();
     for (const c of futureClasses) {
       if (nextBySlot.has(c.classSlotId)) continue;
@@ -2435,6 +2436,7 @@ export class AcademiesController {
         else if (g === "F") f += 1;
       }
       nextBySlot.set(c.classSlotId, {
+        id: c.id,
         date: c.date,
         booked: c.bookings.length,
         m,
@@ -2507,6 +2509,7 @@ export class AcademiesController {
         nextMale: next?.m ?? null,
         nextFemale: next?.f ?? null,
         nextDate: next?.date ?? null,
+        nextClassId: next?.id ?? null,
         // Negativo = sobrecupo (más asignables que cupos).
         empty: capacity - assigned,
         avgAttendance,
