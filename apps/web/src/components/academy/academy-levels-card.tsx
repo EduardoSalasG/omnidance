@@ -202,6 +202,7 @@ export function AcademyLevelsCard({
               options={levelOptions.map(([id, name], i) => ({
                 key: id,
                 label: `${i + 1}`,
+                ariaLabel: `${i + 1} ${name}`,
               }))}
               selected={levelSel}
               onToggle={(k) => setLevelSel(toggleIn(levelSel, k))}
