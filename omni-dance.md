@@ -677,6 +677,8 @@ El ticketing base, venta y check-in **nunca se cortan** por la suscripción (el 
 
 **Corte de analítica por tier**: STUDIO conserva analítica *operacional* (KPIs del día, asistencia por clase, ocupación, reservas); lo que una academia usa a diario; PRO suma la *estratégica* (consultas rápidas, insights de audiencia, cohortes/retención, benchmark, marketing). COBROS solo tiene su analítica de cobranza. Los campos de features en superficies compartidas se ocultan (no 403): score/clasificación CRM sin `crm`, asistencia en detalle sin `attendance`, insight de audiencia sin `insights`, clases de hoy sin `classes`.
 
+**Idea - Asistente IA de academia (PRO)**: módulo dentro de la sección Analítica: chatbot que responde preguntas del owner sobre su academia en lenguaje natural ("¿qué clase quedó más vacía este mes?", "¿cuántos alumnos se me vencen la próxima semana?") consultando su propia data (dashboard, insight de niveles/cupos, cobros, alumnos). Solo tier PRO (`insights`+): vende la analítica estratégica como conversación, no como dashboard que hay que interpretar.
+
 **Publicidad segmentada a bailarines (nueva línea de ingreso)**: academias PRO y productores Pro Growth/Scale pueden promocionar talleres/eventos a dancers por canal notificación in-app, con guardrails duros: **frecuencia cap** (máx. 1 push promocional/semana por persona), targeting por agregados (nivel/ciudad/estilo; nunca data individual al anunciante, cumple la regla de privacidad de scores), opt-out por usuario, y la regla de pista (~5s) se mantiene; el push es glanceable, el detalle vive en el centro. Cola de aprobación admin en v1 para cuidar el tono.
 
 **Contexto competitivo (evaluado oct-2026, decisión: no competir en precio)**:
