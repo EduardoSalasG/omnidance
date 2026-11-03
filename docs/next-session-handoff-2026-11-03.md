@@ -1,8 +1,16 @@
 # Handoff 2026-11-03 - Inicio academia (dashboard owner)
 
-## Estado
+## Estado (cierre de sesión, ~17:00)
 
-Branch `dev`. API :4000 y web :3000 corriendo (`pnpm dev` por lado). Login demo: `gabriel@omnidance.dev` / `omnidance123`; lente academy owner via `localStorage["omnidance:active-role"]="ACADEMY_OWNER"`.
+Branch `dev`, tree limpio. API :4000 y web :3000 corriendo (`pnpm dev` por lado) en modo **Flow real** (`PAYMENT_GATEWAY=flow` del `.env` raíz - así trabaja el owner). Login demo: `gabriel@omnidance.dev` / `omnidance123`; lente academy owner via `localStorage["omnidance:active-role"]="ACADEMY_OWNER"`.
+
+Commits de esta sesión (3, todos en dev, sin push):
+
+- `1f9def5e` feat(academies): un nivel por tipo + reset a línea global de niveles (change `2026-11-03-academia-gaps-cierre` archivado con specs aplicadas).
+- `d65e4f00` docs(handoff): gaps de academia cerrados + hallazgos env flow.
+- `98c4b5d6` fix(academies): levels del alumno viajan en `students/:personId`.
+
+Verificación con evidencia: `pnpm typecheck` verde (3 proyectos), `pnpm test` 2440 verdes (api 2415 + web 5 + shared 20), `pnpm lint` 0 errores (99 warnings pre-existentes), `pnpm test:e2e` **16/16**, `openspec validate --changes` verde.
 
 ## Hecho esta sesión
 
@@ -42,3 +50,9 @@ Hallazgos de la sesión:
 - **Test e2e eliminado**: `smoke.spec.ts` "dancer: checkout ticket (stub)" dependía de `stub://` - con Flow real nunca aparece el botón "simular aprobado". Cobertura del ciclo de pago sigue en `apps/api/test/checkout.e2e.spec.ts` (mocks, no live).
 - **Gap del editor de niveles cerrado**: `students/:personId` seleccionaba `levels` pero el map de respuesta los descartaba → el editor abría sin marca. Fix: `levels` agregado al map (test `studentDetail - niveles vigentes`).
 - Insight byType sigue contando por fila `EnrollmentLevel` (alumno con filas legacy multi del mismo tipo cuenta en cada nivel).
+
+## Próximos candidatos (al abrir sesión)
+
+- **OpenSpec activo `multipais-foundation`** (diseño, 10/13): pendientes tasks 10 (pases multi-día / packs cross-academia), 11 (prácticas/socials free por ciudad), 13 (congresos/festivales multi-día). Cada uno entra por change separado que referencia el contrato.
+- Idea registrada: asistente IA de academia (módulo Analítica, solo tier PRO).
+- Release pendiente: los 3 commits de dev aún no están en main; gitflow dev→main→`release: X.Y.Z`→tag cuando se quiera deployar.
