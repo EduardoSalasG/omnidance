@@ -277,18 +277,6 @@ export function AcademyDashboard({
                     : t("homeMode.expiringDone")
                 }
               />
-              {levelInsights.data && (
-                <MiniKpi
-                  href="/academia/alumnos"
-                  title={t("levels.unassignedTitle")}
-                  count={unassignedTotal}
-                  hint={
-                    unassignedTotal > 0
-                      ? unassignedBreakdown
-                      : t("homeMode.unassignedDone")
-                  }
-                />
-              )}
             </ul>
           )}
         </section>
@@ -391,6 +379,18 @@ export function AcademyDashboard({
                   dashboard.pendingLessons.count > 0
                     ? t("homeMode.lessonsHint")
                     : t("homeMode.lessonsDone")
+                }
+              />
+            )}
+            {levelInsights.data && (
+              <MiniKpi
+                href="/academia/alumnos"
+                title={t("levels.unassignedTitle")}
+                count={unassignedTotal}
+                hint={
+                  unassignedTotal > 0
+                    ? unassignedBreakdown
+                    : t("homeMode.unassignedDone")
                 }
               />
             )}
