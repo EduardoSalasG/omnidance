@@ -598,6 +598,13 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           academyFeature: "classes",
         },
         {
+          href: "/academia/niveles",
+          ns: "academy",
+          key: "modules.levels",
+          icon: ICONS.dances,
+          academyFeature: "classes",
+        },
+        {
           href: "/academia/particulares",
           ns: "academy",
           key: "modules.lessons",
