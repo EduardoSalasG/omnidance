@@ -46,7 +46,7 @@
       "allStyles": "Todos",
       "levelFilterLabel": "Nivel",
       "allLevels": "Todos",
-      "typeFilterLabel": "Tipo de clase",
+      "typeFilterLabel": "Tipo",
       "allTypes": "Todos",
       "empty": "Aún no hay horarios ni niveles cargados. Asigna el nivel de cada alumno desde su ficha.",
       "assignedOf": "{assigned}/{capacity} alumnos",
