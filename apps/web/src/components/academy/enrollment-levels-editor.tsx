@@ -72,12 +72,13 @@ export function EnrollmentLevelsEditor({
     void load();
   }, [load]);
 
+  // Un solo nivel por tipo (spec: el alumno no acumula niveles del
+  // mismo tipo - evita conteos duplicados en "Niveles y cupos").
+  // Clic en el marcado lo desmarca → sin nivel en ese tipo.
   function toggle(typeId: string, levelId: string) {
     setSelected((prev) => {
       const cur = prev[typeId] ?? [];
-      const next = cur.includes(levelId)
-        ? cur.filter((id) => id !== levelId)
-        : [...cur, levelId];
+      const next = cur.includes(levelId) ? [] : [levelId];
       return { ...prev, [typeId]: next };
     });
   }

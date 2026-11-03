@@ -158,7 +158,7 @@ export function AcademyLevelsCard({
   // con un tipo filtrado la semana usa solo sus días y las cards
   // ganan ancho.
   const weekDays = WEEK_ORDER.filter((d) =>
-    visibleSlots.some((s) => s.weekday === d),
+    data.bySlot.some((s) => s.weekday === d),
   );
 
   return (
@@ -235,7 +235,7 @@ export function AcademyLevelsCard({
           <div className="flex flex-col gap-1.5">
             {/* Alumnos por nivel como KPIs limpios: número grande en
                 primer plano, nombre del nivel como label. */}
-            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <ul className="grid grid-cols-2 gap-2 sm:grid-flow-col sm:auto-cols-fr">
               {visibleLevels.map((l) => (
                 <li key={l.key}>
                   <Card className="flex h-full flex-col gap-0.5 px-3 py-2.5">

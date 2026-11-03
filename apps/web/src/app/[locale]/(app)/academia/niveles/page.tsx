@@ -50,7 +50,7 @@ function LevelsModule({ academyId }: { academyId: string }) {
 
   const load = useCallback(async () => {
     const res = await apiFetch(`/academies/${academyId}/class-levels`);
-    setData(res as LevelsResp);
+    setData((await res.json()) as LevelsResp);
   }, [academyId]);
 
   useEffect(() => {
@@ -84,7 +84,7 @@ function LevelsModule({ academyId }: { academyId: string }) {
       setNotice({ text: t("levelsConfig.personalized") });
     });
 
-  if (!data) return <SkeletonList rows={4} />;
+  if (!data) return <SkeletonList />;
 
   const levels = data.usingGlobal ? [] : data.custom;
 
@@ -92,8 +92,7 @@ function LevelsModule({ academyId }: { academyId: string }) {
     <div className="flex flex-col gap-4">
       {notice ? (
         <ActionNotice
-          text={notice.text}
-          error={notice.error}
+          notice={notice}
           onDismiss={() => setNotice(null)}
         />
       ) : null}
