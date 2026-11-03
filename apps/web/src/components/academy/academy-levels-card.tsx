@@ -754,7 +754,7 @@ export function MetricsGrid({
   const partner = s.types.some((x) => /pareja/i.test(x.typeName));
   return (
     <div
-      className={`grid flex-1 grid-cols-3 content-center gap-1${
+      className={`grid grid-cols-3 gap-1 sm:flex-1 sm:content-end${
         divided ? " mt-1 border-t border-line/50 pt-1" : ""
       }`}
     >
