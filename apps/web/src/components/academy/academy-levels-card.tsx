@@ -6,10 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { academyTierHas } from "@/lib/academy-features";
 import {
   Badge,
-  CalendarIcon,
   Card,
-  ClockIcon,
-  SigmaIcon,
   type BadgeVariant,
 } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
@@ -701,9 +698,7 @@ function MetricCell({
   female,
   partner,
 }: {
-  /** Nombre de la métrica (accesible: title + sr-only). */
   label: string;
-  icon: React.ReactNode;
   value: string | number;
   male: number | null;
   female: number | null;
@@ -714,10 +709,9 @@ function MetricCell({
       className="flex flex-col items-center gap-0.5 text-center tabular-nums"
       title={label}
     >
-      <span className="text-ink/50" aria-hidden="true">
-        {icon}
+      <span className="text-[11px] font-medium uppercase tracking-wide text-ink/60">
+        {label}
       </span>
-      <span className="sr-only">{label}</span>
       <span className="text-[13px] font-bold">{value}</span>
       <GenderBar m={male} f={female} partner={partner} />
     </div>
@@ -739,7 +733,6 @@ function MetricsGrid({
     <div className="mt-1.5 grid grid-cols-3 gap-1">
       <MetricCell
         label={t("levels.lastShort")}
-        icon={<ClockIcon className="h-3.5 w-3.5" />}
         value={s.lastClassAttendance ?? "—"}
         male={s.lastMale}
         female={s.lastFemale}
@@ -747,7 +740,6 @@ function MetricsGrid({
       />
       <MetricCell
         label={t("levels.avgShort")}
-        icon={<SigmaIcon className="h-3.5 w-3.5" />}
         value={s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"}
         male={s.avgMale}
         female={s.avgFemale}
@@ -755,7 +747,6 @@ function MetricsGrid({
       />
       <MetricCell
         label={t("levels.nextShort")}
-        icon={<CalendarIcon className="h-3.5 w-3.5" />}
         value={s.nextBooked ?? "—"}
         male={s.nextMale}
         female={s.nextFemale}
