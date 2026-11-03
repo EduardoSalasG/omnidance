@@ -221,6 +221,8 @@ export type AcademyLevelInsights = {
     nextMale: number | null;
     nextFemale: number | null;
     nextDate: string | null;
+    // Clase futura puntual para el drill-down (/academia/clases/[id]).
+    nextClassId: string | null;
     // Negativo = sobrecupo (más asignables que cupos).
     empty: number;
     avgAttendance: number | null;

@@ -168,7 +168,11 @@ export function AcademyLevelsCard({
           <div className="flex items-center justify-between gap-3 px-4 py-4">
             <p className="text-sm text-ink/60">{t("levels.empty")}</p>
             <Link
-              href="/academia/alumnos"
+              href={
+          s.nextClassId
+            ? `/academia/clases/${s.nextClassId}`
+            : "/academia/alumnos"
+        }
               className="inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 text-sm font-semibold text-neon transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
               {t("levels.unassignedCta")}
@@ -594,7 +598,11 @@ function MobileSlotRow({
       </p>
       <Card className="min-w-0 flex-1 px-3 py-2">
         <Link
-          href="/academia/alumnos"
+          href={
+          s.nextClassId
+            ? `/academia/clases/${s.nextClassId}`
+            : "/academia/alumnos"
+        }
           className="block"
           aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
         >
@@ -636,7 +644,11 @@ function SlotCard({
       className="flex h-full w-fit min-w-0 max-w-full flex-col gap-1.5 overflow-hidden px-2.5 py-2"
     >
       <Link
-        href="/academia/alumnos"
+        href={
+          s.nextClassId
+            ? `/academia/clases/${s.nextClassId}`
+            : "/academia/alumnos"
+        }
         className="contents"
         aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
       >
