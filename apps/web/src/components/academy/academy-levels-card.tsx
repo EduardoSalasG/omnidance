@@ -329,7 +329,7 @@ function WeekCalendar({
   // una clase 19:30-20:30 arranca a media fila de las 19 y termina a
   // media fila de las 20. Clases traslapadas en un día se reparten
   // la columna en carriles (lanes) lado a lado.
-  const ROW_H = 72; // px por cada 30min (1h ≈ 148px: la card se lee completa)
+  const ROW_H = 80; // px por cada 30min (1h ≈ 148px: la card se lee completa)
   const today = new Date().getDay();
   const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
   const floor30 = (m: number) => m - (m % 30);
@@ -474,7 +474,7 @@ function WeekCalendar({
                         <SlotCard
                           slot={s}
                           numFmt={numFmt}
-                          compact={height < 110}
+                          compact={height < 120}
                           levelNum={s.levelId ? levelNum.get(s.levelId) : undefined}
                         />
                       </div>
@@ -729,7 +729,7 @@ function MetricsGrid({
   // El desbalance de género solo es accionable en clases de pareja.
   const partner = s.types.some((x) => /pareja/i.test(x.typeName));
   return (
-    <div className="mt-1.5 grid grid-cols-3 gap-1">
+    <div className="mt-1 grid grid-cols-3 gap-1 border-t border-line/50 pt-1">
       <MetricCell
         label={t("levels.lastShort")}
         value={s.lastClassAttendance ?? "—"}
