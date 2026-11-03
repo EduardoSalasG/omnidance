@@ -254,23 +254,32 @@ function makeInsightsPrisma() {
     enrollmentLevel: {
       findMany: vi.fn().mockResolvedValue([
         // e-1: Iniciación Pareja → cuenta en slot-1 y en byType Pareja/Ini.
-        { enrollmentId: "e-1", classTypeId: "ct-pareja", levelId: "lv-ini" },
+        { enrollmentId: "e-1", classTypeId: "ct-pareja", levelId: "lv-ini", enrollment: { personId: "p-1" } },
         // e-1 multinivel: también Básico Pareja.
-        { enrollmentId: "e-1", classTypeId: "ct-pareja", levelId: "lv-bas" },
+        { enrollmentId: "e-1", classTypeId: "ct-pareja", levelId: "lv-bas", enrollment: { personId: "p-1" } },
         // e-2: Básico Shines → cuenta en slot-2.
-        { enrollmentId: "e-2", classTypeId: "ct-shines", levelId: "lv-bas" },
+        { enrollmentId: "e-2", classTypeId: "ct-shines", levelId: "lv-bas", enrollment: { personId: "p-2" } },
         // e-3: Básico Pareja → NO matchea slot-1 (nivel distinto).
-        { enrollmentId: "e-3", classTypeId: "ct-pareja", levelId: "lv-bas" },
+        { enrollmentId: "e-3", classTypeId: "ct-pareja", levelId: "lv-bas", enrollment: { personId: "p-3" } },
       ]),
     },
     enrollment: {
       count: vi.fn().mockResolvedValue(4), // 4 alumnos ACTIVE
     },
+    person: {
+      findMany: vi.fn().mockResolvedValue([
+        { id: 'p-1', gender: 'M' },
+        { id: 'p-2', gender: 'F' },
+        { id: 'p-3', gender: 'M' },
+        { id: 'p-4', gender: 'F' },
+        { id: 'p-5', gender: 'M' },
+      ]),
+    },
     class: {
       findMany: vi.fn().mockResolvedValue([
         // ya ordenadas desc: dos clases recientes de slot-1.
-        { classSlotId: "slot-1", _count: { attendances: 3 } },
-        { classSlotId: "slot-1", _count: { attendances: 5 } },
+        { classSlotId: "slot-1", attendances: [{ personId: "p-1" }, { personId: "p-2" }, { personId: "p-3" }], bookings: [{ personId: "p-1" }, { personId: "p-2" }] },
+        { classSlotId: "slot-1", attendances: [{ personId: "p-1" }, { personId: "p-2" }, { personId: "p-3" }, { personId: "p-4" }, { personId: "p-5" }], bookings: [{ personId: "p-3" }] },
       ]),
     },
   };
@@ -388,6 +397,7 @@ describe("AcademiesController.levelInsights", () => {
         enrollmentId,
         classTypeId: "ct-pareja",
         levelId: "lv-ini",
+        enrollment: { personId: enrollmentId.replace("e", "p") },
       })),
     );
     prisma.enrollment.count.mockResolvedValue(5);
