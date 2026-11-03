@@ -10,7 +10,7 @@ import { AcademyProfile } from "@/components/academy/academy-profile";
  */
 export default function ConfigPerfilPage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-4xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
       <AcademyGate>
         {({ academy }) => (
           <AcademyProfile key={academy.id} academy={academy} />

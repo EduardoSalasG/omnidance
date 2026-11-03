@@ -97,7 +97,7 @@ function Panel({ academyId, classId }: { academyId: string; classId: string }) {
   }, [load]);
 
   const mainCls =
-    "mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8";
+    "mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4";
 
   if (error) {
     return (

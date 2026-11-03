@@ -195,7 +195,7 @@ export default function ProducerEventDetailPage(
     isOwnEvent && !producerEnt.loading && !producerEnt.has("analytics");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-4xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/productor/eventos" backLabel={t("myEvents")} />
 
       {gate === "loading" && (

@@ -136,7 +136,7 @@ export default function ProducerPayoutsPage() {
   }, [listNonce, filters, page]);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-5xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/inicio" backLabel={tn("home")} />
 
       {gate === "ready" && (

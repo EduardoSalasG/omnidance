@@ -24,7 +24,7 @@ export default function PlanDetailPage() {
   const params = useParams<{ id: string }>();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-3xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/academia/planes" backLabel={t("plans")} />
       <AcademyGate>
         {({ academy }) => (

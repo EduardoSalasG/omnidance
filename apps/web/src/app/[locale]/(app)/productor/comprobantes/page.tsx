@@ -21,7 +21,7 @@ export default function ProducerClaimsPage() {
   const tt = useTranslations("tours.productorCobros");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-5xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/inicio" backLabel={tn("home")} />
       <ProducerGate>
         <ProducerClaimsQueue />

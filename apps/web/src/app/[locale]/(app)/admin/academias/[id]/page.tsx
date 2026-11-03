@@ -155,7 +155,7 @@ function DetailPanel({ id }: { id: string }) {
 
   if (error) {
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-ink/60">
             {t("academies.error")}
@@ -169,7 +169,7 @@ function DetailPanel({ id }: { id: string }) {
   }
   if (!d)
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
         <SkeletonList items={3} lines={2} />
       </main>
     );
@@ -236,7 +236,7 @@ function DetailPanel({ id }: { id: string }) {
   ).filter((r) => r[1] != null && r[1] !== "");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/admin/academias" backLabel={t("academies.back")} />
 
       {/* Header: nombre + estado */}

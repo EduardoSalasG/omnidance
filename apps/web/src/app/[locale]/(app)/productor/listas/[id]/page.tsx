@@ -292,7 +292,7 @@ function GuestListDetail() {
 
 export default function GuestListDetailPage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-3xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-none lg:px-4">
       <ProducerGate>
         <GuestListDetail />
       </ProducerGate>
