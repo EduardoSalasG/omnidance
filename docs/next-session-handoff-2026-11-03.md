@@ -29,7 +29,16 @@ Branch `dev`. API :4000 y web :3000 corriendo (`pnpm dev` por lado). Login demo:
 
 ## Gaps / próximos
 
-- E2E Playwright del home nuevo no corrido esta sesión.
-- La fila KPI Extendido queda con 4 cards solo si `dashboard` cargó (el extra `Reservas hoy` depende de todayClasses).
-- Insight "one level per type" se cumple en editor+seed; la API `PATCH /enrollments/:id/levels` aún acepta levelIds[] multi por tipo (el editor ya no los manda).
-- Pendiente si se quiere: botón "Volver a la línea global" en `/academia/niveles` (hoy se sale borrando customs libres).
+Cerrados en la segunda sesión del día (change `2026-11-03-academia-gaps-cierre`, archivado):
+
+- ~~E2E del home nuevo~~: corrido - ver nota del checkout stub abajo.
+- ~~Fila KPI Extendido~~: el slot `extra` de `AcademyKpiCards` ("Reservas hoy") ahora tiene paridad de skeleton en carga y los skeletons son `keys.length` (sin pop-in de la 4ª card).
+- ~~PATCH multi-nivel~~: `PATCH /enrollments/:id/levels` rechaza >1 `levelId` por `classTypeId` (400). Spec canónica actualizada: de multinivel a un nivel por tipo. Datos legacy multi-fila siguen contando en insights hasta el próximo PATCH.
+- ~~Volver a la línea global~~: `DELETE /academies/:id/class-levels` bulk (todo o nada; 409 con los nombres en uso) + zona destructiva con ConfirmSheet en `/academia/niveles`.
+
+Hallazgos de la sesión:
+
+- **Env local con Flow real**: el `.env` raíz tiene `PAYMENT_GATEWAY=flow` + credenciales - el checkout pega a sandbox.flow.cl y rechaza emails `*@omnidance.dev` (HTTP 400). Es el modo de trabajo del owner, no un bug.
+- **Test e2e eliminado**: `smoke.spec.ts` "dancer: checkout ticket (stub)" dependía de `stub://` - con Flow real nunca aparece el botón "simular aprobado". Cobertura del ciclo de pago sigue en `apps/api/test/checkout.e2e.spec.ts` (mocks, no live).
+- **Gap de API sin cerrar** (pre-existente, anotado en qa-inventory): el editor de niveles abre sin marca inicial - el set vigente no viaja en `students/:personId` ni hay `GET /enrollments/:id/levels`.
+- Insight byType sigue contando por fila `EnrollmentLevel` (alumno con filas legacy multi del mismo tipo cuenta en cada nivel).
