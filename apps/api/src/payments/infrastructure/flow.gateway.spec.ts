@@ -561,6 +561,33 @@ describe("FlowGateway", () => {
         expect(out.invoices?.[0].amount).toBe(0);
         expect(out.invoices?.[1].amount).toBe(0);
       });
+
+      // next_attemp_date de Flow: fecha del próximo reintento o null
+      // cuando el motor ya no reintenta - es la llave de la
+      // elegibilidad del collect on-demand (spec overdue-invoice-collect).
+      it("invoice.next_attemp_date → nextAttemptDate (null = sin retry)", async () => {
+        mockFetch(
+          sub({
+            status: 1,
+            invoices: [
+              {
+                id: 1,
+                status: 0,
+                amount: 100,
+                next_attemp_date: "2026-11-05 00:00:00",
+              },
+              { id: 2, status: 0, amount: 100, next_attemp_date: null },
+              { id: 3, status: 0, amount: 100 },
+            ],
+          }),
+        );
+        const out = await makeGateway().getSubscription("x");
+        expect(out.invoices?.map((i) => i.nextAttemptDate)).toEqual([
+          "2026-11-05 00:00:00",
+          null,
+          undefined,
+        ]);
+      });
     });
 
     it("cancelSubscription → at_period_end=1", async () => {
@@ -578,6 +605,127 @@ describe("FlowGateway", () => {
           at_period_end: "1",
         }),
       );
+    });
+
+    // customer/collect - cargo on-demand a la tarjeta registrada del
+    // customer (spec overdue-invoice-collect): type=1 cobro sincrónico,
+    // type=2 link de pago, type=3 cobro por email. paymenResult (sin
+    // 't') es el PaymentStatus del cobro cuando type=1.
+    describe("collect (customer/collect)", () => {
+      const collectInput = {
+        customerId: "cus_1",
+        amount: 1223898,
+        subject: "Renovación suscripción",
+        commerceOrder: "platsub_sub1_600",
+        returnUrl: "http://api.test/api/payments/order-return",
+      };
+      const signedCollect = {
+        apiKey: KEY,
+        customerId: "cus_1",
+        amount: "1223898",
+        subject: "Renovación suscripción",
+        commerceOrder: "platsub_sub1_600",
+        urlConfirmation: CONFIRM,
+        urlReturn: "http://api.test/api/payments/order-return",
+      };
+
+      it("POST customer/collect urlencoded con params firmados", async () => {
+        const spy = mockFetch({
+          type: 1,
+          commerceOrder: "platsub_sub1_600",
+          flowOrder: 7788,
+          status: 1,
+          paymenResult: { status: 2 },
+        });
+        await makeGateway().collect(collectInput);
+        const [url, init] = spy.mock.calls[0] as [string, RequestInit];
+        expect(url).toBe(`${BASE}/customer/collect`);
+        expect(init.method).toBe("POST");
+        const body = init.body as URLSearchParams;
+        for (const [k, v] of Object.entries(signedCollect)) {
+          expect(body.get(k)).toBe(v);
+        }
+        expect(body.get("s")).toBe(expectedSignature(signedCollect));
+      });
+
+      it("type=1 con paymenResult pagado → COLLECTED + flowOrder + gatewayData", async () => {
+        mockFetch({
+          type: 1,
+          commerceOrder: "platsub_sub1_600",
+          flowOrder: 7788,
+          status: 1,
+          paymenResult: {
+            status: 2,
+            paymentData: {
+              amount: 1223898,
+              fee: 38000,
+              media: "Webpay",
+              transferDate: "2026-11-03",
+            },
+          },
+        });
+        const out = await makeGateway().collect(collectInput);
+        expect(out).toEqual({
+          outcome: "COLLECTED",
+          flowOrder: "7788",
+          paymentUrl: undefined,
+          gatewayData: {
+            amount: 1223898,
+            fee: 38000,
+            media: "Webpay",
+            transferDate: "2026-11-03",
+          },
+        });
+      });
+
+      it.each([3, 4])(
+        "type=1 con paymenResult.status %i → FAILED",
+        async (status) => {
+          mockFetch({
+            type: 1,
+            flowOrder: 7788,
+            status: 0,
+            paymenResult: { status, paymentData: { media: "Webpay" } },
+          });
+          const out = await makeGateway().collect(collectInput);
+          expect(out.outcome).toBe("FAILED");
+          expect(out.flowOrder).toBe("7788");
+        },
+      );
+
+      it.each([2, 3])(
+        "type %i (sin tarjeta → link/email) → PENDING + paymentUrl = url?token=",
+        async (type) => {
+          mockFetch({
+            type,
+            flowOrder: 7788,
+            status: 0,
+            url: "https://sandbox.flow.cl/app/pago.php",
+            token: "tokC",
+          });
+          const out = await makeGateway().collect(collectInput);
+          expect(out).toEqual({
+            outcome: "PENDING",
+            flowOrder: "7788",
+            paymentUrl: "https://sandbox.flow.cl/app/pago.php?token=tokC",
+            gatewayData: undefined,
+          });
+        },
+      );
+
+      it("type=1 sin paymenResult → PENDING (el webhook/polling lo resuelve)", async () => {
+        mockFetch({ type: 1, flowOrder: 7788, status: 0 });
+        const out = await makeGateway().collect(collectInput);
+        expect(out.outcome).toBe("PENDING");
+        expect(out.flowOrder).toBe("7788");
+      });
+
+      it("error HTTP propaga (auditoría queda en onTx)", async () => {
+        mockFetch({ code: 108, message: "customer inválido" }, false, 400);
+        await expect(
+          makeGateway().collect(collectInput),
+        ).rejects.toThrow("flow customer/collect HTTP 400");
+      });
     });
 
     it("correlationId de opts propaga a la auditoría de call()", async () => {

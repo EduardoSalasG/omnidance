@@ -289,6 +289,11 @@ function mkPrisma() {
           return p;
         },
       ),
+      delete: vi.fn(async ({ where }: { where: { id: string } }) => {
+        payments.delete(where.id);
+        return {};
+      }),
+      deleteMany: vi.fn(async () => ({ count: 0 })),
       // claim atómico del settle (updateMany id + status/{not}).
       updateMany: vi.fn(
         async ({
@@ -334,6 +339,15 @@ function mkPrisma() {
         events.push(stored);
         return stored;
       }),
+      deleteMany: vi.fn(
+        async ({ where }: { where: { paymentId: string } }) => {
+          const before = events.length;
+          for (let i = events.length - 1; i >= 0; i--) {
+            if (events[i].paymentId === where.paymentId) events.splice(i, 1);
+          }
+          return { count: before - events.length };
+        },
+      ),
     },
     enrollment: {
       findFirst: vi.fn(
@@ -490,6 +504,18 @@ function mkFlow() {
     ),
     cancelSubscription: vi.fn(
       async (_subscriptionId: string, _opts?: Opts) => undefined,
+    ),
+    collect: vi.fn(
+      async (p: { amount: number }, _opts?: Opts) => ({
+        outcome: "COLLECTED" as const,
+        flowOrder: "fo-stub",
+        gatewayData: {
+          amount: p.amount,
+          fee: 0,
+          media: "STUB_TEST",
+          transferDate: "2026-11-03",
+        },
+      }),
     ),
   };
   return flow;
@@ -1357,6 +1383,7 @@ describe("SubscriptionsService", () => {
     it("morose con invoice impaga → renewal_failed + enrollment intacto + sub sigue ACTIVE", async () => {
       const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
       fx.subs.push(sub);
+      flow.collect.mockRejectedValue(new Error("flow 500"));
       await svc.reconcileSubscription(sub, {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
@@ -1385,6 +1412,65 @@ describe("SubscriptionsService", () => {
       expect(fx.payments.size).toBe(0);
     });
 
+    it("collect COLLECTED → Payment PAID + renewal_failed NO sale (spec overdue-invoice-collect)", async () => {
+      const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
+      fx.subs.push(sub);
+      fx.persons.set("p1", {
+        id: "p1",
+        email: "p1@x.cl",
+        flowCustomerId: "cus_p1",
+        gatewayCustomerIds: null,
+      });
+      await svc.reconcileSubscription(sub, {
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: "ACTIVE",
+        morose: true,
+        cancelAtPeriodEnd: false,
+        invoices: [
+          { id: 55, amount: 10500, paid: false, nextAttemptDate: null },
+        ],
+      } as never);
+      expect(flow.collect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customerId: "cus_p1",
+          amount: 10500,
+          commerceOrder: `mem_${sub.planId}_55`,
+        }),
+        expect.anything(),
+      );
+      const pay = [...fx.payments.values()].find(
+        (p) => p.refId === `mem_${sub.planId}_55`,
+      )!;
+      expect(pay.status).toBe("PAID");
+      expect(
+        notifications.notifySafe.mock.calls.filter(
+          ([, i]) => i.type === "membership.renewal_failed",
+        ),
+      ).toHaveLength(0);
+    });
+
+    it("invoice impaga con nextAttemptDate futura → NO colecta", async () => {
+      const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
+      fx.subs.push(sub);
+      await svc.reconcileSubscription(sub, {
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        invoices: [
+          {
+            id: 55,
+            amount: 10500,
+            paid: false,
+            nextAttemptDate: "2026-11-10 00:00:00",
+          },
+        ],
+      } as never);
+      expect(flow.collect).not.toHaveBeenCalled();
+    });
+
     it("morose dedup: segunda pasada con la misma invoice impaga → no re-notifica", async () => {
       const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
       fx.subs.push(sub);
@@ -1396,6 +1482,7 @@ describe("SubscriptionsService", () => {
         cancelAtPeriodEnd: false,
         invoices: [{ id: 55, amount: 10500, paid: false }],
       };
+      flow.collect.mockRejectedValue(new Error("flow 500"));
       await svc.reconcileSubscription(sub, fs as never);
       await svc.reconcileSubscription(sub, fs as never);
       const failed = notifications.notifySafe.mock.calls.filter(
@@ -1430,6 +1517,7 @@ describe("SubscriptionsService", () => {
         status: "PAID",
         createdAt: new Date(),
       });
+      flow.collect.mockRejectedValue(new Error("flow 500"));
       await svc.reconcileSubscription(sub, {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
@@ -1523,6 +1611,7 @@ describe("SubscriptionsService", () => {
         createdAt: new Date(Date.now() - 30 * 24 * 60 * 60_000),
       });
 
+      flow.collect.mockRejectedValue(new Error("flow 500"));
       const claimed = await svc.handleBillingEvent(
         billing("invoice.payment_failed", {
           invoice: inv("in_200", false),
@@ -1697,6 +1786,7 @@ describe("SubscriptionsService", () => {
         cancelAtPeriodEnd: false,
         invoices: [{ id: 55, amount: 10500, paid: false }],
       });
+      flow.collect.mockRejectedValue(new Error("flow 500"));
       const r = await svc.reconcileAll("cron");
       expect(r).toEqual({ checked: 1, settled: 0 });
       expect(notifications.notifySafe).toHaveBeenCalledWith(

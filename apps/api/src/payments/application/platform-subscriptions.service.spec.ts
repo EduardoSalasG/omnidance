@@ -410,6 +410,11 @@ function mkPrisma() {
           return { count: 1 };
         },
       ),
+      delete: vi.fn(async ({ where }: { where: { id: string } }) => {
+        payments.delete(where.id);
+        return {};
+      }),
+      deleteMany: vi.fn(async () => ({ count: 0 })),
     },
     paymentEvent: {
       findFirst: vi.fn(async ({ where }: { where: { paymentId: string } }) =>
@@ -422,6 +427,15 @@ function mkPrisma() {
         events.push(stored);
         return stored;
       }),
+      deleteMany: vi.fn(
+        async ({ where }: { where: { paymentId: string } }) => {
+          const before = events.length;
+          for (let i = events.length - 1; i >= 0; i--) {
+            if (events[i].paymentId === where.paymentId) events.splice(i, 1);
+          }
+          return { count: before - events.length };
+        },
+      ),
     },
     notification: {
       findFirst: vi.fn(async ({ where }: { where: Row }) => {
@@ -518,6 +532,26 @@ function mkFlow() {
     ),
     cancelSubscription: vi.fn(
       async (_subscriptionId: string, _opts?: Opts) => undefined,
+    ),
+    collect: vi.fn(
+      async (
+        p: { customerId: string; amount: number; commerceOrder: string },
+        _opts?: Opts,
+      ): Promise<{
+        outcome: "COLLECTED" | "PENDING" | "FAILED";
+        flowOrder?: string;
+        paymentUrl?: string;
+        gatewayData?: unknown;
+      }> => ({
+        outcome: "COLLECTED" as const,
+        flowOrder: `fo-${++subSeq}`,
+        gatewayData: {
+          amount: p.amount,
+          fee: 0,
+          media: "STUB_TEST",
+          transferDate: "2026-11-03",
+        },
+      }),
     ),
   };
   return flow;
@@ -1223,6 +1257,9 @@ describe("PlatformSubscriptionsService", () => {
         createdAt: new Date(Date.now() - 30 * DAY),
       });
       const before = Date.now();
+      // El collect corre antes de la mora - error de API libera el
+      // claim y deja el camino de gracia intacto (overdue-invoice-collect).
+      flow.collect.mockRejectedValue(new Error("flow 500"));
       const fs = mkFlowSub({
         morose: true,
         invoices: [{ id: 600, amount: 19990, paid: false }],
@@ -1265,6 +1302,7 @@ describe("PlatformSubscriptionsService", () => {
         morose: true,
         invoices: [{ id: 600, amount: 19990, paid: false }],
       });
+      flow.collect.mockRejectedValue(new Error("flow 500"));
       await svc.reconcileSubscription(sub, fs);
       const grace = fx.academies.get("ac1")!.billingGraceUntil as Date;
       await svc.reconcileSubscription(sub, fs);
@@ -1277,6 +1315,221 @@ describe("PlatformSubscriptionsService", () => {
       );
       // La gracia NO se extiende en el segundo barrido
       expect(fx.academies.get("ac1")!.billingGraceUntil).toBe(grace);
+    });
+
+    // Collect on-demand de invoices impagas sin retry agendado (spec
+    // overdue-invoice-collect): el reconcile intenta el cargo a la
+    // tarjeta del payer ANTES de la notificación de mora.
+    describe("collect de invoice impaga", () => {
+      const eligibleInvoice = {
+        id: 600,
+        amount: 19990,
+        paid: false,
+        nextAttemptDate: null,
+      };
+
+      it("COLLECTED → Payment PAID + RENEWAL_SETTLED + NO notif de mora", async () => {
+        const academy = fx.academies.get("ac1")!;
+        const sub = mkPlatSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "fsub-1",
+        });
+        fx.platSubs.push(sub);
+        fx.persons.get("p1")!.flowCustomerId = "cus_p1";
+
+        await svc.reconcileSubscription(
+          sub,
+          mkFlowSub({ morose: true, invoices: [eligibleInvoice] }),
+        );
+
+        expect(flow.collect).toHaveBeenCalledWith(
+          expect.objectContaining({
+            customerId: "cus_p1",
+            amount: 19990,
+            commerceOrder: `platsub_${sub.id}_600`,
+          }),
+          expect.anything(),
+        );
+        const payment = [...fx.payments.values()].find(
+          (p) => p.refId === `platsub_${sub.id}_600`,
+        )!;
+        expect(payment.status).toBe("PAID");
+        expect(payment.amount).toBe(19990);
+        const types = fx.events
+          .filter((e) => e.paymentId === payment.id)
+          .map((e) => e.type);
+        expect(types).toEqual([
+          "ORDER_CREATED",
+          "STATUS_CONFIRMED",
+          "RENEWAL_SETTLED",
+        ]);
+        // Mora resuelta en el mismo barrido: sin gracia ni notificación.
+        expect(academy.billingGraceUntil).toBeNull();
+        expect(
+          fx.sentNotifs.filter((n) => n.type === "academy.billing_grace"),
+        ).toHaveLength(0);
+        expect(sub.lastInvoiceId).toBe("600");
+      });
+
+      it("invoice con nextAttemptDate futura → NO colecta", async () => {
+        const sub = mkPlatSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "fsub-1",
+        });
+        fx.platSubs.push(sub);
+        fx.persons.get("p1")!.flowCustomerId = "cus_p1";
+
+        await svc.reconcileSubscription(
+          sub,
+          mkFlowSub({
+            invoices: [
+              {
+                ...eligibleInvoice,
+                nextAttemptDate: "2026-11-10 00:00:00",
+              },
+            ],
+          }),
+        );
+
+        expect(flow.collect).not.toHaveBeenCalled();
+        expect(
+          [...fx.payments.values()].filter(
+            (p) =>
+              typeof p.refId === "string" && p.refId.includes("_600"),
+          ),
+        ).toHaveLength(0);
+      });
+
+      it("morose + nextAttemptDate undefined (proveedor no reporta) → colecta", async () => {
+        const sub = mkPlatSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "fsub-1",
+        });
+        fx.platSubs.push(sub);
+        fx.persons.get("p1")!.flowCustomerId = "cus_p1";
+        const { nextAttemptDate: _omit, ...noNext } = eligibleInvoice;
+
+        await svc.reconcileSubscription(
+          sub,
+          mkFlowSub({ morose: true, invoices: [noNext] }),
+        );
+
+        expect(flow.collect).toHaveBeenCalled();
+      });
+
+      it("FAILED → Payment FAILED + la mora sigue su curso + no reintenta", async () => {
+        const academy = fx.academies.get("ac1")!;
+        flow.collect.mockResolvedValue({
+          outcome: "FAILED" as const,
+          flowOrder: "fo-x",
+        });
+        const sub = mkPlatSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "fsub-1",
+        });
+        fx.platSubs.push(sub);
+        fx.persons.get("p1")!.flowCustomerId = "cus_p1";
+
+        const fs = mkFlowSub({ morose: true, invoices: [eligibleInvoice] });
+        await svc.reconcileSubscription(sub, fs);
+
+        const payment = [...fx.payments.values()].find(
+          (p) => p.refId === `platsub_${sub.id}_600`,
+        )!;
+        expect(payment.status).toBe("FAILED");
+        // La gracia corre y la notif de mora sale igual.
+        expect(academy.billingGraceUntil).toBeInstanceOf(Date);
+        expect(
+          fx.sentNotifs.filter((n) => n.type === "academy.billing_grace"),
+        ).toHaveLength(1);
+
+        // Segundo barrido: el Payment existente dedup la invoice →
+        // no hay segundo collect.
+        await svc.reconcileSubscription(sub, fs);
+        expect(flow.collect).toHaveBeenCalledTimes(1);
+      });
+
+      it("PENDING (sin tarjeta → link) → Payment PENDING + notif con collectUrl", async () => {
+        flow.collect.mockResolvedValue({
+          outcome: "PENDING" as const,
+          flowOrder: "fo-l",
+          paymentUrl: "https://flow.example/pay?token=t1",
+        });
+        const sub = mkPlatSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "fsub-1",
+        });
+        fx.platSubs.push(sub);
+        fx.persons.get("p1")!.flowCustomerId = "cus_p1";
+
+        await svc.reconcileSubscription(
+          sub,
+          mkFlowSub({ morose: true, invoices: [eligibleInvoice] }),
+        );
+
+        const payment = [...fx.payments.values()].find(
+          (p) => p.refId === `platsub_${sub.id}_600`,
+        )!;
+        expect(payment.status).toBe("PENDING");
+        const notif = fx.sentNotifs.find(
+          (n) => n.type === "academy.billing_grace",
+        )!;
+        expect((notif.data as Row).collectUrl).toBe(
+          "https://flow.example/pay?token=t1",
+        );
+      });
+
+      it("Payment existente con el refId → no colecta (dedup)", async () => {
+        const sub = mkPlatSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "fsub-1",
+        });
+        fx.platSubs.push(sub);
+        fx.persons.get("p1")!.flowCustomerId = "cus_p1";
+        fx.payments.set("pay-prev", {
+          id: "pay-prev",
+          orderType: "PLATFORM_SUB",
+          refId: `platsub_${sub.id}_600`,
+          personId: "p1",
+          amount: 19990,
+          status: "FAILED",
+          createdAt: new Date(),
+        });
+
+        await svc.reconcileSubscription(
+          sub,
+          mkFlowSub({ morose: true, invoices: [eligibleInvoice] }),
+        );
+
+        expect(flow.collect).not.toHaveBeenCalled();
+      });
+
+      it("error de API del collect → sin Payment y corta el loop", async () => {
+        flow.collect.mockRejectedValue(new Error("flow 500"));
+        const sub = mkPlatSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "fsub-1",
+        });
+        fx.platSubs.push(sub);
+        fx.persons.get("p1")!.flowCustomerId = "cus_p1";
+
+        await svc.reconcileSubscription(
+          sub,
+          mkFlowSub({
+            morose: true,
+            invoices: [eligibleInvoice, { ...eligibleInvoice, id: 601 }],
+          }),
+        );
+
+        expect(flow.collect).toHaveBeenCalledTimes(1);
+        expect(
+          [...fx.payments.values()].filter(
+            (p) =>
+              typeof p.refId === "string" &&
+              p.refId.includes(`platsub_${sub.id}_`),
+          ),
+        ).toHaveLength(0);
+      });
     });
 
     it("remoto cancelado + cambio pendiente → swap al plan nuevo (cobra ya)", async () => {
@@ -1473,6 +1726,7 @@ describe("PlatformSubscriptionsService", () => {
         flowSubscriptionId: "fsub-1",
       });
       fx.platSubs.push(sub);
+      flow.collect.mockRejectedValue(new Error("flow 500"));
       await svc.reconcileSubscription(
         sub,
         mkFlowSub({
@@ -1565,6 +1819,10 @@ describe("PlatformSubscriptionsService", () => {
       });
       const before = Date.now();
 
+      // El collect on-demand corre antes de la mora - un error de API
+      // libera el claim y deja el camino de gracia intacto (spec
+      // overdue-invoice-collect).
+      flow.collect.mockRejectedValue(new Error("flow 500"));
       const claimed = await svc.handleBillingEvent(
         billing("invoice.payment_failed", {
           invoice: inv("in_200", false),
