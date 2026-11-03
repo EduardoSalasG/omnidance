@@ -2226,8 +2226,15 @@ export class AcademiesController {
     // Ventana de ~10 semanas: sobra para las 8 clases recientes de un
     // slot semanal sin barrer todo el historial de la academia.
     const attendanceSince = new Date(todayUTC.getTime() - 70 * 86_400_000);
-    const [types, levels, slots, enrollmentLevels, activeCount, classes] =
-      await Promise.all([
+    const [
+      types,
+      levels,
+      slots,
+      enrollmentLevels,
+      activeCount,
+      classes,
+      futureClasses,
+    ] = await Promise.all([
         this.prisma.classType.findMany({ orderBy: { name: "asc" } }),
         this.prisma.classLevel.findMany({ orderBy: { order: "asc" } }),
         this.prisma.classSlot.findMany({
@@ -2256,6 +2263,9 @@ export class AcademiesController {
             enrollmentId: true,
             classTypeId: true,
             levelId: true,
+            // Solo personId: el género se resuelve con un findMany
+            // aparte (Enrollment no expone la relación person).
+            enrollment: { select: { personId: true } },
           },
         }),
         this.prisma.enrollment.count({
@@ -2271,6 +2281,23 @@ export class AcademiesController {
           select: {
             classSlotId: true,
             _count: { select: { attendances: true } },
+          },
+        }),
+        // Próximas clases de cada slot con sus reservas BOOKED: la
+        // ocupación real de la fecha que viene, no solo la asignación.
+        this.prisma.class.findMany({
+          where: {
+            cancelled: false,
+            date: { gte: todayUTC },
+            slot: { academyId: id },
+          },
+          orderBy: { date: "asc" },
+          select: {
+            classSlotId: true,
+            date: true,
+            _count: {
+              select: { bookings: { where: { status: "BOOKED" } } },
+            },
           },
         }),
       ]);
@@ -2316,6 +2343,35 @@ export class AcademiesController {
       if (!arr) attendanceBySlot.set(c.classSlotId, (arr = []));
       if (arr.length < 8) arr.push(c._count.attendances);
     }
+    // Próxima clase por slot (vienen asc): reservas BOOKED de la fecha
+    // que viene. Solo la primera aparición importa.
+    const nextBySlot = new Map<string, { date: Date; booked: number }>();
+    for (const c of futureClasses) {
+      if (!nextBySlot.has(c.classSlotId)) {
+        nextBySlot.set(c.classSlotId, {
+          date: c.date,
+          booked: c._count.bookings,
+        });
+      }
+    }
+    // Género por enrollment (un nivel puede repetir el enrollment):
+    // enrollment -> personId -> gender, en un solo fetch extra.
+    const personIds = [
+      ...new Set(enrollmentLevels.map((el) => el.enrollment.personId)),
+    ];
+    const persons = personIds.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: personIds } },
+          select: { id: true, gender: true },
+        })
+      : [];
+    const genderByPerson = new Map(persons.map((p) => [p.id, p.gender]));
+    const genderByEnrollment = new Map(
+      enrollmentLevels.map((el) => [
+        el.enrollmentId,
+        genderByPerson.get(el.enrollment.personId),
+      ]),
+    );
 
     const bySlot = slots.map((s) => {
       // Modalidades del horario: slot.types vacío hereda las de la
@@ -2327,7 +2383,7 @@ export class AcademiesController {
       // Alumnos únicos asignables: EnrollmentLevel con type ∈ tipos del
       // slot y level = level de la serie. Serie sin levelId es clase
       // sin nivel: cuenta cualquier level del tipo.
-      const assigned = new Set(
+      const assignedIds = new Set(
         enrollmentLevels
           .filter(
             (el) =>
@@ -2335,7 +2391,17 @@ export class AcademiesController {
               (seriesLevelId == null || el.levelId === seriesLevelId),
           )
           .map((el) => el.enrollmentId),
-      ).size;
+      );
+      // Proporción hombre/mujer de los asignables (agregado por
+      // horario - nunca por persona).
+      let male = 0;
+      let female = 0;
+      for (const eid of assignedIds) {
+        const g = genderByEnrollment.get(eid);
+        if (g === "M") male += 1;
+        else if (g === "F") female += 1;
+      }
+      const assigned = assignedIds.size;
       // Cupos del horario: slot.capacity → series.quorum →
       // academy.defaultQuorum → 20 (effectiveCapacity, cadena sin el
       // escalón Class.capacity que es override por instancia).
@@ -2366,6 +2432,10 @@ export class AcademiesController {
         })),
         capacity,
         assigned,
+        male,
+        female,
+        nextBooked: nextBySlot.get(s.id)?.booked ?? null,
+        nextDate: nextBySlot.get(s.id)?.date ?? null,
         // Negativo = sobrecupo (más asignables que cupos).
         empty: capacity - assigned,
         avgAttendance,

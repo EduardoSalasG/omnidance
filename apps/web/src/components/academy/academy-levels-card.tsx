@@ -435,19 +435,14 @@ function WeekCalendar({
             <section
               key={d}
               aria-label={t(`weekday.${d}`)}
-              className="flex min-w-0 flex-col gap-1.5"
+              className="flex min-w-0 flex-col gap-2 border-t border-line/60 pt-2.5 first:border-t-0 first:pt-0"
             >
-              <h5 className="text-xs font-semibold uppercase tracking-wide text-ink/50">
+              <h5 className="text-sm font-bold uppercase tracking-wide">
                 {t(`weekday.${d}`)}
               </h5>
               <ul className="flex flex-col gap-1.5">
                 {daySlots.map((s) => (
-                  <li key={s.slotId}>
-                    <p className="mb-0.5 pl-1 text-xs font-semibold tabular-nums text-ink/50">
-                      {s.startTime}
-                    </p>
-                    <SlotCard slot={s} numFmt={numFmt} />
-                  </li>
+                  <MobileSlotRow key={s.slotId} slot={s} numFmt={numFmt} />
                 ))}
               </ul>
             </section>
@@ -466,6 +461,72 @@ function WeekCalendar({
  * personas, con el chip de estado del cupo junto al número que lo
  * motiva. Terciario: asistencia reciente en muted.
  */
+type SlotStatus = { variant: BadgeVariant; text: string };
+
+// Estado del cupo → variant semántica del Badge: sobrecupo en rojo
+// (problema), lleno en neon (cupo completo = meta ok), libres en
+// verde (hay espacio para alumnos nuevos).
+function slotStatus(
+  s: AcademyLevelInsights["bySlot"][number],
+  t: ReturnType<typeof useTranslations>,
+): SlotStatus {
+  return {
+    variant: s.empty < 0 ? "live" : s.empty === 0 ? "neon" : "success",
+    text:
+      s.empty < 0
+        ? t("levels.overbooked", { count: -s.empty })
+        : s.empty === 0
+          ? t("levels.full")
+          : t("levels.spotsLeft", { count: s.empty }),
+  };
+}
+
+/** Fila compacta de mobile (rail ui-lists): hora al costado, card con
+    nivel + chip en la fila de título y las métricas en una línea. */
+function MobileSlotRow({
+  slot: s,
+  numFmt,
+}: {
+  slot: AcademyLevelInsights["bySlot"][number];
+  numFmt: Intl.NumberFormat;
+}) {
+  const t = useTranslations("academy");
+  const { variant, text } = slotStatus(s, t);
+  return (
+    <li className="flex gap-2">
+      <p className="w-9 shrink-0 pt-2 text-right text-xs font-semibold tabular-nums text-ink/50">
+        {s.startTime}
+      </p>
+      <Card className="min-w-0 flex-1 px-3 py-2">
+        <div className="flex items-center justify-between gap-2">
+          <Badge
+            variant={s.levelName ? "outline" : "muted"}
+            className="min-w-0 truncate"
+          >
+            {s.levelName ?? t("levels.noLevel")}
+          </Badge>
+          <Badge variant={variant} className="shrink-0">
+            {text}
+          </Badge>
+        </div>
+        <p className="mt-0.5 truncate text-sm font-medium">{s.seriesName}</p>
+        <p className="mt-0.5 text-xs tabular-nums text-ink/60">
+          {t("levels.avgShort")}{" "}
+          {s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"}
+          {" · "}
+          {t("levels.lastShort")} {s.lastClassAttendance ?? "—"}
+          {" · "}
+          {t("levels.nextShort")} {s.nextBooked ?? "—"}
+          <span className="text-ink/40">/{s.capacity}</span>
+        </p>
+        <p className="mt-0.5 text-xs tabular-nums text-ink/50">
+          {t("levels.maleShort")} {s.male} · {t("levels.femaleShort")} {s.female}
+        </p>
+      </Card>
+    </li>
+  );
+}
+
 function SlotCard({
   slot: s,
   numFmt,
@@ -474,17 +535,7 @@ function SlotCard({
   numFmt: Intl.NumberFormat;
 }) {
   const t = useTranslations("academy");
-  // Estado del cupo → variant semántica del Badge: sobrecupo en rojo
-  // (problema), lleno en neon (cupo completo = meta ok), libres en
-  // verde (hay espacio para alumnos nuevos).
-  const statusVariant: BadgeVariant =
-    s.empty < 0 ? "live" : s.empty === 0 ? "neon" : "success";
-  const statusText =
-    s.empty < 0
-      ? t("levels.overbooked", { count: -s.empty })
-      : s.empty === 0
-        ? t("levels.full")
-        : t("levels.spotsLeft", { count: s.empty });
+  const { variant: statusVariant, text: statusText } = slotStatus(s, t);
   return (
     <Card className="flex h-full flex-col gap-1.5 overflow-hidden px-3 py-2.5">
       <Badge
@@ -495,7 +546,7 @@ function SlotCard({
       </Badge>
       <p className="truncate text-sm font-medium">{s.seriesName}</p>
         <div className="tabular-nums">
-          <p className="text-lg font-bold leading-none">
+          <p className="flex items-center gap-1 text-base font-bold leading-tight">
             <span className="sr-only">
               {t("levels.avgOfCapacity", {
                 avg:
@@ -516,13 +567,29 @@ function SlotCard({
           </p>
           <p
             aria-hidden="true"
-            className="mt-1 flex items-center gap-1 text-sm font-semibold text-ink/60"
+            className="mt-0.5 flex items-center gap-1 text-sm font-semibold text-ink/60"
           >
             <span className="text-xs font-normal text-ink/50">
               {t("levels.lastShort")}
             </span>
             {s.lastClassAttendance !== null ? s.lastClassAttendance : "—"}
             <span className="font-normal text-ink/50">/{s.capacity}</span>
+          </p>
+          <p
+            aria-hidden="true"
+            className="mt-0.5 flex items-center gap-1 text-sm font-semibold text-ink/60"
+          >
+            <span className="text-xs font-normal text-ink/50">
+              {t("levels.nextShort")}
+            </span>
+            {s.nextBooked !== null ? s.nextBooked : "—"}
+            <span className="font-normal text-ink/50">/{s.capacity}</span>
+          </p>
+          <p
+            aria-hidden="true"
+            className="mt-0.5 flex items-center gap-1 text-xs font-medium text-ink/50"
+          >
+            {t("levels.maleShort")} {s.male} · {t("levels.femaleShort")} {s.female}
           </p>
         </div>
         <Badge variant={statusVariant} className="max-w-full self-start">

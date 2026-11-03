@@ -51,6 +51,23 @@ salsa · bachata [serie]   │ Preventa     ← label mutada
 - **Mismo componente, contextos distintos**: el slot de acción cambia
   (CTA ↔ statusBadge), el shape no.
 
+## Cardinal rules del artículo (ref: "8 best practices for UI card design", UX Collective)
+
+Lo que no está cubierto por los arquetipos ni por los átomos:
+
+- **Piso tipográfico**: body ≥ `text-sm`; `text-xs`/`text-[11px]` solo
+  para metadata terciaria (footnotes, chips). Headline KPI `text-2xl+`.
+  Máx. 3-4 tamaños por card.
+- **Mismo rail, mismo alto**: las cards de una fila comparten alto
+  (`h-full`); contenido corto → whitespace digno, largo → truncate.
+- **Contenido variable**: probar título largo, dato null → chip neutro,
+  mínimo contenido — los tres casos en el diseño, o se rompe en prod.
+- **Interacción entera o nada**: card clicable = Link completo + hover
+  (Arquetipo B); métrica estática = sin hover (no prometer clic falso).
+- **Contraste con el fondo**: card `bg-canvas` sobre `bg-canvas` se
+  fusiona → subir a `bg-elevated` o borde visible (el `Card` átomo ya
+  resuelve el caso común).
+
 ## Lecciones de iteración real
 
 - **Clasificación arriba, datos abajo** — chips clasificatorios mezclados
