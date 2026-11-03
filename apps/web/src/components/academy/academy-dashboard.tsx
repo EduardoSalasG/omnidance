@@ -354,7 +354,7 @@ export function AcademyDashboard({
               el módulo destino, no en una lista inline. */}
           <ul
             data-tour="academy-pending"
-            className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+            className="grid grid-cols-2 gap-3 sm:grid-cols-4"
           >
             <MiniKpi
               href="/academia/cobros"
