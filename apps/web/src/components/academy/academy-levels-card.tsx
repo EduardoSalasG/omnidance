@@ -768,7 +768,7 @@ function MobileSlotRow({
           </p>
           <Badge
             variant={s.levelName ? "violet" : "muted"}
-            className="shrink-0 text-[11px]"
+            className="shrink-0 text-[10px]"
             title={s.levelName ?? undefined}
           >
             {s.levelName ? (levelNum ?? s.levelName) : t("levels.noLevel")}
@@ -811,7 +811,7 @@ function SlotCard({
           </p>
           <Badge
             variant={s.levelName ? "violet" : "muted"}
-            className="shrink-0 text-[11px]"
+            className="shrink-0 text-[10px]"
             title={s.levelName ?? undefined}
           >
             {s.levelName ? (levelNum ?? s.levelName) : t("levels.noLevel")}
@@ -837,7 +837,7 @@ function SlotCard({
         aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
       >
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-        <p className="min-w-0 flex-1 text-xs font-bold">
+        <p className="min-w-0 flex-1 text-sm font-bold">
           {s.seriesName}
           {s.styleName ? ` · ${s.styleName}` : ""}
         </p>
