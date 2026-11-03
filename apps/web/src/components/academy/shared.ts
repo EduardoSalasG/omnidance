@@ -518,6 +518,16 @@ export type StudentProfile = {
     seriesName: string | null;
     status: string;
   }[];
+  /** Clases frecuentes del alumno: slots donde más asistió (top 6 por
+      conteo, distinto del historial cronológico). */
+  frequentSlots: {
+    seriesName: string;
+    styleName: string | null;
+    weekday: number; // 0-6, domingo = 0
+    startTime: string;
+    count: number;
+    lastAt: string;
+  }[];
 };
 
 // Día calendario de una Class (date llega a medianoche UTC - formatear en

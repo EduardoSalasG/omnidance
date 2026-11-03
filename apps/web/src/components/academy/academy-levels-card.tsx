@@ -7,6 +7,8 @@ import { academyTierHas } from "@/lib/academy-features";
 import {
   Badge,
   Card,
+  FemaleIcon,
+  MaleIcon,
   PillTabs,
   UsersIcon,
   type BadgeVariant,
@@ -519,8 +521,9 @@ function MobileSlotRow({
           {t("levels.nextShort")} {s.nextBooked ?? "—"}
           <span className="text-ink/40">/{s.capacity}</span>
         </p>
-        <p className="mt-0.5 text-xs tabular-nums text-ink/50">
-          {t("levels.maleShort")} {s.male} · {t("levels.femaleShort")} {s.female}
+        <p className="mt-0.5 flex items-center gap-1.5 text-xs tabular-nums text-ink/50">
+          <MaleIcon className="h-3.5 w-3.5 text-sky-400" /> {s.male}
+          <FemaleIcon className="ml-1 h-3.5 w-3.5 text-pink-400" /> {s.female}
         </p>
       </Card>
     </li>
@@ -587,9 +590,10 @@ function SlotCard({
           </p>
           <p
             aria-hidden="true"
-            className="mt-0.5 flex items-center gap-1 text-xs font-medium text-ink/50"
+            className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-ink/50"
           >
-            {t("levels.maleShort")} {s.male} · {t("levels.femaleShort")} {s.female}
+            <MaleIcon className="h-3.5 w-3.5 text-sky-400" /> {s.male}
+            <FemaleIcon className="ml-1 h-3.5 w-3.5 text-pink-400" /> {s.female}
           </p>
         </div>
         <Badge variant={statusVariant} className="max-w-full self-start">

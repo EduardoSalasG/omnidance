@@ -402,6 +402,45 @@ function ProfileModule({
         )}
       </section>
 
+      {/* Clases frecuentes: a qué clase viene realmente el alumno
+          (conteo por slot, no historial) - feature `attendance`. */}
+      {canAttendance && (
+      <section
+        aria-label={tp("frequent")}
+        className="flex flex-col gap-2"
+      >
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+          {tp("frequent")}
+        </h3>
+        {profile.frequentSlots.length === 0 ? (
+          <p className="text-sm text-ink/50">{tp("emptyFrequent")}</p>
+        ) : (
+          <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2">
+            {profile.frequentSlots.map((f) => (
+              <li
+                key={`${f.weekday}-${f.startTime}-${f.seriesName}`}
+                className="flex items-center gap-3 rounded-xl border border-line bg-elevated/60 px-4 py-3"
+              >
+                <p className="w-16 shrink-0 text-sm font-semibold capitalize tabular-nums">
+                  {t(`weekday.${f.weekday}`).slice(0, 3)}{" "}
+                  <span className="font-normal text-ink/50">{f.startTime}</span>
+                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">
+                    {f.seriesName}
+                    {f.styleName ? ` · ${f.styleName}` : ""}
+                  </p>
+                </div>
+                <Badge variant="muted" className="shrink-0">
+                  {tp("frequentCount", { count: f.count })}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      )}
+
       {/* Historial + próximas reservas: en desktop van a dos columnas
           (display:contents en móvil preserva el stack con gap-6 del
           padre - el DOM no cambia bajo lg). */}

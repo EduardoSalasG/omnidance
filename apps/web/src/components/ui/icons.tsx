@@ -134,6 +134,24 @@ export function UsersIcon(props: IconProps) {
   );
 }
 
+/** Género masculino (♂) - proporción por horario en insights. */
+export function MaleIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M10 14a5 5 0 1 0 0-10 5 5 0 0 0 0 10M13.5 10.5 20 4m0 0h-5m5 0v5" />
+    </Svg>
+  );
+}
+
+/** Género femenino (♀) - proporción por horario en insights. */
+export function FemaleIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 14a5 5 0 1 0 0-10 5 5 0 0 0 0 10M12 14v6m-3-3h6" />
+    </Svg>
+  );
+}
+
 /** Reproducir video externo (antes `▸`). */
 export function PlayIcon(props: IconProps) {
   return (
