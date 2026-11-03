@@ -756,6 +756,12 @@ export function HomeHub() {
                     side: "top",
                   },
                   {
+                    element: "[data-tour='academy-home-mode']",
+                    title: ttao("s10.title"),
+                    description: ttao("s10.desc"),
+                    side: "bottom",
+                  },
+                  {
                     element: "[data-tour='academy-billing']",
                     title: ttao("s8.title"),
                     description: ttao("s8.desc"),
