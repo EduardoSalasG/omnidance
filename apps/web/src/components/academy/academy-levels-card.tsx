@@ -541,20 +541,20 @@ function MetricsGrid({
 }) {
   const t = useTranslations("academy");
   return (
-    <div className="grid grid-cols-3 gap-2">
-      <MetricCell
-        label={t("levels.avgShort")}
-        value={s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"}
-        capacity={s.capacity}
-        male={s.avgMale}
-        female={s.avgFemale}
-      />
+    <div className="flex justify-between gap-2">
       <MetricCell
         label={t("levels.lastShort")}
         value={s.lastClassAttendance ?? "—"}
         capacity={s.capacity}
         male={s.lastMale}
         female={s.lastFemale}
+      />
+      <MetricCell
+        label={t("levels.avgShort")}
+        value={s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"}
+        capacity={s.capacity}
+        male={s.avgMale}
+        female={s.avgFemale}
       />
       <MetricCell
         label={t("levels.nextShort")}
@@ -596,7 +596,7 @@ function MobileSlotRow({
           </Badge>
         </div>
         <MetricsGrid slot={s} numFmt={numFmt} />
-        <div className="mt-1 border-t border-line/50 pt-1.5">
+        <div className="mt-1 flex justify-end border-t border-line/50 pt-1.5">
           <Badge variant={variant} className="self-start">
             {text}
           </Badge>
@@ -629,7 +629,7 @@ function SlotCard({
         </Badge>
       </div>
       <MetricsGrid slot={s} numFmt={numFmt} />
-        <div className="mt-1 border-t border-line/50 pt-1.5">
+        <div className="mt-1 flex justify-end border-t border-line/50 pt-1.5">
           <Badge variant={statusVariant} className="self-start">
             {statusText}
           </Badge>
