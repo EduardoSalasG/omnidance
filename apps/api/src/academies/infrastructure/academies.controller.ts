@@ -2296,6 +2296,7 @@ export class AcademiesController {
                 name: true,
                 quorum: true,
                 levelId: true,
+                style: { select: { name: true } },
                 types: { select: { typeId: true } },
               },
             },
@@ -2485,6 +2486,7 @@ export class AcademiesController {
       return {
         slotId: s.id,
         seriesName: s.series.name,
+        styleName: s.series.style?.name ?? null,
         levelId: seriesLevelId,
         levelName: seriesLevelId
           ? (levelName.get(seriesLevelId) ?? null)
