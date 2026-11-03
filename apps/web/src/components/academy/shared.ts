@@ -202,6 +202,8 @@ export type AcademyLevelInsights = {
   bySlot: {
     slotId: string;
     seriesName: string;
+    // Estilo de la serie (mismo display que la card de /clases).
+    styleName: string | null;
     levelId: string | null;
     levelName: string | null;
     weekday: number; // 0-6, domingo = 0

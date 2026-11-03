@@ -674,6 +674,7 @@ function SlotCard({
       <div className="flex items-center gap-1.5">
         <p className="min-w-0 flex-1 truncate text-base font-bold">
           {s.seriesName}
+          {s.styleName ? ` · ${s.styleName}` : ""}
         </p>
         <Badge
           variant={s.levelName ? "violet" : "muted"}
