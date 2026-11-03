@@ -400,12 +400,9 @@ function WeekCalendar({
 
   const pos = (s: AcademyLevelInsights["bySlot"][number]) => ({
     top: ((startMinOf(s) - gridStart) / 30) * ROW_H,
-    // Alto tope por contenido (~152px): una clase larga no estira la
-    // card - el resto de su celda queda libre y no hay aire interno.
-    height: Math.min(
-      Math.max(ROW_H - 4, ((endMinOf(s) - startMinOf(s)) / 30) * ROW_H - 4),
-      152,
-    ),
+    // La card mide por contenido (sin aire interno): dur solo estima
+    // la variante compact para slots cortos.
+    estH: ((endMinOf(s) - startMinOf(s)) / 30) * ROW_H,
   });
   return (
     <>
@@ -470,14 +467,13 @@ function WeekCalendar({
                       lane: 0,
                       lanes: 1,
                     };
-                    const { top, height } = pos(s);
+                    const { top, estH } = pos(s);
                     return (
                       <div
                         key={s.slotId}
                         className="absolute min-w-0"
                         style={{
                           top,
-                          height,
                           left: `${(lane / lanes) * 100}%`,
                           width: `calc(${100 / lanes}% - 2px)`,
                         }}
@@ -485,7 +481,7 @@ function WeekCalendar({
                         <SlotCard
                           slot={s}
                           numFmt={numFmt}
-                          compact={height < 120}
+                          compact={estH < 120}
                           levelNum={s.levelId ? levelNum.get(s.levelId) : undefined}
                         />
                       </div>
@@ -759,7 +755,7 @@ export function MetricsGrid({
   const partner = s.types.some((x) => /pareja/i.test(x.typeName));
   return (
     <div
-      className={`grid grid-cols-3 gap-1 sm:flex-1 sm:content-end${
+      className={`grid grid-cols-3 gap-1${
         divided ? " mt-1 border-t border-line/50 pt-1" : ""
       }`}
     >
@@ -879,7 +875,7 @@ function SlotCard({
   }
   return (
     <Card
-      className="flex h-full w-full min-w-0 flex-col gap-1 overflow-hidden px-2 pb-0.5 pt-1.5"
+      className="flex w-full min-w-0 flex-col gap-1 overflow-hidden px-2 pb-0.5 pt-1.5"
     >
       <Link
         href={
