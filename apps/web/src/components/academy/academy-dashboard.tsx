@@ -150,11 +150,8 @@ export function AcademyDashboard({
   // el de audiencia queda en PRO.
   const kpiKeys = [
     "activeStudents",
-    "purchasablePlans",
     "weeklyClasses",
     "avgAttendance",
-    "billedMonth",
-    "avgTicket",
   ].filter((k) => {
     const f = KPI_FEATURE[k];
     return f == null || canFeature(f);
@@ -255,15 +252,46 @@ export function AcademyDashboard({
           facturado y ticket/alumno - con delta vs el mismo tramo del
           mes anterior donde hay base. Modo Extendido. */}
       {homeMode === "extended" && (
-        <AcademyKpiCards
-          data={dashboard}
-          error={dashError}
-          onRetry={() => void refresh()}
-          // Sin el split de género: en inicio no es accionable (el
-          // detalle demográfico vive en alumnos/analítica). El subset se
-          // filtra por feature del tier (spec academy-tier-v2).
-          keys={kpiKeys}
-        />
+        <section aria-label={t("sections.overview")} className="flex flex-col gap-4">
+          <AcademyKpiCards
+            data={dashboard}
+            error={dashError}
+            onRetry={() => void refresh()}
+            // Sin el split de género: en inicio no es accionable (el
+            // detalle demográfico vive en alumnos/analítica). El subset se
+            // filtra por feature del tier (spec academy-tier-v2).
+            keys={kpiKeys}
+          />
+          {/* Gestion de la cartera como KPIs accionables (alumnos):
+              planes por vencer y niveles por completar suben al mismo
+              bloque de KPIs. */}
+          {dashboard && (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <MiniKpi
+                href={expiringHref ?? "/academia/alumnos"}
+                title={t("insights.expiringWeekTitle")}
+                count={expiringCount}
+                hint={
+                  expiringCount > 0
+                    ? t("homeMode.expiringHint")
+                    : t("homeMode.expiringDone")
+                }
+              />
+              {levelInsights.data && (
+                <MiniKpi
+                  href="/academia/alumnos"
+                  title={t("levels.unassignedTitle")}
+                  count={unassignedTotal}
+                  hint={
+                    unassignedTotal > 0
+                      ? unassignedBreakdown
+                      : t("homeMode.unassignedDone")
+                  }
+                />
+              )}
+            </ul>
+          )}
+        </section>
       )}
 
       {/* Checklist de activación: persiste hasta completar los 4 pasos
@@ -369,42 +397,6 @@ export function AcademyDashboard({
               <BirthdaysCard birthdays={birthdays} t={t} />
             )}
           </div>
-        </section>
-      )}
-
-      {/* Alumnos (modo Extendido): gestión de la cartera como KPIs
-          accionables: planes por vencer y niveles por completar. */}
-      {homeMode === "extended" && dashboard && (
-        <section
-          aria-label={t("sections.students")}
-          data-tour="academy-alerts"
-          className="flex flex-col gap-4"
-        >
-          <h3 className={sectionTitleCls}>{t("sections.students")}</h3>
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <MiniKpi
-              href={expiringHref ?? "/academia/alumnos"}
-              title={t("insights.expiringWeekTitle")}
-              count={expiringCount}
-              hint={
-                expiringCount > 0
-                  ? t("homeMode.expiringHint")
-                  : t("homeMode.expiringDone")
-              }
-            />
-            {levelInsights.data && (
-              <MiniKpi
-                href="/academia/alumnos"
-                title={t("levels.unassignedTitle")}
-                count={unassignedTotal}
-                hint={
-                  unassignedTotal > 0
-                    ? unassignedBreakdown
-                    : t("homeMode.unassignedDone")
-                }
-              />
-            )}
-          </ul>
         </section>
       )}
 
@@ -770,7 +762,7 @@ function BirthdaysCard({
       </h3>
       <Card padded={false}>
         <ul className={listCls}>
-          {birthdays.slice(0, LIST_CAP).map((b) => (
+          {birthdays.slice(0, 3).map((b) => (
             <li key={b.personId}>
               <Link
                 href={`/academia/alumnos/${b.personId}`}
@@ -785,7 +777,7 @@ function BirthdaysCard({
               </Link>
             </li>
           ))}
-          {birthdays.length > LIST_CAP && (
+          {birthdays.length > 3 && (
             <li>
               <Link
                 href="/academia/alumnos"

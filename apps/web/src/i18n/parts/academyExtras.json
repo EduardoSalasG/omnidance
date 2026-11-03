@@ -14,6 +14,7 @@
       "seeAll": "Ver todos ({count})"
     },
     "sections": {
+      "overview": "Resumen",
       "operation": "Operación del día",
       "students": "Alumnos"
     },

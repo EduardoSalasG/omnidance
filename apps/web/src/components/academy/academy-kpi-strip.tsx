@@ -161,7 +161,7 @@ export function AcademyKpiCards({
       {data === null ? (
         <ul
           aria-hidden="true"
-          className="page-loading grid grid-cols-2 gap-3 sm:grid-cols-3"
+          className="page-loading grid grid-cols-2 gap-3 sm:grid-cols-4"
         >
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <li key={i}>
@@ -173,7 +173,7 @@ export function AcademyKpiCards({
           ))}
         </ul>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {visible.map((k) => {
             const label = t(`kpis.${k.key}`);
             // Delta absoluto vs el mismo tramo MTD del mes anterior:
