@@ -2237,6 +2237,7 @@ export class AcademiesController {
             id: true,
             weekday: true,
             startTime: true,
+            endTime: true,
             capacity: true,
             types: { select: { typeId: true } },
             series: {
@@ -2358,6 +2359,7 @@ export class AcademiesController {
           : null,
         weekday: s.weekday,
         startTime: s.startTime,
+        endTime: s.endTime,
         types: slotTypeIds.map((typeId) => ({
           typeId,
           typeName: typeName.get(typeId) ?? "",
