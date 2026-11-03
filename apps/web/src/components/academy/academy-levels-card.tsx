@@ -657,18 +657,21 @@ function GenderBar({
         skewed ? "bg-warn/15" : ""
       }`}
     >
-      {skewed ? (
-        <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-warn/30 text-[9px] font-bold text-warn">
-          !
+      {/* m/f como un solo token nowrap: nunca se parte en celdas
+          estrechas; el ! va pegado y el conjunto envuelve junto. */}
+      <span className="flex items-center gap-0.5 whitespace-nowrap">
+        {skewed ? (
+          <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-warn/30 text-[9px] font-bold text-warn">
+            !
+          </span>
+        ) : null}
+        <span className={skewed && mp >= 70 ? "text-warn" : "text-sky-400"}>
+          {m}
         </span>
-      ) : null}
-      <span className={skewed && mp >= 70 ? "text-warn" : "text-sky-400"}>
-        {m}
-      </span>
-      <span
-        className={`ml-auto ${skewed && mp <= 30 ? "text-warn" : "text-pink-400"}`}
-      >
-        {f}
+        <span className="text-ink/40">/</span>
+        <span className={skewed && mp <= 30 ? "text-warn" : "text-pink-400"}>
+          {f}
+        </span>
       </span>
       <span className="flex h-1 basis-full overflow-hidden rounded-full bg-ink/10">
         <span
