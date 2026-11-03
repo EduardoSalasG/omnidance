@@ -278,7 +278,7 @@ function WeekCalendar({
   // una clase 19:30-20:30 arranca a media fila de las 19 y termina a
   // media fila de las 20. Clases traslapadas en un día se reparten
   // la columna en carriles (lanes) lado a lado.
-  const ROW_H = 56; // px por cada 30min
+  const ROW_H = 76; // px por cada 30min (1h ≈ 148px: la card se lee completa)
   const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
   const floor30 = (m: number) => m - (m % 30);
   const endMinOf = (s: AcademyLevelInsights["bySlot"][number]) =>
