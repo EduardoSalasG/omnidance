@@ -541,7 +541,7 @@ function ToggleChips({
 }: {
   label: string;
   allLabel: string;
-  options: { key: string; label: string }[];
+  options: { key: string; label: string; ariaLabel?: string }[];
   selected: Set<string>;
   onToggle: (key: string) => void;
   onClear: () => void;
@@ -572,6 +572,7 @@ function ToggleChips({
             type="button"
             onClick={() => onToggle(o.key)}
             aria-pressed={selected.has(o.key)}
+            aria-label={o.ariaLabel ?? o.label}
             className={chipCls(selected.has(o.key))}
           >
             {o.label}
