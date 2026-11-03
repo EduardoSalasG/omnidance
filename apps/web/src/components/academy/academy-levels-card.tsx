@@ -139,7 +139,7 @@ export function AcademyLevelsCard({
       data.byType.flatMap((ty) =>
         ty.levels.map((l) => [l.levelId, l.levelName] as [string, string]),
       ),
-    ).values(),
+    ).entries(),
   ];
   const levelNum = new Map(levelOptions.map(([id], i) => [id, i + 1] as const));
   const visibleSlots = data.bySlot
