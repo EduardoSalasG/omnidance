@@ -3023,6 +3023,107 @@ export class AcademiesController {
       }),
     };
   }
+  // ─── Niveles de clase de la academia (linea custom) ─────────────────
+  // El catalogo global (academyId null) lo mantiene /admin/catalogos;
+  // aqui la academia decide cuantos niveles tiene y como se llaman.
+  // Sin filas propias = hereda la linea global (insight lo resuelve).
+
+  @Get(":id/class-levels")
+  @UseGuards(SessionGuard)
+  async academyClassLevels(@Param("id") id: string, @Req() req: Request) {
+    await this.access.requireCapability(id, req.person!, "schedule");
+    const [custom, global] = await Promise.all([
+      this.prisma.classLevel.findMany({
+        where: { academyId: id },
+        orderBy: { order: "asc" },
+      }),
+      this.prisma.classLevel.findMany({
+        where: { academyId: null },
+        orderBy: { order: "asc" },
+      }),
+    ]);
+    return { custom, global, usingGlobal: custom.length === 0 };
+  }
+
+  @Post(":id/class-levels")
+  @UseGuards(SessionGuard)
+  async createAcademyLevel(
+    @Param("id") id: string,
+    @Body() dto: AcademyClassLevelDto,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    const dup = await this.prisma.classLevel.findFirst({
+      where: {
+        academyId: id,
+        name: { equals: dto.name.trim(), mode: "insensitive" },
+      },
+    });
+    if (dup) {
+      throw new ConflictException("ya existe un nivel con ese nombre");
+    }
+    const last = await this.prisma.classLevel.findFirst({
+      where: { academyId: id },
+      orderBy: { order: "desc" },
+      select: { order: true },
+    });
+    return this.prisma.classLevel.create({
+      data: {
+        academyId: id,
+        name: dto.name.trim(),
+        order: dto.order ?? (last?.order ?? -1) + 1,
+      },
+    });
+  }
+
+  @Patch(":id/class-levels/:levelId")
+  @UseGuards(SessionGuard)
+  async updateAcademyLevel(
+    @Param("id") id: string,
+    @Param("levelId") levelId: string,
+    @Body() dto: AcademyClassLevelDto,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    const level = await this.prisma.classLevel.findUnique({
+      where: { id: levelId },
+    });
+    if (!level || level.academyId !== id) {
+      throw new NotFoundException("nivel no encontrado en la academia");
+    }
+    return this.prisma.classLevel.update({
+      where: { id: levelId },
+      data: { name: dto.name.trim(), order: dto.order ?? level.order },
+    });
+  }
+
+  @Delete(":id/class-levels/:levelId")
+  @HttpCode(200)
+  @UseGuards(SessionGuard)
+  async deleteAcademyLevel(
+    @Param("id") id: string,
+    @Param("levelId") levelId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    const level = await this.prisma.classLevel.findUnique({
+      where: { id: levelId },
+    });
+    if (!level || level.academyId !== id) {
+      throw new NotFoundException("nivel no encontrado en la academia");
+    }
+    const [series, enrollments] = await Promise.all([
+      this.prisma.classSeries.count({ where: { levelId } }),
+      this.prisma.enrollmentLevel.count({ where: { levelId } }),
+    ]);
+    if (series + enrollments > 0) {
+      throw new ConflictException(
+        "el nivel esta en uso (series o alumnos) - no se puede borrar",
+      );
+    }
+    await this.prisma.classLevel.delete({ where: { id: levelId } });
+    return { ok: true };
+  }
 }
 
 @Controller("enrollments")
@@ -3144,107 +3245,5 @@ export class EnrollmentsController {
         levelIds: [...new Set(l.levelIds)],
       })),
     };
-  }
-
-  // ─── Niveles de clase de la academia (linea custom) ─────────────────
-  // El catalogo global (academyId null) lo mantiene /admin/catalogos;
-  // aqui la academia decide cuantos niveles tiene y como se llaman.
-  // Sin filas propias = hereda la linea global (insight lo resuelve).
-
-  @Get(":id/class-levels")
-  @UseGuards(SessionGuard)
-  async academyClassLevels(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireCapability(id, req.person!, "schedule");
-    const [custom, global] = await Promise.all([
-      this.prisma.classLevel.findMany({
-        where: { academyId: id },
-        orderBy: { order: "asc" },
-      }),
-      this.prisma.classLevel.findMany({
-        where: { academyId: null },
-        orderBy: { order: "asc" },
-      }),
-    ]);
-    return { custom, global, usingGlobal: custom.length === 0 };
-  }
-
-  @Post(":id/class-levels")
-  @UseGuards(SessionGuard)
-  async createAcademyLevel(
-    @Param("id") id: string,
-    @Body() dto: AcademyClassLevelDto,
-    @Req() req: Request,
-  ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
-    const dup = await this.prisma.classLevel.findFirst({
-      where: {
-        academyId: id,
-        name: { equals: dto.name.trim(), mode: "insensitive" },
-      },
-    });
-    if (dup) {
-      throw new ConflictException("ya existe un nivel con ese nombre");
-    }
-    const last = await this.prisma.classLevel.findFirst({
-      where: { academyId: id },
-      orderBy: { order: "desc" },
-      select: { order: true },
-    });
-    return this.prisma.classLevel.create({
-      data: {
-        academyId: id,
-        name: dto.name.trim(),
-        order: dto.order ?? (last?.order ?? -1) + 1,
-      },
-    });
-  }
-
-  @Patch(":id/class-levels/:levelId")
-  @UseGuards(SessionGuard)
-  async updateAcademyLevel(
-    @Param("id") id: string,
-    @Param("levelId") levelId: string,
-    @Body() dto: AcademyClassLevelDto,
-    @Req() req: Request,
-  ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
-    const level = await this.prisma.classLevel.findUnique({
-      where: { id: levelId },
-    });
-    if (!level || level.academyId !== id) {
-      throw new NotFoundException("nivel no encontrado en la academia");
-    }
-    return this.prisma.classLevel.update({
-      where: { id: levelId },
-      data: { name: dto.name.trim(), order: dto.order ?? level.order },
-    });
-  }
-
-  @Delete(":id/class-levels/:levelId")
-  @HttpCode(200)
-  @UseGuards(SessionGuard)
-  async deleteAcademyLevel(
-    @Param("id") id: string,
-    @Param("levelId") levelId: string,
-    @Req() req: Request,
-  ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
-    const level = await this.prisma.classLevel.findUnique({
-      where: { id: levelId },
-    });
-    if (!level || level.academyId !== id) {
-      throw new NotFoundException("nivel no encontrado en la academia");
-    }
-    const [series, enrollments] = await Promise.all([
-      this.prisma.classSeries.count({ where: { levelId } }),
-      this.prisma.enrollmentLevel.count({ where: { levelId } }),
-    ]);
-    if (series + enrollments > 0) {
-      throw new ConflictException(
-        "el nivel esta en uso (series o alumnos) - no se puede borrar",
-      );
-    }
-    await this.prisma.classLevel.delete({ where: { id: levelId } });
-    return { ok: true };
   }
 }
