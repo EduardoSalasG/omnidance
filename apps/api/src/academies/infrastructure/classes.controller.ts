@@ -1239,6 +1239,9 @@ export class ClassesController {
         instructorId: true,
         instructors: { select: { personId: true } },
         capacity: true,
+        // El front busca las métricas del horario en
+        // GET /academies/:id/insights/levels (bySlot).
+        classSlotId: true,
         slot: {
           select: {
             academyId: true,
@@ -1340,6 +1343,7 @@ export class ClassesController {
         id: cls.id,
         date: cls.date,
         cancelled: cls.cancelled,
+        classSlotId: cls.classSlotId,
         startTime: cls.slot.startTime,
         endTime: cls.slot.endTime,
         academyId: cls.slot.academyId,

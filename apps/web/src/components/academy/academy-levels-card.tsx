@@ -735,19 +735,29 @@ function MetricCell({
   );
 }
 
-/** Bloque de 3 métricas como mini-stats horizontales. */
-function MetricsGrid({
+/** Bloque de 3 métricas como mini-stats horizontales. Exportado para
+    la ficha de clase (/academia/clases/[id]): ahí va plano dentro de
+    su propia Card, sin el separador superior de la agenda (divided). */
+export function MetricsGrid({
   slot: s,
   numFmt,
+  divided = true,
 }: {
   slot: AcademyLevelInsights["bySlot"][number];
   numFmt: Intl.NumberFormat;
+  /** Separador superior de la card de agenda; false en contextos que
+      ya traen su propio marco (ficha de clase). */
+  divided?: boolean;
 }) {
   const t = useTranslations("academy");
   // El desbalance de género solo es accionable en clases de pareja.
   const partner = s.types.some((x) => /pareja/i.test(x.typeName));
   return (
-    <div className="mt-1 grid grid-cols-3 gap-1 border-t border-line/50 pt-1">
+    <div
+      className={`grid grid-cols-3 gap-1${
+        divided ? " mt-1 border-t border-line/50 pt-1" : ""
+      }`}
+    >
       <MetricCell
         label={t("levels.lastShort")}
         value={s.lastClassAttendance ?? "—"}
