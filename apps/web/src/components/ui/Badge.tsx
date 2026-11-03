@@ -2,6 +2,7 @@ import type { HTMLAttributes } from "react";
 
 export type BadgeVariant =
   | "neon"
+  | "violet"
   | "muted"
   | "outline"
   | "live"
@@ -10,6 +11,9 @@ export type BadgeVariant =
 
 const variants: Record<BadgeVariant, string> = {
   neon: "bg-neon/15 text-neon",
+  // Morado Omnidance fijo (no cambia por data-mode: academy lo
+  // verde pero esta semantica pide la marca social).
+  violet: "bg-violet-600/15 text-violet-300",
   muted: "bg-elevated text-ink/70",
   outline: "border border-line text-ink/70",
   live: "bg-red-500/15 text-red-400",
