@@ -762,7 +762,7 @@ function MobileSlotRow({
           className="block"
           aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
         >
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
           <p className="min-w-0 flex-1 truncate text-sm font-bold">
             {s.seriesName}
           </p>
@@ -771,7 +771,7 @@ function MobileSlotRow({
             className="shrink-0"
             title={s.levelName ?? undefined}
           >
-            {s.levelName ? (levelNum ?? "?") : t("levels.noLevel")}
+            {s.levelName ? (levelNum ?? s.levelName) : t("levels.noLevel")}
           </Badge>
         </div>
         <MetricsGrid slot={s} numFmt={numFmt} />
@@ -805,7 +805,7 @@ function SlotCard({
   if (compact) {
     return (
       <Card className="flex h-full w-full min-w-0 flex-col justify-center gap-1 overflow-hidden px-2.5 py-1.5">
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
           <p className="min-w-0 flex-1 truncate text-xs font-semibold">
             {s.seriesName}
           </p>
@@ -814,7 +814,7 @@ function SlotCard({
             className="shrink-0"
             title={s.levelName ?? undefined}
           >
-            {s.levelName ? (levelNum ?? "?") : t("levels.noLevel")}
+            {s.levelName ? (levelNum ?? s.levelName) : t("levels.noLevel")}
           </Badge>
         </div>
         <Badge variant={statusVariant} className="self-start">
@@ -836,7 +836,7 @@ function SlotCard({
         className="contents"
         aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
       >
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
         <p className="min-w-0 flex-1 truncate text-sm font-bold">
           {s.seriesName}
           {s.styleName ? ` · ${s.styleName}` : ""}
@@ -846,7 +846,7 @@ function SlotCard({
           className="shrink-0"
           title={s.levelName ?? undefined}
         >
-          {s.levelName ? (levelNum ?? "?") : t("levels.noLevel")}
+          {s.levelName ? (levelNum ?? s.levelName) : t("levels.noLevel")}
         </Badge>
       </div>
       <MetricsGrid slot={s} numFmt={numFmt} />
