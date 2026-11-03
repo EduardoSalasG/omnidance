@@ -594,7 +594,7 @@ function MobileSlotRow({
       </p>
       <Card className="min-w-0 flex-1 px-3 py-2">
         <Link
-          href="/academia/clases"
+          href="/academia/alumnos"
           className="block"
           aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
         >
@@ -636,7 +636,7 @@ function SlotCard({
       className="flex h-full w-fit min-w-0 max-w-full flex-col gap-1.5 overflow-hidden px-2.5 py-2"
     >
       <Link
-        href="/academia/clases"
+        href="/academia/alumnos"
         className="contents"
         aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
       >
