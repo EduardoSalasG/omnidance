@@ -2471,12 +2471,12 @@ export class AcademiesController {
         academyDefaultQuorum: academy.defaultQuorum,
       });
       const recent = attendanceBySlot.get(s.id) ?? [];
+      // Promedios a unidad: son personas, no tienen sentido decimales.
       const avgOf = (k: "n" | "m" | "f") =>
         recent.length
           ? Math.round(
-              (recent.reduce((acc, r) => acc + r[k], 0) / recent.length) *
-                10,
-            ) / 10
+              recent.reduce((acc, r) => acc + r[k], 0) / recent.length,
+            )
           : null;
       const avgAttendance = avgOf("n");
       const next = nextBySlot.get(s.id);
