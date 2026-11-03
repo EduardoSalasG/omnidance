@@ -119,6 +119,7 @@ export function AcademyLevelsCard({
     (ty) => typeSel.size === 0 || typeSel.has(ty.typeId),
   );
   const visibleLevels = aggregateLevels(selectedTypes);
+  const levelNum = new Map(levelOptions.map(([id], i) => [id, i + 1] as const));
 
   const levelTotal = visibleLevels.reduce((a, l) => a + l.count, 0);
 
@@ -263,6 +264,7 @@ export function AcademyLevelsCard({
               slots={visibleSlots}
               days={weekDays}
               numFmt={numFmt}
+              levelNum={levelNum}
             />
           ) : (
             <p className="text-xs text-ink/50">
@@ -314,10 +316,12 @@ function WeekCalendar({
   slots,
   days,
   numFmt,
+  levelNum,
 }: {
   slots: AcademyLevelInsights["bySlot"];
   days: readonly number[];
   numFmt: Intl.NumberFormat;
+  levelNum: ReadonlyMap<string, number>;
 }) {
   const t = useTranslations("academy");
   // Agenda real: unidad de 30min por fila (ROW_H px). La card se
@@ -471,6 +475,7 @@ function WeekCalendar({
                           slot={s}
                           numFmt={numFmt}
                           compact={height < 130}
+                          levelNum={s.levelId ? levelNum.get(s.levelId) : undefined}
                         />
                       </div>
                     );
@@ -757,8 +762,9 @@ function MobileSlotRow({
           <Badge
             variant={s.levelName ? "violet" : "muted"}
             className="shrink-0"
+            title={s.levelName ?? undefined}
           >
-            {s.levelName ?? t("levels.noLevel")}
+            {s.levelName ? (levelNum ?? "?") : t("levels.noLevel")}
           </Badge>
         </div>
         <MetricsGrid slot={s} numFmt={numFmt} />
@@ -778,11 +784,14 @@ function SlotCard({
   slot: s,
   numFmt,
   compact,
+  levelNum,
 }: {
   slot: AcademyLevelInsights["bySlot"][number];
   numFmt: Intl.NumberFormat;
-  /** Clase corta (alto < 120px): solo titulo + chips, sin metricas. */
+  /** Clase corta (alto < 130px): solo titulo + chips, sin metricas. */
   compact?: boolean;
+  /** Numero de nivel 1-4 (compacto: el nombre completo va en title). */
+  levelNum?: number;
 }) {
   const t = useTranslations("academy");
   const { variant: statusVariant, text: statusText } = slotStatus(s, t);
@@ -796,8 +805,9 @@ function SlotCard({
           <Badge
             variant={s.levelName ? "violet" : "muted"}
             className="shrink-0"
+            title={s.levelName ?? undefined}
           >
-            {s.levelName ?? t("levels.noLevel")}
+            {s.levelName ? (levelNum ?? "?") : t("levels.noLevel")}
           </Badge>
         </div>
         <Badge variant={statusVariant} className="self-start">
@@ -827,8 +837,9 @@ function SlotCard({
         <Badge
           variant={s.levelName ? "violet" : "muted"}
           className="shrink-0"
+          title={s.levelName ?? undefined}
         >
-          {s.levelName ?? t("levels.noLevel")}
+          {s.levelName ? (levelNum ?? "?") : t("levels.noLevel")}
         </Badge>
       </div>
       <MetricsGrid slot={s} numFmt={numFmt} />
