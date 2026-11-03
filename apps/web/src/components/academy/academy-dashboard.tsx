@@ -261,24 +261,21 @@ export function AcademyDashboard({
             // detalle demográfico vive en alumnos/analítica). El subset se
             // filtra por feature del tier (spec academy-tier-v2).
             keys={kpiKeys}
+            extra={
+              dashboard ? (
+                <MiniKpi
+                  href={expiringHref ?? "/academia/alumnos"}
+                  title={t("insights.expiringWeekTitle")}
+                  count={expiringCount}
+                  hint={
+                    expiringCount > 0
+                      ? t("homeMode.expiringHint")
+                      : t("homeMode.expiringDone")
+                  }
+                />
+              ) : null
+            }
           />
-          {/* Gestion de la cartera como KPIs accionables (alumnos):
-              planes por vencer y niveles por completar suben al mismo
-              bloque de KPIs. */}
-          {dashboard && (
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <MiniKpi
-                href={expiringHref ?? "/academia/alumnos"}
-                title={t("insights.expiringWeekTitle")}
-                count={expiringCount}
-                hint={
-                  expiringCount > 0
-                    ? t("homeMode.expiringHint")
-                    : t("homeMode.expiringDone")
-                }
-              />
-            </ul>
-          )}
         </section>
       )}
 
