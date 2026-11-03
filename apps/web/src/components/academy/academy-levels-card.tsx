@@ -95,6 +95,10 @@ export function AcademyLevelsCard({
   // Filtro por tipo de clase con el mismo patrón de /analitica
   // (PillTabs: pills tablist de estado local). "all" = vista completa.
   const [typeFilter, setTypeFilter] = useState("all");
+  // Mismo patrón para estilo y nivel: filtran solo el agenda (los
+  // KPIs son por tipo de clase).
+  const [styleFilter, setStyleFilter] = useState("all");
+  const [levelFilter, setLevelFilter] = useState("all");
 
   // Sin horarios ni niveles: la card explica qué falta en vez de
   // mostrar una grilla de ceros.
@@ -127,12 +131,33 @@ export function AcademyLevelsCard({
   // Un solo calendario: "Todos" junta cada horario una sola vez (los
   // que no matchean ningún tipo también entran); filtrado deja solo
   // los del tipo activo y los sin tipo se ocultan.
-  const visibleSlots =
-    activeType === "all"
-      ? data.bySlot
-      : data.bySlot.filter((s) =>
-          s.types.some((st) => st.typeId === activeType),
-        );
+  // Opciones de estilo/nivel presentes en los horarios (si una
+  // recarga quita la opción elegida, cae a "all" sin efecto).
+  const styleOptions = [
+    ...new Set(
+      data.bySlot.map((s) => s.styleName).filter((x): x is string => !!x),
+    ),
+  ];
+  const levelOptions = [
+    ...new Map(
+      data.bySlot
+        .filter((s) => s.levelId && s.levelName)
+        .map((s) => [s.levelId, s.levelName] as [string, string]),
+    ).values(),
+  ];
+  const activeStyle = styleOptions.includes(styleFilter) ? styleFilter : "all";
+  const activeLevel = levelOptions.some(([id]) => id === levelFilter)
+    ? levelFilter
+    : "all";
+
+  const visibleSlots = data.bySlot
+    .filter(
+      (s) =>
+        activeType === "all" ||
+        s.types.some((st) => st.typeId === activeType),
+    )
+    .filter((s) => activeStyle === "all" || s.styleName === activeStyle)
+    .filter((s) => activeLevel === "all" || s.levelId === activeLevel);
   // Columnas = días laborados de la data visible, en orden lun-dom:
   // con un tipo filtrado la semana usa solo sus días y las cards
   // ganan ancho.
@@ -163,6 +188,45 @@ export function AcademyLevelsCard({
           />
         )}
       </div>
+      {!nothingYet && (styleOptions.length > 1 || levelOptions.length > 1) && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {styleOptions.length > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink/40">
+                {t("levels.styleFilterLabel")}
+              </span>
+              <PillTabs
+                ariaLabel={t("levels.styleFilterLabel")}
+                active={activeStyle}
+                onSelect={setStyleFilter}
+                items={[
+                  { key: "all", label: t("levels.allStyles") },
+                  ...styleOptions.map((name) => ({ key: name, label: name })),
+                ]}
+              />
+            </div>
+          )}
+          {levelOptions.length > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wide text-ink/40">
+                {t("levels.levelFilterLabel")}
+              </span>
+              <PillTabs
+                ariaLabel={t("levels.levelFilterLabel")}
+                active={activeLevel}
+                onSelect={setLevelFilter}
+                items={[
+                  { key: "all", label: t("levels.allLevels") },
+                  ...levelOptions.map(([id, name]) => ({
+                    key: id,
+                    label: name ?? id,
+                  })),
+                ]}
+              />
+            </div>
+          )}
+        </div>
+      )}
       {nothingYet ? (
         <Card padded={false}>
           <div className="flex items-center justify-between gap-3 px-4 py-4">

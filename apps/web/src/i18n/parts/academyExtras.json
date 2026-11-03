@@ -42,6 +42,10 @@
     },
     "levels": {
       "title": "Niveles y cupos",
+      "styleFilterLabel": "Estilo",
+      "allStyles": "Todos",
+      "levelFilterLabel": "Nivel",
+      "allLevels": "Todos",
       "typeFilterLabel": "Tipo de clase",
       "allTypes": "Todos",
       "empty": "Aún no hay horarios ni niveles cargados. Asigna el nivel de cada alumno desde su ficha.",
