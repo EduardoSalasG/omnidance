@@ -489,14 +489,27 @@ function GenderBar({ m, f }: { m: number | null; f: number | null }) {
     return <span className="h-1.5 w-10 rounded-full bg-ink/10" />;
   }
   const mp = Math.round(((m ?? 0) / tot) * 100);
+  // Desbalance >=70% (clave en clases de pareja): la barra y el
+  // conteo dominante pasan a warning como signal accionable.
+  const skewed = mp >= 70 || mp <= 30;
   return (
     <span className="flex items-center gap-1 text-[11px] font-semibold tabular-nums">
-      <span className="text-sky-400">{m}</span>
-      <span className="flex h-1.5 w-8 overflow-hidden rounded-full bg-ink/10">
-        <span className="bg-sky-400" style={{ width: `${mp}%` }} />
-        <span className="bg-pink-400" style={{ width: `${100 - mp}%` }} />
+      <span className={skewed && mp >= 70 ? "text-warning" : "text-sky-400"}>
+        {m}
       </span>
-      <span className="text-pink-400">{f}</span>
+      <span className="flex h-1.5 w-8 overflow-hidden rounded-full bg-ink/10">
+        <span
+          className={skewed && mp >= 70 ? "bg-warning" : "bg-sky-400"}
+          style={{ width: `${mp}%` }}
+        />
+        <span
+          className={skewed && mp <= 30 ? "bg-warning" : "bg-pink-400"}
+          style={{ width: `${100 - mp}%` }}
+        />
+      </span>
+      <span className={skewed && mp <= 30 ? "text-warning" : "text-pink-400"}>
+        {f}
+      </span>
     </span>
   );
 }
@@ -609,7 +622,14 @@ function SlotCard({
   const t = useTranslations("academy");
   const { variant: statusVariant, text: statusText } = slotStatus(s, t);
   return (
-    <Card className="flex h-full w-fit min-w-0 max-w-full flex-col gap-1.5 overflow-hidden px-2.5 py-2">
+    <Card
+      className="flex h-full w-fit min-w-0 max-w-full flex-col gap-1.5 overflow-hidden px-2.5 py-2"
+    >
+      <Link
+        href="/academia/clases"
+        className="contents"
+        aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
+      >
       <div className="flex items-center gap-1.5">
         <p className="min-w-0 flex-1 truncate text-base font-bold">
           {s.seriesName}
@@ -622,6 +642,7 @@ function SlotCard({
         </Badge>
       </div>
       <MetricsGrid slot={s} numFmt={numFmt} />
+      </Link>
         <div className="mt-1 flex justify-center border-t border-line/50 pt-1.5">
           <Badge variant={statusVariant}>{statusText}</Badge>
           <span className="ml-1 self-center text-xs text-ink/50">
