@@ -729,7 +729,7 @@ export async function seedDev(prisma: PrismaClient) {
   const styleId = async (name: string) =>
     (await prisma.style.findFirst({ where: { name } }))!.id;
   const levelId = async (name: string) =>
-    (await prisma.classLevel.findUnique({ where: { name } }))!.id;
+    (await prisma.classLevel.findFirst({ where: { name, academyId: null } }))!.id;
   const typeId = async (name: string) =>
     (await prisma.classType.findUnique({ where: { name } }))!.id;
 
