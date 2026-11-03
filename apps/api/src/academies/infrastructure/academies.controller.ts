@@ -2063,6 +2063,9 @@ export class AcademiesController {
       date: true,
       slot: {
         select: {
+          id: true,
+          weekday: true,
+          startTime: true,
           series: {
             select: {
               name: true,
@@ -2151,6 +2154,46 @@ export class AcademiesController {
         status: b.status,
       }));
 
+    // Clases frecuentes: slots donde el alumno asistió más, con su
+    // horario. Orden por conteo desc, top 6 - es "a qué clase viene",
+    // distinto del historial cronológico.
+    const freqBySlot = new Map<
+      string,
+      {
+        seriesName: string;
+        styleName: string | null;
+        weekday: number;
+        startTime: string;
+        count: number;
+        lastAt: Date;
+      }
+    >();
+    for (const a of attendances) {
+      const slot = a.class.slot;
+      const key = slot.id;
+      const cur = freqBySlot.get(key);
+      if (cur) {
+        cur.count += 1;
+        if (a.checkedAt > cur.lastAt) cur.lastAt = a.checkedAt;
+      } else {
+        freqBySlot.set(key, {
+          seriesName: slot.series.name,
+          styleName: slot.series.style?.name ?? null,
+          weekday: slot.weekday,
+          startTime: slot.startTime,
+          count: 1,
+          lastAt: a.checkedAt,
+        });
+      }
+    }
+    const frequentSlots = [...freqBySlot.values()]
+      .sort(
+        (a, b) =>
+          b.count - a.count ||
+          b.lastAt.getTime() - a.lastAt.getTime(),
+      )
+      .slice(0, 6);
+
     return {
       person,
       plan: enrollment?.plan ?? null,
@@ -2171,6 +2214,7 @@ export class AcademiesController {
       scoreBreakdown: relScore?.breakdown ?? null,
       history,
       upcoming,
+      frequentSlots,
     };
   }
 
