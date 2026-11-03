@@ -756,6 +756,12 @@ export function HomeHub() {
                     side: "top",
                   },
                   {
+                    element: "[data-tour='academy-billing']",
+                    title: ttao("s8.title"),
+                    description: ttao("s8.desc"),
+                    side: "top",
+                  },
+                  {
                     element: "[data-tour='academy-checklist']",
                     title: ttao("s2.title"),
                     description: ttao("s2.desc"),
@@ -777,6 +783,12 @@ export function HomeHub() {
                     element: "[data-tour='academy-alerts']",
                     title: ttao("s5.title"),
                     description: ttao("s5.desc"),
+                    side: "top",
+                  },
+                  {
+                    element: "[data-tour='academy-levels']",
+                    title: ttao("s9.title"),
+                    description: ttao("s9.desc"),
                     side: "top",
                   },
                   {

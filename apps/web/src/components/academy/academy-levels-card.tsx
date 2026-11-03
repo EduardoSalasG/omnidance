@@ -162,7 +162,11 @@ export function AcademyLevelsCard({
   );
 
   return (
-    <section aria-label={t("levels.title")} className="flex flex-col gap-3">
+    <section
+      aria-label={t("levels.title")}
+      data-tour="academy-levels"
+      className="flex flex-col gap-3"
+    >
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("levels.title")}
