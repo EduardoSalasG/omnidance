@@ -64,6 +64,10 @@ soporte-buscar 1/1, dancer-qr 2/2, academia-planes 1/1.
   §Pendiente: `/` pega `/api/events`, `/ciudades` pega
   `/api/features`+`/api/cities`, `/pase` pega `/api/features`,
   `/e/[id]` pega `/api/events/:id`. Crear change OpenSpec al tomarlo.
+  **Restricción del usuario (2026-11-04):** estático ≠ contenido
+  quemado - la data sigue en JSONs/catálogos editables (i18n parts,
+  archivos de contenido) para que actualizar nombres/textos/listas
+  siga siendo editar un archivo, no tocar JSX.
 - `customer/collect` automático por job (PlatformChargesService
   listo; pendiente desde cierre-2).
 - Smoke visual superficies pasada B.
