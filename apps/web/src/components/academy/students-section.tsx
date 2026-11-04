@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import type { QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { academyTierHas } from "@/lib/academy-features";
-import { Badge, Button, Card, EventDate, Pager, type BadgeVariant, RefreshIcon } from "@/components/ui";
+import { Badge, type BadgeVariant, Button, Card, ChevronRightIcon, EventDate, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import {
@@ -211,8 +211,11 @@ export function StudentsSection({
                   {/* Nombre: primera sección de la card y a fila
                       completa; nunca compite por ancho con badges ni
                       score, así que el truncate siempre deja leerlo. */}
-                  <span className="block truncate font-medium">
-                    {s.person.name ?? s.person.email ?? s.person.id}
+                  <span className="flex items-center justify-between gap-2 font-medium">
+                    <span className="min-w-0 truncate">
+                      {s.person.name ?? s.person.email ?? s.person.id}
+                    </span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </span>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <Badge variant={STATUS_VARIANT[s.status]}>

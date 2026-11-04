@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { showActionNotice } from "@/components/ui/action-notice";
-import { Button, Card, ChevronLeftIcon } from "@/components/ui";
+import { Button, Card, ChevronLeftIcon, ChevronRightIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
 import type {
@@ -240,7 +240,7 @@ export default function SoportePage() {
   const trimmed = query.trim();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-3xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-3xl lg:px-8">
       {/* Buscador */}
       <section
         aria-label={t("search")}
@@ -395,8 +395,11 @@ export default function SoportePage() {
                             label={ticketStatusLabel(tk.status)}
                             tone={TICKET_STATUS_CHIP[tk.status]}
                           />
-                          <span className="text-xs text-ink/50">
-                            {dateFmt.format(new Date(tk.createdAt))}
+                          <span className="flex shrink-0 items-center gap-2">
+                            <span className="text-xs text-ink/50">
+                              {dateFmt.format(new Date(tk.createdAt))}
+                            </span>
+                            <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                           </span>
                         </Link>
                       </li>
@@ -458,13 +461,16 @@ export default function SoportePage() {
                     onClick={() => void openDetail(u.id)}
                     className="flex min-h-11 w-full flex-col gap-2 rounded-xl border border-line bg-elevated/60 p-3 text-left transition-colors hover:border-line focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                   >
-                    <span className="flex min-w-0 flex-col">
-                      <span className="truncate font-medium text-ink">
-                        {u.name}
+                    <span className="flex min-w-0 items-center justify-between gap-3">
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate font-medium text-ink">
+                          {u.name}
+                        </span>
+                        <span className="truncate text-sm text-ink/50">
+                          {u.email}
+                        </span>
                       </span>
-                      <span className="truncate text-sm text-ink/50">
-                        {u.email}
-                      </span>
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                     </span>
                     {u.roles.length > 0 && (
                       <span className="flex flex-wrap gap-1.5">

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, RefreshIcon, SkeletonList } from "@/components/ui";
+import { Badge, Button, Card, ChevronRightIcon, RefreshIcon, SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { Link } from "@/i18n/navigation";
@@ -128,7 +128,10 @@ function PromosPanel() {
                         {p.kind ? t(`kind${p.kind === "ACADEMY" ? "Academy" : "Producer"}`) : t("kindAll")}
                       </p>
                     </div>
-                    {stateBadge(promoState(p))}
+                    <span className="flex shrink-0 items-center gap-2">
+                      {stateBadge(promoState(p))}
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                    </span>
                   </div>
                   <p className="text-xs text-ink/50 tabular-nums">
                     {t("window", {

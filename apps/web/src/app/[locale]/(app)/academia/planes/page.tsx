@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, Pager, RefreshIcon } from "@/components/ui";
+import { Button, Card, ChevronRightIcon, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { PlansSection } from "@/components/academy/plans-section";
@@ -43,7 +43,7 @@ export default function AcademiaPlanesPage() {
   const t = useTranslations("academy");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader
         backHref="/academia"
         backLabel={t("title")}
@@ -272,6 +272,7 @@ function TopPurchasedList({
                 <span className="shrink-0 text-xs tabular-nums text-ink/50">
                   {t("topPurchasedCount", { count: p.count })}
                 </span>
+                <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
               </Link>
             </li>
           ))}

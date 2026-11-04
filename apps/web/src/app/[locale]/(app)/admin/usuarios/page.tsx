@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, Pager, SkeletonList } from "@/components/ui";
+import {
+  Badge,
+  Card,
+  ChevronRightIcon,
+  Pager,
+  SkeletonList,
+} from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { FilterBar, type QueryOption } from "@/components/query/FilterBar";
@@ -155,18 +161,21 @@ function UsersPanel() {
               className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
               <Card className="flex min-h-[44px] flex-col gap-2 transition-colors hover:border-neon/60">
-                <div className="flex min-w-0 flex-col">
-                  <span className="flex items-center gap-2 truncate font-semibold">
-                    {u.name}
-                    {u.deletedAt && (
-                      <Badge variant="muted">{t("users.deactivated")}</Badge>
-                    )}
-                  </span>
-                  {u.email && (
-                    <span className="truncate text-sm text-ink/60">
-                      {u.email}
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="flex min-w-0 flex-col">
+                    <span className="flex items-center gap-2 truncate font-semibold">
+                      {u.name}
+                      {u.deletedAt && (
+                        <Badge variant="muted">{t("users.deactivated")}</Badge>
+                      )}
                     </span>
-                  )}
+                    {u.email && (
+                      <span className="truncate text-sm text-ink/60">
+                        {u.email}
+                      </span>
+                    )}
+                  </div>
+                  <ChevronRightIcon className="mt-0.5 h-4 w-4 shrink-0 text-ink/40" />
                 </div>
                 {(u.academiesCount > 0 || u.eventsCount > 0) && (
                   <p className="text-xs text-ink/50">

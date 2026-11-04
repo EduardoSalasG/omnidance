@@ -8,6 +8,7 @@ import { useActorEntitlements } from "@/lib/entitlements-context";
 import {
   Badge,
   Button,
+  ChevronRightIcon,
   EventDate,
   RefreshIcon,
   SkeletonCard,
@@ -38,6 +39,7 @@ import {
   readError,
   type EventDetail,
 } from "@/components/producer/shared";
+import { Link } from "@/i18n/navigation";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "notFound" | "ready";
 type EventState = "loading" | "ok" | "notFound" | "error";
@@ -194,6 +196,49 @@ export default function ProducerEventDetailPage(
   const analyticsLocked =
     isOwnEvent && !producerEnt.loading && !producerEnt.has("analytics");
 
+  // La identidad del header navega a editar con la misma compuerta que
+  // tenía el botón Editar (canManage + estado editable): fuera de ella
+  // el link llevaría a un form que rechaza el evento.
+  const headerNav = canManage && EDITABLE_STATUSES.includes(event.status);
+
+  // Identidad del evento compartida por la zona navegable y el texto
+  // plano: con headerNav la envuelve un Link y el chevron marca la
+  // affordance de "esto navega a editar".
+  const eventIdentity = event && (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <h2 className="min-w-0 flex-1 text-2xl font-bold transition-colors group-hover:text-neon">
+          {event.name}
+        </h2>
+        <div className="flex items-center gap-2">
+          <Badge variant={EVENT_STATUS_VARIANT[event.status] ?? "muted"}>
+            {t.has(`status.${event.status}`)
+              ? t(`status.${event.status}`)
+              : event.status}
+          </Badge>
+          {headerNav && (
+            <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+          )}
+        </div>
+      </div>
+      <EventDate
+        start={event.startsAt}
+        end={event.endsAt}
+        variant="full"
+        className="text-sm text-ink/60"
+      />
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink/50">
+        {event.venue?.name && <span>{event.venue.name}</span>}
+        <span>
+          {te.has(`type.${event.type}`)
+            ? te(`type.${event.type}`)
+            : event.type}
+        </span>
+        {event.series?.name && <span>{event.series.name}</span>}
+      </div>
+    </div>
+  );
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/productor/eventos" backLabel={t("myEvents")} />
@@ -245,33 +290,25 @@ export default function ProducerEventDetailPage(
       {gate === "ready" && event && (
         <>
           <header className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <h2 className="min-w-0 flex-1 text-2xl font-bold">
-                {event.name}
-              </h2>
-              <Badge variant={EVENT_STATUS_VARIANT[event.status] ?? "muted"}>
-                {t.has(`status.${event.status}`)
-                  ? t(`status.${event.status}`)
-                  : event.status}
-              </Badge>
-            </div>
-            <EventDate
-              start={event.startsAt}
-              end={event.endsAt}
-              variant="full"
-              className="text-sm text-ink/60"
-            />
+            {/* Card de entidad navegable a editar (patrón consola): la
+                identidad del evento - nombre, fecha, venue/tipo/serie - es
+                lo que edita /productor/eventos/nuevo?edit=. El chevron es
+                la affordance (mobile no tiene hover); fuera de headerNav
+                la misma identidad se renderiza como texto plano. */}
+            {headerNav ? (
+              <Link
+                href={`/productor/eventos/nuevo?edit=${event.id}`}
+                className="group block rounded-2xl transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              >
+                {eventIdentity}
+              </Link>
+            ) : (
+              eventIdentity
+            )}
+            {/* La comisión queda fuera del link navegable (spec
+                producer-fee-model): EventFeeInline lleva edición inline
+                para admin y nada interactivo va dentro de un Link. */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink/50">
-              {event.venue?.name && <span>{event.venue.name}</span>}
-              <span>
-                {te.has(`type.${event.type}`)
-                  ? te(`type.${event.type}`)
-                  : event.type}
-              </span>
-              {event.series?.name && <span>{event.series.name}</span>}
-              {/* Comisión del evento como un dato más del header (spec
-                  producer-fee-model); la edición inline solo aparece a
-                  admin con evento editable. */}
               <EventFeeInline
                 event={event}
                 isAdmin={isAdmin}
@@ -289,15 +326,6 @@ export default function ProducerEventDetailPage(
                     disabled={actionBusy}
                   >
                     {t("publish")}
-                  </Button>
-                )}
-                {EDITABLE_STATUSES.includes(event.status) && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    href={`/productor/eventos/nuevo?edit=${event.id}`}
-                  >
-                    {t("editEvent")}
                   </Button>
                 )}
                 <Button

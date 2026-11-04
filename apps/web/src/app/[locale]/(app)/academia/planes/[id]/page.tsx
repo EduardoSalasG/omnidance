@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { showActionNotice } from "@/components/ui/action-notice";
 
-import { Badge, Button, Card, PriceTag, RefreshIcon, Spinner } from "@/components/ui";
+import { Badge, Button, Card, ChevronRightIcon, PriceTag, RefreshIcon, Spinner } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -15,16 +15,17 @@ import { Link } from "@/i18n/navigation";
 import { useDateFmt } from "@/lib/intl";
 
 /**
- * /academia/planes/[id] - detalle del plan: datos, CTA de edición
- * (/academia/planes/nueva?edit=<id>) y alumnos con el plan vigente
- * (inicio/fin). El listado solo navega hasta acá.
+ * /academia/planes/[id] - detalle del plan: el card de entidad navega a
+ * editar (/academia/planes/nueva?edit=<id>), activar/desactivar queda
+ * como acción propia debajo y alumnos con el plan vigente (inicio/fin).
+ * El listado solo navega hasta acá.
  */
 export default function PlanDetailPage() {
   const t = useTranslations("academy");
   const params = useParams<{ id: string }>();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/academia/planes" backLabel={t("plans")} />
       <AcademyGate>
         {({ academy }) => (
@@ -122,48 +123,62 @@ function PlanDetail({
   return (
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h2 className="text-lg font-semibold">{plan.name}</h2>
-          <Badge variant="outline">
-            {t.has(`planTypes.${plan.type}`)
-              ? t(`planTypes.${plan.type}`)
-              : plan.type}
-          </Badge>
-          {!plan.active && (
-            <Badge variant="live">{t("planInactive")}</Badge>
-          )}
-          <PriceTag amount={plan.price} />
-        </div>
-        {plan.classCount != null && (
-          <p className="text-sm text-ink/60">
-            {t("planClasses")}: {plan.classCount}
-          </p>
-        )}
-        {plan.weeklyClasses != null && (
-          <p className="text-sm text-ink/60">
-            {t("planWeeklyCount", { count: plan.weeklyClasses })}
-          </p>
-        )}
-        {plan.description.length > 0 && (
-          <ul className="list-disc space-y-0.5 pl-5 text-sm text-ink/60">
-            {plan.description.map((d, i) => (
-              <li key={i}>{d}</li>
-            ))}
-          </ul>
-        )}
+        {/* Header de entidad desnudo (estándar industria: identidad de
+            la página sobre el canvas, las cajas son para secciones) -
+            el bloque navega a editar: chevron + nombre/chevron neon en
+            hover + focus ring en el Link. */}
+        <Link
+          href={`/academia/planes/nueva?edit=${plan.id}`}
+          className="group block rounded-2xl transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+        >
+          <div className="flex flex-col gap-3">
+            <div className="flex min-w-0 items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <h2 className="truncate text-lg font-semibold transition-colors group-hover:text-neon">
+                  {plan.name}
+                </h2>
+                {!plan.active && (
+                  <Badge variant="live">{t("planInactive")}</Badge>
+                )}
+              </div>
+              <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40 transition-colors group-hover:text-neon" />
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <Badge variant="outline">
+                {t.has(`planTypes.${plan.type}`)
+                  ? t(`planTypes.${plan.type}`)
+                  : plan.type}
+              </Badge>
+              <PriceTag amount={plan.price} />
+            </div>
+            {plan.classCount != null && (
+              <p className="text-sm text-ink/60">
+                {t("planClasses")}: {plan.classCount}
+              </p>
+            )}
+            {plan.weeklyClasses != null && (
+              <p className="text-sm text-ink/60">
+                {t("planWeeklyCount", { count: plan.weeklyClasses })}
+              </p>
+            )}
+            {plan.description.length > 0 && (
+              <ul className="list-disc space-y-0.5 pl-5 text-sm text-ink/60">
+                {plan.description.map((d, i) => (
+                  <li key={i}>{d}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </Link>
         {notice && (
           <p role="status" className="text-sm text-neon">
             {notice}
           </p>
         )}
+        {/* Activar/desactivar es mutación, no navegación: botón ghost
+            en fila propia debajo del card (nada interactivo dentro del
+            Link). */}
         <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            href={`/academia/planes/nueva?edit=${plan.id}`}
-          >
-            {t("editPlan")}
-          </Button>
           <Button
             size="sm"
             variant="ghost"
@@ -206,6 +221,7 @@ function PlanDetail({
                       {s.endsAt &&
                         ` · ${t("planUntil")} ${dateFmt.format(new Date(s.endsAt))}`}
                     </span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </Link>
                 </li>
               ))}

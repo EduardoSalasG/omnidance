@@ -5,11 +5,12 @@ import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
   Badge,
+  type BadgeVariant,
   Button,
   Card,
+  ChevronRightIcon,
   SkeletonList,
   Spinner,
-  type BadgeVariant,
 } from "@/components/ui";
 import type { PaymentAuditRow } from "@/components/payments/shared";
 import {
@@ -163,6 +164,7 @@ export function CobrosHistory({ academyId }: { academyId: string }) {
                 </p>
               </div>
               <Badge variant={r.variant}>{r.statusLabel}</Badge>
+              <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
             </Link>
           </li>
         ))}

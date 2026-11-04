@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Card, Pager, SkeletonList } from "@/components/ui";
+import { Card, ChevronRightIcon, Pager, SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -155,6 +155,7 @@ function ClaimsPanel() {
         <span className="ml-auto text-xs text-ink/40">
           {dayFmt.format(new Date(c.createdAt))}
         </span>
+        <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
       </div>
       {c.note && <p className="text-xs italic text-ink/50">“{c.note}”</p>}
     </>
@@ -240,6 +241,7 @@ function ClaimsPanel() {
                     {" · "}
                     {dayFmt.format(new Date(c.reviewedAt!))}
                   </span>
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                 </Link>
               </li>
             ))}

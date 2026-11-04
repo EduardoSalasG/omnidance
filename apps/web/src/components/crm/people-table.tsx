@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   Pager,
   RefreshIcon,
 } from "@/components/ui";
@@ -487,6 +488,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
                           {t("people.score")}
                         </p>
                       </div>
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 self-center text-ink/40" />
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">

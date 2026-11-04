@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Card, Pager, SkeletonList } from "@/components/ui";
+import { Card, ChevronRightIcon, Pager, SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { filterQuery } from "./shared";
 import { Link } from "@/i18n/navigation";
@@ -135,6 +135,7 @@ export function OrderClaimsQueue({ academyId }: { academyId: string }) {
         <span className="ml-auto text-xs text-ink/40">
           {claimDateFmt.format(new Date(c.createdAt))}
         </span>
+        <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
       </div>
       {c.note && <p className="text-xs italic text-ink/50">“{c.note}”</p>}
     </>
@@ -209,6 +210,7 @@ export function OrderClaimsQueue({ academyId }: { academyId: string }) {
                     {" · "}
                     {claimDateFmt.format(new Date(c.reviewedAt!))}
                   </span>
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                 </Link>
               </li>
             ))}

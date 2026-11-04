@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { showActionNotice } from "@/components/ui/action-notice";
-import { Button, Card, ConfirmSheet, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
+import { Button, Card, ChevronRightIcon, ConfirmSheet, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { CourseSurveyResults } from "@/components/academy/survey-results";
@@ -44,7 +44,7 @@ export default function InstructorDetailPage() {
   const params = useParams<{ id: string }>();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/academia/equipo" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
@@ -249,6 +249,7 @@ function Detail({
                     <span className="shrink-0 text-xs text-ink/40">
                       {t("bookingsOf", { count: c.bookings })}
                     </span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </Link>
                 </li>
               ))}

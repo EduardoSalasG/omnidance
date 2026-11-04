@@ -10,6 +10,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   EventDate,
   Pager,
   PriceTag,
@@ -237,6 +238,7 @@ export default function ProducerPayoutsPage() {
                           ? t(`payoutsPage.status.${p.status}`)
                           : p.status}
                       </Badge>
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                     </div>
 
                     <dl className="grid grid-cols-2 gap-3">

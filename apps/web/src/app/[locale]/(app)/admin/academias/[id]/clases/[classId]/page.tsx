@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   ClockIcon,
   RefreshIcon,
   SkeletonList,
@@ -97,7 +98,7 @@ function Panel({ academyId, classId }: { academyId: string; classId: string }) {
   }, [load]);
 
   const mainCls =
-    "mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4";
+    "mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4";
 
   if (error) {
     return (
@@ -210,6 +211,7 @@ function Panel({ academyId, classId }: { academyId: string; classId: string }) {
                 <span className="text-xs tabular-nums text-ink/50">
                   {fmtDate(b.createdAt, locale)}
                 </span>
+                <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
               </Link>
             ))}
           </Card>
@@ -240,6 +242,7 @@ function Panel({ academyId, classId }: { academyId: string; classId: string }) {
                   <ClockIcon className="h-3 w-3" />
                   {fmtDate(a.checkedAt, locale)}
                 </span>
+                <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
               </Link>
             ))}
           </Card>
