@@ -7,5 +7,5 @@ import { redirect } from "@/i18n/navigation";
 // la primera: General.
 export default async function AcademiaConfiguracionRedirect() {
   const locale = await getLocale();
-  redirect({ href: "/academia/configuracion/general", locale });
+  redirect({ href: "/academia/configuracion/clases", locale });
 }

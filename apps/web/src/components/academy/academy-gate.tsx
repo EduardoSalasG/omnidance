@@ -163,7 +163,7 @@ export function AcademyGate({
       {gate === "ready" && selected && (
         <>
           {/* Mora SaaS: banner de gracia/bloqueo arriba de todo el
-              contenido de la consola (en /academia/suscripcion el
+              contenido de la consola (en /academia/configuracion/suscripcion el
               componente se auto-omite - el estado va detallado ahí). */}
           <AcademyBillingBanner academy={selected} />
           {/* El wrapper vive dentro de la condición: un div vacío sigue

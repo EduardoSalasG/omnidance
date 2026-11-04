@@ -199,9 +199,10 @@
       "config": "Settings"
     },
     "configPages": {
-      "general": "Classes",
+      "classes": "Classes",
       "levels": "Levels",
-      "payments": "Payment methods",
+      "payMethods": "Payment methods",
+      "subscription": "Subscription",
       "profile": "Academy profile",
       "appearance": "Appearance",
       "import": "Import data"

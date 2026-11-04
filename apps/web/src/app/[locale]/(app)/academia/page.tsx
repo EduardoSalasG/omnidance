@@ -42,7 +42,7 @@ const MODULES = [
   // CRM con actorType=ACADEMY: sigue owner/ADMIN-only (requireAdminister
   // del backend - no es delegable por flags).
   { href: "/crm", key: "crm", ownerOnly: true },
-  { href: "/academia/suscripcion", key: "subscription", cap: "billing" },
+  { href: "/academia/configuracion/suscripcion", key: "subscription", cap: "billing" },
 ] as const;
 
 /**

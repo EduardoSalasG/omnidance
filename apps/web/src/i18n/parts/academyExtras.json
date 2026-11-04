@@ -288,9 +288,10 @@
       "config": "Configuración"
     },
     "configPages": {
-      "general": "Clases",
+      "classes": "Clases",
       "levels": "Niveles",
-      "payments": "Métodos de pago",
+      "payMethods": "Métodos de pago",
+      "subscription": "Suscripción",
       "profile": "Perfil de la academia",
       "appearance": "Apariencia",
       "import": "Importar datos"

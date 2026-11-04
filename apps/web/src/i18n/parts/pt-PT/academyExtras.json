@@ -199,9 +199,10 @@
       "config": "Definições"
     },
     "configPages": {
-      "general": "Aulas",
+      "classes": "Aulas",
       "levels": "Níveis",
-      "payments": "Métodos de pagamento",
+      "payMethods": "Métodos de pagamento",
+      "subscription": "Assinatura",
       "profile": "Perfil da academia",
       "appearance": "Aparência",
       "import": "Importar dados"
