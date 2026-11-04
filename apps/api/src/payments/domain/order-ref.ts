@@ -11,7 +11,7 @@
 // verdad (el formato legacy tkt_<event>_<code>_<uuid> se sigue
 // decodificando para pagos antiguos sin esas columnas).
 
-import { randomInt } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 
 const MAX_REF_LEN = 45;
 const UID_LEN = 8;
@@ -179,4 +179,28 @@ export function decodePlatformSubRef(refId: string): PlatformSubRef | null {
   const invoiceId = rest.join("_");
   if (!subscriptionId || !invoiceId) return null;
   return { subscriptionId, invoiceId };
+}
+
+// ─── Cobro suelto de plataforma (PLATFORM_CHARGE) ───
+// Formato: platchg_<uuid v4>. Cobros arbitrarios plataforma→actor
+// (deuda, fee especial, ajuste - spec payments/platform-charges) sin
+// suscripción asociada: el refId solo lleva correlación, el concepto
+// viaja en el payload del evento ORDER_CREATED. "platchg_" (8) + uuid
+// (36) = 44 chars - dentro del límite de 45 del commerceOrder de Flow.
+interface PlatformChargeRef {
+  uid: string;
+}
+
+export function encodePlatformChargeRef(): string {
+  return fits(`platchg_${randomUUID()}`);
+}
+
+export function decodePlatformChargeRef(
+  refId: string,
+): PlatformChargeRef | null {
+  const parts = refId.split("_");
+  if (parts.length !== 2 || parts[0] !== "platchg") return null;
+  const uid = parts[1];
+  if (!uid) return null;
+  return { uid };
 }

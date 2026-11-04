@@ -96,7 +96,24 @@
       "roleAdded": "Rôle attribué",
       "roleRevoked": "Rôle révoqué",
       "reactivated": "Compte réactivé",
-      "deleteOk": "Compte désactivé"
+      "deleteOk": "Compte désactivé",
+      "charge": {
+        "title": "Encaissement direct",
+        "body": "Débite un montant ponctuel sur le moyen de paiement enregistré de cette personne (dette, frais spécial, ajustement). Sans carte, la passerelle génère un lien de paiement.",
+        "amount": "Montant (CLP)",
+        "subject": "Motif",
+        "subjectPh": "Ex. Dette événement d'octobre",
+        "cta": "Encaisser",
+        "confirm": "Encaisser {amount} à {name} ? Motif : {subject}",
+        "confirmCta": "Confirmer l'encaissement",
+        "collected": "Encaissement confirmé",
+        "failed": "Le moyen de paiement a refusé le débit",
+        "pending": "Pas de carte enregistrée : partage le lien de paiement",
+        "payLink": "Lien de paiement",
+        "copyLink": "Copier le lien",
+        "copied": "Lien copié",
+        "invalid": "Saisis un montant valide et un motif"
+      }
     },
     "status": {
       "REJECTED": "Refusé"

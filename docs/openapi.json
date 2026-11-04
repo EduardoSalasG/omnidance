@@ -10582,6 +10582,30 @@
         ]
       }
     },
+    "/api/admin/platform-charges": {
+      "post": {
+        "operationId": "AdminPlatformChargesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlatformChargeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminPlatformCharges"
+        ]
+      }
+    },
     "/api/crm/people": {
       "get": {
         "operationId": "CrmController_listPeople",
@@ -12487,6 +12511,10 @@
         "properties": {}
       },
       "UpdateTierPriceDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreatePlatformChargeDto": {
         "type": "object",
         "properties": {}
       },

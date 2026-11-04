@@ -181,12 +181,31 @@ function UserDetailPanel({ personId }: { personId: string }) {
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [acting, setActing] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  // Confirmación compartida (revocar rol o hard-delete de la cuenta).
+  // Cobro directo (spec payments/platform-charges): monto + concepto,
+  // confirma por ConfirmSheet antes del cargo.
+  const [chargeAmount, setChargeAmount] = useState("");
+  const [chargeSubject, setChargeSubject] = useState("");
+  const [charging, setCharging] = useState(false);
+  const [chargeUrl, setChargeUrl] = useState<string | null>(null);
+  // Confirmación compartida (revocar rol, cobro directo o baja de la cuenta).
   const [pending, setPending] = useState<
-    { kind: "revoke"; role: string } | { kind: "delete" } | null
+    | { kind: "revoke"; role: string }
+    | { kind: "delete" }
+    | { kind: "charge" }
+    | null
   >(null);
   const router = useRouter();
   const [newRole, setNewRole] = useState("");
+  const clpFmt = useNumFmt({
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  });
+  const chargeAmountNum = Math.trunc(Number(chargeAmount));
+  const chargeValid =
+    Number.isFinite(chargeAmountNum) &&
+    chargeAmountNum >= 1 &&
+    chargeSubject.trim().length > 0;
 
   const roleLabel = useCallback(
     (r: string) =>
@@ -334,6 +353,63 @@ function UserDetailPanel({ personId }: { personId: string }) {
       setNotice({ text: tc("error"), error: true });
     } finally {
       setDeleting(false);
+    }
+  }
+
+  // Cobro suelto plataforma→actor (spec payments/platform-charges):
+  // COLLECTED ya liquidó PAID; FAILED fue rechazo del medio de pago;
+  // PENDING deja el link del proveedor para compartirlo manualmente.
+  async function directCharge() {
+    if (!detail || charging) return;
+    setCharging(true);
+    try {
+      const res = await apiFetch("/admin/platform-charges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personId,
+          amount: chargeAmountNum,
+          subject: chargeSubject.trim(),
+        }),
+      });
+      if (!res.ok) {
+        setNotice({
+          text: (await readError(res)) ?? tc("error"),
+          error: true,
+        });
+        return;
+      }
+      const r = (await res.json()) as {
+        outcome: string;
+        paymentUrl?: string;
+      };
+      if (r.outcome === "COLLECTED") {
+        setNotice({ text: t("users.charge.collected") });
+        setChargeAmount("");
+        setChargeSubject("");
+        setChargeUrl(null);
+      } else if (r.outcome === "FAILED") {
+        setNotice({ text: t("users.charge.failed"), error: true });
+        setChargeUrl(null);
+      } else {
+        setNotice({ text: t("users.charge.pending") });
+        setChargeUrl(r.paymentUrl ?? null);
+      }
+    } catch {
+      setNotice({ text: tc("error"), error: true });
+    } finally {
+      setCharging(false);
+      setPending(null);
+    }
+  }
+
+  async function copyChargeUrl() {
+    if (!chargeUrl) return;
+    try {
+      await navigator.clipboard.writeText(chargeUrl);
+      setNotice({ text: t("users.charge.copied") });
+    } catch {
+      setNotice({ text: tc("error"), error: true });
     }
   }
 
@@ -646,6 +722,95 @@ function UserDetailPanel({ personId }: { personId: string }) {
         {t("users.viewAnalytics")}
       </Button>
 
+      {/* Cobro directo (spec payments/platform-charges): cargo puntual
+          sobre el medio de pago registrado; sin tarjeta la pasarela
+          degrada a link y se comparte manualmente. */}
+      <section className="flex flex-col gap-3" aria-labelledby="charge-h">
+        <h2
+          id="charge-h"
+          className="text-sm font-semibold uppercase tracking-wide text-ink/50"
+        >
+          {t("users.charge.title")}
+        </h2>
+        <Card className="flex flex-col gap-3">
+          <p className="text-sm text-ink/60">{t("users.charge.body")}</p>
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!chargeValid || charging) return;
+              setPending({ kind: "charge" });
+            }}
+          >
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="charge-amount"
+                className="text-xs font-medium text-ink/60"
+              >
+                {t("users.charge.amount")}
+              </label>
+              <input
+                id="charge-amount"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                value={chargeAmount}
+                onChange={(e) => setChargeAmount(e.target.value)}
+                className={selectCls}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="charge-subject"
+                className="text-xs font-medium text-ink/60"
+              >
+                {t("users.charge.subject")}
+              </label>
+              <input
+                id="charge-subject"
+                type="text"
+                maxLength={140}
+                value={chargeSubject}
+                placeholder={t("users.charge.subjectPh")}
+                onChange={(e) => setChargeSubject(e.target.value)}
+                className={selectCls}
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={!chargeValid || charging}
+              className="self-start"
+            >
+              {charging ? tc("loading") : t("users.charge.cta")}
+            </Button>
+          </form>
+          {chargeUrl && (
+            <div className="flex flex-col gap-2 rounded-lg border border-line bg-canvas p-3">
+              <p className="text-xs font-medium text-ink/60">
+                {t("users.charge.payLink")}
+              </p>
+              <a
+                href={chargeUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="break-all text-sm text-neon underline"
+              >
+                {chargeUrl}
+              </a>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="self-start"
+                onClick={() => void copyChargeUrl()}
+              >
+                {t("users.charge.copyLink")}
+              </Button>
+            </div>
+          )}
+        </Card>
+      </section>
+
       {/* Zona de peligro - baja lógica auditada (soft delete: datos
           intactos, auth bloqueada; el admin puede reactivar). */}
       <Card className="flex flex-col gap-3 border-red-500/40">
@@ -679,18 +844,35 @@ function UserDetailPanel({ personId }: { personId: string }) {
         title={
           pending?.kind === "revoke"
             ? t("users.revokeConfirm", { role: roleLabel(pending.role) })
-            : t("users.delete.confirm", { name: detail.person.name })
+            : pending?.kind === "charge"
+              ? t("users.charge.confirm", {
+                  amount: clpFmt.format(chargeAmountNum),
+                  name: detail.person.name,
+                  subject: chargeSubject.trim(),
+                })
+              : t("users.delete.confirm", { name: detail.person.name })
         }
         confirmLabel={
           pending?.kind === "revoke"
             ? t("users.revoke")
-            : t("users.delete.cta")
+            : pending?.kind === "charge"
+              ? t("users.charge.confirmCta")
+              : t("users.delete.cta")
         }
-        busy={pending?.kind === "revoke" ? acting : deleting}
+        confirmVariant={pending?.kind === "charge" ? "primary" : "danger"}
+        busy={
+          pending?.kind === "revoke"
+            ? acting
+            : pending?.kind === "charge"
+              ? charging
+              : deleting
+        }
         onConfirm={() =>
           pending?.kind === "revoke"
             ? revoke(pending.role)
-            : void deleteUser()
+            : pending?.kind === "charge"
+              ? void directCharge()
+              : void deleteUser()
         }
         onClose={() => setPending(null)}
       />
