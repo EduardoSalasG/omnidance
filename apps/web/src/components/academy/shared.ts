@@ -201,6 +201,7 @@ export type AcademyLevelInsights = {
   // level de la serie), capacidad efectiva y asistencia reciente.
   bySlot: {
     slotId: string;
+    seriesId: string;
     seriesName: string;
     // Estilo de la serie (mismo display que la card de /clases).
     styleName: string | null;
@@ -406,6 +407,9 @@ export type Series = {
   style: NamedRef | null;
   level: NamedRef | null;
   types: { type: NamedRef }[];
+  // Roster de profesores habilitados (SERIES_INCLUDE): solo ellos son
+  // asignables a los horarios (spec serie habilita -> slot asigna).
+  instructors?: { person: { id: string; name: string | null } }[];
   slots: SeriesSlot[];
 };
 

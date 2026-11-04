@@ -24,6 +24,7 @@ export function AcademyKpiCards({
   onRetry,
   keys,
   extra,
+  ariaLabel,
 }: {
   data: AcademyDashboard | null;
   error?: boolean;
@@ -35,6 +36,10 @@ export function AcademyKpiCards({
    *  renderiza también en el estado skeleton: el caller decide si el
    *  slot tiene forma de carga (spec loading-states, sin pop-in). */
   extra?: React.ReactNode;
+  /** Label del landmark; default "Resumen del mes". En páginas con dos
+   *  strips (Extendido: resumen + facturación) el segundo lo pasa para
+   *  no duplicar landmarks con el mismo nombre. */
+  ariaLabel?: string;
 }) {
   const clpFmt = useNumFmt({
   style: "currency",
@@ -159,7 +164,10 @@ export function AcademyKpiCards({
   const visible = keys ? items.filter((k) => keys.includes(k.key)) : items;
 
   return (
-    <section aria-label={t("kpis.title")} data-tour="academy-kpis">
+    <section
+      aria-label={ariaLabel ?? t("kpis.title")}
+      data-tour="academy-kpis"
+    >
       {data === null ? (
         <ul
           aria-hidden="true"
@@ -218,10 +226,10 @@ export function AcademyKpiCards({
                         aria-hidden="true"
                         className={`mt-0.5 text-xs font-medium tabular-nums ${
                           delta! > 0
-                            ? "text-neon/80"
+                            ? "text-green-400"
                             : delta! < 0
-                              ? "text-warn"
-                              : "text-ink/40"
+                              ? "text-red-400"
+                              : "text-ink/50"
                         }`}
                       >
                         {deltaText} {t("kpis.vsPrevMonth")}

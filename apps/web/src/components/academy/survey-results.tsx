@@ -56,9 +56,12 @@ export function CourseSurveyResults({
 
   useEffect(() => {
     let cancelled = false;
+    // limit=60 sigue el cap del endpoint hermano de instructor; en
+    // /surveys hoy el server no lo implementa - queda el filtro
+    // seriesId + el preview acotado client-side (PREVIEW + SeeAllRow).
     const url = instructorId
       ? `/academies/${academyId}/instructors/${instructorId}/surveys?limit=60`
-      : `/academies/${academyId}/surveys${seriesId ? `?seriesId=${encodeURIComponent(seriesId)}` : ""}`;
+      : `/academies/${academyId}/surveys?limit=60${seriesId ? `&seriesId=${encodeURIComponent(seriesId)}` : ""}`;
     apiFetch(url)
       .then(async (res) => {
         if (cancelled) return;

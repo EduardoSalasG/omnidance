@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { apiFetch } from "@/lib/api";
@@ -79,11 +79,14 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const t = useTranslations("academySeries");
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
+  const tq = useTranslations("query");
 
   const [series, setSeries] = useState<Series[] | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [loadError, setLoadError] = useState(false);
+  // null = ok; status HTTP del fallo (0 = excepción de red) - 401/403
+  // elevan a forbidden, el resto a error con retry.
+  const [loadError, setLoadError] = useState<number | null>(null);
   // Default del listado: solo clases activas (spec academies/class-series).
   const [filters, setFilters] = useState<QueryFilters>({ status: "active" });
 
@@ -106,21 +109,21 @@ function SeriesModule({ academyId }: { academyId: string }) {
       });
 
   const reload = useCallback(async () => {
-    setLoadError(false);
+    setLoadError(null);
     try {
       const qs = filterQuery(filters);
       const res = await apiFetch(
         `/academies/${academyId}/series${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
       );
       if (!res.ok) {
-        setLoadError(true);
+        setLoadError(res.status);
         return;
       }
       const data = (await res.json()) as { items: Series[]; total: number };
       setSeries(data.items);
       setTotal(data.total);
     } catch {
-      setLoadError(true);
+      setLoadError(0);
     }
   }, [academyId, filters, page]);
 
@@ -157,7 +160,19 @@ function SeriesModule({ academyId }: { academyId: string }) {
       });
   }, [academyId]);
 
-  if (loadError) {
+  if (loadError !== null) {
+    // 401/403 no son transitorios: CTA de salida, no retry (mismo
+    // patrón que la ficha del horario).
+    if (loadError === 401 || loadError === 403) {
+      return (
+        <div className="flex flex-col items-start gap-4">
+          <p className="text-sm text-ink/60">{ta("forbidden")}</p>
+          <Button variant="secondary" size="sm" href="/academia">
+            {tc("back")}
+          </Button>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center gap-3">
         <p role="alert" className="text-sm text-ink/60">
@@ -194,7 +209,19 @@ function SeriesModule({ academyId }: { academyId: string }) {
       />
 
       {series.length === 0 ? (
-        <p className="text-sm text-ink/50">{t("empty")}</p>
+        // Filtros en el default ({status:"active"}) = academia sin
+        // series: empty de primera vez + CTA a crear. Con filtros
+        // activos es "sin resultados para esta consulta".
+        Object.keys(filters).length === 1 && filters.status === "active" ? (
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm text-ink/50">{t("empty")}</p>
+            <Button href="/academia/series/nueva" size="sm">
+              + {t("new")}
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm text-ink/50">{tq("empty")}</p>
+        )
       ) : (
         <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
           {series.map((s) => (

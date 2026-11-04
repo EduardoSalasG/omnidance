@@ -6,8 +6,9 @@ import { useTranslations } from "next-intl";
 import { useMe } from "@/lib/me-context";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
-import { useAcademyAccess } from "@/components/academy/use-academy-access";
+import { useAcademyAccessState } from "@/components/academy/use-academy-access";
 import { ModuleCard, ModuleGrid } from "@/components/console/module-grid";
+import { Button, RefreshIcon } from "@/components/ui";
 
 import {
   OnboardingRunner,
@@ -91,7 +92,12 @@ function AcademyHub({
   me: ReturnType<typeof useMe>["me"];
 }) {
   const router = useRouter();
-  const access = useAcademyAccess(academy.id);
+  const tc = useTranslations("common");
+  // state explícito: "error" muestra retry bajo el resumen (antes el
+  // fallo colapsaba a null y staff/instructor veía el hub sin grilla
+  // ni aviso - no distinguible de "cargando").
+  const { access, state: accessState, reload: reloadAccess } =
+    useAcademyAccessState(academy.id);
 
   // El hub del owner vive en /inicio (AcademyDashboard embebido en
   // HomeHub) - /academia queda como consola para staff/instructor/admin
@@ -150,6 +156,23 @@ function AcademyHub({
     <>
       {/* key por id: cambiar de academia remonta el resumen. */}
       <AcademyDashboard key={academy.id} academy={academy} />
+      {/* Error de /access: la grilla sigue oculta (sin caps no se
+          puede filtrar) pero el fallo se avisa con retry - el resumen
+          de arriba se conserva porque es fetch aparte. */}
+      {accessState === "error" && (
+        <div className="flex items-center gap-3">
+          <p role="alert" className="text-sm text-ink/60">
+            {tc("error")}
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={reloadAccess}
+          >
+            <RefreshIcon /> {tc("retry")}
+          </Button>
+        </div>
+      )}
       {showModuleGrid && (
         <div data-tour="academy-modules">
           <ModuleGrid>

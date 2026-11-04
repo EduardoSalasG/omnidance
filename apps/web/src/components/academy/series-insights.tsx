@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Card, Skeleton } from "@/components/ui";
+import { Card, ChevronRightIcon, Skeleton } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 
 type SeriesInsightsData = {
@@ -95,6 +95,7 @@ export function SeriesInsights({ academyId }: { academyId: string }) {
                       count: s.attendance,
                     })}
                   </span>
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                 </Link>
               </li>
             ))}

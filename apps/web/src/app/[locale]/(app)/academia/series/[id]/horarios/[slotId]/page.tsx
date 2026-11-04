@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { Suspense, use, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -9,12 +9,14 @@ import {
   Button,
   Card,
   ConfirmSheet,
+  PageLoading,
   RefreshIcon,
   SkeletonCard,
   Spinner,
 } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { InstructorChecklist } from "@/components/academy/instructor-checklist";
 import { inputCls, readError } from "@/components/academy/shared";
@@ -56,19 +58,48 @@ export default function SlotDetailPage({
   params: Promise<{ id: string; slotId: string }>;
 }) {
   const { id: seriesId, slotId } = use(params);
+  // useSearchParams (?from= del roster) exige boundary Suspense;
+  // fallback mínimo: el header real monta dentro de SlotChrome.
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6">
+      <Suspense fallback={<PageLoading />}>
+        <SlotChrome seriesId={seriesId} slotId={slotId} />
+      </Suspense>
+    </main>
+  );
+}
+
+function SlotChrome({
+  seriesId,
+  slotId,
+}: {
+  seriesId: string;
+  slotId: string;
+}) {
+  const backFrom = safeInternalPath(useSearchParams().get("from"));
+  const t = useTranslations("academySeries");
+  return (
+    <>
+      {/* ConsoleHeader siempre montado (ficha canónica series/[id]):
+          label canónico al listado; el detalle re-etiqueta cuando
+          resuelve origen/entidad. */}
+      <ConsoleHeader
+        backHref={backFrom ?? `/academia/series/${seriesId}`}
+        backLabel={t("title")}
+      />
       <AcademyGate>
         {({ academy }) => (
-          <SlotDetail
-            key={`${academy.id}:${seriesId}`}
-            academyId={academy.id}
-            seriesId={seriesId}
-            slotId={slotId}
-          />
+          <AcademyTierGate academy={academy} feature="classes">
+            <SlotDetail
+              key={`${academy.id}:${seriesId}`}
+              academyId={academy.id}
+              seriesId={seriesId}
+              slotId={slotId}
+            />
+          </AcademyTierGate>
         )}
       </AcademyGate>
-    </main>
+    </>
   );
 }
 
@@ -82,9 +113,6 @@ function SlotDetail({
   slotId: string;
 }) {
   const locale = useLocale();
-  // Origen contextual: quien llega desde el roster (?from=/academia/
-  // clases/:id) vuelve ahí - el padre canónico es la ficha de la serie.
-  const backFrom = safeInternalPath(useSearchParams().get("from"));
   const t = useTranslations("academySeries");
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
@@ -143,10 +171,9 @@ function SlotDetail({
     name: i.person.name,
   }));
 
-  async function save() {
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
     if (busy) return;
-    // El card no es <form>: required no valida solo, cortar fecha vacía.
-    if (slot?.oneOffDate && !date) return;
     setBusy(true);
     // Slot de taller: el PATCH manda `date` (reprogramar corre la misma
     // cascada que cambiar weekday: cancela + reembolsa + materializa la
@@ -154,19 +181,24 @@ function SlotDetail({
     const body = slot?.oneOffDate
       ? { date, startTime: start, endTime: end, instructorIds: instructors }
       : { weekday, startTime: start, endTime: end, instructorIds: instructors };
-    const res = await apiFetch(`/academies/${academyId}/slots/${slotId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    setBusy(false);
-    if (!res.ok) {
-      showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
-      return;
+    try {
+      const res = await apiFetch(`/academies/${academyId}/slots/${slotId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
+        return;
+      }
+      // Vuelve a la ficha de la serie: aviso global que sobrevive el push.
+      showActionNotice({ text: t("slotUpdated") });
+      router.push(`/academia/series/${slot?.series.id}`);
+    } catch {
+      showActionNotice({ text: tc("error"), error: true });
+    } finally {
+      setBusy(false);
     }
-    // Vuelve a la ficha de la serie: aviso global que sobrevive el push.
-    showActionNotice({ text: t("slotUpdated") });
-    router.push(`/academia/series/${slot?.series.id}`);
   }
 
   const remove = useCallback(async () => {
@@ -195,8 +227,8 @@ function SlotDetail({
   if (state === "forbidden" || state === "notfound") {
     return (
       <div className="flex flex-col items-start gap-4">
-        <p role="alert" className="text-sm text-ink/60">
-          {state === "forbidden" ? ta("forbidden") : t("notFound")}
+        <p className="text-sm text-ink/60">
+          {state === "forbidden" ? ta("forbidden") : t("slotNotFound")}
         </p>
         <Button
           variant="secondary"
@@ -230,12 +262,6 @@ function SlotDetail({
 
   return (
     <div className="flex flex-col gap-6">
-      <ConsoleHeader
-        backHref={backFrom ?? `/academia/series/${slot.series.id}`}
-        // El label nombra el destino: volviendo al roster es la página
-        // del horario (día·hora); canónico a la serie es su nombre.
-        backLabel={backFrom ? slotLabel : slot.series.name}
-      />
       {/* Header de entidad desnudo (console-patterns §3): esta página
           ES la superficie de edición del horario - el header no navega
           a ningún lado, solo da identidad a la página (h2). */}
@@ -248,7 +274,10 @@ function SlotDetail({
         )}
       </div>
       <Card className="flex flex-col gap-4">
-        <div className="grid grid-cols-3 gap-3">
+        {/* <form> real: `required` del input date valida nativo (antes
+            el guard de !date era silencioso) y Enter envía. */}
+        <form onSubmit={save} className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {slot.oneOffDate ? (
             <label className="flex flex-col gap-1">
               <span className="text-xs text-ink/50">{t("dateLabel")}</span>
@@ -275,16 +304,17 @@ function SlotDetail({
         </div>
         <div className="flex flex-col gap-2">
           <span className="text-xs text-ink/50">{t("slotInstructors")}</span>
-          <InstructorChecklist options={roster} selected={instructors} onChange={setInstructors} disabled={busy} />
+          <InstructorChecklist label={t("slotInstructors")} options={roster} selected={instructors} onChange={setInstructors} disabled={busy} />
           {roster.length === 0 && (
             <p className="text-xs text-ink/40">{t("slotNoRoster")}</p>
           )}
         </div>
         <div className="flex gap-2">
-          <Button size="sm" disabled={busy} onClick={() => void save()}>
+          <Button type="submit" size="sm" disabled={busy}>
             {busy ? <Spinner /> : tc("save")}
           </Button>
         </div>
+        </form>
       </Card>
       {/* Zona roja canónica (console-patterns §4): eliminar horario
           (borrado lógico si hay clases pasadas; cancela las futuras y

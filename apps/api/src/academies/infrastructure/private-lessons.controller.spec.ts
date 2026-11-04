@@ -604,6 +604,60 @@ describe("private-lesson-product", () => {
     expect(pending.person?.name).toBe("Nombre alumno");
   });
 
+  it("list: instructor puro ve solo sus lecciones; owner/staff ven todas", async () => {
+    prisma.lessons.push(
+      {
+        id: "les-inst",
+        academyId: "ac-1",
+        instructorId: "inst",
+        personId: "alumno",
+        scheduledAt: new Date("2026-10-06T20:00:00Z"),
+        price: 40000,
+        commissionPct: 25,
+        paymentId: "pay-2",
+        status: "REQUESTED",
+        createdAt: new Date(),
+      },
+      {
+        id: "les-otro",
+        academyId: "ac-1",
+        instructorId: "otro",
+        personId: "alumno",
+        scheduledAt: new Date("2026-10-07T20:00:00Z"),
+        price: 40000,
+        commissionPct: 0,
+        paymentId: "pay-3",
+        status: "REQUESTED",
+        createdAt: new Date(),
+      },
+    );
+    const mine = await lessons.list("ac-1", reqAs("inst"));
+    expect(mine.items.map((l) => l.id)).toEqual(["les-inst"]);
+    // Instructor puro que filtra por otro id queda scopeado igual
+    // (el scope me.id gana sobre el filtro explícito).
+    const scoped = await lessons.list(
+      "ac-1",
+      reqAs("inst"),
+      undefined,
+      "otro",
+    );
+    expect(scoped.items.map((l) => l.id)).toEqual(["les-inst"]);
+    // El owner conserva el listado completo y el filtro explícito.
+    const all = await lessons.list("ac-1", reqAs("owner"));
+    expect(all.items.map((l) => l.id).sort()).toEqual([
+      "les-inst",
+      "les-otro",
+      "les-p",
+    ]);
+    const filtered = await lessons.list(
+      "ac-1",
+      reqAs("owner"),
+      undefined,
+      "otro",
+    );
+    expect(filtered.items.map((l) => l.id)).toEqual(["les-otro"]);
+  });
+
   it("settings: privateLessonPrice editable por owner, 403 al resto", async () => {
     const res = await academies.updateSettings(
       "ac-1",

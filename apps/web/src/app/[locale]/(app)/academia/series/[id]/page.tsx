@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
 import { apiFetch } from "@/lib/api";
 import {
@@ -14,6 +14,7 @@ import {
   LIST_PREVIEW,
   RefreshIcon,
   SeeAllRow,
+  Spinner,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import {
@@ -29,7 +30,6 @@ import { CourseSurveyResults } from "@/components/academy/survey-results";
 import {
   inputCls,
   readError,
-  type AcademyInstructor,
   type Series,
 } from "@/components/academy/shared";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -98,7 +98,6 @@ function SeriesDetail({
   academyId: string;
   seriesId: string;
 }) {
-  const locale = useLocale();
   const t = useTranslations("academySeries");
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
@@ -109,6 +108,9 @@ function SeriesDetail({
     upcoming: SeriesClass[];
     past: SeriesClass[];
   } | null>(null);
+  // Error del fetch secundario de clases: sección propia, no tumba la
+  // ficha ni finge listas vacías (antes tragaba con {upcoming:[],past:[]}).
+  const [classesError, setClassesError] = useState(false);
   const [loadError, setLoadError] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
@@ -116,14 +118,11 @@ function SeriesDetail({
   // historial puede ser largo en series viejas).
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [showAllPast, setShowAllPast] = useState(false);
-  // Confirmación destructiva compartida: serie entera o un horario.
-  // La cancelación por instancia vive en la ficha de la clase
-  // (/academia/clases/[id], zona roja - spec workshop-one-off-class).
-  const [confirm, setConfirm] = useState<
-    | { kind: "series" }
-    | { kind: "slot"; slotId: string }
-    | null
-  >(null);
+  // Confirmación destructiva del borrado de la serie. La cancelación
+  // por instancia vive en la ficha de la clase (/academia/clases/[id],
+  // zona roja - spec workshop-one-off-class) y la de horarios en la
+  // ficha del horario.
+  const [confirm, setConfirm] = useState(false);
 
   // ─── mini-form "agregar horario" (PATCH addSlots) - día/hora +
   // instructor opcional; cupos y modalidad son de la serie. ───
@@ -132,9 +131,6 @@ function SeriesDetail({
   const [nsStart, setNsStart] = useState("19:00");
   const [nsEnd, setNsEnd] = useState("20:00");
   const [nsInstructors, setNsInstructors] = useState<string[]>([]);
-  const [instructors, setInstructors] = useState<AcademyInstructor[] | null>(
-    null,
-  );
 
   const clpFmt = useNumFmt({
         style: "currency",
@@ -157,58 +153,49 @@ function SeriesDetail({
         timeZone: "UTC",
       });
 
+  // Fetch secundario de clases: su error se marca por sección
+  // (classesError) y el retry de cada lista re-dispara solo este fetch.
+  const loadClasses = useCallback(async () => {
+    try {
+      const cRes = await apiFetch(
+        `/academies/${academyId}/series/${seriesId}/classes`,
+      );
+      if (!cRes.ok) {
+        setClassesError(true);
+        return;
+      }
+      setClasses(
+        (await cRes.json()) as {
+          upcoming: SeriesClass[];
+          past: SeriesClass[];
+        },
+      );
+      setClassesError(false);
+    } catch {
+      setClassesError(true);
+    }
+  }, [academyId, seriesId]);
+
   const reload = useCallback(async () => {
     setLoadError(null);
     try {
-      const [sRes, cRes] = await Promise.all([
+      const [sRes] = await Promise.all([
         apiFetch(`/academies/${academyId}/series/${seriesId}`),
-        apiFetch(`/academies/${academyId}/series/${seriesId}/classes`),
+        loadClasses(),
       ]);
       if (!sRes.ok) {
         setLoadError(sRes.status);
         return;
       }
       setSeries((await sRes.json()) as Series);
-      setClasses(
-        cRes.ok
-          ? ((await cRes.json()) as {
-              upcoming: SeriesClass[];
-              past: SeriesClass[];
-            })
-          : { upcoming: [], past: [] },
-      );
     } catch {
       setLoadError(0);
     }
-  }, [academyId, seriesId]);
+  }, [academyId, seriesId, loadClasses]);
 
   useEffect(() => {
     void reload();
   }, [reload]);
-
-  // Instructores de la academia para el override del horario.
-  // GET /academies/:id ya trae los nombres - el directorio completo
-  // era un request extra solo por ellos.
-  useEffect(() => {
-    void (async () => {
-      try {
-        const res = await apiFetch(`/academies/${academyId}`);
-        const detail = res.ok
-          ? ((await res.json()) as {
-              instructors?: { personId: string; name?: string | null }[];
-            })
-          : null;
-        setInstructors(
-          (detail?.instructors ?? []).map((i) => ({
-            personId: i.personId,
-            name: i.name ?? null,
-          })),
-        );
-      } catch {
-        setInstructors([]);
-      }
-    })();
-  }, [academyId]);
 
   // Devuelve éxito: el caller decide si cerrar UI asociada (ej. el
   // mini-form de horario no se cierra si el PATCH falla).
@@ -250,22 +237,23 @@ function SeriesDetail({
         { method: "DELETE" },
       );
       if (!res.ok) {
-        setConfirm(null);
+        setConfirm(false);
         setNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
       showActionNotice({ text: t("seriesDeleted") });
       router.replace("/academia/series");
     } catch {
-      setConfirm(null);
+      setConfirm(false);
       setNotice({ text: t("error"), error: true });
+    } finally {
       setBusy(false);
     }
   }
 
   async function addSlot(): Promise<void> {
     if (!nsStart || !nsEnd || nsStart >= nsEnd) {
-      setNotice({ text: t("error"), error: true });
+      setNotice({ text: t("invalidTimeRange"), error: true });
       return;
     }
     const ok = await patch({
@@ -283,35 +271,34 @@ function SeriesDetail({
     if (ok) setSlotForm(false);
   }
 
-  async function removeSlot(slotId: string): Promise<void> {
-    setBusy(true);
-    setNotice(null);
-    try {
-      const res = await apiFetch(
-        `/academies/${academyId}/slots/${slotId}`,
-        { method: "DELETE" },
-      );
-      if (!res.ok) {
-        setConfirm(null);
-        setNotice({ text: (await readError(res)) ?? t("error"), error: true });
-        return;
-      }
-      setConfirm(null);
-      setNotice({ text: t("updated") });
-      await reload();
-    } catch {
-      setConfirm(null);
-      setNotice({ text: t("error"), error: true });
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (loadError !== null) {
+    // 404 y 401/403 no son transitorios: CTA de salida, no retry
+    // (mismo patrón que la ficha del horario). El error genérico sí
+    // conserva role="alert" + retry.
+    if (loadError === 404) {
+      return (
+        <div className="flex flex-col items-start gap-4">
+          <p className="text-sm text-ink/60">{t("notFound")}</p>
+          <Button variant="secondary" size="sm" href="/academia/series">
+            {tc("back")}
+          </Button>
+        </div>
+      );
+    }
+    if (loadError === 401 || loadError === 403) {
+      return (
+        <div className="flex flex-col items-start gap-4">
+          <p className="text-sm text-ink/60">{ta("forbidden")}</p>
+          <Button variant="secondary" size="sm" href="/academia/series">
+            {tc("back")}
+          </Button>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center gap-3">
         <p role="alert" className="text-sm text-ink/60">
-          {loadError === 404 ? t("empty") : tc("error")}
+          {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void reload()}>
           <RefreshIcon /> {tc("retry")}
@@ -319,7 +306,9 @@ function SeriesDetail({
       </div>
     );
   }
-  if (!series || !classes) {
+  // classes null + classesError = falló el fetch secundario: se renderiza
+  // la ficha con el bloque de error por sección, no skeleton eterno.
+  if (!series || (classes === null && !classesError)) {
     return <SkeletonList />;
   }
 
@@ -424,6 +413,11 @@ function SeriesDetail({
           )}
         </div>
         <Card padded={false}>
+          {series.slots.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-ink/50">
+              {t("slotsEmpty")}
+            </p>
+          ) : (
           <ul className="divide-y divide-line">
             {series.slots.map((slot) => (
               <li key={slot.id}>
@@ -431,7 +425,7 @@ function SeriesDetail({
                     asignar plantel y eliminar viven ahí (console-patterns). */}
                 <Link
                   href={`/academia/series/${seriesId}/horarios/${slot.id}`}
-                  className="flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-elevated"
+                  className="flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
                 >
                   <span className="tabular-nums text-ink/80">
                     {/* Slot de taller: muestra su fecha puntual, no el
@@ -459,6 +453,7 @@ function SeriesDetail({
               </li>
             ))}
           </ul>
+          )}
         </Card>
         {series.active && slotForm && (
           <form
@@ -506,14 +501,15 @@ function SeriesDetail({
               <span className="text-xs text-ink/50">{t("slotInstructors")}</span>
               {/* Solo el roster habilitado de la serie es asignable. */}
               <InstructorChecklist
-                options={((series as { instructors?: { person: { id: string; name: string | null } }[] } | null)?.instructors ?? []).map((i) => ({ id: i.person.id, name: i.person.name }))}
+                options={(series.instructors ?? []).map((i) => ({ id: i.person.id, name: i.person.name }))}
                 selected={nsInstructors}
                 onChange={setNsInstructors}
+                label={t("slotInstructors")}
               />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="submit" size="sm" disabled={busy}>
-                {busy ? tc("loading") : t("addSlot")}
+                {busy ? <Spinner /> : t("addSlot")}
               </Button>
               <Button
                 type="button"
@@ -544,13 +540,26 @@ function SeriesDetail({
           {t("upcomingTitle")}
         </h3>
         <Card padded={false}>
-          {classes.upcoming.length === 0 ? (
+          {classesError ? (
+            <div className="flex items-center gap-3 px-4 py-4">
+              <p role="alert" className="text-sm text-ink/60">
+                {tc("error")}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void loadClasses()}
+              >
+                <RefreshIcon /> {tc("retry")}
+              </Button>
+            </div>
+          ) : (classes?.upcoming.length ?? 0) === 0 ? (
             <p className="px-4 py-4 text-sm text-ink/50">
               {t("upcomingEmpty")}
             </p>
           ) : (
             <ul className="divide-y divide-line">
-              {classes.upcoming
+              {(classes?.upcoming ?? [])
                 .slice(0, showAllUpcoming ? undefined : LIST_PREVIEW)
                 .map((c) => (
                 <li key={c.id} className="flex items-center">
@@ -583,7 +592,7 @@ function SeriesDetail({
                 </li>
               ))}
               <SeeAllRow
-                total={classes.upcoming.length}
+                total={classes?.upcoming.length ?? 0}
                 expanded={showAllUpcoming}
                 onToggle={() => setShowAllUpcoming((v) => !v)}
               />
@@ -601,11 +610,24 @@ function SeriesDetail({
           {t("pastTitle")}
         </h3>
         <Card padded={false}>
-          {classes.past.length === 0 ? (
+          {classesError ? (
+            <div className="flex items-center gap-3 px-4 py-4">
+              <p role="alert" className="text-sm text-ink/60">
+                {tc("error")}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void loadClasses()}
+              >
+                <RefreshIcon /> {tc("retry")}
+              </Button>
+            </div>
+          ) : (classes?.past.length ?? 0) === 0 ? (
             <p className="px-4 py-4 text-sm text-ink/50">{t("pastEmpty")}</p>
           ) : (
             <ul className="divide-y divide-line">
-              {classes.past
+              {(classes?.past ?? [])
                 .slice(0, showAllPast ? undefined : LIST_PREVIEW)
                 .map((c) => (
                 <li key={c.id}>
@@ -638,7 +660,7 @@ function SeriesDetail({
                 </li>
               ))}
               <SeeAllRow
-                total={classes.past.length}
+                total={classes?.past.length ?? 0}
                 expanded={showAllPast}
                 onToggle={() => setShowAllPast((v) => !v)}
               />
@@ -676,29 +698,19 @@ function SeriesDetail({
           size="sm"
           className="text-red-400 hover:text-red-300"
           disabled={busy}
-          onClick={() => setConfirm({ kind: "series" })}
+          onClick={() => setConfirm(true)}
         >
           {t("delete")}
         </Button>
       </div>
 
       <ConfirmSheet
-        open={confirm !== null}
-        title={
-          confirm?.kind === "slot"
-            ? t("removeSlotConfirm")
-            : t("deleteConfirm")
-        }
-        confirmLabel={
-          confirm?.kind === "slot" ? t("removeSlot") : t("delete")
-        }
+        open={confirm}
+        title={t("deleteConfirm")}
+        confirmLabel={t("delete")}
         busy={busy}
-        onConfirm={() =>
-          confirm?.kind === "slot"
-            ? void removeSlot(confirm.slotId)
-            : void remove()
-        }
-        onClose={() => setConfirm(null)}
+        onConfirm={() => void remove()}
+        onClose={() => setConfirm(false)}
       />
 
       <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />

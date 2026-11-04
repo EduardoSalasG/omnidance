@@ -37,6 +37,7 @@ export function AcademyGate({
 }) {
   const t = useTranslations("academy");
   const tc = useTranslations("common");
+  const tn = useTranslations("nav");
   const router = useRouter();
 
   const [gate, setGate] = useState<Gate>("loading");
@@ -45,7 +46,7 @@ export function AcademyGate({
 
   // ACADEMY_OWNER (APPROVED o PENDING - registrado por landing) puede
   // crear academias adicionales; instructor/staff de otras no ven el CTA.
-  const { me } = useMe();
+  const { me, loading: meLoading } = useMe();
   const canCreate = (me?.roleStates ?? []).some(
     (r) =>
       r.role === "ACADEMY_OWNER" &&
@@ -141,22 +142,40 @@ export function AcademyGate({
 
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-ink/70">{tc("error")}</p>
+          <p role="alert" className="text-ink/70">{tc("error")}</p>
           <Button variant="secondary" onClick={() => void boot()}>
             <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
 
-      {gate === "empty" && (
+      {/* empty espera a /me: canCreate decide entre form y "sin
+          acceso" - renderizar antes mostraría el aviso a un owner por
+          un instante. */}
+      {gate === "empty" && meLoading && <PageLoading />}
+      {gate === "empty" && !meLoading && (
         <div className="flex flex-col gap-4">
-          <p className="text-ink/70">{t("empty")}</p>
-          <Card>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-              {t("create")}
-            </h2>
-            <CreateAcademyForm onCreated={() => void boot()} />
-          </Card>
+          {canCreate ? (
+            <>
+              <p className="text-ink/70">{t("empty")}</p>
+              <Card>
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+                  {t("create")}
+                </h2>
+                <CreateAcademyForm onCreated={() => void boot()} />
+              </Card>
+            </>
+          ) : (
+            // mine=[] sin permiso de crear (staff/instructor removido o
+            // cuenta sin rol de academia): mostrar el form sería un
+            // dead-end - el backend rechaza el POST igual.
+            <div className="flex flex-col items-start gap-4">
+              <p className="text-ink/70">{t("forbidden")}</p>
+              <Button href="/inicio" variant="secondary">
+                {tn("home")}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

@@ -175,15 +175,29 @@ export class PrivateLessonsController {
     @Query("pageSize") pageSize?: string,
   ) {
     const me = req.person!;
-    const { academy } = await this.access.requireManage(id, me, "classes");
+    const { academy, ctx } = await this.access.requireManage(
+      id,
+      me,
+      "classes",
+    );
     const statusF = whitelist(status, PRIVATE_LESSON_STATUS, "status");
     const commissionF = whitelist(commission, COMMISSION_OPTS, "commission");
     const range = dayRange(from, to);
     const pg = pageParams(page, pageSize);
+    // Instructor puro (AcademyInstructor sin AcademyStaff, no owner ni
+    // ADMIN): el listado se scopea a sus lecciones - el módulo no está
+    // en su navegación pero el deep-link no debe exponer las de otros
+    // (spec academies/private-lesson-product).
+    const pureInstructor =
+      ctx.instructorIds.includes(me.id) &&
+      ctx.ownerId !== me.id &&
+      !me.roles.includes("ADMIN") &&
+      !(ctx.staff ?? []).some((s) => s.personId === me.id);
+    const scopeInstructorId = pureInstructor ? me.id : instructorId;
     const where = {
       academyId: id,
       ...(statusF ? { status: statusF } : {}),
-      ...(instructorId ? { instructorId } : {}),
+      ...(scopeInstructorId ? { instructorId: scopeInstructorId } : {}),
       // "pending"/"paid" operan sobre el snapshot >0 (acuerdo COMMISSION
       // vigente o histórico); las clases con otro acuerdo quedan fuera.
       ...(commissionF === "paid"
@@ -211,13 +225,16 @@ export class PrivateLessonsController {
           academyId: id,
           status: "REQUESTED",
           OR: [{ instructorId: null }, { scheduledAt: null }],
+          ...(pureInstructor ? { instructorId: me.id } : {}),
         },
       }),
       this.prisma.privateLesson.count({
         where: {
           academyId: id,
           status: "REQUESTED",
-          instructorId: { not: null },
+          instructorId: pureInstructor
+            ? me.id
+            : { not: null },
           scheduledAt: { not: null },
         },
       }),

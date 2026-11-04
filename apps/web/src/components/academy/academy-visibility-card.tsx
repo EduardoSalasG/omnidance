@@ -81,14 +81,18 @@ export function AcademyVisibilityCard({
             return (
               <li key={k}>
                 {href ? (
+                  // Chip clickeable: min-h-11 = target táctil ≥44px
+                  // (antes ~24px, difícil de pulsar en la consola).
                   <Link
                     href={href}
-                    className="inline-flex items-center rounded-full bg-elevated px-2 py-0.5 text-[11px] text-ink/60 transition-colors hover:bg-neon/15 hover:text-neon"
+                    className="inline-flex min-h-11 items-center rounded-full bg-elevated px-3 text-xs text-ink/60 transition-colors hover:bg-neon/15 hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                   >
                     ✗ {label}
                   </Link>
                 ) : (
-                  <span className="inline-flex items-center rounded-full bg-elevated px-2 py-0.5 text-[11px] text-ink/50">
+                  // No navega (name/ownerApproved): no es target; la
+                  // altura iguala a los chips clickeables de la fila.
+                  <span className="inline-flex min-h-11 items-center rounded-full bg-elevated px-3 text-xs text-ink/50">
                     {isReview ? "⏳" : "✗"} {label}
                   </span>
                 )}

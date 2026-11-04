@@ -5,7 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, RefreshIcon } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  ChevronRightIcon,
+  RefreshIcon,
+} from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { QuorumBar } from "./quorum-bar";
@@ -46,6 +51,7 @@ export function TeachingClasses() {
   const locale = useLocale();
   const t = useTranslations("instructor");
   const tc = useTranslations("common");
+  const tq = useTranslations("query");
 
   const [classes, setClasses] = useState<TeachingClass[] | null>(null);
   const [state, setState] = useState<LoadState>("loading");
@@ -111,7 +117,14 @@ export function TeachingClasses() {
     );
   }
   if (state === "forbidden") {
-    return <p className="text-sm text-ink/60">{t("forbidden")}</p>;
+    return (
+      <div className="flex flex-col items-start gap-4">
+        <p className="text-sm text-ink/60">{t("forbidden")}</p>
+        <Button variant="secondary" size="sm" href="/inicio">
+          {tc("back")}
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -141,7 +154,11 @@ export function TeachingClasses() {
           </Button>
         </div>
       ) : !classes || classes.length === 0 ? (
-        <p className="text-sm text-ink/50">{t("empty")}</p>
+        // Sin resultados con filtros activos el copy no es "sin clases
+        // asignadas": la consulta filtrada no devolvió filas.
+        <p className="text-sm text-ink/50">
+          {Object.keys(filters).length > 0 ? tq("empty") : t("empty")}
+        </p>
       ) : (
     <ul
       data-tour="academy-clases-list"
@@ -165,9 +182,12 @@ export function TeachingClasses() {
               </div>
 
               <div className="min-w-0">
-                <p className="truncate font-medium">
-                  {c.seriesName ?? c.academyName}
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="min-w-0 truncate font-medium">
+                    {c.seriesName ?? c.academyName}
+                  </p>
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                </div>
                 <p className="text-xs text-ink/60">
                   {c.academyName}
                   {c.styleName ? ` · ${c.styleName}` : ""}
