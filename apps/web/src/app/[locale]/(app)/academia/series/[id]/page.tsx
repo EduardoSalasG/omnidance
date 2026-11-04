@@ -9,6 +9,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   ConfirmSheet,
   RefreshIcon,
 } from "@/components/ui";
@@ -31,6 +32,10 @@ import {
 } from "@/components/academy/shared";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
+
+// Filas visibles por defecto en próximas/historial; "Ver todo"
+// expande al listado completo dentro de la misma ficha.
+const LIST_PREVIEW = 5;
 
 type SeriesClass = {
   id: string;
@@ -73,7 +78,7 @@ export default function SerieDetailPage() {
   const params = useParams<{ id: string }>();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:gap-4 lg:px-4">
       <ConsoleHeader backHref="/academia/series" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
@@ -109,6 +114,10 @@ function SeriesDetail({
   const [loadError, setLoadError] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
+  // Preview acotado de las listas: 5 filas + "Ver todo" expande (el
+  // historial puede ser largo en series viejas).
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+  const [showAllPast, setShowAllPast] = useState(false);
   // Confirmación destructiva compartida: serie entera o un horario.
   // La cancelación por instancia vive en la ficha de la clase
   // (/academia/clases/[id], zona roja - spec workshop-one-off-class).
@@ -333,71 +342,104 @@ function SeriesDetail({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Datos de la clase */}
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h2 className="text-lg font-semibold">{series.name}</h2>
-          {!series.active && <Badge variant="live">{t("inactive")}</Badge>}
+      {/* Datos de la clase - header de entidad: headline
+          identidad+estado, clasificación, descripción y datos en
+          <dl>. Desactivar/Reactivar vive en la zona inferior junto a
+          Eliminar. */}
+      {/* Header de entidad desnudo (estándar industria: la identidad
+          de la página va sobre el canvas, las cajas se reservan a las
+          secciones) - el bloque completo navega a editar: chevron +
+          nombre/chevron neon en hover + focus ring en el Link. */}
+      <Link
+        href={`/academia/series/nueva?edit=${series.id}`}
+        className="group block rounded-2xl transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+      >
+      <div className="flex flex-col gap-3">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <h2 className="truncate text-lg font-semibold transition-colors group-hover:text-neon">
+              {series.name}
+            </h2>
+            {!series.active && (
+              <Badge variant="live">{t("inactive")}</Badge>
+            )}
+          </div>
+          <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40 transition-colors group-hover:text-neon" />
         </div>
+        {(series.style || series.level || series.types.length > 0) && (
+          <div className="flex flex-wrap gap-1.5">
+            {series.style && (
+              <Badge variant="neon">{series.style.name}</Badge>
+            )}
+            {series.level && (
+              <Badge variant="muted">{series.level.name}</Badge>
+            )}
+            {series.types.map((x) => (
+              <Badge key={x.type.id} variant="outline">
+                {x.type.name}
+              </Badge>
+            ))}
+          </div>
+        )}
         {series.description && (
           <p className="text-sm text-ink/60">{series.description}</p>
         )}
-        <div className="flex flex-wrap gap-1.5">
-          {series.style && <Badge variant="neon">{series.style.name}</Badge>}
-          {series.level && <Badge variant="muted">{series.level.name}</Badge>}
-          {series.quorum != null && (
-            <Badge variant="outline">
-              {t("quorumValue", { value: series.quorum })}
-            </Badge>
-          )}
-          {series.types.map((x) => (
-            <Badge key={x.type.id} variant="outline">
-              {x.type.name}
-            </Badge>
-          ))}
-          {series.dropInPrice != null && (
-            <Badge variant="outline">
-              {t("dropInValue", { value: clpFmt.format(series.dropInPrice) })}
-            </Badge>
+        {(series.quorum != null || series.dropInPrice != null) && (
+          <dl className="flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-3 text-xs">
+            {series.quorum != null && (
+              <div className="flex items-baseline gap-1.5">
+                <dt className="text-ink/50">{t("quorum")}</dt>
+                <dd className="tabular-nums text-ink/80">
+                  {series.quorum}
+                </dd>
+              </div>
+            )}
+            {series.dropInPrice != null && (
+              <div className="flex items-baseline gap-1.5">
+                <dt className="text-ink/50">{t("dropIn")}</dt>
+                <dd className="tabular-nums text-ink/80">
+                  {clpFmt.format(series.dropInPrice)}
+                </dd>
+              </div>
+            )}
+          </dl>
+        )}
+      </div>
+      </Link>
+
+      {/* El DOM ordena mobile: Horarios → Encuestas → Próximas →
+          Pasadas. En lg la posición explícita por celda recompone el
+          2×2: Horarios+Próximas a la izquierda, Encuestas+Pasadas a la
+          derecha. La celda de encuestas es fija porque el componente
+          puede devolver null (carga, 403, sin permiso). */}
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+      {/* Horarios de la serie */}
+      <section
+        aria-label={t("slotsTitle")}
+        className="flex flex-col gap-3 lg:col-start-1 lg:row-start-1"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+            {t("slotsTitle")}
+          </h3>
+          {series.active && !slotForm && (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setSlotForm(true);
+                setNsWeekday(1);
+                setNsStart("19:00");
+                setNsEnd("20:00");
+                setNsInstructors([]);
+                setNotice(null);
+              }}
+            >
+              + {t("addSlot")}
+            </Button>
           )}
         </div>
-      </section>
-
-      {/* Acciones de la clase */}
-      <section aria-label={t("actions")} className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          variant="secondary"
-          href={`/academia/series/nueva?edit=${series.id}`}
-        >
-          {t("edit")}
-        </Button>
-        {series.active ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => void patch({ active: false })}
-          >
-            {t("deactivate")}
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => void patch({ active: true })}
-          >
-            {t("reactivate")}
-          </Button>
-        )}
-      </section>
-
-      {/* Horarios de la serie */}
-      <section aria-label={t("slotsTitle")} className="flex flex-col gap-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-          {t("slotsTitle")}
-        </h3>
         <Card padded={false}>
           <ul className="divide-y divide-line">
             {series.slots.map((slot) => (
@@ -422,37 +464,19 @@ function SeriesDetail({
                   {/* Plantel del horario (multi-instructor): co-profes
                       separados por " · " junto al horario. */}
                   {!!slot.instructors?.length && (
-                    <span className="truncate text-xs text-ink/50">
+                    <span className="min-w-0 truncate text-xs text-ink/50">
                       {slot.instructors
                         .map((i) => i.person.name)
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
                   )}
+                  <ChevronRightIcon className="ml-auto h-4 w-4 shrink-0 text-ink/40" />
                 </Link>
               </li>
             ))}
           </ul>
         </Card>
-        {series.active && !slotForm && (
-          <div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setSlotForm(true);
-                setNsWeekday(1);
-                setNsStart("19:00");
-                setNsEnd("20:00");
-                setNsInstructors([]);
-                setNotice(null);
-              }}
-            >
-              + {t("addSlot")}
-            </Button>
-          </div>
-        )}
         {series.active && slotForm && (
           <form
             className="flex flex-wrap items-end gap-2 rounded-xl border border-line bg-elevated p-3"
@@ -521,10 +545,17 @@ function SeriesDetail({
         )}
       </section>
 
+      {/* Encuestas mensuales del curso - solo owner/ADMIN (el endpoint
+          403 se oculta solo); anónimas por contrato. El wrapper sostiene
+          la celda del grid aunque el componente devuelva null. */}
+      <div className="lg:col-start-2 lg:row-start-1">
+        <CourseSurveyResults academyId={academyId} seriesId={series.id} />
+      </div>
+
       {/* Próximas clases con reservas */}
       <section
         aria-label={t("upcomingTitle")}
-        className="flex flex-col gap-3"
+        className="flex flex-col gap-3 lg:col-start-1 lg:row-start-2"
       >
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("upcomingTitle")}
@@ -536,7 +567,9 @@ function SeriesDetail({
             </p>
           ) : (
             <ul className="divide-y divide-line">
-              {classes.upcoming.map((c) => (
+              {classes.upcoming
+                .slice(0, showAllUpcoming ? undefined : LIST_PREVIEW)
+                .map((c) => (
                 <li key={c.id} className="flex items-center">
                   <Link
                     href={`/academia/clases/${c.id}`}
@@ -562,16 +595,33 @@ function SeriesDetail({
                     <span className="shrink-0 text-xs tabular-nums text-ink/50">
                       {t("bookedCount", { count: c.bookedCount })}
                     </span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </Link>
                 </li>
               ))}
+              {classes.upcoming.length > LIST_PREVIEW && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setShowAllUpcoming((v) => !v)}
+                    className="flex min-h-11 w-full items-center justify-center gap-1 px-4 py-2 text-sm font-medium text-neon transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+                  >
+                    {showAllUpcoming
+                      ? tc("showLess")
+                      : `${tc("seeAll")} (${classes.upcoming.length})`}
+                  </button>
+                </li>
+              )}
             </ul>
           )}
         </Card>
       </section>
 
       {/* Historial: clases pasadas con asistencia + profesor */}
-      <section aria-label={t("pastTitle")} className="flex flex-col gap-3">
+      <section
+        aria-label={t("pastTitle")}
+        className="flex flex-col gap-3 lg:col-start-2 lg:row-start-2"
+      >
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("pastTitle")}
         </h3>
@@ -580,7 +630,9 @@ function SeriesDetail({
             <p className="px-4 py-4 text-sm text-ink/50">{t("pastEmpty")}</p>
           ) : (
             <ul className="divide-y divide-line">
-              {classes.past.map((c) => (
+              {classes.past
+                .slice(0, showAllPast ? undefined : LIST_PREVIEW)
+                .map((c) => (
                 <li key={c.id}>
                   <Link
                     href={`/academia/clases/${c.id}`}
@@ -606,30 +658,61 @@ function SeriesDetail({
                     <span className="shrink-0 text-xs tabular-nums text-ink/50">
                       {t("attendedCount", { count: c.attendanceCount })}
                     </span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </Link>
                 </li>
               ))}
+              {classes.past.length > LIST_PREVIEW && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setShowAllPast((v) => !v)}
+                    className="flex min-h-11 w-full items-center justify-center gap-1 px-4 py-2 text-sm font-medium text-neon transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+                  >
+                    {showAllPast
+                      ? tc("showLess")
+                      : `${tc("seeAll")} (${classes.past.length})`}
+                  </button>
+                </li>
+              )}
             </ul>
           )}
         </Card>
       </section>
+      </div>
 
-      {/* Encuestas mensuales del curso - solo owner/ADMIN (el endpoint
-          403 se oculta solo); anónimas por contrato. */}
-      <CourseSurveyResults academyId={academyId} seriesId={series.id} />
-
-      {/* Zona destructiva al pie, centrada y en rojo - mismo patrón que
-          "Eliminar amigo" (/amigos/[id]). Borrado lógico: la serie se
-          desactiva y sale de la consola. */}
-      <div className="flex justify-center pt-2">
-        <button
-          type="button"
+      {/* Zona destructiva al pie: separada con border-t, centrada,
+          ghost rojo + ConfirmSheet (console-patterns §4). Borrado
+          lógico: la serie se desactiva y sale de la consola. */}
+      <div className="flex justify-center gap-2 border-t border-line pt-6">
+        {series.active ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={() => void patch({ active: false })}
+          >
+            {t("deactivate")}
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={() => void patch({ active: true })}
+          >
+            {t("reactivate")}
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-red-400 hover:text-red-300"
           disabled={busy}
           onClick={() => setConfirm({ kind: "series" })}
-          className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
         >
           {t("delete")}
-        </button>
+        </Button>
       </div>
 
       <ConfirmSheet
