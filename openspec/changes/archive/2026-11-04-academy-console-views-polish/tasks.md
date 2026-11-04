@@ -12,25 +12,25 @@
 
 ## Polish por sección (agentes paralelos herdr)
 
-- [ ] 2. `academia/alumnos` (3 páginas + students-section,
+- [x] 2. `academia/alumnos` (3 páginas + students-section,
   enrollment-form, enrollment-levels-editor, students-insights)
-- [ ] 3. `academia/planes` + `academia/promos` (+ plans-section,
+- [x] 3. `academia/planes` + `academia/promos` (+ plans-section,
   plan-form, academy-promo-form)
-- [ ] 4. `academia/cobros` (5 páginas + claims-queue, cobros-*,
+- [x] 4. `academia/cobros` (5 páginas + claims-queue, cobros-*,
   order-claims-queue)
-- [ ] 5. `academia/equipo` (6 páginas + staff-section,
+- [x] 5. `academia/equipo` (6 páginas + staff-section,
   instructor-section, staff-form, survey-results)
-- [ ] 6. `academia/videos` + `academia/preventas` (+ videos.tsx,
+- [x] 6. `academia/videos` + `academia/preventas` (+ videos.tsx,
   video-form, producer/academy-sales-section)
-- [ ] 7. `academia/configuracion/*` (clases, metodos-de-pago,
+- [x] 7. `academia/configuracion/*` (clases, metodos-de-pago,
   perfil, apariencia, importar) + componentes de sección
-- [ ] 8. `academia/configuracion/suscripcion` (academy-billing +
+- [x] 8. `academia/configuracion/suscripcion` (academy-billing +
   academy-billing-return)
-- [ ] 9. `/analitica` (página + surface propia; components/query
+- [x] 9. `/analitica` (página + surface propia; components/query
   read-only)
 
 ## Docs / cierre (orquestador)
 
-- [ ] 10. Integrar keys i18n reportadas, qa-flows-inventory (rutas
+- [x] 10. Integrar keys i18n reportadas, qa-flows-inventory (rutas
   nuevas + flujos tocados), tsc + i18n audit + lint global, review
   por sección, archivar el change.
