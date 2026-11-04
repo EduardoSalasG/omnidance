@@ -61,6 +61,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
   const locale = useLocale();
   const claimDateFmt = useDateFmt({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const t = useTranslations("academyPay");
+  const tq = useTranslations("query");
 
   const [claims, setClaims] = useState<QueueClaim[] | null>(null);
   const [total, setTotal] = useState(0);
@@ -133,7 +134,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
                   href={`/academia/cobros/claim/${c.id}`}
                   className="block rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
                 >
-                  <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/40">
+                  <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/60">
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span className="font-semibold">{c.person.name}</span>
                       <span className="text-ink/60">
@@ -142,6 +143,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
                       <span className="ml-auto text-xs text-ink/40">
                         {claimDateFmt.format(new Date(c.createdAt))}
                       </span>
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                     </div>
                     {c.note && (
                       <p className="text-xs italic text-ink/50">“{c.note}”</p>
@@ -194,6 +196,11 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
         }}
         options={{}}
       />
+      {filtered && claims.length === 0 && (
+        <p role="status" className="text-sm text-ink/50">
+          {tq("empty")}
+        </p>
+      )}
       {filtered && claims.length > 0 && (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {claims.map((c) => (
@@ -202,7 +209,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
                 href={`/academia/cobros/claim/${c.id}`}
                 className="block rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
               >
-                <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/40">
+                <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/60">
                   <div className="flex flex-wrap items-center gap-2 text-sm">
                     <span className="font-semibold">{c.person.name}</span>
                     <span className="text-ink/60">

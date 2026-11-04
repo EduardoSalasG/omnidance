@@ -5,7 +5,13 @@ import { useParams } from "next/navigation";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, Spinner } from "@/components/ui";
+import {
+  Badge,
+  type BadgeVariant,
+  Button,
+  Card,
+  Spinner,
+} from "@/components/ui";
 import { SkeletonCard } from "@/components/ui";
 import {
   ActionNotice,
@@ -13,7 +19,7 @@ import {
 } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
-import { readError } from "@/components/academy/shared";
+import { readError, shortId } from "@/components/academy/shared";
 import {
   AcademyPromoForm,
   type AcademyPromoPayload,
@@ -44,6 +50,29 @@ const fmtDate = (iso: string) =>
     month: "short",
     year: "numeric",
   }).format(new Date(iso));
+
+type PromoState =
+  | "stateActive"
+  | "stateScheduled"
+  | "stateExpired"
+  | "stateDisabled";
+
+// Mismo cálculo de estado que el listado (vigente/programada/expirada/
+// deshabilitada) con su mapa fijo de Badge.
+function statusKey(p: Promo): PromoState {
+  const now = Date.now();
+  if (!p.enabled) return "stateDisabled";
+  if (new Date(p.validUntil).getTime() < now) return "stateExpired";
+  if (new Date(p.validFrom).getTime() > now) return "stateScheduled";
+  return "stateActive";
+}
+
+const STATUS_VARIANT: Record<PromoState, BadgeVariant> = {
+  stateActive: "neon",
+  stateScheduled: "warn",
+  stateExpired: "muted",
+  stateDisabled: "muted",
+};
 
 /**
  * /academia/promos/[id] - ficha con datos, edición y el toggle
@@ -112,38 +141,64 @@ export default function AcademiaPromoDetailPage() {
             return (
               <div className="flex items-center gap-3">
                 <p role="alert" className="text-sm text-ink/60">
-                  {error ?? t("loadError")}
+                  {notFound
+                    ? t.has("notFound")
+                      ? t("notFound")
+                      : t("loadError")
+                    : (error ?? t("loadError"))}
                 </p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => void load(academy.id)}
-                >
-                  {t("retry")}
-                </Button>
+                {!notFound && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void load(academy.id)}
+                  >
+                    {t("retry")}
+                  </Button>
+                )}
               </div>
             );
           }
           if (!promo) return <SkeletonCard />;
+          const st = statusKey(promo);
           return (
             <section className="flex flex-col gap-5">
+              {/* Header de entidad desnudo: nombre + estado (la edición
+                  vive en el form de abajo - el header no navega). */}
+              <div className="flex min-w-0 items-center justify-between gap-3">
+                <h2 className="min-w-0 flex-1 truncate text-lg font-semibold">
+                  {promo.name}
+                </h2>
+                <Badge variant={STATUS_VARIANT[st]}>{t(st)}</Badge>
+              </div>
+
               {/* Stats del mantenedor (fuera del form - solo lectura). */}
-              <Card className="flex flex-col gap-1 p-4 text-sm">
-                <p>
-                  <span className="text-ink/50">{t("subsUsing")}: </span>
-                  {promo.subscriptionsCount}
-                </p>
-                <p>
-                  <span className="text-ink/50">{t("discountedPayments")}: </span>
-                  {promo.discountedPayments}
-                </p>
-                {promo.createdBy && (
-                  <p>
-                    <span className="text-ink/50">{t("createdBy")}: </span>
-                    {promo.createdBy.name ?? "—"}
-                  </p>
-                )}
-                <p className="text-xs text-ink/50">
+              <Card padded={false}>
+                <dl className="divide-y divide-line">
+                  <div className="flex items-center justify-between gap-3 px-4 py-3">
+                    <dt className="text-xs text-ink/50">{t("subsUsing")}</dt>
+                    <dd className="text-sm font-medium tabular-nums">
+                      {promo.subscriptionsCount}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 px-4 py-3">
+                    <dt className="text-xs text-ink/50">
+                      {t("discountedPayments")}
+                    </dt>
+                    <dd className="text-sm font-medium tabular-nums">
+                      {promo.discountedPayments}
+                    </dd>
+                  </div>
+                  {promo.createdBy && (
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <dt className="text-xs text-ink/50">{t("createdBy")}</dt>
+                      <dd className="min-w-0 truncate text-sm">
+                        {promo.createdBy.name ?? shortId(promo.createdBy.id)}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+                <p className="border-t border-line px-4 py-3 text-xs tabular-nums text-ink/50">
                   {t("window", {
                     from: fmtDate(promo.validFrom),
                     until: fmtDate(promo.validUntil),
@@ -202,6 +257,11 @@ export default function AcademiaPromoDetailPage() {
                       return;
                     }
                     setPromo(await res.json());
+                    // Feedback explícito del estado resultante (la
+                    // mutación antes era silenciosa en éxito).
+                    setNotice({
+                      text: promo.enabled ? t("enabledOff") : t("enabledOn"),
+                    });
                   }}
                 >
                   {toggling && <Spinner size="sm" />}

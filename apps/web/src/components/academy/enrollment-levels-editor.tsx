@@ -197,7 +197,7 @@ export function EnrollmentLevelsEditor({
             disabled={saving}
             onClick={() => void save()}
           >
-            {t("save")}
+            {saving ? tc("loading") : t("save")}
           </Button>
         </div>
       </Card>

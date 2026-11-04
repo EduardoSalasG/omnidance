@@ -158,7 +158,7 @@ export function OrderClaimsQueue({ academyId }: { academyId: string }) {
                   href={`/academia/cobros/orden/${c.id}`}
                   className="block rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
                 >
-                  <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/40">
+                  <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/60">
                     {claimLine(c)}
                     <p className="text-xs text-ink/40">
                       {t("viewReceipt")}
@@ -183,7 +183,7 @@ export function OrderClaimsQueue({ academyId }: { academyId: string }) {
               <li key={c.id}>
                 <Link
                   href={`/academia/cobros/orden/${c.id}`}
-                  className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-1 text-sm transition-colors hover:bg-neon/5"
+                  className="-mx-2 flex min-h-11 flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-2 py-1 text-sm transition-colors hover:bg-elevated/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                 >
                   <span className="font-semibold">{c.person.name}</span>
                   <span className="text-ink/60">
@@ -240,7 +240,7 @@ export function OrderClaimsQueue({ academyId }: { academyId: string }) {
                 href={`/academia/cobros/orden/${c.id}`}
                 className="block rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
               >
-                <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/40">
+                <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/60">
                   {claimLine(c)}
                 </div>
               </Link>

@@ -65,7 +65,7 @@ function PresaleDeals({ academyId }: { academyId: string }) {
   }, [load]);
 
   return (
-    <section className="flex flex-col gap-3">
+    <section aria-label={t("sectionTitle")} className="flex flex-col gap-3">
       {deals === null && !error && <SkeletonList items={3} lines={2} />}
       {error && (
         <div className="flex items-center gap-3">

@@ -2,10 +2,10 @@
 
 
 import { useCallback, useEffect, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, ChevronRightIcon, Pager, SkeletonList } from "@/components/ui";
+import { Badge, Button, Card, ChevronRightIcon, Pager, RefreshIcon, SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { filterQuery } from "./shared";
 import type { AcademyCap } from "./use-academy-access";
@@ -48,8 +48,6 @@ export const EMPTY_CAPS: Caps = {
   team: false,
   billing: false,
 };
-
-;
 
 export function CapCheckbox({
   cap,
@@ -94,22 +92,38 @@ export function StaffSection({ academyId }: { academyId: string }) {
   month: "short",
   year: "numeric",
 });
-  const locale = useLocale();
   const t = useTranslations("academyStaff");
+  const tq = useTranslations("query");
+  const tc = useTranslations("common");
 
   const [rows, setRows] = useState<StaffRow[] | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<QueryFilters>({});
+  const [failed, setFailed] = useState(false);
+  // 403 = staff sin la capacidad `team`: la sección se degrada a lista
+  // vacía sin CTA (no puede dar de alta) en vez de mostrar error.
+  const [denied, setDenied] = useState(false);
 
   const load = useCallback(async () => {
+    setFailed(false);
     const qs = filterQuery(filters);
     const res = await apiFetch(
       `/academies/${academyId}/staff${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
     ).catch(() => null);
-    const data = res?.ok
-      ? ((await res.json()) as { items: StaffRow[]; total: number })
-      : { items: [], total: 0 };
+    if (!res || (!res.ok && res.status !== 403)) {
+      setFailed(true);
+      setRows([]);
+      return;
+    }
+    if (res.status === 403) {
+      setDenied(true);
+      setRows([]);
+      setTotal(0);
+      return;
+    }
+    const data = (await res.json()) as { items: StaffRow[]; total: number };
+    setDenied(false);
     setRows(data.items);
     setTotal(data.total);
   }, [academyId, filters, page]);
@@ -119,6 +133,8 @@ export function StaffSection({ academyId }: { academyId: string }) {
   }, [load]);
 
   if (rows === null) return <SkeletonList />;
+
+  const hasFilters = Object.values(filters).some(Boolean);
 
   return (
     <Card className="flex flex-col gap-4">
@@ -137,8 +153,28 @@ export function StaffSection({ academyId }: { academyId: string }) {
         }}
         options={{}}
       />
-      {rows.length === 0 ? (
-        <p className="text-sm text-ink/60">{t("empty")}</p>
+      {failed ? (
+        <div className="flex items-center gap-3">
+          <p role="alert" className="text-sm text-ink/60">
+            {tc("error")}
+          </p>
+          <Button variant="secondary" size="sm" onClick={() => void load()}>
+            <RefreshIcon /> {tc("retry")}
+          </Button>
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-ink/60">
+            {hasFilters ? tq("empty") : t("empty")}
+          </p>
+          {!hasFilters && !denied && (
+            <div>
+              <Button href="/academia/equipo/nuevo" size="sm">
+                + {t("addTitle")}
+              </Button>
+            </div>
+          )}
+        </div>
       ) : (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {rows.map((r) => {
@@ -150,11 +186,11 @@ export function StaffSection({ academyId }: { academyId: string }) {
                   className="block rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
                 >
                   <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/40">
-                    <div className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className="font-semibold">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="min-w-0 flex-1 truncate font-semibold">
                         {r.person.name ?? r.person.email}
                       </span>
-                      <span className="ml-auto text-xs text-ink/40">
+                      <span className="shrink-0 text-xs tabular-nums text-ink/40">
                         {t("since", {
                           date: dayFmt.format(new Date(r.createdAt)),
                         })}

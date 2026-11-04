@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PillTabs } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
+import { ConsoleHeader } from "@/components/console/console-header";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
 
 // GET /admin/users/:personId/detail → person + historial de roles.
@@ -95,11 +96,6 @@ type MetaSections = {
 
 type BootPhase = "loading" | "ready" | "notfound" | "error";
 type SectionPhase = "loading" | "ready" | "notHeld" | "error";
-
-;
-;
-;
-;
 
 /** "23.4" → "23:24" - hora decimal del avgCheckinHour. */
 function fmtHour(v: number): string {
@@ -191,7 +187,11 @@ export default function AnaliticaUsuarioPage(
   const t = useTranslations("analytics");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-4xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
+      <ConsoleHeader
+        backHref="/analitica/usuarios"
+        backLabel={t("userSearch.title")}
+      />
       <AdminGate>
         <UserPanel personId={params.personId} />
       </AdminGate>
@@ -298,7 +298,9 @@ function UserPanel({ personId }: { personId: string }) {
   if (phase === "error" || !detail) {
     return (
       <Card className="flex flex-col items-center gap-3 py-6 text-center">
-        <p className="text-sm text-ink/70">{tc("error")}</p>
+        <p role="alert" className="text-sm text-ink/70">
+          {tc("error")}
+        </p>
         <Button variant="secondary" size="sm" onClick={() => void boot()}>
           {tc("retry")}
         </Button>
@@ -345,7 +347,9 @@ function UserPanel({ personId }: { personId: string }) {
 
       {sectionPhase === "error" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-ink/70">{tc("error")}</p>
+          <p role="alert" className="text-sm text-ink/70">
+            {tc("error")}
+          </p>
           <Button
             variant="secondary"
             size="sm"
@@ -442,14 +446,14 @@ function RoleSections({
 }) {
   const num = useNumFmt();
   const clp = useNumFmt({
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  });
   const dateTimeFmt = useDateFmt({
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
   const dateFmt = useDateFmt({ dateStyle: "medium" });
   const t = useTranslations("analytics");
   const tp = useTranslations("profile");
@@ -689,7 +693,11 @@ function RoleSections({
           {d.academies.length > 0 && (
             <SectionCard title={f("academies")}>
               {d.academies.map((a) => (
-                <Row key={a.id} label={a.name} value="" />
+                <li key={a.id} className="py-2.5">
+                  <span className="block truncate text-sm font-medium">
+                    {a.name}
+                  </span>
+                </li>
               ))}
             </SectionCard>
           )}
@@ -732,7 +740,11 @@ function RoleSections({
           {d.venues.length > 0 && (
             <SectionCard title={f("venues")}>
               {d.venues.map((v) => (
-                <Row key={v.id} label={v.name} value="" />
+                <li key={v.id} className="py-2.5">
+                  <span className="block truncate text-sm font-medium">
+                    {v.name}
+                  </span>
+                </li>
               ))}
             </SectionCard>
           )}

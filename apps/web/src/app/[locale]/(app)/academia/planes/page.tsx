@@ -10,7 +10,6 @@ import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { PlansSection } from "@/components/academy/plans-section";
 import { FilterBar } from "@/components/query/FilterBar";
-import { ConsoleHeader } from "@/components/console/console-header";
 import {
   filterQuery,
   inputCls,
@@ -44,15 +43,14 @@ export default function AcademiaPlanesPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
-      <ConsoleHeader
-        backHref="/academia"
-        backLabel={t("title")}
-        actions={
-          <Button href="/academia/planes/nueva" size="sm">
-            + {t("newPlan")}
-          </Button>
-        }
-      />
+      {/* Item directo del drawer: sin ConsoleHeader (el título y la
+          navegación son del chrome). El CTA de crear queda en fila
+          propia a la derecha, como renderizaba el header en raíz. */}
+      <div className="flex justify-end">
+        <Button href="/academia/planes/nueva" size="sm">
+          + {t("newPlan")}
+        </Button>
+      </div>
       <AcademyGate>
         {({ academy }) => (
           <PlansModule key={academy.id} academyId={academy.id} />
@@ -178,7 +176,15 @@ function PlansModule({ academyId }: { academyId: string }) {
           </select>
         </label>
       </div>
-      {plans === null ? <SkeletonList /> : <PlansSection plans={plans} />}
+      {/* Vacío con filtros activos ≠ vacío real: el copy lo distingue
+          (la FilterBar sigue montada para limpiar). */}
+      {plans === null ? (
+        <SkeletonList />
+      ) : plans.length === 0 && Object.keys(filters).length > 0 ? (
+        <p className="text-sm text-ink/50">{tq("empty")}</p>
+      ) : (
+        <PlansSection plans={plans} />
+      )}
       {plans !== null && plans.length > 0 && (
         <Pager
           page={page}

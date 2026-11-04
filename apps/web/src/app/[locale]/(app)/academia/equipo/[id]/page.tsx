@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { showActionNotice } from "@/components/ui/action-notice";
-import { Badge, Button, Card, ConfirmSheet, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
+import { Badge, Button, Card, ConfirmSheet, RefreshIcon, SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { CAPS, type Caps } from "@/components/academy/staff-section";
@@ -18,8 +18,6 @@ type StaffDetail = {
   caps: Caps;
   createdAt: string;
 };
-
-;
 
 /**
  * /academia/equipo/[id] - detalle del colaborador (nivel 2): datos,
@@ -57,7 +55,6 @@ function Detail({
   month: "short",
   year: "numeric",
 });
-  const locale = useLocale();
   const t = useTranslations("academyStaff");
   const tc = useTranslations("common");
   const router = useRouter();
@@ -96,6 +93,7 @@ function Detail({
         showActionNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
+      showActionNotice({ text: t("removed") });
       router.push("/academia/equipo");
     } catch {
       setConfirmRemove(false);
@@ -125,7 +123,7 @@ function Detail({
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">
-          {detail.person.name ?? detail.person.email}
+          {detail.person.name ?? detail.person.email ?? personId}
         </h2>
         <Card className="flex flex-col gap-3 p-4">
           <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
@@ -177,18 +175,18 @@ function Detail({
         </Card>
       </section>
 
-      {/* Zona destructiva al pie, centrada y en rojo - mismo patrón que
-          "Eliminar amigo" (/amigos/[id]) y la baja del profesor. */}
-      <div className="flex justify-center pt-2">
-        <button
-          type="button"
+      {/* Zona destructiva al pie (console-patterns §4): div centrado
+          separado por border-t, ghost rojo + ConfirmSheet. */}
+      <div className="flex justify-center border-t border-line pt-6">
+        <Button
+          variant="ghost"
+          size="sm"
           disabled={busy}
           onClick={() => setConfirmRemove(true)}
-          className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
+          className="text-red-400 hover:text-red-300"
         >
-          {busy ? <Spinner size="sm" /> : null}
           {t("remove")}
-        </button>
+        </Button>
       </div>
 
       <ConfirmSheet

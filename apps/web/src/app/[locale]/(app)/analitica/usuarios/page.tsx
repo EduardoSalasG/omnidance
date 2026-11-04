@@ -4,9 +4,15 @@ import { useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ChevronRightIcon,
+  SkeletonList,
+} from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
-import { ConsoleHeader } from "@/components/console/console-header";
+import { inputCls } from "@/components/academy/shared";
 import { Link } from "@/i18n/navigation";
 
 // Envelope de GET /admin/users?q= - liviano, sin analítica por rol.
@@ -31,11 +37,8 @@ const DEBOUNCE_MS = 300;
  * vista de insights, no a la gestión de roles.
  */
 export default function AnaliticaUsuariosPage() {
-  const t = useTranslations("analytics");
-
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-5xl lg:px-8">
-      <ConsoleHeader backHref="/analitica" backLabel={t("title")} />
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-none lg:px-4">
       <AdminGate>
         <SearchPanel />
       </AdminGate>
@@ -53,16 +56,19 @@ function SearchPanel() {
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [actionError, setActionError] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
 
   const q = userQuery.trim();
 
   // Búsqueda con debounce: solo consulta el server con ≥2 caracteres
-  // (el endpoint devuelve [] con menos, nunca lista masiva).
+  // (el endpoint devuelve [] con menos, nunca lista masiva). retryTick
+  // re-dispara el fetch desde el botón del estado de error.
   useEffect(() => {
     if (q.length < MIN_QUERY) {
       setUsers([]);
       setSearched(false);
       setSearching(false);
+      setActionError(false);
       return;
     }
     setSearching(true);
@@ -73,12 +79,13 @@ function SearchPanel() {
           const data = (await res.json()) as { items: SearchUser[] };
           setUsers(data.items);
           setSearched(true);
+          setActionError(false);
         })
         .catch(() => setActionError(true))
         .finally(() => setSearching(false));
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [q]);
+  }, [q, retryTick]);
 
   const roleLabel = (r: string) =>
     tp.has(`roleLabels.${r}`) ? tp(`roleLabels.${r}`) : r;
@@ -91,9 +98,18 @@ function SearchPanel() {
       </header>
 
       {actionError && (
-        <p role="alert" className="text-sm text-red-400">
-          {tc("error")}
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p role="alert" className="text-sm text-red-400">
+            {tc("error")}
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setRetryTick((n) => n + 1)}
+          >
+            {tc("retry")}
+          </Button>
+        </div>
       )}
 
       <input
@@ -102,7 +118,7 @@ function SearchPanel() {
         placeholder={t("userSearch.search")}
         aria-label={t("userSearch.search")}
         type="search"
-        className="min-h-[44px] w-full rounded-lg border border-ink/15 bg-canvas px-3 text-sm"
+        className={inputCls}
       />
 
       {q.length === 0 && (
@@ -111,10 +127,11 @@ function SearchPanel() {
       {q.length === 1 && (
         <p className="text-sm text-ink/50">{t("userSearch.minChars")}</p>
       )}
-      {searching && q.length >= MIN_QUERY && (
-        <p role="status" className="text-sm text-ink/50">
-          {tc("loading")}
-        </p>
+      {/* Mientras busca: skeleton solo si aún no hay resultados; con
+          resultados previos se conservan hasta que llegue la nueva
+          respuesta (nada de "Cargando…" de texto plano). */}
+      {searching && q.length >= MIN_QUERY && users.length === 0 && (
+        <SkeletonList items={3} />
       )}
       {!searching && searched && users.length === 0 && (
         <p className="text-sm text-ink/50">{t("userSearch.noResults")}</p>
@@ -127,30 +144,33 @@ function SearchPanel() {
               href={`/analitica/usuarios/${u.id}`}
               className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
-              <Card className="flex min-h-[44px] flex-col gap-2 transition-colors hover:border-neon/60">
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate font-semibold">{u.name}</span>
-                  {u.email && (
-                    <span className="truncate text-sm text-ink/60">
-                      {u.email}
-                    </span>
+              <Card className="flex min-h-11 items-center gap-3 transition-colors hover:border-neon/60">
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
+                  <div className="flex min-w-0 flex-col">
+                    <span className="truncate font-semibold">{u.name}</span>
+                    {u.email && (
+                      <span className="truncate text-sm text-ink/60">
+                        {u.email}
+                      </span>
+                    )}
+                  </div>
+                  {u.roles.length > 0 && (
+                    <ul className="flex flex-wrap gap-1.5">
+                      {u.roles.map((r) => (
+                        <li key={r.id}>
+                          <Badge
+                            variant={
+                              r.status === "APPROVED" ? "neon" : "outline"
+                            }
+                          >
+                            {roleLabel(r.role)}
+                          </Badge>
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
-                {u.roles.length > 0 && (
-                  <ul className="flex flex-wrap gap-1.5">
-                    {u.roles.map((r) => (
-                      <li key={r.id}>
-                        <Badge
-                          variant={
-                            r.status === "APPROVED" ? "neon" : "outline"
-                          }
-                        >
-                          {roleLabel(r.role)}
-                        </Badge>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
               </Card>
             </Link>
           </li>

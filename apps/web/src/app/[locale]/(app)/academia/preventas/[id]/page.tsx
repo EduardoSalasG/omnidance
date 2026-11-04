@@ -194,25 +194,36 @@ function DealDetail({
         </div>
       )}
       {state === "notFound" && (
-        <p role="alert" className="text-sm text-ink/70">
-          {t("notFound")}
-        </p>
+        <div className="flex flex-col items-start gap-3">
+          <p role="alert" className="text-sm text-ink/70">
+            {t("notFound")}
+          </p>
+          <Button
+            href="/academia/preventas"
+            size="sm"
+            variant="secondary"
+          >
+            {tc("back")}
+          </Button>
+        </div>
       )}
 
       {state === "ok" && deal && (
+        <div className="flex flex-col gap-6">
+        {/* Header de entidad desnudo: la identidad va sobre el canvas
+            (el acuerdo no tiene página de editar, no es Link). */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h2 className="text-lg font-semibold">
+            {deal.eventName ?? deal.seriesName ?? deal.id}
+          </h2>
+          <Badge variant={STATUS_VARIANT[deal.status] ?? "muted"}>
+            {t.has(`status.${deal.status}`)
+              ? t(`status.${deal.status}`)
+              : deal.status}
+          </Badge>
+        </div>
         <Card className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-xl font-bold">
-              {deal.eventName ?? deal.seriesName ?? deal.id}
-            </h2>
-            <Badge variant={STATUS_VARIANT[deal.status] ?? "muted"}>
-              {t.has(`status.${deal.status}`)
-                ? t(`status.${deal.status}`)
-                : deal.status}
-            </Badge>
-          </div>
-
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
             <div>
               <dt className="text-xs text-ink/50">{t("commission")}</dt>
               <dd className="tabular-nums">{deal.commissionPct}%</dd>
@@ -356,6 +367,7 @@ function DealDetail({
           )}
 
         </Card>
+        </div>
       )}
 
       <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />

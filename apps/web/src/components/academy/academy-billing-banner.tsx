@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import { useTranslations } from "next-intl";
 import { useMe } from "@/lib/me-context";
 import type { Academy } from "./shared";
@@ -18,8 +16,8 @@ const DAY_MS = 86_400_000;
  * - billingGraceUntil > ahora → banner ámbar con los días de gracia.
  * El CTA a /academia/configuracion/suscripcion solo se muestra a owner/ADMIN (los
  * endpoints de billing son requireAdminister) - usa el /me compartido;
- * mientras resuelve, el slot del CTA queda reservado con un skeleton
- * pill para que el banner no se reajuste al resolver. En la propia
+ * mientras resuelve no se pinta CTA (al manager le aparece una sola
+ * vez, mejor que un bloque fantasma que colapsa). En la propia
  * página de suscripción no se repite: el estado ya va detallado ahí.
  */
 export function AcademyBillingBanner({ academy }: { academy: Academy }) {
@@ -72,7 +70,7 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
         role="alert"
         className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
       >
-        {t("bannerBlocked")}
+        <p className="min-w-0">{t("bannerBlocked")}</p>
         {cta}
       </div>
     );
@@ -83,7 +81,7 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
       role="alert"
       className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-sm text-warn"
     >
-      {t("bannerGrace", { days: graceDays ?? 0 })}
+      <p className="min-w-0">{t("bannerGrace", { days: graceDays ?? 0 })}</p>
       {cta}
     </div>
   );

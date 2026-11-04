@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -8,8 +7,6 @@ import { Button, Card, RefreshIcon, Skeleton } from "@/components/ui";
 import type { Academy, AcademyDashboard } from "./shared";
 import { Link } from "@/i18n/navigation";
 import { useNumFmt } from "@/lib/intl";
-
-;
 
 // Academia seleccionada persiste en localStorage (misma key que
 // AcademyGate) - el strip autocontenido la respeta al auto-resolver.
@@ -209,7 +206,7 @@ export function AcademyKpiCards({
                   aria-label={`${label}: ${k.value ?? t("kpis.noData")}. ${k.hint}`}
                   className="block h-full rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98]"
                 >
-                  <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/40">
+                  <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/60">
                     <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
                       {label}
                     </span>

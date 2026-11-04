@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 
-import { Badge, Button, Card, SkeletonList } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ChevronRightIcon,
+  SkeletonList,
+} from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 
 export type Method = {
@@ -102,7 +108,16 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
       ) : methods === null ? (
         <SkeletonList items={2} lines={1} />
       ) : methods.length === 0 ? (
-        <p className="text-sm text-ink/50">{t("methodsEmpty")}</p>
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-sm text-ink/50">{t("methodsEmpty")}</p>
+          <Button
+            variant="secondary"
+            size="sm"
+            href="/academia/configuracion/metodos-de-pago/nuevo"
+          >
+            + {t("addMethod")}
+          </Button>
+        </div>
       ) : (
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {methods.map((m) => (
@@ -112,10 +127,12 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
                 className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm transition-colors hover:border-neon/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
               >
                 {/* Card completo clickeable → detalle/edición del medio
-                    (activar/desactivar y eliminar viven en la ficha). */}
+                    (activar/desactivar y eliminar viven en la ficha).
+                    El chevron marca la navegabilidad donde no hay hover. */}
                 <span className="font-medium">{m.label}</span>
                 <Badge variant="outline">{t(TYPE_KEYS[m.type])}</Badge>
                 {!m.active && <Badge variant="muted">{t("inactive")}</Badge>}
+                <ChevronRightIcon className="ml-auto h-4 w-4 shrink-0 text-ink/40" />
               </Link>
             </li>
           ))}

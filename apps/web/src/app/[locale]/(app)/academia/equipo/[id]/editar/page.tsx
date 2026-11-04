@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, RefreshIcon, SkeletonList } from "@/components/ui";
+import { Button, Card, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -145,7 +145,8 @@ function EditCaps({
         </div>
         <div>
           <Button type="submit" size="sm" disabled={busy}>
-            {busy ? t("adding") : t("saveCaps")}
+            {busy ? <Spinner className="h-4 w-4" /> : null}
+            {t("saveCaps")}
           </Button>
         </div>
       </form>

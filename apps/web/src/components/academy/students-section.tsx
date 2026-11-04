@@ -76,6 +76,7 @@ export function StudentsSection({
   const locale = useLocale();
   const t = useTranslations("academy");
   const tc = useTranslations("common");
+  const tq = useTranslations("query");
   const tp = useTranslations("practices");
   const tcrm = useTranslations("crm");
 
@@ -189,8 +190,10 @@ export function StudentsSection({
           </Button>
         </div>
       ) : students.length === 0 ? (
+        // Con filtros activos el vacío es del filtro (el FilterBar se
+        // conserva para limpiar); sin filtros es la cartera vacía.
         <p role="status" className="text-sm text-ink/50">
-          {t("studentsEmpty")}
+          {filterQuery(filters) !== "" ? tq("empty") : t("studentsEmpty")}
         </p>
       ) : (
         <ul
@@ -207,7 +210,7 @@ export function StudentsSection({
                 })}
                 className="block rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
               >
-                <Card className="flex h-full flex-col gap-2 p-4 transition-colors hover:border-neon/40">
+                <Card className="flex h-full flex-col gap-2 p-4 transition-colors hover:border-neon/60">
                   {/* Nombre: primera sección de la card y a fila
                       completa; nunca compite por ancho con badges ni
                       score, así que el truncate siempre deja leerlo. */}

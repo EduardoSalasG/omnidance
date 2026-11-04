@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { getNumFmt } from "@/lib/intl";
 import { useMe } from "@/lib/me-context";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, SkeletonCard, Spinner } from "@/components/ui";
 import {
   ActionNotice,
   type ActionNoticeData,
@@ -58,13 +58,19 @@ export function AcademySettings({ academy }: { academy: Academy }) {
     !!me &&
     (me.roles.includes("ADMIN") || me.id === academy.ownerId);
 
-  // Deep link sin permiso: mensaje explícito en vez de página en blanco.
-  if (meLoading) return null;
+  // Mientras /me resuelve: skeleton (no revela el card a instructores).
+  if (meLoading) return <SkeletonCard />;
+  // Deep link sin permiso: mensaje explícito + salida, no página en blanco.
   if (!canAdminister) {
     return (
-      <p role="alert" className="text-sm text-ink/60">
-        {t("forbidden")}
-      </p>
+      <div className="flex flex-col items-start gap-4">
+        <p role="alert" className="text-sm text-ink/60">
+          {t("forbidden")}
+        </p>
+        <Button variant="secondary" href="/academia">
+          {tc("back")}
+        </Button>
+      </div>
     );
   }
 
@@ -150,7 +156,8 @@ export function AcademySettings({ academy }: { academy: Academy }) {
         </label>
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" size="sm" disabled={busy}>
-            {busy ? tc("loading") : tc("save")}
+            {busy ? <Spinner size="sm" /> : null}
+            {tc("save")}
           </Button>
         </div>
       </form>

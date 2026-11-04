@@ -28,8 +28,6 @@ const clp = (locale: string) => getNumFmt(locale, {
   maximumFractionDigits: 0,
 });
 
-;
-
 type Row = {
   key: string;
   href: string;
@@ -149,12 +147,15 @@ export function CobrosHistory({ academyId }: { academyId: string }) {
         </h2>
         <p className="mt-1 text-xs text-ink/50">{t("historyUnifiedDesc")}</p>
       </div>
-      <ul className="flex flex-col divide-y divide-line">
+      {/* -mt-3: la py-3 de la primera fila ya aporta el aire que antes
+          daba el gap-4; sin el ajuste quedaba doble espacio. Cada fila
+          conserva ≥44px de touch target (py-3 + contenido). */}
+      <ul className="-mt-3 flex flex-col divide-y divide-line">
         {rows.map((r) => (
           <li key={r.key}>
             <Link
               href={r.href}
-              className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-3 transition-colors first:pt-0 hover:bg-elevated/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-elevated/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{r.title}</p>
@@ -180,7 +181,7 @@ export function CobrosHistory({ academyId }: { academyId: string }) {
             setShown((v) => v + WINDOW);
           }}
         >
-          {loadingMore ? <Spinner /> : tc("pager.loadMore")}
+          {loadingMore ? <Spinner size="sm" /> : tc("pager.loadMore")}
         </Button>
       )}
     </Card>
