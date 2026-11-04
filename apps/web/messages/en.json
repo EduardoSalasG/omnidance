@@ -13,7 +13,8 @@
     "create": "Create",
     "seeAll": "See all",
     "skipToContent": "Skip to content",
-    "newTab": "Open in new tab"
+    "newTab": "Open in new tab",
+    "showLess": "Show less"
   },
   "home": {
     "subtitle": "Nightlife + Academies. One QR for the whole scene.",
@@ -1045,7 +1046,8 @@
     "bookedCount": "{count} bookings",
     "attendedCount": "{count} attendances",
     "cancelled": "Cancelled",
-    "slotAdded": "Slot added"
+    "slotAdded": "Slot added",
+    "entityTitle": "Class"
   },
   "adminCatalogs": {
     "title": "Catalogs",

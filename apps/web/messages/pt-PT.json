@@ -13,7 +13,8 @@
     "create": "Criar",
     "seeAll": "Ver tudo",
     "skipToContent": "Ir para o conteúdo",
-    "newTab": "Abrir num novo separador"
+    "newTab": "Abrir num novo separador",
+    "showLess": "Ver menos"
   },
   "home": {
     "subtitle": "Nightlife + Academias. Um só QR para toda a cena.",
@@ -1045,7 +1046,8 @@
     "bookedCount": "{count} reservas",
     "attendedCount": "{count} presenças",
     "cancelled": "Cancelada",
-    "slotAdded": "Horário adicionado"
+    "slotAdded": "Horário adicionado",
+    "entityTitle": "Aula"
   },
   "adminCatalogs": {
     "title": "Catálogos",

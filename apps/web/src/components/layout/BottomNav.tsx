@@ -1545,14 +1545,21 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
         ? nsT.academySeries("editTitle")
         : nsT.academySeries("newTitle"),
     ],
+    // Detalle de serie (y sus horarios): el centro del appbar nombra
+    // la entidad en singular, no la sección plural.
+    ["/academia/series/", nsT.academySeries("entityTitle")],
     // Subsecciones del CRM: el appbar nombra la sección activa en vez
     // del "CRM" genérico del nav entry raíz.
     ["/crm/campanas", nsT.crm("campaigns.title")],
     ["/crm/triggers", nsT.crm("triggers.title")],
   ];
   const pageLabel =
-    LABEL_OVERRIDES.find(
-      ([href]) => pathname === href || pathname.startsWith(`${href}/`),
+    LABEL_OVERRIDES.find(([href]) =>
+      // href con "/" final = prefix puro (hijos de una ruta, no la
+      // ruta misma); sin "/" = la ruta y sus hijos.
+      href.endsWith("/")
+        ? pathname.startsWith(href)
+        : pathname === href || pathname.startsWith(`${href}/`),
     )?.[1] ??
     navEntries.find(
       ([href]) => pathname === href || pathname.startsWith(`${href}/`),
