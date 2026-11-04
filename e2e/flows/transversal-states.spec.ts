@@ -4,7 +4,7 @@ import { test, expect } from "@playwright/test";
 // API caída → role="alert" + retry, nunca vacío silencioso;
 // (b) cuenta sin cap → estado "sin acceso", no error genérico.
 // Corre a pedido con la API apagada para (a).
-test.describe("estados error/forbidden", () => {
+test.describe("@transversal @states estados error/forbidden", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
   test("cobros con API caída muestra error + retry", async ({

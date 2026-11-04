@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-import { PASSWORD } from "./helpers";
+import { PASSWORD } from "../helpers";
 import fs from "node:fs";
 
 // Smoke visual de la ficha /academia/videos/[id] (change
@@ -10,7 +10,7 @@ import fs from "node:fs";
 // (owner de Mambo Madness, tier PRO - el módulo videos exige PRO).
 const OUT = "e2e/polish-shots";
 
-test.describe("ficha video (edit + delete)", () => {
+test.describe("@academia @videos ficha video (edit + delete)", () => {
   test.describe.configure({ mode: "serial", timeout: 180_000 });
 
   for (const vp of [

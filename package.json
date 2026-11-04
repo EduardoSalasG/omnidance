@@ -36,7 +36,8 @@
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:which": "node scripts/e2e-which.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1"

@@ -10,6 +10,14 @@
 
 ## 0. Mecánica transversal (leer una vez, aplica a todos los flujos)
 
+### Convención de specs e2e (change e2e-flow-tests)
+- Specs por flujo en `e2e/flows/<dominio>-<flujo>.spec.ts` con tags dobles
+  `@<dominio> @<flujo>` en el `describe`; `@smoke` es tier 0, `@visual` y
+  `@destructive` quedan fuera del run default (`PW_ALL=1` los habilita).
+- `e2e/flow-map.json` mapea paths→tags; `pnpm test:e2e:which` traduce un
+  diff de git al comando `--grep` sugerido. Al tocar una ruta, correr su tag.
+- Diseño completo: `docs/e2e-flow-tests-design.md`.
+
 ### Auth y sesión
 - Cookie `omnidance_session` (JWT httpOnly, 30d). Middleware redirige anon → `/login?next=<path>`.
 - **Login con password (dev):** todas las cuentas `*@omnidance.dev` usan `omnidance123`; `monica@omnidance.cl` usa `gatoperro123`. Esto habilita login determinístico en QA sin magic link.

@@ -14,6 +14,10 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? "github" : "list",
+  // Tiers fuera del run default (docs/e2e-flow-tests-design.md):
+  // @visual es a pedido y @destructive toca blast radius admin.
+  // PW_ALL=1 los habilita; --grep no anula grepInvert.
+  grepInvert: process.env.PW_ALL ? undefined : /@visual|@destructive/,
   use: {
     baseURL: process.env.QA_BASE_URL ?? "http://localhost:3000",
     locale: "es-CL",
