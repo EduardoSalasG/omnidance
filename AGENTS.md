@@ -41,6 +41,7 @@ Ejecutar desde la raíz del repo:
 - Tests: `pnpm test` (Vitest unit + componente) · `pnpm test:e2e` (Playwright smoke, chromium + mobile/WebKit; requiere stack vivo + `pnpm exec playwright install` la 1ª vez). Los 6 logins del setup golpean `/auth/login` (throttle 8/min por IP): en dev conviene `THROTTLE_AUTH_LIMIT=120` en `apps/api/.env`; el setup igual reintenta una vez tras ~65s si aparece el genericError.
 - Lint: `pnpm lint` · Typecheck: `pnpm typecheck`
 - Prisma Studio: `pnpm db:studio`
+- Catálogos de landings: `pnpm --filter @omnidance/web content:sync` (regenera `apps/web/src/content/*.json` desde el API público; commitear el resultado. Las landings `/`, `/pro`, `/para-*` no pegan al API en render - spec marketing-content)
 
 Para una modificación acotada, verifica primero la superficie afectada (`pnpm --filter @omnidance/api build`, etc.) y amplía según riesgo.
 

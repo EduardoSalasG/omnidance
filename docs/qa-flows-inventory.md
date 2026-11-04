@@ -75,7 +75,7 @@
 
 ### Landing `/` (anon; sesión → /inicio)
 - CTAs: Entrar → /login; Crear cuenta/hero → /login?mode=register; "ver eventos" → /eventos (bounce anon → /login?next=/eventos); chips de evento → /eventos/{id} (mismo bounce); footer → /pro, legales.
-- Server: `GET /events` (ISR 300s, silent-fail) para strip semanal.
+- Server: sin requests al API (spec marketing-content) - strip semanal y JsonLd salen del catálogo `src/content/events.json` (regenerable con `pnpm --filter @omnidance/web content:sync`; ISR 3600s solo re-render).
 
 ### Landings pro `/pro`, `/para-academias`, `/para-productores`
 - `/pro`: cards → landings por rol; sección "otros roles" con `ProLeadForm` (roles DJ|VENUE_MANAGER).
