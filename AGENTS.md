@@ -72,7 +72,7 @@ Estos pasos se incumplieron en sesiones reales - son gates, no sugerencias:
 5. Implementa la **menor unidad coherente**; evita refactors no relacionados.
 6. Actualiza pruebas, contratos y documentación **en el mismo cambio**.
 7. Revisa el diff, verifica con los comandos reales, y comunica qué quedó verificado y qué brecha de prueba queda pendiente.
-8. Al cerrar sesión o con presupuesto bajo: escribe el handoff en `docs/` con trabajo completado, bloqueos, evidencia de verificación, próximo slice y gaps conocidos.
+8. Al cerrar sesión o con presupuesto bajo: escribe el handoff en `docs/` con trabajo completado, bloqueos, evidencia de verificación, próximo slice y gaps conocidos. **Regla de margen de contexto**: cuando el uso de contexto supere ~90% o quede margen insuficiente para cerrar la tarea en curso, para el trabajo nuevo, genera el handoff de inmediato (commiteado) y avisa explícitamente al usuario que debe cambiar de sesión - el agente no puede gatillar el cambio, la decisión es del usuario.
 
 ## Reglas por tipo de cambio
 
