@@ -7722,7 +7722,16 @@
     "/api/classes/catalogs": {
       "get": {
         "operationId": "ClassesController_catalogs",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "academyId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""

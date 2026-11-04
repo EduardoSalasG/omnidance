@@ -9064,6 +9064,14 @@
                 "api",
                 "classes",
                 "catalogs"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "academyId",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
