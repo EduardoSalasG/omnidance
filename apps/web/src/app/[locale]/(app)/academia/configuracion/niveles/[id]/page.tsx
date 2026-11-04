@@ -110,8 +110,8 @@ function LevelDetail({
         });
         return;
       }
-      setLevel((await res.json()) as Level);
-      setNotice({ text: t("levelsConfig.saved") });
+      showActionNotice({ text: t("levelsConfig.saved") });
+      router.push("/academia/configuracion/niveles");
     } catch {
       setNotice({ text: t("levelsConfig.error"), error: true });
     } finally {
