@@ -136,7 +136,11 @@ export default function AcademiaPromoDetailPage() {
       <ConsoleHeader backHref="/academia/promos" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => {
-          if (academy.id !== academyId) setAcademyId(academy.id);
+          // Sync diferido (ver promos/page.tsx: setState del padre
+          // fuera del render-prop).
+          if (academy.id !== academyId) {
+            queueMicrotask(() => setAcademyId(academy.id));
+          }
           if (notFound || (error && !promo)) {
             return (
               <div className="flex items-center gap-3">
