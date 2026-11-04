@@ -5,8 +5,7 @@ import { JsonLd } from "@/components/landing/JsonLd";
 import { getMessages, getLocale } from "next-intl/server";
 import { localeAlternates } from "@/lib/seo";
 import { type Locale } from "@/i18n/routing";
-import { fetchPublicEvents } from "@/lib/public-events";
-import { fetchPublicAcademies } from "@/lib/public-academies";
+import { marketingEvents, marketingAcademies } from "@/lib/marketing-content";
 
 
 
@@ -25,14 +24,16 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Landing de audiencia ACADEMY_OWNER: copy y acento del modo Academy.
+// Data del catálogo commiteado - cero requests al API (spec
+// marketing-content); el revalidate solo recalcula el render.
+export const revalidate = 3600;
+
 export default async function AcademyLanding() {
   const m = (await getMessages()) as typeof import("@/i18n/catalogs/es-CL").default;
   const t = m.landingAcademy;
   // Logueado → /inicio lo decide el middleware (página estática).
-  const [events, academies] = await Promise.all([
-    fetchPublicEvents(),
-    fetchPublicAcademies(),
-  ]);
+  const events = marketingEvents();
+  const academies = marketingAcademies();
   return (
     <>
       <JsonLd events={events.slice(0, 3)} />

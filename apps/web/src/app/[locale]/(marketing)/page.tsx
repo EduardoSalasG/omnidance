@@ -5,7 +5,7 @@ import { JsonLd } from "@/components/landing/JsonLd";
 import { getMessages, getLocale } from "next-intl/server";
 import { localeAlternates } from "@/lib/seo";
 import { type Locale } from "@/i18n/routing";
-import { fetchPublicEvents, thisWeek } from "@/lib/public-events";
+import { marketingEvents, thisWeek } from "@/lib/marketing-content";
 
 
 
@@ -29,9 +29,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // La decisión anónimo/logueado ocurre en el middleware (cookie presente
 // → /inicio) - la página queda estática/cacheable y la landing llega
-// como HTML real (LCP, SEO, bfcache).
+// como HTML real (LCP, SEO, bfcache). La data sale del catálogo
+// commiteado (spec marketing-content): cero requests al API; el
+// revalidate solo re-ejecuta el render para recalcular "esta semana".
+export const revalidate = 3600;
+
 export default async function Home() {
-  const events = await fetchPublicEvents();
+  const events = marketingEvents();
   return (
     <>
       <JsonLd events={events.slice(0, 3)} />
