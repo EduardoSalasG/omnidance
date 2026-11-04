@@ -28,14 +28,22 @@
 
 - [x] 9. `dancer-eventos` (cartelera, `?view=mios`, `?a=`, empty).
 - [~] 10. `dancer-checkout` (stub:// → webhook PAID/FAILED): spec escrito; verde solo con API en gateway stub - con PAYMENT_GATEWAY=flow el POST sale 500 (emails seed).
-- [ ] 11. `academia-cobros` (claims approve/reject, error-retry).
-- [ ] 12. `academia-alumnos` (lista/KPIs, alta 409, levels editor).
-- [ ] 13. `academia-series` (taller QA → materializa → cancel).
-- [ ] 14. `academia-clases` (roster profe, marcar ±30min).
+- [x] 11. `academia-cobros` (claims approve/reject, error-retry):
+  claims PENDING creados por API (multipart receipt.png) por test -
+  aprobar/rechazar consume el claim y no se deshace.
+- [x] 12. `academia-alumnos` (lista → ficha, alta 409 con mismo
+  personId+planId, levels editor PATCH). Sin KPIs: muvet es STUDIO y
+  insights es feature PRO.
+- [x] 13. `academia-series` (taller one-off QA → slot ficha → clase
+  materializada → cancel instancia → borrado lógico de la serie).
+- [x] 14. `academia-clases` (roster profe, marcar ±30min + fuera de
+  ventana Sin confirmar): taller one-off con profe instructor + book
+  del dancer por API - el clock del seed era timing-dependiente.
 - [ ] 15. `dancer-membresia` (TRANSFER multi-actor).
 - [ ] 16. `productor-eventos` (absorbe smoke crear→publicar).
 - [ ] 17. `productor-colaboradores` (cupo free → 403 tier).
 - [ ] 18. `staff-puerta` (boot, check-in manual, dup 409).
-- [ ] 19. `soporte-buscar` (búsqueda ≥2c, read-only).
-- [ ] 20. `dancer-qr` (canvas, mint 500 → error+retry).
-- [ ] 21. `academia-planes` (crear → desactivar/reactivar).
+- [x] 19. `soporte-buscar` (búsqueda ≥2c, ficha read-only, volver).
+- [x] 20. `dancer-qr` (canvas `role="img"`, mint 500 → alert + retry;
+  filtrar el announcer de Next que también es role=alert).
+- [x] 21. `academia-planes` (crear → ficha → desactivar/reactivar).
