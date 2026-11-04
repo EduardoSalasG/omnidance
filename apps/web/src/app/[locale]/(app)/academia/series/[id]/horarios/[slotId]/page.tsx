@@ -1,15 +1,33 @@
 "use client";
 
 import { use, useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, ConfirmSheet, SkeletonCard, Spinner } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ConfirmSheet,
+  RefreshIcon,
+  SkeletonCard,
+  Spinner,
+} from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { InstructorChecklist } from "@/components/academy/instructor-checklist";
 import { inputCls, readError } from "@/components/academy/shared";
 import { useRouter } from "@/i18n/navigation";
+import { getDateFmt } from "@/lib/intl";
+import { safeInternalPath } from "@/lib/safe-next";
+
+type LoadState =
+  | "loading"
+  | "ready"
+  | "forbidden"
+  | "notfound"
+  | "error";
 
 type Slot = {
   id: string;
@@ -45,6 +63,7 @@ export default function SlotDetailPage({
           <SlotDetail
             key={`${academy.id}:${seriesId}`}
             academyId={academy.id}
+            seriesId={seriesId}
             slotId={slotId}
           />
         )}
@@ -53,12 +72,25 @@ export default function SlotDetailPage({
   );
 }
 
-function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }) {
+function SlotDetail({
+  academyId,
+  seriesId,
+  slotId,
+}: {
+  academyId: string;
+  seriesId: string;
+  slotId: string;
+}) {
+  const locale = useLocale();
+  // Origen contextual: quien llega desde el roster (?from=/academia/
+  // clases/:id) vuelve ahí - el padre canónico es la ficha de la serie.
+  const backFrom = safeInternalPath(useSearchParams().get("from"));
   const t = useTranslations("academySeries");
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
   const router = useRouter();
   const [slot, setSlot] = useState<Slot | null>(null);
+  const [state, setState] = useState<LoadState>("loading");
   const [weekday, setWeekday] = useState(1);
   // "YYYY-MM-DD" del input[type=date]; solo se usa en slots de taller.
   const [date, setDate] = useState("");
@@ -68,9 +100,24 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
   const [busy, setBusy] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
 
-  useEffect(() => {
-    apiFetch(`/academies/${academyId}/slots/${slotId}`).then(async (res) => {
-      if (!res.ok) return;
+  // Estados explícitos por respuesta (console-patterns §6): antes un
+  // !res.ok silencioso dejaba el skeleton eterno en 403/404/5xx.
+  const load = useCallback(async () => {
+    setState("loading");
+    try {
+      const res = await apiFetch(`/academies/${academyId}/slots/${slotId}`);
+      if (res.status === 401 || res.status === 403) {
+        setState("forbidden");
+        return;
+      }
+      if (res.status === 404) {
+        setState("notfound");
+        return;
+      }
+      if (!res.ok) {
+        setState("error");
+        return;
+      }
       const s = (await res.json()) as Slot;
       setSlot(s);
       setWeekday(s.weekday);
@@ -81,8 +128,15 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
       setStart(s.startTime);
       setEnd(s.endTime);
       setInstructors(s.instructors.map((i) => i.person.id));
-    });
+      setState("ready");
+    } catch {
+      setState("error");
+    }
   }, [academyId, slotId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const roster = (slot?.series.instructors ?? []).map((i) => ({
     id: i.person.id,
@@ -136,14 +190,63 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
     }
   }, [academyId, slotId, router, slot, t, tc]);
 
-  if (!slot) return <SkeletonCard />;
+  if (state === "loading") return <SkeletonCard />;
+
+  if (state === "forbidden" || state === "notfound") {
+    return (
+      <div className="flex flex-col items-start gap-4">
+        <p role="alert" className="text-sm text-ink/60">
+          {state === "forbidden" ? ta("forbidden") : t("notFound")}
+        </p>
+        <Button
+          variant="secondary"
+          size="sm"
+          href={`/academia/series/${seriesId}`}
+        >
+          {tc("back")}
+        </Button>
+      </div>
+    );
+  }
+  if (state === "error" || !slot) {
+    return (
+      <div className="flex items-center gap-3">
+        <p role="alert" className="text-sm text-ink/60">
+          {tc("error")}
+        </p>
+        <Button variant="secondary" size="sm" onClick={() => void load()}>
+          <RefreshIcon /> {tc("retry")}
+        </Button>
+      </div>
+    );
+  }
+
+  // Identidad del horario en el headline: recurrente "martes · 19:30–
+  // 20:30"; taller usa su fecha civil (la línea de edición muestra lo
+  // mismo en los inputs - el header es la referencia estable).
+  const slotLabel = slot.oneOffDate
+    ? `${getDateFmt(locale, { weekday: "short", day: "numeric", month: "short" }).format(new Date(slot.oneOffDate))} · ${slot.startTime}–${slot.endTime}`
+    : `${ta(`weekday.${slot.weekday}`)} · ${slot.startTime}–${slot.endTime}`;
 
   return (
     <div className="flex flex-col gap-6">
       <ConsoleHeader
-        backHref={`/academia/series/${slot.series.id}`}
-        backLabel={slot.series.name}
+        backHref={backFrom ?? `/academia/series/${slot.series.id}`}
+        // El label nombra el destino: volviendo al roster es la página
+        // del horario (día·hora); canónico a la serie es su nombre.
+        backLabel={backFrom ? slotLabel : slot.series.name}
       />
+      {/* Header de entidad desnudo (console-patterns §3): esta página
+          ES la superficie de edición del horario - el header no navega
+          a ningún lado, solo da identidad a la página (h2). */}
+      <div className="flex min-w-0 items-center gap-3">
+        <h2 className="truncate text-lg font-semibold capitalize">
+          {slotLabel}
+        </h2>
+        {slot.oneOffDate && (
+          <Badge variant="muted">{t("workshopBadge")}</Badge>
+        )}
+      </div>
       <Card className="flex flex-col gap-4">
         <div className="grid grid-cols-3 gap-3">
           {slot.oneOffDate ? (
@@ -183,21 +286,26 @@ function SlotDetail({ academyId, slotId }: { academyId: string; slotId: string }
           </Button>
         </div>
       </Card>
-      {/* Zona de peligro: eliminar horario (borrado lógico si hay
-          clases pasadas; cancela las futuras y libera reservas). */}
-      <Card className="flex flex-col gap-3 border-red-500/30">
-        <p className="text-xs text-ink/50">{t("slotDeleteDesc")}</p>
-        <div>
-          <Button variant="ghost" size="sm" disabled={busy} onClick={() => setConfirmDel(true)}>
-            {t("removeSlot")}
-          </Button>
-        </div>
-      </Card>
+      {/* Zona roja canónica (console-patterns §4): eliminar horario
+          (borrado lógico si hay clases pasadas; cancela las futuras y
+          libera reservas - la cascada la describe el ConfirmSheet). */}
+      <div className="flex justify-center border-t border-line pt-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          className="text-red-400 hover:text-red-300"
+          onClick={() => setConfirmDel(true)}
+        >
+          {t("removeSlot")}
+        </Button>
+      </div>
       <ConfirmSheet
         open={confirmDel}
         title={t("removeSlot")}
         description={t("slotDeleteDesc")}
         confirmLabel={t("removeSlot")}
+        busy={busy}
         onConfirm={() => void remove()}
         onClose={() => setConfirmDel(false)}
       />
