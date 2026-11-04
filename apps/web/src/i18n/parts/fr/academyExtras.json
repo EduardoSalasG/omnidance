@@ -200,6 +200,7 @@
     },
     "configPages": {
       "general": "Cours",
+      "levels": "Niveaux",
       "payments": "Moyens de paiement",
       "profile": "Profil de l'académie",
       "appearance": "Apparence",

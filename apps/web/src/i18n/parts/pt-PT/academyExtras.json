@@ -200,6 +200,7 @@
     },
     "configPages": {
       "general": "Aulas",
+      "levels": "Níveis",
       "payments": "Métodos de pagamento",
       "profile": "Perfil da academia",
       "appearance": "Aparência",
