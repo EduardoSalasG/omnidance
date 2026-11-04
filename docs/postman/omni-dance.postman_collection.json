@@ -6794,6 +6794,11 @@
                   "key": "month",
                   "value": "",
                   "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true
                 }
               ]
             }

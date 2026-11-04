@@ -67,6 +67,74 @@ const makeCtrl = (prisma: unknown, access: unknown) =>
     {} as never, // FileStorage - no se usa en estos endpoints
   );
 
+// spec academies/course-surveys: ?limit= capa los grupos mes × serie
+// (default 12, max 60, inválido cae al default) - mismo contrato que
+// /instructors/:personId/surveys.
+function makeSurveysPrisma(groupCount: number) {
+  // Meses desc como los ordena el findMany real: 2026-12, 2026-11, …
+  const surveys = Array.from({ length: groupCount }, (_, i) => ({
+    seriesId: "s-1",
+    month: `${2026 - Math.floor(i / 12)}-${String(12 - (i % 12)).padStart(2, "0")}`,
+    courseRating: 4,
+    instructorRating: 5,
+    comment: null,
+    createdAt: new Date(0),
+  }));
+  return {
+    courseSurvey: { findMany: vi.fn().mockResolvedValue(surveys) },
+    classSeries: {
+      findMany: vi
+        .fn()
+        .mockResolvedValue([{ id: "s-1", name: "Serie A" }]),
+    },
+  };
+}
+
+const surveysAccess = () =>
+  ({ requireAdminister: vi.fn().mockResolvedValue({}) }) as never;
+
+describe("AcademiesController.courseSurveys", () => {
+  const owner = reqAs({ id: "owner-1", roles: ["ACADEMY_OWNER"] });
+
+  it("?limit=2 devuelve solo los 2 grupos más recientes", async () => {
+    const ctrl = makeCtrl(makeSurveysPrisma(15), surveysAccess());
+    const res = await ctrl.courseSurveys(
+      "acad-1",
+      owner,
+      undefined,
+      undefined,
+      "2",
+    );
+    expect(res.map((g) => g.month)).toEqual(["2026-12", "2026-11"]);
+  });
+
+  it("sin limit capa en 12; limit inválido cae al default", async () => {
+    const ctrl = makeCtrl(makeSurveysPrisma(15), surveysAccess());
+    const def = await ctrl.courseSurveys("acad-1", owner);
+    const invalid = await ctrl.courseSurveys(
+      "acad-1",
+      owner,
+      undefined,
+      undefined,
+      "abc",
+    );
+    expect(def.length).toBe(12);
+    expect(invalid.length).toBe(12);
+  });
+
+  it("limit > 60 se capa en 60", async () => {
+    const ctrl = makeCtrl(makeSurveysPrisma(65), surveysAccess());
+    const res = await ctrl.courseSurveys(
+      "acad-1",
+      owner,
+      undefined,
+      undefined,
+      "100",
+    );
+    expect(res.length).toBe(60);
+  });
+});
+
 describe("AcademiesController.studentsInsights", () => {
   it("viewer sin cap payments → topAttendance con datos, topPayersMonth vacío y sin consultar cobros", async () => {
     const prisma = makePrisma();
