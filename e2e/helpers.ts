@@ -1,4 +1,5 @@
 import path from "node:path";
+import { request } from "@playwright/test";
 import type { APIRequestContext, Page } from "@playwright/test";
 
 // Fixture de sesión: login con password dev de las personas seed
@@ -65,4 +66,28 @@ export async function firePaymentWebhook(
   return request.post(`${API_URL}/api/payments/webhook`, {
     data: { refId, status },
   });
+}
+
+// Contexto de API autenticado como `role` (cookies del storageState).
+// Sesión por cookie sobre dominio localhost - aplica a :4000 igual que
+// al proxy :3000. Recordar `await ctx.dispose()` y leer `res.json()`
+// ANTES de dispose (el body muere con el contexto).
+export async function apiAs(role: Role) {
+  return request.newContext({
+    storageState: statePath(role),
+    baseURL: API_URL,
+  });
+}
+
+// Primera academia de `mine` del rol academy (la que AcademyGate
+// selecciona por defecto en la consola).
+export async function myAcademyId(): Promise<string> {
+  const api = await apiAs("academy");
+  const res = await api.get("/api/academies/mine");
+  const list = (await res.json().catch(() => [])) as { id: string }[];
+  await api.dispose();
+  if (!res.ok() || list.length === 0) {
+    throw new Error("academies/mine sin academias para el rol academy");
+  }
+  return list[0].id;
 }
