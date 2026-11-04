@@ -17,7 +17,6 @@ import { ConsoleHeader } from "@/components/console/console-header";
 import {
   PAYMENT_STATUS_VARIANT,
   paymentDateTimeFmt,
-  paymentPaidAt,
 } from "@/components/payments/shared";
 
 type AcademyPaymentDetail = {

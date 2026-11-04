@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Card } from "@/components/ui";
 import { useDateFmt } from "@/lib/intl";
@@ -25,9 +25,6 @@ type SurveyGroup = {
   comments: string[];
 };
 
-;
-
-
 export function CourseSurveyResults({
   academyId,
   seriesId,
@@ -46,7 +43,7 @@ export function CourseSurveyResults({
   const [y, mo] = m.split("-").map(Number);
   if (!y || !mo) return m;
   return monthFmt.format(new Date(Date.UTC(y, mo - 1, 1)));
-};;
+};
   const t = useTranslations("courseSurvey");
   const [groups, setGroups] = useState<SurveyGroup[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -108,7 +105,7 @@ export function CourseSurveyResults({
       </h3>
       {[...byMonth.entries()].map(([month, items]) => (
         <div key={month} className="flex flex-col gap-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-ink/40 capitalize">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-ink/40">
             {monthLabel(month)}
           </h4>
           {items.map((g) => (

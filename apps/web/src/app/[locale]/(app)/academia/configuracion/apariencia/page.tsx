@@ -19,7 +19,9 @@ export default function ConfigAparienciaPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("appearance")}
         </h2>
-        <div className="mt-3">
+        {/* lg: el control segmentado no se estira al ancho completo de
+            la card: 3 opciones a ~1100px se leen como franja vacía. */}
+        <div className="mt-3 lg:max-w-md">
           <ThemeToggle />
         </div>
       </Card>

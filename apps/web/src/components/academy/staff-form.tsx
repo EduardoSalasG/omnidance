@@ -208,6 +208,7 @@ export function StaffForm({ academyId }: { academyId: string }) {
                   min={0}
                   max={100}
                   inputMode="numeric"
+                  required
                   className={inputCls}
                   value={commissionPct}
                   onChange={(e) => setCommissionPct(e.target.value)}
@@ -223,6 +224,7 @@ export function StaffForm({ academyId }: { academyId: string }) {
                   type="number"
                   min={0}
                   inputMode="numeric"
+                  required
                   className={inputCls}
                   value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)}
@@ -238,6 +240,7 @@ export function StaffForm({ academyId }: { academyId: string }) {
                   type="number"
                   min={0}
                   inputMode="numeric"
+                  required
                   className={inputCls}
                   value={payClasses}
                   onChange={(e) => setPayClasses(e.target.value)}

@@ -4,15 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Card, Skeleton } from "@/components/ui";
-import { getNumFmt, useNumFmt } from "@/lib/intl";
+import { getNumFmt } from "@/lib/intl";
 
 const clp = (locale: string) => getNumFmt(locale, {
   style: "currency",
   currency: "CLP",
   maximumFractionDigits: 0,
 });
-
-;
 
 type CobrosKpis = {
   billedMonth: number;
@@ -62,8 +60,10 @@ export function CobrosKpiStrip({ academyId }: { academyId: string }) {
         ? "text-neon/80"
         : "text-warn";
 
+  // Landmark sin nombre fiel (el label cubría solo 1 de 3 KPIs): div,
+  // no section; un region con nombre engañoso es peor que ninguno.
   return (
-    <section aria-label={t("kpiBilled")} data-tour="academy-cobros-kpis">
+    <div data-tour="academy-cobros-kpis">
       {data === null ? (
         <ul
           aria-hidden="true"
@@ -163,6 +163,6 @@ export function CobrosKpiStrip({ academyId }: { academyId: string }) {
           </li>
         </ul>
       )}
-    </section>
+    </div>
   );
 }

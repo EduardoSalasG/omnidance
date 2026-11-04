@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { showActionNotice } from "@/components/ui/action-notice";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, Spinner } from "@/components/ui";
 import { readError } from "./shared";
 
 type RowResult = {
@@ -81,10 +81,9 @@ export function ImportCard({
         <p className="mt-1 text-xs text-ink/40">{t(`${kind}Cols`)}</p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid -- link directo a CSV descargable */}
         <a
           href={`/api/academies/${academyId}/import/template/${kind}`}
-          className="text-sm text-neon underline-offset-2 hover:underline"
+          className="inline-flex min-h-11 items-center text-sm text-neon underline-offset-2 hover:underline"
         >
           {t("downloadTemplate")}
         </a>
@@ -113,6 +112,7 @@ export function ImportCard({
           disabled={!fileName || busy}
           onClick={() => void upload()}
         >
+          {busy ? <Spinner size="sm" /> : null}
           {busy ? t("uploading") : t("upload")}
         </Button>
       </div>
@@ -133,11 +133,13 @@ export function ImportCard({
             <tbody>
               {results.map((r, i) => (
                 <tr key={i} className="border-t border-line align-top">
-                  <td className="py-2 pr-3 text-ink/50">{r.row}</td>
+                  <td className="py-2 pr-3 tabular-nums text-ink/50">{r.row}</td>
                   <td className="py-2 pr-3">{r.email ?? r.serie ?? "—"}</td>
                   <td className="py-2 pr-3">
-                    <Badge variant={STATUS_VARIANT[r.status] ?? "neutral"}>
-                      {t(`status.${r.status}`)}
+                    <Badge variant={STATUS_VARIANT[r.status] ?? "muted"}>
+                      {t.has(`status.${r.status}`)
+                        ? t(`status.${r.status}`)
+                        : r.status}
                     </Badge>
                   </td>
                   <td className="py-2 text-ink/60">{r.detail}</td>

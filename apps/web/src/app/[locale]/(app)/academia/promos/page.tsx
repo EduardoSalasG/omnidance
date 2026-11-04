@@ -4,10 +4,16 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, ChevronRightIcon, RefreshIcon } from "@/components/ui";
+import {
+  Badge,
+  type BadgeVariant,
+  Button,
+  Card,
+  ChevronRightIcon,
+  RefreshIcon,
+} from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
-import { ConsoleHeader } from "@/components/console/console-header";
 import { Link } from "@/i18n/navigation";
 
 type Promo = {
@@ -39,6 +45,15 @@ function statusKey(p: Promo): "stateActive" | "stateScheduled" | "stateExpired" 
   return "stateActive";
 }
 
+// Color por estado (mapa fijo por enum): vigente = neon/accionable,
+// programada = warn (aún no corre), terminales = muted.
+const STATUS_VARIANT: Record<ReturnType<typeof statusKey>, BadgeVariant> = {
+  stateActive: "neon",
+  stateScheduled: "warn",
+  stateExpired: "muted",
+  stateDisabled: "muted",
+};
+
 /**
  * /academia/promos - becas y descuentos staff-managed sobre los planes
  * de membresía (spec member-promos). Lista clickeable → ficha [id];
@@ -67,15 +82,14 @@ export default function AcademiaPromosPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
-      <ConsoleHeader
-        backHref="/academia"
-        backLabel={t("title")}
-        actions={
-          <Button href="/academia/promos/nueva" size="sm">
-            + {t("new")}
-          </Button>
-        }
-      />
+      {/* Item directo del drawer: sin ConsoleHeader (el título y la
+          navegación son del chrome). El CTA de crear queda en fila
+          propia a la derecha, como renderizaba el header en raíz. */}
+      <div className="flex justify-end">
+        <Button href="/academia/promos/nueva" size="sm">
+          + {t("new")}
+        </Button>
+      </div>
       <AcademyGate>
         {({ academy }) => {
           if (academy.id !== academyId) setAcademyId(academy.id);
@@ -98,58 +112,72 @@ export default function AcademiaPromosPage() {
               )}
               {!error && items === null && <SkeletonList items={4} />}
               {!error && items !== null && items.length === 0 && (
-                <p className="text-sm text-ink/60">{t("empty")}</p>
+                <div className="flex flex-col items-center gap-3 py-6 text-center">
+                  <p className="text-sm text-ink/60">{t("empty")}</p>
+                  <Button
+                    href="/academia/promos/nueva"
+                    size="sm"
+                    variant="secondary"
+                  >
+                    + {t("new")}
+                  </Button>
+                </div>
               )}
-              {!error &&
-                items?.map((p) => {
-                  const st = statusKey(p);
-                  return (
-                    <Link key={p.id} href={`/academia/promos/${p.id}`}>
-                      <Card className="flex flex-col gap-1 p-4 transition-colors hover:border-neon/40">
-                        <div className="flex items-center justify-between gap-3">
-                          <h2 className="truncate font-semibold">{p.name}</h2>
-                          <span
-                            className={`shrink-0 text-xs font-medium ${
-                              st === "stateActive"
-                                ? "text-neon"
-                                : st === "stateScheduled"
-                                  ? "text-amber-300"
-                                  : "text-ink/50"
-                            }`}
-                          >
-                            {t(st)}
-                          </span>
-                          <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
-                        </div>
-                        <p className="text-sm text-ink/70">
-                          {p.discountType === "PERCENT"
-                            ? `${p.percentOff}%`
-                            : clp(p.amountOffClp ?? 0)}
-                          {" · "}
-                          {t("window", {
-                            from: fmtDate(p.validFrom),
-                            until: fmtDate(p.validUntil),
-                          })}
-                        </p>
-                        <p className="text-xs text-ink/50">
-                          {p.plans.length === 0
-                            ? t("scopeAll")
-                            : t("scopeCount", { count: p.plans.length })}
-                          {" · "}
-                          {p.persons.length === 0
-                            ? "—"
-                            : t("whitelistCount", { count: p.persons.length })}
-                          {" · "}
-                          {t("discountedPayments")}: {p.discountedPayments}
-                          {" · "}
-                          {p.maxCycles != null
-                            ? t("cyclesMax", { count: p.maxCycles })
-                            : t("cyclesUnlimited")}
-                        </p>
-                      </Card>
-                    </Link>
-                  );
-                })}
+              {!error && items !== null && items.length > 0 && (
+                <ul className="flex flex-col gap-3">
+                  {items.map((p) => {
+                    const st = statusKey(p);
+                    return (
+                      <li key={p.id}>
+                        <Link
+                          href={`/academia/promos/${p.id}`}
+                          className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                        >
+                          <Card className="flex flex-col gap-2 p-4 transition-colors hover:border-neon/60">
+                            <div className="flex items-center justify-between gap-3">
+                              <h2 className="min-w-0 flex-1 truncate font-semibold">
+                                {p.name}
+                              </h2>
+                              <Badge variant={STATUS_VARIANT[st]}>
+                                {t(st)}
+                              </Badge>
+                              <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                            </div>
+                            <p className="text-sm text-ink/70">
+                              <span className="tabular-nums">
+                                {p.discountType === "PERCENT"
+                                  ? `${p.percentOff}%`
+                                  : clp(p.amountOffClp ?? 0)}
+                              </span>
+                              {" · "}
+                              {t("window", {
+                                from: fmtDate(p.validFrom),
+                                until: fmtDate(p.validUntil),
+                              })}
+                            </p>
+                            <p className="text-xs text-ink/50">
+                              {p.plans.length === 0
+                                ? t("scopeAll")
+                                : t("scopeCount", { count: p.plans.length })}
+                              {" · "}
+                              {t("whitelistCount", { count: p.persons.length })}
+                              {" · "}
+                              {t("discountedPayments")}:{" "}
+                              <span className="tabular-nums">
+                                {p.discountedPayments}
+                              </span>
+                              {" · "}
+                              {p.maxCycles != null
+                                ? t("cyclesMax", { count: p.maxCycles })
+                                : t("cyclesUnlimited")}
+                            </p>
+                          </Card>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </section>
           );
         }}

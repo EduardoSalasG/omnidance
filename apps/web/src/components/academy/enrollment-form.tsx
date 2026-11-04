@@ -125,7 +125,9 @@ export function EnrollmentForm({
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-ink/50">{t("students")}</span>
+          <span className="text-xs text-ink/50">
+            {t("studentProfile.enrollmentStatus")}
+          </span>
           <select
             className={inputCls}
             value={status}

@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Card, ChevronRightIcon, Pager, SkeletonList } from "@/components/ui";
+import { Button, Card, ChevronRightIcon, Pager, RefreshIcon, SkeletonList } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
-import { getNumFmt, useNumFmt } from "@/lib/intl";
+import { getNumFmt } from "@/lib/intl";
 
 const clp = (locale: string) => getNumFmt(locale, {
   style: "currency",
@@ -22,8 +22,6 @@ type InstructorRow = {
   createdAt: string;
 };
 
-;
-
 /**
  * Listado de profesores (spec academy-console-v3) - cards navegables
  * al detalle del profesor (/academia/equipo/profesor/[id]), donde viven
@@ -35,18 +33,34 @@ const PAGE_SIZE = 20;
 export function InstructorSection({ academyId }: { academyId: string }) {
   const locale = useLocale();
   const t = useTranslations("academyStaff");
+  const tc = useTranslations("common");
 
   const [rows, setRows] = useState<InstructorRow[] | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [failed, setFailed] = useState(false);
+  // 403 = staff sin la capacidad `team`: se degrada a lista vacía sin
+  // CTA (no puede dar de alta) en vez de mostrar error.
+  const [denied, setDenied] = useState(false);
 
   const load = useCallback(async () => {
+    setFailed(false);
     const res = await apiFetch(
       `/academies/${academyId}/instructors?page=${page}&pageSize=${PAGE_SIZE}`,
     ).catch(() => null);
-    const data = res?.ok
-      ? ((await res.json()) as { items: InstructorRow[]; total: number })
-      : { items: [], total: 0 };
+    if (!res || (!res.ok && res.status !== 403)) {
+      setFailed(true);
+      setRows([]);
+      return;
+    }
+    if (res.status === 403) {
+      setDenied(true);
+      setRows([]);
+      setTotal(0);
+      return;
+    }
+    const data = (await res.json()) as { items: InstructorRow[]; total: number };
+    setDenied(false);
     setRows(data.items);
     setTotal(data.total);
   }, [academyId, page]);
@@ -65,8 +79,26 @@ export function InstructorSection({ academyId }: { academyId: string }) {
         </h2>
         <p className="mt-1 text-xs text-ink/50">{t("instructorsDesc")}</p>
       </div>
-      {rows.length === 0 ? (
-        <p className="text-sm text-ink/60">{t("instructorsEmpty")}</p>
+      {failed ? (
+        <div className="flex items-center gap-3">
+          <p role="alert" className="text-sm text-ink/60">
+            {tc("error")}
+          </p>
+          <Button variant="secondary" size="sm" onClick={() => void load()}>
+            <RefreshIcon /> {tc("retry")}
+          </Button>
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-ink/60">{t("instructorsEmpty")}</p>
+          {!denied && (
+            <div>
+              <Button href="/academia/equipo/nuevo" size="sm">
+                + {t("kindInstructor")}
+              </Button>
+            </div>
+          )}
+        </div>
       ) : (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {rows.map((r) => (

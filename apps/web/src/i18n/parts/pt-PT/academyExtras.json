@@ -376,6 +376,7 @@
     "saved": "Promo guardada",
     "error": "Não foi possível guardar a promo",
     "loadError": "Não foi possível carregar as promos",
+    "notFound": "Promo não encontrada",
     "empty": "Ainda sem promos",
     "name": "Nome",
     "discountType": "Tipo de desconto",

@@ -13,8 +13,8 @@ import {
   ConfirmSheet,
   Pager,
   RefreshIcon,
+  SkeletonList,
 } from "@/components/ui";
-import { SkeletonList } from "@/components/ui";
 import {
   ActionNotice,
   type ActionNoticeData,
@@ -165,7 +165,7 @@ export function Videos({ academy }: { academy: Academy }) {
       {state === "loading" && <SkeletonList items={2} lines={1} />}
       {state === "error" && (
         <div className="flex items-center gap-3">
-          <p className="text-sm text-ink/60">{tc("error")}</p>
+          <p role="alert" className="text-sm text-ink/60">{tc("error")}</p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
             <RefreshIcon /> {tc("retry")}
           </Button>
@@ -173,18 +173,30 @@ export function Videos({ academy }: { academy: Academy }) {
       )}
       {state === "ready" &&
         (videos.length === 0 ? (
-          <p className="text-sm text-ink/50">{t.empty}</p>
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm text-ink/50">{t.empty}</p>
+            {canAdminister && (
+              <Button
+                href="/academia/videos/nuevo"
+                size="sm"
+                variant="secondary"
+              >
+                + {t.addTitle}
+              </Button>
+            )}
+          </div>
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {videos.map((v) => {
               const locked = v.locked === true || !v.url;
               return (
                 <li key={v.id}>
+                  {/* Anatomía ui-cards A: tag-row de clasificación,
+                      headline identidad, hint de desbloqueo y acciones
+                      ancladas al pie (mt-auto alinea la fila entre
+                      cards de la grilla). */}
                   <Card className="flex h-full flex-col gap-3 p-4">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                      <p className="min-w-0 flex-1 truncate font-medium">
-                        {v.title}
-                      </p>
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {v.classId && (
                         <Badge variant="muted">{t.classBadge}</Badge>
                       )}
@@ -195,33 +207,33 @@ export function Videos({ academy }: { academy: Academy }) {
                         {locked ? t.locked : t.unlocked}
                       </Badge>
                     </div>
-                    {locked ? (
-                      <p className="text-xs text-ink/50">
-                        {t.lockedHint}
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <a
-                          href={v.url ?? undefined}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={linkBtnCls}
-                        >
-                          <ArrowUpRightIcon /> {t.watch}
-                        </a>
-                      </div>
+                    <p className="truncate font-semibold">{v.title}</p>
+                    {locked && (
+                      <p className="text-xs text-ink/50">{t.lockedHint}</p>
                     )}
-                    {canAdminister && (
-                      <div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-red-400/80 hover:text-red-400"
-                          disabled={busyId === v.id}
-                          onClick={() => setPendingVideo(v)}
-                        >
-                          {t.delete}
-                        </Button>
+                    {(!locked || canAdminister) && (
+                      <div className="mt-auto flex flex-wrap items-center gap-2">
+                        {!locked && (
+                          <a
+                            href={v.url ?? undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={linkBtnCls}
+                          >
+                            <ArrowUpRightIcon /> {t.watch}
+                          </a>
+                        )}
+                        {canAdminister && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="ml-auto text-red-400/80 hover:text-red-400"
+                            disabled={busyId === v.id}
+                            onClick={() => setPendingVideo(v)}
+                          >
+                            {t.delete}
+                          </Button>
+                        )}
                       </div>
                     )}
                   </Card>

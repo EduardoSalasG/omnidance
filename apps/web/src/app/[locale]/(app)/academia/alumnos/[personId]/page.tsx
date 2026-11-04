@@ -233,121 +233,125 @@ function ProfileModule({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Encabezado: nombre + plan + estado/pagado-hasta (editable si el
-          caller tiene capacidad students; el instructor solo lee) */}
-      <Card className="flex flex-col gap-2 p-4">
-        <p className="text-lg font-semibold">
+      {/* Header de entidad desnudo: la identidad va sobre el canvas
+          (h2 - el h1 de la página es "Alumnos" del appbar) y la caja se
+          reserva a los datos + edición. Estado/pagado-hasta editable si
+          el caller tiene capacidad students; el instructor solo lee. */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">
           {profile.person.name ?? shortId(profile.person.id)}
-        </p>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink/60">
-          <span>
-            {tp("plan")}: {profile.plan?.name ?? "·"}
-          </span>
-          {/* Score de relación academia↔alumno (CRM): privado de la
-              academia - solo se muestra en su consola. Feature `crm`
-              (PRO): COBROS/STUDIO no ven score ni clasificación (spec
-              academy-tier-v2). */}
-          {canCrm && (
-            <Badge variant="muted">
-              {tp("score")}:{" "}
-              {profile.score !== null
-                ? `${Math.round(profile.score)}${profile.segment ? ` · ${tcrm(`segments.${profile.segment}`)}` : ""}`
-                : tp("scoreNone")}
-            </Badge>
-          )}
-        </div>
-        {/* Desglose por componente (spec academy-score-refine): explica
-            el número. Scores previos al cambio traen breakdown null →
-            solo se muestra el badge. */}
-        {canCrm && profile.scoreBreakdown?.points && (
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
-            {(
-              [
-                "attendanceRecent",
-                "weeklyStreak",
-                "monthsContinuous",
-                "purchases",
-                "tenure",
-                "referrals",
-              ] as const
-            ).map((k) => (
-              <div key={k} className="flex items-baseline justify-between gap-2">
-                <dt className="text-ink/50">{tp(`breakdown.${k}`)}</dt>
-                <dd className="tabular-nums text-ink/80">
-                  {profile.scoreBreakdown?.[k] ?? 0}
-                  {typeof profile.scoreBreakdown?.points?.[k] === "number" && (
-                    <span className="text-ink/40">
-                      {" "}
-                      (+{profile.scoreBreakdown.points[k]})
-                    </span>
-                  )}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        )}
-        {canEdit ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
-              <label className="flex flex-col gap-1 text-xs text-ink/60">
-                {tp("enrollmentStatus")}
-                <select
-                  aria-label={tp("enrollmentStatus")}
-                  className={`${inputCls} w-auto min-h-11`}
-                  value={statusDraft}
-                  disabled={saving}
-                  onChange={(e) =>
-                    setStatusDraft(e.target.value as EnrollmentStatus)
-                  }
-                >
-                  {ENROLLMENT_STATUSES.map((st) => (
-                    <option key={st} value={st}>
-                      {statusLabel(st)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-xs text-ink/60">
-                {tp("endsAt")}
-                <input
-                  type="date"
-                  aria-label={tp("endsAt")}
-                  className={`${inputCls} w-auto`}
-                  value={endsDraft}
-                  disabled={saving}
-                  onChange={(e) => setEndsDraft(e.target.value)}
-                />
-              </label>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={saving}
-                onClick={() => void saveEnrollment()}
-              >
-                {tc("save")}
-              </Button>
-            </div>
-          </div>
-        ) : (
+        </h2>
+        <Card className="flex flex-col gap-2 p-4">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink/60">
-            <Badge variant="outline">
-              {tp("enrollmentStatus")}:{" "}
-              {statusLabel(profile.enrollmentStatus)}
-            </Badge>
-            {(profile.enrollmentStartedAt || profile.enrollmentEndsAt) && (
-              <p className="text-xs text-ink/50">
-                {profile.enrollmentStartedAt &&
-                  `${tp("startsAt")}: ${planDateFmt(locale).format(new Date(profile.enrollmentStartedAt))}`}
-                {profile.enrollmentStartedAt &&
-                  profile.enrollmentEndsAt &&
-                  " · "}
-                {profile.enrollmentEndsAt &&
-                  `${tp("endsAt")}: ${planDateFmt(locale).format(new Date(profile.enrollmentEndsAt))}`}
-              </p>
+            <span>
+              {tp("plan")}: {profile.plan?.name ?? "·"}
+            </span>
+            {/* Score de relación academia↔alumno (CRM): privado de la
+                academia - solo se muestra en su consola. Feature `crm`
+                (PRO): COBROS/STUDIO no ven score ni clasificación (spec
+                academy-tier-v2). */}
+            {canCrm && (
+              <Badge variant="muted">
+                {tp("score")}:{" "}
+                {profile.score !== null
+                  ? `${Math.round(profile.score)}${profile.segment ? ` · ${tcrm(`segments.${profile.segment}`)}` : ""}`
+                  : tp("scoreNone")}
+              </Badge>
             )}
           </div>
-        )}
-      </Card>
+          {/* Desglose por componente (spec academy-score-refine): explica
+              el número. Scores previos al cambio traen breakdown null →
+              solo se muestra el badge. */}
+          {canCrm && profile.scoreBreakdown?.points && (
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+              {(
+                [
+                  "attendanceRecent",
+                  "weeklyStreak",
+                  "monthsContinuous",
+                  "purchases",
+                  "tenure",
+                  "referrals",
+                ] as const
+              ).map((k) => (
+                <div key={k} className="flex items-baseline justify-between gap-2">
+                  <dt className="text-ink/50">{tp(`breakdown.${k}`)}</dt>
+                  <dd className="tabular-nums text-ink/80">
+                    {profile.scoreBreakdown?.[k] ?? 0}
+                    {typeof profile.scoreBreakdown?.points?.[k] === "number" && (
+                      <span className="text-ink/40">
+                        {" "}
+                        (+{profile.scoreBreakdown.points[k]})
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {canEdit ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+                <label className="flex flex-col gap-1 text-xs text-ink/60">
+                  {tp("enrollmentStatus")}
+                  <select
+                    aria-label={tp("enrollmentStatus")}
+                    className={`${inputCls} w-auto min-h-11`}
+                    value={statusDraft}
+                    disabled={saving}
+                    onChange={(e) =>
+                      setStatusDraft(e.target.value as EnrollmentStatus)
+                    }
+                  >
+                    {ENROLLMENT_STATUSES.map((st) => (
+                      <option key={st} value={st}>
+                        {statusLabel(st)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-xs text-ink/60">
+                  {tp("endsAt")}
+                  <input
+                    type="date"
+                    aria-label={tp("endsAt")}
+                    className={`${inputCls} w-auto`}
+                    value={endsDraft}
+                    disabled={saving}
+                    onChange={(e) => setEndsDraft(e.target.value)}
+                  />
+                </label>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={saving}
+                  onClick={() => void saveEnrollment()}
+                >
+                  {tc("save")}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink/60">
+              <Badge variant="outline">
+                {tp("enrollmentStatus")}:{" "}
+                {statusLabel(profile.enrollmentStatus)}
+              </Badge>
+              {(profile.enrollmentStartedAt || profile.enrollmentEndsAt) && (
+                <p className="text-xs text-ink/50">
+                  {profile.enrollmentStartedAt &&
+                    `${tp("startsAt")}: ${planDateFmt(locale).format(new Date(profile.enrollmentStartedAt))}`}
+                  {profile.enrollmentStartedAt &&
+                    profile.enrollmentEndsAt &&
+                    " · "}
+                  {profile.enrollmentEndsAt &&
+                    `${tp("endsAt")}: ${planDateFmt(locale).format(new Date(profile.enrollmentEndsAt))}`}
+                </p>
+              )}
+            </div>
+          )}
+        </Card>
+      </section>
 
       {/* Nivel por tipo de clase (spec academies/enrollment-levels):
           uno por tipo, lo asigna la academia (cap students, mismo gate

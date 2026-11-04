@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   Pager,
   RefreshIcon,
   SkeletonList,
@@ -208,8 +209,15 @@ function ReportModule({ academyId }: { academyId: string }) {
   if (state === "loading") return <SkeletonList />;
   if (state === "forbidden") {
     return (
-      <Card className="py-6 text-center">
+      <Card className="flex flex-col items-center gap-3 py-6 text-center">
         <p className="text-sm text-ink/70">{t("report.forbidden")}</p>
+        <Button
+          href="/academia/cobros"
+          variant="secondary"
+          size="sm"
+        >
+          {t("detailBack")}
+        </Button>
       </Card>
     );
   }
@@ -332,6 +340,7 @@ function ReportModule({ academyId }: { academyId: string }) {
                   <Badge variant={STATUS_VARIANT[r.status] ?? "muted"}>
                     {statusLabel(r)}
                   </Badge>
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                 </Link>
               </li>
             ))}

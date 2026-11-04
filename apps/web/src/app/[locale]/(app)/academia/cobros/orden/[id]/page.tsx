@@ -43,8 +43,6 @@ type OrderClaimDetail = {
   };
 };
 
-;
-
 /**
  * /academia/cobros/orden/[id] - ficha del comprobante de una orden de
  * suscripción por transferencia (spec subscription-manual-transfer,

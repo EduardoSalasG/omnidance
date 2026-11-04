@@ -10,7 +10,7 @@ import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { Link, useRouter } from "@/i18n/navigation";
-import { formatMoney, useDateFmt, useNumFmt } from "@/lib/intl";
+import { formatMoney, useDateFmt } from "@/lib/intl";
 
 type ClaimDetail = {
   id: string;
@@ -36,15 +36,12 @@ type ClaimDetail = {
   } | null;
 };
 
-;
-
 /**
  * /academia/cobros/claim/[id] - detalle del comprobante declarado por el
  * alumno: datos, comprobante y (solo en PENDING) aprobar/rechazar con
  * motivo. La cola solo navega hasta acá.
  */
 export default function ClaimDetailPage() {
-  const claimDateFmt = useDateFmt({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const t = useTranslations("academyPay");
   const params = useParams<{ id: string }>();
 
@@ -72,11 +69,6 @@ function ClaimDetail({
   claimId: string;
 }) {
   const locale = useLocale();
-  const clp = useNumFmt({
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
   const claimDateFmt = useDateFmt({
     day: "numeric",
     month: "short",
@@ -241,7 +233,7 @@ function ClaimDetail({
                 <dd>
                   <Link
                     href={`/academia/cobros/pago/${claim.payment.id}`}
-                    className="font-mono text-xs text-neon underline-offset-4 hover:underline"
+                    className="inline-flex min-h-11 items-center font-mono text-xs text-neon underline-offset-4 hover:underline"
                   >
                     {claim.payment.refId}
                   </Link>

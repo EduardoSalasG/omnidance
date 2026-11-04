@@ -376,6 +376,7 @@
     "saved": "Promo enregistrée",
     "error": "Impossible d'enregistrer la promo",
     "loadError": "Impossible de charger les promos",
+    "notFound": "Promo introuvable",
     "empty": "Aucune promo pour le moment",
     "name": "Nom",
     "discountType": "Type de remise",

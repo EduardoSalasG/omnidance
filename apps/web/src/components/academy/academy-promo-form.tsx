@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Spinner } from "@/components/ui";
+import { Button, Spinner, XIcon } from "@/components/ui";
 import { inputCls } from "@/components/academy/shared";
 
 export type PromoPerson = { id: string; name: string };
@@ -222,7 +222,7 @@ export function AcademyPromoForm({
                     type="button"
                     aria-pressed={on}
                     onClick={() => togglePlan(p.id)}
-                    className={`min-h-8 rounded-full border px-3 text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+                    className={`min-h-11 rounded-full border px-3 text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
                       on
                         ? "border-neon/60 bg-neon/10 text-neon"
                         : "border-line bg-raised text-ink/70 hover:border-neon/40"
@@ -239,7 +239,6 @@ export function AcademyPromoForm({
       </fieldset>
 
       <PersonPicker academyId={academyId} selected={form.persons} onChange={(persons) => set("persons", persons)} />
-      <p className="text-xs text-ink/40">{t("personsHint")}</p>
 
       <div>
         <Button type="submit" size="sm" disabled={busy}>
@@ -302,16 +301,16 @@ function PersonPicker({
           {selected.map((a) => (
             <li
               key={a.id}
-              className="flex min-h-8 items-center gap-2 rounded-full border border-line bg-raised px-3 text-xs"
+              className="flex min-h-11 items-center gap-1 rounded-full border border-line bg-raised pl-3 pr-1 text-xs"
             >
               <span className="truncate">{a.name}</span>
               <button
                 type="button"
                 aria-label={t("removeActor", { name: a.name })}
                 onClick={() => onChange(selected.filter((s) => s.id !== a.id))}
-                className="text-ink/50 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-ink/50 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
               >
-                ✕
+                <XIcon className="h-3.5 w-3.5" />
               </button>
             </li>
           ))}
@@ -349,6 +348,7 @@ function PersonPicker({
           ))}
         </ul>
       )}
+      <p className="text-xs text-ink/40">{t("personsHint")}</p>
     </fieldset>
   );
 }

@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { showActionNotice } from "@/components/ui/action-notice";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 
 import { Badge, Button, Card, ChevronRightIcon, PriceTag, RefreshIcon, Spinner } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
@@ -52,7 +55,7 @@ function PlanDetail({
   const [plan, setPlan] = useState<PlanDetail | null>(null);
   const [loadError, setLoadError] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const dateFmt = useDateFmt({
         day: "numeric",
@@ -94,13 +97,13 @@ function PlanDetail({
         },
       );
       if (!res.ok) {
-        showActionNotice({ text: tc("error"), error: true });
+        setNotice({ text: tc("error"), error: true });
         return;
       }
-      setNotice(t("planSaved"));
+      setNotice({ text: t("planSaved") });
       await reload();
     } catch {
-      showActionNotice({ text: tc("error"), error: true });
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -110,7 +113,7 @@ function PlanDetail({
     return (
       <div className="flex items-center gap-3">
         <p role="alert" className="text-sm text-ink/60">
-          {loadError === 404 ? t("plansEmpty") : tc("error")}
+          {loadError === 404 ? t("planNotFound") : tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void reload()}>
           <RefreshIcon /> {tc("retry")}
@@ -129,7 +132,7 @@ function PlanDetail({
             hover + focus ring en el Link. */}
         <Link
           href={`/academia/planes/nueva?edit=${plan.id}`}
-          className="group block rounded-2xl transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          className="group block rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
           <div className="flex flex-col gap-3">
             <div className="flex min-w-0 items-center justify-between gap-3">
@@ -138,7 +141,7 @@ function PlanDetail({
                   {plan.name}
                 </h2>
                 {!plan.active && (
-                  <Badge variant="live">{t("planInactive")}</Badge>
+                  <Badge variant="outline">{t("planInactive")}</Badge>
                 )}
               </div>
               <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40 transition-colors group-hover:text-neon" />
@@ -149,7 +152,7 @@ function PlanDetail({
                   ? t(`planTypes.${plan.type}`)
                   : plan.type}
               </Badge>
-              <PriceTag amount={plan.price} />
+              <PriceTag amount={plan.price} currency={plan.currency} />
             </div>
             {plan.classCount != null && (
               <p className="text-sm text-ink/60">
@@ -170,25 +173,6 @@ function PlanDetail({
             )}
           </div>
         </Link>
-        {notice && (
-          <p role="status" className="text-sm text-neon">
-            {notice}
-          </p>
-        )}
-        {/* Activar/desactivar es mutación, no navegación: botón ghost
-            en fila propia debajo del card (nada interactivo dentro del
-            Link). */}
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => void toggleActive()}
-          >
-            {busy ? <Spinner size="sm" /> : null}
-            {plan.active ? t("planDeactivate") : t("planReactivate")}
-          </Button>
-        </div>
       </section>
 
       {/* Alumnos con el plan vigente (enrollment ACTIVE): inicio y fin. */}
@@ -229,6 +213,22 @@ function PlanDetail({
           )}
         </Card>
       </section>
+
+      {/* Mutación de estado al pie (console-patterns §3/§4): centrada
+          y separada por border-t, igual que el toggle de promos/[id]. */}
+      <div className="flex justify-center border-t border-line pt-6">
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => void toggleActive()}
+        >
+          {busy ? <Spinner size="sm" /> : null}
+          {plan.active ? t("planDeactivate") : t("planReactivate")}
+        </Button>
+      </div>
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }

@@ -15,7 +15,6 @@ import {
   Pager,
   PillTabs,
   SkeletonList,
-  SkeletonText,
   Spinner,
 } from "@/components/ui";
 import { TierPaywall } from "@/components/tier-paywall";
@@ -384,12 +383,14 @@ export default function AnaliticaPage() {
     phase === "loading" || (phase === "ready" && catalogPhase === "loading");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-none lg:px-4">
       {bootLoading && <SkeletonList />}
 
       {phase === "error" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-ink/70">{ta("error")}</p>
+          <p role="alert" className="text-sm text-ink/70">
+            {ta("error")}
+          </p>
           <Button variant="secondary" size="sm" onClick={() => void boot()}>
             {tc("retry")}
           </Button>
@@ -397,8 +398,11 @@ export default function AnaliticaPage() {
       )}
 
       {phase === "forbidden" && (
-        <Card className="py-6 text-center">
+        <Card className="flex flex-col items-center gap-3 py-6 text-center">
           <p className="text-sm text-ink/70">{ta("forbidden")}</p>
+          <Button href="/inicio" variant="secondary" size="sm">
+            {tc("appName")}
+          </Button>
         </Card>
       )}
 
@@ -421,14 +425,19 @@ export default function AnaliticaPage() {
           )}
 
           {catalogPhase === "forbidden" && (
-            <Card className="py-6 text-center">
+            <Card className="flex flex-col items-center gap-3 py-6 text-center">
               <p className="text-sm text-ink/70">{ta("forbidden")}</p>
+              <Button href="/inicio" variant="secondary" size="sm">
+                {tc("appName")}
+              </Button>
             </Card>
           )}
 
           {catalogPhase === "error" && (
             <Card className="flex flex-col items-center gap-3 py-6 text-center">
-              <p className="text-sm text-ink/70">{ta("error")}</p>
+              <p role="alert" className="text-sm text-ink/70">
+                {ta("error")}
+              </p>
               <Button
                 variant="secondary"
                 size="sm"
@@ -531,11 +540,13 @@ export default function AnaliticaPage() {
                 </span>
               </div>
 
-              {runPhase === "loading" && <SkeletonText lines={3} />}
+              {runPhase === "loading" && <SkeletonList items={3} />}
 
               {runPhase === "error" && (
                 <Card className="flex flex-col items-center gap-3 py-6 text-center">
-                  <p className="text-sm text-ink/70">{ta("error")}</p>
+                  <p role="alert" className="text-sm text-ink/70">
+                    {ta("error")}
+                  </p>
                   <Button
                     variant="secondary"
                     size="sm"

@@ -4,18 +4,17 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Card } from "@/components/ui";
+import { Card, ChevronRightIcon, SkeletonCard } from "@/components/ui";
 import { shortId } from "./shared";
 import { Link } from "@/i18n/navigation";
-import { getNumFmt, useNumFmt } from "@/lib/intl";
+import { getNumFmt } from "@/lib/intl";
 
-const clpFmt = (locale: string) => getNumFmt(locale, {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
-
-;
+const clpFmt = (locale: string) =>
+  getNumFmt(locale, {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  });
 
 type StudentsInsightsData = {
   topAttendance: { personId: string; name: string | null; count: number }[];
@@ -31,6 +30,7 @@ type StudentsInsightsData = {
 export function StudentsInsights({ academyId }: { academyId: string }) {
   const locale = useLocale();
   const t = useTranslations("academy");
+  const tc = useTranslations("common");
   const [data, setData] = useState<StudentsInsightsData | null>(null);
   const [hidden, setHidden] = useState(false);
 
@@ -49,7 +49,19 @@ export function StudentsInsights({ academyId }: { academyId: string }) {
     void load();
   }, [load]);
 
-  if (hidden || data === null) return null;
+  if (hidden) return null;
+  // Carga con estructura (dos cards, mismo grid del resultado): evita
+  // el pop-in cuando el fetch resuelve - SkeletonCard difiere su
+  // aparición vía page-loading.
+  if (data === null) {
+    return (
+      <div role="status" className="grid gap-6 lg:grid-cols-2">
+        <span className="sr-only">{tc("loading")}</span>
+        <SkeletonCard lines={4} />
+        <SkeletonCard lines={4} />
+      </div>
+    );
+  }
   if (data.topAttendance.length === 0 && data.topPayersMonth.length === 0) {
     return null;
   }
@@ -83,6 +95,7 @@ export function StudentsInsights({ academyId }: { academyId: string }) {
                     <span className="shrink-0 text-xs tabular-nums text-ink/50">
                       {t("studentsTopAttendanceCount", { count: s.count })}
                     </span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </Link>
                 </li>
               ))}
@@ -107,6 +120,7 @@ export function StudentsInsights({ academyId }: { academyId: string }) {
                     <span className="shrink-0 text-sm font-semibold tabular-nums text-ink/70">
                       {clpFmt(locale).format(s.amount)}
                     </span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </Link>
                 </li>
               ))}

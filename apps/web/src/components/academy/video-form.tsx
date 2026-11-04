@@ -20,8 +20,6 @@ import { useRouter } from "@/i18n/navigation";
  * canAdminister (misma regla que canAdministerAcademy del dominio:
  * ADMIN u ownerId === me.id).
  */
-type AcademyExtras = (typeof import("@/i18n/parts/academyExtras.json"))["academyExtras"];
-
 export function VideoForm({ academy }: { academy: Academy }) {
   const t = (useMessages() as { academyExtras: { videos: Record<string,string> } }).academyExtras.videos;
   const ta = useTranslations("academy");
@@ -70,9 +68,14 @@ export function VideoForm({ academy }: { academy: Academy }) {
   }
   if (!canAdminister) {
     return (
-      <p role="alert" className="text-sm text-ink/60">
-        {ta("forbidden")}
-      </p>
+      <div className="flex flex-col items-start gap-3">
+        <p role="alert" className="text-sm text-ink/60">
+          {ta("forbidden")}
+        </p>
+        <Button href="/academia/videos" size="sm" variant="secondary">
+          {tc("back")}
+        </Button>
+      </div>
     );
   }
 
@@ -118,7 +121,7 @@ export function VideoForm({ academy }: { academy: Academy }) {
             onChange={(e) => setClassId(e.target.value)}
           />
         </label>
-        <label className="flex items-end gap-2 pb-1">
+        <label className="flex min-h-11 items-center gap-2">
           <input
             type="checkbox"
             className="h-5 w-5 rounded border-line bg-elevated accent-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
