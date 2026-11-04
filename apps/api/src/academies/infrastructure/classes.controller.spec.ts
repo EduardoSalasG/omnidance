@@ -52,6 +52,10 @@ interface FakeClass {
       quorum: number | null;
       dropInPrice: number | null;
       instructorId: string | null;
+      // Borrado lógico de la serie (spec academy-level-line-consistency):
+      // las superficies de clases la excluyen vía series.deletedAt.
+      active: boolean;
+      deletedAt: Date | null;
       level: { id: string; name: string; order: number } | null;
       style: { id: string; name: string; genre: string | null } | null;
       types: { type: { id: string; name: string } }[];
@@ -61,6 +65,9 @@ interface FakeClass {
       name: string;
       defaultQuorum: number | null;
       billingBlockedAt: Date | null;
+      // Visibilidad pública (browse: active + reviewStatus).
+      active: boolean;
+      reviewStatus: string;
       // Sede de la clase (spec class-calendar-ics): la academia es la
       // ubicación y su ciudad fija el TZID del .ics.
       address: string | null;
@@ -136,6 +143,8 @@ class FakePrisma {
           quorum: null,
           dropInPrice: null,
           instructorId: null,
+          active: true,
+          deletedAt: null,
           level: null,
           style: { id: "sty-1", name: "Bachata", genre: "SALSA" },
           types: [],
@@ -146,6 +155,8 @@ class FakePrisma {
           name: "Academia X",
           defaultQuorum: null,
           billingBlockedAt: null,
+          active: true,
+          reviewStatus: "APPROVED",
           address: "Av. Siempre Viva 123",
           addressExtra: null,
           city: { name: "Santiago", timezone: "America/Santiago" },
@@ -196,6 +207,21 @@ class FakePrisma {
     });
   }
 
+  // Bookings activas de una clase en el shape del select del card.
+  private classBookingsSelect(classId: string) {
+    return this.bookings
+      .filter(
+        (b) =>
+          b.classId === classId &&
+          (b.status === "BOOKED" || b.status === "WAITLIST"),
+      )
+      .map((b) => ({
+        personId: b.personId,
+        status: b.status,
+        paymentId: b.paymentId,
+      }));
+  }
+
   class = {
     // El select de detail incluye bookings/attendances como relaciones -
     // el fake las materializa desde this.bookings (Bookings de la clase
@@ -205,22 +231,75 @@ class FakePrisma {
       if (!c) return null;
       return {
         ...c,
-        bookings: this.bookings
-          .filter(
-            (b) =>
-              b.classId === c.id &&
-              (b.status === "BOOKED" || b.status === "WAITLIST"),
-          )
-          .map((b) => ({
-            personId: b.personId,
-            status: b.status,
-            paymentId: b.paymentId,
-          })),
+        bookings: this.classBookingsSelect(c.id),
         attendances: [],
       };
     },
-    findMany: async () => [],
+    findMany: async ({ where }: { where?: Record<string, unknown> } = {}) =>
+      [...this.classes.values()]
+        .filter((c) => this.classRowMatches(c, where ?? {}))
+        .map((c) => ({ ...c, bookings: this.classBookingsSelect(c.id) })),
   };
+
+  /** Matcher de where para class.findMany (subset de browse/teaching). */
+  private classRowMatches(c: FakeClass, w: Record<string, unknown>): boolean {
+    const where = w as {
+      cancelled?: boolean;
+      date?: { gte?: Date; lte?: Date; lt?: Date };
+      slot?: {
+        academyId?: string | { in?: string[] };
+        series?: {
+          active?: boolean;
+          deletedAt?: Date | null;
+          styleId?: string;
+          levelId?: string;
+        };
+        academy?: {
+          active?: boolean;
+          billingBlockedAt?: Date | null;
+          reviewStatus?: { not?: string };
+        };
+      };
+    };
+    if (where.cancelled !== undefined && c.cancelled !== where.cancelled)
+      return false;
+    if (where.date?.gte && c.date < where.date.gte) return false;
+    if (where.date?.lte && c.date > where.date.lte) return false;
+    if (where.date?.lt && c.date >= where.date.lt) return false;
+    const s = where.slot;
+    if (s) {
+      if (typeof s.academyId === "string" && c.slot.academyId !== s.academyId)
+        return false;
+      if (
+        s.academyId &&
+        typeof s.academyId === "object" &&
+        s.academyId.in &&
+        !s.academyId.in.includes(c.slot.academyId)
+      )
+        return false;
+      const ser = s.series;
+      if (ser) {
+        if (ser.active !== undefined && c.slot.series.active !== ser.active)
+          return false;
+        // deletedAt: null = serie vigente (una fecha la excluye).
+        if ("deletedAt" in ser && c.slot.series.deletedAt != null)
+          return false;
+      }
+      const a = s.academy;
+      if (a) {
+        if (a.active !== undefined && c.slot.academy.active !== a.active)
+          return false;
+        if (a.billingBlockedAt === null && c.slot.academy.billingBlockedAt !== null)
+          return false;
+        if (
+          a.reviewStatus?.not &&
+          c.slot.academy.reviewStatus === a.reviewStatus.not
+        )
+          return false;
+      }
+    }
+    return true;
+  }
 
   person = {
     // detail solo consulta cuando la clase/slot/serie fija instructorId;
@@ -285,7 +364,11 @@ class FakePrisma {
       OR?: Array<Record<string, unknown>>;
       class?: {
         date?: { gte?: Date; lt?: Date; lte?: Date };
-        slot?: { academyId?: string };
+        cancelled?: boolean;
+        slot?: {
+          academyId?: string;
+          series?: { deletedAt?: Date | null };
+        };
       };
     },
   ): boolean {
@@ -318,7 +401,13 @@ class FakePrisma {
       if (d?.gte && c.date < d.gte) return false;
       if (d?.lt && c.date >= d.lt) return false;
       if (d?.lte && c.date > d.lte) return false;
-      if (where.class.slot?.academyId && c.slot.academyId !== where.class.slot.academyId)
+      if (where.class.cancelled !== undefined && c.cancelled !== where.class.cancelled)
+        return false;
+      const slot = where.class.slot;
+      if (slot?.academyId && c.slot.academyId !== slot.academyId)
+        return false;
+      // Series borradas: la clase no se dictará, la reserva no sale.
+      if (slot?.series && "deletedAt" in slot.series && c.slot.series.deletedAt != null)
         return false;
     }
     return true;
@@ -347,15 +436,42 @@ class FakePrisma {
     findMany: async ({
       where,
       orderBy,
+      select,
     }: {
       where: Parameters<FakePrisma["bookingMatches"]>[1];
-      orderBy?: { createdAt: "asc" | "desc" };
+      orderBy?: {
+        createdAt?: "asc" | "desc";
+        class?: { date?: "asc" | "desc" };
+      };
+      // select.class (mine): la reserva viaja con su clase en shape card.
+      select?: { class?: { select?: unknown } };
     }) => {
       const rows = this.bookings.filter((b) => this.bookingMatches(b, where));
       if (orderBy?.createdAt === "asc") {
         rows.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
       }
-      return rows.map((r) => ({ ...r }));
+      if (orderBy?.class?.date) {
+        const dir = orderBy.class.date === "asc" ? 1 : -1;
+        rows.sort(
+          (a, b) =>
+            dir *
+            ((this.classes.get(a.classId)?.date.getTime() ?? 0) -
+              (this.classes.get(b.classId)?.date.getTime() ?? 0)),
+        );
+      }
+      return rows.map((r) => ({
+        ...r,
+        ...(select?.class
+          ? {
+              class: this.classes.get(r.classId)
+                ? {
+                    ...this.classes.get(r.classId)!,
+                    bookings: this.classBookingsSelect(r.classId),
+                  }
+                : undefined,
+            }
+          : {}),
+      }));
     },
 
     findFirst: async ({
@@ -447,6 +563,38 @@ class FakePrisma {
         name: `Academia ${id}`,
         billingBlockedAt: null,
       })),
+  };
+
+  // Catálogos de niveles/tipos (GET /classes/catalogs): los niveles con
+  // academyId son la línea custom de esa academia; null = línea global.
+  levels: { id: string; name: string; academyId: string | null; order: number }[] =
+    [];
+  types: { id: string; name: string }[] = [];
+
+  classLevel = {
+    findMany: async ({
+      where,
+      orderBy,
+    }: {
+      where?: { academyId?: string | null };
+      orderBy?: { order: "asc" };
+    } = {}) => {
+      const rows = this.levels.filter(
+        (l) => where?.academyId === undefined || l.academyId === where.academyId,
+      );
+      if (orderBy?.order === "asc") rows.sort((a, b) => a.order - b.order);
+      return rows;
+    },
+  };
+
+  classType = {
+    findMany: async () => [...this.types],
+  };
+
+  // Catálogo RBAC (roleKeysHavePermission en teaching): vacío = ningún
+  // rol con permiso extra - INSTRUCTOR no es superuser.
+  role = {
+    findMany: async () => [],
   };
 
   attendances: { classId: string; personId: string; checkedAt: Date }[] =
@@ -1835,5 +1983,127 @@ describe("GET /classes/my-quota", () => {
       classCount: null,
     });
     expect(await ctrl.myQuota(reqAs("per-1"))).toEqual([]);
+  });
+});
+
+// GET /classes/catalogs (spec academy-level-line-consistency): la
+// línea efectiva de una academia es su línea custom si tiene al menos
+// un nivel; si no, la global. Sin academyId solo viaja la global - el
+// catálogo público no mezcla customs de todas las academias.
+describe("ClassesController.catalogs - línea efectiva de niveles", () => {
+  let prisma: FakePrisma;
+  let ctrl: ClassesController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    ctrl = new ClassesController(
+      prisma as unknown as PrismaService,
+      { notifySafe: vi.fn(async () => undefined) } as unknown as NotificationsService,
+      {} as AcademyAccess,
+      fakeParams(),
+    );
+    prisma.types.push({ id: "ct-pareja", name: "Pareja" });
+    prisma.levels.push(
+      { id: "lv-g1", name: "Iniciación", academyId: null, order: 0 },
+      { id: "lv-g2", name: "Básico", academyId: null, order: 1 },
+      // "Básico" duplicado por nombre: global vs custom de acad-1 -
+      // el caso real que motivó el change (Mambo Madness).
+      { id: "lv-c1", name: "Básico", academyId: "acad-1", order: 0 },
+      { id: "lv-c2", name: "Elite", academyId: "acad-1", order: 1 },
+      { id: "lv-x1", name: "Pro", academyId: "acad-2", order: 0 },
+    );
+  });
+
+  it("sin academyId devuelve solo la línea global (nunca customs)", async () => {
+    const res = await ctrl.catalogs();
+    expect(res.levels.map((l) => l.id)).toEqual(["lv-g1", "lv-g2"]);
+    // types sigue siendo el catálogo global completo.
+    expect(res.types).toEqual([{ id: "ct-pareja", name: "Pareja" }]);
+  });
+
+  it("academia con customs recibe solo su línea custom", async () => {
+    const res = await ctrl.catalogs("acad-1");
+    expect(res.levels.map((l) => l.id)).toEqual(["lv-c1", "lv-c2"]);
+  });
+
+  it("academia sin customs cae a la línea global", async () => {
+    const res = await ctrl.catalogs("acad-9");
+    expect(res.levels.map((l) => l.id)).toEqual(["lv-g1", "lv-g2"]);
+  });
+});
+
+// Series borradas por datos (active:true con deletedAt - el soft-delete
+// del API pone ambas, pero seed/admin pueden dejar solo deletedAt):
+// ninguna superficie de clases las muestra (spec
+// academy-level-line-consistency).
+describe("ClassesController - series con deletedAt fuera de superficies", () => {
+  let prisma: FakePrisma;
+  let ctrl: ClassesController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    ctrl = new ClassesController(
+      prisma as unknown as PrismaService,
+      { notifySafe: vi.fn(async () => undefined) } as unknown as NotificationsService,
+      {} as AcademyAccess,
+      fakeParams(),
+    );
+  });
+
+  it("browse no lista clases de una serie con deletedAt", async () => {
+    prisma.addClass("cls-viva");
+    prisma.addClass("cls-muerta", {
+      slot: { series: { deletedAt: new Date() } },
+    });
+
+    const res = await ctrl.browse(reqAs("per-1"));
+
+    expect(res.map((c) => c.id)).toEqual(["cls-viva"]);
+  });
+
+  it("browse con levelId/styleId mantiene el filtro y excluye borradas", async () => {
+    prisma.addClass("cls-viva", {
+      slot: { series: { level: { id: "lv-1", name: "Básico", order: 0 } } },
+    });
+    prisma.addClass("cls-muerta", {
+      slot: { series: { deletedAt: new Date() } },
+    });
+
+    const res = await ctrl.browse(reqAs("per-1"), undefined, undefined, "lv-1");
+
+    expect(res.map((c) => c.id)).toEqual(["cls-viva"]);
+  });
+
+  it("mine no devuelve reservas de clases de una serie con deletedAt", async () => {
+    prisma.addClass("cls-viva");
+    prisma.addClass("cls-muerta", {
+      slot: { series: { deletedAt: new Date() } },
+    });
+    prisma.addEnrollment("per-1");
+    prisma.addBooking("cls-viva", "per-1", "BOOKED");
+    prisma.addBooking("cls-muerta", "per-1", "BOOKED");
+
+    const res = await ctrl.mine(reqAs("per-1"));
+
+    expect(res.map((c) => c.id)).toEqual(["cls-viva"]);
+  });
+
+  it("teaching consulta solo slots de series vigentes", async () => {
+    const spy = vi.spyOn(prisma.class, "findMany");
+    const req = {
+      person: { id: "inst-1", roles: ["INSTRUCTOR"] },
+    } as unknown as Request;
+
+    await ctrl.teaching(req);
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          slot: expect.objectContaining({
+            series: { deletedAt: null },
+          }),
+        }),
+      }),
+    );
   });
 });

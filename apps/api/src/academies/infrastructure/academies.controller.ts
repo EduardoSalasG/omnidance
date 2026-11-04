@@ -779,16 +779,35 @@ export class AcademiesController {
   @UseGuards(SessionGuard)
   async detail(@Param("id") id: string, @Req() req: Request) {
     const { academy } = await this.access.requireManage(id, req.person!);
-    const [activeStudents, plansCount, slotsCount] = await Promise.all([
-      this.prisma.enrollment.count({
-        where: { academyId: id, status: "ACTIVE" },
-      }),
-      this.prisma.membershipPlan.count({ where: { academyId: id } }),
-      this.prisma.classSlot.count({ where: { academyId: id } }),
-    ]);
+    const [activeStudents, plansCount, slotsCount, instructorRows] =
+      await Promise.all([
+        this.prisma.enrollment.count({
+          where: { academyId: id, status: "ACTIVE" },
+        }),
+        this.prisma.membershipPlan.count({ where: { academyId: id } }),
+        this.prisma.classSlot.count({ where: { academyId: id } }),
+        // Instructores con nombre incluido: evita que la consola
+        // pida el directorio completo solo para resolver nombres
+        // (personId es string plano, sin relación → lookup aparte).
+        this.prisma.academyInstructor.findMany({
+          where: { academyId: id },
+          select: { personId: true },
+        }),
+      ]);
+    const names = instructorRows.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: instructorRows.map((i) => i.personId) } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameOf = new Map(names.map((p) => [p.id, p.name]));
     const checks = await evaluateAcademyChecks(this.prisma, [id]);
     return {
       ...academy,
+      instructors: instructorRows.map((i) => ({
+        personId: i.personId,
+        name: nameOf.get(i.personId) ?? null,
+      })),
       reviewChecks: checks.get(id) ?? null,
       stats: { activeStudents, plansCount, slotsCount },
     };
@@ -908,7 +927,12 @@ export class AcademiesController {
           where: {
             cancelled: false,
             date: { gte: new Date() },
-            slot: { academyId: id, series: { active: true } },
+            slot: {
+              academyId: id,
+              // deletedAt cubre series borradas por datos que quedaron
+              // active:true (el soft-delete del API ya pone ambas).
+              series: { active: true, deletedAt: null },
+            },
           },
           orderBy: { date: "asc" },
           take: 30,
@@ -2246,7 +2270,12 @@ export class AcademiesController {
   ) {
     await this.access.requireCapability(id, req.person!, "schedule", "classes");
     return this.prisma.classSlot.findMany({
-      where: { academyId: id, ...(seriesId ? { seriesId } : {}) },
+      where: {
+        academyId: id,
+        ...(seriesId ? { seriesId } : {}),
+        // La parrilla no lista horarios de series eliminadas.
+        series: { deletedAt: null },
+      },
       orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
       include: {
         series: { select: { id: true, name: true } },
@@ -2306,7 +2335,13 @@ export class AcademiesController {
                 }),
           ),
         this.prisma.classSlot.findMany({
-          where: { academyId: id, deletedAt: null },
+          where: {
+            academyId: id,
+            deletedAt: null,
+            // Solo horarios de series vigentes - "Niveles y cupos" no
+            // muestra parrilla de series eliminadas.
+            series: { deletedAt: null },
+          },
           orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
           select: {
             id: true,
@@ -2344,7 +2379,13 @@ export class AcademiesController {
           where: {
             cancelled: false,
             date: { gte: attendanceSince, lt: todayUTC },
-            slot: { academyId: id },
+            // Acotadas a slots vigentes de series vivas - solo alimentan
+            // los horarios listados en bySlot.
+            slot: {
+              academyId: id,
+              deletedAt: null,
+              series: { deletedAt: null },
+            },
           },
           orderBy: { date: "desc" },
           select: {
@@ -2360,7 +2401,11 @@ export class AcademiesController {
           where: {
             cancelled: false,
             date: { gte: todayUTC },
-            slot: { academyId: id },
+            slot: {
+              academyId: id,
+              deletedAt: null,
+              series: { deletedAt: null },
+            },
           },
           orderBy: { date: "asc" },
           select: {
@@ -2695,9 +2740,12 @@ export class AcademiesController {
           },
         }),
         // Clases semanales ofrecidas: slots de recurrencia de series
-        // activas (un slot = una clase por semana).
+        // activas y vigentes (un slot = una clase por semana).
         this.prisma.classSlot.count({
-          where: { academyId: id, series: { active: true } },
+          where: {
+            academyId: id,
+            series: { active: true, deletedAt: null },
+          },
         }),
         // Cobros declarados por alumnos pendientes de revisión (la
         // sección "Cobros por revisar" del home).

@@ -189,36 +189,21 @@ function SeriesDetail({
   }, [reload]);
 
   // Instructores de la academia para el override del horario.
+  // GET /academies/:id ya trae los nombres - el directorio completo
+  // era un request extra solo por ellos.
   useEffect(() => {
     void (async () => {
       try {
-        const [detailRes, dirRes] = await Promise.all([
-          apiFetch(`/academies/${academyId}`),
-          apiFetch("/academies"),
-        ]);
-        const detail = detailRes.ok
-          ? ((await detailRes.json()) as {
-              instructors?: { personId: string }[];
+        const res = await apiFetch(`/academies/${academyId}`);
+        const detail = res.ok
+          ? ((await res.json()) as {
+              instructors?: { personId: string; name?: string | null }[];
             })
           : null;
-        const directory = dirRes.ok
-          ? ((await dirRes.json()) as {
-              id: string;
-              instructors?: { personId: string; name: string | null }[];
-            }[])
-          : [];
-        const dirEntry = directory.find((a) => a.id === academyId);
-        const names = new Map(
-          (dirEntry?.instructors ?? []).map((i) => [i.personId, i.name]),
-        );
-        const ids =
-          detail?.instructors?.map((i) => i.personId) ??
-          dirEntry?.instructors?.map((i) => i.personId) ??
-          [];
         setInstructors(
-          ids.map((personId) => ({
-            personId,
-            name: names.get(personId) ?? null,
+          (detail?.instructors ?? []).map((i) => ({
+            personId: i.personId,
+            name: i.name ?? null,
           })),
         );
       } catch {

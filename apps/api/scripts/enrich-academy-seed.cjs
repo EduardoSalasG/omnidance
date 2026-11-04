@@ -309,7 +309,22 @@ async function main() {
     prisma.classType.findMany(),
     prisma.academy.findMany({ where: { active: true }, select: { id: true, name: true, ownerId: true, privateLessonPrice: true } }),
   ]);
-  const levelId = Object.fromEntries(levels.map((l) => [l.name, l.id]));
+  // Resolución por línea efectiva (misma regla del API): si la academia
+  // tiene niveles custom, el nivel con ese nombre es el custom - la
+  // línea global NO se mezcla. Si no hay custom con ese nombre, cae al
+  // catálogo global (academyId null).
+  const globalLevelId = Object.fromEntries(
+    levels.filter((l) => !l.academyId).map((l) => [l.name, l.id]),
+  );
+  const customLevelsByAcademy = new Map();
+  for (const l of levels) {
+    if (!l.academyId) continue;
+    if (!customLevelsByAcademy.has(l.academyId))
+      customLevelsByAcademy.set(l.academyId, {});
+    customLevelsByAcademy.get(l.academyId)[l.name] = l.id;
+  }
+  const levelIdFor = (academyId, name) =>
+    customLevelsByAcademy.get(academyId)?.[name] ?? globalLevelId[name];
   const typeId = Object.fromEntries(types.map((t) => [t.name, t.id]));
   const academyById = new Map(academies.map((a) => [a.id, a]));
 
@@ -345,7 +360,8 @@ async function main() {
       r < 90 ? ["Básico", "Intermedio"] :
       r < 97 ? ["Intermedio"] : ["Intermedio", "Avanzado"];
     for (const ln of sets) {
-      if (levelId[ln]) levelRows.push({ enrollmentId: e.id, classTypeId: tId, levelId: levelId[ln] });
+      const lid = levelIdFor(e.academyId, ln);
+      if (lid) levelRows.push({ enrollmentId: e.id, classTypeId: tId, levelId: lid });
     }
   }
   const levelRes = await prisma.enrollmentLevel.createMany({ data: levelRows, skipDuplicates: true });
@@ -356,13 +372,14 @@ async function main() {
   const styleId = async (name) =>
     (await prisma.style.findFirst({ where: { name: { equals: name, mode: "insensitive" } } }))?.id ?? null;
   const ensureSeries = async (academyId, name, { styleName, levelName, typeNames, instructorId, slots }) => {
-    let series = await prisma.classSeries.findFirst({ where: { academyId, name, levelId: levelName ? levelId[levelName] : null } });
+    const effectiveLevelId = levelName ? levelIdFor(academyId, levelName) : null;
+    let series = await prisma.classSeries.findFirst({ where: { academyId, name, levelId: effectiveLevelId } });
     if (!series) {
       series = await prisma.classSeries.create({
         data: {
           academyId, name,
           styleId: styleName ? await styleId(styleName) : null,
-          levelId: levelName ? levelId[levelName] : null,
+          levelId: effectiveLevelId,
           instructorId: instructorId ?? null,
           month: `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`,
         },

@@ -30,9 +30,13 @@ type LoadState = "loading" | "ready" | "error";
  */
 export function EnrollmentLevelsEditor({
   enrollmentId,
+  academyId,
   initialLevels = [],
 }: {
   enrollmentId: string;
+  /** Academia del alumno: las opciones de nivel son su línea efectiva
+   *  (custom si tiene, global si no - spec academies/class-levels). */
+  academyId: string;
   /** Niveles vigentes del alumno (viene del GET de ficha): el editor
    *  abre con la marca actual, no vacío. */
   initialLevels?: { classTypeId: string; levelId: string }[];
@@ -56,7 +60,7 @@ export function EnrollmentLevelsEditor({
   const load = useCallback(async () => {
     setState("loading");
     try {
-      const res = await apiFetch("/classes/catalogs");
+      const res = await apiFetch(`/classes/catalogs?academyId=${academyId}`);
       if (!res.ok) {
         setState("error");
         return;
@@ -66,7 +70,7 @@ export function EnrollmentLevelsEditor({
     } catch {
       setState("error");
     }
-  }, []);
+  }, [academyId]);
 
   useEffect(() => {
     void load();

@@ -430,6 +430,37 @@ describe("AcademiesController.levelInsights", () => {
     expect(slot1.assigned).toBe(5);
     expect(slot1.empty).toBe(-1);
   });
+
+  // "Niveles y cupos" solo considera series vigentes (spec
+  // academy-level-line-consistency): los mocks devuelven data fija -
+  // la aserción va sobre el where con el que el endpoint consulta.
+  it("los queries de slots y clases excluyen series con deletedAt", async () => {
+    const prisma = makeInsightsPrisma();
+    const ctrl = makeAcademiesCtrl(prisma, makeInsightsAccess());
+
+    await ctrl.levelInsights("acad-1", reqAs(OWNER));
+
+    // bySlot se alimenta solo de horarios de series vivas.
+    expect(prisma.classSlot.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          academyId: "acad-1",
+          deletedAt: null,
+          series: { deletedAt: null },
+        }),
+      }),
+    );
+    // Asistencia reciente y próximas clases: acotadas a slots vigentes
+    // de series vivas (solo alimentan los horarios listados).
+    expect(prisma.class.findMany.mock.calls.length).toBeGreaterThan(0);
+    for (const call of prisma.class.findMany.mock.calls) {
+      expect(call[0].where.slot).toEqual({
+        academyId: "acad-1",
+        deletedAt: null,
+        series: { deletedAt: null },
+      });
+    }
+  });
 });
 
 // ─── DELETE /academies/:id/class-levels (reset a la línea global) ───
@@ -560,5 +591,39 @@ describe("AcademiesController.studentDetail - niveles vigentes", () => {
     expect(res.enrollments[0]?.levels).toEqual([
       { classTypeId: "ct-pareja", levelId: "lv-bas" },
     ]);
+  });
+});
+
+// ─── GET /academies/:id/slots - series borradas fuera de la parrilla ───
+// (spec academy-level-line-consistency).
+
+describe("AcademiesController.listSlots", () => {
+  it("la parrilla excluye horarios de series con deletedAt", async () => {
+    const prisma = {
+      classSlot: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    const access = {
+      requireCapability: vi
+        .fn()
+        .mockResolvedValue({ academy: {}, ctx: {} }),
+    };
+    const ctrl = makeAcademiesCtrl(prisma, access);
+
+    await ctrl.listSlots("acad-1", reqAs(OWNER));
+
+    expect(access.requireCapability).toHaveBeenCalledWith(
+      "acad-1",
+      expect.anything(),
+      "schedule",
+      "classes",
+    );
+    expect(prisma.classSlot.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          academyId: "acad-1",
+          series: { deletedAt: null },
+        }),
+      }),
+    );
   });
 });
