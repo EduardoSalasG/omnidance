@@ -5,7 +5,15 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Card, ChevronRightIcon, Pager, SkeletonList } from "@/components/ui";
+import {
+  Button,
+  Card,
+  ChevronRightIcon,
+  Pager,
+  RefreshIcon,
+  SeeAllRow,
+  SkeletonList,
+} from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { filterQuery } from "./shared";
 import { Link } from "@/i18n/navigation";
@@ -47,6 +55,9 @@ export type QueueClaim = {
 
 
 const PAGE_SIZE = 20;
+// Preview visual de la cola de trabajo sin filtro: sube vs LIST_PREVIEW
+// porque es superficie operativa (design console-audit-fixes §3).
+const QUEUE_PREVIEW = 20;
 
 /**
  * Cola "Pagos por validar" del owner (spec academy-payment-claims).
@@ -62,47 +73,71 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
   const claimDateFmt = useDateFmt({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const t = useTranslations("academyPay");
   const tq = useTranslations("query");
+  const tc = useTranslations("common");
 
   const [claims, setClaims] = useState<QueueClaim[] | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<QueryFilters>({});
+  const [loadError, setLoadError] = useState(false);
+  const [expandPending, setExpandPending] = useState(false);
+  const [expandAwaiting, setExpandAwaiting] = useState(false);
 
   const load = useCallback(async () => {
-    const fetchStatus = async (status: string) => {
-      const qs = filterQuery({ ...filters, status });
-      const res = await apiFetch(
-        `/academies/${academyId}/claims${qs}${qs ? "&" : "?"}page=1&pageSize=100`,
-      ).catch(() => null);
-      return res?.ok
-        ? ((await res.json()) as { items: QueueClaim[]; total: number })
-        : { items: [], total: 0 };
-    };
-    if (filters.status) {
-      // Filtro de status explícito: un solo listado paginado real.
-      const qs = filterQuery(filters);
-      const res = await apiFetch(
-        `/academies/${academyId}/claims${qs}&page=${page}&pageSize=${PAGE_SIZE}`,
-      ).catch(() => null);
-      const data = res?.ok
-        ? ((await res.json()) as { items: QueueClaim[]; total: number })
-        : { items: [], total: 0 };
-      setClaims(data.items);
-      setTotal(data.total);
-      return;
+    setLoadError(false);
+    try {
+      const fetchStatus = async (status: string) => {
+        const qs = filterQuery({ ...filters, status });
+        const res = await apiFetch(
+          `/academies/${academyId}/claims${qs}${qs ? "&" : "?"}page=1&pageSize=100`,
+        );
+        if (!res.ok) throw new Error("claims load failed");
+        return (await res.json()) as { items: QueueClaim[]; total: number };
+      };
+      if (filters.status) {
+        // Filtro de status explícito: un solo listado paginado real.
+        const qs = filterQuery(filters);
+        const res = await apiFetch(
+          `/academies/${academyId}/claims${qs}&page=${page}&pageSize=${PAGE_SIZE}`,
+        );
+        if (!res.ok) throw new Error("claims load failed");
+        const data = (await res.json()) as {
+          items: QueueClaim[];
+          total: number;
+        };
+        setClaims(data.items);
+        setTotal(data.total);
+        return;
+      }
+      const [pen, awa] = await Promise.all([
+        fetchStatus("PENDING"),
+        fetchStatus("AWAITING"),
+      ]);
+      setClaims([...pen.items, ...awa.items]);
+      setTotal(pen.total + awa.total);
+    } catch {
+      setLoadError(true);
     }
-    const [pen, awa] = await Promise.all([
-      fetchStatus("PENDING"),
-      fetchStatus("AWAITING"),
-    ]);
-    setClaims([...pen.items, ...awa.items]);
-    setTotal(pen.total + awa.total);
   }, [academyId, filters, page]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  // Error de fetch: nunca vacío silencioso - la cola es superficie
+  // operativa y el fallo debe distinguirse de "nada que validar".
+  if (loadError) {
+    return (
+      <div className="flex items-center gap-3">
+        <p role="alert" className="text-sm text-ink/60">
+          {tc("error")}
+        </p>
+        <Button variant="secondary" size="sm" onClick={() => void load()}>
+          <RefreshIcon /> {tc("retry")}
+        </Button>
+      </div>
+    );
+  }
   if (claims === null) return <SkeletonList />;
   // Cola colapsa a nada cuando no hay claims NI filtros activos (default
   // histórico); con un filtro puesto la barra queda visible aunque el
@@ -127,8 +162,18 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
             </h2>
             <p className="mt-1 text-xs text-ink/50">{t("queueDesc")}</p>
           </div>
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {pending.map((c) => (
+          {/* [&>li:last-child]: el SeeAllRow ocupa la fila completa del
+              grid (solo existe cuando hay más de QUEUE_PREVIEW ítems). */}
+          <ul
+            className={`grid grid-cols-1 gap-3 sm:grid-cols-2${
+              pending.length > QUEUE_PREVIEW
+                ? " sm:[&>li:last-child]:col-span-2"
+                : ""
+            }`}
+          >
+            {pending
+              .slice(0, expandPending ? undefined : QUEUE_PREVIEW)
+              .map((c) => (
               <li key={c.id}>
                 <Link
                   href={`/academia/cobros/claim/${c.id}`}
@@ -155,7 +200,13 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
                   </div>
                 </Link>
               </li>
-            ))}
+              ))}
+            <SeeAllRow
+              total={pending.length}
+              expanded={expandPending}
+              onToggle={() => setExpandPending((v) => !v)}
+              preview={QUEUE_PREVIEW}
+            />
           </ul>
         </Card>
       )}
@@ -168,8 +219,16 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
             </h2>
             <p className="mt-1 text-xs text-ink/50">{t("awaitingDesc")}</p>
           </div>
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {awaiting.map((c) => (
+          <ul
+            className={`grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3${
+              awaiting.length > QUEUE_PREVIEW
+                ? " sm:[&>li:last-child]:col-span-2 lg:[&>li:last-child]:col-span-3"
+                : ""
+            }`}
+          >
+            {awaiting
+              .slice(0, expandAwaiting ? undefined : QUEUE_PREVIEW)
+              .map((c) => (
               <li
                 key={c.id}
                 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
@@ -182,7 +241,13 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
                   {claimDateFmt.format(new Date(c.createdAt))}
                 </span>
               </li>
-            ))}
+              ))}
+            <SeeAllRow
+              total={awaiting.length}
+              expanded={expandAwaiting}
+              onToggle={() => setExpandAwaiting((v) => !v)}
+              preview={QUEUE_PREVIEW}
+            />
           </ul>
         </Card>
       )}

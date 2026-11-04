@@ -75,6 +75,7 @@ const linkBtnCls =
 export function Videos({ academy }: { academy: Academy }) {
   const t = (useMessages() as { academyExtras: { videos: Record<string,string> } }).academyExtras.videos;
   const tc = useTranslations("common");
+  const tq = useTranslations("query");
 
   const { me } = useMe();
   const [videos, setVideos] = useState<VideoItem[]>([]);
@@ -89,6 +90,7 @@ export function Videos({ academy }: { academy: Academy }) {
 
   const canAdminister =
     !!me && (me.roles.includes("ADMIN") || me.id === academy.ownerId);
+  const hasFilters = filterQuery(filters) !== "";
 
   const load = useCallback(async () => {
     setState("loading");
@@ -174,8 +176,10 @@ export function Videos({ academy }: { academy: Academy }) {
       {state === "ready" &&
         (videos.length === 0 ? (
           <div className="flex flex-col items-start gap-3">
-            <p className="text-sm text-ink/50">{t.empty}</p>
-            {canAdminister && (
+            <p className="text-sm text-ink/50">
+              {hasFilters ? tq("empty") : t.empty}
+            </p>
+            {canAdminister && !hasFilters && (
               <Button
                 href="/academia/videos/nuevo"
                 size="sm"

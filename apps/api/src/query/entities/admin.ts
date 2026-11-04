@@ -85,9 +85,11 @@ function assemble<T>(
   total: number,
   toRow: (o: T) => unknown[],
   summarize?: (objects: T[], total: number) => string[],
+  personIdOf?: (o: T) => string | null,
 ): EntityResult {
   return {
     rows: objects.map(toRow),
+    ...(personIdOf ? { personIds: objects.map(personIdOf) } : {}),
     objects,
     total,
     summary: summarize?.(objects, total) ?? [`${total} registros`],
@@ -179,6 +181,8 @@ const events: EntityHandler = {
       (objs, t) => [
         `${t} eventos · ${objs.reduce((a, e) => a + e.sold, 0)} entradas en esta página`,
       ],
+      // Sujeto del drill = columna "productor".
+      (e) => e.producer?.id ?? null,
     );
   },
 };
@@ -280,15 +284,22 @@ const classes: EntityHandler = {
       opts?.total === false
         ? objects.length
         : await prisma.class.count({ where });
-    return assemble(objects, total, (c) => [
-      iso(c.startsAt),
-      c.style?.name ?? "",
-      c.academy.name,
-      c.instructor?.name ?? "",
-      c.booked,
-      c.capacity,
-      c.cancelled ? "si" : "",
-    ]);
+    return assemble(
+      objects,
+      total,
+      (c) => [
+        iso(c.startsAt),
+        c.style?.name ?? "",
+        c.academy.name,
+        c.instructor?.name ?? "",
+        c.booked,
+        c.capacity,
+        c.cancelled ? "si" : "",
+      ],
+      undefined,
+      // Sujeto del drill = columna "instructor" (override o del slot).
+      (c) => c.instructor?.id ?? null,
+    );
   },
 };
 
@@ -405,6 +416,8 @@ const payments: EntityHandler = {
             .reduce((a, p) => a + p.amount, 0),
         )} pagados`,
       ],
+      // Sujeto del drill = columna "persona" (pagador de la orden).
+      (p) => p.person?.id ?? null,
     );
   },
 };
@@ -460,13 +473,20 @@ const tickets: EntityHandler = {
       opts?.total === false
         ? objects.length
         : await prisma.ticket.count({ where });
-    return assemble(objects, total, (t) => [
-      t.event?.name ?? "",
-      iso(t.event?.startsAt),
-      t.owner?.name ?? "",
-      t.listPrice,
-      t.status,
-    ]);
+    return assemble(
+      objects,
+      total,
+      (t) => [
+        t.event?.name ?? "",
+        iso(t.event?.startsAt),
+        t.owner?.name ?? "",
+        t.listPrice,
+        t.status,
+      ],
+      undefined,
+      // Sujeto del drill = columna "asistente" (owner del ticket).
+      (t) => t.owner?.id ?? null,
+    );
   },
 };
 
@@ -690,7 +710,8 @@ const people: EntityHandler = {
       opts?.total === false
         ? objects.length
         : await prisma.person.count({ where });
-    return assemble(objects, total, personRow);
+    // Sujeto del drill = la propia persona listada (columna "nombre").
+    return assemble(objects, total, personRow, undefined, (p) => p.id);
   },
 };
 
@@ -771,15 +792,22 @@ const leads: EntityHandler = {
       opts?.total === false
         ? objects.length
         : await prisma.lead.count({ where });
-    return assemble(objects, total, (l) => [
-      l.name,
-      l.email,
-      l.phone ?? "",
-      l.roles.join(", "),
-      l.intent,
-      l.status,
-      iso(l.createdAt),
-    ]);
+    return assemble(
+      objects,
+      total,
+      (l) => [
+        l.name,
+        l.email,
+        l.phone ?? "",
+        l.roles.join(", "),
+        l.intent,
+        l.status,
+        iso(l.createdAt),
+      ],
+      undefined,
+      // Drill solo cuando el lead está ligado a una Person real.
+      (l) => l.personId,
+    );
   },
 };
 
@@ -918,13 +946,20 @@ const membershipSubscriptions: EntityHandler = {
       opts?.total === false
         ? objects.length
         : await prisma.membershipSubscription.count({ where });
-    return assemble(objects, total, (s) => [
-      s.person?.name ?? "",
-      s.academy?.name ?? "",
-      s.plan?.name ?? "",
-      s.status,
-      iso(s.nextInvoiceAt),
-    ]);
+    return assemble(
+      objects,
+      total,
+      (s) => [
+        s.person?.name ?? "",
+        s.academy?.name ?? "",
+        s.plan?.name ?? "",
+        s.status,
+        iso(s.nextInvoiceAt),
+      ],
+      undefined,
+      // Sujeto del drill = columna "persona" (el suscrito).
+      (s) => s.person?.id ?? null,
+    );
   },
 };
 
@@ -1019,6 +1054,10 @@ const payouts: EntityHandler = {
           objs.reduce((a, p) => a + p.gross, 0),
         )} · neto ${clp(objs.reduce((a, p) => a + p.net, 0))}`,
       ],
+      // Drill solo cuando el actor es una Person (PRODUCER) - ACADEMY y
+      // VENUE tienen actorId de org, nunca linkean a ficha persona.
+      (p) =>
+        p.actorType === "PRODUCER" ? (p.actor?.id ?? null) : null,
     );
   },
 };

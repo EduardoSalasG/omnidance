@@ -90,9 +90,14 @@ function PlanFormLoader({ academyId }: { academyId: string }) {
   }
   if (state === "notFound") {
     return (
-      <p role="alert" className="text-sm text-ink/60">
-        {t("planNotFound")}
-      </p>
+      <div className="flex flex-col items-start gap-3">
+        <p role="alert" className="text-sm text-ink/60">
+          {t("planNotFound")}
+        </p>
+        <Button href="/academia/planes" size="sm" variant="secondary">
+          {tc("back")}
+        </Button>
+      </div>
     );
   }
   return <PlanForm academyId={academyId} plan={plan} />;
@@ -101,7 +106,11 @@ function PlanFormLoader({ academyId }: { academyId: string }) {
 export default function AcademiaNuevaPlanPage() {
   return (
     <Suspense
-      fallback={<main className="min-h-dvh bg-canvas" aria-hidden="true" />}
+      fallback={
+        <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
+          <SkeletonList />
+        </main>
+      }
     >
       <NuevaPlan />
     </Suspense>

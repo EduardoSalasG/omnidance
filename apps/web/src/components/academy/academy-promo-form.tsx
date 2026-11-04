@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Spinner, XIcon } from "@/components/ui";
+import { Button, RefreshIcon, Spinner, XIcon } from "@/components/ui";
 import { inputCls } from "@/components/academy/shared";
 
 export type PromoPerson = { id: string; name: string };
@@ -48,23 +48,33 @@ export function AcademyPromoForm({
   const t = useTranslations("academyPromos");
   const [form, setForm] = useState<AcademyPromoPayload>(initial);
   const [plans, setPlans] = useState<PromoPlan[]>([]);
+  const [plansError, setPlansError] = useState(false);
   const set = <K extends keyof AcademyPromoPayload>(
     k: K,
     v: AcademyPromoPayload[K],
   ) => setForm((f) => ({ ...f, [k]: v }));
 
-  // Planes de la academia para el scope (chips toggle).
-  useEffect(() => {
-    void apiFetch(`/academies/${academyId}/plans?pageSize=100`)
-      .then(async (res) => {
-        if (!res.ok) return;
-        const data = (await res.json()) as {
-          items: { id: string; name: string }[];
-        };
-        setPlans(data.items.map((p) => ({ id: p.id, name: p.name })));
-      })
-      .catch(() => undefined);
+  // Planes de la academia para el scope (chips toggle). Si la carga
+  // falla el fieldset muestra error + retry y el submit queda
+  // bloqueado: chips vacíos ≠ "aplica a todos".
+  const loadPlans = useCallback(async () => {
+    setPlansError(false);
+    const res = await apiFetch(
+      `/academies/${academyId}/plans?pageSize=100`,
+    ).catch(() => null);
+    if (!res?.ok) {
+      setPlansError(true);
+      return;
+    }
+    const data = (await res.json()) as {
+      items: { id: string; name: string }[];
+    };
+    setPlans(data.items.map((p) => ({ id: p.id, name: p.name })));
   }, [academyId]);
+
+  useEffect(() => {
+    void loadPlans();
+  }, [loadPlans]);
 
   function togglePlan(id: string) {
     set(
@@ -212,36 +222,54 @@ export function AcademyPromoForm({
       {/* Scope a planes: chips toggle; vacío = todos. */}
       <fieldset className="flex flex-col gap-2">
         <legend className="text-xs text-ink/50">{t("plans")}</legend>
-        {plans.length > 0 ? (
-          <ul className="flex flex-wrap gap-2">
-            {plans.map((p) => {
-              const on = form.planIds.includes(p.id);
-              return (
-                <li key={p.id}>
-                  <button
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => togglePlan(p.id)}
-                    className={`min-h-11 rounded-full border px-3 text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
-                      on
-                        ? "border-neon/60 bg-neon/10 text-neon"
-                        : "border-line bg-raised text-ink/70 hover:border-neon/40"
-                    }`}
-                  >
-                    {p.name}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
-        <p className="text-xs text-ink/40">{t("plansHint")}</p>
+        {plansError ? (
+          <div className="flex items-center gap-3">
+            <p role="alert" className="text-xs text-ink/60">
+              {t("plansLoadError")}
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void loadPlans()}
+            >
+              <RefreshIcon /> {t("retry")}
+            </Button>
+          </div>
+        ) : (
+          <>
+            {plans.length > 0 && (
+              <ul className="flex flex-wrap gap-2">
+                {plans.map((p) => {
+                  const on = form.planIds.includes(p.id);
+                  return (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => togglePlan(p.id)}
+                        className={`min-h-11 rounded-full border px-3 text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+                          on
+                            ? "border-neon/60 bg-neon/10 text-neon"
+                            : "border-line bg-raised text-ink/70 hover:border-neon/40"
+                        }`}
+                      >
+                        {p.name}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <p className="text-xs text-ink/40">{t("plansHint")}</p>
+          </>
+        )}
       </fieldset>
 
       <PersonPicker academyId={academyId} selected={form.persons} onChange={(persons) => set("persons", persons)} />
 
       <div>
-        <Button type="submit" size="sm" disabled={busy}>
+        <Button type="submit" size="sm" disabled={busy || plansError}>
           {busy && <Spinner size="sm" />}
           {submitLabel}
         </Button>
@@ -264,6 +292,7 @@ function PersonPicker({
   const [q, setQ] = useState("");
   const [results, setResults] = useState<PromoPerson[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -271,15 +300,20 @@ function PersonPicker({
     const term = q.trim();
     if (term.length < 2) {
       setResults([]);
+      setSearchError(false);
       return;
     }
     debounce.current = setTimeout(async () => {
       setSearching(true);
+      setSearchError(false);
       const res = await apiFetch(
         `/academies/${academyId}/promos/people-search?q=${encodeURIComponent(term)}`,
       ).catch(() => null);
       setSearching(false);
-      if (!res?.ok) return;
+      if (!res?.ok) {
+        setSearchError(true);
+        return;
+      }
       const rows = (await res.json()) as { id: string; name: string | null }[];
       setResults(
         rows
@@ -326,6 +360,11 @@ function PersonPicker({
       {searching && (
         <p role="status" className="text-xs text-ink/50">
           {t("searching")}
+        </p>
+      )}
+      {searchError && (
+        <p role="alert" className="text-xs text-red-400">
+          {t("searchError")}
         </p>
       )}
       {results.length > 0 && (

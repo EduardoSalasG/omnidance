@@ -159,7 +159,7 @@ export function StudentsSection({
   return (
     <div className="flex flex-col gap-4">
       {!readOnly && (
-        <div data-tour="academy-alumnos-new">
+        <div data-tour="academy-alumnos-new" className="flex justify-end">
           <Button href="/academia/alumnos/nuevo" size="sm">
             + {t("newEnrollment")}
           </Button>

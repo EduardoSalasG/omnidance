@@ -8,6 +8,8 @@
   "academySales": {
     "sectionTitle": "Preventa por academias",
     "backToHub": "Consola",
+    "pendingTitle": "Por responder",
+    "resolvedTitle": "Historial",
     "invite": "Invitar academia",
     "inviteTitle": "Invitar academia a vender preventa",
     "inviteDesc": "La academia vende con su link y se lleva un porcentaje del precio de lista. Tú le pagas la comisión por fuera; acá queda el registro de cuánto le debes.",

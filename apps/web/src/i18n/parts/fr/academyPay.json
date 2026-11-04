@@ -91,6 +91,7 @@
     "historyUnifiedTitle": "Historique des encaissements",
     "historyUnifiedDesc": "Justificatifs résolus et paiements par passerelle.",
     "detailBack": "Encaissements",
+    "forbidden": "Vous n'avez pas accès à cette section.",
     "claimTitle": "Justificatif de paiement",
     "fieldStudent": "Élève",
     "fieldSentAt": "Envoyé",

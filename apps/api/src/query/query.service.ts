@@ -310,9 +310,14 @@ export class QueryService {
       take: pageSize,
       skip: (page - 1) * pageSize,
     });
+    // Celda suplementaria personId (drill a la ficha persona): va al
+    // final de cada row, fuera de headers - nunca columna ni export.
+    const personIds = res.personIds;
     return {
       headers: this.headers(def.columns, scope),
-      rows: res.rows,
+      rows: personIds
+        ? res.rows.map((r, i) => [...r, personIds[i] ?? null])
+        : res.rows,
       total: res.total,
       page,
       pageSize,

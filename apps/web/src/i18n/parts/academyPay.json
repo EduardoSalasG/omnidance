@@ -91,6 +91,7 @@
     "historyUnifiedTitle": "Historial de cobros",
     "historyUnifiedDesc": "Comprobantes resueltos y pagos por pasarela.",
     "detailBack": "Cobros",
+    "forbidden": "No tienes acceso a esta sección.",
     "claimTitle": "Comprobante de pago",
     "fieldStudent": "Alumno",
     "fieldSentAt": "Enviado",

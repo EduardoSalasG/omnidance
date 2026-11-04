@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useMessages, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
-import { Button, Card, SkeletonList } from "@/components/ui";
+import { Button, Card, SkeletonList, Spinner } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 
 import { inputCls, readError, type Academy } from "./shared";
@@ -69,7 +69,7 @@ export function VideoForm({ academy }: { academy: Academy }) {
   if (!canAdminister) {
     return (
       <div className="flex flex-col items-start gap-3">
-        <p role="alert" className="text-sm text-ink/60">
+        <p className="text-sm text-ink/60">
           {ta("forbidden")}
         </p>
         <Button href="/academia/videos" size="sm" variant="secondary">
@@ -134,7 +134,8 @@ export function VideoForm({ academy }: { academy: Academy }) {
         </label>
         <div className="flex items-center gap-2 sm:col-span-2">
           <Button type="submit" size="sm" disabled={busy}>
-            {busy ? tc("loading") : tc("create")}
+            {busy ? <Spinner className="h-4 w-4" /> : null}
+            {tc("create")}
           </Button>
           <Button
             type="button"

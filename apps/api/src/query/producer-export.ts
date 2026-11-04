@@ -43,6 +43,13 @@ export const DATASET_TITLES: Record<ExportDataset, string> = {
 export interface ExportTable {
   headers: string[];
   rows: unknown[][];
+  /**
+   * personId del sujeto de cada fila, alineado por índice con `rows`.
+   * Solo lo consume /query/run como celda suplementaria (drill a la
+   * ficha persona) - los builders CSV/PDF lo ignoran, el export nunca
+   * gana columna oculta.
+   */
+  personIds?: (string | null)[];
   /** Líneas de resumen que el PDF muestra sobre la tabla. */
   summary: string[];
 }
@@ -173,6 +180,8 @@ async function exportSales(
       (t.paymentId && channelOf.get(t.paymentId)) ?? "",
       t.paymentId ?? "",
     ]),
+    // Sujeto del drill = columna "asistente" (owner del ticket).
+    personIds: rows0.map((t) => t.ownerId),
     summary: [
       `${rows0.length} tickets · recaudado ${clp(gross)} (precio + cargo, sin cancelados)`,
       ...(cancelled ? [`${cancelled} cancelados incluidos en la tabla`] : []),
@@ -235,6 +244,8 @@ async function exportCheckins(
       c.voidedAt ? "si" : "",
       c.note ?? "",
     ]),
+    // Sujeto del drill = columna "persona" (quien hizo check-in).
+    personIds: checkins.map((c) => c.personId),
     summary: [
       `${checkins.length} check-ins` +
         (voidedCount ? ` · ${voidedCount} anulados (incluidos en la tabla)` : ""),
@@ -295,6 +306,8 @@ async function exportGuestlist(
         e.createdAt.toISOString(),
       ]),
     ),
+    // Sujeto del drill = columna "invitado" (no el dueño de lista).
+    personIds: lists.flatMap((l) => l.entries.map((e) => e.personId)),
     summary: [`${entries} invitados en ${lists.length} listas`],
   };
 }

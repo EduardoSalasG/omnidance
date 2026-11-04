@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card } from "@/components/ui";
+import { Badge, Card, SeeAllRow } from "@/components/ui";
 import { useDateFmt } from "@/lib/intl";
 
 /**
@@ -24,6 +24,11 @@ type SurveyGroup = {
   avgInstructor: number | null;
   comments: string[];
 };
+
+// Preview dentro de la ficha: 3 grupos mes×serie y 3 comentarios por
+// grupo; el resto queda tras "Ver todo" (patrón SeeAllRow; la ficha de
+// instructor ya pide el tope del endpoint, 60 grupos).
+const PREVIEW = 3;
 
 export function CourseSurveyResults({
   academyId,
@@ -47,11 +52,12 @@ export function CourseSurveyResults({
   const t = useTranslations("courseSurvey");
   const [groups, setGroups] = useState<SurveyGroup[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const url = instructorId
-      ? `/academies/${academyId}/instructors/${instructorId}/surveys`
+      ? `/academies/${academyId}/instructors/${instructorId}/surveys?limit=60`
       : `/academies/${academyId}/surveys${seriesId ? `?seriesId=${encodeURIComponent(seriesId)}` : ""}`;
     apiFetch(url)
       .then(async (res) => {
@@ -87,13 +93,9 @@ export function CourseSurveyResults({
     );
   }
 
-  // Agrupado por mes (desc) → dentro, una card por serie.
-  const byMonth = new Map<string, SurveyGroup[]>();
-  for (const g of groups) {
-    const list = byMonth.get(g.month) ?? [];
-    list.push(g);
-    byMonth.set(g.month, list);
-  }
+  // Orden del API: mes desc → createdAt desc. El header de mes se emite
+  // cuando cambia respecto al grupo visible anterior.
+  const visible = expanded ? groups : groups.slice(0, PREVIEW);
 
   return (
     <section aria-label={t("resultsTitle")} className="flex flex-col gap-3">
@@ -103,42 +105,80 @@ export function CourseSurveyResults({
       <h3 className="flex min-h-11 items-center text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("resultsTitle")}
       </h3>
-      {[...byMonth.entries()].map(([month, items]) => (
-        <div key={month} className="flex flex-col gap-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-ink/40">
-            {monthLabel(month)}
-          </h4>
-          {items.map((g) => (
-            <Card key={`${g.seriesId}:${g.month}`} className="flex flex-col gap-3 p-4">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                {!seriesId && g.seriesName && (
-                  <span className="text-sm font-semibold">{g.seriesName}</span>
-                )}
-                <Badge variant="neon">
-                  {t("avgCourse")}: {g.avgCourse.toFixed(1)} ★
-                </Badge>
-                {g.avgInstructor !== null && (
-                  <Badge variant="outline">
-                    {t("avgInstructor")}: {g.avgInstructor.toFixed(1)} ★
-                  </Badge>
-                )}
-                <span className="text-xs text-ink/50">
-                  {t("responses", { count: g.count })}
-                </span>
-              </div>
-              {g.comments.length > 0 && (
-                <ul className="flex flex-col gap-1.5 border-t border-line pt-3">
-                  {g.comments.map((c, i) => (
-                    <li key={i} className="text-sm text-ink/70">
-                      “{c}”
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          ))}
-        </div>
-      ))}
+      <ul className="flex flex-col gap-2">
+        {visible.map((g, i) => (
+          <li key={`${g.seriesId}:${g.month}`} className="flex flex-col gap-2">
+            {(i === 0 || visible[i - 1].month !== g.month) && (
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-ink/40">
+                {monthLabel(g.month)}
+              </h4>
+            )}
+            <SurveyGroupCard group={g} showSeries={!seriesId} />
+          </li>
+        ))}
+        <SeeAllRow
+          total={groups.length}
+          expanded={expanded}
+          onToggle={() => setExpanded((v) => !v)}
+          preview={PREVIEW}
+        />
+      </ul>
     </section>
+  );
+}
+
+function SurveyGroupCard({
+  group,
+  showSeries,
+}: {
+  group: SurveyGroup;
+  showSeries: boolean;
+}) {
+  const t = useTranslations("courseSurvey");
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded
+    ? group.comments
+    : group.comments.slice(0, PREVIEW);
+  // Keys estables por contenido: dos evaluaciones pueden dejar el mismo
+  // texto - el sufijo es la ocurrencia, no el índice de render.
+  const seen = new Map<string, number>();
+  return (
+    <Card className="flex flex-col gap-3 p-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {showSeries && group.seriesName && (
+          <span className="text-sm font-semibold">{group.seriesName}</span>
+        )}
+        <Badge variant="neon">
+          {t("avgCourse")}: {group.avgCourse.toFixed(1)} ★
+        </Badge>
+        {group.avgInstructor !== null && (
+          <Badge variant="outline">
+            {t("avgInstructor")}: {group.avgInstructor.toFixed(1)} ★
+          </Badge>
+        )}
+        <span className="text-xs text-ink/50">
+          {t("responses", { count: group.count })}
+        </span>
+      </div>
+      {group.comments.length > 0 && (
+        <ul className="flex flex-col gap-1.5 border-t border-line pt-3">
+          {visible.map((c) => {
+            const n = seen.get(c) ?? 0;
+            seen.set(c, n + 1);
+            return (
+              <li key={`${c}#${n}`} className="text-sm text-ink/70">
+                “{c}”
+              </li>
+            );
+          })}
+          <SeeAllRow
+            total={group.comments.length}
+            expanded={expanded}
+            onToggle={() => setExpanded((v) => !v)}
+            preview={PREVIEW}
+          />
+        </ul>
+      )}
+    </Card>
   );
 }

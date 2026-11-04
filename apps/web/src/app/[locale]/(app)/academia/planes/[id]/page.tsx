@@ -9,8 +9,18 @@ import {
   type ActionNoticeData,
 } from "@/components/ui/action-notice";
 
-import { Badge, Button, Card, ChevronRightIcon, PriceTag, RefreshIcon, Spinner } from "@/components/ui";
-import { SkeletonList } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ChevronRightIcon,
+  LIST_PREVIEW,
+  PriceTag,
+  RefreshIcon,
+  SeeAllRow,
+  SkeletonList,
+  Spinner,
+} from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { shortId, type PlanDetail } from "@/components/academy/shared";
@@ -56,6 +66,8 @@ function PlanDetail({
   const [loadError, setLoadError] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
+  // Alumnos vigentes: preview acotado + "Ver todo" (patrón series/[id]).
+  const [showAllStudents, setShowAllStudents] = useState(false);
 
   const dateFmt = useDateFmt({
         day: "numeric",
@@ -125,7 +137,7 @@ function PlanDetail({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         {/* Header de entidad desnudo (estándar industria: identidad de
             la página sobre el canvas, las cajas son para secciones) -
             el bloque navega a editar: chevron + nombre/chevron neon en
@@ -152,18 +164,31 @@ function PlanDetail({
                   ? t(`planTypes.${plan.type}`)
                   : plan.type}
               </Badge>
-              <PriceTag amount={plan.price} currency={plan.currency} />
             </div>
-            {plan.classCount != null && (
-              <p className="text-sm text-ink/60">
-                {t("planClasses")}: {plan.classCount}
-              </p>
-            )}
-            {plan.weeklyClasses != null && (
-              <p className="text-sm text-ink/60">
-                {t("planWeeklyCount", { count: plan.weeklyClasses })}
-              </p>
-            )}
+            <dl className="flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-3 text-xs">
+              <div className="flex items-baseline gap-1.5">
+                <dt className="text-ink/50">{t("planPrice")}</dt>
+                <dd className="tabular-nums text-ink/80">
+                  <PriceTag amount={plan.price} currency={plan.currency} />
+                </dd>
+              </div>
+              {plan.classCount != null && (
+                <div className="flex items-baseline gap-1.5">
+                  <dt className="text-ink/50">{t("planClasses")}</dt>
+                  <dd className="tabular-nums text-ink/80">
+                    {plan.classCount}
+                  </dd>
+                </div>
+              )}
+              {plan.weeklyClasses != null && (
+                <div className="flex items-baseline gap-1.5">
+                  <dt className="text-ink/50">{t("planWeekly")}</dt>
+                  <dd className="tabular-nums text-ink/80">
+                    {plan.weeklyClasses}
+                  </dd>
+                </div>
+              )}
+            </dl>
             {plan.description.length > 0 && (
               <ul className="list-disc space-y-0.5 pl-5 text-sm text-ink/60">
                 {plan.description.map((d, i) => (
@@ -173,7 +198,7 @@ function PlanDetail({
             )}
           </div>
         </Link>
-      </section>
+      </div>
 
       {/* Alumnos con el plan vigente (enrollment ACTIVE): inicio y fin. */}
       <section
@@ -190,7 +215,9 @@ function PlanDetail({
             </p>
           ) : (
             <ul className="divide-y divide-line">
-              {plan.students.map((s) => (
+              {plan.students
+                .slice(0, showAllStudents ? undefined : LIST_PREVIEW)
+                .map((s) => (
                 <li key={s.personId}>
                   <Link
                     href={`/academia/alumnos/${s.personId}`}
@@ -209,6 +236,11 @@ function PlanDetail({
                   </Link>
                 </li>
               ))}
+              <SeeAllRow
+                total={plan.students.length}
+                expanded={showAllStudents}
+                onToggle={() => setShowAllStudents((v) => !v)}
+              />
             </ul>
           )}
         </Card>

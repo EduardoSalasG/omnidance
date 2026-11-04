@@ -2,9 +2,43 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { Card } from "@/components/ui";
+import { Link } from "@/i18n/navigation";
 import { getNumFmt, useNumFmt } from "@/lib/intl";
 
 const num = (locale: string) => getNumFmt(locale);
+
+// Columnas que muestran a la persona-sujeto de la fila, en orden de
+// prioridad (drill a /analitica/usuarios/[personId] cuando el runner
+// adjunta `personId` como celda suplementaria al final de la fila -
+// fuera de `headers`, nunca se pinta como columna). `nombre` va último:
+// en entidades mixtas puede ser una org (events.productor va antes).
+const PERSON_COL_PRIORITY = [
+  "persona",
+  "alumno",
+  "asistente",
+  "invitado",
+  "actor",
+  "usuario",
+  "productor",
+  "instructor",
+  "dueno_lista",
+  "nombre",
+];
+
+const personColIndex = (headers: string[]) =>
+  PERSON_COL_PRIORITY.reduce(
+    (idx, key) => (idx >= 0 ? idx : headers.indexOf(key)),
+    -1,
+  );
+
+const personIdOf = (row: unknown[], cols: number): string | null => {
+  const v = row.length > cols ? row[cols] : null;
+  return typeof v === "string" && v !== "" ? v : null;
+};
+
+const personLinkCls =
+  "text-neon underline-offset-2 hover:underline " +
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon";
 
 // Tabla de preview del query engine (spec analytics/query-console):
 // headers = keys de columna de la entidad (labels via
@@ -44,6 +78,20 @@ export function QueryTable({ entity, headers, rows, total }: QueryTableProps) {
     return JSON.stringify(v);
   };
 
+  // Celda de la persona-sujeto → Link a su ficha cuando la fila trae
+  // personId suplementario (resto de celdas y filas sin id: texto).
+  const pCol = personColIndex(headers);
+  const personCell = (row: unknown[], colIdx: number, text: string) => {
+    const pid =
+      colIdx === pCol ? personIdOf(row, headers.length) : null;
+    if (!pid || text === "·") return text;
+    return (
+      <Link href={`/analitica/usuarios/${pid}`} className={personLinkCls}>
+        {text}
+      </Link>
+    );
+  };
+
   const capped = rows.length < total;
 
   if (rows.length === 0) {
@@ -62,14 +110,15 @@ export function QueryTable({ entity, headers, rows, total }: QueryTableProps) {
           <li key={i}>
             <Card className="flex flex-col gap-1 p-4">
               <p className="min-w-0 truncate text-sm font-semibold">
-                {cellText(row[0])}
+                {personCell(row, 0, cellText(row[0]))}
               </p>
               {headers.slice(1).map((h, j) => {
                 const v = cellText(row[j + 1]);
                 if (v === "·") return null;
                 return (
                   <p key={h} className="truncate text-xs text-ink/60">
-                    <span className="text-ink/40">{colLabel(h)}:</span> {v}
+                    <span className="text-ink/40">{colLabel(h)}:</span>{" "}
+                    {personCell(row, j + 1, v)}
                   </p>
                 );
               })}
@@ -105,7 +154,7 @@ export function QueryTable({ entity, headers, rows, total }: QueryTableProps) {
                     key={h}
                     className="max-w-56 truncate px-4 py-2.5 tabular-nums text-ink/80"
                   >
-                    {cellText(row[j])}
+                    {personCell(row, j, cellText(row[j]))}
                   </td>
                 ))}
               </tr>

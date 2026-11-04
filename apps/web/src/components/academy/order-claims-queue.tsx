@@ -4,7 +4,16 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Card, ChevronRightIcon, Pager, SkeletonList } from "@/components/ui";
+import {
+  Button,
+  Card,
+  ChevronRightIcon,
+  LIST_PREVIEW,
+  Pager,
+  RefreshIcon,
+  SeeAllRow,
+  SkeletonList,
+} from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { filterQuery } from "./shared";
 import { Link } from "@/i18n/navigation";
@@ -48,6 +57,9 @@ export type OrderClaim = {
 };
 
 const PAGE_SIZE = 20;
+// Preview visual de la cola de trabajo sin filtro: sube vs LIST_PREVIEW
+// porque es superficie operativa (design console-audit-fixes §3).
+const QUEUE_PREVIEW = 20;
 
 /**
  * Cola "Suscripciones por validar" del owner (spec
@@ -65,44 +77,69 @@ export function OrderClaimsQueue({ academyId }: { academyId: string }) {
   const claimDateFmt = useDateFmt({ day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const t = useTranslations("academyPay");
   const tq = useTranslations("query");
+  const tc = useTranslations("common");
 
   const [claims, setClaims] = useState<OrderClaim[] | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<QueryFilters>({});
+  const [loadError, setLoadError] = useState(false);
+  const [expandPending, setExpandPending] = useState(false);
+  const [expandResolved, setExpandResolved] = useState(false);
 
   const load = useCallback(async () => {
-    const get = (qs: string) =>
-      apiFetch(`/academies/${academyId}/order-claims${qs}`)
-        .then(async (r) =>
-          r.ok
-            ? ((await r.json()) as { claims: OrderClaim[]; total: number })
-            : { claims: [], total: 0 },
-        )
-        .catch(() => ({ claims: [] as OrderClaim[], total: 0 }));
-    if (filters.status) {
-      // Filtro de status explícito: un solo listado paginado real.
-      const qs = filterQuery(filters);
-      const data = await get(
-        `${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
-      );
-      setClaims(data.claims);
-      setTotal(data.total);
-      return;
+    setLoadError(false);
+    try {
+      const get = async (qs: string) => {
+        const res = await apiFetch(
+          `/academies/${academyId}/order-claims${qs}`,
+        );
+        if (!res.ok) throw new Error("order-claims load failed");
+        return (await res.json()) as {
+          claims: OrderClaim[];
+          total: number;
+        };
+      };
+      if (filters.status) {
+        // Filtro de status explícito: un solo listado paginado real.
+        const qs = filterQuery(filters);
+        const data = await get(
+          `${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
+        );
+        setClaims(data.claims);
+        setTotal(data.total);
+        return;
+      }
+      const [pen, app, rej] = await Promise.all([
+        get("?status=PENDING&pageSize=100"),
+        get("?status=APPROVED&pageSize=50"),
+        get("?status=REJECTED&pageSize=50"),
+      ]);
+      setClaims([...pen.claims, ...app.claims, ...rej.claims]);
+      setTotal(0);
+    } catch {
+      setLoadError(true);
     }
-    const [pen, app, rej] = await Promise.all([
-      get("?status=PENDING&pageSize=100"),
-      get("?status=APPROVED&pageSize=50"),
-      get("?status=REJECTED&pageSize=50"),
-    ]);
-    setClaims([...pen.claims, ...app.claims, ...rej.claims]);
-    setTotal(0);
   }, [academyId, filters, page]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  // Error de fetch: nunca vacío silencioso - la cola es superficie
+  // operativa y el fallo debe distinguirse de "nada que validar".
+  if (loadError) {
+    return (
+      <div className="flex items-center gap-3">
+        <p role="alert" className="text-sm text-ink/60">
+          {tc("error")}
+        </p>
+        <Button variant="secondary" size="sm" onClick={() => void load()}>
+          <RefreshIcon /> {tc("retry")}
+        </Button>
+      </div>
+    );
+  }
   if (claims === null) return <SkeletonList />;
   // Cola colapsa a nada cuando no hay claims NI filtros activos; con
   // un filtro puesto la barra queda visible aunque el resultado llegue
@@ -121,8 +158,7 @@ export function OrderClaimsQueue({ academyId }: { academyId: string }) {
           (a, b) =>
             new Date(b.reviewedAt!).getTime() -
             new Date(a.reviewedAt!).getTime(),
-        )
-        .slice(0, 20);
+        );
 
   const claimLine = (c: OrderClaim) => (
     <>
@@ -151,8 +187,18 @@ export function OrderClaimsQueue({ academyId }: { academyId: string }) {
             </h2>
             <p className="mt-1 text-xs text-ink/50">{t("orderQueueDesc")}</p>
           </div>
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {pending.map((c) => (
+          {/* [&>li:last-child]: el SeeAllRow ocupa la fila completa del
+              grid (solo existe cuando hay más de QUEUE_PREVIEW ítems). */}
+          <ul
+            className={`grid grid-cols-1 gap-3 sm:grid-cols-2${
+              pending.length > QUEUE_PREVIEW
+                ? " sm:[&>li:last-child]:col-span-2"
+                : ""
+            }`}
+          >
+            {pending
+              .slice(0, expandPending ? undefined : QUEUE_PREVIEW)
+              .map((c) => (
               <li key={c.id}>
                 <Link
                   href={`/academia/cobros/orden/${c.id}`}
@@ -166,7 +212,13 @@ export function OrderClaimsQueue({ academyId }: { academyId: string }) {
                   </div>
                 </Link>
               </li>
-            ))}
+              ))}
+            <SeeAllRow
+              total={pending.length}
+              expanded={expandPending}
+              onToggle={() => setExpandPending((v) => !v)}
+              preview={QUEUE_PREVIEW}
+            />
           </ul>
         </Card>
       )}
@@ -179,7 +231,9 @@ export function OrderClaimsQueue({ academyId }: { academyId: string }) {
             </h2>
           </div>
           <ul className="flex flex-col gap-2">
-            {resolved.map((c) => (
+            {resolved
+              .slice(0, expandResolved ? undefined : LIST_PREVIEW)
+              .map((c) => (
               <li key={c.id}>
                 <Link
                   href={`/academia/cobros/orden/${c.id}`}
@@ -213,7 +267,12 @@ export function OrderClaimsQueue({ academyId }: { academyId: string }) {
                   <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                 </Link>
               </li>
-            ))}
+              ))}
+            <SeeAllRow
+              total={resolved.length}
+              expanded={expandResolved}
+              onToggle={() => setExpandResolved((v) => !v)}
+            />
           </ul>
         </Card>
       )}

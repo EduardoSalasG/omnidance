@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, Spinner } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { inputCls, readError } from "./shared";
 import { CAPS, EMPTY_CAPS, CapCheckbox, type Caps } from "./staff-section";
@@ -269,7 +269,8 @@ export function StaffForm({ academyId }: { academyId: string }) {
         )}
         <div className="flex items-center gap-2">
           <Button type="submit" size="sm" disabled={busy}>
-            {busy ? t("adding") : t("add")}
+            {busy ? <Spinner className="h-4 w-4" /> : null}
+            {t("add")}
           </Button>
           <Button
             type="button"

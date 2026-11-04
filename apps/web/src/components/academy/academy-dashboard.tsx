@@ -11,6 +11,7 @@ import {
 import {
   Button,
   Card,
+  ChevronRightIcon,
   RefreshIcon,
   Skeleton,
   SkeletonCard,
@@ -827,10 +828,13 @@ export function ExpiringList({
                 <span className="hidden min-w-0 truncate text-sm text-ink/70 sm:block">
                   {e.planName ?? t("insights.noPlan")}
                 </span>
-                <span className="shrink-0 text-xs tabular-nums text-warn">
-                  {t("insights.expiringUntil", {
-                    date: planDateFmt(locale).format(new Date(e.endsAt)),
-                  })}
+                <span className="flex shrink-0 items-center gap-1">
+                  <span className="text-xs tabular-nums text-warn">
+                    {t("insights.expiringUntil", {
+                      date: planDateFmt(locale).format(new Date(e.endsAt)),
+                    })}
+                  </span>
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                 </span>
               </Link>
             </li>

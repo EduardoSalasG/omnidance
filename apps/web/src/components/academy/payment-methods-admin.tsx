@@ -124,7 +124,7 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
             <li key={m.id}>
               <Link
                 href={`/academia/configuracion/metodos-de-pago/${m.id}`}
-                className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm transition-colors hover:border-neon/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
               >
                 {/* Card completo clickeable → detalle/edición del medio
                     (activar/desactivar y eliminar viven en la ficha).

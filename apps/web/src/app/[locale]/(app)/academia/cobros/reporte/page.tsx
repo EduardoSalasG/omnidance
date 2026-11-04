@@ -126,6 +126,7 @@ function ReportModule({ academyId }: { academyId: string }) {
   const t = useTranslations("academyPay");
   const tc = useTranslations("common");
   const tp = useTranslations("payments");
+  const tq = useTranslations("query");
   const clpFmt = useNumFmt({
     style: "currency",
     currency: "CLP",
@@ -309,7 +310,9 @@ function ReportModule({ academyId }: { academyId: string }) {
           (pago de pasarela o comprobante de la cola). */}
       {report.items.length === 0 ? (
         <p role="status" className="text-sm text-ink/50">
-          {t("report.empty")}
+          {/* Con filtros activos el empty es de la consulta, no del
+              período - mismo vocabulario que el resto de la consola. */}
+          {Object.keys(filters).length > 0 ? tq("empty") : t("report.empty")}
         </p>
       ) : (
         <Card padded={false}>

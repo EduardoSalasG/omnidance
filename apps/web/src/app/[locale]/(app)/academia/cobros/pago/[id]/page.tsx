@@ -78,12 +78,20 @@ function PaymentDetail({
 
   const [payment, setPayment] = useState<AcademyPaymentDetail | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [forbidden, setForbidden] = useState(false);
 
   const load = useCallback(async () => {
     setLoadError(false);
+    setForbidden(false);
     const res = await apiFetch(
       `/academies/${academyId}/payments/${paymentId}`,
     ).catch(() => null);
+    if (res && (res.status === 401 || res.status === 403 || res.status === 404)) {
+      // Sin acceso o inexistente en esta academia: estado "sin acceso"
+      // con CTA de salida - no es un error reintentable.
+      setForbidden(true);
+      return;
+    }
     if (!res?.ok) {
       setLoadError(true);
       return;
@@ -105,6 +113,20 @@ function PaymentDetail({
     [payment, tp],
   );
 
+  if (forbidden) {
+    return (
+      <Card className="flex flex-col items-center gap-3 py-6 text-center">
+        <p className="text-sm text-ink/70">{t("forbidden")}</p>
+        <Button
+          href="/academia/cobros"
+          variant="secondary"
+          size="sm"
+        >
+          {t("detailBack")}
+        </Button>
+      </Card>
+    );
+  }
   if (loadError) {
     return (
       <div className="flex items-center gap-3">

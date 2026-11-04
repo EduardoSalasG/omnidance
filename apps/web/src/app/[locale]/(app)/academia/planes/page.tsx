@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { Button, Card, ChevronRightIcon, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { ConsoleHeader } from "@/components/console/console-header";
 import { PlansSection } from "@/components/academy/plans-section";
 import { FilterBar } from "@/components/query/FilterBar";
 import {
@@ -43,14 +44,17 @@ export default function AcademiaPlanesPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
-      {/* Item directo del drawer: sin ConsoleHeader (el título y la
-          navegación son del chrome). El CTA de crear queda en fila
-          propia a la derecha, como renderizaba el header en raíz. */}
-      <div className="flex justify-end">
-        <Button href="/academia/planes/nueva" size="sm">
-          + {t("newPlan")}
-        </Button>
-      </div>
+      {/* Raíz del drawer: el back a /academia no se pinta en raíces
+          (isSidebarRoute), quedan solo las acciones a la derecha. */}
+      <ConsoleHeader
+        backHref="/academia"
+        backLabel={t("title")}
+        actions={
+          <Button href="/academia/planes/nueva" size="sm">
+            + {t("newPlan")}
+          </Button>
+        }
+      />
       <AcademyGate>
         {({ academy }) => (
           <PlansModule key={academy.id} academyId={academy.id} />
@@ -236,9 +240,9 @@ function PlansKpiCards({ kpis }: { kpis: PlansKpis }) {
             <span
               className={`text-xs font-medium tabular-nums ${
                 delta > 0
-                  ? "text-neon"
+                  ? "text-green-400"
                   : delta < 0
-                    ? "text-warn"
+                    ? "text-red-400"
                     : "text-ink/40"
               }`}
             >
