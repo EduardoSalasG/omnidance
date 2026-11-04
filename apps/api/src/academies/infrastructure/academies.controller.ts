@@ -1369,16 +1369,21 @@ export class AcademiesController {
    * dueño y siempre anónimos - nunca sale personId ni el nombre del
    * evaluador; los comentarios viajan como texto plano.
    * Filtros opcionales: ?seriesId= & ?month=YYYY-MM.
+   * ?limit= capa la cantidad de grupos devueltos (default 12, max 60;
+   * inválido cae al default) - mismo contrato que el listado por
+   * instructor; la ficha pide 60 y pagina client-side.
    */
   @Get(":id/surveys")
   @ApiQuery({ name: "seriesId", required: false })
   @ApiQuery({ name: "month", required: false })
+  @ApiQuery({ name: "limit", required: false })
   @UseGuards(SessionGuard)
   async courseSurveys(
     @Param("id") id: string,
     @Req() req: Request,
     @Query("seriesId") seriesId?: string,
     @Query("month") month?: string,
+    @Query("limit") limit?: string,
   ) {
     await this.access.requireAdminister(id, req.person!, "insights");
     const surveys = await this.prisma.courseSurvey.findMany({
@@ -1389,7 +1394,8 @@ export class AcademiesController {
       },
       orderBy: [{ month: "desc" }, { createdAt: "desc" }],
     });
-    return this.groupCourseSurveys(surveys);
+    const groupLimit = Math.min(Math.max(Number(limit) || 12, 1), 60);
+    return (await this.groupCourseSurveys(surveys)).slice(0, groupLimit);
   }
 
   /**
