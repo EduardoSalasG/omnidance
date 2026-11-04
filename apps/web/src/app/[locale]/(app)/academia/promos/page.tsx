@@ -92,7 +92,11 @@ export default function AcademiaPromosPage() {
       </div>
       <AcademyGate>
         {({ academy }) => {
-          if (academy.id !== academyId) setAcademyId(academy.id);
+          // Sync diferido: setState del padre fuera del render-prop
+          // (React prohíbe actualizar otro componente durante render).
+          if (academy.id !== academyId) {
+            queueMicrotask(() => setAcademyId(academy.id));
+          }
           return (
             <section className="flex flex-col gap-4">
               <p className="text-sm text-ink/60">{t("desc")}</p>
