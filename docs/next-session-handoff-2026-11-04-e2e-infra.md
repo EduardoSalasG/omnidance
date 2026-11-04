@@ -92,3 +92,19 @@ monta con `access !== null && !pureInstructor`. Change
 - `dancer@omnidance.dev` ES instructora de "Mi mambo" en seed-dev:
   no sirve para tests de "sin acceso a academia"; usar `staff@` o
   `soporte@` (mine=[]).
+
+## Update (misma sesión, continuación)
+
+- `dancer-eventos` task 9: 4/4 verde chromium (commit 59ae0980).
+- `dancer-checkout` task 10: spec escrito pero ROJO en este entorno —
+  la API corre con `PAYMENT_GATEWAY=flow` y `POST /checkout/ticket`
+  sale 500 (`flow payment/create 400: userEmail ... is not valid`).
+  Corre solo con gateway stub (quitar PAYMENT_GATEWAY/FLOW_API_KEY).
+  Documentado en el spec y en tasks.md.
+- Ojo al elegir evento para checkout: la preventa debe estar ABIERTA
+  (Bachatamanía de hoy 22:00 ya cerró; usar evento a futuro p.ej.
+  Viernes Sabroso). Si el seed envejece, refrescar el id del spec.
+- Filtro `?genre=` con valor inválido NO filtra (se ignora); para el
+  empty usar `?venue=<inexistente>`.
+- Tasks 11-21 sin tocar (specs academia/productor/staff/etc.) +
+  customer/collect por job + smoke visual pasada B: siguen pendientes.
