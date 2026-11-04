@@ -26,8 +26,8 @@
 
 ## Backlog (siguientes slices, en orden del diseño §8)
 
-- [ ] 9. `dancer-eventos` (cartelera, `?view=mios`, `?a=`, empty).
-- [ ] 10. `dancer-checkout` (stub:// → webhook PAID/FAILED).
+- [x] 9. `dancer-eventos` (cartelera, `?view=mios`, `?a=`, empty).
+- [~] 10. `dancer-checkout` (stub:// → webhook PAID/FAILED): spec escrito; verde solo con API en gateway stub - con PAYMENT_GATEWAY=flow el POST sale 500 (emails seed).
 - [ ] 11. `academia-cobros` (claims approve/reject, error-retry).
 - [ ] 12. `academia-alumnos` (lista/KPIs, alta 409, levels editor).
 - [ ] 13. `academia-series` (taller QA → materializa → cancel).
