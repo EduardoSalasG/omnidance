@@ -140,6 +140,11 @@ class FakePrisma {
             (c) => c.personId === i.personId,
           ),
       ) ?? null,
+    findMany: async ({
+      where,
+    }: {
+      where: { academyId: string };
+    }) => this.instructors.filter((i) => i.academyId === where.academyId),
     findUnique: async ({
       where,
     }: {
