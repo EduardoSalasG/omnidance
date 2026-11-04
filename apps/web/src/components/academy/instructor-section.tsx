@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Card, Pager, SkeletonList } from "@/components/ui";
+import { Card, ChevronRightIcon, Pager, SkeletonList } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 import { getNumFmt, useNumFmt } from "@/lib/intl";
 
@@ -76,8 +76,11 @@ export function InstructorSection({ academyId }: { academyId: string }) {
                 className="block rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
               >
                 <div className="flex flex-col gap-1 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/40">
-                  <span className="truncate text-sm font-semibold">
-                    {r.person.name ?? r.person.email}
+                  <span className="flex items-center justify-between gap-2 text-sm font-semibold">
+                    <span className="min-w-0 truncate">
+                      {r.person.name ?? r.person.email}
+                    </span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </span>
                   {r.person.email && (
                     <span className="truncate text-xs text-ink/50">

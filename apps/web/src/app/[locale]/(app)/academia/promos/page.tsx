@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, RefreshIcon } from "@/components/ui";
+import { Button, Card, ChevronRightIcon, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -66,7 +66,7 @@ export default function AcademiaPromosPage() {
   }, [academyId, load]);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader
         backHref="/academia"
         backLabel={t("title")}
@@ -119,6 +119,7 @@ export default function AcademiaPromosPage() {
                           >
                             {t(st)}
                           </span>
+                          <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                         </div>
                         <p className="text-sm text-ink/70">
                           {p.discountType === "PERCENT"

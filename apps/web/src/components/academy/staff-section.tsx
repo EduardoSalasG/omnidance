@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, Pager, SkeletonList } from "@/components/ui";
+import { Badge, Card, ChevronRightIcon, Pager, SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { filterQuery } from "./shared";
 import type { AcademyCap } from "./use-academy-access";
@@ -159,6 +159,7 @@ export function StaffSection({ academyId }: { academyId: string }) {
                           date: dayFmt.format(new Date(r.createdAt)),
                         })}
                       </span>
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                     </div>
                     {r.person.email && (
                       <span className="truncate text-xs text-ink/50">

@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   RefreshIcon,
   SkeletonList,
   type BadgeVariant,
@@ -155,7 +156,7 @@ function DetailPanel({ id }: { id: string }) {
 
   if (error) {
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-ink/60">
             {t("academies.error")}
@@ -169,7 +170,7 @@ function DetailPanel({ id }: { id: string }) {
   }
   if (!d)
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
         <SkeletonList items={3} lines={2} />
       </main>
     );
@@ -236,7 +237,7 @@ function DetailPanel({ id }: { id: string }) {
   ).filter((r) => r[1] != null && r[1] !== "");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/admin/academias" backLabel={t("academies.back")} />
 
       {/* Header: nombre + estado */}
@@ -290,8 +291,8 @@ function DetailPanel({ id }: { id: string }) {
           href={`/admin/academias/${a.id}/suscripcion`}
           className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
-        <Card className="p-4 transition-colors hover:border-neon/50">
-          <dl className="divide-y divide-line">
+        <Card className="flex items-center gap-3 p-4 transition-colors hover:border-neon/50">
+          <dl className="min-w-0 flex-1 divide-y divide-line">
             {infoRow(
               t("academies.detail.billing"),
               a.tier
@@ -311,6 +312,7 @@ function DetailPanel({ id }: { id: string }) {
               a.billingBlockedAt ? fmtDate(a.billingBlockedAt, locale) : null,
             )}
           </dl>
+          <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
         </Card>
         </Link>
       </section>
@@ -433,6 +435,7 @@ function DetailPanel({ id }: { id: string }) {
                       {c.bookedCount}/{c.capacity ?? "—"}
                     </span>
                   </div>
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                 </Link>
               ))}
             </Card>
@@ -481,6 +484,7 @@ function DetailPanel({ id }: { id: string }) {
                 <span className="text-sm font-semibold tabular-nums">
                   {s.score}
                 </span>
+                <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
               </Link>
             ))}
           </Card>
@@ -528,6 +532,7 @@ function DetailPanel({ id }: { id: string }) {
                     ? t("academies.detail.active")
                     : t("academies.detail.inactive")}
                 </Badge>
+                <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
               </Link>
             ))}
           </Card>

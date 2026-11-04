@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, SkeletonList } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ChevronRightIcon,
+  SkeletonList,
+} from "@/components/ui";
 import { inputCls } from "@/components/academy/shared";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -92,7 +98,7 @@ export default function AdminTierPricesPage() {
 
   return (
     <AdminGate>
-      <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6">
+      <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 pt-3 pb-6">
         <ConsoleHeader
           backHref="/admin/facturacion"
           backLabel={t("title")}
@@ -166,7 +172,10 @@ export default function AdminTierPricesPage() {
                       <h2 className="min-w-0 flex-1 truncate font-semibold">
                         {tierLabel(r)}
                       </h2>
-                      <Badge variant="outline">{kindLabel(r.kind)}</Badge>
+                      <span className="flex shrink-0 items-center gap-2">
+                        <Badge variant="outline">{kindLabel(r.kind)}</Badge>
+                        <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                      </span>
                     </div>
                     <p className="text-sm font-semibold tabular-nums">
                       {formatMoney(r.price, r.currency, locale)}{" "}
