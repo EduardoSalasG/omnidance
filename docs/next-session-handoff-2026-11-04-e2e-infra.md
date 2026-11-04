@@ -57,6 +57,21 @@ mismo está bien; documentado en el header y en tasks.md.
   academia-planes. Precorrida `pnpm db:enrich` donde diga (enrich).
 - Re-correr `academia-videos` (rename a flows/) en próxima corrida.
 - Re-correr `dancer-checkout` con API en gateway stub.
+- **Landings 100% estáticas** (pedido del usuario 2026-11-04):
+  eliminar requests al API desde `(marketing)` - hoy pegan a la DB y
+  consumen horas activas del backend. Diagnóstico: `/` llama
+  `GET /api/events` vía `fetchPublicEvents` (revalidate 300; alimenta
+  strip "N eventos esta semana" + JsonLd); `/ciudades`+`[slug]` llaman
+  `/api/features` + `/api/cities(+:slug)`; `/pase` llama
+  `/api/features` (flag social_pass); `/e/[id]` llama
+  `/api/events/:id`. Archivos: `lib/public-events.ts`,
+  `lib/public-cities.ts`, `(marketing)/page.tsx`,
+  `(marketing)/ciudades/*`, `(marketing)/pase/page.tsx`,
+  `(marketing)/e/[id]/page.tsx`. A definir en el change: si `/e/[id]`
+  (ficha pública de evento compartible) y `/reclamar/[token]` cuentan
+  como landing - son funcionales, quizá quedan dinámicas o con
+  generateStaticParams. `/login` y `/reclamar` solo llaman en acción
+  del usuario (OK). Crear change OpenSpec al tomarlo.
 - `customer/collect` automático por job (PlatformChargesService
   listo; pendiente desde cierre-2).
 - Smoke visual superficies pasada B (clases, series, particulares,
