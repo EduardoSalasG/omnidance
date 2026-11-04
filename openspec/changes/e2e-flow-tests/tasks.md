@@ -39,10 +39,15 @@
 - [x] 14. `academia-clases` (roster profe, marcar ±30min + fuera de
   ventana Sin confirmar): taller one-off con profe instructor + book
   del dancer por API - el clock del seed era timing-dependiente.
-- [ ] 15. `dancer-membresia` (TRANSFER multi-actor).
-- [ ] 16. `productor-eventos` (absorbe smoke crear→publicar).
-- [ ] 17. `productor-colaboradores` (cupo free → 403 tier).
-- [ ] 18. `staff-puerta` (boot, check-in manual, dup 409).
+- [x] 15. `dancer-membresia` (TRANSFER multi-actor): plan QA por API
+  → checkout `mode=sub` vía TRANSFER → orden MANUAL + comprobante →
+  aprobación en order-claims → sub ACTIVE vía `/subscriptions/mine`.
+- [x] 16. `productor-eventos` (absorbe smoke crear→publicar + copiar
+  link público con permisos de clipboard en el contexto).
+- [x] 17. `productor-colaboradores` (alta por búsqueda + cupo lleno →
+  403 `staff_quota`/"sube de tier" vía ActionNotice role=alert).
+- [x] 18. `staff-puerta` (boot manifest → check-in manual verde →
+  dup rojo; EntryPass LIST por guest-list admin - sin gateway).
 - [x] 19. `soporte-buscar` (búsqueda ≥2c, ficha read-only, volver).
 - [x] 20. `dancer-qr` (canvas `role="img"`, mint 500 → alert + retry;
   filtrar el announcer de Next que también es role=alert).

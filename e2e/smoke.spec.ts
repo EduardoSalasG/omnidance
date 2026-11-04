@@ -57,43 +57,5 @@ test.describe("@smoke admin: /admin/datos conmuta entidades", () => {
   });
 });
 
-test.describe("@smoke productor: ciclo de vida de evento", () => {
-  test.use({ storageState: statePath("producer") });
-
-  test("crear → publicar → aparece en cartelera", async ({ page }) => {
-    const name = `QA Evento ${Date.now()}`;
-    await page.goto("/productor/eventos/nuevo");
-    await page.getByLabel(/nombre|name/i).first().fill(name);
-    // fechas: hoy +1d → +5h
-    const start = new Date(Date.now() + 864e5);
-    const end = new Date(start.getTime() + 5 * 3600e3);
-    const iso = (d: Date) => d.toISOString().slice(0, 16);
-    await page.locator('input[type="datetime-local"]').nth(0).fill(iso(start));
-    await page.locator('input[type="datetime-local"]').nth(1).fill(iso(end));
-    await page
-      .getByRole("button", { name: /crear|guardar/i })
-      .first()
-      .click();
-    // Éxito → redirect a la lista en ~1.2s.
-    await expect(page).toHaveURL(/productor\/eventos/, { timeout: 15_000 });
-    // La card completa es el link - getByText(name) puede pisar otro
-    // nodo con el nombre (o el click espera nav con expect-timeout 5s
-    // mientras la ruta compila en dev la primera vez).
-    await page.getByRole("link", { name }).first().click();
-    await expect(page).toHaveURL(/productor\/eventos\/.+/, {
-      timeout: 30_000,
-    });
-    // DRAFT → publicar. Hay que esperar el commit del POST: navegar
-    // antes cancele el publish in-flight (falló en mobile al irse
-    // directo a /eventos).
-    await page.getByRole("button", { name: /publicar/i }).click();
-    await expect(page.getByText(/evento publicado/i)).toBeVisible({
-      timeout: 15_000,
-    });
-    // En la cartelera pública.
-    await page.goto("/eventos");
-    await expect(page.getByText(name).first()).toBeVisible({
-      timeout: 10_000,
-    });
-  });
-});
+// El describe de productor migró a flows/productor-eventos.spec.ts
+// (crear→publicar→cartelera + copiar link público).
