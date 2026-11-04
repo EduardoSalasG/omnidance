@@ -27,6 +27,8 @@ const PAGES = [
   "/academia/configuracion/pagos", // redirect → metodos-de-pago
   "/academia/suscripcion", // redirect → configuracion/suscripcion
   "/analitica",
+  "/analitica/usuarios",
+  "/academia/configuracion/niveles/nuevo",
 ] as const;
 
 const OUT = "e2e/polish-shots";
