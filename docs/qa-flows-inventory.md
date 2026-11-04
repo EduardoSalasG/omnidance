@@ -385,7 +385,7 @@
 ### Videos `/academia/videos*` (lectura amplia; escritura cap schedule + canAdminister UI)
 - Lista `GET /academies/:id/videos?q` paginado 24: no-staff ven restringidos masked `locked:true` (unlock por asistencia/enrollment) y su card → link externo si unlocked; admin ve CTA nuevo y cards clickeables (chevron) → ficha `[id]`.
 - Nuevo: title*, url* (solo externos), classId texto libre (404 si no es de la academia), restrictedToAttended (default true) → POST → lista 1200ms.
-- Ficha `[id]` (owner/ADMIN): badges + link externo "Ver video" + datos en `dl` + zona roja delete ConfirmSheet → `DELETE /academies/:id/videos/:videoId` → ActionNotice + vuelta al listado. Sin `GET /videos/:videoId` propio: resuelve el video recorriendo el listado paginado (pageSize 100); 401/403/404 → "sin acceso", no hallado → notFound con CTA. Edición pendiente: el backend no expone PATCH/PUT de video.
+- Ficha `[id]` (owner/ADMIN): detalle `GET /academies/:id/videos/:videoId` (misma máscara locked del list; staff completo) → form de edición precargado (mismos campos del alta; classId vacío desvincula con `null`) → `PATCH /academies/:id/videos/:videoId` (mismo gate cap schedule que el POST; classId de otra academia → 404) → ActionNotice + vuelta al listado; link externo "Ver video" en el header del form; zona roja delete ConfirmSheet → `DELETE /academies/:id/videos/:videoId` → ActionNotice + vuelta al listado. Estados: skeleton, 401/403 → "sin acceso", 404 → notFound con CTA, error → alert + retry.
 
 ---
 

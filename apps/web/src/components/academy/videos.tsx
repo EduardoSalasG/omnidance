@@ -64,12 +64,13 @@ const linkBtnCls =
  * Videos de la academia (links externos) - solo listado.
  * - Lista para cualquier usuario autenticado con contexto de academia;
  *   locked → metadatos + hint, unlocked → link "Ver video" externo.
- * - Crear vive en /academia/videos/nuevo y DELETE exige owner/ADMIN
- *   (requireAdminister): con canAdminister (misma regla que
- *   canAdministerAcademy del dominio: ADMIN u ownerId === me.id) la
- *   card navega a la ficha /academia/videos/[id], donde viven el link
- *   externo y la zona destructiva. Sin canAdminister la card queda
- *   como hoy: link "Ver video" externo cuando está unlocked.
+ * - Crear vive en /academia/videos/nuevo y mutaciones (PATCH/DELETE)
+ *   exigen owner/ADMIN (requireCapabilityWrite): con canAdminister
+ *   (misma regla que canAdministerAcademy del dominio: ADMIN u
+ *   ownerId === me.id) la card navega a la ficha /academia/videos/[id],
+ *   donde viven la edición, el link externo y la zona destructiva.
+ *   Sin canAdminister la card queda como hoy: link "Ver video"
+ *   externo cuando está unlocked.
  */
 export function Videos({ academy }: { academy: Academy }) {
   const t = (useMessages() as { academyExtras: { videos: Record<string,string> } }).academyExtras.videos;
