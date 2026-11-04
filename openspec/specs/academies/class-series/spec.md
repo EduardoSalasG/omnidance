@@ -92,9 +92,13 @@ futuras y devuelve las reservas BOOKED/WAITLIST (comportamiento de
 cancelación existente). Una serie eliminada MUST NOT aparecer en
 `GET /academies/:id/series` ni en los endpoints de detalle de consola
 (`GET .../series/:seriesId`, `GET .../series/:seriesId/classes`
-responden 404). La fila SHALL seguir existiendo para analítica y
-auditoría; `PATCH {active:true}` la restaura (`deletedAt=null`) y
-rematerializa la ventana rodante.
+responden 404), y ni ella ni sus clases u horarios SHALL aparecer en
+las superficies de clases (`/classes/browse`, `/classes/mine`,
+`/classes/teaching`, próximas clases de `GET /academies/:id`,
+`GET /academies/:id/slots` ni los agregados de insights). La fila
+SHALL seguir existiendo para analítica y auditoría; `PATCH
+{active:true}` la restaura (`deletedAt=null`) y rematerializa la
+ventana rodante.
 
 #### Scenario: eliminar clase
 
@@ -109,6 +113,14 @@ rematerializa la ventana rodante.
 - **WHEN** se ejecuta PATCH `{active:true}`
 - **THEN** `deletedAt` vuelve a null, la serie reaparece en el listado
   y se rematerializa la ventana rodante
+
+#### Scenario: serie eliminada fuera de las superficies de clases
+
+- **GIVEN** una serie con `deletedAt` set cuyas clases siguen
+  materializadas (borrado directo en datos, sin pasar por el DELETE)
+- **WHEN** un bailarín explora `/classes/browse` o el owner abre
+  "Niveles y cupos"
+- **THEN** ni la serie ni sus clases ni sus horarios aparecen
 
 ### Requirement: Filtros ampliados del listado
 
@@ -478,3 +490,62 @@ notificaciones MUST NOT revertir ni impedir la cascada.
 - **WHEN** el owner la elimina y el centro de notificaciones falla
 - **THEN** las clases quedan canceladas, las reservas refunded y el
   DELETE responde OK igual
+
+### Requirement: Nivel de serie dentro de la línea efectiva
+
+Al crear (`POST`) o editar (`PATCH`) una serie, `levelId` SHALL
+pertenecer a la línea efectiva de la academia (custom si existe,
+global si no). La API SHALL responder 400 si el nivel es de otra
+academia o pertenece a la línea global cuando la academia tiene
+línea propia.
+
+#### Scenario: Nivel global en academia con línea custom
+
+- **GIVEN** Mambo Madness con línea custom
+- **WHEN** el owner edita una serie enviando el `levelId` del "Básico"
+  global
+- **THEN** la API responde 400 y la serie queda sin cambios
+
+#### Scenario: Nivel de otra academia rechazado
+
+- **GIVEN** una academia cualquiera
+- **WHEN** el body trae un `levelId` custom de otra academia
+- **THEN** la API responde 400
+
+### Requirement: Chrome de consola en el roster de clase
+
+La ficha `/academia/clases/[id]` SHALL mostrar `ConsoleHeader` con
+back: quien tiene cap de gestión (canCancel) vuelve a la ficha del
+horario (`/academia/series/:seriesId/horarios/:slotId`); el instructor
+vuelve a `/academia/clases`.
+
+#### Scenario: Back por perfil
+
+- **WHEN** owner/staff con gestión abre el roster
+- **THEN** el back navega a la ficha del horario de la clase
+- **WHEN** el instructor abre el roster
+- **THEN** el back navega a su listado de clases
+
+### Requirement: Header de entidad navegable en el roster
+
+El header del roster (nombre de la serie, fecha/hora, estilo/nivel,
+plantel) SHALL ser texto desnudo (sin Card) y SHALL navegar a la
+ficha del horario cuando el caller tiene cap de gestión; para el
+instructor sin gestión queda plano.
+
+#### Scenario: Gestión navega al horario
+
+- **GIVEN** un caller con `canCancel`
+- **WHEN** toca el header del roster
+- **THEN** llega a `/academia/series/:seriesId/horarios/:slotId`
+
+### Requirement: Roster expone seriesId
+
+`GET /classes/:id/roster` SHALL incluir `class.seriesId` (FK del slot)
+además del `seriesName` ya existente.
+
+#### Scenario: Deeplink sin lookup extra
+
+- **WHEN** el front construye el header del roster
+- **THEN** puede enlazar a la ficha del horario con `seriesId` +
+  `classSlotId` sin requests adicionales
