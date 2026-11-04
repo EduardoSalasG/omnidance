@@ -97,6 +97,10 @@ export class AcademySurveysService {
           academyId: pair.academyId,
           seriesId: pair.seriesId,
           month,
+          // Deeplink a la encuesta: /notificaciones navega con el tap
+          // (el body ya lleva seriesName como `series` en el query).
+          series: pair.seriesName,
+          path: `/academias/${pair.academyId}/encuesta?seriesId=${pair.seriesId}&month=${month}&series=${encodeURIComponent(pair.seriesName)}`,
         },
       });
     }

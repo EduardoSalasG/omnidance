@@ -672,16 +672,19 @@ export function HomeHub() {
         </div>
       )}
 
-      {/* Encuestas post-social - timely, arriba del contenido de lente.
-          Cualquier rol las ve (un productor que bailó también evalúa);
-          sin items no se renderiza nada (cero hueco). */}
-      {((surveys !== null && surveys.length > 0) ||
-        (courseSurveys !== null && courseSurveys.length > 0)) && (
+      {/* Encuestas pendientes - timely, arriba del contenido de lente,
+          pero SOLO en la lente bailarín y en su apartado: post-social
+          en modo Social, encuesta de curso en modo Academia (spec
+          survey-cards-dancer-lens). Las consolas de rol no las ven - su
+          aviso viaja por notificación. Sin items no se renderiza nada
+          (cero hueco). */}
+      {((dancerSocial && (surveys?.length ?? 0) > 0) ||
+        (dancerAcademy && (courseSurveys?.length ?? 0) > 0)) && (
         <section
           aria-label={ts("sectionLabel")}
           className="flex flex-col gap-2"
         >
-          {surveys?.map((s) => (
+          {dancerSocial && surveys?.map((s) => (
             <Link
               key={s.eventId}
               href={`/eventos/${s.eventId}/evaluar`}
@@ -696,7 +699,7 @@ export function HomeHub() {
               </span>
             </Link>
           ))}
-          {courseSurveys?.map((s) => (
+          {dancerAcademy && courseSurveys?.map((s) => (
             <Link
               key={`${s.seriesId}:${s.month}`}
               href={`/academias/${s.academyId}/encuesta?seriesId=${s.seriesId}&month=${s.month}&series=${encodeURIComponent(s.seriesName)}`}
