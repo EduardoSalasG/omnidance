@@ -40,8 +40,8 @@ type Props = { academyId: string };
 
 /**
  * Listado de medios de pago BYO del owner (spec academy-payment-claims):
- * cada card abre el detalle/edición en /configuracion/pagos/[methodId];
- * el alta vive en /configuracion/pagos/nuevo detrás del CTA. Los métodos
+ * cada card abre el detalle/edición en /configuracion/metodos-de-pago/[methodId];
+ * el alta vive en /configuracion/metodos-de-pago/nuevo detrás del CTA. Los métodos
  * activos se muestran al alumno en la ficha de la academia.
  */
 export function PaymentMethodsAdmin({ academyId }: Props) {
@@ -84,7 +84,7 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
           variant="secondary"
           size="sm"
           className="shrink-0 whitespace-nowrap"
-          href="/academia/configuracion/pagos/nuevo"
+          href="/academia/configuracion/metodos-de-pago/nuevo"
         >
           + {t("addMethod")}
         </Button>
@@ -108,7 +108,7 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
           {methods.map((m) => (
             <li key={m.id}>
               <Link
-                href={`/academia/configuracion/pagos/${m.id}`}
+                href={`/academia/configuracion/metodos-de-pago/${m.id}`}
                 className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm transition-colors hover:border-neon/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
               >
                 {/* Card completo clickeable → detalle/edición del medio

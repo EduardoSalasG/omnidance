@@ -699,9 +699,9 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       labelKey: "navGroups.config",
       items: [
         {
-          href: "/academia/configuracion/general",
+          href: "/academia/configuracion/clases",
           ns: "academy",
-          key: "configPages.general",
+          key: "configPages.classes",
           icon: ICONS.slider,
         },
         // La línea de niveles es configuración de una vez (definir o
@@ -714,9 +714,9 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           academyFeature: "classes",
         },
         {
-          href: "/academia/configuracion/pagos",
+          href: "/academia/configuracion/metodos-de-pago",
           ns: "academy",
-          key: "configPages.payments",
+          key: "configPages.payMethods",
           icon: ICONS.bank,
         },
         {
@@ -740,9 +740,9 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.upload,
         },
         {
-          href: "/academia/suscripcion",
+          href: "/academia/configuracion/suscripcion",
           ns: "academy",
-          key: "modules.subscription",
+          key: "configPages.subscription",
           icon: ICONS.star,
         },
       ],

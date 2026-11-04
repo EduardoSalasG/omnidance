@@ -199,9 +199,10 @@
       "config": "Paramètres"
     },
     "configPages": {
-      "general": "Cours",
+      "classes": "Cours",
       "levels": "Niveaux",
-      "payments": "Moyens de paiement",
+      "payMethods": "Moyens de paiement",
+      "subscription": "Abonnement",
       "profile": "Profil de l'académie",
       "appearance": "Apparence",
       "import": "Importer des données"

@@ -16,7 +16,7 @@ const DAY_MS = 86_400_000;
  * - billingBlockedAt → banner rojo "bloqueada" (las mutaciones ya
  *   responden 403 billing.blocked - el banner explica el porqué).
  * - billingGraceUntil > ahora → banner ámbar con los días de gracia.
- * El CTA a /academia/suscripcion solo se muestra a owner/ADMIN (los
+ * El CTA a /academia/configuracion/suscripcion solo se muestra a owner/ADMIN (los
  * endpoints de billing son requireAdminister) - usa el /me compartido;
  * mientras resuelve, el slot del CTA queda reservado con un skeleton
  * pill para que el banner no se reajuste al resolver. En la propia
@@ -44,9 +44,9 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
     !!me &&
     (me.roles.includes("ADMIN") || me.id === academy.ownerId);
 
-  // En /academia/suscripcion el estado va completo - el banner sería
+  // En /academia/configuracion/suscripcion el estado va completo - el banner sería
   // redundante.
-  if (!show || pathname === "/academia/suscripcion") return null;
+  if (!show || pathname === "/academia/configuracion/suscripcion") return null;
 
   // CTA opcional según permiso - nada mientras /me resuelve (para el
   // no-manager un skeleton que colapsa sería flash; para el manager un
@@ -55,7 +55,7 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
     !meLoading &&
     canManage && (
       <Link
-        href="/academia/suscripcion"
+        href="/academia/configuracion/suscripcion"
         className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
           blocked
             ? "border border-red-300/40 hover:bg-red-300/10"

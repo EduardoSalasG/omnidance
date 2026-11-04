@@ -139,7 +139,7 @@ const dayMs = 86_400_000;
 ;
 
 /**
- * /academia/suscripcion - billing SaaS de la academia (S6,
+ * /academia/configuracion/suscripcion - billing SaaS de la academia (S6,
  * academy-saas-billing): estado del plan (tier/ciclo, alumnos vs límite,
  * próxima facturación, trial, gracia, bloqueo), contratación vía registro
  * de tarjeta Flow (interstitial honesto antes del salto), cambio de plan
@@ -329,7 +329,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
     // La retomada de una orden pendiente ya pasó por el consentimiento.
     if (!via && !consent) return;
     setBusy(true);
-    setNotice(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/academies/${academy.id}/subscribe`, {
         method: "POST",
@@ -880,7 +880,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
             showActionNotice({ text: t("subscribeOk") });
             void load();
           }}
-          returnHref="/academia/suscripcion"
+          returnHref="/academia/configuracion/suscripcion"
         />
       )}
 

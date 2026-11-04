@@ -1,22 +1,10 @@
-"use client";
+import { getLocale } from "next-intl/server";
 
-import { AcademyGate } from "@/components/academy/academy-gate";
-import { AcademySettings } from "@/components/academy/academy-settings";
+import { redirect } from "@/i18n/navigation";
 
-/**
- * /academia/configuracion/general - "Valores por defecto" de las clases
- * de la academia (quórum por defecto, precio de clase particular).
- * Página raíz de la sección Configuración del drawer - sin back
- * (nivel 1).
- */
-export default function ConfigGeneralPage() {
-  return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
-      <AcademyGate>
-        {({ academy }) => (
-          <AcademySettings key={academy.id} academy={academy} />
-        )}
-      </AcademyGate>
-    </main>
-  );
+// La página de valores por defecto de clases se renombró para que la
+// URL matchee su título ("Clases"). Redirect de deep-links viejos.
+export default async function ConfigGeneralRedirect() {
+  const locale = await getLocale();
+  redirect({ href: "/academia/configuracion/clases", locale });
 }

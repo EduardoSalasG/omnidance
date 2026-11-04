@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
  * Aviso del retorno de Flow para la suscripción de la academia (espejo
  * de pro-return-notice de Producer Pro): POST
  * /api/payments/flow/platform-customer-return redirige (303) a esta
- * consola /academia/suscripcion?sub=ok|error.
+ * consola /academia/configuracion/suscripcion?sub=ok|error.
  * La sub puede seguir ACTIVATING al aterrizar - copy "procesando".
  */
 export function AcademyBillingReturnNotice() {
