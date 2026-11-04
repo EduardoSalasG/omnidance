@@ -80,7 +80,7 @@ export function CourseSurveyResults({
   if (groups.length === 0) {
     return (
       <section aria-label={t("resultsTitle")} className="flex flex-col gap-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+        <h3 className="flex min-h-11 items-center text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("resultsTitle")}
         </h3>
         <Card className="p-4">
@@ -100,7 +100,10 @@ export function CourseSurveyResults({
 
   return (
     <section aria-label={t("resultsTitle")} className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+      {/* min-h-11: misma altura de fila que una sección con título +
+          acción (botón sm), así los títulos de columnas vecinas en el
+          grid de la ficha quedan alineados. */}
+      <h3 className="flex min-h-11 items-center text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("resultsTitle")}
       </h3>
       {[...byMonth.entries()].map(([month, items]) => (
