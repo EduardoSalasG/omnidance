@@ -21,6 +21,9 @@ test.describe("@academia @planes membresías", () => {
       .click();
     await page.waitForURL(/\/academia\/planes$/, { timeout: 30_000 });
 
+    // El listado pagina (pageSize 12, sort por nombre): con >=12
+    // planes el nuevo puede caer en otra página - se filtra por q.
+    await page.getByRole("searchbox").fill(name);
     const card = page.getByRole("link", { name });
     await expect(card).toBeVisible({ timeout: 30_000 });
     await Promise.all([
