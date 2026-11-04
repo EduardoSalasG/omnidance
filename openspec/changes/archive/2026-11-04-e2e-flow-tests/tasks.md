@@ -20,14 +20,25 @@
 - [x] 7. `flows/transversal-gates.spec.ts` (`@transversal @gates`):
   dancer → /academia sin-acceso; anon → /eventos bounce `?next=`;
   profe → /academia/particulares.
-- [ ] 8. Verificar: `pnpm test:e2e --project=chromium` verde en el
+- [x] 8. Verificar: `pnpm test:e2e --project=chromium` verde en el
   slice + `e2e-which.mjs` con diff de prueba + actualizar
   `docs/qa-flows-inventory.md` §0 con la convención de tags/map.
+  Resultado: 46/46 verdes en 2.1min. El run completo exige build de
+  producción en :3000 (`next build`+`next start`) - `next dev`
+  corrompe `.next` bajo carga paralela (JSON.parse fijo, 2x en la
+  sesión) - y API con `PAYMENT_GATEWAY=stub` +
+  `THROTTLE_AUTH_LIMIT=120`. Fixes de robustez encontrados en la
+  corrida: planes se busca por `q` (paginación pageSize 12), chip de
+  niveles fijado por índice (locator por aria-pressed re-resuelve),
+  tours marcados por API en auth.setup (overlay tardío ~8s).
 
 ## Backlog (siguientes slices, en orden del diseño §8)
 
 - [x] 9. `dancer-eventos` (cartelera, `?view=mios`, `?a=`, empty).
-- [~] 10. `dancer-checkout` (stub:// → webhook PAID/FAILED): spec escrito; verde solo con API en gateway stub - con PAYMENT_GATEWAY=flow el POST sale 500 (emails seed).
+- [x] 10. `dancer-checkout` (stub:// → webhook PAID/FAILED): verde -
+  la corrida e2e va con API en `PAYMENT_GATEWAY=stub` (la env del
+  proceso gana sobre `.env`, que trae flow+credenciales); documentado
+  en inventory §0.
 - [x] 11. `academia-cobros` (claims approve/reject, error-retry):
   claims PENDING creados por API (multipart receipt.png) por test -
   aprobar/rechazar consume el claim y no se deshace.

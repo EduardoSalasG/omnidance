@@ -1,5 +1,11 @@
 import { test as setup, expect } from "@playwright/test";
-import { USERS, PASSWORD, statePath, type Role } from "./helpers";
+import {
+  USERS,
+  PASSWORD,
+  TOUR_KEYS,
+  statePath,
+  type Role,
+} from "./helpers";
 
 for (const [role, email] of Object.entries(USERS)) {
   setup(`login ${role}`, async ({ page }) => {
@@ -48,6 +54,14 @@ for (const [role, email] of Object.entries(USERS)) {
       .waitFor({ timeout: 8_000 })
       .then(() => consent.click())
       .catch(() => {});
+    // Tours de primera visita marcados como vistos por API: el runner
+    // puede dispararlos hasta ~8s tras el paint y el overlay
+    // intercepta clicks - prenderlos acá es determinista.
+    for (const tour of TOUR_KEYS) {
+      await page.request
+        .post("/api/me/onboarding", { data: { tour } })
+        .catch(() => {});
+    }
     await page.context().storageState({ path: statePath(role as Role) });
   });
 }

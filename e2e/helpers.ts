@@ -29,17 +29,62 @@ export const API_URL = process.env.QA_API_URL ?? "http://localhost:4000";
 const authDir = path.join(__dirname, ".auth");
 export const statePath = (role: Role) => path.join(authDir, `${role}.json`);
 
+// Claves de tour de primera visita (prop `tour` de OnboardingRunner
+// en las superficies app). El setup las marca todas por API
+// (POST /me/onboarding mergea por clave) porque el runner puede
+// disparar el tour hasta ~8s después del paint - fuera de cualquier
+// ventana razonable de dismiss en-spec.
+export const TOUR_KEYS = [
+  "academia",
+  "academia-alumnos",
+  "academia-clase",
+  "academia-clases",
+  "academia-cobros",
+  "academia-owner",
+  "academias",
+  "amigos",
+  "analitica",
+  "bailes",
+  "clases",
+  "crm",
+  "eventos",
+  "home",
+  "home-academy",
+  "instructor",
+  "locales",
+  "perfil",
+  "practicas",
+  "productor",
+  "productor-cobros",
+  "productor-colaboradores",
+  "qr",
+  "soporte",
+  "staff",
+  "staff-puerta",
+] as const;
+
 // OnboardingRunner puede tapar CTAs en la primera visita de un
 // storageState nuevo (diseño §3): descarta el tour si aparece; si no
 // hay tour no bloquea. Corre tras cada goto a una superficie "nueva"
-// para ese usuario.
+// para ese usuario. Red de seguridad tras el marcado por API del
+// setup: si el overlay igual está presente, skip o ESC y espera a
+// que se desmonte (intercepta los clicks mientras viva).
 export async function dismissTours(page: Page) {
   const skip = page.getByRole("button", {
     name: /omitir|saltar|skip|cerrar|close|entendido/i,
   });
-  await skip
+  const overlay = page.locator(".driver-overlay");
+  const clicked = await skip
     .first()
     .click({ timeout: 3_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!clicked && (await overlay.count()) > 0) {
+    await page.keyboard.press("Escape").catch(() => {});
+  }
+  await overlay
+    .first()
+    .waitFor({ state: "detached", timeout: 2_000 })
     .catch(() => {});
 }
 

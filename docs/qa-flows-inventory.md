@@ -17,6 +17,25 @@
 - `e2e/flow-map.json` mapea paths→tags; `pnpm test:e2e:which` traduce un
   diff de git al comando `--grep` sugerido. Al tocar una ruta, correr su tag.
 - Diseño completo: `docs/e2e-flow-tests-design.md`.
+- **Run completo contra build de producción, no `next dev`:** el dev
+  server corrompe `.next` bajo carga paralela (páginas 500 con
+  `SyntaxError: JSON.parse`, visto 2026-11-04 dos veces en una sesión).
+  Receta: `pnpm --filter @omnidance/web build` + `pnpm --filter
+  @omnidance/web start` en :3000 (mismas rewrites/proxy que dev), API en
+  dev normal. Los specs individuales sí corren contra `next dev`.
+- **API en stub para pagos e2e:** la `.env` raíz trae
+  `PAYMENT_GATEWAY=flow`+credenciales y Flow rechaza los emails
+  `*@omnidance.dev` (POST /checkout/ticket 500). Correr el API con
+  `PAYMENT_GATEWAY=stub` (la env del proceso gana sobre `.env`) +
+  `THROTTLE_AUTH_LIMIT=120` para el setup de logins.
+- **Tours OnboardingRunner:** `auth.setup.ts` marca los 26 tour keys por
+  `POST /api/me/onboarding` (el runner puede dispararlos hasta ~8s tras
+  el paint y el `.driver-overlay` intercepta clicks). `dismissTours`
+  queda como red de seguridad (skip/ESC + espera de detach del overlay).
+- **Locators por atributo volátil:** un locator
+  `button[aria-pressed="false"]` re-resuelve a OTRO elemento tras el
+  toggle - fijar chips/toggles por índice (`nth`) o texto antes de
+  asertar el atributo.
 
 ### Auth y sesión
 - Cookie `omnidance_session` (JWT httpOnly, 30d). Middleware redirige anon → `/login?next=<path>`.

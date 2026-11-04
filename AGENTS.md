@@ -39,6 +39,7 @@ Ejecutar desde la raíz del repo:
 - Ambos: `pnpm dev`
 - Build completo: `pnpm build`
 - Tests: `pnpm test` (Vitest unit + componente) · `pnpm test:e2e` (Playwright smoke, chromium + mobile/WebKit; requiere stack vivo + `pnpm exec playwright install` la 1ª vez). Los 6 logins del setup golpean `/auth/login` (throttle 8/min por IP): en dev conviene `THROTTLE_AUTH_LIMIT=120` en `apps/api/.env`; el setup igual reintenta una vez tras ~65s si aparece el genericError.
+  - **Corrida completa e2e**: contra build de producción, no `next dev` - el dev server corrompe `.next` bajo carga paralela (páginas 500 `SyntaxError: JSON.parse`). Receta: `pnpm --filter @omnidance/web build && pnpm --filter @omnidance/web start` en :3000 + API con `PAYMENT_GATEWAY=stub` (la `.env` raíz trae flow: rechaza emails `*@omnidance.dev`) + `THROTTLE_AUTH_LIMIT=120`. Specs individuales sí corren contra `next dev`.
 - Lint: `pnpm lint` · Typecheck: `pnpm typecheck`
 - Prisma Studio: `pnpm db:studio`
 - Catálogos de landings: `pnpm --filter @omnidance/web content:sync` (regenera `apps/web/src/content/*.json` desde el API público; commitear el resultado. Las landings `/`, `/pro`, `/para-*` no pegan al API en render - spec marketing-content)

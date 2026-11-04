@@ -74,8 +74,16 @@ test.describe("@academia @alumnos lista y ficha", () => {
       'section[aria-label="Nivel por tipo de clase"]',
     );
     await expect(editor).toBeVisible({ timeout: 30_000 });
-    // Marca el primer nivel del primer tipo (chips aria-pressed).
-    const chip = editor.locator("fieldset button").first();
+    // Marca un nivel sin marcar (el editor abre con la selección
+    // vigente: clic en un chip ya marcado lo desmarca - corridas
+    // anteriores dejan niveles persistidos). El chip se fija por
+    // índice: un locator por aria-pressed="false" re-resuelve a OTRO
+    // chip falso tras el toggle y el assert nunca ve "true".
+    const chips = editor.locator("fieldset button");
+    const idx = await chips.evaluateAll((els) =>
+      els.findIndex((el) => el.getAttribute("aria-pressed") === "false"),
+    );
+    const chip = chips.nth(idx);
     await chip.click();
     await expect(chip).toHaveAttribute("aria-pressed", "true");
     await page
