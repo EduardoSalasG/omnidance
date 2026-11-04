@@ -4,8 +4,16 @@ import { useCallback, useEffect, useState, use } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, ConfirmSheet, RefreshIcon } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ChevronRightIcon,
+  ConfirmSheet,
+  RefreshIcon,
+} from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import { ConsoleHeader } from "@/components/console/console-header";
 import {
   showActionNotice,
   ActionNotice,
@@ -133,6 +141,23 @@ export default function AcademiaClaseRosterPage(
 
       {state === "ready" && roster && (
         <>
+          {/* Back de consola (regla 5): el padre canónico del roster
+              es la ficha de la serie (de ahí salen sus clases en
+              próximas/historial) - la edición del horario es una
+              superficie a la que se entra explícito, no un destino de
+              "volver". El instructor vuelve a su listado de clases. */}
+          <ConsoleHeader
+            backHref={
+              roster.canCancel && roster.class.seriesId
+                ? `/academia/series/${roster.class.seriesId}`
+                : "/academia/clases"
+            }
+            backLabel={
+              roster.canCancel
+                ? (roster.class.seriesName ?? t("title"))
+                : t("title")
+            }
+          />
           <RosterDetail
             roster={roster}
             classId={classId}
@@ -220,6 +245,15 @@ function RosterDetail({
     now >= Date.parse(roster.attendanceWindow.opensAt) &&
     now <= Date.parse(roster.attendanceWindow.closesAt);
   const showMarking = roster.canMark && windowOpen;
+  // Clase culminada: la instancia ya terminó (fin < ahora, misma
+  // aritmética medianoche-UTC + HH:MM del API). Una clase pasada no
+  // se edita ni se cancela: el header queda plano (sin affordance a
+  // la ficha del horario) y la zona roja se oculta - el server ya
+  // rechaza el cancel de clase pasada con 404.
+  const [endH, endM] = c.endTime.split(":").map(Number);
+  const ended =
+    Date.parse(c.date) + endH * 3_600_000 + endM * 60_000 <= now;
+  const editable = roster.canCancel && c.seriesId != null && !ended;
   // POST /classes/:id/attendance - solo si el caller es el instructor
   // efectivo (canMark del server); el owner no marca asistencia.
   const [markingId, setMarkingId] = useState<string | null>(null);
@@ -227,6 +261,53 @@ function RosterDetail({
   // solo con cap schedule/classes (canCancel del server).
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
+
+  // Plantel completo (multi-instructor): "María · Eduardo".
+  const names = (
+    c.instructors?.length ? c.instructors : c.instructor ? [c.instructor] : []
+  )
+    .map((i) => i.name ?? shortId(i.id))
+    .join(" · ");
+
+  // Header de entidad desnudo (console-patterns §3): la clase se
+  // identifica por su serie + fecha/hora; las cajas quedan para las
+  // secciones. Con cap de gestión el bloque navega a la ficha del
+  // horario (la página que edita lo que el header muestra).
+  const entityHeader = (
+    <div className="flex flex-col gap-2">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <h2 className="truncate text-lg font-semibold transition-colors group-hover:text-neon">
+            {c.seriesName ?? t("classFallback")}
+          </h2>
+          {c.cancelled && <Badge variant="muted">{ts("cancelled")}</Badge>}
+        </div>
+        {editable && (
+          <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40 transition-colors group-hover:text-neon" />
+        )}
+      </div>
+      <p className="text-sm text-ink/70">
+        <span className="capitalize">
+          {classDayFmt(locale).format(new Date(c.date))}
+        </span>
+        {" · "}
+        <span className="tabular-nums">
+          {c.startTime}–{c.endTime}
+        </span>
+      </p>
+      {(c.styleName || c.levelName) && (
+        <div className="flex flex-wrap gap-1.5">
+          {c.styleName && <Badge variant="neon">{c.styleName}</Badge>}
+          {c.levelName && <Badge variant="muted">{c.levelName}</Badge>}
+        </div>
+      )}
+      {names && (
+        <p className="text-xs text-ink/60">
+          {t("taughtBy")}: {names}
+        </p>
+      )}
+    </div>
+  );
 
   async function cancelClass(): Promise<void> {
     if (cancelBusy) return;
@@ -274,46 +355,26 @@ function RosterDetail({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Meta de la clase + quórum: en desktop quórum actúa de panel
-          lateral (display:contents en móvil - el DOM no cambia bajo lg). */}
-      <div className="contents lg:grid lg:grid-cols-[1fr_320px] lg:items-start lg:gap-6">
-      <Card className="flex flex-col gap-3 p-4" data-tour="academy-clase-meta">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <p className="text-sm font-semibold capitalize">
-            {classDayFmt(locale).format(new Date(c.date))}
-          </p>
-          <p className="text-sm tabular-nums text-ink/70">
-            {c.startTime}–{c.endTime}
-          </p>
-        </div>
-        <p className="font-medium">
-          {c.seriesName ?? t("classFallback")}
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {c.styleName && <Badge variant="neon">{c.styleName}</Badge>}
-          {c.levelName && <Badge variant="muted">{c.levelName}</Badge>}
-        </div>
-        {(() => {
-          // Plantel completo (multi-instructor): "María · Eduardo".
-          const names = (
-            c.instructors?.length
-              ? c.instructors
-              : c.instructor
-                ? [c.instructor]
-                : []
-          )
-            .map((i) => i.name ?? shortId(i.id))
-            .join(" · ");
-          return names ? (
-            <p className="text-xs text-ink/60">
-              {t("taughtBy")}: {names}
-            </p>
-          ) : null;
-        })()}
-      </Card>
+      {/* Entidad desnuda: con gestión el bloque es Link a la ficha del
+          horario (console-patterns §3); sin cap queda plano - el
+          instructor no tiene destino de edición. */}
+      {editable ? (
+        <Link
+          href={`/academia/series/${c.seriesId}/horarios/${c.classSlotId}?from=${encodeURIComponent(`/academia/clases/${classId}`)}`}
+          className="group block rounded-2xl transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          data-tour="academy-clase-meta"
+        >
+          {entityHeader}
+        </Link>
+      ) : (
+        <div data-tour="academy-clase-meta">{entityHeader}</div>
+      )}
 
       {/* Quórum destacado */}
-      <Card className="flex flex-col gap-2 p-4" data-tour="academy-clase-quorum">
+      <Card
+        className="flex flex-col gap-2 p-4 lg:max-w-sm"
+        data-tour="academy-clase-quorum"
+      >
         <p className="text-xs font-medium uppercase tracking-wide text-ink/50">
           {t("quorum")}
         </p>
@@ -323,7 +384,6 @@ function RosterDetail({
         </p>
         <QuorumBar booked={booked} quorum={roster.quorum} />
       </Card>
-      </div>
 
       {/* Métricas del horario: mismas mini-stats ÚLT./PROM./PRÓX. de
           la agenda "Niveles y cupos" del inicio (solo quien tiene
@@ -426,24 +486,22 @@ function RosterDetail({
         )}
       </section>
 
-      {/* Zona roja: cancelar esta instancia (console-patterns: la
-          acción destructiva vive en la ficha, no en el listado). */}
-      {roster.canCancel && !c.cancelled && (
-        <Card className="flex flex-col gap-3 border-red-500/30">
-          <p className="text-xs text-ink/50">{ts("cancelClassDesc")}</p>
-          <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={cancelBusy}
-              onClick={() => setConfirmCancel(true)}
-            >
-              {ts("cancelClass")}
-            </Button>
-          </div>
-        </Card>
+      {/* Zona roja canónica (console-patterns §4): div centrado al pie
+          separado por border-t, ghost rojo + ConfirmSheet. La
+          descripción de la cascada la muestra el propio sheet. */}
+      {roster.canCancel && !c.cancelled && !ended && (
+        <div className="flex justify-center border-t border-line pt-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={cancelBusy}
+            className="text-red-400 hover:text-red-300"
+            onClick={() => setConfirmCancel(true)}
+          >
+            {ts("cancelClass")}
+          </Button>
+        </div>
       )}
-      {c.cancelled && <Badge variant="muted">{ts("cancelled")}</Badge>}
       <ConfirmSheet
         open={confirmCancel}
         title={ts("cancelClass")}

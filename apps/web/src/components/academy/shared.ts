@@ -463,6 +463,7 @@ export type ClassRoster = {
     startTime: string;
     endTime: string;
     academyId: string;
+    seriesId: string | null;
     seriesName: string | null;
     styleName: string | null;
     levelName: string | null;
