@@ -151,6 +151,18 @@ expanded onToggle/>`. Colas de trabajo pueden subir el umbral vía
 `preview={20}`. Prohibido: expands que duplican lo que la ficha ya
 muestra y drill-down inline que debiera ser `Link` a ficha.
 
+## KPI / insight cards: hint visible
+
+Toda card KPI/insight muestra tres piezas: label `text-xs uppercase
+text-ink/50`, valor grande `tabular-nums` (delta comparativo
+`+N (+X%)` fuera del chip, `text-green-400`/`text-red-400`/`text-ink/50`)
+y **hint visible**: una línea chica `text-xs text-ink/50` bajo el
+valor que explica qué mide ("alumnos con plan vigente", "sobre el
+mes anterior"). El hint también viaja en `title` (tooltip) y en el
+`aria-label` compuesto `${label}: ${value}. ${hint}`. Nunca KPI sin
+hint: un número sin contexto se lee como dato suelto. Modelo:
+`apps/web/src/components/academy/academy-kpi-strip.tsx`.
+
 ## Referencias canónicas
 
 | Patrón | Implementación modelo |
