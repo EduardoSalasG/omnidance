@@ -68,14 +68,9 @@ type PrivateLesson = {
   instructor?: { id: string; name: string | null } | null;
 };
 
-/** GET /academies/:id (requireManage) incluye instructors:[{personId}]. */
-type AcademyDetail = Academy & { instructors?: { personId: string }[] };
-
-/** GET /academies (directorio autenticado): incluye instructores con nombre. */
-type DirectoryAcademy = {
-  id: string;
-  name: string;
-  instructors: { id: string; personId: string; name: string | null }[];
+/** GET /academies/:id (requireManage) incluye instructors:[{personId,name}]. */
+type AcademyDetail = Academy & {
+  instructors?: { personId: string; name?: string | null }[];
 };
 
 type LessonAction = "confirm" | "cancel" | "done" | "reschedule" | "assign";
@@ -151,39 +146,27 @@ export function PrivateLessons({ academy }: Props) {
   const [assignWhen, setAssignWhen] = useState("");
 
   // Instructores de la academia del contexto staff - para el select de
-  // asignación. El directorio trae nombres; si no, GET /academies/:id
-  // (requireManage) da los personIds y se resuelve con instructorNames.
-  const [directory, setDirectory] = useState<DirectoryAcademy[]>([]);
+  // asignación. GET /academies/:id ya trae los nombres - el directorio
+  // completo era un request extra solo por ellos.
   const [academyInstructors, setAcademyInstructors] = useState<
     { personId: string; name?: string | null }[]
   >([]);
 
   useEffect(() => {
-    apiFetch("/academies")
-      .then(async (res) =>
-        res.ok ? ((await res.json()) as DirectoryAcademy[]) : [],
-      )
-      .then(setDirectory)
-      .catch(() => setDirectory([]));
-  }, []);
-
-  useEffect(() => {
-    const dir = directory.find((a) => a.id === academy.id);
-    if (dir) {
-      setAcademyInstructors(dir.instructors);
-      return;
-    }
     apiFetch(`/academies/${academy.id}`)
       .then(async (res) =>
         res.ok ? ((await res.json()) as AcademyDetail) : null,
       )
       .then((detail) =>
         setAcademyInstructors(
-          (detail?.instructors ?? []).map((i) => ({ personId: i.personId })),
+          (detail?.instructors ?? []).map((i) => ({
+            personId: i.personId,
+            name: i.name ?? null,
+          })),
         ),
       )
       .catch(() => {});
-  }, [academy, directory]);
+  }, [academy]);
 
   const loadStaff = useCallback(async () => {
     setStaffState("loading");

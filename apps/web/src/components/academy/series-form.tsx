@@ -108,7 +108,7 @@ export function SeriesForm({
       .then(async (res) => (res.ok ? ((await res.json()) as SeriesStyle[]) : []))
       .then(setStyles)
       .catch(() => setStyles([]));
-    apiFetch("/classes/catalogs")
+    apiFetch(`/classes/catalogs?academyId=${academyId}`)
       .then(async (res) =>
         res.ok
           ? ((await res.json()) as {
@@ -127,33 +127,18 @@ export function SeriesForm({
       });
     void (async () => {
       try {
-        const [detailRes, dirRes] = await Promise.all([
-          apiFetch(`/academies/${academyId}`),
-          apiFetch("/academies"),
-        ]);
-        const detail = detailRes.ok
-          ? ((await detailRes.json()) as {
-              instructors?: { personId: string }[];
+        // GET /academies/:id ya trae los nombres - el directorio
+        // completo era un request extra solo por ellos.
+        const res = await apiFetch(`/academies/${academyId}`);
+        const detail = res.ok
+          ? ((await res.json()) as {
+              instructors?: { personId: string; name?: string | null }[];
             })
           : null;
-        const directory = dirRes.ok
-          ? ((await dirRes.json()) as {
-              id: string;
-              instructors?: { personId: string; name: string | null }[];
-            }[])
-          : [];
-        const dirEntry = directory.find((a) => a.id === academyId);
-        const names = new Map(
-          (dirEntry?.instructors ?? []).map((i) => [i.personId, i.name]),
-        );
-        const ids =
-          detail?.instructors?.map((i) => i.personId) ??
-          dirEntry?.instructors?.map((i) => i.personId) ??
-          [];
         setInstructors(
-          ids.map((personId) => ({
-            personId,
-            name: names.get(personId) ?? null,
+          (detail?.instructors ?? []).map((i) => ({
+            personId: i.personId,
+            name: i.name ?? null,
           })),
         );
       } catch {

@@ -355,6 +355,7 @@ function ProfileModule({
       {canEdit && profile.enrollmentId && (
         <EnrollmentLevelsEditor
           enrollmentId={profile.enrollmentId}
+          academyId={academy.id}
           initialLevels={
             profile.enrollments.find((e) => e.id === profile.enrollmentId)
               ?.levels ?? []

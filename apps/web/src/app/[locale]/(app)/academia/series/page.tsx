@@ -141,7 +141,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
         ),
       )
       .catch(() => setStyleOptions([]));
-    apiFetch("/classes/catalogs")
+    apiFetch(`/classes/catalogs?academyId=${academyId}`)
       .then(async (res) => (res.ok ? ((await res.json()) as Catalogs) : {}))
       .then((c) => {
         setLevelOptions(
@@ -155,7 +155,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
         setLevelOptions([]);
         setTypeOptions([]);
       });
-  }, []);
+  }, [academyId]);
 
   if (loadError) {
     return (

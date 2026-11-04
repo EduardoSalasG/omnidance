@@ -660,6 +660,9 @@ export class ClassSeriesController {
       dto: s,
       schedule: resolveSlotSchedule(s.date, s.weekday, today),
     }));
+    // El nivel debe pertenecer a la línea efectiva de la academia
+    // (custom si existe, global si no) - el form solo ofrece esos ids.
+    await this.assertLevelInLine(id, dto.levelId);
 
     const created = await this.prisma.$transaction(async (tx) => {
       const series = await tx.classSeries.create({
@@ -769,6 +772,12 @@ export class ClassSeriesController {
   ) {
     await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const prev = await this.findSeriesOr404(id, seriesId);
+    // levelId explícito valida contra la línea efectiva (null limpia
+    // el nivel - siempre permitido). Una serie legacy con nivel fuera
+    // de línea se corrige al elegir uno válido.
+    if (dto.levelId !== undefined) {
+      await this.assertLevelInLine(id, dto.levelId);
+    }
     const reactivated = dto.active === true && !prev.active;
     // Asignaciones nuevas de instructor (spec academies/class-series):
     // el de la serie si cambia + instructor explícito de slots nuevos.
@@ -1456,6 +1465,34 @@ export class ClassSeriesController {
     });
     if (!series) throw new NotFoundException("serie no encontrada");
     return series;
+  }
+
+  /**
+   * El levelId de la serie debe pertenecer a la línea efectiva de la
+   * academia: si tiene niveles propios (custom) solo esos valen; si
+   * no, solo los de la línea global (academyId null). null/undefined
+   * pasan - la serie queda sin nivel. 400 si el id no existe o es de
+   * otra línea (otra academia, o global con línea custom).
+   */
+  private async assertLevelInLine(
+    academyId: string,
+    levelId: string | null | undefined,
+  ) {
+    if (levelId == null) return;
+    const lvl = await this.prisma.classLevel.findUnique({
+      where: { id: levelId },
+      select: { academyId: true },
+    });
+    const custom = await this.prisma.classLevel.count({
+      where: { academyId },
+    });
+    const inLine =
+      custom > 0 ? lvl?.academyId === academyId : lvl?.academyId === null;
+    if (!inLine) {
+      throw new BadRequestException(
+        "nivel fuera de la línea de la academia",
+      );
+    }
   }
 }
 
