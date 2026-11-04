@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { USERS, PASSWORD } from "./helpers";
+import { USERS, PASSWORD } from "../helpers";
 import fs from "node:fs";
 
 // Smoke visual del polish de consola academia (spec
@@ -33,7 +33,7 @@ const PAGES = [
 
 const OUT = "e2e/polish-shots";
 
-test.describe("polish visual academy console", () => {
+test.describe("@visual polish visual academy console", () => {
   test.describe.configure({ mode: "serial", timeout: 300_000 });
 
   for (const vp of [

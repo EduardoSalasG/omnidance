@@ -154,8 +154,14 @@ function AcademyHub({
 
   return (
     <>
-      {/* key por id: cambiar de academia remonta el resumen. */}
-      <AcademyDashboard key={academy.id} academy={academy} />
+      {/* El dashboard (KPIs/colas del owner) es staff-gated en la API:
+          para instructor puro responde 403 y el bloque quedaría en
+          error+retry permanente - se omite y la consola queda en la
+          grilla de módulos. Mientras /access resuelve (null) tampoco
+          se monta: el fetch saldría igual a 403 para instructor. */}
+      {access !== null && !pureInstructor && (
+        <AcademyDashboard key={academy.id} academy={academy} />
+      )}
       {/* Error de /access: la grilla sigue oculta (sin caps no se
           puede filtrar) pero el fallo se avisa con retry - el resumen
           de arriba se conserva porque es fetch aparte. */}

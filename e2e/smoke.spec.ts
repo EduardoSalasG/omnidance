@@ -3,7 +3,7 @@ import { statePath } from "./helpers";
 
 // Tier smoke de golden paths (docs/qa-flows-inventory.md).
 
-test.describe("dancer: descubrimiento", () => {
+test.describe("@smoke dancer: descubrimiento", () => {
   test.use({ storageState: statePath("dancer") });
 
   test("cartelera lista → filtros → detalle sin crash", async ({ page }) => {
@@ -25,7 +25,7 @@ test.describe("dancer: descubrimiento", () => {
   });
 });
 
-test.describe("admin: /admin/datos conmuta entidades", () => {
+test.describe("@smoke admin: /admin/datos conmuta entidades", () => {
   test.use({ storageState: statePath("admin") });
 
   test("cambiar de píldora con datos cargados no crashea", async ({
@@ -57,7 +57,7 @@ test.describe("admin: /admin/datos conmuta entidades", () => {
   });
 });
 
-test.describe("productor: ciclo de vida de evento", () => {
+test.describe("@smoke productor: ciclo de vida de evento", () => {
   test.use({ storageState: statePath("producer") });
 
   test("crear → publicar → aparece en cartelera", async ({ page }) => {

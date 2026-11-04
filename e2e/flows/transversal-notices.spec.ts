@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { statePath } from "./helpers";
+import { statePath } from "../helpers";
 
 // Smoke del estándar `unified-action-notice`: el aviso post-acción es
 // el ActionNotice fijo ([role="status"|"alert"] sobre la BottomNav);
@@ -7,7 +7,7 @@ import { statePath } from "./helpers";
 
 const NOTICE = '[role="status"], [role="alert"]';
 
-test.describe("dancer: notice local tras guardar perfil", () => {
+test.describe("@transversal @notices dancer: notice local tras guardar perfil", () => {
   test.use({ storageState: statePath("dancer") });
 
   test("guardar datos personales muestra el aviso", async ({ page }) => {
@@ -26,7 +26,7 @@ test.describe("dancer: notice local tras guardar perfil", () => {
   });
 });
 
-test.describe("academia: notice global tras crear (navega al listado)", () => {
+test.describe("@transversal @notices academia: notice global tras crear (navega al listado)", () => {
   test.use({ storageState: statePath("academy") });
 
   test("crear taller muestra el toast en el listado destino", async ({
