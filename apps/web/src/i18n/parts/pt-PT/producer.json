@@ -31,9 +31,13 @@
       "topAttendance": "Top por afluência",
       "kpi": {
         "upcoming": "Eventos agendados",
+        "upcomingHint": "Eventos publicados com data futura",
         "sold": "Bilhetes vendidos",
+        "soldHint": "Bilhetes vendidos acumulados",
         "grossMonth": "Faturação do mês",
-        "pendingClaims": "Cobranças por verificar"
+        "grossMonthHint": "Vendas brutas do mês em curso",
+        "pendingClaims": "Cobranças por verificar",
+        "pendingClaimsHint": "Comprovativos à espera de validação"
       }
     },
     "editEvent": "Editar o evento",

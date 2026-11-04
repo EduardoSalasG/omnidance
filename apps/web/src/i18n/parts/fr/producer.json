@@ -31,9 +31,13 @@
       "topAttendance": "Top par affluence",
       "kpi": {
         "upcoming": "Événements programmés",
+        "upcomingHint": "Événements publiés à venir",
         "sold": "Billets vendus",
+        "soldHint": "Billets vendus au total",
         "grossMonth": "Chiffre du mois",
-        "pendingClaims": "Encaissements à vérifier"
+        "grossMonthHint": "Ventes brutes du mois en cours",
+        "pendingClaims": "Encaissements à vérifier",
+        "pendingClaimsHint": "Justificatifs en attente de validation"
       }
     },
     "editEvent": "Modifier l'événement",

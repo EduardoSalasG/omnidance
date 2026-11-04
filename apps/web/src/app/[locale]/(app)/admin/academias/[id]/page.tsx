@@ -321,10 +321,10 @@ function DetailPanel({ id }: { id: string }) {
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold">{t("academies.detail.kpis")}</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <KpiCard label={t("academies.kpi.enrolled")} value={String(k.enrolledCount)} />
-          <KpiCard label={t("academies.kpi.plan")} value={String(k.planCount)} />
-          <KpiCard label={t("academies.kpi.checkin")} value={String(k.activeNow)} />
-          <KpiCard label={t("academies.kpi.score")} value={String(k.avgScore)} />
+          <KpiCard label={t("academies.kpi.enrolled")} value={String(k.enrolledCount)} hint={t("academies.kpi.enrolledHint")} />
+          <KpiCard label={t("academies.kpi.plan")} value={String(k.planCount)} hint={t("academies.kpi.planHint")} />
+          <KpiCard label={t("academies.kpi.checkin")} value={String(k.activeNow)} hint={t("academies.kpi.checkinHint")} />
+          <KpiCard label={t("academies.kpi.score")} value={String(k.avgScore)} hint={t("academies.kpi.scoreHint")} />
           <KpiCard
             label={t("academies.kpi.billing")}
             value={clp.format(k.billingMonthClp)}
@@ -334,13 +334,14 @@ function DetailPanel({ id }: { id: string }) {
                 : undefined
             }
           />
-          <KpiCard label={t("academies.kpi.classes")} value={String(k.classSlotCount)} />
-          <KpiCard label={t("academies.kpi.plans")} value={String(k.planTotal)} />
+          <KpiCard label={t("academies.kpi.classes")} value={String(k.classSlotCount)} hint={t("academies.kpi.classesHint")} />
+          <KpiCard label={t("academies.kpi.plans")} value={String(k.planTotal)} hint={t("academies.kpi.plansHint")} />
           <KpiCard
             label={t("academies.kpi.computed")}
             value={
               k.computedAt ? fmtDate(k.computedAt, locale) : "—"
             }
+            hint={t("academies.kpi.computedHint")}
           />
         </div>
       </section>

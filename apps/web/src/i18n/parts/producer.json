@@ -31,9 +31,13 @@
       "topAttendance": "Top por asistencia",
       "kpi": {
         "upcoming": "Eventos agendados",
+        "upcomingHint": "Eventos publicados con fecha futura",
         "sold": "Entradas vendidas",
+        "soldHint": "Entradas vendidas acumuladas",
         "grossMonth": "Facturación del mes",
-        "pendingClaims": "Cobros por revisar"
+        "grossMonthHint": "Ventas brutas del mes en curso",
+        "pendingClaims": "Cobros por revisar",
+        "pendingClaimsHint": "Comprobantes esperando validación"
       }
     },
     "editEvent": "Editar evento",

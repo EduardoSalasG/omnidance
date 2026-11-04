@@ -268,13 +268,20 @@
       "back": "Académies",
       "kpi": {
         "enrolled": "Inscrits",
+        "enrolledHint": "Inscriptions enregistrées",
         "plan": "Avec plan",
+        "planHint": "Inscriptions avec un plan assigné",
         "checkin": "Avec check-in",
+        "checkinHint": "Élèves présents ce mois-ci",
         "score": "Score moyen",
+        "scoreHint": "Score moyen des élèves",
         "billing": "Facturation mois",
         "classes": "Horaires",
+        "classesHint": "Créneaux hebdomadaires configurés",
         "plans": "Plans",
-        "computed": "Score mis à jour"
+        "plansHint": "Plans d'adhésion créés",
+        "computed": "Score mis à jour",
+        "computedHint": "Dernier calcul du score"
       },
       "detail": {
         "general": "Données générales",
@@ -638,8 +645,11 @@
       "desc": "Abonnements plateforme : académies et Producer Pro.",
       "kpisLabel": "Métriques SaaS",
       "kpiMrr": "MRR",
+      "kpiMrrHint": "Revenu récurrent mensuel",
       "kpiArr": "ARR",
+      "kpiArrHint": "MRR × 12",
       "kpiActive": "Actifs",
+      "kpiActiveHint": "Abonnements actifs",
       "kpiCustom": "Sur mesure",
       "kpiCustomHint": "Contrats hors MRR",
       "tiersTitle": "Par tier",

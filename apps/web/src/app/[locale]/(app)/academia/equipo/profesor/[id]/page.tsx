@@ -202,20 +202,36 @@ function Detail({
       <section className="flex flex-col gap-3" aria-label={ta("kpis.title")}>
         <ul className="grid grid-cols-3 gap-3">
           {[
-            { label: t("statsTaughtMonth"), value: detail.stats.taughtMonth },
-            { label: t("statsTaughtTotal"), value: detail.stats.taughtTotal },
+            {
+              label: t("statsTaughtMonth"),
+              value: detail.stats.taughtMonth,
+              hint: t("statsTaughtMonthHint"),
+            },
+            {
+              label: t("statsTaughtTotal"),
+              value: detail.stats.taughtTotal,
+              hint: t("statsTaughtTotalHint"),
+            },
             {
               label: t("statsAttendanceMonth"),
               value: detail.stats.attendanceMonth,
+              hint: t("statsAttendanceMonthHint"),
             },
           ].map((s) => (
             <li key={s.label}>
-              <Card className="flex h-full flex-col gap-1 p-4">
+              <Card
+                className="flex h-full flex-col gap-1 p-4"
+                title={s.hint}
+                aria-label={`${s.label}: ${s.value}. ${s.hint}`}
+              >
                 <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
                   {s.label}
                 </span>
                 <span className="text-3xl font-bold leading-none text-neon">
                   {s.value}
+                </span>
+                <span className="text-[11px] leading-tight text-ink/50">
+                  {s.hint}
                 </span>
               </Card>
             </li>

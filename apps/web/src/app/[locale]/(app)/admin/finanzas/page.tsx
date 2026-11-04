@@ -709,11 +709,20 @@ function FinancePanel() {
         ) : (
           <>
             <div className="grid grid-cols-3 gap-3">
-              <KpiCard label={t("finance.mrr")} value={clp.format(mrr.mrr)} />
-              <KpiCard label={t("finance.arr")} value={clp.format(mrr.arr)} />
+              <KpiCard
+                label={t("finance.mrr")}
+                value={clp.format(mrr.mrr)}
+                hint={t("subs.kpiMrrHint")}
+              />
+              <KpiCard
+                label={t("finance.arr")}
+                value={clp.format(mrr.arr)}
+                hint={t("subs.kpiArrHint")}
+              />
               <KpiCard
                 label={t("finance.customContracts")}
                 value={num.format(mrr.customContracts)}
+                hint={t("subs.kpiCustomHint")}
               />
             </div>
             {Object.keys(mrr.funnel).length > 0 && (

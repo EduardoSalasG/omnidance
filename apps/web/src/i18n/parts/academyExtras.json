@@ -78,6 +78,9 @@
       "avgShort": "Prom.",
       "lastShort": "Últ.",
       "nextShort": "Próx.",
+      "lastTitle": "Asistencia de la última clase",
+      "avgTitle": "Asistencia promedio",
+      "nextTitle": "Reservas de la próxima clase",
       "maleShort": "H",
       "femaleShort": "M",
       "gotoClasses": "Ver clases",
@@ -95,6 +98,7 @@
       "unassignedCount": "{count} en {type}",
       "typeTotal": "{count, plural, one {# alumno} other {# alumnos}}",
       "allTotal": "{count, plural, one {# alumno} other {# alumnos}} en total · puede contar en más de un tipo",
+      "levelCountHint": "Alumnos activos en este nivel",
       "unassignedCta": "Completar",
       "loadError": "No se pudieron cargar los niveles.",
       "editor": {
@@ -414,6 +418,7 @@
       "newDate": "Nueva fecha y hora",
       "toSchedule": "Por agendar",
       "toAssign": "Por asignar",
+      "toAssignHint": "Compradas sin instructor ni fecha",
       "assign": "Asignar",
       "assignTitle": "Por asignar",
       "assignSave": "Confirmar asignación",
@@ -422,6 +427,7 @@
       "empty": "Sin clases particulares en esta academia.",
       "pendingTitle": "Pendientes por confirmar",
       "pendingConfirm": "Por confirmar",
+      "pendingConfirmHint": "Asignadas esperando confirmación",
       "status": {
         "REQUESTED": "Solicitada",
         "CONFIRMED": "Confirmada",
@@ -462,7 +468,10 @@
       "delete": "Eliminar",
       "confirmDelete": "¿Eliminar este video?",
       "added": "Video agregado.",
-      "deleted": "Video eliminado."
+      "deleted": "Video eliminado.",
+      "forbidden": "No tienes acceso a esta sección.",
+      "notFound": "Video no encontrado.",
+      "addedOn": "Agregado"
     }
   },
   "academyPromos": {

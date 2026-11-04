@@ -267,27 +267,45 @@ function ReportModule({ academyId }: { academyId: string }) {
           más vendido (solo cobros efectivos: PAID + APPROVED). */}
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <li>
-          <Card className="flex h-full flex-col gap-1 p-4">
+          <Card
+            className="flex h-full flex-col gap-1 p-4"
+            title={t("report.billedHint")}
+            aria-label={`${t("report.billed")}: ${clpFmt.format(report.billed)}. ${t("report.billedHint")}`}
+          >
             <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
               {t("report.billed")}
             </span>
             <span className="text-3xl font-bold leading-none text-neon">
               {clpFmt.format(report.billed)}
             </span>
+            <span className="text-[11px] leading-tight text-ink/50">
+              {t("report.billedHint")}
+            </span>
           </Card>
         </li>
         <li>
-          <Card className="flex h-full flex-col gap-1 p-4">
+          <Card
+            className="flex h-full flex-col gap-1 p-4"
+            title={t("report.payersHint")}
+            aria-label={`${t("report.payers")}: ${report.payers}. ${t("report.payersHint")}`}
+          >
             <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
               {t("report.payers")}
             </span>
             <span className="text-3xl font-bold leading-none text-neon">
               {report.payers}
             </span>
+            <span className="text-[11px] leading-tight text-ink/50">
+              {t("report.payersHint")}
+            </span>
           </Card>
         </li>
         <li className="col-span-2 sm:col-span-1">
-          <Card className="flex h-full flex-col gap-1 p-4">
+          <Card
+            className="flex h-full flex-col gap-1 p-4"
+            title={t("report.topPlanHint")}
+            aria-label={`${t("report.topPlan")}: ${report.topPlan?.name ?? "—"}. ${t("report.topPlanHint")}`}
+          >
             <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
               {t("report.topPlan")}
             </span>
@@ -302,6 +320,9 @@ function ReportModule({ academyId }: { academyId: string }) {
                 })}
               </span>
             )}
+            <span className="text-[11px] leading-tight text-ink/50">
+              {t("report.topPlanHint")}
+            </span>
           </Card>
         </li>
       </ul>

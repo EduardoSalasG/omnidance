@@ -262,7 +262,13 @@
     "country": "Pays",
     "city": "Ville",
     "noCity": "Pas de ville",
-    "created": "Académie créée"
+    "created": "Académie créée",
+    "levels": {
+      "levelCountHint": "Élèves actifs à ce niveau",
+      "lastTitle": "Présence au dernier cours",
+      "avgTitle": "Présence moyenne",
+      "nextTitle": "Réservations du prochain cours"
+    }
   },
   "academySeries": {
     "addSlotHint": "Les cours futurs sont créés ce jour-là dans la fenêtre de programmation.",
@@ -326,6 +332,7 @@
       "newDate": "Nouvelle date et heure",
       "toSchedule": "À programmer",
       "toAssign": "À assigner",
+      "toAssignHint": "Achetées sans instructeur ni date",
       "assign": "Assigner",
       "assignTitle": "À assigner",
       "assignSave": "Confirmer l'assignation",
@@ -334,6 +341,7 @@
       "empty": "Pas de cours particuliers dans cette académie.",
       "pendingTitle": "En attente de confirmation",
       "pendingConfirm": "À confirmer",
+      "pendingConfirmHint": "Assignées en attente de confirmation",
       "status": {
         "REQUESTED": "Demandé",
         "CONFIRMED": "Confirmé",
@@ -374,7 +382,10 @@
       "delete": "Supprimer",
       "confirmDelete": "Supprimer cette vidéo ?",
       "added": "Vidéo ajoutée.",
-      "deleted": "Vidéo supprimée."
+      "deleted": "Vidéo supprimée.",
+      "forbidden": "Tu n'as pas accès à cette section.",
+      "notFound": "Vidéo introuvable.",
+      "addedOn": "Ajoutée le"
     }
   },
   "academyPromos": {

@@ -242,7 +242,11 @@ export function AcademyLevelsCard({
             <ul className="grid grid-cols-2 gap-2 sm:grid-flow-col sm:auto-cols-fr">
               {visibleLevels.map((l) => (
                 <li key={l.key}>
-                  <Card className="flex h-full flex-col gap-0.5 px-3 py-2.5">
+                  <Card
+                    className="flex h-full flex-col gap-0.5 px-3 py-2.5"
+                    title={t("levels.levelCountHint")}
+                    aria-label={`${l.name}: ${l.count}. ${t("levels.levelCountHint")}`}
+                  >
                     <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
                       {l.name}
                     </span>
@@ -252,6 +256,9 @@ export function AcademyLevelsCard({
                       }`}
                     >
                       {l.count}
+                    </span>
+                    <span className="text-[11px] leading-tight text-ink/50">
+                      {t("levels.levelCountHint")}
                     </span>
                   </Card>
                 </li>
@@ -719,17 +726,21 @@ function MetricCell({
   male,
   female,
   partner,
+  title,
 }: {
   label: string;
   value: string | number;
   male: number | null;
   female: number | null;
   partner?: boolean;
+  /** Descripción completa de la métrica abreviada (Últ./Prom./Próx.) -
+      el tooltip explica qué mide, no repite la sigla. */
+  title?: string;
 }) {
   return (
     <div
       className="flex flex-col items-center gap-0.5 text-center tabular-nums"
-      title={label}
+      title={title ?? label}
     >
       <span className="text-[11px] font-medium uppercase tracking-wide text-ink/60">
         {label}
@@ -765,6 +776,7 @@ export function MetricsGrid({
     >
       <MetricCell
         label={t("levels.lastShort")}
+        title={t("levels.lastTitle")}
         value={s.lastClassAttendance ?? "—"}
         male={s.lastMale}
         female={s.lastFemale}
@@ -772,6 +784,7 @@ export function MetricsGrid({
       />
       <MetricCell
         label={t("levels.avgShort")}
+        title={t("levels.avgTitle")}
         value={s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"}
         male={s.avgMale}
         female={s.avgFemale}
@@ -779,6 +792,7 @@ export function MetricsGrid({
       />
       <MetricCell
         label={t("levels.nextShort")}
+        title={t("levels.nextTitle")}
         value={s.nextBooked ?? "—"}
         male={s.nextMale}
         female={s.nextFemale}
