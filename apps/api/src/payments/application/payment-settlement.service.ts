@@ -10,6 +10,7 @@ import { PrismaService } from "../../prisma.service";
 import {
   decodeClassRef,
   decodeMembershipRef,
+  decodePlatformChargeRef,
   decodePlatformSubRef,
   decodePrivateRef,
   decodeSeriesPassRef,
@@ -248,6 +249,12 @@ export class PaymentSettlementService {
     // academy-saas-billing): refId platsub_<subId>_<invoiceId>.
     if (payment.orderType === "PLATFORM_SUB") {
       return this.settlePlatformSub(payment, meta);
+    }
+
+    // PLATFORM_CHARGE (cobro suelto plataforma→actor - spec
+    // payments/platform-charges): refId platchg_<uuid>.
+    if (payment.orderType === "PLATFORM_CHARGE") {
+      return this.settlePlatformCharge(payment, meta);
     }
 
     return this.settleTicket(payment, meta);
@@ -1426,6 +1433,85 @@ export class PaymentSettlementService {
         gw,
         `Suscripción ${sub.tierCode} · ${cycleLabel} · factura ${order.invoiceId}`,
       );
+      if (mismatch) {
+        await this.notifyAdminsAmountMismatch(payment, mismatch);
+      }
+    }
+
+    return { ok: true, status: "PAID" };
+  }
+
+  /**
+   * Liquidación PLATFORM_CHARGE (spec payments/platform-charges):
+   * cobro suelto plataforma→actor - refId `platchg_<uuid>`. Lo invoca
+   * `PlatformChargesService.collect` cuando el cargo on-demand sale
+   * COLLECTED; también responde al webhook/polling cuando el actor
+   * pagó por el link (PENDING→PAID).
+   *
+   * Sin efectos de dominio (no enrollment ni suscripción): es ingreso
+   * directo de plataforma como PLATFORM_SUB - PAID + ledger + avisos.
+   * El concepto del cobro vive en el payload del ORDER_CREATED (el
+   * Payment no tiene columna para él).
+   */
+  async settlePlatformCharge(
+    payment: Payment,
+    meta: SettleMeta = { actor: "system" },
+  ): Promise<SettleResult> {
+    const order = decodePlatformChargeRef(payment.refId);
+    if (!order) {
+      throw new BadRequestException(
+        "pago sin contexto de cobro de plataforma",
+      );
+    }
+    const created = await this.prisma.paymentEvent.findFirst({
+      where: { paymentId: payment.id, type: "ORDER_CREATED" },
+      select: { payload: true },
+    });
+    const subject =
+      (created?.payload as { subject?: unknown } | null)?.subject;
+    const product =
+      typeof subject === "string" && subject.trim() !== ""
+        ? subject
+        : "Cobro OmniDance";
+
+    const gw = extractGatewayFields(meta.gatewayData);
+    let paidNow = false;
+    let mismatch: AmountMismatch | null = null;
+    await this.prisma.$transaction(async (tx) => {
+      // claim atómico →PAID (idéntico a las otras ramas): el perdedor
+      // de la carrera ve count=0 y no duplica eventos ni avisos.
+      const claimed = await tx.payment.updateMany({
+        where: { id: payment.id, status: { not: "PAID" } },
+        data: { status: "PAID", ...(gw ?? {}) },
+      });
+      if (claimed.count === 0) return;
+      paidNow = true;
+
+      mismatch = await this.emitSettleEvents(tx, payment, meta, gw, {
+        subject: product,
+      });
+    });
+
+    if (paidNow) {
+      const clp = new Intl.NumberFormat("es-CL", {
+        style: "currency",
+        currency: payment.currency ?? "CLP",
+        maximumFractionDigits: 0,
+      }).format(payment.amount);
+      await this.notifications.notifySafe(payment.personId, {
+        category: "TRANSACTIONAL",
+        type: "payment.paid",
+        title: "Cobro confirmado",
+        body: `${product} · ${clp}`,
+        data: {
+          paymentId: payment.id,
+          refId: payment.refId,
+          orderType: payment.orderType,
+          subject: product,
+          amount: payment.amount,
+        },
+      });
+      await this.emitPaidReceipts(payment, gw, product);
       if (mismatch) {
         await this.notifyAdminsAmountMismatch(payment, mismatch);
       }

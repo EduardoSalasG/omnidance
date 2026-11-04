@@ -96,7 +96,24 @@
       "roleAdded": "Papel atribuído",
       "roleRevoked": "Papel revogado",
       "reactivated": "Conta reativada",
-      "deleteOk": "Conta desativada"
+      "deleteOk": "Conta desativada",
+      "charge": {
+        "title": "Cobrança direta",
+        "body": "Cobra um valor pontual no meio de pagamento registado desta pessoa (dívida, taxa especial, ajuste). Sem cartão, a gateway gera um link de pagamento.",
+        "amount": "Montante (CLP)",
+        "subject": "Conceito",
+        "subjectPh": "Ex. Dívida evento de outubro",
+        "cta": "Cobrar",
+        "confirm": "Cobrar {amount} a {name}? Conceito: {subject}",
+        "confirmCta": "Confirmar cobrança",
+        "collected": "Cobrança confirmada",
+        "failed": "O meio de pagamento recusou a cobrança",
+        "pending": "Sem cartão registado: partilha o link de pagamento",
+        "payLink": "Link de pagamento",
+        "copyLink": "Copiar link",
+        "copied": "Link copiado",
+        "invalid": "Indica um montante válido e um conceito"
+      }
     },
     "status": {
       "REJECTED": "Rejeitado"

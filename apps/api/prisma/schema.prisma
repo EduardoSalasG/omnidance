@@ -1511,7 +1511,7 @@ enum PaymentStatus {
 
 model Payment {
   id        String        @id @default(cuid())
-  orderType String // TICKET | SERIES_PASS | MEMBERSHIP | WORKSHOP | PRIVATE | PLATFORM_SUB
+  orderType String // TICKET | SERIES_PASS | MEMBERSHIP | WORKSHOP | PRIVATE | PLATFORM_SUB | PLATFORM_CHARGE
   refId     String @unique // correlación con la pasarela (webhook lo busca por refId)
   personId  String
   eventId   String? // contexto desnormalizado de la compra

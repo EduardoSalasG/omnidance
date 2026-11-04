@@ -34,6 +34,7 @@ import { PayoutSettlementService } from "./application/payout-settlement.service
 import { PayoutDestinationService } from "./application/payout-destination.service";
 import { SubscriptionsService } from "./application/subscriptions.service";
 import { PlatformSubscriptionsService } from "./application/platform-subscriptions.service";
+import { PlatformChargesService } from "./application/platform-charges.service";
 import { SubscriptionsController } from "./infrastructure/subscriptions.controller";
 import { ProducerGatewayAccountsController } from "./infrastructure/producer-gateway.controller";
 import { ProducerClaimsController } from "./infrastructure/producer-claims.controller";
@@ -91,6 +92,7 @@ import { SocialPassController } from "./infrastructure/social-pass.controller";
     PayoutDestinationService,
     SubscriptionsService,
     PlatformSubscriptionsService,
+    PlatformChargesService,
     SubscriptionsScheduler,
     TicketsScheduler,
     TicketDayOfService,
@@ -129,6 +131,7 @@ import { SocialPassController } from "./infrastructure/social-pass.controller";
     ProducerClaimsService,
     SubscriptionsService,
     PlatformSubscriptionsService,
+    PlatformChargesService,
     AcademyPromosService,
   ],
 })
