@@ -1,110 +1,88 @@
-# Handoff: pendientes del cierre-2 (surveys-limit + e2e-flow-tests slice 1 + fix hub instructor)
+# Handoff: e2e-flow-tests slice 1+2 (infra + 5 specs) + fixes
 
 **Rama**: `dev`. Working tree limpio. Stack dev corriendo en
-background de esta sesión: API `pnpm --filter @omnidance/api dev`
-(shell a58f81, con `THROTTLE_AUTH_LIMIT=120` ya exportado) y web
-`pnpm --filter @omnidance/web dev` (shell 18636f). DB/Redis en docker
-vivos. Si el puerto 3000 da EADDRINUSE de nuevo: `netstat -ano |
-grep :3000` → `taskkill //PID <pid> //F` (maté el zombie 38776, ~3GB).
+background de la sesión anterior (shells a58f81 API + 18636f web);
+si murieron, `pnpm dev`. API levantada con `THROTTLE_AUTH_LIMIT=120`
+(necesario: el setup hace 7 logins). DB/Redis en docker.
 
 ## Commits de la sesión
 
 1. `93c1f0a6` fix(api): `?limit=` en `GET /academies/:id/surveys`
-   (default 12, max 60, cap sobre grupos mes×serie - mismo contrato
-   que `/instructors/:personId/surveys`; el front ya mandaba
-   `limit=60` inerte). 3 tests en `academies-insights.controller.spec.ts`,
-   openapi+postman regenerados, inventory §Series anotado. Change
-   `surveys-limit` archivado (delta `academies/course-surveys`).
-2. `<nuevo>` test(e2e): **slice 1 de e2e-flow-tests** + fix
-   `academia-hub-instructor`.
-   - Infra: `e2e/flow-map.json` (prefijos reales, primera regla gana),
-     `scripts/e2e-which.mjs` + `pnpm test:e2e:which`,
-     `grepInvert: /@visual|@destructive/` salvo `PW_ALL=1`,
-     `e2e/helpers.ts` (+`profe` en USERS = Valeska Torres INSTRUCTOR,
-     `dismissTours`, `acceptConsent`, `firePaymentWebhook` →
-     `POST /api/payments/webhook {refId,status}`).
-   - Reorden: `flows/transversal-notices` (@transversal @notices),
-     `flows/transversal-states` (@transversal @states),
-     `flows/academia-videos` (@academia @videos - era video-ficha),
-     `visual/polish-visual` (@visual, fuera del default),
-     `@smoke` en los 3 describes de smoke.spec.
-   - Specs nuevos: `flows/public-login` (4 tests: login, ?next=
-     round-trip, 401 alert, logout) y `flows/transversal-gates`
-     (4 tests: staff sin academia → forbidden+CTA, anon → bounce
-     ?next=, instructor puro en /academia sin error+retry, instructor
-     en /particulares).
+   (default 12, max 60, cap grupos mes×serie; mismo contrato que
+   `/instructors/:personId/surveys`). 3 tests, openapi+postman
+   regenerados. Change `surveys-limit` archivado.
+2. `4efabc93` test(e2e): infra e2e-flow-tests slice 1 +
+   fix `academia-hub-instructor` (archivado, delta staff-roles).
+3. `59ae0980` test(e2e): specs `dancer-eventos` (4/4) +
+   `dancer-checkout` (escrito, rojo por env - ver abajo).
+4. `d841ba9a` + `c58a474a` docs: este handoff.
 
-## Bug encontrado y resuelto (vía el spec de gates)
+## Estado del change `e2e-flow-tests` (ABIERTO)
 
-Instructor puro (AcademyInstructor sin staff/owner/admin) en
-`/academia` veía "Algo salió mal + Reintentar" permanente:
-`AcademyDashboard` llama `/dashboard` que es `requireStaff` → 403
-determinístico. Fix en `academia/page.tsx`: el dashboard solo se
-monta con `access !== null && !pureInstructor`. Change
-`academia-hub-instructor` archivado (delta `academies/staff-roles`).
+Tasks 1-9 hechas. Layout: `e2e/flows/<dominio>-<flujo>.spec.ts`,
+tags `@dominio @flujo`, `@smoke`/`@visual`/`@destructive` (los 2
+últimos fuera del default, `PW_ALL=1` los habilita vía grepInvert en
+playwright.config.ts). `e2e/flow-map.json` + `pnpm test:e2e:which`.
+`helpers.ts`: `profe` en USERS (Valeska Torres INSTRUCTOR), 
+`dismissTours`, `acceptConsent`, `firePaymentWebhook`
+(`POST /api/payments/webhook {refId,status}`).
 
-## Verificación citada
+Specs verdes (chromium, --no-deps): smoke 3/3, transversal-notices
+2/2, transversal-states 2/2, transversal-gates 4/4, public-login
+4/4, dancer-eventos 4/4.
 
-- Vitest `academies-insights.controller.spec.ts`: 5/5; suite
-  academies completa 352/352. `tsc --noEmit` api y web limpios.
-- Playwright chromium `--no-deps`: 21 tests verdes en la corrida
-  final (smoke 3/3, notices 2/2, states 2/2, gates 4/4, login 4/4,
-  setup 7 logins incl. profe). academia-videos NO se re-corrió tras
-  el rename (era verde antes; solo cambió path+tags).
-- Ojo: correr e2e con `next dev` recién levantado falla en masa por
-  compiles fríos (7 falsos fallos a la vez). Primero calentar rutas
-  o esperar; los resultados válidos son los de la segunda corrida.
-- `openspec validate --changes`: 3 verdes (surveys-limit quedó
-  archivado, e2e-flow-tests abierto, multipais-foundation).
+### dancer-checkout (task 10): spec escrito, ROJO por entorno
+La API corre con `PAYMENT_GATEWAY=flow` → `POST /checkout/ticket`
+500 (`flow payment/create 400: userEmail ... is not valid`, Flow
+rechaza emails `*@omnidance.dev`). Los botones dev "Simular
+aprobado/fallido" solo existen con gateway `stub://`. Para correrlo:
+levantar API sin `FLOW_API_KEY`/`PAYMENT_GATEWAY` (stub). El spec
+mismo está bien; documentado en el header y en tasks.md.
+
+## Bugs resueltos esta sesión (vía los specs)
+
+- **Instructor puro en /academia**: `AcademyDashboard` llama
+  `/dashboard` (`requireStaff` → 403 determinístico) → error+retry
+  permanente. Fix: dashboard solo con `access !== null &&
+  !pureInstructor` (academia/page.tsx). Spec e2e lo cubre.
+- **Checkout 500 con Flow + emails seed**: queda como gap conocido;
+  el error llega genérico a la UI (form no avanza, sin aviso claro).
 
 ## Pendiente (orden sugerido)
 
-- **e2e-flow-tests tasks 9-21** (change abierto, tasks en
-  `openspec/changes/e2e-flow-tests/tasks.md`): `dancer-eventos`,
-  `dancer-checkout` (stub:// + firePaymentWebhook), `academia-cobros`,
-  `academia-alumnos`, `academia-series`, `academia-clases` (usa
-  `profe` ya seedeado), `dancer-membresia`, `productor-eventos`,
-  `productor-colaboradores`, `staff-puerta`, `soporte-buscar`,
-  `dancer-qr`, `academia-planes`. Precorrida: `pnpm db:enrich` para
-  los specs marcados (enrich) en el diseño.
-- Re-correr `academia-videos` (rename a flows/) en la próxima corrida
-  completa para confirmar.
+- **e2e-flow-tests tasks 11-21** (ver tasks.md del change):
+  academia-cobros, academia-alumnos, academia-series, academia-clases
+  (usa `profe`), dancer-membresia, productor-eventos,
+  productor-colaboradores, staff-puerta, soporte-buscar, dancer-qr,
+  academia-planes. Precorrida `pnpm db:enrich` donde diga (enrich).
+- Re-correr `academia-videos` (rename a flows/) en próxima corrida.
+- Re-correr `dancer-checkout` con API en gateway stub.
 - `customer/collect` automático por job (PlatformChargesService
-  listo, sigue pendiente del cierre-2).
+  listo; pendiente desde cierre-2).
 - Smoke visual superficies pasada B (clases, series, particulares,
-  hub) - polish-visual.spec no recorre esas rutas; el hub de
-  instructor ya quedó cubierto por gates.
-- multipais-foundation tasks 10/11/13 (épica, no slice de sesión).
+  hub) - polish-visual.spec no recorre esas rutas.
+- multipais-foundation tasks 10/11/13 (épica).
 
-## Notas operativas
+## Notas operativas (leer antes de correr e2e)
 
-- `academySeries.creating` (pendiente del cierre-2): verificado, la
-  key ya no existe en el catálogo - era falsa alarma del handoff.
-- `openspec archive` vuelve a dejar `.openspec-archive.lock` stale si
-  el comando anterior falla a mitad: `rm
-  openspec/changes/archive/.openspec-archive.lock` y reintentar con
-  `--yes`.
-- `e2e-which.mjs --files <paths>` permite probar el mapa sin diff.
-- El snapshot de gates mostró un `role="alert"` vacío (host de
-  notificaciones): asertar errores por texto/botón, no por count de
-  role=alert. OnboardingRunner abre tours en primera visita de cada
-  storageState (dismissTours existe si estorba).
-- `dancer@omnidance.dev` ES instructora de "Mi mambo" en seed-dev:
-  no sirve para tests de "sin acceso a academia"; usar `staff@` o
-  `soporte@` (mine=[]).
-
-## Update (misma sesión, continuación)
-
-- `dancer-eventos` task 9: 4/4 verde chromium (commit 59ae0980).
-- `dancer-checkout` task 10: spec escrito pero ROJO en este entorno —
-  la API corre con `PAYMENT_GATEWAY=flow` y `POST /checkout/ticket`
-  sale 500 (`flow payment/create 400: userEmail ... is not valid`).
-  Corre solo con gateway stub (quitar PAYMENT_GATEWAY/FLOW_API_KEY).
-  Documentado en el spec y en tasks.md.
-- Ojo al elegir evento para checkout: la preventa debe estar ABIERTA
-  (Bachatamanía de hoy 22:00 ya cerró; usar evento a futuro p.ej.
-  Viernes Sabroso). Si el seed envejece, refrescar el id del spec.
-- Filtro `?genre=` con valor inválido NO filtra (se ignora); para el
-  empty usar `?venue=<inexistente>`.
-- Tasks 11-21 sin tocar (specs academia/productor/staff/etc.) +
-  customer/collect por job + smoke visual pasada B: siguen pendientes.
+- **Compiles fríos**: correr e2e con `next dev` recién levantado
+  falla en masa (7 falsos fallos a la vez, compiles de 10-60s).
+  Calentar rutas o re-correr; resultados válidos en segunda corrida.
+- **Zombie :3000**: EADDRINUSE = next dev zombie (`netstat -ano |
+  grep :3000` → `taskkill //PID <pid> //F`).
+- **git no en PATH**: `export PATH="/c/Program Files/Git/bin:$PATH"`.
+- **openspec archive lock stale**: `rm
+  openspec/changes/archive/.openspec-archive.lock` y reintentar `--yes`.
+- **`?genre=` inválido se ignora** (no filtra): para empty usar
+  `?venue=<inexistente>`.
+- **Preventas del seed envejecen**: para checkout usar evento a
+  futuro; refrescar el id del spec si el seed se re-corre.
+- **Usuarios seed clave**: `staff@`/`soporte@` no tienen academia
+  (mine=[], sirven para "sin acceso"); `dancer@` ES instructora de
+  "Mi mambo"; `profe@` es instructor puro de varias academias.
+- **role="alert" vacío** existe como host de notificaciones en el
+  DOM: asertar errores por texto/botón, no por count de role=alert.
+- OnboardingRunner abre tours en primera visita de cada storageState
+  (usar `dismissTours(page)` si estorba).
+- `academySeries.creating` del handoff anterior: verificado, la key
+  ya no existe (falsa alarma).
