@@ -160,7 +160,9 @@ architecture.md sincronizados, 3 changes OpenSpec archivados
 (academy-level-line-consistency, survey-cards-dancer-lens,
 clases-roster-console-patterns).
 
-Gaps conocidos: verificación en browser de cards de encuesta por lente
-y del mapeo de navegación roster↔horario (hecho por el usuario:
-corregido en sesión - back del roster → ficha de la serie, editar
-horario → ?from al roster); sin harness de componentes para HomeHub.
+Gaps conocidos: ~~verificación en browser de cards de encuesta por
+lente~~ VERIFICADO por el usuario en browser el mismo día (tasks.md del
+change archivado actualizado); verificado también el mapeo de
+navegación roster↔horario (hecho por el usuario: corregido en sesión -
+back del roster → ficha de la serie, editar horario → ?from al
+roster); sin harness de componentes para HomeHub.
