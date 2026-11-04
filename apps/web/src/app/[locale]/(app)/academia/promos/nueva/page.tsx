@@ -49,10 +49,10 @@ export default function AcademiaPromoNuevaPage() {
                     showActionNotice({ text: res ? ((await readError(res)) ?? t("error")) : t("error"), error: true });
                     return;
                   }
-                  const created = (await res.json()) as { id: string };
-                  // Navega a la ficha: aviso global que sobrevive el push.
+                  // Vuelve al listado (console-patterns §1): aviso
+                  // global que sobrevive el push.
                   showActionNotice({ text: t("saved") });
-                  router.push(`/academia/promos/${created.id}`);
+                  router.push("/academia/promos");
                 }}
               />
             </Card>

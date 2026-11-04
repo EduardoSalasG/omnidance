@@ -13,6 +13,16 @@
       "lessonToSchedule": "por agendar",
       "seeAll": "Ver tudo ({count})"
     },
+    "levelsConfig": {
+      "addLevel": "Adicionar nível",
+      "editTitle": "Editar nível",
+      "fieldName": "Nome do nível",
+      "saved": "Nível guardado.",
+      "created": "Nível adicionado.",
+      "deleted": "Nível eliminado.",
+      "deleteConfirm": "Eliminar este nível?",
+      "notFound": "Nível não encontrado."
+    },
     "planTypes": {
       "MONTHLY": "Mensal",
       "CLASS_PACK": "Pacote de aulas",
@@ -190,6 +200,7 @@
     "planSectionOneTime": "Pagamento único",
     "planTypeLocked": "O tipo não pode mudar: o plano tem faturação recorrente na Flow",
     "planWeeklyClasses": "Aulas por semana (vazio = ilimitado)",
+    "planWeekly": "Aulas por semana",
     "planWeeklyCount": "{count, plural, one {# aula/semana} other {# aulas/semana}}",
     "planClassCount": "{count, plural, one {# aula} other {# aulas}}",
     "navGroups": {
@@ -391,12 +402,14 @@
     "enabled": "Ativada",
     "plans": "Planos no âmbito",
     "plansHint": "Sem seleção = aplica a todos os teus planos",
+    "plansLoadError": "Não foi possível carregar os planos",
     "persons": "Whitelist de pessoas",
     "personsHint": "Vazia = aplica a qualquer pessoa; admite pessoas ainda não inscritas (pré-venda)",
     "searchPerson": "Procurar pessoa…",
     "add": "Adicionar",
     "removeActor": "Remover {name}",
     "searching": "A procurar…",
+    "searchError": "A pesquisa falhou",
     "subsUsing": "Subscrições nesta promo",
     "discountedPayments": "Cobranças com desconto",
     "createdBy": "Criada por",

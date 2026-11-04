@@ -1396,20 +1396,25 @@ export class AcademiesController {
    * GET /academies/:id/instructors/:personId/surveys - encuestas donde el
    * snapshot del profe evaluado es esa persona, agrupadas mes × serie.
    * Mismo gate y anonimato que /surveys (solo owner/ADMIN).
+   * ?limit= capa la cantidad de grupos devueltos (default 12, max 60;
+   * inválido cae al default) - la ficha pide 60 y pagina client-side.
    */
   @Get(":id/instructors/:personId/surveys")
+  @ApiQuery({ name: "limit", required: false })
   @UseGuards(SessionGuard)
   async instructorSurveys(
     @Param("id") id: string,
     @Param("personId") personId: string,
     @Req() req: Request,
+    @Query("limit") limit?: string,
   ) {
     await this.access.requireAdminister(id, req.person!, "insights");
     const surveys = await this.prisma.courseSurvey.findMany({
       where: { academyId: id, instructorId: personId },
       orderBy: [{ month: "desc" }, { createdAt: "desc" }],
     });
-    return this.groupCourseSurveys(surveys);
+    const groupLimit = Math.min(Math.max(Number(limit) || 12, 1), 60);
+    return (await this.groupCourseSurveys(surveys)).slice(0, groupLimit);
   }
 
   /** Agrega CourseSurvey[] por (seriesId, month) - shape anónimo. */
@@ -1466,7 +1471,9 @@ export class AcademiesController {
         g.instructorSum += s.instructorRating;
         g.instructorCount++;
       }
-      if (s.comment) g.comments.push(s.comment);
+      // Cap de comentarios por grupo: textos libres, ninguna vista
+      // muestra más de 50 (audit console-2026-11-04).
+      if (s.comment && g.comments.length < 50) g.comments.push(s.comment);
     }
     return [...groups.values()].map((g) => ({
       seriesId: g.seriesId,

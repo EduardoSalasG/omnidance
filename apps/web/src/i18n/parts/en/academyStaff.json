@@ -20,6 +20,7 @@
     "removed": "Collaborator removed.",
     "capsSaved": "Access updated.",
     "error": "Couldn't complete. Try again.",
+    "forbidden": "You don't have access to this section.",
     "since": "Since {date}",
     "kindLegend": "Member type",
     "kindStaff": "Collaborator",

@@ -3,10 +3,18 @@
 import { useCallback, useEffect, useState, use } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PillTabs } from "@/components/ui";
-import { SkeletonList } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  LIST_PREVIEW,
+  PillTabs,
+  SeeAllRow,
+  SkeletonList,
+} from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
+import { Link } from "@/i18n/navigation";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
 
 // GET /admin/users/:personId/detail → person + historial de roles.
@@ -131,32 +139,57 @@ function KpiGrid({ items }: { items: { label: string; value: string }[] }) {
   );
 }
 
-/** Fila label → valor dentro de una Card de detalle. */
+/** Par label → valor dentro de una Card de detalle (dt/dd en dl). */
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <li className="flex items-center justify-between gap-3 py-2.5">
-      <span className="text-sm text-ink/60">{label}</span>
-      <span className="min-w-0 text-right text-sm font-medium">{value}</span>
-    </li>
+    <div className="flex items-center justify-between gap-3 py-2.5">
+      <dt className="text-sm text-ink/60">{label}</dt>
+      <dd className="min-w-0 text-right text-sm font-medium">{value}</dd>
+    </div>
   );
 }
 
 function SectionCard({
   title,
   children,
+  list = "dl",
 }: {
   title: string;
   children: React.ReactNode;
+  /** "dl" para pares label/valor (Row); "ul" para listas de ítems. */
+  list?: "dl" | "ul";
 }) {
+  const ListTag = list;
   return (
     <Card>
       <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {title}
       </h3>
-      <ul className="mt-1 flex flex-col divide-y divide-line">
+      <ListTag className="mt-1 flex flex-col divide-y divide-line">
         {children}
-      </ul>
+      </ListTag>
     </Card>
+  );
+}
+
+/** Filas <li> acotadas a LIST_PREVIEW + "Ver todo" (estado por lista). */
+function ExpandableList<T>({
+  items,
+  renderItem,
+}: {
+  items: T[];
+  renderItem: (item: T, index: number) => React.ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <>
+      {items.slice(0, expanded ? undefined : LIST_PREVIEW).map(renderItem)}
+      <SeeAllRow
+        total={items.length}
+        expanded={expanded}
+        onToggle={() => setExpanded((v) => !v)}
+      />
+    </>
   );
 }
 
@@ -164,11 +197,22 @@ function SectionCard({
 function CountList({ rows }: { rows: { label: string; count: number }[] }) {
   const num = useNumFmt();
   return (
-    <>
-      {rows.map((r) => (
-        <Row key={r.label} label={r.label} value={num.format(r.count)} />
-      ))}
-    </>
+    <ExpandableList
+      items={rows}
+      renderItem={(r) => (
+        <li
+          key={r.label}
+          className="flex items-center justify-between gap-3 py-2.5"
+        >
+          <span className="min-w-0 truncate text-sm text-ink/60">
+            {r.label}
+          </span>
+          <span className="shrink-0 text-sm font-medium">
+            {num.format(r.count)}
+          </span>
+        </li>
+      )}
+    />
   );
 }
 
@@ -289,8 +333,11 @@ function UserPanel({ personId }: { personId: string }) {
 
   if (phase === "notfound") {
     return (
-      <Card className="py-6 text-center">
+      <Card className="flex flex-col items-center gap-3 py-6 text-center">
         <p className="text-sm text-ink/70">{t("user.notFound")}</p>
+        <Button href="/analitica/usuarios" size="sm" variant="secondary">
+          {tc("back")}
+        </Button>
       </Card>
     );
   }
@@ -499,7 +546,7 @@ function RoleSections({
               />
               {(social.lastEvent || social.avgCheckinHour != null) && (
                 <Card>
-                  <ul className="flex flex-col divide-y divide-line">
+                  <dl className="flex flex-col divide-y divide-line">
                     {social.lastEvent && (
                       <Row
                         label={f("lastEvent")}
@@ -512,7 +559,7 @@ function RoleSections({
                         value={fmtHour(social.avgCheckinHour)}
                       />
                     )}
-                  </ul>
+                  </dl>
                 </Card>
               )}
               {social.badges.length > 0 && (
@@ -562,29 +609,32 @@ function RoleSections({
                 ]}
               />
               {academy.activeEnrollments.length > 0 && (
-                <SectionCard title={f("activeEnrollments")}>
-                  {academy.activeEnrollments.map((e, i) => (
-                    <li
-                      key={`${e.academy.id}-${i}`}
-                      className="flex items-center justify-between gap-3 py-2.5"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">
-                          {e.academy.name}
-                        </p>
-                        {e.plan && (
-                          <p className="truncate text-xs text-ink/50">
-                            {e.plan.name} · {clp.format(e.plan.price)}
+                <SectionCard title={f("activeEnrollments")} list="ul">
+                  <ExpandableList
+                    items={academy.activeEnrollments}
+                    renderItem={(e, i) => (
+                      <li
+                        key={`${e.academy.id}-${i}`}
+                        className="flex items-center justify-between gap-3 py-2.5"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">
+                            {e.academy.name}
                           </p>
-                        )}
-                      </div>
-                      <Badge variant="outline">{enrollLabel(e.status)}</Badge>
-                    </li>
-                  ))}
+                          {e.plan && (
+                            <p className="truncate text-xs text-ink/50">
+                              {e.plan.name} · {clp.format(e.plan.price)}
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant="outline">{enrollLabel(e.status)}</Badge>
+                      </li>
+                    )}
+                  />
                 </SectionCard>
               )}
               {academy.byAcademy.length > 0 && (
-                <SectionCard title={f("byAcademy")}>
+                <SectionCard title={f("byAcademy")} list="ul">
                   <CountList
                     rows={academy.byAcademy.map((r) => ({
                       label: r.name,
@@ -594,7 +644,7 @@ function RoleSections({
                 </SectionCard>
               )}
               {academy.byStyle.length > 0 && (
-                <SectionCard title={f("byStyle")}>
+                <SectionCard title={f("byStyle")} list="ul">
                   <CountList
                     rows={academy.byStyle.map((r) => ({
                       label: r.name,
@@ -604,7 +654,7 @@ function RoleSections({
                 </SectionCard>
               )}
               {academy.byGenre.length > 0 && (
-                <SectionCard title={f("byGenre")}>
+                <SectionCard title={f("byGenre")} list="ul">
                   <CountList
                     rows={academy.byGenre.map((r) => ({
                       label: genreLabel(r.genre),
@@ -661,14 +711,26 @@ function RoleSections({
             ]}
           />
           {d.producers.length > 0 && (
-            <SectionCard title={f("producers")}>
-              {d.producers.map((p) => (
-                <Row
-                  key={p.id}
-                  label={p.name}
-                  value={`${num.format(p.shifts)} ${f("shifts")}`}
-                />
-              ))}
+            <SectionCard title={f("producers")} list="ul">
+              <ExpandableList
+                items={d.producers}
+                renderItem={(p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-center justify-between gap-3 py-2.5"
+                  >
+                    <Link
+                      href={`/analitica/usuarios/${p.id}`}
+                      className="min-w-0 truncate text-sm font-medium text-neon underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                    >
+                      {p.name}
+                    </Link>
+                    <span className="shrink-0 text-sm font-medium">
+                      {num.format(p.shifts)} {f("shifts")}
+                    </span>
+                  </li>
+                )}
+              />
             </SectionCard>
           )}
         </>
@@ -691,14 +753,17 @@ function RoleSections({
             ]}
           />
           {d.academies.length > 0 && (
-            <SectionCard title={f("academies")}>
-              {d.academies.map((a) => (
-                <li key={a.id} className="py-2.5">
-                  <span className="block truncate text-sm font-medium">
-                    {a.name}
-                  </span>
-                </li>
-              ))}
+            <SectionCard title={f("academies")} list="ul">
+              <ExpandableList
+                items={d.academies}
+                renderItem={(a) => (
+                  <li key={a.id} className="py-2.5">
+                    <span className="block truncate text-sm font-medium">
+                      {a.name}
+                    </span>
+                  </li>
+                )}
+              />
             </SectionCard>
           )}
         </>
@@ -738,14 +803,17 @@ function RoleSections({
       return (
         <>
           {d.venues.length > 0 && (
-            <SectionCard title={f("venues")}>
-              {d.venues.map((v) => (
-                <li key={v.id} className="py-2.5">
-                  <span className="block truncate text-sm font-medium">
-                    {v.name}
-                  </span>
-                </li>
-              ))}
+            <SectionCard title={f("venues")} list="ul">
+              <ExpandableList
+                items={d.venues}
+                renderItem={(v) => (
+                  <li key={v.id} className="py-2.5">
+                    <span className="block truncate text-sm font-medium">
+                      {v.name}
+                    </span>
+                  </li>
+                )}
+              />
             </SectionCard>
           )}
           {rentalEntries.length > 0 && (
@@ -774,40 +842,43 @@ function RoleSections({
             {f("academies")}
           </h2>
           <ul className="flex flex-col gap-3">
-            {d.academies.map((a) => (
-              <li
-                key={a.id}
-                className="rounded-2xl border border-line bg-surface p-4"
-              >
-                <p className="truncate text-sm font-semibold">{a.name}</p>
-                <div className="mt-3 grid grid-cols-3 gap-3">
-                  <div className="flex flex-col">
-                    <span className="text-base font-semibold tabular-nums">
-                      {num.format(a.students)}
-                    </span>
-                    <span className="text-xs text-ink/50">
-                      {f("students")}
-                    </span>
+            <ExpandableList
+              items={d.academies}
+              renderItem={(a) => (
+                <li
+                  key={a.id}
+                  className="rounded-2xl border border-line bg-surface p-4"
+                >
+                  <p className="truncate text-sm font-semibold">{a.name}</p>
+                  <div className="mt-3 grid grid-cols-3 gap-3">
+                    <div className="flex flex-col">
+                      <span className="text-base font-semibold tabular-nums">
+                        {num.format(a.students)}
+                      </span>
+                      <span className="text-xs text-ink/50">
+                        {f("students")}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-base font-semibold tabular-nums">
+                        {num.format(a.attendance30d)}
+                      </span>
+                      <span className="text-xs text-ink/50">
+                        {f("attendance30d")}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-base font-semibold tabular-nums">
+                        {num.format(a.classes30d)}
+                      </span>
+                      <span className="text-xs text-ink/50">
+                        {f("classes30d")}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-base font-semibold tabular-nums">
-                      {num.format(a.attendance30d)}
-                    </span>
-                    <span className="text-xs text-ink/50">
-                      {f("attendance30d")}
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-base font-semibold tabular-nums">
-                      {num.format(a.classes30d)}
-                    </span>
-                    <span className="text-xs text-ink/50">
-                      {f("classes30d")}
-                    </span>
-                  </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              )}
+            />
           </ul>
         </section>
       );
@@ -831,27 +902,30 @@ function RoleSections({
             </p>
           </Card>
           {meta.roleHistory.length > 0 && (
-            <SectionCard title={f("roleHistory")}>
-              {meta.roleHistory.map((r) => (
-                <li
-                  key={r.id}
-                  className="flex items-center justify-between gap-3 py-2.5"
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-sm font-medium">
-                      {roleLabel(r.role)}
+            <SectionCard title={f("roleHistory")} list="ul">
+              <ExpandableList
+                items={meta.roleHistory}
+                renderItem={(r) => (
+                  <li
+                    key={r.id}
+                    className="flex items-center justify-between gap-3 py-2.5"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-sm font-medium">
+                        {roleLabel(r.role)}
+                      </span>
+                      <Badge
+                        variant={r.status === "APPROVED" ? "neon" : "outline"}
+                      >
+                        {statusLabel(r.status)}
+                      </Badge>
+                    </div>
+                    <span className="shrink-0 text-xs text-ink/50">
+                      {dateFmt.format(new Date(r.createdAt))}
                     </span>
-                    <Badge
-                      variant={r.status === "APPROVED" ? "neon" : "outline"}
-                    >
-                      {statusLabel(r.status)}
-                    </Badge>
-                  </div>
-                  <span className="shrink-0 text-xs text-ink/50">
-                    {dateFmt.format(new Date(r.createdAt))}
-                  </span>
-                </li>
-              ))}
+                  </li>
+                )}
+              />
             </SectionCard>
           )}
         </section>

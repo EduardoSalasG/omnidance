@@ -11,7 +11,9 @@ import {
   Card,
   ChevronRightIcon,
   ConfirmSheet,
+  LIST_PREVIEW,
   RefreshIcon,
+  SeeAllRow,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import {
@@ -32,10 +34,6 @@ import {
 } from "@/components/academy/shared";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
-
-// Filas visibles por defecto en próximas/historial; "Ver todo"
-// expande al listado completo dentro de la misma ficha.
-const LIST_PREVIEW = 5;
 
 type SeriesClass = {
   id: string;
@@ -584,19 +582,11 @@ function SeriesDetail({
                   </Link>
                 </li>
               ))}
-              {classes.upcoming.length > LIST_PREVIEW && (
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => setShowAllUpcoming((v) => !v)}
-                    className="flex min-h-11 w-full items-center justify-center gap-1 px-4 py-2 text-sm font-medium text-neon transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
-                  >
-                    {showAllUpcoming
-                      ? tc("showLess")
-                      : `${tc("seeAll")} (${classes.upcoming.length})`}
-                  </button>
-                </li>
-              )}
+              <SeeAllRow
+                total={classes.upcoming.length}
+                expanded={showAllUpcoming}
+                onToggle={() => setShowAllUpcoming((v) => !v)}
+              />
             </ul>
           )}
         </Card>
@@ -647,19 +637,11 @@ function SeriesDetail({
                   </Link>
                 </li>
               ))}
-              {classes.past.length > LIST_PREVIEW && (
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => setShowAllPast((v) => !v)}
-                    className="flex min-h-11 w-full items-center justify-center gap-1 px-4 py-2 text-sm font-medium text-neon transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
-                  >
-                    {showAllPast
-                      ? tc("showLess")
-                      : `${tc("seeAll")} (${classes.past.length})`}
-                  </button>
-                </li>
-              )}
+              <SeeAllRow
+                total={classes.past.length}
+                expanded={showAllPast}
+                onToggle={() => setShowAllPast((v) => !v)}
+              />
             </ul>
           )}
         </Card>

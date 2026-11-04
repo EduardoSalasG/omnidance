@@ -91,6 +91,7 @@
     "historyUnifiedTitle": "Charge history",
     "historyUnifiedDesc": "Resolved receipts and gateway payments.",
     "detailBack": "Charges",
+    "forbidden": "You don't have access to this section.",
     "claimTitle": "Payment receipt",
     "fieldStudent": "Student",
     "fieldSentAt": "Sent",

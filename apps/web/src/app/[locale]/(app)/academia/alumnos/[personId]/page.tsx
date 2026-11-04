@@ -5,8 +5,19 @@ import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
-import { Badge, Button, Card, type BadgeVariant, PriceTag, RefreshIcon } from "@/components/ui";
-import { SkeletonList } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  type BadgeVariant,
+  ChevronRightIcon,
+  LIST_PREVIEW,
+  PriceTag,
+  RefreshIcon,
+  SeeAllRow,
+  SkeletonList,
+  Spinner,
+} from "@/components/ui";
 import {
   ActionNotice,
   type ActionNoticeData,
@@ -28,6 +39,7 @@ import {
   type EnrollmentStatus,
   type StudentProfile,
 } from "@/components/academy/shared";
+import { Link } from "@/i18n/navigation";
 
 type LoadState = "loading" | "ready" | "forbidden" | "error";
 
@@ -119,6 +131,11 @@ function ProfileModule({
   const [endsDraft, setEndsDraft] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
+  // Preview acotado de las listas de la ficha: 5 filas + "Ver todo"
+  // expande in-place (patrón canónico nacido en series/[id]).
+  const [showAllPayments, setShowAllPayments] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -327,6 +344,7 @@ function ProfileModule({
                   disabled={saving}
                   onClick={() => void saveEnrollment()}
                 >
+                  {saving ? <Spinner size="sm" /> : null}
                   {tc("save")}
                 </Button>
               </div>
@@ -372,39 +390,50 @@ function ProfileModule({
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {tp("payments")}
         </h3>
-        {profile.enrollments.length === 0 ? (
-          <p className="text-sm text-ink/50">{tp("emptyPayments")}</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {profile.enrollments.map((e) => (
-              <li
-                key={e.id}
-                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-line bg-elevated/60 px-4 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">
-                    {e.plan?.name ?? "·"}
-                  </p>
-                  <p className="text-xs text-ink/50 tabular-nums">
-                    {e.startedAt
-                      ? `${tp("startsAt")}: ${planDateFmt(locale).format(new Date(e.startedAt))}`
-                      : ""}
-                    {e.startedAt && e.endsAt ? " · " : ""}
-                    {e.endsAt
-                      ? `${tp("endsAt")}: ${planDateFmt(locale).format(new Date(e.endsAt))}`
-                      : ""}
-                  </p>
-                </div>
-                {e.plan && e.plan.price > 0 && (
-                  <PriceTag amount={e.plan.price} />
-                )}
-                <Badge variant={e.status === "ACTIVE" ? "neon" : "muted"}>
-                  {statusLabel(e.status)}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
+        <Card padded={false}>
+          {profile.enrollments.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-ink/50">
+              {tp("emptyPayments")}
+            </p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {profile.enrollments
+                .slice(0, showAllPayments ? undefined : LIST_PREVIEW)
+                .map((e) => (
+                  <li
+                    key={e.id}
+                    className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">
+                        {e.plan?.name ?? "·"}
+                      </p>
+                      <p className="text-xs text-ink/50 tabular-nums">
+                        {e.startedAt
+                          ? `${tp("startsAt")}: ${planDateFmt(locale).format(new Date(e.startedAt))}`
+                          : ""}
+                        {e.startedAt && e.endsAt ? " · " : ""}
+                        {e.endsAt
+                          ? `${tp("endsAt")}: ${planDateFmt(locale).format(new Date(e.endsAt))}`
+                          : ""}
+                      </p>
+                    </div>
+                    {e.plan && e.plan.price > 0 && (
+                      <PriceTag amount={e.plan.price} />
+                    )}
+                    <Badge variant={e.status === "ACTIVE" ? "neon" : "muted"}>
+                      {statusLabel(e.status)}
+                    </Badge>
+                  </li>
+                ))}
+              <SeeAllRow
+                total={profile.enrollments.length}
+                expanded={showAllPayments}
+                onToggle={() => setShowAllPayments((v) => !v)}
+              />
+            </ul>
+          )}
+        </Card>
       </section>
 
       {/* Clases frecuentes: a qué clase viene realmente el alumno
@@ -417,32 +446,36 @@ function ProfileModule({
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {tp("frequent")}
         </h3>
-        {profile.frequentSlots.length === 0 ? (
-          <p className="text-sm text-ink/50">{tp("emptyFrequent")}</p>
-        ) : (
-          <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2">
-            {profile.frequentSlots.map((f) => (
-              <li
-                key={`${f.weekday}-${f.startTime}-${f.seriesName}`}
-                className="flex items-center gap-3 rounded-xl border border-line bg-elevated/60 px-4 py-3"
-              >
-                <p className="w-16 shrink-0 text-sm font-semibold capitalize tabular-nums">
-                  {t(`weekday.${f.weekday}`).slice(0, 3)}{" "}
-                  <span className="font-normal text-ink/50">{f.startTime}</span>
-                </p>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
-                    {f.seriesName}
-                    {f.styleName ? ` · ${f.styleName}` : ""}
+        <Card padded={false}>
+          {profile.frequentSlots.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-ink/50">
+              {tp("emptyFrequent")}
+            </p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {profile.frequentSlots.map((f) => (
+                <li
+                  key={`${f.weekday}-${f.startTime}-${f.seriesName}`}
+                  className="flex min-h-11 items-center gap-3 px-4 py-2.5"
+                >
+                  <p className="w-16 shrink-0 text-sm font-semibold capitalize tabular-nums">
+                    {t(`weekday.${f.weekday}`).slice(0, 3)}{" "}
+                    <span className="font-normal text-ink/50">{f.startTime}</span>
                   </p>
-                </div>
-                <Badge variant="muted" className="shrink-0">
-                  {tp("frequentCount", { count: f.count })}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {f.seriesName}
+                      {f.styleName ? ` · ${f.styleName}` : ""}
+                    </p>
+                  </div>
+                  <Badge variant="muted" className="shrink-0">
+                    {tp("frequentCount", { count: f.count })}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       </section>
       )}
 
@@ -460,33 +493,49 @@ function ProfileModule({
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {tp("history")}
         </h3>
-        {profile.history.length === 0 ? (
-          <p className="text-sm text-ink/50">{tp("emptyHistory")}</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {profile.history.map((h) => (
-              <li
-                key={h.classId}
-                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-elevated/60 px-4 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold capitalize tabular-nums">
-                    {classDayFmt(locale).format(new Date(h.date))}
-                  </p>
-                  <p className="truncate text-xs text-ink/60">
-                    {h.seriesName ?? "·"}
-                    {h.styleName ? ` · ${h.styleName}` : ""}
-                  </p>
-                </div>
-                <Badge variant={HISTORY_VARIANT[h.status] ?? "muted"}>
-                  {KNOWN_HISTORY_STATUS.includes(h.status)
-                    ? tp(`historyStatus.${h.status}`)
-                    : h.status}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
+        <Card padded={false}>
+          {profile.history.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-ink/50">
+              {tp("emptyHistory")}
+            </p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {profile.history
+                .slice(0, showAllHistory ? undefined : LIST_PREVIEW)
+                .map((h) => (
+                <li key={h.classId}>
+                  {/* La fila navega a la ficha de la clase: asistencia
+                      y roster viven ahí (console-patterns §2). */}
+                  <Link
+                    href={`/academia/clases/${h.classId}`}
+                    className="flex min-h-11 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold capitalize tabular-nums">
+                        {classDayFmt(locale).format(new Date(h.date))}
+                      </span>
+                      <span className="block truncate text-xs text-ink/60">
+                        {h.seriesName ?? "·"}
+                        {h.styleName ? ` · ${h.styleName}` : ""}
+                      </span>
+                    </span>
+                    <Badge variant={HISTORY_VARIANT[h.status] ?? "muted"}>
+                      {KNOWN_HISTORY_STATUS.includes(h.status)
+                        ? tp(`historyStatus.${h.status}`)
+                        : h.status}
+                    </Badge>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                  </Link>
+                </li>
+              ))}
+              <SeeAllRow
+                total={profile.history.length}
+                expanded={showAllHistory}
+                onToggle={() => setShowAllHistory((v) => !v)}
+              />
+            </ul>
+          )}
+        </Card>
       </section>
       )}
 
@@ -500,34 +549,51 @@ function ProfileModule({
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {tp("upcoming")}
         </h3>
-        {profile.upcoming.length === 0 ? (
-          <p className="text-sm text-ink/50">{tp("emptyUpcoming")}</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {profile.upcoming.map((u) => (
-              <li
-                key={u.classId}
-                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-elevated/60 px-4 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold capitalize tabular-nums">
-                    {classDayFmt(locale).format(new Date(u.date))}
-                  </p>
-                  <p className="truncate text-xs text-ink/60">
-                    {u.seriesName ?? "·"}
-                  </p>
-                </div>
-                <Badge variant={u.status === "BOOKED" ? "neon" : "outline"}>
-                  {u.status === "BOOKED"
-                    ? tClasses("booked")
-                    : u.status === "WAITLIST"
-                      ? tClasses("waitlist")
-                      : u.status}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
+        <Card padded={false}>
+          {profile.upcoming.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-ink/50">
+              {tp("emptyUpcoming")}
+            </p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {profile.upcoming
+                .slice(0, showAllUpcoming ? undefined : LIST_PREVIEW)
+                .map((u) => (
+                <li key={u.classId}>
+                  {/* Reserva → ficha de la clase (console-patterns §2). */}
+                  <Link
+                    href={`/academia/clases/${u.classId}`}
+                    className="flex min-h-11 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold capitalize tabular-nums">
+                        {classDayFmt(locale).format(new Date(u.date))}
+                      </span>
+                      <span className="block truncate text-xs text-ink/60">
+                        {u.seriesName ?? "·"}
+                      </span>
+                    </span>
+                    <Badge
+                      variant={u.status === "BOOKED" ? "neon" : "outline"}
+                    >
+                      {u.status === "BOOKED"
+                        ? tClasses("booked")
+                        : u.status === "WAITLIST"
+                          ? tClasses("waitlist")
+                          : u.status}
+                    </Badge>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                  </Link>
+                </li>
+              ))}
+              <SeeAllRow
+                total={profile.upcoming.length}
+                expanded={showAllUpcoming}
+                onToggle={() => setShowAllUpcoming((v) => !v)}
+              />
+            </ul>
+          )}
+        </Card>
       </section>
       )}
       </div>

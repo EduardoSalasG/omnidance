@@ -285,7 +285,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
             id="academy-photo-file"
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            className="hidden"
+            className="sr-only"
             onChange={(e) => {
               const f = e.target.files?.[0];
               e.target.value = "";

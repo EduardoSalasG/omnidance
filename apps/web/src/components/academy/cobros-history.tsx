@@ -9,6 +9,7 @@ import {
   Button,
   Card,
   ChevronRightIcon,
+  RefreshIcon,
   SkeletonList,
   Spinner,
 } from "@/components/ui";
@@ -58,81 +59,100 @@ export function CobrosHistory({ academyId }: { academyId: string }) {
   const [shown, setShown] = useState(WINDOW);
   const [total, setTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   // Merge de dos fuentes (claims resueltos + pagos de pasarela) con
   // ventana creciente: pide los primeros `shown` de cada fuente y une
   // - los primeros `shown` del merge son correctos (en el peor caso
   // todos vienen de una sola fuente). Cap 200 por fuente.
   const load = useCallback(async () => {
-    const size = Math.min(shown, 200);
-    const fetchClaims = (status: string) =>
-      apiFetch(
-        `/academies/${academyId}/claims?status=${status}&pageSize=${size}`,
-      )
-        .then(async (r) =>
-          r?.ok
-            ? ((await r.json()) as { items: QueueClaim[]; total: number })
-            : { items: [], total: 0 },
-        )
-        .catch(() => ({ items: [], total: 0 }));
-    const [apr, rej, paysRes] = await Promise.all([
-      fetchClaims("APPROVED"),
-      fetchClaims("REJECTED"),
-      apiFetch(`/payments/by-academy/${academyId}?pageSize=${size}`)
-        .then(async (r) =>
-          r?.ok
-            ? ((await r.json()) as {
-                items: PaymentAuditRow[];
-                total: number;
-              })
-            : { items: [], total: 0 },
-        )
-        .catch(() => ({ items: [], total: 0 })),
-    ]);
-    const claims = [...apr.items, ...rej.items];
-    const payments = paysRes.items;
-    setTotal(apr.total + rej.total + paysRes.total);
+    setLoadError(false);
+    try {
+      const size = Math.min(shown, 200);
+      const fetchClaims = async (status: string) => {
+        const res = await apiFetch(
+          `/academies/${academyId}/claims?status=${status}&pageSize=${size}`,
+        );
+        if (!res.ok) throw new Error("cobros history load failed");
+        return (await res.json()) as { items: QueueClaim[]; total: number };
+      };
+      const paysFetch = async () => {
+        const res = await apiFetch(
+          `/payments/by-academy/${academyId}?pageSize=${size}`,
+        );
+        if (!res.ok) throw new Error("cobros history load failed");
+        return (await res.json()) as {
+          items: PaymentAuditRow[];
+          total: number;
+        };
+      };
+      const [apr, rej, paysRes] = await Promise.all([
+        fetchClaims("APPROVED"),
+        fetchClaims("REJECTED"),
+        paysFetch(),
+      ]);
+      const claims = [...apr.items, ...rej.items];
+      const payments = paysRes.items;
+      setTotal(apr.total + rej.total + paysRes.total);
 
-    const claimRows: Row[] = claims.map((c) => ({
-      key: `claim-${c.id}`,
-      href: `/academia/cobros/claim/${c.id}`,
-      title: c.person.name,
-      subtitle: `${c.plan?.name ?? c.methodLabel} · ${clp(locale).format(c.amount)}`,
-      status: c.status,
-      statusLabel:
-        c.status === "APPROVED" ? t("statusApproved") : t("statusRejected"),
-      variant: c.status === "APPROVED" ? "neon" : "live",
-      date: c.reviewedAt ?? c.createdAt,
-    }));
-    const paymentRows: Row[] = payments.map((p) => ({
-      key: `pay-${p.id}`,
-      href: `/academia/cobros/pago/${p.id}`,
-      title:
-        paymentContext(p) ??
-        (tp.has(`orderTypes.${p.orderType}`)
-          ? tp(`orderTypes.${p.orderType}`)
-          : p.orderType),
-      subtitle: `${p.gatewayMedia ?? t("methodGateway")} · ${clp(locale).format(p.amount)}`,
-      status: p.status,
-      statusLabel: tp.has(`status.${p.status}`) ? tp(`status.${p.status}`) : p.status,
-      variant: PAYMENT_STATUS_VARIANT[p.status] ?? "muted",
-      date: paymentPaidAt(p),
-    }));
+      const claimRows: Row[] = claims.map((c) => ({
+        key: `claim-${c.id}`,
+        href: `/academia/cobros/claim/${c.id}`,
+        title: c.person.name,
+        subtitle: `${c.plan?.name ?? c.methodLabel} · ${clp(locale).format(c.amount)}`,
+        status: c.status,
+        statusLabel:
+          c.status === "APPROVED" ? t("statusApproved") : t("statusRejected"),
+        variant: c.status === "APPROVED" ? "neon" : "live",
+        date: c.reviewedAt ?? c.createdAt,
+      }));
+      const paymentRows: Row[] = payments.map((p) => ({
+        key: `pay-${p.id}`,
+        href: `/academia/cobros/pago/${p.id}`,
+        title:
+          paymentContext(p) ??
+          (tp.has(`orderTypes.${p.orderType}`)
+            ? tp(`orderTypes.${p.orderType}`)
+            : p.orderType),
+        subtitle: `${p.gatewayMedia ?? t("methodGateway")} · ${clp(locale).format(p.amount)}`,
+        status: p.status,
+        statusLabel: tp.has(`status.${p.status}`) ? tp(`status.${p.status}`) : p.status,
+        variant: PAYMENT_STATUS_VARIANT[p.status] ?? "muted",
+        date: paymentPaidAt(p),
+      }));
 
-    setRows(
-      [...claimRows, ...paymentRows]
-        .sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-        )
-        .slice(0, shown),
-    );
-    setLoadingMore(false);
+      setRows(
+        [...claimRows, ...paymentRows]
+          .sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+          )
+          .slice(0, shown),
+      );
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoadingMore(false);
+    }
   }, [academyId, shown, locale, t, tp]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  // Error de fetch: nunca vacío silencioso - el historial es superficie
+  // operativa y el fallo debe distinguirse de "sin movimientos".
+  if (loadError) {
+    return (
+      <div className="flex items-center gap-3">
+        <p role="alert" className="text-sm text-ink/60">
+          {tc("error")}
+        </p>
+        <Button variant="secondary" size="sm" onClick={() => void load()}>
+          <RefreshIcon /> {tc("retry")}
+        </Button>
+      </div>
+    );
+  }
   if (rows === null) return <SkeletonList />;
   if (rows.length === 0) return null;
 

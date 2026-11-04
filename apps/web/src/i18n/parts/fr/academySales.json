@@ -8,6 +8,8 @@
   "academySales": {
     "sectionTitle": "Prévente par académies",
     "backToHub": "Console",
+    "pendingTitle": "À traiter",
+    "resolvedTitle": "Historique",
     "invite": "Inviter une académie",
     "inviteTitle": "Inviter une académie à vendre la prévente",
     "inviteDesc": "L'académie vend avec son lien et touche un pourcentage du prix affiché. Tu paies sa commission hors de l'app ; le relevé de ce que tu lui dois vit ici.",

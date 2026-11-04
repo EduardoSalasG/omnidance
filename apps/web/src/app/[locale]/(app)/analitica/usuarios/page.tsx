@@ -12,6 +12,7 @@ import {
   SkeletonList,
 } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
+import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
 import { Link } from "@/i18n/navigation";
 
@@ -37,8 +38,10 @@ const DEBOUNCE_MS = 300;
  * vista de insights, no a la gestión de roles.
  */
 export default function AnaliticaUsuariosPage() {
+  const t = useTranslations("analytics");
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-none lg:px-4">
+      <ConsoleHeader backHref="/analitica" backLabel={t("title")} />
       <AdminGate>
         <SearchPanel />
       </AdminGate>

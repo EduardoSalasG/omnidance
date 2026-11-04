@@ -20,6 +20,7 @@
     "removed": "Colaborador quitado.",
     "capsSaved": "Accesos actualizados.",
     "error": "No se pudo completar. Intenta de nuevo.",
+    "forbidden": "No tienes acceso a esta sección.",
     "since": "Desde {date}",
     "kindLegend": "Tipo de miembro",
     "kindStaff": "Colaborador",

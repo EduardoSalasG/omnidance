@@ -153,7 +153,7 @@ function Detail({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">
           {detail.person.name ?? detail.person.email ?? personId}
         </h2>
@@ -179,7 +179,7 @@ function Detail({
             </div>
           </dl>
         </Card>
-      </section>
+      </div>
 
       <section className="flex flex-col gap-3" aria-label={t("agreementTitle")}>
         <div className="flex items-center justify-between gap-2">

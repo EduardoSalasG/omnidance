@@ -177,7 +177,7 @@ function EditAgreement({
       <form onSubmit={save} className="flex flex-col gap-3">
         <fieldset className="flex flex-col gap-1">
           <legend className="text-xs text-ink/50">{t("agreementLegend")}</legend>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {([null, "MONTHLY", "PER_CLASS", "COMMISSION"] as const).map((k) => (
               <label
                 key={k ?? "none"}

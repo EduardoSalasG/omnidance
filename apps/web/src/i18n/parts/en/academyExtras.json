@@ -13,6 +13,16 @@
       "lessonToSchedule": "to schedule",
       "seeAll": "See all ({count})"
     },
+    "levelsConfig": {
+      "addLevel": "Add level",
+      "editTitle": "Edit level",
+      "fieldName": "Level name",
+      "saved": "Level saved.",
+      "created": "Level added.",
+      "deleted": "Level deleted.",
+      "deleteConfirm": "Delete this level?",
+      "notFound": "Level not found."
+    },
     "planTypes": {
       "MONTHLY": "Monthly",
       "CLASS_PACK": "Class pack",
@@ -190,6 +200,7 @@
     "planSectionOneTime": "One-off payment",
     "planTypeLocked": "The type can't change: the plan has recurring billing on Flow",
     "planWeeklyClasses": "Classes per week (empty = unlimited)",
+    "planWeekly": "Classes per week",
     "planWeeklyCount": "{count, plural, one {# class/week} other {# classes/week}}",
     "planClassCount": "{count, plural, one {# class} other {# classes}}",
     "navGroups": {
@@ -391,12 +402,14 @@
     "enabled": "Enabled",
     "plans": "Plans in scope",
     "plansHint": "No selection = applies to all your plans",
+    "plansLoadError": "Could not load plans",
     "persons": "People whitelist",
     "personsHint": "Empty = applies to anyone; supports people not yet enrolled (presale)",
     "searchPerson": "Search person…",
     "add": "Add",
     "removeActor": "Remove {name}",
     "searching": "Searching…",
+    "searchError": "Search failed",
     "subsUsing": "Subscriptions under this promo",
     "discountedPayments": "Discounted charges",
     "createdBy": "Created by",

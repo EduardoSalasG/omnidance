@@ -336,21 +336,49 @@ OR: [
   // consola. La membresía AcademyInstructor habilita los endpoints de
   // instructor (clases, asistencia) sin PersonRole INSTRUCTOR.
 
-  /** Lista de profesores con su acuerdo económico (paginada). */
+  /**
+   * Lista de profesores con su acuerdo económico (paginada). Mismo
+   * filtro `q` que /staff: nombre o email contiene (case-insensitive).
+   */
   @Get(":id/instructors")
+  @ApiQuery({ name: "q", required: false })
   @ApiQuery({ name: "page", required: false })
   @ApiQuery({ name: "pageSize", required: false })
   async listInstructors(
     @Param("id") id: string,
     @Req() req: Request,
+    @Query("q") q?: string,
     @Query("page") page?: string,
     @Query("pageSize") pageSize?: string,
   ) {
     await this.access.requireCapability(id, req.person!, "team", "staff");
     const pg = pageParams(page, pageSize);
+    const term = q?.trim();
+    let personIdIn: string[] | undefined;
+    if (term && term.length >= 2) {
+      personIdIn = (
+        await this.prisma.person.findMany({
+          where: {
+            deletedAt: null,
+            OR: [
+              { name: { contains: term, mode: "insensitive" } },
+              { email: { contains: term, mode: "insensitive" } },
+            ],
+          },
+          select: { id: true },
+          take: 500,
+        })
+      ).map((p) => p.id);
+    } else if (term) {
+      personIdIn = [];
+    }
+    const where = {
+      academyId: id,
+      ...(personIdIn ? { personId: { in: personIdIn } } : {}),
+    };
     const [rows, total] = await Promise.all([
       this.prisma.academyInstructor.findMany({
-        where: { academyId: id },
+        where,
         orderBy: { createdAt: "asc" },
         skip: pg.skip,
         take: pg.take,
@@ -363,7 +391,7 @@ OR: [
           createdAt: true,
         },
       }),
-      this.prisma.academyInstructor.count({ where: { academyId: id } }),
+      this.prisma.academyInstructor.count({ where }),
     ]);
     const people = new Map(
       (

@@ -10,9 +10,12 @@ import {
   Badge,
   Button,
   Card,
+  LIST_PREVIEW,
   PriceTag,
   RefreshIcon,
+  SeeAllRow,
   SkeletonCard,
+  Spinner,
 } from "@/components/ui";
 import {
   ActionNotice,
@@ -62,6 +65,8 @@ function DealDetail({
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  // Códigos emitidos: preview acotado + "Ver todo" (patrón series/[id]).
+  const [showAllCodes, setShowAllCodes] = useState(false);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -301,7 +306,8 @@ function DealDetail({
                   onClick={() => void emitCode()}
                   disabled={codeBusy}
                 >
-                  {codeBusy ? tc("loading") : t("generateCode")}
+                  {codeBusy ? <Spinner size="sm" /> : null}
+                  {t("generateCode")}
                 </Button>
               </div>
               <p className="text-xs text-ink/50">{t("codesDesc")}</p>
@@ -309,35 +315,42 @@ function DealDetail({
                 <p className="text-sm text-ink/50">{t("codesEmpty")}</p>
               ) : (
                 <ul className="flex flex-col divide-y divide-line">
-                  {codes.map((c) => (
-                    <li
-                      key={c.id}
-                      className="flex flex-wrap items-center justify-between gap-2 py-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <code className="text-sm font-medium tracking-wide">
-                          {c.code}
-                        </code>
-                        {!c.redemption && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => void copyCode(c.code)}
-                          >
-                            {copiedCode === c.code ? t("copied") : t("copy")}
-                          </Button>
-                        )}
-                      </div>
-                      <span className="text-xs text-ink/60">
-                        {c.redemption
-                          ? t("codeUsedBy", {
-                              name: c.redemption.buyerName ?? "—",
-                            })
-                          : t("codeUnused")}
-                      </span>
-                    </li>
-                  ))}
+                  {codes
+                    .slice(0, showAllCodes ? undefined : LIST_PREVIEW)
+                    .map((c) => (
+                      <li
+                        key={c.id}
+                        className="flex flex-wrap items-center justify-between gap-2 py-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <code className="text-sm font-medium tracking-wide">
+                            {c.code}
+                          </code>
+                          {!c.redemption && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => void copyCode(c.code)}
+                            >
+                              {copiedCode === c.code ? t("copied") : t("copy")}
+                            </Button>
+                          )}
+                        </div>
+                        <span className="text-xs text-ink/60">
+                          {c.redemption
+                            ? t("codeUsedBy", {
+                                name: c.redemption.buyerName ?? "—",
+                              })
+                            : t("codeUnused")}
+                        </span>
+                      </li>
+                    ))}
+                  <SeeAllRow
+                    total={codes.length}
+                    expanded={showAllCodes}
+                    onToggle={() => setShowAllCodes((v) => !v)}
+                  />
                 </ul>
               )}
             </div>
@@ -352,7 +365,8 @@ function DealDetail({
                   onClick={() => void respond("accept")}
                   disabled={busy}
                 >
-                  {busy ? tc("loading") : t("accept")}
+                  {busy ? <Spinner size="sm" /> : null}
+                  {t("accept")}
                 </Button>
                 <Button
                   type="button"

@@ -17,7 +17,7 @@ import {
 import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { formatMoney, useDateFmt } from "@/lib/intl";
 
 type OrderClaimDetail = {
@@ -91,6 +91,7 @@ function OrderClaimDetail({
 
   const [claim, setClaim] = useState<OrderClaimDetail | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [forbidden, setForbidden] = useState(false);
   const [busy, setBusy] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
@@ -109,9 +110,16 @@ function OrderClaimDetail({
 
   const load = useCallback(async () => {
     setLoadError(false);
+    setForbidden(false);
     const res = await apiFetch(
       `/academies/${academyId}/order-claims/${claimId}`,
     ).catch(() => null);
+    if (res && (res.status === 401 || res.status === 403 || res.status === 404)) {
+      // Sin acceso o inexistente en esta academia: estado "sin acceso"
+      // con CTA de salida - no es un error reintentable.
+      setForbidden(true);
+      return;
+    }
     if (!res?.ok) {
       setLoadError(true);
       return;
@@ -176,6 +184,20 @@ function OrderClaimDetail({
     }
   }
 
+  if (forbidden) {
+    return (
+      <Card className="flex flex-col items-center gap-3 py-6 text-center">
+        <p className="text-sm text-ink/70">{t("forbidden")}</p>
+        <Button
+          href="/academia/cobros"
+          variant="secondary"
+          size="sm"
+        >
+          {t("detailBack")}
+        </Button>
+      </Card>
+    );
+  }
   if (loadError) {
     return (
       <div className="flex items-center gap-3">
@@ -208,7 +230,14 @@ function OrderClaimDetail({
           <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs text-ink/50">{t("fieldStudent")}</dt>
-              <dd className="font-medium">{claim.person.name}</dd>
+              <dd className="font-medium">
+                <Link
+                  href={`/academia/alumnos/${claim.person.id}`}
+                  className="inline-flex min-h-11 items-center text-neon underline-offset-4 hover:underline"
+                >
+                  {claim.person.name}
+                </Link>
+              </dd>
             </div>
             <div>
               <dt className="text-xs text-ink/50">{t("fieldOrder")}</dt>
@@ -232,8 +261,13 @@ function OrderClaimDetail({
             </div>
             <div>
               <dt className="text-xs text-ink/50">{t("fieldOrderRef")}</dt>
-              <dd className="font-mono text-xs text-ink/70">
-                {claim.payment.refId}
+              <dd>
+                <Link
+                  href={`/academia/cobros/pago/${claim.payment.id}`}
+                  className="inline-flex min-h-11 items-center font-mono text-xs text-neon underline-offset-4 hover:underline"
+                >
+                  {claim.payment.refId}
+                </Link>
               </dd>
             </div>
             {claim.reviewedAt && (

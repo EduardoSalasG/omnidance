@@ -180,7 +180,18 @@ function MethodDetail({
     );
   }
   if (notFound) {
-    return <p className="text-sm text-ink/60">{t("methodNotFound")}</p>;
+    return (
+      <div className="flex flex-col items-start gap-4">
+        <p className="text-sm text-ink/60">{t("methodNotFound")}</p>
+        <Button
+          variant="secondary"
+          size="sm"
+          href="/academia/configuracion/metodos-de-pago"
+        >
+          {tc("back")}
+        </Button>
+      </div>
+    );
   }
   if (!method) return <SkeletonList />;
 
@@ -289,18 +300,18 @@ function MethodDetail({
         </Card>
       </section>
 
-      {/* Zona destructiva al pie, centrada y en rojo - mismo patrón que
-          "Eliminar amigo" (/amigos/[id]). */}
-      <div className="flex justify-center pt-2">
-        <button
-          type="button"
+      {/* Zona destructiva al pie (console-patterns §4): div centrado
+          separado por border-t, ghost rojo + ConfirmSheet. */}
+      <div className="flex justify-center border-t border-line pt-6">
+        <Button
+          variant="ghost"
+          size="sm"
           disabled={busy}
           onClick={() => setConfirmDelete(true)}
-          className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
+          className="text-red-400 hover:text-red-300"
         >
-          {busy ? <Spinner size="sm" /> : null}
           {t("remove")}
-        </button>
+        </Button>
       </div>
 
       <ConfirmSheet

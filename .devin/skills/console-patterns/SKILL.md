@@ -88,6 +88,11 @@ confirmación. La confirmación es `ConfirmSheet` de `components/ui`
 nunca `window.confirm`, que bloquea el hilo, no atrapa foco y no
 respeta el design system.
 
+**Excepción documentada**: entidades sin ficha posible (el video de
+`/academia/videos` es solo un link externo, no hay página de detalle
+donde alojar el delete) conservan el control destructivo en la card
+del listado, pero SIEMPRE con `ConfirmSheet` — nunca delete de un tap.
+
 ### 5. Chrome y jerarquía de título
 
 - `ConsoleHeader backHref backLabel` al tope de TODA página de consola
@@ -137,6 +142,19 @@ respeta el design system.
 - El gate tiene sus propios estados: loading → skeleton; unauth →
   CTA login; notProducer/forbidden → mensaje + CTA de salida; error →
   `role="alert"` + retry.
+
+## Listas dentro de ficha: preview + "Ver todo"
+
+Toda lista crecible dentro de una ficha (historiales, pagos, reservas,
+miembros, códigos emitidos, resultados) se acota con
+`LIST_PREVIEW` (=5, de `@/components/ui`) y se expande en la misma
+ficha con `SeeAllRow` (`components/ui/see-all-row`): último `<li>` del
+`<ul>` con botón `min-h-11 text-neon` que alterna
+`common.seeAll (N)` / `common.showLess`. Uso:
+`.slice(0, expanded ? undefined : LIST_PREVIEW)` + `<SeeAllRow total
+expanded onToggle/>`. Colas de trabajo pueden subir el umbral vía
+`preview={20}`. Prohibido: expands que duplican lo que la ficha ya
+muestra y drill-down inline que debiera ser `Link` a ficha.
 
 ## Referencias canónicas
 
