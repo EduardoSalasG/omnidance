@@ -307,6 +307,18 @@
       "s7": {
         "title": "La campana",
         "desc": "Acá llegan los avisos: comprobantes nuevos, solicitudes y novedades de tu academia."
+      },
+      "s8": {
+        "title": "La facturación del mes",
+        "desc": "Cuánto llevas facturado y el ticket por alumno: la señal rápida de cómo va el negocio. Toca el card para entrar a cobros."
+      },
+      "s9": {
+        "title": "Niveles y cupos",
+        "desc": "Cada horario con su asistencia reciente, promedio y cupos libres por nivel: para ver dónde hay sobrecupo o clase que reforzar."
+      },
+      "s10": {
+        "title": "Dos vistas del inicio",
+        "desc": "Simplificado muestra lo urgente del día; Extendido suma los KPIs del mes y la agenda de niveles y cupos. Tu elección queda guardada."
       }
     },
     "staff": {
