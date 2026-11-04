@@ -11,7 +11,7 @@ import { AcademySettings } from "@/components/academy/academy-settings";
  */
 export default function ConfigGeneralPage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <AcademyGate>
         {({ academy }) => (
           <AcademySettings key={academy.id} academy={academy} />
