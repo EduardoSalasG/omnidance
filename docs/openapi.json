@@ -8707,6 +8707,74 @@
       }
     },
     "/api/academies/{id}/videos/{videoId}": {
+      "get": {
+        "operationId": "VideosController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "videoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Videos"
+        ]
+      },
+      "patch": {
+        "operationId": "VideosController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "videoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVideoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Videos"
+        ]
+      },
       "delete": {
         "operationId": "VideosController_remove",
         "parameters": [
@@ -12459,6 +12527,10 @@
         "properties": {}
       },
       "CreateVideoDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateVideoDto": {
         "type": "object",
         "properties": {}
       },
