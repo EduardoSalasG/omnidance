@@ -27,10 +27,21 @@ Todo item navegable del listado es `<Link className="block">` envolviendo
 anidados dentro del Link** — si el card necesita un link externo
 (comprobante, evidencia) ese link vive en la ficha, no en el card.
 
+**Affordance de "se toca" en los tres medios**: el `<a>` nativo da
+`cursor` pointer y `hover:border-neon/60` cubre desktop, pero mobile no
+tiene hover — la señal permanente es `ChevronRightIcon
+className="h-4 w-4 shrink-0 text-ink/40"` al final de la línea
+principal: al filo derecho del headline en cards, al borde derecho en
+filas navegables. Sin él una card estática y una clickeable son
+indistinguibles al tacto. El `Link` lleva
+`focus-visible:outline focus-visible:outline-2
+focus-visible:outline-neon`.
+
 ```tsx
 <Link href={`/productor/codigos/${c.id}`} className="block">
   <Card className="flex flex-col gap-2 transition-colors hover:border-neon/60">
     ...
+    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
   </Card>
 </Link>
 ```
@@ -44,8 +55,27 @@ anidados dentro del Link** — si el card necesita un link externo
   prohibidos; ver alumnos como ejemplo canónico).
 - Referencias cruzadas son `<Link>` (alumno del plan → ficha alumno,
   evento del código → ficha evento, orden → su detalle).
+- **El header de entidad navega a editar** cuando la página de edición
+  edita lo que el header muestra: el bloque de identidad es el `Link` a
+  la página de editar, sin botón "Editar" suelto — tocar la entidad es
+  el gesto natural. **El header va desnudo** (sin `Card`: la identidad
+  de la página vive sobre el canvas como título tipográfico — Linear,
+  GitHub, Stripe — y las cajas se reservan a las secciones de
+  contenido; un card ancho con poco contenido se lee como banda
+  vacía). Affordance del bloque-link: `group` en el `Link` +
+  `group-hover:text-neon` en el título y
+  `ChevronRightIcon h-4 w-4 shrink-0 text-ink/40
+  group-hover:text-neon` al filo derecho del headline +
+  `focus-visible:outline-neon`. Si el header contiene otros
+  interactivos (botones de acción, inputs, edición inline) no se
+  envuelve: se conservan las acciones explícitas. Si el form edita
+  otra cosa (el header muestra la persona pero el form edita su
+  acuerdo) el header no navega.
 - Mutaciones de una fila (aprobar/rechazar un comprobante, agregar un
   invitado) viven en la ficha; la cola/listado solo navega.
+- Mutaciones de estado de la entidad (desactivar/reactivar, publicar)
+  no son links: botones fuera del card; en la ficha agrupan junto a la
+  acción destructiva de la regla 4.
 
 ### 4. Destructivo = zona roja centrada al pie + `ConfirmSheet`
 
@@ -114,6 +144,7 @@ respeta el design system.
 |---|---|
 | Listado + CTA + cards clickeables | `apps/web/src/app/(app)/productor/eventos/page.tsx` |
 | Ficha con zona destructiva | `apps/web/src/app/(app)/academia/equipo/[id]/page.tsx` |
+| Ficha con header desnudo navegable a editar | `apps/web/src/app/(app)/academia/series/[id]/page.tsx` |
 | Ficha de cola con acciones | `apps/web/src/app/(app)/academia/cobros/claim/[id]/page.tsx` |
 | Cola que solo navega | `apps/web/src/components/producer/claims-queue-section.tsx` |
 | Página de crear | `apps/web/src/app/(app)/productor/codigos/nuevo/page.tsx` |

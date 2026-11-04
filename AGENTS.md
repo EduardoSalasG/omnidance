@@ -50,6 +50,10 @@ Para una modificación acotada, verifica primero la superficie afectada (`pnpm -
 
 ## Flujo de trabajo
 
+### Capturas de pantalla del usuario
+
+Cuando el usuario diga "te dejé una captura", "revisa la captura" o similar, la imagen está en `C:\Users\salas\Pictures\Screenshots\`. No viene adjunta al mensaje: hay que listar la carpeta ordenada por fecha de modificación (`ls -lt` o `Get-ChildItem | Sort LastWriteTime -Desc`) y leer la más reciente con el tool `read` (soporta PNG/JPG).
+
 ### Gates obligatorios (no saltarse)
 
 Estos pasos se incumplieron en sesiones reales - son gates, no sugerencias:

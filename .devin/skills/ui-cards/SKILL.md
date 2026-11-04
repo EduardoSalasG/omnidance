@@ -47,7 +47,10 @@ salsa · bachata [serie]   │ Preventa     ← label mutada
   `statusBadge`. Misma posición = memoria muscular.
 - **Card completo = Link** (`<Link className="block rounded-2xl">` +
   `hover:border-neon/50 active:scale-[0.99]`); nada interactivo anidado;
-  CTA en el rail como sibling.
+  CTA en el rail como sibling. `ChevronRightIcon` (`h-4 w-4 shrink-0
+  text-ink/40`) al filo derecho del headline = affordance permanente:
+  en mobile no existe hover y sin él la card parece estática;
+  `focus-visible:outline-neon` en el Link.
 - **Mismo componente, contextos distintos**: el slot de acción cambia
   (CTA ↔ statusBadge), el shape no.
 
