@@ -200,6 +200,7 @@
     },
     "configPages": {
       "general": "Classes",
+      "levels": "Levels",
       "payments": "Payment methods",
       "profile": "Academy profile",
       "appearance": "Appearance",

@@ -620,13 +620,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           academyFeature: "classes",
         },
         {
-          href: "/academia/niveles",
-          ns: "academy",
-          key: "modules.levels",
-          icon: ICONS.layers,
-          academyFeature: "classes",
-        },
-        {
           href: "/academia/particulares",
           ns: "academy",
           key: "modules.lessons",
@@ -710,6 +703,15 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "academy",
           key: "configPages.general",
           icon: ICONS.slider,
+        },
+        // La línea de niveles es configuración de una vez (definir o
+        // heredar), no trabajo diario: vive en esta sección.
+        {
+          href: "/academia/configuracion/niveles",
+          ns: "academy",
+          key: "configPages.levels",
+          icon: ICONS.layers,
+          academyFeature: "classes",
         },
         {
           href: "/academia/configuracion/pagos",
