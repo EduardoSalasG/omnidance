@@ -166,8 +166,11 @@ export function AcademyGate({
               contenido de la consola (en /academia/suscripcion el
               componente se auto-omite - el estado va detallado ahí). */}
           <AcademyBillingBanner academy={selected} />
-          <div className="flex flex-wrap items-center gap-2">
-            {selector && (academies.length > 1 || canCreate) && (
+          {/* El wrapper vive dentro de la condición: un div vacío sigue
+              siendo un item flex del padre y duplicaba el gap-6 del
+              contenedor de página (doble espacio bajo el back). */}
+          {selector && (academies.length > 1 || canCreate) && (
+            <div className="flex flex-wrap items-center gap-2">
               <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-xs">
                 <span className="sr-only">{t("title")}</span>
                 {/* La opción "Nueva academia" vive dentro del selector
@@ -194,8 +197,8 @@ export function AcademyGate({
                   )}
                 </select>
               </label>
-            )}
-          </div>
+            </div>
+          )}
           {children({ academy: selected, academies })}
         </>
       )}

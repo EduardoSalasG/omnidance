@@ -39,7 +39,7 @@ export default function SlotDetailPage({
 }) {
   const { id: seriesId, slotId } = use(params);
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6">
       <AcademyGate>
         {({ academy }) => (
           <SlotDetail

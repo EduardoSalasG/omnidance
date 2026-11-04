@@ -244,7 +244,7 @@ export default function MiViajePage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-4xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-4xl lg:px-8">
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <p className="text-sm text-ink/60">{t("subtitle")}</p>
