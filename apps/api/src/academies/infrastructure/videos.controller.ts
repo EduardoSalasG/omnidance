@@ -5,6 +5,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -36,6 +37,40 @@ class CreateVideoDto {
   @IsBoolean()
   restrictedToAttended?: boolean;
 }
+
+class UpdateVideoDto {
+  /** Link externo (YouTube/Vimeo/Drive) - nunca self-host. */
+  @IsOptional()
+  @IsString()
+  url?: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  /** Opcional: id de Class; null desvincula el video de la clase. */
+  @IsOptional()
+  @IsString()
+  classId?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  restrictedToAttended?: boolean;
+}
+
+// Shape del video bloqueado para no-staff: metadatos sin url. Lo usan
+// el listado y el detalle - tiene que quedar idéntico en ambos.
+const lockedVideo = (v: {
+  id: string;
+  title: string;
+  classId: string | null;
+}) => ({
+  id: v.id,
+  title: v.title,
+  classId: v.classId,
+  restrictedToAttended: true,
+  locked: true,
+});
 
 /**
  * Videos de la academia (links externos). Gate de acceso:
@@ -157,15 +192,92 @@ export class VideosController {
           (v.classId !== null && attended.has(v.classId)) ||
           activeEnrollment !== null;
         if (unlocked) return { ...v, locked: false };
-        return {
-          id: v.id,
-          title: v.title,
-          classId: v.classId,
-          restrictedToAttended: true,
-          locked: true,
-        };
+        return lockedVideo(v);
       }),
     );
+  }
+
+  @Get(":id/videos/:videoId")
+  @UseGuards(SessionGuard)
+  async detail(
+    @Param("id") id: string,
+    @Param("videoId") videoId: string,
+    @Req() req: Request,
+  ) {
+    const { ctx } = await this.access.loadContext(id);
+    const me = req.person!;
+    const video = await this.prisma.video.findFirst({
+      where: { id: videoId, academyId: id },
+    });
+    if (!video) throw new NotFoundException("video no encontrado en la academia");
+
+    // Misma máscara del listado: staff y video no restringido viajan
+    // completos; el resto necesita asistencia a la Class o enrollment
+    // ACTIVE para destrabar la url.
+    if (
+      canManageAcademy({ id: me.id, roles: me.roles }, ctx) ||
+      !video.restrictedToAttended
+    ) {
+      return video;
+    }
+
+    const [attendance, activeEnrollment] = await Promise.all([
+      video.classId
+        ? this.prisma.attendance.findUnique({
+            where: {
+              classId_personId: { classId: video.classId, personId: me.id },
+            },
+            select: { classId: true },
+          })
+        : Promise.resolve(null),
+      this.prisma.enrollment.findFirst({
+        where: { academyId: id, personId: me.id, status: "ACTIVE" },
+        select: { id: true },
+      }),
+    ]);
+    if (attendance !== null || activeEnrollment !== null) {
+      return { ...video, locked: false };
+    }
+    return lockedVideo(video);
+  }
+
+  @Patch(":id/videos/:videoId")
+  @UseGuards(SessionGuard)
+  async update(
+    @Param("id") id: string,
+    @Param("videoId") videoId: string,
+    @Body() dto: UpdateVideoDto,
+    @Req() req: Request,
+  ) {
+    // solo owner/ADMIN - mutación: academia bloqueada por mora → 403 (S3).
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "videos");
+    const video = await this.prisma.video.findFirst({
+      where: { id: videoId, academyId: id },
+    });
+    if (!video) throw new NotFoundException("video no encontrado en la academia");
+
+    // classId con string valida contra las clases de la academia (misma
+    // regla del create); null desvincula sin consulta.
+    if (dto.classId != null) {
+      const cls = await this.prisma.class.findFirst({
+        where: { id: dto.classId, slot: { academyId: id } },
+      });
+      if (!cls) {
+        throw new NotFoundException("clase no encontrada en la academia");
+      }
+    }
+
+    return this.prisma.video.update({
+      where: { id: video.id },
+      data: {
+        ...(dto.url !== undefined ? { url: dto.url } : {}),
+        ...(dto.title !== undefined ? { title: dto.title } : {}),
+        ...(dto.classId !== undefined ? { classId: dto.classId } : {}),
+        ...(dto.restrictedToAttended !== undefined
+          ? { restrictedToAttended: dto.restrictedToAttended }
+          : {}),
+      },
+    });
   }
 
   @Delete(":id/videos/:videoId")
