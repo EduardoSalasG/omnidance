@@ -121,6 +121,7 @@
     },
     "studentStatus": "Estado de {name}",
     "modules": {
+      "gridLabel": "Módulos",
       "levels": "Niveles",
       "myClasses": "Mis clases",
       "myClassesDesc": "Clases que impartes, roster y quórum",
@@ -385,7 +386,10 @@
     "slotUpdated": "Horario actualizado",
     "slotDeleted": "Horario eliminado",
     "classCancelled": "Clase cancelada",
-    "seriesDeleted": "Serie eliminada."
+    "seriesDeleted": "Serie eliminada.",
+    "slotNotFound": "Horario no encontrado.",
+    "invalidTimeRange": "La hora de inicio debe ser anterior a la de término.",
+    "slotsEmpty": "Aún no hay horarios."
   },
   "instructor": {
     "title": "Mis clases",
@@ -406,7 +410,8 @@
     "present": "Presente",
     "markPresent": "Marcar presente",
     "unconfirmed": "Sin confirmar",
-    "attendanceWindow": "La asistencia se marca desde 30 minutos antes hasta 30 minutos después del inicio ({opens}–{closes})."
+    "attendanceWindow": "La asistencia se marca desde 30 minutos antes hasta 30 minutos después del inicio ({opens}–{closes}).",
+    "marked": "Asistencia marcada."
   },
   "academyExtras": {
     "lessons": {
@@ -449,7 +454,8 @@
       "commissionPaid": "Comisión liquidada",
       "commissionPending": "Comisión pendiente",
       "confirmPayCommission": "¿Marcar la comisión como pagada al instructor? Registra la liquidación (el pago se hace por fuera).",
-      "price": "Precio"
+      "price": "Precio",
+      "instructorsError": "No se pudieron cargar los instructores."
     },
     "videos": {
       "title": "Videos",

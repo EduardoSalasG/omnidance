@@ -5,7 +5,7 @@ import { useLocale, useMessages, useTranslations } from "next-intl";
 import type { QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
-import { Badge, Button, Card, ConfirmSheet, Pager, PriceTag, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, ConfirmSheet, Pager, PriceTag, RefreshIcon, Spinner } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import {
@@ -19,6 +19,7 @@ import {
   filterQuery,
   inputCls,
   readError,
+  shortId,
   type Academy,
   type FilterOption,
 } from "./shared";
@@ -79,11 +80,7 @@ type Props = {
   /** Academia de la consola staff (obligatoria - la vista alumno vive
       en reservadas de /clases, particulares-en-reservadas). */
   academy: Academy;
-  /** Academias ya cargadas en la página - resuelven nombres de academia. */
-  academies?: Academy[];
 };
-
-;
 
 function statusVariant(status: string): BadgeVariant {
   switch (status) {
@@ -96,10 +93,6 @@ function statusVariant(status: string): BadgeVariant {
     default: // REQUESTED u otro string libre del schema
       return "outline";
   }
-}
-
-function shortId(id: string) {
-  return id.slice(0, 8);
 }
 
 /**
@@ -116,6 +109,10 @@ export function PrivateLessons({ academy }: Props) {
   const locale = useLocale();
   const t = (useMessages() as { academyExtras: AcademyExtras }).academyExtras.lessons;
   const tc = useTranslations("common");
+  const tq = useTranslations("query");
+  // Key nueva academyExtras.lessons.instructorsError (en camino al
+  // catálogo): acceso opcional para no romper el typecheck mientras.
+  const tExtra = t as { instructorsError?: string };
 
   // /me compartido (MeProvider) - sin fetch propio.
   const { me } = useMe();
@@ -151,21 +148,29 @@ export function PrivateLessons({ academy }: Props) {
   const [academyInstructors, setAcademyInstructors] = useState<
     { personId: string; name?: string | null }[]
   >([]);
+  // Fallo del fetch de instructores: sin él el select de asignación
+  // quedaba vacío en silencio - el hint avisa bajo el select.
+  const [instructorsError, setInstructorsError] = useState(false);
 
   useEffect(() => {
+    setInstructorsError(false);
     apiFetch(`/academies/${academy.id}`)
       .then(async (res) =>
         res.ok ? ((await res.json()) as AcademyDetail) : null,
       )
-      .then((detail) =>
+      .then((detail) => {
+        if (!detail) {
+          setInstructorsError(true);
+          return;
+        }
         setAcademyInstructors(
-          (detail?.instructors ?? []).map((i) => ({
+          (detail.instructors ?? []).map((i) => ({
             personId: i.personId,
             name: i.name ?? null,
           })),
-        ),
-      )
-      .catch(() => {});
+        );
+      })
+      .catch(() => setInstructorsError(true));
   }, [academy]);
 
   const loadStaff = useCallback(async () => {
@@ -375,7 +380,9 @@ export function PrivateLessons({ academy }: Props) {
           {staffState === "loading" && <SkeletonList items={2} lines={1} />}
           {staffState === "error" && (
             <div className="flex items-center gap-3">
-              <p className="text-sm text-ink/60">{tc("error")}</p>
+              <p role="alert" className="text-sm text-ink/60">
+                {tc("error")}
+              </p>
               <Button
                 variant="secondary"
                 size="sm"
@@ -387,7 +394,11 @@ export function PrivateLessons({ academy }: Props) {
           )}
           {staffState === "ready" &&
             (lessons.length === 0 ? (
-              <p className="text-sm text-ink/50">{t.empty}</p>
+              // Con filtros activos el vacío es de la consulta, no de
+              // la academia sin particulares.
+              <p className="text-sm text-ink/50">
+                {filterQuery(staffFilters) !== "" ? tq("empty") : t.empty}
+              </p>
             ) : (
               <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {lessons.map((l) => {
@@ -428,6 +439,7 @@ export function PrivateLessons({ academy }: Props) {
                                   setAssignWhen("");
                                 }}
                               >
+                                {busyId === l.id && <Spinner size="sm" />}
                                 {t.assign}
                               </Button>
                             )}
@@ -437,6 +449,7 @@ export function PrivateLessons({ academy }: Props) {
                                 disabled={busyId === l.id}
                                 onClick={() => void act(l.id, "confirm")}
                               >
+                                {busyId === l.id && <Spinner size="sm" />}
                                 {t.confirm}
                               </Button>
                             )}
@@ -447,6 +460,7 @@ export function PrivateLessons({ academy }: Props) {
                                 disabled={busyId === l.id}
                                 onClick={() => void act(l.id, "done")}
                               >
+                                {busyId === l.id && <Spinner size="sm" />}
                                 {t.done}
                               </Button>
                             )}
@@ -463,6 +477,7 @@ export function PrivateLessons({ academy }: Props) {
                                   setReschedWhen("");
                                 }}
                               >
+                                {busyId === l.id && <Spinner size="sm" />}
                                 {t.reschedule}
                               </Button>
                             )}
@@ -479,6 +494,7 @@ export function PrivateLessons({ academy }: Props) {
                                 onClick={() => setPendingCancel(l.id)}
                                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-400/30 px-4 text-sm font-semibold text-red-400/80 transition-colors transition-transform hover:border-red-400/60 hover:text-red-400 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon disabled:pointer-events-none disabled:opacity-50"
                               >
+                                {busyId === l.id && <Spinner size="sm" />}
                                 {t.cancel}
                               </button>
                             )}
@@ -509,6 +525,7 @@ export function PrivateLessons({ academy }: Props) {
                               size="sm"
                               disabled={busyId === l.id}
                             >
+                              {busyId === l.id && <Spinner size="sm" />}
                               {t.saveReschedule}
                             </Button>
                           </form>
@@ -545,6 +562,11 @@ export function PrivateLessons({ academy }: Props) {
                                   </option>
                                 ))}
                               </select>
+                              {instructorsError && (
+                                <p role="alert" className="text-xs text-red-400">
+                                  {tExtra.instructorsError ?? tc("error")}
+                                </p>
+                              )}
                             </label>
                             <label className="flex flex-col gap-1">
                               <span className="text-xs text-ink/50">
@@ -570,6 +592,7 @@ export function PrivateLessons({ academy }: Props) {
                                 !assignWhen
                               }
                             >
+                              {busyId === l.id && <Spinner size="sm" />}
                               {t.assignSave}
                             </Button>
                           </form>

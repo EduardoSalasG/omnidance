@@ -2352,6 +2352,7 @@ export class AcademiesController {
           orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
           select: {
             id: true,
+            seriesId: true,
             weekday: true,
             startTime: true,
             endTime: true,
@@ -2580,6 +2581,7 @@ export class AcademiesController {
       const next = nextBySlot.get(s.id);
       return {
         slotId: s.id,
+        seriesId: s.seriesId,
         seriesName: s.series.name,
         styleName: s.series.style?.name ?? null,
         levelId: seriesLevelId,

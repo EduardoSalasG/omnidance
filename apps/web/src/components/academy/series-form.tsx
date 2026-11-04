@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, Skeleton, XIcon } from "@/components/ui";
+import { Button, Card, Skeleton, Spinner, XIcon } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { InstructorChecklist } from "./instructor-checklist";
 import {
@@ -61,7 +61,6 @@ export function SeriesForm({
 }) {
   const t = useTranslations("academySeries");
   const ta = useTranslations("academy");
-  const tc = useTranslations("common");
   const router = useRouter();
 
   // ─── catálogos para los selects ───
@@ -193,6 +192,15 @@ export function SeriesForm({
     // El input[type=date] lleva required; guard extra por si el browser
     // no lo valida (submit programático).
     if (!editing && kind === "oneOff" && !slots[0]?.date) return;
+    // Rango horario inválido en cualquier draft: aviso y abort (el
+    // backend también lo rechaza, pero el error genérico no explica qué).
+    if (
+      !editing &&
+      slots.some((s) => !s.startTime || !s.endTime || s.startTime >= s.endTime)
+    ) {
+      showActionNotice({ text: t("invalidTimeRange"), error: true });
+      return;
+    }
     const q = parsedQuorum();
     const drop = parsedDropIn();
     setBusy(true);
@@ -348,6 +356,7 @@ export function SeriesForm({
             selected={instructorIds}
             onChange={setInstructorIds}
             disabled={instructors === null}
+            label={t("instructors")}
           />
         </div>
 
@@ -553,13 +562,7 @@ export function SeriesForm({
             (appbar/ConsoleHeader) en móvil y desktop. */}
         <div className="flex flex-wrap gap-2 sm:col-span-2">
           <Button type="submit" size="sm" disabled={busy}>
-            {busy
-              ? editing
-                ? tc("loading")
-                : t("creating")
-              : editing
-                ? t("save")
-                : t("create")}
+            {busy ? <Spinner /> : editing ? t("save") : t("create")}
           </Button>
         </div>
       </form>

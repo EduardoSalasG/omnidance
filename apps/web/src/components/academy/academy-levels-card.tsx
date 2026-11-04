@@ -610,7 +610,7 @@ function ToggleChips({
   onClear: () => void;
 }) {
   const chipCls = (on: boolean) =>
-    `inline-flex min-h-8 items-center rounded-full px-3 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+    `inline-flex min-h-11 items-center rounded-full px-3 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
       on
         ? "bg-neon/15 text-neon"
         : "border border-line text-ink/60 hover:border-ink/30"
@@ -820,14 +820,18 @@ function MobileSlotRow({
       <p className="w-9 shrink-0 pt-2 text-right text-xs font-semibold tabular-nums text-ink/50">
         {s.startTime}
       </p>
-      <Card className="min-w-0 flex-1 px-3 py-2">
+      {/* El borde neon del Card en hover es el affordance de click -
+          el Link cubre casi toda la card así que hover ≈ link hover. */}
+      <Card className="min-w-0 flex-1 px-3 py-2 transition-colors hover:border-neon/60">
         <Link
           href={
           s.nextClassId
             ? `/academia/clases/${s.nextClassId}`
-            : "/academia/alumnos"
+            // Sin próxima clase no hay ficha de clase: el fallback es
+            // la ficha del horario (seriesId llega en bySlot).
+            : `/academia/series/${s.seriesId}/horarios/${s.slotId}`
         }
-          className="block"
+          className="block focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
           aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
         >
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
@@ -870,9 +874,20 @@ function SlotCard({
 }) {
   const t = useTranslations("academy");
   const { variant: statusVariant, text: statusText } = slotStatus(s, t);
+  // Destino del slot: la próxima clase si existe; sin ella, la ficha
+  // del horario (seriesId llega en bySlot).
+  const slotHref = s.nextClassId
+    ? `/academia/clases/${s.nextClassId}`
+    : `/academia/series/${s.seriesId}/horarios/${s.slotId}`;
+  const linkAria = `${s.seriesName} - ${t("levels.gotoClasses")}`;
   if (compact) {
     return (
-      <Card className="flex h-full w-full min-w-0 flex-col justify-center gap-1 overflow-hidden px-2.5 py-1.5">
+      <Card className="flex h-full w-full min-w-0 flex-col justify-center gap-1 overflow-hidden px-2.5 py-1.5 transition-colors hover:border-neon/60">
+        <Link
+          href={slotHref}
+          className="flex min-w-0 flex-col gap-1 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+          aria-label={linkAria}
+        >
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
           <p className="min-w-0 flex-1 text-xs font-semibold">
             {s.seriesName}
@@ -888,21 +903,21 @@ function SlotCard({
         <Badge variant={statusVariant} className="self-start">
           {statusText}
         </Badge>
+        </Link>
       </Card>
     );
   }
   return (
     <Card
-      className="flex w-full min-w-0 flex-col gap-1 overflow-hidden px-2 pb-0 pt-1.5"
+      className="flex w-full min-w-0 flex-col gap-1 overflow-hidden px-2 pb-0 pt-1.5 transition-colors hover:border-neon/60"
     >
+      {/* `contents` dejaba al Link sin caja: el foco de teclado no
+          dibujaba anillo. `block` con el mismo flex-col conserva la
+          maquetación y da superficie al outline. */}
       <Link
-        href={
-          s.nextClassId
-            ? `/academia/clases/${s.nextClassId}`
-            : "/academia/alumnos"
-        }
-        className="contents"
-        aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
+        href={slotHref}
+        className="flex min-w-0 flex-col gap-1 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+        aria-label={linkAria}
       >
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
         <p className="line-clamp-2 min-w-0 flex-1 text-sm font-bold leading-tight" title={s.seriesName}>

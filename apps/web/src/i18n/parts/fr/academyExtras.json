@@ -47,7 +47,8 @@
       "config": "Paramètres",
       "configDesc": "Jauge par défaut et profil public",
       "promos": "Promos",
-      "promosDesc": "Bourses et remises sur vos plans"
+      "promosDesc": "Bourses et remises sur vos plans",
+      "gridLabel": "Modules"
     },
     "today": {
       "title": "Cours d'aujourd'hui",
@@ -299,7 +300,10 @@
     "slotUpdated": "Horaire mis à jour",
     "slotDeleted": "Horaire supprimé",
     "classCancelled": "Classe annulée",
-    "seriesDeleted": "Série supprimée."
+    "seriesDeleted": "Série supprimée.",
+    "slotNotFound": "Créneau introuvable.",
+    "invalidTimeRange": "L'heure de début doit être antérieure à l'heure de fin.",
+    "slotsEmpty": "Pas encore de créneaux."
   },
   "instructor": {
     "title": "Mes cours",
@@ -320,7 +324,8 @@
     "present": "Présent",
     "markPresent": "Marquer présent",
     "unconfirmed": "Non confirmé",
-    "attendanceWindow": "La présence peut être marquée de 30 minutes avant à 30 après le début ({opens}–{closes})."
+    "attendanceWindow": "La présence peut être marquée de 30 minutes avant à 30 après le début ({opens}–{closes}).",
+    "marked": "Présence marquée."
   },
   "academyExtras": {
     "lessons": {
@@ -363,7 +368,8 @@
       "commissionPaid": "Commission réglée",
       "commissionPending": "Commission en attente",
       "confirmPayCommission": "Marquer la commission comme payée à l'instructeur ? Enregistre le règlement (le paiement se fait hors de l'app).",
-      "price": "Prix"
+      "price": "Prix",
+      "instructorsError": "Impossible de charger les professeurs."
     },
     "videos": {
       "title": "Vidéos",

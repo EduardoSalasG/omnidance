@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, RefreshIcon, SkeletonList } from "@/components/ui";
+import { Button, PageLoading, RefreshIcon, SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { SeriesForm } from "@/components/academy/series-form";
@@ -91,9 +91,12 @@ function SeriesFormLoader({ academyId }: { academyId: string }) {
   }
   if (state === "notFound") {
     return (
-      <p role="alert" className="text-sm text-ink/60">
-        {t("notFound")}
-      </p>
+      <div className="flex flex-col items-start gap-4">
+        <p className="text-sm text-ink/60">{t("notFound")}</p>
+        <Button variant="secondary" size="sm" href="/academia/series">
+          {tc("back")}
+        </Button>
+      </div>
     );
   }
   return <SeriesForm academyId={academyId} editing={series} />;
@@ -101,9 +104,7 @@ function SeriesFormLoader({ academyId }: { academyId: string }) {
 
 export default function AcademiaNuevaSeriePage() {
   return (
-    <Suspense
-      fallback={<main className="min-h-dvh bg-canvas" aria-hidden="true" />}
-    >
+    <Suspense fallback={<PageLoading />}>
       <NuevaSerie />
     </Suspense>
   );

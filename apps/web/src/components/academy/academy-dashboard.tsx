@@ -28,7 +28,6 @@ import {
   shortId,
   type Academy,
   type AcademyDashboard as AcademyDashboardData,
-  type AcademyLevelInsights,
 } from "./shared";
 import { Link } from "@/i18n/navigation";
 import { getDateFmt, getNumFmt, useNumFmt } from "@/lib/intl";
@@ -54,11 +53,6 @@ const KPI_FEATURE: Record<string, string> = {
   weeklyClasses: "classes",
   avgAttendance: "insights",
 };
-
-;
-;
-;
-;
 
 const listCls = "flex flex-col divide-y divide-line";
 const rowLinkCls =
@@ -235,17 +229,14 @@ export function AcademyDashboard({
         reviewChecks={academy.reviewChecks}
       />
 
-      {/* Modo Simplificado: 3-4 cards accionables en lenguaje llano
-          (qué hay que hacer hoy) derivadas del mismo dashboard, sin
-          endpoints nuevos. */}
+      {/* Modo Simplificado: los 2 KPIs de contexto (alumnos,
+          facturado); las colas accionables van en la sección
+          Operación del día, visible en ambos modos. */}
       {homeMode === "simple" && (
         <SimpleHomeCards
           dashboard={dashboard}
           error={dashError}
           onRetry={() => void refresh()}
-          expiringHref={expiringHref}
-          canClasses={canClasses}
-          insights={levelInsights.data}
         />
       )}
 
@@ -294,10 +285,13 @@ export function AcademyDashboard({
       )}
 
       {/* Facturación del mes como sección propia (Extendido): lo que se
-          cobra, no la operación del día. */}
-      {homeMode === "extended" && (
+          cobra, no la operación del día. En error se oculta entera -
+          el retry lo muestra una sola vez el bloque de Resumen. */}
+      {homeMode === "extended" && !dashError && (
+        // Sin aria-label en el wrapper: el landmark lo pone el strip
+        // (ariaLabel abajo) - dos secciones anidadas con el mismo
+        // nombre ensucian el árbol de landmarks.
         <section
-          aria-label={t("sections.billing")}
           data-tour="academy-billing"
           className="flex flex-col gap-4"
         >
@@ -305,8 +299,10 @@ export function AcademyDashboard({
           <AcademyKpiCards
             data={dashboard}
             error={dashError}
-            onRetry={() => void refresh()}
             keys={["billedMonth", "avgTicket"]}
+            // Landmark propio: sin él repite el "Resumen del mes" del
+            // strip de arriba (dos landmarks iguales en la página).
+            ariaLabel={t("sections.billing")}
           />
         </section>
       )}
@@ -345,6 +341,7 @@ export function AcademyDashboard({
                   <span className={s.done ? "text-ink/40 line-through" : ""}>
                     {t(`onboarding.${s.key}`)}
                   </span>
+                  <ChevronRightIcon className="ml-auto h-4 w-4 shrink-0 text-ink/40" />
                 </Link>
               </li>
             ))}
@@ -472,29 +469,21 @@ export function AcademyDashboard({
 }
 
 /**
- * Cards accionables del modo Simplificado (spec academies/owner-insights):
- * 3-5 ítems en lenguaje llano que responden "qué hay que hacer" y llevan
- * directo a la acción. Todo se deriva del mismo GET /dashboard más el
- * insight de niveles (PRO), sin endpoints nuevos; las colas vacías
- * quedan en 0 (nada pendiente sigue siendo información honesta, no un
- * hueco).
+ * Cards del modo Simplificado (spec academies/owner-insights): los dos
+ * KPIs de contexto en lenguaje llano (alumnos activos, facturado del
+ * mes). Las colas accionables del día NO van acá - la sección Operación
+ * del día se renderiza debajo en ambos modos y ya cubre cobros,
+ * particulares, vencimientos, clases de hoy y cumpleaños (los ítems
+ * sueltos se sacaron en "simplificado = KPIs + Operación completa").
  */
 function SimpleHomeCards({
   dashboard,
   error,
   onRetry,
-  expiringHref,
-  canClasses,
-  insights,
 }: {
   dashboard: AcademyDashboardData | null;
   error: boolean;
   onRetry: () => void;
-  expiringHref?: string;
-  canClasses: boolean;
-  /** Insight de niveles (PRO + owner/ADMIN); null = feature fuera de
-      alcance o aún sin cargar: la card "sin nivel" no se muestra. */
-  insights: AcademyLevelInsights | null;
 }) {
   const t = useTranslations("academy");
   const tc = useTranslations("common");
@@ -537,23 +526,6 @@ function SimpleHomeCards({
     );
   }
 
-  // Alumnos sin nivel asignado (dato por completar): suma por tipo.
-  const unassignedTotal = (insights?.unassigned ?? []).reduce(
-    (a, u) => a + u.count,
-    0,
-  );
-
-  // Cupos libres de hoy: solo clases con capacidad definida; null si
-  // ninguna la informa (entonces el hint genérico toma su lugar).
-  const freeSpotsToday = dashboard.todayClasses.reduce<number | null>(
-    (acc, c) =>
-      c.capacity === null ? acc : (acc ?? 0) + (c.capacity - c.bookedCount),
-    null,
-  );
-
-  // Colas pendientes del día (cobros por revisar + particulares):
-  // una sola card "Operación del día" en el set simplificado.
-  const pendingToday = dashboard.pendingClaims.count + dashboard.pendingLessons.count;
   const cards = [
     {
       key: "activeStudents",
@@ -612,10 +584,13 @@ function MiniKpi({
     <li>
       <Link
         href={href}
-        aria-label={`${title}: ${count}`}
+        title={hint}
+        // El hint va visible, en title y en el aria-label: es contexto
+        // de la cifra, no adorno (mismo patrón que AcademyKpiCards).
+        aria-label={`${title}: ${count}. ${hint}`}
         className="block h-full rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98]"
       >
-        <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/40">
+        <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/60">
           <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
             {title}
           </span>
@@ -700,6 +675,7 @@ function TodayClassesCard({
                         })
                       : t("today.booked", { count: c.bookedCount })}
                   </span>
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                 </Link>
               </li>
             ))}
@@ -754,6 +730,7 @@ function BirthdaysCard({
                 <span className="shrink-0 text-xs tabular-nums text-neon">
                   {birthdayFmt(locale).format(new Date(b.date))}
                 </span>
+                <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
               </Link>
             </li>
           ))}

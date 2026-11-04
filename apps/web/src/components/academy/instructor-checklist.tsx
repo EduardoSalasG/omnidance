@@ -8,11 +8,15 @@ export function InstructorChecklist({
   selected,
   onChange,
   disabled,
+  label,
 }: {
   options: { id: string; name: string | null }[];
   selected: string[];
   onChange: (ids: string[]) => void;
   disabled?: boolean;
+  /** Nombre accesible del grupo (role="group" lo exige) - pasar el
+      texto del label visible que precede al checklist. */
+  label?: string;
 }) {
   function toggle(id: string) {
     onChange(
@@ -25,7 +29,7 @@ export function InstructorChecklist({
     return null;
   }
   return (
-    <ul className="flex flex-col gap-1.5" role="group">
+    <ul className="flex flex-col gap-1.5" role="group" aria-label={label}>
       {options.map((o) => (
         <li key={o.id}>
           <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-line bg-elevated px-3 py-2 text-sm transition-colors has-checked:border-neon/50 has-checked:bg-neon/10">

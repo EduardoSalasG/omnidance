@@ -11,6 +11,7 @@ import {
   ChevronRightIcon,
   ConfirmSheet,
   RefreshIcon,
+  Spinner,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -124,9 +125,14 @@ export default function AcademiaClaseRosterPage(
         </div>
       )}
       {(state === "forbidden" || state === "notfound") && (
-        <p role="alert" className="text-sm text-ink/60">
-          {state === "forbidden" ? t("forbidden") : t("notFound")}
-        </p>
+        <div className="flex flex-col items-start gap-4">
+          <p className="text-sm text-ink/60">
+            {state === "forbidden" ? t("forbidden") : t("notFound")}
+          </p>
+          <Button variant="secondary" size="sm" href="/academia/clases">
+            {tc("back")}
+          </Button>
+        </div>
       )}
       {state === "error" && (
         <div className="flex items-center gap-3">
@@ -148,13 +154,18 @@ export default function AcademiaClaseRosterPage(
               "volver". El instructor vuelve a su listado de clases. */}
           <ConsoleHeader
             backHref={
-              roster.canCancel && roster.class.seriesId
-                ? `/academia/series/${roster.class.seriesId}`
+              roster.canCancel
+                ? roster.class.seriesId
+                  ? `/academia/series/${roster.class.seriesId}`
+                  : // Clase sin serie (taller suelto): /clases es la
+                    // vista del instructor y rebota al owner a /inicio,
+                    // el padre navegable es el listado de series.
+                    "/academia/series"
                 : "/academia/clases"
             }
             backLabel={
               roster.canCancel
-                ? (roster.class.seriesName ?? t("title"))
+                ? (roster.class.seriesName ?? ts("title"))
                 : t("title")
             }
           />
@@ -346,6 +357,7 @@ function RosterDetail({
         return;
       }
       onChanged(personId);
+      showActionNotice({ text: t("marked") });
     } catch {
       showActionNotice({ text: tc("error"), error: true });
     } finally {
@@ -410,7 +422,7 @@ function RosterDetail({
               >
                 <Link
                   href={`/academia/alumnos/${b.personId}`}
-                  className="min-w-0 flex-1 rounded-sm transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                  className="flex min-h-11 min-w-0 flex-1 items-center rounded-sm transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                 >
                   {b.name ?? t("personFallback", { id: shortId(b.personId) })}
                 </Link>
@@ -423,9 +435,11 @@ function RosterDetail({
                     disabled={markingId === b.personId}
                     onClick={() => void markPresent(b.personId)}
                   >
-                    {markingId === b.personId
-                      ? tc("loading")
-                      : t("markPresent")}
+                    {markingId === b.personId ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      t("markPresent")
+                    )}
                   </Button>
                 ) : (
                   // Sin marcar: la reserva sigue consumiendo cupo pero
@@ -475,7 +489,7 @@ function RosterDetail({
                 </span>
                 <Link
                   href={`/academia/alumnos/${w.personId}`}
-                  className="min-w-0 flex-1 rounded-sm transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                  className="flex min-h-11 min-w-0 flex-1 items-center rounded-sm transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                 >
                   {w.name ??
                     t("personFallback", { id: shortId(w.personId) })}
@@ -531,6 +545,7 @@ function SlotCupos({
   slotId: string;
 }) {
   const ta = useTranslations("academy");
+  const tc = useTranslations("common");
   // Mismo formato de la agenda: promedio con un decimal.
   const numFmt = useNumFmt({ maximumFractionDigits: 1 });
   const [slot, setSlot] = useState<
@@ -539,6 +554,8 @@ function SlotCupos({
   const [state, setState] = useState<
     "loading" | "ready" | "hidden" | "error"
   >("loading");
+  // Retry del fetch: bump del nonce re-dispara el efecto.
+  const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -569,7 +586,7 @@ function SlotCupos({
     return () => {
       alive = false;
     };
-  }, [academyId, slotId]);
+  }, [academyId, slotId, nonce]);
 
   if (state === "loading" || state === "hidden") return null;
   return (
@@ -581,7 +598,18 @@ function SlotCupos({
         {ta("levels.title")}
       </h3>
       {state === "error" || !slot ? (
-        <p className="text-xs text-ink/50">{ta("levels.loadError")}</p>
+        <div className="flex items-center gap-3">
+          <p role="alert" className="text-xs text-ink/50">
+            {ta("levels.loadError")}
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setNonce((n) => n + 1)}
+          >
+            <RefreshIcon /> {tc("retry")}
+          </Button>
+        </div>
       ) : (
         <Card className="px-4 py-3">
           <MetricsGrid slot={slot} numFmt={numFmt} divided={false} />
