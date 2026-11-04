@@ -212,6 +212,7 @@ function PlansKpiCards({ kpis }: { kpis: PlansKpis }) {
     >
       <Card
         className="flex flex-col gap-1 p-4"
+        title={t("planKpiActiveHint")}
         aria-label={`${t("planKpiActive")}: ${kpis.activePlans}. ${t("planKpiActiveHint")}`}
       >
         <span className="text-xs font-medium text-ink/50">
@@ -219,6 +220,9 @@ function PlansKpiCards({ kpis }: { kpis: PlansKpis }) {
         </span>
         <span className="text-2xl font-bold tabular-nums">
           {kpis.activePlans}
+        </span>
+        <span className="text-[11px] leading-tight text-ink/50">
+          {t("planKpiActiveHint")}
         </span>
       </Card>
       {kpis.topPlans.map((p) => {
@@ -229,6 +233,7 @@ function PlansKpiCards({ kpis }: { kpis: PlansKpis }) {
           <Card
             key={p.planId}
             className="flex flex-col gap-1 p-4"
+            title={t("planKpiTopHint")}
             aria-label={`${p.name ?? p.planId}: ${p.students}. ${t("planKpiTopHint")}`}
           >
             <span className="truncate text-xs font-medium text-ink/50">
@@ -247,6 +252,9 @@ function PlansKpiCards({ kpis }: { kpis: PlansKpis }) {
               }`}
             >
               {deltaLabel} {t("kpis.vsPrevMonth")}
+            </span>
+            <span className="text-[11px] leading-tight text-ink/50">
+              {t("planKpiTopHint")}
             </span>
           </Card>
         );

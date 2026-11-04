@@ -79,6 +79,33 @@
       "membershipPlan": "Plan {plan}",
       "validUntil": "Válido hasta el {date}",
       "viewPlan": "Ver plan"
+    },
+    "kpi": {
+      "streakHint": "Semanas seguidas con al menos un baile",
+      "pointsHint": "Puntos de la temporada vigente",
+      "badgesHint": "Insignias ganadas",
+      "dances7dHint": "Bailes de los últimos 7 días",
+      "enrollmentsHint": "Inscripciones vigentes en academias",
+      "classesMonthHint": "Clases asistidas este mes",
+      "classes7dHint": "Clases de los últimos 7 días",
+      "activeEventsHint": "Eventos publicados y vigentes",
+      "ticketsSoldHint": "Entradas vendidas acumuladas",
+      "pendingPayoutsHint": "Liquidaciones esperando transferencia",
+      "pendingPayoutNetHint": "Monto neto por transferir",
+      "pendingRolesHint": "Solicitudes de rol por revisar",
+      "usersHint": "Personas registradas en la plataforma",
+      "academiesHint": "Academias registradas",
+      "studentsHint": "Alumnos con inscripción vigente",
+      "attendance7dHint": "Asistencias de los últimos 7 días",
+      "mySlotsHint": "Horarios donde soy instructor",
+      "upcomingAtVenueHint": "Eventos futuros en el local",
+      "upcomingGigsHint": "Presentaciones futuras",
+      "upcomingShiftsHint": "Turnos futuros asignados",
+      "leadsNewHint": "Postulaciones sin revisar",
+      "txRevenueMonthHint": "Cargo de servicio cobrado este mes",
+      "subRevenueMonthHint": "Ingreso por suscripciones este mes",
+      "subsAcademyHint": "Academias con suscripción activa",
+      "subsProducerHint": "Productores con suscripción activa"
     }
   },
   "profile": {

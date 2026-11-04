@@ -319,20 +319,34 @@ export default function SoportePage() {
                   {t("sections.activity")}
                 </h2>
                 <ul className="grid grid-cols-2 gap-3">
-                  <li className="rounded-xl border border-line bg-elevated/60 px-4 py-3">
+                  <li
+                    className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
+                    title={t("checkinsHint")}
+                    aria-label={`${t("checkins")}: ${num.format(detail.checkinsCount)}. ${t("checkinsHint")}`}
+                  >
                     <span className="block text-2xl font-bold tabular-nums text-neon">
                       {num.format(detail.checkinsCount)}
                     </span>
                     <span className="text-xs text-ink/50">
                       {t("checkins")}
                     </span>
+                    <span className="block text-[11px] leading-tight text-ink/40">
+                      {t("checkinsHint")}
+                    </span>
                   </li>
-                  <li className="rounded-xl border border-line bg-elevated/60 px-4 py-3">
+                  <li
+                    className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
+                    title={t("friendsHint")}
+                    aria-label={`${t("friends")}: ${num.format(detail.friendsCount)}. ${t("friendsHint")}`}
+                  >
                     <span className="block text-2xl font-bold tabular-nums text-neon">
                       {num.format(detail.friendsCount)}
                     </span>
                     <span className="text-xs text-ink/50">
                       {t("friends")}
+                    </span>
+                    <span className="block text-[11px] leading-tight text-ink/40">
+                      {t("friendsHint")}
                     </span>
                   </li>
                 </ul>

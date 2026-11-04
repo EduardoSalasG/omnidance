@@ -396,19 +396,33 @@ export default function VenuePage() {
                     [
                       t("kpi.upcoming"),
                       selected.upcomingCount ?? dash.upcoming.length,
+                      t("kpi.upcomingHint"),
                     ],
-                    [t("kpi.events30d"), dash.past30d.events],
-                    [t("kpi.checkins30d"), dash.past30d.checkins],
+                    [
+                      t("kpi.events30d"),
+                      dash.past30d.events,
+                      t("kpi.events30dHint"),
+                    ],
+                    [
+                      t("kpi.checkins30d"),
+                      dash.past30d.checkins,
+                      t("kpi.checkins30dHint"),
+                    ],
                   ] as const
-                ).map(([label, value]) => (
+                ).map(([label, value, hint]) => (
                   <li
                     key={label}
+                    title={hint}
+                    aria-label={`${label}: ${num.format(value)}. ${hint}`}
                     className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
                   >
                     <span className="block text-2xl font-bold tabular-nums text-neon">
                       {num.format(value)}
                     </span>
                     <span className="text-xs text-ink/50">{label}</span>
+                    <span className="block text-[11px] leading-tight text-ink/40">
+                      {hint}
+                    </span>
                   </li>
                 ))}
               </ul>

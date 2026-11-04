@@ -87,6 +87,7 @@
     "kpiBilled": "Encaissé ce mois-ci",
     "kpiTicket": "Ticket moyen",
     "kpiTopMethods": "Moyens les plus utilisés",
+    "kpiTopMethodsHint": "Top 3 moyens de paiement du mois",
     "kpiVsPrev": "vs mois dernier",
     "historyUnifiedTitle": "Historique des encaissements",
     "historyUnifiedDesc": "Justificatifs résolus et paiements par passerelle.",
@@ -120,8 +121,11 @@
     "report": {
       "link": "Rapport",
       "billed": "Facturé sur la période",
+      "billedHint": "Paiements encaissés sur la période filtrée",
       "payers": "Élèves ayant payé",
+      "payersHint": "Élèves distincts ayant payé",
       "topPlan": "Plan le plus vendu",
+      "topPlanHint": "Plan avec le plus de paiements sur la période",
       "topPlanMeta": "{count, plural, one {# encaissement} other {# encaissements}} · {amount}",
       "empty": "Aucun encaissement sur la période ou avec ces filtres.",
       "forbidden": "Vous n'avez pas accès à cette section."

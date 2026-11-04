@@ -116,24 +116,46 @@ function fmtHour(v: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-/** Tile KPI - mismo patrón que los tiles de /analitica (neon + label). */
-function Kpi({ label, value }: { label: string; value: string }) {
+/** Tile KPI - mismo patrón que los tiles de /analitica (neon + label +
+    hint visible bajo el label, como AcademyKpiCards). */
+function Kpi({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   return (
-    <li className="rounded-xl border border-line bg-elevated/60 px-4 py-3">
+    <li
+      className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
+      title={hint}
+      aria-label={`${label}: ${value}${hint ? `. ${hint}` : ""}`}
+    >
       <span className="block text-2xl font-bold tabular-nums text-neon">
         {value}
       </span>
       <span className="text-xs text-ink/50">{label}</span>
+      {hint && (
+        <span className="block text-[11px] leading-tight text-ink/40">
+          {hint}
+        </span>
+      )}
     </li>
   );
 }
 
-function KpiGrid({ items }: { items: { label: string; value: string }[] }) {
+function KpiGrid({
+  items,
+}: {
+  items: { label: string; value: string; hint?: string }[];
+}) {
   if (items.length === 0) return null;
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {items.map((k) => (
-        <Kpi key={k.label} label={k.label} value={k.value} />
+        <Kpi key={k.label} label={k.label} value={k.value} hint={k.hint} />
       ))}
     </ul>
   );
@@ -508,6 +530,7 @@ function RoleSections({
   const tg = useTranslations("adminCatalogs");
 
   const f = (k: string) => t(`user.fields.${k}`);
+  const fh = (k: string) => t(`user.fields.${k}Hint`);
   const roleLabel = (r: string) =>
     tp.has(`roleLabels.${r}`) ? tp(`roleLabels.${r}`) : r;
   const statusLabel = (s: string) =>
@@ -533,14 +556,15 @@ function RoleSections({
               </h2>
               <KpiGrid
                 items={[
-                  { label: f("totalSpent"), value: clp.format(social.totalSpentClp) },
-                  { label: f("monthSpent"), value: clp.format(social.monthSpentClp) },
-                  { label: f("monthlyAvg"), value: clp.format(social.monthlyAvgClp) },
-                  { label: f("dances"), value: num.format(social.dancesCount) },
-                  { label: f("seasonPoints"), value: num.format(social.seasonPoints) },
+                  { label: f("totalSpent"), value: clp.format(social.totalSpentClp), hint: fh("totalSpent") },
+                  { label: f("monthSpent"), value: clp.format(social.monthSpentClp), hint: fh("monthSpent") },
+                  { label: f("monthlyAvg"), value: clp.format(social.monthlyAvgClp), hint: fh("monthlyAvg") },
+                  { label: f("dances"), value: num.format(social.dancesCount), hint: fh("dances") },
+                  { label: f("seasonPoints"), value: num.format(social.seasonPoints), hint: fh("seasonPoints") },
                   {
                     label: f("rank"),
                     value: social.rank != null ? `#${num.format(social.rank)}` : "·",
+                    hint: fh("rank"),
                   },
                 ]}
               />
@@ -602,10 +626,10 @@ function RoleSections({
               </h2>
               <KpiGrid
                 items={[
-                  { label: f("currentMonthly"), value: clp.format(academy.currentMonthlyClp) },
-                  { label: f("totalPaid"), value: clp.format(academy.totalPaidClp) },
-                  { label: f("classesTaken"), value: num.format(academy.classesTaken) },
-                  { label: f("classesUpcoming"), value: num.format(academy.classesUpcoming) },
+                  { label: f("currentMonthly"), value: clp.format(academy.currentMonthlyClp), hint: fh("currentMonthly") },
+                  { label: f("totalPaid"), value: clp.format(academy.totalPaidClp), hint: fh("totalPaid") },
+                  { label: f("classesTaken"), value: num.format(academy.classesTaken), hint: fh("classesTaken") },
+                  { label: f("classesUpcoming"), value: num.format(academy.classesUpcoming), hint: fh("classesUpcoming") },
                 ]}
               />
               {academy.activeEnrollments.length > 0 && (
@@ -675,17 +699,18 @@ function RoleSections({
         <>
           <KpiGrid
             items={[
-              { label: f("eventsTotal"), value: num.format(d.eventsTotal) },
-              { label: f("eventsUpcoming"), value: num.format(d.eventsUpcoming) },
-              { label: f("grossAll"), value: clp.format(d.grossAllClp) },
-              { label: f("grossMonth"), value: clp.format(d.grossMonthClp) },
-              { label: f("ticketsSold"), value: num.format(d.ticketsSold) },
+              { label: f("eventsTotal"), value: num.format(d.eventsTotal), hint: fh("eventsTotal") },
+              { label: f("eventsUpcoming"), value: num.format(d.eventsUpcoming), hint: fh("eventsUpcoming") },
+              { label: f("grossAll"), value: clp.format(d.grossAllClp), hint: fh("grossAll") },
+              { label: f("grossMonth"), value: clp.format(d.grossMonthClp), hint: fh("grossMonth") },
+              { label: f("ticketsSold"), value: num.format(d.ticketsSold), hint: fh("ticketsSold") },
               {
                 label: f("avgOccupancy"),
                 value:
                   d.avgOccupancyPct != null
                     ? `${num.format(d.avgOccupancyPct)}%`
                     : "·",
+                hint: fh("avgOccupancy"),
               },
             ]}
           />
@@ -706,8 +731,8 @@ function RoleSections({
         <>
           <KpiGrid
             items={[
-              { label: f("eventsWorked"), value: num.format(d.eventsWorked) },
-              { label: f("upcomingShifts"), value: num.format(d.upcomingShifts) },
+              { label: f("eventsWorked"), value: num.format(d.eventsWorked), hint: fh("eventsWorked") },
+              { label: f("upcomingShifts"), value: num.format(d.upcomingShifts), hint: fh("upcomingShifts") },
             ]}
           />
           {d.producers.length > 0 && (
@@ -743,12 +768,13 @@ function RoleSections({
         <>
           <KpiGrid
             items={[
-              { label: f("classesTaught"), value: num.format(d.classesTaught) },
-              { label: f("classesUpcoming"), value: num.format(d.classesUpcoming) },
+              { label: f("classesTaught"), value: num.format(d.classesTaught), hint: fh("classesTaught") },
+              { label: f("classesUpcoming"), value: num.format(d.classesUpcoming), hint: fh("classesUpcoming") },
               {
                 label: f("avgFill"),
                 value:
                   d.avgFillPct != null ? `${num.format(d.avgFillPct)}%` : "·",
+                hint: fh("avgFill"),
               },
             ]}
           />
@@ -776,8 +802,8 @@ function RoleSections({
         <>
           <KpiGrid
             items={[
-              { label: f("gigsTotal"), value: num.format(d.gigsTotal) },
-              { label: f("gigsUpcoming"), value: num.format(d.gigsUpcoming) },
+              { label: f("gigsTotal"), value: num.format(d.gigsTotal), hint: fh("gigsTotal") },
+              { label: f("gigsUpcoming"), value: num.format(d.gigsUpcoming), hint: fh("gigsUpcoming") },
             ]}
           />
           {d.events.length > 0 && (

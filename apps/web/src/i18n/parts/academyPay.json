@@ -87,6 +87,7 @@
     "kpiBilled": "Facturado este mes",
     "kpiTicket": "Ticket promedio",
     "kpiTopMethods": "Medios más usados",
+    "kpiTopMethodsHint": "Top 3 medios de pago del mes",
     "kpiVsPrev": "vs mes anterior",
     "historyUnifiedTitle": "Historial de cobros",
     "historyUnifiedDesc": "Comprobantes resueltos y pagos por pasarela.",
@@ -120,8 +121,11 @@
     "report": {
       "link": "Reporte",
       "billed": "Facturado en el período",
+      "billedHint": "Cobros efectivos del período filtrado",
       "payers": "Alumnos que pagaron",
+      "payersHint": "Alumnos distintos que pagaron",
       "topPlan": "Plan más vendido",
+      "topPlanHint": "Plan con más cobros del período",
       "topPlanMeta": "{count, plural, one {# cobro} other {# cobros}} · {amount}",
       "empty": "Sin cobros en el período o con estos filtros.",
       "forbidden": "No tienes acceso a esta sección."

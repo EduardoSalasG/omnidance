@@ -262,7 +262,13 @@
     "country": "Country",
     "city": "City",
     "noCity": "No city",
-    "created": "Academy created"
+    "created": "Academy created",
+    "levels": {
+      "levelCountHint": "Active students at this level",
+      "lastTitle": "Last class attendance",
+      "avgTitle": "Average attendance",
+      "nextTitle": "Next class bookings"
+    }
   },
   "academySeries": {
     "addSlotHint": "Future classes are created on that day within the scheduling window.",
@@ -326,6 +332,7 @@
       "newDate": "New date and time",
       "toSchedule": "To schedule",
       "toAssign": "To assign",
+      "toAssignHint": "Purchased without instructor or date",
       "assign": "Assign",
       "assignTitle": "To assign",
       "assignSave": "Confirm assignment",
@@ -334,6 +341,7 @@
       "empty": "No private lessons in this academy.",
       "pendingTitle": "Pending confirmation",
       "pendingConfirm": "To confirm",
+      "pendingConfirmHint": "Assigned, awaiting confirmation",
       "status": {
         "REQUESTED": "Requested",
         "CONFIRMED": "Confirmed",
@@ -374,7 +382,10 @@
       "delete": "Delete",
       "confirmDelete": "Delete this video?",
       "added": "Video added.",
-      "deleted": "Video deleted."
+      "deleted": "Video deleted.",
+      "forbidden": "You don't have access to this section.",
+      "notFound": "Video not found.",
+      "addedOn": "Added"
     }
   },
   "academyPromos": {

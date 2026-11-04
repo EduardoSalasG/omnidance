@@ -11,8 +11,11 @@
     "capacity": "Capacity: {count} people",
     "kpi": {
       "upcoming": "Upcoming",
+      "upcomingHint": "Future events at this venue",
       "events30d": "Events 30d",
-      "checkins30d": "Check-ins 30d"
+      "events30dHint": "Events in the last 30 days",
+      "checkins30d": "Check-ins 30d",
+      "checkins30dHint": "Check-ins in the last 30 days"
     },
     "sections": {
       "upcoming": "Upcoming events",

@@ -335,12 +335,16 @@ export function PrivateLessons({ academy }: Props) {
             >
               {(
                 [
-                  [t.toAssign, pending.toAssign],
-                  [t.pendingConfirm, pending.toConfirm],
+                  [t.toAssign, pending.toAssign, t.toAssignHint],
+                  [t.pendingConfirm, pending.toConfirm, t.pendingConfirmHint],
                 ] as const
-              ).map(([label, value]) => (
+              ).map(([label, value, hint]) => (
                 <li key={label}>
-                  <Card className="flex h-full flex-col gap-1 p-4">
+                  <Card
+                    className="flex h-full flex-col gap-1 p-4"
+                    title={hint}
+                    aria-label={`${label}: ${value}. ${hint}`}
+                  >
                     <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
                       {label}
                     </span>
@@ -350,6 +354,9 @@ export function PrivateLessons({ academy }: Props) {
                       }`}
                     >
                       {value}
+                    </span>
+                    <span className="text-[11px] leading-tight text-ink/50">
+                      {hint}
                     </span>
                   </Card>
                 </li>

@@ -383,8 +383,9 @@
 - Métodos de pago: lista métodos admin (incluye inactivos) → /{methodId}; nuevo: type TRANSFER|PAYMENT_LINK|CASH + label*≤60 + details por tipo + order → POST (errores genéricos sin server msg); [methodId]: PATCH label/details/order/active; delete ConfirmSheet.
 
 ### Videos `/academia/videos*` (lectura amplia; escritura cap schedule + canAdminister UI)
-- Lista `GET /academies/:id/videos?q` paginado 24: no-staff ven restringidos masked `locked:true` (unlock por asistencia/enrollment); cards → link externo si unlocked; admin ve CTA nuevo + delete ConfirmSheet.
+- Lista `GET /academies/:id/videos?q` paginado 24: no-staff ven restringidos masked `locked:true` (unlock por asistencia/enrollment) y su card → link externo si unlocked; admin ve CTA nuevo y cards clickeables (chevron) → ficha `[id]`.
 - Nuevo: title*, url* (solo externos), classId texto libre (404 si no es de la academia), restrictedToAttended (default true) → POST → lista 1200ms.
+- Ficha `[id]` (owner/ADMIN): badges + link externo "Ver video" + datos en `dl` + zona roja delete ConfirmSheet → `DELETE /academies/:id/videos/:videoId` → ActionNotice + vuelta al listado. Sin `GET /videos/:videoId` propio: resuelve el video recorriendo el listado paginado (pageSize 100); 401/403/404 → "sin acceso", no hallado → notFound con CTA. Edición pendiente: el backend no expone PATCH/PUT de video.
 
 ---
 

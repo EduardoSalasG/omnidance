@@ -88,11 +88,6 @@ confirmación. La confirmación es `ConfirmSheet` de `components/ui`
 nunca `window.confirm`, que bloquea el hilo, no atrapa foco y no
 respeta el design system.
 
-**Excepción documentada**: entidades sin ficha posible (el video de
-`/academia/videos` es solo un link externo, no hay página de detalle
-donde alojar el delete) conservan el control destructivo en la card
-del listado, pero SIEMPRE con `ConfirmSheet` — nunca delete de un tap.
-
 ### 5. Chrome y jerarquía de título
 
 - `ConsoleHeader backHref backLabel` al tope de TODA página de consola

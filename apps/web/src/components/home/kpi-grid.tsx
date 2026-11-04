@@ -38,9 +38,19 @@ export function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
           // KPI nuevo del API sin key en el catálogo → fallback al
           // key crudo en vez de error de next-intl.
           const key = `kpi.${k.key}`;
+          const hintKey = `kpi.${k.key}Hint`;
+          const label = t.has(key) ? t(key) : k.key;
+          // Hint visible bajo el label (patrón AcademyKpiCards): qué
+          // mide el número; si el KPI es nuevo y aún no tiene hint en
+          // el catálogo, la card queda sin línea extra.
+          const hint = t.has(hintKey) ? t(hintKey) : null;
+          const value =
+            k.format === "clp" ? clp(locale).format(k.value) : String(k.value);
           return (
             <li
               key={k.key}
+              title={hint ?? undefined}
+              aria-label={`${label}: ${value}${hint ? `. ${hint}` : ""}`}
               className={`rounded-xl border bg-elevated/60 px-4 py-3 ${
                 ATTENTION_KEYS.has(k.key) && k.value > 0
                   ? "border-neon/60"
@@ -48,11 +58,14 @@ export function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
               }`}
             >
               <span className="block text-2xl font-bold tabular-nums">
-                {k.format === "clp" ? clp(locale).format(k.value) : k.value}
+                {value}
               </span>
-              <span className="text-xs text-ink/50">
-                {t.has(key) ? t(key) : k.key}
-              </span>
+              <span className="text-xs text-ink/50">{label}</span>
+              {hint !== null && (
+                <span className="block text-[11px] leading-tight text-ink/40">
+                  {hint}
+                </span>
+              )}
             </li>
           );
         })}
