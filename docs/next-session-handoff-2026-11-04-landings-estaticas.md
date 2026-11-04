@@ -1,9 +1,9 @@
 # Handoff: landings-estaticas completado + archivado
 
-**Rama**: `dev`. Stack: DB/Redis en docker (arriba). Web dev corriendo
-en background (shell web2, :3000). **API apagada** - la maté para el
-smoke de "landings sin backend"; levantar con `pnpm dev:api` si se
-necesita (`THROTTLE_AUTH_LIMIT=120` para e2e).
+**Rama**: `dev`. Stack: solo DB/Redis en docker (arriba). **API y web
+dev apagadas** al cerrar la sesión (la API se mató para el smoke de
+"landings sin backend"). Levantar con `pnpm dev` o por separado
+(`THROTTLE_AUTH_LIMIT=120` en la API si se corren e2e).
 
 ## Commit de la sesión
 
