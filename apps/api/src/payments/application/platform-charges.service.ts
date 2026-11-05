@@ -246,4 +246,117 @@ export class PlatformChargesService {
       paymentUrl: res.paymentUrl,
     };
   }
+
+  /** Contadores del barrido para JobRun.meta / logs. */
+  async retryPending(actor: string): Promise<{
+    scanned: number;
+    exhausted: number;
+    collected: number;
+    failed: number;
+    pending: number;
+  }> {
+    const maxAttempts = await this.params.getNumber(
+      "platform_charges.retry.max_attempts",
+      5,
+    );
+    const out = {
+      scanned: 0,
+      exhausted: 0,
+      collected: 0,
+      failed: 0,
+      pending: 0,
+    };
+    // FIFO: el cargo más viejo primero. Solo los PENDING - PAID/FAILED
+    // son terminales y el actor siempre puede pagar por link.
+    const charges = await this.prisma.payment.findMany({
+      where: { orderType: "PLATFORM_CHARGE", status: "PENDING" },
+      orderBy: { createdAt: "asc" },
+    });
+    for (const charge of charges) {
+      const attempts = await this.prisma.paymentEvent.count({
+        where: { paymentId: charge.id, type: "COLLECT_ATTEMPT" },
+      });
+      if (attempts >= maxAttempts) {
+        out.exhausted += 1;
+        continue;
+      }
+      out.scanned += 1;
+      const created = await this.prisma.paymentEvent.findFirst({
+        where: { paymentId: charge.id, type: "ORDER_CREATED" },
+      });
+      const payload = created?.payload as { subject?: unknown } | null;
+      const subject =
+        typeof payload?.subject === "string"
+          ? payload.subject
+          : "Cobro plataforma";
+      const currency = (charge.currency ?? "CLP").toUpperCase();
+      const { provider, name: providerName } =
+        await this.provider(currency);
+      if (typeof provider.collect !== "function") {
+        throw new BadRequestException(
+          "el proveedor de suscripciones no soporta cobro on-demand",
+        );
+      }
+      const { customerId } = await ensureFlowCustomer(
+        this.prisma,
+        provider,
+        providerName,
+        charge.personId,
+        { correlationId: randomUUID() },
+      );
+      // Intento auditado ANTES de llamar al proveedor: si el proceso
+      // muere durante la llamada externa el intento igual cuenta.
+      await this.prisma.$transaction((tx) =>
+        emitPaymentEvent(tx, charge.id, "COLLECT_ATTEMPT", actor, {
+          refId: charge.refId,
+          attempt: attempts + 1,
+        }),
+      );
+      let res: CollectResult;
+      try {
+        res = await provider.collect(
+          {
+            customerId,
+            amount: charge.amount,
+            subject,
+            commerceOrder: charge.refId,
+            returnUrl: `${this.apiUrl}/api/payments/order-return`,
+            currency,
+          },
+          { correlationId: randomUUID() },
+        );
+      } catch (e) {
+        // Error transitorio: aborta el barrido sin liberar el claim ni
+        // seguir iterando - el intento queda registrado y el próximo
+        // run reintenta (mismo patrón que collectOverdueInvoices).
+        this.logger.warn(
+          `retryPending collect ${charge.id}: ${e instanceof Error ? e.message : e}`,
+        );
+        throw e;
+      }
+      if (res.flowOrder) {
+        await this.prisma.payment.updateMany({
+          where: { id: charge.id },
+          data: { gatewayRef: res.flowOrder },
+        });
+      }
+      const current: Payment = {
+        ...charge,
+        gatewayRef: res.flowOrder ?? charge.gatewayRef,
+      };
+      if (res.outcome === "COLLECTED") {
+        await this.settlement.settlePlatformCharge(current, {
+          actor,
+          gatewayData: res.gatewayData,
+        });
+        out.collected += 1;
+      } else if (res.outcome === "FAILED") {
+        await this.settlement.settle(current, "FAILED", { actor });
+        out.failed += 1;
+      } else {
+        out.pending += 1;
+      }
+    }
+    return out;
+  }
 }

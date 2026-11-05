@@ -119,6 +119,15 @@ function mkPrisma() {
         payments.delete(where.id);
         return {};
       }),
+      findMany: vi.fn(async ({ where, orderBy }: { where?: Row; orderBy?: Row } = {}) =>
+        [...payments.values()]
+          .filter((r) => !where || matchWhere(r, where))
+          .sort(
+            (a, b) =>
+              ((a.createdAt as Date)?.getTime?.() ?? 0) -
+              ((b.createdAt as Date)?.getTime?.() ?? 0),
+          ),
+      ),
     },
     paymentEvent: {
       findFirst: vi.fn(
@@ -133,6 +142,10 @@ function mkPrisma() {
         events.push(stored);
         return stored;
       }),
+      count: vi.fn(
+        async ({ where }: { where: Row }) =>
+          events.filter((e) => matchWhere(e, where)).length,
+      ),
       deleteMany: vi.fn(
         async ({ where }: { where: { paymentId: string } }) => {
           const before = events.length;
@@ -409,5 +422,157 @@ describe("AdminPlatformChargesController (guard)", () => {
         adminId: "adm-1",
       }),
     );
+  });
+});
+
+// retryPending (spec payments/platform-charges): barrido del job
+// platform-charges.collect - reintento sobre el MISMO Payment PENDING,
+// tope por COLLECT_ATTEMPT y abort en error transitorio.
+describe("PlatformChargesService.retryPending", () => {
+  let fx: ReturnType<typeof mkPrisma>;
+  let provider: ReturnType<typeof mkProvider>;
+  let notifications: ReturnType<typeof mkNotifications>;
+  let svc: PlatformChargesService;
+
+  function seedCharge(opts: { attempts?: number; status?: string } = {}) {
+    const id = `chg-${fx.payments.size + 1}`;
+    const refId = `platchg_aaaa-bbbb-cccc-${fx.payments.size + 1}`;
+    fx.payments.set(id, {
+      id,
+      orderType: "PLATFORM_CHARGE",
+      refId,
+      personId: "p1",
+      amount: 50000,
+      fee: 0,
+      net: 50000,
+      currency: "CLP",
+      gateway: "FLOW",
+      status: opts.status ?? "PENDING",
+      createdAt: new Date(),
+      gatewayRef: null,
+    });
+    fx.events.push({
+      paymentId: id,
+      seq: 1,
+      type: "ORDER_CREATED",
+      actor: "admin",
+      payload: { refId, subject: "Deuda test", amount: 50000 },
+    });
+    for (let i = 0; i < (opts.attempts ?? 0); i++) {
+      fx.events.push({
+        paymentId: id,
+        seq: 2 + i,
+        type: "COLLECT_ATTEMPT",
+        actor: "cron",
+        payload: { refId, attempt: i + 1 },
+      });
+    }
+    return id;
+  }
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    provider = mkProvider();
+    notifications = mkNotifications();
+    fx.persons.set("p1", {
+      id: "p1",
+      name: "Owner Uno",
+      email: "owner@example.cl",
+      gatewayCustomerIds: { FLOW: "cus_p1" },
+    });
+    const prisma = fx.prisma as unknown as PrismaService;
+    const paramsSvc = {
+      get: vi.fn(async (_k: string) => null),
+      getNumber: vi.fn(async (_k: string, fb: number) => fb),
+    } as unknown as ParamsService;
+    const notif = notifications as unknown as NotificationsService;
+    svc = new PlatformChargesService(
+      prisma,
+      paramsSvc,
+      new PaymentSettlementService(prisma, paramsSvc, notif, {
+        send: vi.fn(async () => undefined),
+      }),
+      new GatewayRegistry([provider as unknown as PaymentGateway], "FLOW"),
+    );
+  });
+
+  it("PENDING recuperado → PAID sobre el mismo Payment + COLLECT_ATTEMPT", async () => {
+    const id = seedCharge();
+    const r = await svc.retryPending("cron");
+    expect(r).toEqual({
+      scanned: 1,
+      exhausted: 0,
+      collected: 1,
+      failed: 0,
+      pending: 0,
+    });
+    expect(fx.payments.get(id)!.status).toBe("PAID");
+    expect(fx.payments.get(id)!.gatewayRef).toBe("fo-1");
+    expect(provider.collect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customerId: "cus_p1",
+        amount: 50000,
+        subject: "Deuda test",
+        commerceOrder: expect.stringMatching(/^platchg_/),
+      }),
+      expect.anything(),
+    );
+    const types = fx.events
+      .filter((e) => e.paymentId === id)
+      .map((e) => e.type);
+    expect(types).toEqual([
+      "ORDER_CREATED",
+      "COLLECT_ATTEMPT",
+      "STATUS_CONFIRMED",
+      "SETTLED",
+    ]);
+  });
+
+  it("provider PENDING → sigue PENDING, intento contado, elegible al próximo run", async () => {
+    const id = seedCharge();
+    provider.collect.mockResolvedValue({
+      outcome: "PENDING",
+      paymentUrl: "https://pago.link/x",
+    } as never);
+    const r = await svc.retryPending("cron");
+    expect(r.pending).toBe(1);
+    expect(fx.payments.get(id)!.status).toBe("PENDING");
+    expect(
+      fx.events.filter(
+        (e) => e.paymentId === id && e.type === "COLLECT_ATTEMPT",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("tope de reintentos → no invoca collect y cuenta exhausted", async () => {
+    seedCharge({ attempts: 5 });
+    const r = await svc.retryPending("cron");
+    expect(provider.collect).not.toHaveBeenCalled();
+    expect(r).toEqual({
+      scanned: 0,
+      exhausted: 1,
+      collected: 0,
+      failed: 0,
+      pending: 0,
+    });
+  });
+
+  it("FAILED → settle FAILED sobre el mismo Payment", async () => {
+    const id = seedCharge();
+    provider.collect.mockResolvedValue({ outcome: "FAILED" } as never);
+    const r = await svc.retryPending("cron");
+    expect(r.failed).toBe(1);
+    expect(fx.payments.get(id)!.status).toBe("FAILED");
+  });
+
+  it("error transitorio → aborta el barrido sin procesar el resto", async () => {
+    seedCharge();
+    seedCharge();
+    provider.collect.mockRejectedValueOnce(new Error("flow HTTP 503"));
+    await expect(svc.retryPending("cron")).rejects.toThrow("flow HTTP 503");
+    // El intento del primero quedó registrado; el segundo ni se tocó.
+    const attempts = fx.events.filter((e) => e.type === "COLLECT_ATTEMPT");
+    expect(attempts).toHaveLength(1);
+    expect(provider.collect).toHaveBeenCalledTimes(1);
   });
 });

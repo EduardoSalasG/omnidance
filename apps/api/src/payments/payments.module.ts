@@ -44,6 +44,7 @@ import { AcademySalesController } from "./infrastructure/academy-sales.controlle
 import { AcademySalesService } from "./application/academy-sales.service";
 import { AcademyPromosService } from "./application/academy-promos.service";
 import { SubscriptionsScheduler } from "./infrastructure/subscriptions.scheduler";
+import { PlatformChargesScheduler } from "./infrastructure/platform-charges.scheduler";
 import { TicketsScheduler } from "./infrastructure/tickets.scheduler";
 import { WalletController } from "./infrastructure/wallet.controller";
 import { WalletService } from "./application/wallet.service";
@@ -94,6 +95,7 @@ import { SocialPassController } from "./infrastructure/social-pass.controller";
     PlatformSubscriptionsService,
     PlatformChargesService,
     SubscriptionsScheduler,
+    PlatformChargesScheduler,
     TicketsScheduler,
     TicketDayOfService,
     WalletService,
