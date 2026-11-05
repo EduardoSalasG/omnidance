@@ -636,6 +636,24 @@ async function main() {
   say(`PlatformSubscription nuevas: ${platSubs} (trial se conserva en: ${[...TRIAL_KEEP].join(", ")})`);
 
   // MembershipSubscription por academia: alumnos con plan pagado sin sub viva.
+  // flowSubscriptionId es unique global: el id determinista puede quedar
+  // tomado por una sub muerta (CANCELED/FAILED_CARD) de una corrida
+  // anterior - en ese caso se sufija _v2, _v3, ... hasta quedar libre.
+  const takenFlowSubIds = new Set(
+    (
+      await prisma.membershipSubscription.findMany({
+        where: { flowSubscriptionId: { not: null } },
+        select: { flowSubscriptionId: true },
+      })
+    ).map((s) => s.flowSubscriptionId)
+  );
+  const nextFlowSubId = (personId, academyId) => {
+    const base = `sus_enrich_${h(personId + academyId).toString(16)}`;
+    let cand = base;
+    for (let v = 2; takenFlowSubIds.has(cand); v++) cand = `${base}_v${v}`;
+    takenFlowSubIds.add(cand);
+    return cand;
+  };
   let memSubs = 0, pendingClaimsFromSubs = 0;
   for (const a of academies) {
     const enrolled = await prisma.enrollment.findMany({
@@ -649,7 +667,11 @@ async function main() {
       select: { personId: true, status: true },
     });
     const busy = new Set(liveSubs.map((s) => s.personId));
-    const free = enrolled.filter((e) => !busy.has(e.personId));
+    // Una sub por persona: la misma persona puede salir 2 veces en
+    // enrolled (varios planes) o repetirse por el índice modular - ambas
+    // colisionan en flowSubscriptionId.
+    const seen = new Set();
+    const free = enrolled.filter((e) => !busy.has(e.personId) && !seen.has(e.personId) && seen.add(e.personId));
     // Tope por academia (idempotente: descuenta subs ya vivas) y al
     // menos una TRANSFER PENDING_PAYMENT para poblar la cola de claims.
     const want = Math.min(enrolled.length, Math.min(5, Math.max(1, Math.round(enrolled.length / 15))));
@@ -658,8 +680,10 @@ async function main() {
     const hasPending = liveSubs.some((s) => s.status === "PENDING_PAYMENT");
     const create = Math.min(free.length, Math.max(0, want - liveSubs.length) + (hasPending ? 0 : 1));
     const pendingWanted = hasPending ? 0 : Math.min(create >= 3 ? 2 : 1, create);
+    // Orden determinista por persona - garantiza picks únicos.
+    const picks = [...free].sort((x, y) => h(x.personId + a.id) - h(y.personId + a.id));
     for (let k = 0; k < create; k++) {
-      const e = free[(h(a.id) + k * 7) % free.length];
+      const e = picks[k];
       const isPending = pendingWanted > 0 && k >= create - pendingWanted;
       const mode = isPending ? 9 : k % 4; // 0-1 CARD · 2 TRANSFER · 3 CANCEL_PENDING · 9 PENDING_PAYMENT
       const base = {
@@ -673,7 +697,7 @@ async function main() {
         await prisma.membershipSubscription.create({
           data: {
             ...base, paymentMethod: isCard ? "CARD" : "TRANSFER", status: "ACTIVE",
-            flowSubscriptionId: isCard ? `sus_enrich_${h(e.personId + a.id).toString(16)}` : null,
+            flowSubscriptionId: isCard ? nextFlowSubId(e.personId, a.id) : null,
             nextInvoiceAt: new Date(Date.now() + (15 + (h(e.personId) % 15)) * 86_400_000),
             currentPeriodEnd: isCard ? null : new Date(Date.now() + (15 + (h(e.personId) % 15)) * 86_400_000),
             lastInvoiceId: isCard ? `enrich-inv-${h(e.personId) % 99999}` : null,
@@ -697,7 +721,7 @@ async function main() {
         await prisma.membershipSubscription.create({
           data: {
             ...base, paymentMethod: "CARD", status: "CANCEL_PENDING",
-            flowSubscriptionId: `sus_enrich_${h(e.personId + a.id).toString(16)}`,
+            flowSubscriptionId: nextFlowSubId(e.personId, a.id),
             nextInvoiceAt: new Date(Date.now() + 18 * 86_400_000),
             canceledAt: new Date(Date.now() - 2 * 86_400_000),
           },

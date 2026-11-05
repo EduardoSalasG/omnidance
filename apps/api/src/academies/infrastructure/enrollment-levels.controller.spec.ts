@@ -140,6 +140,7 @@ describe("EnrollmentsController.setLevels", () => {
       "acad-1",
       expect.anything(),
       "students",
+      "classes",
     );
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
@@ -508,6 +509,7 @@ describe("AcademiesController.deleteAcademyLevels", () => {
       "acad-1",
       expect.anything(),
       "schedule",
+      "classes",
     );
   });
 
