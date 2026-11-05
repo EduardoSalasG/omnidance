@@ -1300,9 +1300,9 @@ export class EventsController {
 
   /**
    * Asigna staff al evento: owner o admin. Upsert por (eventId, personId) -
-   * reenviar actualiza el rol sin duplicar la asignación. La gestión
-   * multi-staff es feature Producer Pro (S5): el owner sin Pro vigente
-   * recibe 403 `tier.required` (admin operando su evento no se gatea).
+   * reenviar actualiza el rol sin duplicar la asignación. El staff del
+   * evento no es feature premium ni tiene cupo (spec producer-pro:
+   * la puerta con 1-2 personas es la norma operativa).
    */
   @Post(":id/staff")
   @UseGuards(SessionGuard)
@@ -1313,20 +1313,6 @@ export class EventsController {
   ) {
     const event = await this.findEventOr404(id);
     await this.requireOwnerOrAdmin(event.producerId, req.person!);
-    // Sin Pro se permite un cupo mínimo de staff por evento
-    // (producer_tier.free_staff_max, default 2): la puerta con 1-2
-    // personas es la norma operativa, no un feature premium. El gate
-    // `multiStaff` solo aplica para ir más allá del cupo.
-    const freeMax = await this.params.getNumber(
-      "producer_tier.free_staff_max",
-      2,
-    );
-    const assigned = await this.prisma.staffAssignment.count({
-      where: { eventId: id },
-    });
-    if (assigned >= freeMax) {
-      await this.requireFeatureSelf(event.producerId, req.person!, "multiStaff");
-    }
     const person = await this.prisma.person.findUnique({
       where: { id: dto.personId },
       select: { id: true },

@@ -2045,41 +2045,24 @@ describe("PlatformSubscriptionsService", () => {
       expect(view.effectivePro).toBe(true);
     });
 
-    // Superficie del tier (spec producer-pro): cupo de la nómina +
-    // features habilitadas del tier efectivo (trial → PRO_STARTER).
-    it("expone staffUsed/staffLimit y enabledFeatures del tier efectivo", async () => {
-      fx.producerStaffRows.push(
-        { id: "ps-1", producerId: "p1", personId: "s1" },
-        { id: "ps-2", producerId: "p1", personId: "s2" },
-      );
+    // Superficie del tier (spec producer-pro): features habilitadas
+    // del tier efectivo (trial → PRO_STARTER). El staff no tiene cupo.
+    it("expone enabledFeatures del tier efectivo", async () => {
       const p = fx.persons.get("p1")!;
       p.proTier = "PRO_STARTER";
       const view = await svc.producerProView("p1");
-      expect(view.staffUsed).toBe(2);
-      expect(view.staffLimit).toBe(2);
-      expect(view.enabledFeatures).toEqual([
-        "analytics",
-        "exports",
-        "multiStaff",
-      ]);
+      expect(view.enabledFeatures).toEqual(["analytics", "exports"]);
     });
 
-    it("trial vigente → cupo PRO_STARTER; PRO_BIG → staffLimit null (sin tope)", async () => {
+    it("PRO_BIG → enabledFeatures incluye campaigns", async () => {
       const p = fx.persons.get("p1")!;
-      p.proTrialEndsAt = new Date(Date.now() + 30 * DAY);
-      let view = await svc.producerProView("p1");
-      expect(view.staffLimit).toBe(2);
       p.proTier = "PRO_BIG";
-      p.proTrialEndsAt = null;
-      view = await svc.producerProView("p1");
-      expect(view.staffLimit).toBeNull();
+      const view = await svc.producerProView("p1");
       expect(view.enabledFeatures).toContain("campaigns");
     });
 
-    it("FREE sin Pro → cupo libre de puerta (free_staff_max) y sin features", async () => {
+    it("FREE sin Pro → sin features habilitadas", async () => {
       const view = await svc.producerProView("p1");
-      expect(view.staffUsed).toBe(0);
-      expect(view.staffLimit).toBe(2);
       expect(view.enabledFeatures).toEqual([]);
     });
   });

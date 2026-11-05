@@ -662,7 +662,7 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 
 | Tier | Precio mensual | Facturación 90d | Incluye |
 |---|---|---|---|
-| **Free** | $0 | sin tope | Publica y vende siempre: ticketing online + QR + check-in + liquidación; comisión 9,14% por venta; staff hasta 2 por evento |
+| **Free** | $0 | sin tope | Publica y vende siempre: ticketing online + QR + check-in + liquidación; comisión 9,14% por venta; staff sin cupo por evento ni nómina |
 | **Standard** | $79.700 | ≤$8M | Analíticas, CRM de la audiencia, exportaciones; comisión baja a ~7,36% |
 | **Pro** | $169.500 | >$8M | + campañas segmentadas, benchmark vs escena; comisión baja a ~6,17% |
 

@@ -3095,7 +3095,7 @@ export class AcademiesController {
   @Get(":id/class-levels")
   @UseGuards(SessionGuard)
   async academyClassLevels(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireCapability(id, req.person!, "schedule");
+    await this.access.requireCapability(id, req.person!, "schedule", "classes");
     const [custom, global] = await Promise.all([
       this.prisma.classLevel.findMany({
         where: { academyId: id },
@@ -3116,7 +3116,7 @@ export class AcademiesController {
     @Body() dto: AcademyClassLevelDto,
     @Req() req: Request,
   ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const dup = await this.prisma.classLevel.findFirst({
       where: {
         academyId: id,
@@ -3148,7 +3148,7 @@ export class AcademiesController {
     @Body() dto: AcademyClassLevelDto,
     @Req() req: Request,
   ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const level = await this.prisma.classLevel.findUnique({
       where: { id: levelId },
     });
@@ -3169,7 +3169,7 @@ export class AcademiesController {
     @Param("levelId") levelId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const level = await this.prisma.classLevel.findUnique({
       where: { id: levelId },
     });
@@ -3200,7 +3200,7 @@ export class AcademiesController {
   @HttpCode(200)
   @UseGuards(SessionGuard)
   async deleteAcademyLevels(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const custom = await this.prisma.classLevel.findMany({
       where: { academyId: id },
       select: { id: true, name: true },
@@ -3299,6 +3299,7 @@ export class EnrollmentsController {
       enrollment.academyId,
       req.person!,
       "students",
+      "classes",
     );
 
     // Un classTypeId por entrada: repetido haría ambiguo el "reemplazo

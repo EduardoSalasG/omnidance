@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError } from "@/components/academy/shared";
 import { useRouter } from "@/i18n/navigation";
@@ -30,11 +31,13 @@ export default function InstructorEditPage() {
       />
       <AcademyGate>
         {({ academy }) => (
+          <AcademyTierGate academy={academy} feature="staff">
           <EditAgreement
             key={`${academy.id}:${params.id}`}
             academyId={academy.id}
             personId={params.id}
           />
+          </AcademyTierGate>
         )}
       </AcademyGate>
     </main>

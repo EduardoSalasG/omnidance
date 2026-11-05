@@ -189,10 +189,8 @@ export default function ProducerEventDetailPage(
   // Gate por feature: aplica solo cuando el caller ES el productor
   // dueño (requireProSelf - un admin operando evento ajeno no se
   // gatea). Cada sección declara su feature del plan (espejo de
-  // PRODUCER_FEATURES del API: multiStaff, analytics…).
+  // PRODUCER_FEATURES del API: analytics, crm…). El staff no se gatea.
   const isOwnEvent = event != null && event.producerId === meId;
-  const staffLocked =
-    isOwnEvent && !producerEnt.loading && !producerEnt.has("multiStaff");
   const analyticsLocked =
     isOwnEvent && !producerEnt.loading && !producerEnt.has("analytics");
 
@@ -342,7 +340,7 @@ export default function ProducerEventDetailPage(
 
           {canManage && <LiveSection eventId={eventId} status={event.status} />}
 
-          <StaffSection eventId={eventId} tierLocked={staffLocked} />
+          <StaffSection eventId={eventId} />
           <PassesSection eventId={eventId} />
           {/* Ventas del evento - se oculta sola ante 403/404 (no-owner). */}
           <PaymentsSection eventId={eventId} />
