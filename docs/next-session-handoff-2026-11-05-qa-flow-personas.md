@@ -65,19 +65,34 @@ mismo criterio que `c691c793`).
      ledger `ORDER_CREATED`(admin) → `STATUS_CONFIRMED`(polling)
      → `SETTLED`(polling) → Payment PAID.
 
-## Hallazgo: suscripciones divergentes Flow↔DB
+## Hallazgo resuelto: suscripciones divergentes Flow↔DB
 
-El dashboard Flow sandbox muestra 3 suscripciones "Activa" con cargo
-automático que en nuestra DB figuran **CANCELED**:
-`sus_wb1a57f42b` (Academia PRO anual, gmail.cl, próximo cargo
-03-11-2027), `sus_f8d317bdc1` (Mambo Madness Ilimitado, gmail03,
-02-12-2026) y `sus_sb26ca3fa9` (Clave Timba Esencial, gmail.cl,
-02-12-2026). En la fecha Flow cobrará la tarjeta igual: en prod el
-webhook avisaría (y chocaría con la sub CANCELED local); en dev el
-cargo pasa invisible. Hipótesis: la cancelación local no propagó el
-`subscription/cancel` a Flow (cancel via admin/test, o DB restaurada).
-Pendiente decidir si cancelarlas en el dashboard Flow para dejar el
-sandbox limpio o investigar la rama de cancelación.
+**Causa raíz**: la API de la sesión anterior quedó viva con
+`PAYMENT_GATEWAY=stub`. El cron `subscriptions.reconcile` de las 09:00
+(12:00 UTC) corrió con registry=[STUB] (resolveGateways registra solo
+el primario; FLOW no entra aunque haya credenciales), el param
+`payments.subscription_gateway="FLOW"` cayó al default STUB, y
+`StubGateway.getSubscription(id desconocido)` devuelve CANCELED por
+diseño ("la fila local converja"). Resultado: **42 subs CANCELED en
+batch** (41 membership canceledAt ~12:00:00.7 + 1 platform), entre
+ellas las 3 reales de Flow. Nunca hubo cancel remoto - Flow las sigue
+reportando status=1.
+
+**Reparación aplicada**: las 3 reales restauradas a ACTIVE +
+nextInvoiceAt desde Flow (mems 2026-12-02, plat 2027-11-03,
+canceledAt=null). Las 39 `sus_enrich_*` (ids fabricados por el enrich,
+nunca existieron en Flow) quedan CANCELED - correcto.
+
+**Trampa residual conocida**: correr `PAYMENT_GATEWAY=stub` contra una
+DB con subs reales de Flow re-cancela todo en el próximo reconcile
+(09:00). La receta e2e de AGENTS.md usa stub - ojo al correrla contra
+esta DB. Fix durable propuesto (sin hacer): registrar FlowGateway en
+`resolveGateways` cuando haya FLOW_API_KEY+SECRET aunque el primario
+sea stub, igual que MercadoPago/Stripe se registran por credenciales.
+Es cambio de comportamiento → change OpenSpec propio si se decide.
+
+**Decisión del usuario**: dev se corre solo con `PAYMENT_GATEWAY=flow`
+(como está en `.env`).
 
 ## QA manual con flow - receta
 
@@ -94,9 +109,13 @@ sandbox limpio o investigar la rama de cancelación.
 
 - **Completar un pago real en Flow sandbox** (la parte interactiva:
   RUT+pass en el front de Flow) y verificar el settle PAID por polling.
-  Links vivos para probar: ticket Switch `cmw3k3rda000c10iaxy17jvdr` y
-  platform charge `cmw3khtnc002110iamk0ash9v` (este último además
-  prueba el settle PAID de un PLATFORM_CHARGE por link).
+  Links vivos: ticket Switch
+  `https://sandbox.flow.cl/app/web/pay.php?token=1581CC8F18C14FFE41944778EF421F251F341B7M`
+  y platform charge outlook
+  `https://sandbox.flow.cl/app/web/pay.php?token=7F4C5EAB8015EA3B2AA736F7CA78D47FB19F252V`
+  (ojo: el retry del job creó una 2ª orden Flow para el mismo
+  commerceOrder - pagar este link liquida la 1ª; el polling por
+  getStatusByCommerceId puede leer la 2ª, que sigue impaga).
 - **Camino COLLECTED de collect**: verificado (ver §7) - gmail03 y
   gmail.cl tienen tarjeta registrada en Flow (`flowCustomerId` en DB).
 - `multipais-foundation` tasks 10/11/13 (épica: pases multi-día
