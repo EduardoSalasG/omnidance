@@ -86,6 +86,45 @@ Specs endurecidos (patrones WebKit):
 
 ## Pendiente
 
+### Personas reales para QA con gateway=flow (pedido del usuario)
+
+Idea: usar correos reales para correr QA con `PAYMENT_GATEWAY=flow`
+(Flow rechaza `*@omnidance.dev`; con correo real el checkout puede
+proceder al redirect de Flow sandbox). Estado actual en DB (2026-11-05):
+
+| Email | Existe | Roles | Data | Propuesto |
+|---|---|---|---|---|
+| salas.eduardo03@gmail.com | sí, verified | DANCER | 1 enrollment, 1 booking, 3 att, 1 payment | **dancer** |
+| salas.eduardo.cl@gmail.com | sí, verified | DANCER+ACADEMY_OWNER+INSTRUCTOR | owner "La Casa del Mambo", 2 enr, 13 bookings, 17 att, 6 payments | **academy** |
+| salas.eduardo03@outlook.com | sí, NO verified | DANCER | sin data (cuenta nueva 11-02) | **producer** (asignar rol) |
+| salas.eduardo.backup@gmail.com | sí, verified | DANCER+ACADEMY_OWNER | owner "Mi mambo", sin data | academy backup / segundo dancer |
+| hello@eduardosalasg.dev | NO existe | — | — | crear si se necesita producer real o staff |
+| eduardo.salasgo@correoaiep.cl | NO existe | — | — | crear si se necesita staff/soporte |
+
+Trabajo para la próxima sesión:
+
+1. **Roles**: asignar rol PRODUCER a la persona elegida (outlook o
+   hello@). `Event.producerId` apunta a `Person.id` — el rol de
+   productor es PersonRole.
+2. **Password para auth.setup**: los e2e hacen login por password
+   (`USERS`/`PASSWORD` en e2e/helpers.ts). Las cuentas reales nacieron
+   por magic link → probablemente sin `passwordHash` usable. Setear
+   hash de `omnidance123` (mismo hash que el seed) en las personas
+   elegidas, o extender helpers con un segundo set de usuarios QA
+   (QA_USERS real) en vez de pisar USERS.
+3. **Specs flow-mode**: los specs de checkout asumen stub (PAID/FAILED
+   deterministas). Con flow real el checkout redirige a flow.cl —
+   conviene un spec aparte "hasta el redirect" o correr QA manual.
+   Decidir si los specs stub se mantienen en stub (recomendado: sí) y
+   flow se prueba manual/adicional.
+4. **Verificar claves Flow del .env**: sandbox vs producción — QA debe
+   quedar en sandbox sí o sí.
+5. Magic link a correos reales llega al inbox real solo si el SMTP del
+   API apunta a un transport real — en dev probablemente no; para QA
+   usar password login (punto 2).
+
+### Resto
+
 - `multipais-foundation` tasks 10/11/13 (épica: pases multi-día
   cross-academia, prácticas/socials free como adquisición por ciudad,
   congresos/festivales) — cada una es un change propio, requiere
