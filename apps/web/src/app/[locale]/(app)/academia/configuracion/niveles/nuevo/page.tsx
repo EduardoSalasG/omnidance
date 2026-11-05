@@ -11,6 +11,7 @@ import {
   type ActionNoticeData,
 } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError } from "@/components/academy/shared";
 import { useRouter } from "@/i18n/navigation";
@@ -35,7 +36,11 @@ export default function LevelNewPage() {
         backLabel={t("configPages.levels")}
       />
       <AcademyGate>
-        {({ academy }) => <LevelCreate key={academy.id} academyId={academy.id} />}
+        {({ academy }) => (
+          <AcademyTierGate academy={academy} feature="classes">
+            <LevelCreate key={academy.id} academyId={academy.id} />
+          </AcademyTierGate>
+        )}
       </AcademyGate>
     </main>
   );

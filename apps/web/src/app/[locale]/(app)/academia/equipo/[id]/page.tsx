@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { Badge, Button, Card, ConfirmSheet, RefreshIcon, SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { CAPS, type Caps } from "@/components/academy/staff-section";
 import { readError } from "@/components/academy/shared";
@@ -32,11 +33,13 @@ export default function StaffDetailPage() {
       <ConsoleHeader backHref="/academia/equipo" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
-          <Detail
-            key={`${academy.id}:${params.id}`}
-            academyId={academy.id}
-            personId={params.id}
-          />
+          <AcademyTierGate academy={academy} feature="staff">
+            <Detail
+              key={`${academy.id}:${params.id}`}
+              academyId={academy.id}
+              personId={params.id}
+            />
+          </AcademyTierGate>
         )}
       </AcademyGate>
     </main>

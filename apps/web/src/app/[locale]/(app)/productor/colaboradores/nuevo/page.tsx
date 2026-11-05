@@ -41,16 +41,9 @@ function NewCollaborator() {
 
   const backHref = "/productor/colaboradores";
 
-  // 403 {error:"staff_quota"} del cupo por tier (spec producer-pro) →
-  // copy i18n; cualquier otro error usa el message del API o el fallback.
+  // El alta no tiene cupo en ningún tier (spec producer-pro): los
+  // errores usan el message del API o el fallback genérico.
   async function staffError(res: Response): Promise<string> {
-    const body = (await res.clone().json().catch(() => null)) as {
-      error?: string;
-      limit?: number;
-    } | null;
-    if (body?.error === "staff_quota") {
-      return t("collaborators.quotaFull", { limit: body.limit ?? 1 });
-    }
     return (await readError(res)) ?? tc("error");
   }
 

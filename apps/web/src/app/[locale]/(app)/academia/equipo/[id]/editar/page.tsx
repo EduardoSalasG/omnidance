@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
   CAPS,
@@ -32,11 +33,13 @@ export default function StaffEditPage() {
       />
       <AcademyGate>
         {({ academy }) => (
+          <AcademyTierGate academy={academy} feature="staff">
           <EditCaps
             key={`${academy.id}:${params.id}`}
             academyId={academy.id}
             personId={params.id}
           />
+          </AcademyTierGate>
         )}
       </AcademyGate>
     </main>

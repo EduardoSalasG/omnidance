@@ -703,6 +703,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "academy",
           key: "configPages.classes",
           icon: ICONS.slider,
+          academyFeature: "classes",
         },
         // La línea de niveles es configuración de una vez (definir o
         // heredar), no trabajo diario: vive en esta sección.

@@ -398,7 +398,7 @@ export class CrmController {
 
   @Post("campaigns")
   async createCampaign(@Body() dto: CreateCampaignDto, @Req() req: Request) {
-    await this.assertActorAccess(req, dto.actorType, dto.actorId);
+    await this.assertActorAccess(req, dto.actorType, dto.actorId, "campaigns");
     try {
       return await this.crm.createCampaign(
         dto.actorType,
@@ -420,7 +420,7 @@ export class CrmController {
     @Body() dto: PreviewCampaignDto,
     @Req() req: Request,
   ) {
-    await this.assertActorAccess(req, dto.actorType, dto.actorId);
+    await this.assertActorAccess(req, dto.actorType, dto.actorId, "campaigns");
     try {
       return await this.crm.previewCampaign(
         dto.actorType,
@@ -437,7 +437,7 @@ export class CrmController {
   async sendCampaign(@Param("id") id: string, @Req() req: Request) {
     const campaign = await this.crm.getCampaign(id);
     if (!campaign) throw new NotFoundException("campaña no encontrada");
-    await this.assertActorAccess(req, campaign.actorType, campaign.actorId);
+    await this.assertActorAccess(req, campaign.actorType, campaign.actorId, "campaigns");
     try {
       return await this.crm.sendCampaign(id);
     } catch (e) {
@@ -447,7 +447,7 @@ export class CrmController {
 
   @Get("campaigns")
   async listCampaigns(@Query() q: ListPeopleQueryDto, @Req() req: Request) {
-    await this.assertActorAccess(req, q.actorType, q.actorId);
+    await this.assertActorAccess(req, q.actorType, q.actorId, "campaigns");
     return this.crm.listCampaigns(
       q.actorType,
       q.actorId,
@@ -461,7 +461,7 @@ export class CrmController {
   async campaignDetail(@Param("id") id: string, @Req() req: Request) {
     const campaign = await this.crm.getCampaign(id);
     if (!campaign) throw new NotFoundException("campaña no encontrada");
-    await this.assertActorAccess(req, campaign.actorType, campaign.actorId);
+    await this.assertActorAccess(req, campaign.actorType, campaign.actorId, "campaigns");
     if (campaign.status === "SENT") {
       const metrics = await this.crm.campaignMetrics(id);
       return { ...campaign, metrics };
@@ -480,7 +480,7 @@ export class CrmController {
   ) {
     const campaign = await this.crm.getCampaign(id);
     if (!campaign) throw new NotFoundException("campaña no encontrada");
-    await this.assertActorAccess(req, campaign.actorType, campaign.actorId);
+    await this.assertActorAccess(req, campaign.actorType, campaign.actorId, "campaigns");
     try {
       return await this.crm.whatsappLinks(id, text);
     } catch (e) {
@@ -494,7 +494,7 @@ export class CrmController {
   async cancelCampaign(@Param("id") id: string, @Req() req: Request) {
     const campaign = await this.crm.getCampaign(id);
     if (!campaign) throw new NotFoundException("campaña no encontrada");
-    await this.assertActorAccess(req, campaign.actorType, campaign.actorId);
+    await this.assertActorAccess(req, campaign.actorType, campaign.actorId, "campaigns");
     try {
       return await this.crm.cancelCampaign(id);
     } catch (e) {
@@ -585,10 +585,13 @@ export class CrmController {
     req: Request,
     actorType: string,
     actorId: string,
+    feature: "crm" | "campaigns" = "crm",
   ): Promise<void> {
     const caller = req.person!;
     if (actorType === "PRODUCER" && caller.id === actorId) {
-      await assertActorFeature(this.prisma, "PRODUCER", actorId, "crm");
+      // Campañas son feature PRO_BIG del productor (spec producer-pro);
+      // el resto del CRM queda en "crm" (GROWTH+).
+      await assertActorFeature(this.prisma, "PRODUCER", actorId, feature);
       return;
     }
     if (actorType === "ACADEMY") {

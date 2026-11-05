@@ -325,83 +325,44 @@ describe("ProducerController.addStaff", () => {
     });
   });
 
-  // Cupo de la nómina: FREE sin Pro comparte el cupo de puerta
-  // (producer_tier.free_staff_max, 2); sobre él se exige multiStaff.
-  // Tiers: STARTER legado/GROWTH 2, BIG ilimitado; trial → PRO_STARTER.
-  it("FREE sin trial ni Pro bajo el cupo (2) → agrega", async () => {
-    const { ctl } = mk({
-      producer: true,
-      meTrial: null,
-      roster: [],
-      existingPerson: existing,
-    });
-    const res = await ctl.addStaff({ personId: "per-9" }, req("prod-1"));
-    expect(res.person.id).toBe("per-9");
-  });
-
-  it("FREE sin trial ni Pro con el cupo lleno → 403 tier.required", async () => {
+  // La nómina no tiene cupo en ningún tier (spec producer-pro: el staff
+  // no es feature - la puerta con 1-2 personas es la norma operativa).
+  it("FREE sin trial ni Pro agrega sin cupo", async () => {
     const { ctl } = mk({
       producer: true,
       meTrial: null,
       roster: [{ personId: "a" }, { personId: "b" }],
       existingPerson: existing,
     });
-    const err = await ctl
-      .addStaff({ personId: "per-9" }, req("prod-1"))
-      .catch((e: unknown) => e);
-    expect(err).toMatchObject({ status: 403 });
-    expect(errBody(err)).toMatchObject({
-      error: "tier.required",
-      feature: "multiStaff",
-    });
+    const res = await ctl.addStaff({ personId: "per-9" }, req("prod-1"));
+    expect(res.person.id).toBe("per-9");
   });
 
-  it("PRO_STARTER con cupo libre → agrega", async () => {
+  it("PRO_STARTER agrega aunque la nómina sea grande", async () => {
     const { ctl } = mk({
       producer: true,
       meTier: "PRO_STARTER",
       meTrial: null,
-      roster: [],
+      roster: [{ personId: "a" }, { personId: "b" }, { personId: "c" }],
       existingPerson: existing,
     });
     const res = await ctl.addStaff({ personId: "per-9" }, req("prod-1"));
     expect(res.person.id).toBe("per-9");
   });
 
-  it("PRO_STARTER con 2 en nómina → el 3ro recibe 403 staff_quota", async () => {
-    const { ctl } = mk({
-      producer: true,
-      meTier: "PRO_STARTER",
-      meTrial: null,
-      roster: [{ personId: "a" }, { personId: "b" }],
-      existingPerson: existing,
-    });
-    const err = await ctl
-      .addStaff({ personId: "per-9" }, req("prod-1"))
-      .catch((e: unknown) => e);
-    expect(err).toMatchObject({ status: 403 });
-    expect(errBody(err)).toMatchObject({
-      error: "staff_quota",
-      limit: 2,
-      used: 2,
-    });
-  });
-
-  it("PRO_GROWTH con 2 en nómina → el 3ro recibe 403 staff_quota", async () => {
+  it("PRO_GROWTH agrega aunque la nómina sea grande", async () => {
     const { ctl } = mk({
       producer: true,
       meTier: "PRO_GROWTH",
       meTrial: null,
-      roster: [{ personId: "a" }, { personId: "b" }],
+      roster: [{ personId: "a" }, { personId: "b" }, { personId: "c" }],
       existingPerson: existing,
     });
-    const err = await ctl
-      .addStaff({ personId: "per-9" }, req("prod-1"))
-      .catch((e: unknown) => e);
-    expect(errBody(err)).toMatchObject({ error: "staff_quota", limit: 2 });
+    const res = await ctl.addStaff({ personId: "per-9" }, req("prod-1"));
+    expect(res.person.id).toBe("per-9");
   });
 
-  it("re-agregar a quien ya está en nómina no consume cupo", async () => {
+  it("re-agregar a quien ya está en nómina es idempotente", async () => {
     const { ctl } = mk({
       producer: true,
       meTier: "PRO_STARTER",

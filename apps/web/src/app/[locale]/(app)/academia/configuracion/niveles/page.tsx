@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, ChevronRightIcon, ConfirmSheet, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ActionNotice, type ActionNoticeData } from "@/components/ui/action-notice";
 import { readError } from "@/components/academy/shared";
@@ -28,7 +29,11 @@ export default function AcademiaNivelesPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
-        {({ academy }) => <LevelsModule key={academy.id} academyId={academy.id} />}
+        {({ academy }) => (
+          <AcademyTierGate academy={academy} feature="classes">
+            <LevelsModule key={academy.id} academyId={academy.id} />
+          </AcademyTierGate>
+        )}
       </AcademyGate>
     </main>
   );

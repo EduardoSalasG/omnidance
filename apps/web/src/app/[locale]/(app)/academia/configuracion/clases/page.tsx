@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { AcademySettings } from "@/components/academy/academy-settings";
 import { ConsoleHeader } from "@/components/console/console-header";
 
@@ -19,7 +20,9 @@ export default function ConfigGeneralPage() {
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
-          <AcademySettings key={academy.id} academy={academy} />
+          <AcademyTierGate academy={academy} feature="classes">
+            <AcademySettings key={academy.id} academy={academy} />
+          </AcademyTierGate>
         )}
       </AcademyGate>
     </main>

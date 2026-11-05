@@ -58,10 +58,6 @@ type ProView = {
   /** Media 90d por moneda (spec platform-multicountry) - nunca suma cruzada. */
   monthlyGrossByCurrency?: Record<string, number>;
   maxGross: number | null;
-  /** Nómina de colaboradores en uso y cupo del tier (spec producer-pro;
-      null = sin cupo o sin Pro efectivo). */
-  staffUsed: number;
-  staffLimit: number | null;
   /** Features habilitadas del tier efectivo (matriz PRODUCER_TIER_FEATURES). */
   enabledFeatures: string[];
   nextInvoiceAt: string | null;
@@ -477,22 +473,10 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
               </dd>
             </div>
           )}
-          {/* Qué incluye el tier vigente + uso del cupo de la nómina
-              (spec producer-pro): staff es cupo numérico por tier -
-              PRO_BIG/sin cupo → "sin tope". */}
+          {/* Qué incluye el tier vigente (spec producer-pro) - el
+              staff no es feature ni tiene cupo en ningún tier. */}
           {view.effectivePro && (
             <>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-ink/60">{t("staffLabel")}</dt>
-                <dd className="tabular-nums">
-                  {view.staffLimit != null
-                    ? t("staffUsage", {
-                        used: view.staffUsed,
-                        limit: view.staffLimit,
-                      })
-                    : t("staffUnlimited", { used: view.staffUsed })}
-                </dd>
-              </div>
               {view.enabledFeatures.length > 0 && (
                 <div className="flex items-start justify-between gap-3">
                   <dt className="shrink-0 text-ink/60">{t("featuresLabel")}</dt>

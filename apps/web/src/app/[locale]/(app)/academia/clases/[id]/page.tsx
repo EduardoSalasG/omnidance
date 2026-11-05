@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, use } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, isTierRequired } from "@/lib/api";
 import {
   Badge,
   Button,
@@ -14,6 +14,7 @@ import {
   Spinner,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import { TierPaywall } from "@/components/tier-paywall";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
   showActionNotice,
@@ -41,6 +42,7 @@ type LoadState =
   | "ready"
   | "unauth"
   | "forbidden"
+  | "tier"
   | "notfound"
   | "error";
 
@@ -75,6 +77,10 @@ export default function AcademiaClaseRosterPage(
       const res = await apiFetch(`/classes/${classId}/roster`);
       if (res.status === 401) {
         setState("unauth");
+        return;
+      }
+      if (res.status === 403 && (await isTierRequired(res))) {
+        setState("tier");
         return;
       }
       if (res.status === 403) {
@@ -123,6 +129,12 @@ export default function AcademiaClaseRosterPage(
           <p className="text-ink/70">{t("loginRequired")}</p>
           <Button href="/login">{tc("login")}</Button>
         </div>
+      )}
+      {/* 403 tier.required del roster (feature attendance): paywall
+          con CTA a suscripción, mismo patrón que analytics-section -
+          no el "forbidden" genérico de acceso. */}
+      {state === "tier" && (
+        <TierPaywall actorType="ACADEMY" feature="attendance" />
       )}
       {(state === "forbidden" || state === "notfound") && (
         <div className="flex flex-col items-start gap-4">

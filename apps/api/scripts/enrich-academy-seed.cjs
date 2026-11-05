@@ -23,7 +23,7 @@
 //   3. CLASES: materializa instancias Class del mes vigente y el
 //      siguiente para slots sin ellas (misma regla que el seed:
 //      Class.date a medianoche UTC por weekday). Crea parrilla mínima
-//      a academias con alumnos pero sin series (Academia Tumbao).
+//      a academias con alumnos pero sin series.
 //   4. ASISTENCIA: rellena Attendance en clases ya dictadas sin
 //      asistencia (60–85% de los BOOKED, determinista por clase+alumno;
 //      fallback roster ACTIVE). Clases de hoy ya iniciadas reciben
@@ -438,30 +438,9 @@ async function main() {
     return slotIds;
   };
 
-  // Academia Tumbao: 32 alumnos y cero estructura → parrilla mínima real.
-  const tumbao = academies.find((a) => a.name === "Academia Tumbao");
-  if (tumbao) {
-    const hasSeries = await prisma.classSeries.count({ where: { academyId: tumbao.id, deletedAt: null } });
-    if (!hasSeries) {
-      await ensureSeries(tumbao.id, "Salsa Cubana", {
-        styleName: "Salsa cubana (casino)", levelName: "Iniciación", typeNames: ["Pareja"],
-        instructorId: tumbao.ownerId,
-        slots: [
-          { weekday: 1, startTime: "19:00", endTime: "20:00" },
-          { weekday: 3, startTime: "19:00", endTime: "20:00" },
-        ],
-      });
-      await ensureSeries(tumbao.id, "Bachata Sensual", {
-        styleName: "Bachata sensual", levelName: "Básico", typeNames: ["Pareja"],
-        instructorId: tumbao.ownerId,
-        slots: [
-          { weekday: 2, startTime: "20:00", endTime: "21:00" },
-          { weekday: 4, startTime: "20:00", endTime: "21:00", typeNames: ["Shines"] },
-        ],
-      });
-      say(`Academia Tumbao: 2 series + 4 slots creados`);
-    } else say(`Academia Tumbao ya tiene series (${hasSeries}) - skip`);
-  }
+  // Academia Tumbao es COBROS (cobranza pura: alumnos + planes): sin
+  // parrilla ni instructores - la limpieza post-suscripciones garantiza
+  // el estado en cualquier academia que quede en ese tier.
 
   // Materializa clases del mes vigente + siguiente para slots sin ellas
   // (misma regla que mkClassSeries del seed: medianoche UTC por weekday).
@@ -554,32 +533,6 @@ async function main() {
   }
   say(`Attendance creadas: ${attTotal} (clases vacías procesadas: ${emptyClasses.length}, de hoy: ${todayFilled})`);
 
-  // Reservas también para las clases nuevas de Tumbao (roster sin bookings).
-  // Objetivo por clase: min(cupo efectivo, 10-15) reservas en total -
-  // re-correr solo rellena el déficit, nunca suma por sobre el cupo.
-  const tumbaoClasses = tumbao
-    ? await prisma.class.findMany({
-        where: { slot: { academyId: tumbao.id }, date: { gte: prevMonthStart, lt: afterNextStart } },
-        select: {
-          ...capSelect,
-          bookings: { where: { status: "BOOKED" }, select: { personId: true } },
-        },
-      })
-    : [];
-  if (tumbaoClasses.length) {
-    const roster = (await prisma.enrollment.findMany({ where: { academyId: tumbao.id, status: "ACTIVE" }, select: { personId: true } })).map((e) => e.personId).filter((p) => p !== tumbao.ownerId);
-    const bk = [];
-    for (const cls of tumbaoClasses) {
-      const deficit = Math.min(capOf(cls), 10 + (h(cls.id + "b") % 6)) - cls.bookings.length;
-      const open = roster.filter((p) => !cls.bookings.some((b) => b.personId === p));
-      const n = Math.min(open.length, Math.max(0, deficit));
-      if (!n) continue;
-      const off = h(cls.id) % open.length;
-      for (let k = 0; k < n; k++) bk.push({ classId: cls.id, personId: open[(off + k) % open.length] });
-    }
-    const bkRes = await prisma.classBooking.createMany({ data: bk, skipDuplicates: true });
-    say(`ClassBooking Tumbao: ${bkRes.count} nuevas`);
-  }
 
   // ── Normaliza sobre-cupo en clases vivas ──
   // Corridas previas (o seeds manuales) pudieron dejar reservas BOOKED
@@ -787,6 +740,43 @@ async function main() {
     }
   }
   say(`MembershipSubscription nuevas: ${memSubs} (con claim ACADEMY pendiente: ${pendingClaimsFromSubs})`);
+
+  // ── Consistencia COBROS: cobranza pura, sin parrilla ──
+  // Toda academia que quedó en tier COBROS (seed o hash de arriba)
+  // pierde el grafo de enseñanza: instructores, staff, series/slots/
+  // clases con reservas y asistencias, particulares, niveles de alumno
+  // y niveles custom. Idempotente: corre en cada pasada.
+  const cobros = await prisma.academy.findMany({
+    where: { tier: "COBROS" },
+    select: { id: true, name: true },
+  });
+  const cobrosIds = cobros.map((a) => a.id);
+  if (cobrosIds.length) {
+    const cobrosClasses = await prisma.class.findMany({
+      where: { slot: { academyId: { in: cobrosIds } } },
+      select: { id: true },
+    });
+    const cIds = cobrosClasses.map((c) => c.id);
+    const del = {
+      attendances: (await prisma.attendance.deleteMany({ where: { classId: { in: cIds } } })).count,
+      bookings: (await prisma.classBooking.deleteMany({ where: { classId: { in: cIds } } })).count,
+      videos: (await prisma.video.deleteMany({ where: { OR: [{ classId: { in: cIds } }, { academyId: { in: cobrosIds } }] } })).count,
+      classes: (await prisma.class.deleteMany({ where: { id: { in: cIds } } })).count,
+      slots: (await prisma.classSlot.deleteMany({ where: { academyId: { in: cobrosIds } } })).count,
+      series: (await prisma.classSeries.deleteMany({ where: { academyId: { in: cobrosIds } } })).count,
+      instructors: (await prisma.academyInstructor.deleteMany({ where: { academyId: { in: cobrosIds } } })).count,
+      staff: (await prisma.academyStaff.deleteMany({ where: { academyId: { in: cobrosIds } } })).count,
+      lessons: (await prisma.privateLesson.deleteMany({ where: { academyId: { in: cobrosIds } } })).count,
+      enrollmentLevels: (await prisma.enrollmentLevel.deleteMany({ where: { enrollment: { academyId: { in: cobrosIds } } } })).count,
+      classLevels: (await prisma.classLevel.deleteMany({ where: { academyId: { in: cobrosIds } } })).count,
+      surveys: (await prisma.courseSurvey.deleteMany({ where: { academyId: { in: cobrosIds } } })).count,
+    };
+    await prisma.academy.updateMany({
+      where: { id: { in: cobrosIds } },
+      data: { privateLessonPrice: null },
+    });
+    say(`COBROS limpio (${cobros.map((a) => a.name).join(", ")}): ${JSON.stringify(del)}`);
+  }
 
   // ═══════════ 6. Cobros declarados (PaymentClaim) ═══════════
   console.log("\n═══ 6. Cobros por revisar + facturado ═══");
