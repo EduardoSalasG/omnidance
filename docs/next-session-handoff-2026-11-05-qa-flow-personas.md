@@ -56,6 +56,28 @@ mismo criterio que `c691c793`).
      `retryPending` barrió el cargo, emitió `COLLECT_ATTEMPT` attempt 1,
      reintentó `customer/collect` (nuevo `gatewayRef` 11503204) y quedó
      PENDING - correcto, la persona sigue sin tarjeta registrada.
+   - **Camino COLLECTED verificado**: `POST /admin/platform-charges`
+     {personId gmail03 `cus_zf76435928` con tarjeta registrada, $1.000}
+     → Flow cobró "Cargo automático" real (status 2, fee 29, balance
+     965, flowOrder 11503259). Nuestra respuesta fue PENDING
+     (`customer/collect` type=1 con resultado no terminal al momento
+     de la llamada) y el polling `GET /payments/:id` lo liquidó:
+     ledger `ORDER_CREATED`(admin) → `STATUS_CONFIRMED`(polling)
+     → `SETTLED`(polling) → Payment PAID.
+
+## Hallazgo: suscripciones divergentes Flow↔DB
+
+El dashboard Flow sandbox muestra 3 suscripciones "Activa" con cargo
+automático que en nuestra DB figuran **CANCELED**:
+`sus_wb1a57f42b` (Academia PRO anual, gmail.cl, próximo cargo
+03-11-2027), `sus_f8d317bdc1` (Mambo Madness Ilimitado, gmail03,
+02-12-2026) y `sus_sb26ca3fa9` (Clave Timba Esencial, gmail.cl,
+02-12-2026). En la fecha Flow cobrará la tarjeta igual: en prod el
+webhook avisaría (y chocaría con la sub CANCELED local); en dev el
+cargo pasa invisible. Hipótesis: la cancelación local no propagó el
+`subscription/cancel` a Flow (cancel via admin/test, o DB restaurada).
+Pendiente decidir si cancelarlas en el dashboard Flow para dejar el
+sandbox limpio o investigar la rama de cancelación.
 
 ## QA manual con flow - receta
 
@@ -75,10 +97,8 @@ mismo criterio que `c691c793`).
   Links vivos para probar: ticket Switch `cmw3k3rda000c10iaxy17jvdr` y
   platform charge `cmw3khtnc002110iamk0ash9v` (este último además
   prueba el settle PAID de un PLATFORM_CHARGE por link).
-- **Camino COLLECTED de collect**: requiere un customer Flow con
-  tarjeta registrada - nace al registrar medio de pago en una
-  suscripción (customer/register, también interactivo en el front de
-  Flow).
+- **Camino COLLECTED de collect**: verificado (ver §7) - gmail03 y
+  gmail.cl tienen tarjeta registrada en Flow (`flowCustomerId` en DB).
 - `multipais-foundation` tasks 10/11/13 (épica: pases multi-día
   cross-academia, prácticas/socials free, congresos) - cada una es un
   change propio, requiere priorización.
