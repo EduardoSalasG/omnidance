@@ -16,6 +16,7 @@ import {
   SkeletonList,
 } from "@/components/ui";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
+import { useFeatures } from "@/lib/features-context";
 import { planDateFmt } from "@/components/academy/shared";
 import {
   OnboardingRunner,
@@ -392,6 +393,11 @@ function AcademiasInner() {
     void load();
   }, [load]);
 
+  // Flag academy_explore (spec academy-explore-flag): OFF → el scope
+  // explorar no existe; fail-closed mientras /features no responde.
+  const { flags } = useFeatures();
+  const exploreOn = flags.academy_explore === true;
+
   // Scope: por defecto "mias" si hay inscripciones; sin ellas la vista
   // útil es el directorio - evita una pantalla vacía de entrada.
   const scopeExplicit =
@@ -399,11 +405,14 @@ function AcademiasInner() {
     rawS === "mias" ||
     rawV === "explorar" ||
     rawV === "mias";
-  const scope: Scope = scopeExplicit
+  const parsedScope: Scope = scopeExplicit
     ? ((rawS ?? rawV) as Scope)
     : enrollments !== null && enrollments.length === 0
       ? "explorar"
       : "mias";
+  // Flag OFF → cualquier deep link a explorar (incluido el default
+  // por falta de inscripciones) normaliza a "mias" sin redirect.
+  const scope: Scope = exploreOn ? parsedScope : "mias";
   // Sin scope explícito el default depende de /enrolled: hasta resolver
   // no sabemos cuál pill va activa - mostrar "mias" provisional y
   // voltearla a "explorar" era el flash reportado.
@@ -532,7 +541,7 @@ function AcademiasInner() {
             ariaLabel={t("scopesLabel")}
             active={scope}
             className="w-full"
-            innerClassName="grid w-full grid-cols-2"
+            innerClassName={`grid w-full ${exploreOn ? "grid-cols-2" : ""}`}
             tour="academias-scope"
             items={[
               {
@@ -540,11 +549,17 @@ function AcademiasInner() {
                 href: hrefFor({ s: "mias" }),
                 children: t("learner.myAcademies"),
               },
-              {
-                key: "explorar",
-                href: hrefFor({ s: "explorar" }),
-                children: t("viewExplore"),
-              },
+              // Pill explorar solo con el flag ON - OFF la opción no
+              // existe y el deep link ya normalizó a mias arriba.
+              ...(exploreOn
+                ? [
+                    {
+                      key: "explorar",
+                      href: hrefFor({ s: "explorar" }),
+                      children: t("viewExplore"),
+                    },
+                  ]
+                : []),
             ]}
           />
         ) : (
@@ -687,9 +702,11 @@ function AcademiasInner() {
                 <p role="status" className="text-ink/70">
                   {t("myAcademiesEmpty")}
                 </p>
-                <Button href={hrefFor({ s: "explorar" })}>
-                  {t("viewExplore")}
-                </Button>
+                {exploreOn && (
+                  <Button href={hrefFor({ s: "explorar" })}>
+                    {t("viewExplore")}
+                  </Button>
+                )}
               </Card>
             )}
           </section>

@@ -185,10 +185,11 @@
 
 ### Clases `/clases`
 - URL state: `s=mias|explorar|historial`; `v=list|calendar`; `scope=todas|reservadas` (mias); `style`, `level` selects dependientes; `academy` solo explorar; `upto`, `month`, `day`.
+- **Flag `academy_explore`** (spec academy-explore-flag): OFF → scope explorar no existe (pill oculta, `s=explorar`/`view=explore` legado normalizan a `mias`, sin CTAs a explorar); gate solo front - `/classes/browse` no cambia.
 - Data: mias/todas `GET /classes/browse?scope=enrolled`; explorar `/classes/browse` (+refetch facets); reservadas `GET /classes/mine` (particulares sin agendar pineadas); historial `/classes/mine?scope=past`.
 - Lista: grupos por día/hora → ClassCard → /clases/{id}; acción por card: Reservar/Espera → `POST /classes/:id/book` (busyId, notice waitlistOk|bookedOk **+ CTA .ics en el propio aviso cuando BOOKED**); badges booked/waitlist/dropIn/requiresEnrollment; spotsLeft urgencia.
 - Calendario igual a /eventos. Historial: conteo mensual + badges attended/cancelled.
-- Empties: mias→CTA explorar; explorar→empty; hasLater→"ver próxima semana".
+- Empties: mias→CTA explorar (solo si flag ON); explorar→empty; hasLater→"ver próxima semana".
 
 ### Clase `/clases/[id]` (+ fallback private-lesson)
 - `GET /classes/:id` (404 → intenta `GET /private-lessons/:id` → 404/403 notFound).
@@ -198,6 +199,7 @@
 
 ### Academias `/academias` (directorio)
 - `s=mias|explorar` (auto-flip a explorar si sin enrollments), `v=list|map`, `style`, `q` (explorar, accent-insensitive); `?sub=error` → banner.
+- **Flag `academy_explore`**: OFF → pill/buscador/CTAs de explorar ocultos, `s=explorar` y el default sin-enrollments normalizan a `mias` (mapa queda sobre academias propias); gate solo front - `/academies` no cambia.
 - `GET /academies` + `/academies/enrolled`; MyAcademyCard (→/academias/{id}): status, plan, vigencia, attendance30d, videos (≤3, locked→icono); AcademyCard explorar: nombre/estilos/instructores. Mapa pins → /academias/{id}.
 
 ### Academia `/academias/[id]` (+`?sub=ok|error`)
@@ -206,7 +208,7 @@
 - `ProfilePlansSection`: ≤2 planes+toggle; CTA → /academias/{id}/checkout?plan={id} (buyClass SINGLE; extendPlan si activo); bloqueado→unavailable; TRIAL gratis→trialAssigned.
 - `BuyPrivateClass` (privateLessonPrice>0): navega a /academias/{id}/checkout/particular; bloqueado→disabled.
 - `AcademyClaimsMine`: claims propios read-only (+reviewNote en rechazo).
-- Clases ≤2 → /clases/{id}; más → /clases?s=explorar&academy={id}.
+- Clases ≤2 → /clases/{id}; más → /clases?s=explorar&academy={id} (link oculto con `academy_explore` OFF - la ficha sigue accesible por link directo).
 
 ### Checkout membresía `/academias/[id]/checkout?plan=&mode=once|sub`
 - `?plan` requerido; `GET /checkout/membership-quote?planId` (401→/login; 404→notfound; 400→planUnavailable; ACTIVE/CANCEL_PENDING→alreadySubscribed).

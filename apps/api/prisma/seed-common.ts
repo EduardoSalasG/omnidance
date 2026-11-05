@@ -323,6 +323,12 @@ const FEATURE_FLAG_SEED: {
     description: "Superficies de academia del bailarín (clases, directorio) - OFF si la operación parte solo con nightlife",
     enabled: true,
   },
+  {
+    key: "academy_explore",
+    label: "Explorar academias y clases",
+    description: "Listados de descubrimiento del bailarín (scope explorar de /academias y /clases) - las fichas siguen accesibles por link directo",
+    enabled: true,
+  },
 ];
 
 /** Crea o confirma una persona con sus roles. Idempotente por email. */
