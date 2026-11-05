@@ -8,13 +8,23 @@ import { dismissTours, statePath } from "../helpers";
 // smoke.spec.ts en el mismo commit).
 test.describe("@productor @eventos ciclo de vida", () => {
   test.use({ storageState: statePath("producer") });
-  // El assert del link copiado lee el clipboard real - sin el permiso
-  // la API rechaza y la página mostraría el aviso de error.
-  test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
   test("crear → publicar → cartelera + copiar link público", async ({
     page,
+    context,
+    browserName,
   }) => {
+    // El assert del link copiado lee el clipboard real - sin el
+    // permiso la API rechaza y la página mostraría el aviso de error.
+    // WebKit no soporta el grant (Unknown permission) ni permite
+    // readText sin gesto de permiso: ahí queda el assert del toast.
+    if (browserName !== "webkit") {
+      await context.grantPermissions([
+        "clipboard-read",
+        "clipboard-write",
+      ]);
+    }
+
     const name = `QA Evento ${Date.now()}`;
 
     await page.goto("/productor/eventos/nuevo");
@@ -54,8 +64,12 @@ test.describe("@productor @eventos ciclo de vida", () => {
     await expect(
       page.getByRole("status").filter({ hasText: /link público copiado/i }),
     ).toBeVisible({ timeout: 15_000 });
-    const clip = await page.evaluate(() => navigator.clipboard.readText());
-    expect(clip).toMatch(new RegExp(`/e/${eventId}$`));
+    if (browserName !== "webkit") {
+      const clip = await page.evaluate(() =>
+        navigator.clipboard.readText(),
+      );
+      expect(clip).toMatch(new RegExp(`/e/${eventId}$`));
+    }
 
     // En la cartelera pública.
     await page.goto("/eventos");

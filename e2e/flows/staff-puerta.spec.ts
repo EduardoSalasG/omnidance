@@ -93,7 +93,14 @@ test.describe("@staff @puerta consola de puerta", () => {
     await expect(okOverlay).toBeHidden({ timeout: 10_000 });
 
     // La persona queda en la lista de la noche con badge MANUAL
-    // (desktop ≥lg muestra la columna de lista junto al escáner).
+    // (desktop ≥lg muestra la columna de lista junto al escáner; en
+    // mobile la lista vive bajo el tab "Asistentes").
+    const asistentesTab = page.getByRole("button", {
+      name: /^Asistentes/,
+    });
+    if (await asistentesTab.isVisible().catch(() => false)) {
+      await asistentesTab.click();
+    }
     await expect(
       page
         .getByRole("listitem")
@@ -104,6 +111,13 @@ test.describe("@staff @puerta consola de puerta", () => {
     // Re-check-in de la misma persona → duplicado en rojo (dedup
     // local si la lista ya refrescó, o 409 del server si todavía no -
     // el overlay es el mismo).
+    if (!(await manualToggle.isVisible().catch(() => false))) {
+      // En mobile quedó activo el tab de asistentes: volver al escáner.
+      const scanTab = page.getByRole("button", { name: /^Escanear/ });
+      if (await scanTab.isVisible().catch(() => false)) {
+        await scanTab.click();
+      }
+    }
     await manualToggle.click();
     await search.fill(me.name);
     await candidate.click();
