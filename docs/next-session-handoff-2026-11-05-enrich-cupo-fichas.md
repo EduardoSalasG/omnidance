@@ -101,6 +101,12 @@ Specs endurecidos (patrones WebKit):
   `netstat -ano | grep 3000` → matar PID (este fue 13076). Patrón ya
   documentado en AGENTS.md (dev server zombie).
 - `pwsh` disponible; `powershell` no está en PATH de Git Bash.
+- `PAYMENT_GATEWAY=stub` se pasó **inline** al proceso del API
+  (`PAYMENT_GATEWAY=stub pnpm dev:api`), no al `.env`: el `.env` raíz
+  trae `flow` (gateway real) que rechaza los emails `*@omnidance.dev`
+  del seed y haría pagos reales en QA. El stub devuelve PAID/FAILED
+  deterministas para los specs de checkout/membresía. Un `pnpm dev`
+  normal vuelve a leer el `.env` → flow.
 - Screenshots: `pnpm exec playwright screenshot --load-storage
   e2e/.auth/<rol>.json --viewport-size "W,H" --wait-for-timeout 3500
   <url> <out.png>` — sirve para pasadas puntuales sin escribir spec.
