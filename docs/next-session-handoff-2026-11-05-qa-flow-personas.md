@@ -86,13 +86,14 @@ nunca existieron en Flow) quedan CANCELED - correcto.
 **Trampa residual conocida**: correr `PAYMENT_GATEWAY=stub` contra una
 DB con subs reales de Flow re-cancela todo en el próximo reconcile
 (09:00). La receta e2e de AGENTS.md usa stub - ojo al correrla contra
-esta DB. Fix durable propuesto (sin hacer): registrar FlowGateway en
-`resolveGateways` cuando haya FLOW_API_KEY+SECRET aunque el primario
-sea stub, igual que MercadoPago/Stripe se registran por credenciales.
-Es cambio de comportamiento → change OpenSpec propio si se decide.
+esta DB.
 
-**Decisión del usuario**: dev se corre solo con `PAYMENT_GATEWAY=flow`
-(como está en `.env`).
+**Decisión del usuario (2026-11-05)**: NO se implementa el fix de
+registrar FlowGateway por credenciales - la env `PAYMENT_GATEWAY` debe
+seguir controlando stub/flow aunque haya credenciales presentes. En
+dev se corre solo con `flow` (como está en `.env`); la trampa queda
+aceptada y documentada acá: si alguien corre e2e/stub contra una DB
+con subs reales de Flow, el reconcile de las 09:00 las cancela.
 
 ## QA manual con flow - receta
 
