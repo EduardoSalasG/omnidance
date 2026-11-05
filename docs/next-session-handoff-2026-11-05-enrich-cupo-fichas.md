@@ -1,8 +1,9 @@
 # Handoff: cupo efectivo en enrich + smoke visual fichas (pasada B cierre)
 
-**Rama**: `dev`. Stack al cierre: DB/Redis docker sanos; API dev `pnpm dev:api`
-en :4000 y web `pnpm dev:web` en :3000 **quedaron vivos** (se levantaron en
-esta sesión para el smoke; el `next start` zombie anterior se mató).
+**Rama**: `dev`. Stack al cierre: DB/Redis docker sanos; API dev con
+`PAYMENT_GATEWAY=stub` en :4000 y web **`next start` (prod build)** en
+:3000 quedaron vivos. Para dev normal: `pnpm dev` (ojo: el web quedó
+en prod build, no en `next dev`).
 
 ## Commit de la sesión
 
@@ -55,14 +56,40 @@ Fix en `enrich-academy-seed.cjs`:
   `removeSlotConfirm`) en los 4 locales. Ningún `t()` las usaba.
 - Smoke visual fichas de clase/serie: hecho (arriba).
 
+## Corrida mobile/WebKit e2e (commit `db8f5bb0`)
+
+**Resultado: proyecto mobile 46/46 verde** (chromium 51/51 ya pasaba
+en la misma corrida). Receta usada: prod build + `next start` en
+:3000 + API dev con `PAYMENT_GATEWAY=stub` inline.
+
+Bloqueo raíz encontrado (no era flake): `upgrade-insecure-requests`
+del CSP en `middleware.ts` se emite en prod build; Chrome exime
+localhost de la directiva pero **WebKit la honra** → todo subrecurso
+y llamada al API subía `http→https://localhost` → SSL connect error →
+página SSR sin hidratar → toda interacción muerta (33/39 mobile
+fallaban, 0 chromium). Fix: la directiva solo se emite para hosts
+no-locales (`isLocalHost`); prod real no cambia.
+
+Specs endurecidos (patrones WebKit):
+
+- `networkidle` tras goto antes de llenar forms (la hidratación pisa
+  `fill`/`click` previos → campos vacíos o clicks sin handler).
+- `toHaveURL` (poll) en vez de `waitForURL` post-login/submit:
+  navegaciones por `window.location` expiran esperando `load` bajo
+  carga paralela.
+- `staff-puerta`: la lista de la noche en mobile vive bajo el tab
+  "Asistentes" (desktop la muestra junto al escáner).
+- `productor-eventos`: WebKit no soporta grant de clipboard ni
+  `readText` sin permiso → assert del toast solamente.
+- Setup `producer` puede tardar ~2.2m (retry tras throttle 429 del
+  login paralelo) — es el mecanismo esperado, no un bug.
+
 ## Pendiente
 
 - `multipais-foundation` tasks 10/11/13 (épica: pases multi-día
   cross-academia, prácticas/socials free como adquisición por ciudad,
   congresos/festivales) — cada una es un change propio, requiere
   priorización.
-- Corrida mobile/WebKit del suite e2e completo (receta: prod build +
-  `next start` + API `PAYMENT_GATEWAY=stub`, ver AGENTS.md).
 - Smoke real opcional del job `platform-charges.collect`
   (`POST /admin/jobs/platform-charges.collect/run`, cubierto por specs).
 
