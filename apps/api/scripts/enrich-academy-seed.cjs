@@ -27,7 +27,9 @@
 //   4. ASISTENCIA: rellena Attendance en clases ya dictadas sin
 //      asistencia (60–85% de los BOOKED, determinista por clase+alumno;
 //      fallback roster ACTIVE). Clases de hoy ya iniciadas reciben
-//      asistencia parcial.
+//      asistencia parcial. Reservas y asistencias se capean al cupo
+//      efectivo de la clase, y un pase posterior recorta sobre-cupos
+//      heredados de corridas/seeds anteriores (conserva FIFO).
 //   5. SUSCRIPCIONES: PlatformSubscription ACTIVE (tier/ciclo variado)
 //      + invoice PLATFORM_SUB PAID para academias sin suscripción;
 //      MembershipSubscription por academia mezclando CARD/TRANSFER en
@@ -57,6 +59,28 @@ const prisma = new PrismaClient();
 const h = (s) =>
   parseInt(crypto.createHash("sha1").update(String(s)).digest("hex").slice(0, 8), 16);
 const pctOf = (s) => h(s) % 100; // 0-99
+
+// Cupo efectivo de una clase - misma cadena de herencia que
+// effectiveCapacity del dominio (academy.service.ts):
+// class.capacity → slot.capacity → series.quorum →
+// academy.defaultQuorum → 20.
+const capOf = (cls) =>
+  cls.capacity ??
+  cls.slot?.capacity ??
+  cls.slot?.series?.quorum ??
+  cls.slot?.academy?.defaultQuorum ??
+  20;
+const capSelect = {
+  id: true,
+  capacity: true,
+  slot: {
+    select: {
+      capacity: true,
+      series: { select: { quorum: true } },
+      academy: { select: { defaultQuorum: true } },
+    },
+  },
+};
 
 const now = new Date();
 const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -477,8 +501,8 @@ async function main() {
       slot: { deletedAt: null, series: { deletedAt: null, active: true } },
     },
     select: {
-      id: true, date: true,
-      slot: { select: { startTime: true, academyId: true } },
+      ...capSelect, date: true,
+      slot: { select: { startTime: true, academyId: true, ...capSelect.slot.select } },
       bookings: { where: { status: "BOOKED" }, select: { personId: true } },
     },
   });
@@ -506,15 +530,19 @@ async function main() {
       const roster = rosterByAcademy.get(cls.slot.academyId);
       if (!roster.length) continue;
       const off = h(cls.id) % roster.length;
-      const n = Math.min(roster.length, 8 + (h(cls.id + "n") % 7));
+      const n = Math.min(roster.length, capOf(cls), 8 + (h(cls.id + "n") % 7));
       candidates = Array.from({ length: n }, (_, k) => roster[(off + k) % roster.length]);
     }
+    // La asistencia nunca supera el cupo efectivo de la clase.
+    let filled = 0;
     for (const pid of candidates) {
+      if (filled >= capOf(cls)) break;
       if (pctOf(cls.id + pid) < effective) {
         attCreates.push({
           classId: cls.id, personId: pid,
           checkedAt: new Date(+checkedAt + (h(cls.id + pid + "m") % 40) * 60e3),
         });
+        filled++;
         if (isToday) todayFilled++;
       }
     }
@@ -527,20 +555,82 @@ async function main() {
   say(`Attendance creadas: ${attTotal} (clases vacías procesadas: ${emptyClasses.length}, de hoy: ${todayFilled})`);
 
   // Reservas también para las clases nuevas de Tumbao (roster sin bookings).
-  const tumbaoClassIds = tumbao
-    ? (await prisma.class.findMany({ where: { slot: { academyId: tumbao.id }, date: { gte: prevMonthStart, lt: afterNextStart } }, select: { id: true } })).map((c) => c.id)
+  // Objetivo por clase: min(cupo efectivo, 10-15) reservas en total -
+  // re-correr solo rellena el déficit, nunca suma por sobre el cupo.
+  const tumbaoClasses = tumbao
+    ? await prisma.class.findMany({
+        where: { slot: { academyId: tumbao.id }, date: { gte: prevMonthStart, lt: afterNextStart } },
+        select: {
+          ...capSelect,
+          bookings: { where: { status: "BOOKED" }, select: { personId: true } },
+        },
+      })
     : [];
-  if (tumbaoClassIds.length) {
+  if (tumbaoClasses.length) {
     const roster = (await prisma.enrollment.findMany({ where: { academyId: tumbao.id, status: "ACTIVE" }, select: { personId: true } })).map((e) => e.personId).filter((p) => p !== tumbao.ownerId);
     const bk = [];
-    for (const cid of tumbaoClassIds) {
-      const off = h(cid) % roster.length;
-      const n = Math.min(roster.length, 10 + (h(cid + "b") % 6));
-      for (let k = 0; k < n; k++) bk.push({ classId: cid, personId: roster[(off + k) % roster.length] });
+    for (const cls of tumbaoClasses) {
+      const deficit = Math.min(capOf(cls), 10 + (h(cls.id + "b") % 6)) - cls.bookings.length;
+      const open = roster.filter((p) => !cls.bookings.some((b) => b.personId === p));
+      const n = Math.min(open.length, Math.max(0, deficit));
+      if (!n) continue;
+      const off = h(cls.id) % open.length;
+      for (let k = 0; k < n; k++) bk.push({ classId: cls.id, personId: open[(off + k) % open.length] });
     }
     const bkRes = await prisma.classBooking.createMany({ data: bk, skipDuplicates: true });
     say(`ClassBooking Tumbao: ${bkRes.count} nuevas`);
   }
+
+  // ── Normaliza sobre-cupo en clases vivas ──
+  // Corridas previas (o seeds manuales) pudieron dejar reservas BOOKED
+  // o asistencias por sobre el cupo efectivo: se recorta el excedente
+  // conservando las primeras (FIFO por createdAt/checkedAt).
+  const liveClasses = await prisma.class.findMany({
+    where: {
+      cancelled: false,
+      slot: { deletedAt: null, series: { deletedAt: null, active: true } },
+    },
+    select: {
+      ...capSelect,
+      _count: {
+        select: {
+          bookings: { where: { status: "BOOKED" } },
+          attendances: true,
+        },
+      },
+    },
+  });
+  let bkTrim = 0;
+  let attTrim = 0;
+  for (const cls of liveClasses) {
+    const cap = capOf(cls);
+    if (cls._count.bookings > cap) {
+      // Los primeros `cap` asientos FIFO conservan cupo; del excedente
+      // solo se recortan reservas sin pago asociado - una BOOKED con
+      // paymentId (clase suelta/taller) implicaría devolución, fuera
+      // del scope del seed.
+      const over = await prisma.classBooking.findMany({
+        where: { classId: cls.id, status: "BOOKED" },
+        orderBy: [{ createdAt: "asc" }, { personId: "asc" }],
+        skip: cap,
+        select: { id: true, paymentId: true },
+      });
+      const deletable = over.filter((b) => !b.paymentId).map((b) => b.id);
+      if (deletable.length) {
+        bkTrim += (await prisma.classBooking.deleteMany({ where: { id: { in: deletable } } })).count;
+      }
+    }
+    if (cls._count.attendances > cap) {
+      const over = await prisma.attendance.findMany({
+        where: { classId: cls.id },
+        orderBy: [{ checkedAt: "asc" }, { personId: "asc" }],
+        skip: cap,
+        select: { id: true },
+      });
+      attTrim += (await prisma.attendance.deleteMany({ where: { id: { in: over.map((a) => a.id) } } })).count;
+    }
+  }
+  if (bkTrim || attTrim) say(`Sobre-cupo normalizado: ${bkTrim} reservas + ${attTrim} asistencias recortadas`);
 
   // ═══════════ 5. Suscripciones ═══════════
   console.log("\n═══ 5. Suscripciones (plataforma + membresía) ═══");
