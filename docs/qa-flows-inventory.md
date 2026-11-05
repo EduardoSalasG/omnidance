@@ -78,6 +78,7 @@
 
 ### Palancas dev para QA determinístico
 - **Pagos stub:** en dev el checkout devuelve `paymentUrl` `stub://` → botones "Simular aprobar/fallar" → `POST /payments/webhook {refId, status:PAID|FAILED}`. Cubre todo el ciclo de compra sin Flow.
+- **QA con Flow real (sandbox, manual):** `pnpm db:qa-personas` prepara personas con correo real para checkout Flow (Flow rechaza `*@omnidance.dev`): `salas.eduardo03@gmail.com` (dancer), `salas.eduardo.cl@gmail.com` (academy), `salas.eduardo03@outlook.com` (producer), `salas.eduardo.backup@gmail.com` (backup). Roles APPROVED + password `omnidance123`; idempotente. Con `PAYMENT_GATEWAY=flow` el checkout devuelve `paymentUrl` real a `sandbox.flow.cl` y el pago se completa en el front de Flow (pide RUT+pass/tarjeta de prueba: interacción manual, no automatizable por spec). El `urlConfirmation` de Flow no alcanza localhost, pero `GET /payments/:id` hace polling por `getStatusByCommerceId` y captura el PAID igual.
 - Patrón de espera de pagos: poll `GET /payments/:id` 2s×15 → estados `paid|failed|stillPending`.
 - Emails sin Resend → HTML en log del API (magic link, OTP, invitaciones).
 
