@@ -40,4 +40,24 @@
 
 - TDD: `academy-tier-gate.test.tsx` 2/2 (RED→GREEN). Suite web 11/11.
 - Typecheck web limpio. ESLint limpio en archivos tocados.
-- Pendiente: smoke manual con staff real de academia STUDIO en UI.
+- Web :3000 rebuildeado con el fix; API :4000 dev.
+
+## Hallazgos del smoke manual (usuario, 2026-11-05)
+
+Cuenta de prueba: `profe@omnidance.dev` / `omnidance123` (instructora de
+academias en los 3 tiers - ideal para QA de gates).
+
+- **Seed inconsistente con el modelo COBROS**: hay `AcademyInstructor`
+  y clases materializadas en las 3 academias COBROS (As you wish,
+  Acrodance, Ritmo y Guaperia). COBROS = solo alumnos+planes: limpiar
+  instructores/series/clases del seed para esas academias (enrich o
+  seed-dev).
+- **`/academia/clases/[id]` mapea mal el 403 tier.required**: el roster
+  (`GET /classes/:id/roster`) gatea `attendance` correctamente, pero la
+  página muestra el estado forbidden genérico ("Esta vista es para
+  instructores") en vez de TierPaywall. Fix: `isTierRequired` →
+  TierPaywall (patrón de analytics-section).
+- **No-bug aclarado**: instructora de la academia que NO es profe de la
+  clase no puede marcar asistencia (canMark=false) - es por diseño;
+  candidato a hint explicativo en la UI.
+- Pendiente: confirmar en browser el fix P0 (contenido en STUDIO).
