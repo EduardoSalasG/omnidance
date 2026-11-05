@@ -14,22 +14,27 @@ test.describe("@academia @planes membresías", () => {
 
     await page.goto("/academia/planes/nueva");
     await dismissTours(page);
+    // Esperar la hidratación del form: en WebKit un click previo puede
+    // caer en el botón SSR sin handler (no navega ni postea).
+    await page.waitForLoadState("networkidle");
     await page.getByLabel(/nombre del plan/i).fill(name);
     await page.getByLabel(/precio/i).fill("15000");
     await page
       .getByRole("button", { name: "Crear", exact: true })
       .click();
-    await page.waitForURL(/\/academia\/planes$/, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/academia\/planes$/, {
+      timeout: 30_000,
+    });
 
     // El listado pagina (pageSize 12, sort por nombre): con >=12
     // planes el nuevo puede caer en otra página - se filtra por q.
     await page.getByRole("searchbox").fill(name);
     const card = page.getByRole("link", { name });
     await expect(card).toBeVisible({ timeout: 30_000 });
-    await Promise.all([
-      page.waitForURL(/\/academia\/planes\/.+/),
-      card.click(),
-    ]);
+    await card.click();
+    await expect(page).toHaveURL(/\/academia\/planes\/.+/, {
+      timeout: 30_000,
+    });
 
     await page
       .getByRole("button", { name: "Desactivar plan" })
