@@ -107,15 +107,16 @@ Es cambio de comportamiento → change OpenSpec propio si se decide.
 
 ## Pendiente
 
-- **Completar un pago real en Flow sandbox** (la parte interactiva:
-  RUT+pass en el front de Flow) y verificar el settle PAID por polling.
-  Links vivos: ticket Switch
-  `https://sandbox.flow.cl/app/web/pay.php?token=1581CC8F18C14FFE41944778EF421F251F341B7M`
-  y platform charge outlook
-  `https://sandbox.flow.cl/app/web/pay.php?token=7F4C5EAB8015EA3B2AA736F7CA78D47FB19F252V`
-  (ojo: el retry del job creó una 2ª orden Flow para el mismo
-  commerceOrder - pagar este link liquida la 1ª; el polling por
-  getStatusByCommerceId puede leer la 2ª, que sigue impaga).
+- ~~Completar un pago real en Flow sandbox~~ **HECHO**: el usuario pagó
+  ambos links (ticket Switch + platform charge) en el front de Flow
+  (Webpay). Settle por **webhook real**: el `urlConfirmation` apunta a
+  `API_URL=https://hvr4lkk3-4000.brs.devtunnels.ms` y el POST de Flow
+  llegó al API por el tunnel - ledger `WEBHOOK_RECEIVED →
+  STATUS_CONFIRMED → SETTLED`, ambos PAID con media "Webpay".
+- **Bug encontrado y arreglado** (`5ab1af33`): el urlReturn de Flow
+  vuelve por POST cross-site y `POST /payments/order-return` daba 404
+  - `@Get`+`@Post` apilados en un handler solo registra GET en Nest 11;
+  quedó `@All("order-return")` (303 a /checkout/return).
 - **Camino COLLECTED de collect**: verificado (ver §7) - gmail03 y
   gmail.cl tienen tarjeta registrada en Flow (`flowCustomerId` en DB).
 - `multipais-foundation` tasks 10/11/13 (épica: pases multi-día
