@@ -46,11 +46,16 @@ mismo criterio que `c691c793`).
 6. **Docs**: `docs/qa-flows-inventory.md` §0 "Palancas dev" documenta
    el mapa de cuentas y la mecánica; `AGENTS.md` suma `db:qa-personas`.
 
-7. **Smoke real del job** `platform-charges.collect` (pendiente
-   opcional del handoff anterior): `POST /admin/jobs/platform-charges
-   .collect/run` con sesión admin → JobRun OK
-   (`cmw3k4t00000q10iaut0wfgpw`), meta `{scanned:0, collected:0,
-   failed:0}` - no hay PLATFORM_CHARGE PENDING en DB.
+7. **Smoke real del ciclo collect completo** (`POST /admin/jobs/
+   platform-charges.collect/run` con sesión admin):
+   - `POST /admin/platform-charges` {personId outlook, $1.500} →
+     Payment `cmw3khtnc002110iamk0ash9v` PLATFORM_CHARGE PENDING,
+     `paymentUrl` real (Flow `customer/create` on-demand +
+     `customer/collect` type≠1: sin tarjeta registrada degrada a link).
+   - Job → JobRun OK `{scanned:1, pending:1, collected:0, failed:0}`:
+     `retryPending` barrió el cargo, emitió `COLLECT_ATTEMPT` attempt 1,
+     reintentó `customer/collect` (nuevo `gatewayRef` 11503204) y quedó
+     PENDING - correcto, la persona sigue sin tarjeta registrada.
 
 ## QA manual con flow - receta
 
@@ -67,6 +72,13 @@ mismo criterio que `c691c793`).
 
 - **Completar un pago real en Flow sandbox** (la parte interactiva:
   RUT+pass en el front de Flow) y verificar el settle PAID por polling.
+  Links vivos para probar: ticket Switch `cmw3k3rda000c10iaxy17jvdr` y
+  platform charge `cmw3khtnc002110iamk0ash9v` (este último además
+  prueba el settle PAID de un PLATFORM_CHARGE por link).
+- **Camino COLLECTED de collect**: requiere un customer Flow con
+  tarjeta registrada - nace al registrar medio de pago en una
+  suscripción (customer/register, también interactivo en el front de
+  Flow).
 - `multipais-foundation` tasks 10/11/13 (épica: pases multi-día
   cross-academia, prácticas/socials free, congresos) - cada una es un
   change propio, requiere priorización.
