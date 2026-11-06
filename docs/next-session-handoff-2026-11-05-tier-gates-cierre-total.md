@@ -54,13 +54,26 @@ Cierra TODOS los pendientes del handoff `tier-gates-cierre`:
   era `next start` de build pre-b94d2a95 y por eso el smoke browser
   fallaba - cuidado con builds stale al verificar).
 
+## Correcciones post-cierre (mismo día, change `academy-enrich-seed-fixes`)
+
+- **El fix del enrich sí pasó por OpenSpec**: change
+  `academy-enrich-seed-fixes` creado, validado y archivado - spec nueva
+  `academy-demo-seed` con 2 requisitos (idempotencia por clave natural
+  + sufijo `_vN`; COBROS no recibe data de clases).
+- **`cobrosEffective`**: el enrich ya no crea-para-borrar en academias
+  COBROS. Set computado una vez (tier actual + las que el paso 5
+  convertirá en COBROS por hash, sin PlatformSubscription y fuera de
+  TRIAL_KEEP) y excluido de EnrollmentLevel, slots/clases
+  materializadas, asistencias, normalización de sobre-cupo y
+  PrivateLesson. Limpieza queda como red de seguridad.
+- **Contadores honestos**: `mkClaim` retorna null si el claim existe -
+  el resumen ya no reporta intentos como creaciones (`+0/+0`).
+- Código muerto eliminado: `ensureSeries`/`styleId`.
+- Verificado: `db:enrich` re-corrida → `COBROS limpio` todo en 0,
+  slots vivos 93 (eran 117), claims +0/+0, validate + archive OK.
+
 ## Notas / gaps conocidos
 
-- **Sin change OpenSpec para el fix del enrich**: es tooling dev
-  (seed), no comportamiento de producto - omitido explícitamente (G2).
-- `enrich` crea EnrollmentLevel en academias COBROS (paso 2) y luego
-  los borra (paso 5) - converge pero desperdicia una pasada; mejora
-  posible: excluir COBROS del paso 2.
 - Stack dejado: `next dev` en :3000 (levantado por esta sesión),
   API prod `dist/main` en :4000 (pid 30540, de antes).
 - No se actualizó `qa-flows-inventory.md`: el smoke script es tooling
