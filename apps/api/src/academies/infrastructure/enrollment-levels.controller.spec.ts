@@ -324,7 +324,7 @@ const makeAcademiesCtrl = (prisma: unknown, access: unknown) =>
   );
 
 describe("AcademiesController.levelInsights", () => {
-  it("gate: requireAdminister con feature insights", async () => {
+  it("gate: requireAdminister con feature classes", async () => {
     const prisma = makeInsightsPrisma();
     const access = makeInsightsAccess();
     const ctrl = makeAcademiesCtrl(prisma, access);
@@ -334,7 +334,7 @@ describe("AcademiesController.levelInsights", () => {
     expect(access.requireAdminister).toHaveBeenCalledWith(
       "acad-1",
       expect.anything(),
-      "insights",
+      "classes",
     );
   });
 

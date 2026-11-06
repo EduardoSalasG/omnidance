@@ -691,9 +691,10 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     },
     // El CRM del owner es sección propia (igual que en productor).
     CRM_DRAWER_GROUP,
-    // Configuración: una página por sección (general, cobro, perfil
-    // público, apariencia). La raíz /academia/configuracion redirige a
-    // general - los items apuntan directo a cada página.
+    // Configuración: una página por sección (clases, niveles, cobro,
+    // perfil público, apariencia). La raíz /academia/configuracion
+    // redirige a perfil (destino de todos los tiers) - los items
+    // apuntan directo a cada página.
     {
       labelNs: "academy",
       labelKey: "navGroups.config",
@@ -1101,8 +1102,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   const { flags } = useFeatures();
   // Entitlements de la academia seleccionada (spec
   // unified-actor-entitlements): filtra los módulos del owner por feature.
-  const { has: academyHas, loading: entLoading } =
-    useActorEntitlements("ACADEMY");
+  const {
+    has: academyHas,
+    loading: entLoading,
+    resolved: entResolved,
+  } = useActorEntitlements("ACADEMY");
   // null = sin sesión (o fetch aún no responde con certeza) → sin badge.
   const [unread, setUnread] = useState<number | null>(null);
   // null = sin sesión → el drawer muestra solo Perfil.
@@ -1366,7 +1370,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           // ítems con `academyFeature` solo aplican a la lente owner:
           // entran si la academia seleccionada cubre la feature
           // (mientras cargan los entitlements se muestran - el 403 del
-          // API es la red de seguridad).
+          // API es la red de seguridad). `!entResolved` = la selección
+          // apunta a una academia donde el viewer no es owner
+          // (membresía instructor/staff): los entitlements no la cubren
+          // y recortar ocultaría módulos que sí tiene - las páginas
+          // gatean por academy.tier (spec academy-tier-gates-refine).
           items: g.items
             .filter((spec) => !spec.flag || flags[spec.flag] === true)
             .filter(
@@ -1374,6 +1382,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
                 spec.academyFeature == null ||
                 activeRole !== "ACADEMY_OWNER" ||
                 entLoading ||
+                !entResolved ||
                 academyHas(spec.academyFeature),
             )
             .map((spec) => {

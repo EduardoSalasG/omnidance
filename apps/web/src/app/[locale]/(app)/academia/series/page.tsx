@@ -68,14 +68,20 @@ export default function AcademiaSeriesPage() {
       />
       <AcademyGate>
         {({ academy }) => (
-          <AcademyTierGate academy={academy} feature="classes"><SeriesModule key={academy.id} academyId={academy.id} /></AcademyTierGate>
+          <AcademyTierGate academy={academy} feature="classes"><SeriesModule key={academy.id} academyId={academy.id} tier={academy.tier} /></AcademyTierGate>
         )}
       </AcademyGate>
     </main>
   );
 }
 
-function SeriesModule({ academyId }: { academyId: string }) {
+function SeriesModule({
+  academyId,
+  tier,
+}: {
+  academyId: string;
+  tier?: string | null;
+}) {
   const t = useTranslations("academySeries");
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
@@ -192,7 +198,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
     <div className="flex flex-col gap-6">
       {/* Insights del módulo: KPIs primero, listas después (mismo
           orden que el inicio). */}
-      <SeriesInsights academyId={academyId} />
+      <SeriesInsights academyId={academyId} tier={tier} />
 
       <FilterBar
         entity={SERIES_ENTITY}

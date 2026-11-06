@@ -7,6 +7,7 @@ import { useMe } from "@/lib/me-context";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
 import { useAcademyAccessState } from "@/components/academy/use-academy-access";
+import { visibleHubModules } from "@/lib/academy-modules";
 import { ModuleCard, ModuleGrid } from "@/components/console/module-grid";
 import { Button, RefreshIcon } from "@/components/ui";
 
@@ -16,35 +17,8 @@ import {
 } from "@/components/onboarding/OnboardingRunner";
 import { useRouter } from "@/i18n/navigation";
 
-// Módulos de la consola - keys de academy.modules.* en es-CL.json +
-// parts/academyExtras.json + parts/academyBilling.json. `cap` mapea a los
-// flags granulares de AcademyStaff (spec academy-staff-roles): el owner y
-// ADMIN de plataforma reportan todos en GET /:id/access; staff e
-// instructor solo ven lo que su acceso cubre. Sin `cap` = nivel operativo
-// (owner, instructor o cualquier staff - requireManage del backend).
-const MODULES = [
-  { href: "/academia/clases", key: "myClasses" },
-  { href: "/academia/planes", key: "plans", cap: "plans" },
-  // Promos de membresía (spec member-promos): misma cap que planes -
-  // herramienta de precio en todos los tiers, sin gate de feature.
-  { href: "/academia/promos", key: "promos", cap: "plans" },
-  { href: "/academia/alumnos", key: "students" },
-  { href: "/academia/series", key: "series", cap: "schedule" },
-  // Particulares sale de la navegación del instructor puro (spec
-  // staff-roles) - queda para owner/staff/admin.
-  { href: "/academia/particulares", key: "lessons", noInstructor: true },
-  { href: "/academia/videos", key: "videos", cap: "schedule" },
-  { href: "/academia/cobros", key: "payments", cap: "payments" },
-  // Preventa por comisión (spec academy-presale-commission) - misma cap
-  // que cobros: la respuesta al acuerdo es una decisión de payments.
-  { href: "/academia/preventas", key: "presales", cap: "payments" },
-  { href: "/academia/equipo", key: "team", cap: "team" },
-  { href: "/academia/configuracion", key: "config", cap: "profile" },
-  // CRM con actorType=ACADEMY: sigue owner/ADMIN-only (requireAdminister
-  // del backend - no es delegable por flags).
-  { href: "/crm", key: "crm", ownerOnly: true },
-  { href: "/academia/configuracion/suscripcion", key: "subscription", cap: "billing" },
-] as const;
+// La lista de módulos y su filtro (cap + feature del tier) vive en
+// lib/academy-modules - testeable sin montar la página.
 
 /**
  * /academia - hub de la consola de academia. El gate (AcademyGate) resuelve
@@ -106,47 +80,31 @@ function AcademyHub({
     if (access?.isOwner === true) router.replace("/inicio");
   }, [access, router]);
 
-  // Mientras /access resuelve (null) se muestran los módulos operativos
-  // (los del día a día que el gate ya garantiza) - mismo criterio que el
-  // filtro owner-only previo: sin skeleton para no causar flash.
-  const operational =
-    access === null ||
-    access.isOwner ||
-    access.isAdmin ||
-    access.isInstructor ||
-    access.isStaff;
-
   // El owner navega por el sidebar (acordeones por dominio) - la grilla
   // queda para staff/instructor/admin, que no tienen ese drawer y cuyo
-  // acceso se filtra por caps. `access === null` (cargando) no pinta la
-  // grilla: para el owner un skeleton que colapsa sería flash.
+  // acceso se filtra por caps + tier. `access === null` (cargando) no
+  // pinta la grilla: para el owner un skeleton que colapsa sería flash.
   const showModuleGrid = access !== null && !access.isOwner;
 
-  // Instructor puro (sin staff/admin/owner en la academia): los módulos
-  // marcados noInstructor no van en su grilla.
+  // Instructor puro (sin staff/admin/owner en la academia): el dashboard
+  // de KPIs es staff-gated en la API y quedaría en error permanente.
   const pureInstructor =
     access?.isInstructor === true &&
     !access.isStaff &&
     !access.isAdmin &&
     !access.isOwner;
 
-  const visible = MODULES.filter((m) => {
-    if ("noInstructor" in m && m.noInstructor && pureInstructor) {
-      return false;
-    }
-    if ("ownerOnly" in m && m.ownerOnly) {
-      return (
-        access?.isAdmin === true ||
-        access?.isOwner === true ||
-        me?.roles.includes("ADMIN") ||
-        me?.id === academy.ownerId
-      );
-    }
-    if ("cap" in m && m.cap) {
-      return access?.caps[m.cap] === true;
-    }
-    return operational;
-  });
+  // Filtro por cap + feature del tier (spec academy-tier-gates-refine):
+  // staff de COBROS no ve cards que solo llevarían a paywall.
+  const visible = access
+    ? visibleHubModules({
+        access,
+        tier: academy.tier,
+        viewerId: me?.id,
+        viewerRoles: me?.roles,
+        academyOwnerId: academy.ownerId,
+      })
+    : [];
 
   // Owner: navegación ya redirigida a /inicio - no se pinta el hub para
   // evitar el flash antes del replace.

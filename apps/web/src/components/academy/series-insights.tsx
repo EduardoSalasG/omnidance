@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { academyTierHas } from "@/lib/academy-features";
 import { Card, ChevronRightIcon, Skeleton } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 
@@ -20,12 +21,27 @@ type SeriesInsightsData = {
  * después (top/bottom 5 series por asistencia histórica) - mismo orden
  * que el inicio. Filas navegables al detalle de la serie.
  */
-export function SeriesInsights({ academyId }: { academyId: string }) {
+export function SeriesInsights({
+  academyId,
+  tier,
+}: {
+  academyId: string;
+  tier?: string | null;
+}) {
   const t = useTranslations("academy");
   const [data, setData] = useState<SeriesInsightsData | null>(null);
-  const [hidden, setHidden] = useState(false);
+  // El endpoint exige `insights` (PRO): sin la feature no se dispara el
+  // fetch - mismo criterio que useAcademyLevelInsights (spec
+  // academy-tier-gates-refine).
+  const [hidden, setHidden] = useState(
+    () => !academyTierHas(tier, "insights"),
+  );
 
   const load = useCallback(async () => {
+    if (!academyTierHas(tier, "insights")) {
+      setHidden(true);
+      return;
+    }
     const res = await apiFetch(`/academies/${academyId}/series/insights`).catch(
       () => null,
     );
@@ -34,7 +50,7 @@ export function SeriesInsights({ academyId }: { academyId: string }) {
       return;
     }
     setData((await res.json()) as SeriesInsightsData);
-  }, [academyId]);
+  }, [academyId, tier]);
 
   useEffect(() => {
     void load();

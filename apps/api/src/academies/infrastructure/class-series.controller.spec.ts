@@ -1141,3 +1141,39 @@ describe("ClassSeriesController - levelId contra la línea efectiva", () => {
     expect(res.levelId).toBeNull();
   });
 });
+
+describe("ClassSeriesController - gate de tier en getSlot", () => {
+  // Spec academy-tier-gates-refine: el detalle del horario exige la
+  // misma feature que el listado y las mutaciones (`classes` sobre cap
+  // `schedule`) - COBROS responde 403 tier.required igual que sus
+  // hermanos.
+  let prisma: FakePrisma;
+  let ctrl: ClassSeriesController;
+  let access: { requireCapability: ReturnType<typeof vi.fn> };
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    access = { requireCapability: vi.fn(async () => undefined) };
+    ctrl = new ClassSeriesController(
+      prisma as unknown as PrismaService,
+      access as unknown as AcademyAccess,
+      { notifySafe: vi.fn(async () => undefined) } as unknown as NotificationsService,
+      new AcademyMaterializeService(prisma as unknown as PrismaService),
+    );
+    prisma.slots.set("slot-1", {
+      id: "slot-1",
+      academyId: "acad-1",
+      seriesId: "ser-1",
+    });
+  });
+
+  it("getSlot exige feature classes además de cap schedule", async () => {
+    await ctrl.getSlot("acad-1", "slot-1", req);
+    expect(access.requireCapability).toHaveBeenCalledWith(
+      "acad-1",
+      req.person,
+      "schedule",
+      "classes",
+    );
+  });
+});

@@ -1152,7 +1152,7 @@ export class ClassSeriesController {
     @Param("slotId") slotId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireCapability(id, req.person!, "schedule");
+    await this.access.requireCapability(id, req.person!, "schedule", "classes");
     const slot = await this.prisma.classSlot.findFirst({
       where: { id: slotId, academyId: id, deletedAt: null },
       include: {

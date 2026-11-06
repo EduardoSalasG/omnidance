@@ -118,7 +118,7 @@ export function AcademyDashboard({
   const expiringCount = dashboard?.expiringEnrollments.length ?? 0;
   const birthdays = dashboard?.upcomingBirthdays ?? [];
 
-  // Insight de niveles/cupos (PRO `insights` + owner/ADMIN): alimenta
+  // Insight de niveles/cupos (`classes` STUDIO+ + owner/ADMIN): alimenta
   // el KPI "sin nivel" (ambos modos) y la card anidada (Extendido).
   const levelInsights = useAcademyLevelInsights(academy);
   const unassigned = (levelInsights.data?.unassigned ?? []).filter(
@@ -158,10 +158,15 @@ export function AcademyDashboard({
   // cobrar. Medio de pago propio NO es paso: el checkout gestionado
   // (Flow de la plataforma) cobra sin que la academia configure nada -
   // transferencia/efectivo es opcional para comprobante manual.
+  // Pasos del checklist filtrados por tier (spec
+  // academy-tier-gates-refine): serie (`classes`) y equipo (`staff`)
+  // son STUDIO+ - en COBROS serían pasos imposibles que trabarían el
+  // checklist para siempre y llevarían a paywall al clickear.
   const checklistSteps = dashboard
     ? ([
         {
           key: "series",
+          feature: "classes",
           done: dashboard.kpis.weeklyClasses > 0,
           href: "/academia/series",
         },
@@ -172,6 +177,7 @@ export function AcademyDashboard({
         },
         {
           key: "team",
+          feature: "staff",
           done: dashboard.teamCount > 0,
           href: "/academia/equipo",
         },
@@ -180,7 +186,9 @@ export function AcademyDashboard({
           done: dashboard.totalStudents > 0,
           href: "/academia/alumnos",
         },
-      ] as const)
+      ] as const).filter(
+        (s) => !("feature" in s) || academyTierHas(academy.tier, s.feature),
+      )
     : [];
   const checklistDone = checklistSteps.filter((s) => s.done).length;
   const showChecklist =
@@ -255,9 +263,13 @@ export function AcademyDashboard({
             // filtra por feature del tier (spec academy-tier-v2).
             keys={kpiKeys}
             extra={
-              dashboard ? (
+              // Asistencia del día = feature `attendance` (STUDIO+): en
+              // COBROS el slot no existe. Sin href: no hay listado de
+              // asistencia del día (cada clase se resuelve en su
+              // roster, link en "Clases de hoy" de esta misma página)
+              // y /academia/asistencia redirige al hub (dead end).
+              !canAttendance ? null : dashboard ? (
                 <MiniKpi
-                  href="/academia/asistencia"
                   title={t("kpis.attendanceToday")}
                   count={dashboard.todayClasses.reduce(
                     (a, c) => a + c.bookedCount,
@@ -437,8 +449,8 @@ export function AcademyDashboard({
       )}
 
       {/* Niveles y cupos por horario (spec academies/owner-insights):
-          solo modo Extendido; state "hidden" = tier sin `insights`
-          (PRO) o caller sin privilegio: la sección no existe. */}
+          solo modo Extendido; state "hidden" = tier sin `classes`
+          (COBROS) o caller sin privilegio: la sección no existe. */}
       {homeMode === "extended" && levelInsights.state === "loading" && (
         <section aria-label={t("levels.title")}>
           <SkeletonCard lines={3} />
@@ -565,9 +577,11 @@ function SimpleHomeCards({
 }
 
 /**
- * KPI accionable de solo conteo: número grande + hint, la card entera
- * navega al módulo donde se resuelve la cola. Compartida por las cards
- * del modo Simplificado y las secciones del Extendido.
+ * KPI de solo conteo: número grande + hint. Con `href` la card entera
+ * navega al módulo donde se resuelve la cola; sin él queda informativa
+ * (la resolución vive en otra sección de la misma página o no existe
+ * como listado). Compartida por las cards del modo Simplificado y las
+ * secciones del Extendido.
  */
 function MiniKpi({
   href,
@@ -575,37 +589,54 @@ function MiniKpi({
   count,
   hint,
 }: {
-  href: string;
+  href?: string;
   title: string;
   count: number | string;
   hint: string;
 }) {
+  // El hint va visible, en title y en el aria-label: es contexto de la
+  // cifra, no adorno (mismo patrón que AcademyKpiCards).
+  const body = (
+    <Card
+      className={`flex h-full flex-col gap-1 p-4${
+        href ? " transition-colors hover:border-neon/60" : ""
+      }`}
+    >
+      <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
+        {title}
+      </span>
+      <span
+        className={`text-3xl font-bold leading-none tabular-nums ${
+          Number(String(count).replace(/[^0-9]/g, "")) > 0
+            ? "text-neon"
+            : "text-ink/40"
+        }`}
+      >
+        {count}
+      </span>
+      <span className="text-xs text-ink/50">{hint}</span>
+    </Card>
+  );
   return (
     <li>
-      <Link
-        href={href}
-        title={hint}
-        // El hint va visible, en title y en el aria-label: es contexto
-        // de la cifra, no adorno (mismo patrón que AcademyKpiCards).
-        aria-label={`${title}: ${count}. ${hint}`}
-        className="block h-full rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98]"
-      >
-        <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/60">
-          <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
-            {title}
-          </span>
-          <span
-            className={`text-3xl font-bold leading-none tabular-nums ${
-              Number(String(count).replace(/[^0-9]/g, "")) > 0
-                ? "text-neon"
-                : "text-ink/40"
-            }`}
-          >
-            {count}
-          </span>
-          <span className="text-xs text-ink/50">{hint}</span>
-        </Card>
-      </Link>
+      {href ? (
+        <Link
+          href={href}
+          title={hint}
+          aria-label={`${title}: ${count}. ${hint}`}
+          className="block h-full rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98]"
+        >
+          {body}
+        </Link>
+      ) : (
+        <span
+          title={hint}
+          aria-label={`${title}: ${count}. ${hint}`}
+          className="block h-full"
+        >
+          {body}
+        </span>
+      )}
     </li>
   );
 }
