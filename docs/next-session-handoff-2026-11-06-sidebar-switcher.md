@@ -2,8 +2,25 @@
 
 ## Estado
 
-Branch `dev` pusheada a origin: `d6b023c4`. Tag `v1.15.5` creado y
+Branch `dev` pusheada a origin: `0eac24a2`. Tag `v1.15.5` creado y
 pusheado. Working tree limpio.
+
+## Release y deploy (v1.15.5, en producción)
+
+- **Promoción**: merge `dev`→`main` + bump a `1.15.5` en los 3
+  `package.json` (raíz, api, web), commit `release: 1.15.5` →
+  `main` = `8f1624ab`. Recordar: los bumps de versión se hacen SOLO
+  en `main` al promover; en `dev` quedan atrasados (1.14.0) y el
+  merge los reconcilia.
+- **Deploy workflow** (`deploy-api-docker.yml`, corre solo sobre
+  `main` con cualquier push, no necesita commit "release:"): run
+  42295114288 success en 8m2s - tests, build, docker push GHCR,
+  migraciones Neon, seed prod, health check y probe Nginx verdes.
+- **Verificación prod**: `api.omnidance.eduardosalasg.dev/api/health`
+  200, `/api/me` 401.
+- Ojo: `dev` y `main` vuelven a divergir tras la promoción (merge
+  commit + release en main); al próximo ciclo repetir merge
+  dev→main.
 
 ## Hecho esta sesión
 
