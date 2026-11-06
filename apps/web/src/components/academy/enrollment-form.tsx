@@ -47,6 +47,13 @@ export function EnrollmentForm({
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
 
+  // Registro parcial (spec academy-student-invite): si el buscador no
+  // encuentra a la persona, el alta puede crearla con email+nombre y
+  // le llega la invitación por mail para que complete su cuenta.
+  const [newPerson, setNewPerson] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [newName, setNewName] = useState("");
+
   const [planId, setPlanId] = useState("");
   const [status, setStatus] = useState<EnrollmentStatus>("ACTIVE");
   const [startsAt, setStartsAt] = useState("");
@@ -99,14 +106,17 @@ export function EnrollmentForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selected) return;
+    const creating = newPerson && !selected;
+    if (!selected && !creating) return;
     setBusy(true);
     try {
       const res = await apiFetch(`/academies/${academyId}/enrollments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          personId: selected.id,
+          ...(selected
+            ? { personId: selected.id }
+            : { email: newEmail.trim(), name: newName.trim() }),
           planId,
           status,
           ...(startsAt ? { startsAt: fromDateInput(startsAt) } : {}),
@@ -117,7 +127,12 @@ export function EnrollmentForm({
         showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
-      showActionNotice({ text: t("enrollmentSaved") });
+      const data = (await res.json()) as { invited?: boolean };
+      showActionNotice({
+        text: data.invited
+          ? t("enrollmentSavedInvited")
+          : t("enrollmentSaved"),
+      });
       router.push("/academia/alumnos");
     } catch {
       showActionNotice({ text: tc("error"), error: true });
@@ -201,13 +216,69 @@ export function EnrollmentForm({
               {!searching &&
                 !searchError &&
                 candidates !== null &&
-                candidates.length === 0 && (
-                  <p role="status" className="text-xs text-ink/50">
-                    {t("personSearch.noResults")}
-                  </p>
+                candidates.length === 0 &&
+                !newPerson && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p role="status" className="text-xs text-ink/50">
+                      {t("personSearch.noResults")}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewPerson(true);
+                        setNewEmail(
+                          query.includes("@") ? query.trim() : "",
+                        );
+                        setNewName(
+                          query.includes("@") ? "" : query.trim(),
+                        );
+                      }}
+                      className="text-xs font-medium text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                    >
+                      {t("personSearch.registerNew")}
+                    </button>
+                  </div>
                 )}
             </div>
-            {candidates !== null && candidates.length > 0 && (
+            {newPerson && (
+              <div className="flex flex-col gap-2 rounded-xl border border-neon/30 bg-neon/5 p-3">
+                <p className="text-xs text-ink/60">
+                  {t("personSearch.newPersonHint")}
+                </p>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-ink/50">
+                    {t("personSearch.emailLabel")}
+                    <span aria-hidden="true" className="text-neon"> *</span>
+                  </span>
+                  <input
+                    type="email"
+                    required
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className={inputCls}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-ink/50">
+                    {t("personSearch.nameLabel")}
+                  </span>
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className={inputCls}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setNewPerson(false)}
+                  className="self-start text-xs text-ink/50 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
+                  {t("personSearch.backToSearch")}
+                </button>
+              </div>
+            )}
+            {candidates !== null && candidates.length > 0 && !newPerson && (
               <ul className="flex flex-col gap-1" role="listbox">
                 {candidates.map((c) => (
                   <li key={c.id}>
@@ -295,7 +366,11 @@ export function EnrollmentForm({
           />
         </label>
         <div className="flex items-center gap-2 sm:col-span-2">
-          <Button type="submit" size="sm" disabled={busy || !selected}>
+          <Button
+            type="submit"
+            size="sm"
+            disabled={busy || (!selected && !(newPerson && newEmail.trim()))}
+          >
             {busy ? tc("loading") : tc("create")}
           </Button>
           <Button

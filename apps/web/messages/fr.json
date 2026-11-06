@@ -516,7 +516,15 @@
     "planStudentsEmpty": "Personne n'a ce plan actif",
     "planFrom": "Du",
     "planUntil": "Jusqu'au",
-    "newAcademy": "Nouvelle académie"
+    "newAcademy": "Nouvelle académie",
+    "personSearch": {
+      "registerNew": "Enregistrer une nouvelle personne",
+      "newPersonHint": "Nous créons le compte et envoyons l’invitation par e-mail.",
+      "emailLabel": "E-mail",
+      "nameLabel": "Nom (optionnel)",
+      "backToSearch": "← Retour à la recherche"
+    },
+    "enrollmentSavedInvited": "Inscription enregistrée - invitation envoyée par e-mail"
   },
   "practices": {
     "title": "Pratiques",

@@ -42,6 +42,9 @@ import type { Request } from "express";
 import type { EnrollmentStatus, PlanType, Prisma } from "@prisma/client";
 import { normalizePhone } from "@omnidance/shared";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { AuthService } from "../../auth/domain/auth.service";
+import { MAILER, type Mailer } from "../../auth/domain/ports";
+import { studentInviteEmailHtml } from "./invite-emails";
 import { PrismaService } from "../../prisma.service";
 import { ParamsService } from "../../params/params.service";
 import { SubscriptionsService } from "../../payments/application/subscriptions.service";
@@ -183,8 +186,22 @@ class UpdatePlanDto {
 }
 
 class CreateEnrollmentDto {
+  /** personId directo O email para registro parcial + invitación
+      (spec academy-student-invite). */
+  @IsOptional()
   @IsString()
-  personId!: string;
+  personId?: string;
+
+  /** Registro parcial: crea el stub de Person y le envía la
+      invitación por mail para que complete su cuenta. */
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  name?: string;
 
   @IsString()
   planId!: string;
@@ -424,7 +441,9 @@ export class AcademiesController {
     private readonly access: AcademyAccess,
     private readonly subscriptions: SubscriptionsService,
     private readonly params: ParamsService,
+    private readonly auth: AuthService,
     @Inject(STORAGE) private readonly storage: FileStorage,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
   /**
@@ -1795,10 +1814,29 @@ export class AcademiesController {
   ) {
     await this.access.requireCapabilityWrite(id, req.person!, "students");
 
-    const person = await this.prisma.person.findUnique({
-      where: { id: dto.personId },
-    });
-    if (!person) throw new NotFoundException("persona no encontrada");
+    // Persona: personId directo (buscador) o email → registro parcial
+    // (stub + magic link para que complete su cuenta; spec
+    // academy-student-invite).
+    let person: { id: string; email: string | null; name: string | null } | null = null;
+    let invited = false;
+    if (dto.personId) {
+      person = await this.prisma.person.findUnique({
+        where: { id: dto.personId },
+        select: { id: true, email: true, name: true },
+      });
+      if (!person) throw new NotFoundException("persona no encontrada");
+    } else if (dto.email?.trim()) {
+      const email = dto.email.trim().toLowerCase();
+      person = await this.prisma.person.findUnique({ where: { email } });
+      if (!person) {
+        person = await this.prisma.person.create({
+          data: { email, name: dto.name?.trim() || email.split("@")[0] },
+        });
+        invited = true;
+      }
+    } else {
+      throw new BadRequestException("personId o email requerido");
+    }
 
     const plan = await this.prisma.membershipPlan.findFirst({
       where: { id: dto.planId, academyId: id },
@@ -1806,7 +1844,7 @@ export class AcademiesController {
     if (!plan) throw new NotFoundException("plan no encontrado en la academia");
 
     const duplicate = await this.prisma.enrollment.findFirst({
-      where: { academyId: id, personId: dto.personId, planId: plan.id, status: "ACTIVE" },
+      where: { academyId: id, personId: person.id, planId: plan.id, status: "ACTIVE" },
     });
     if (duplicate) {
       throw new ConflictException({
@@ -1836,10 +1874,10 @@ export class AcademiesController {
         select: { id: true },
       }),
     ]);
-    return this.prisma.enrollment.create({
+    const enrollment = await this.prisma.enrollment.create({
       data: {
         academyId: id,
-        personId: dto.personId,
+        personId: person.id,
         planId: plan.id,
         status: dto.status ?? "ACTIVE",
         startedAt,
@@ -1856,6 +1894,37 @@ export class AcademiesController {
           : {}),
       },
     });
+
+    // Registro parcial (spec academy-student-invite): al stub recién
+    // creado le llega un magic link para completar su cuenta. El mail
+    // es best-effort - el alta queda igual si el envío falla.
+    if (invited && person.email) {
+      try {
+        const academy = await this.prisma.academy.findUnique({
+          where: { id },
+          select: { name: true },
+        });
+        const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+        const token = await this.auth.createMagicToken(
+          person.email,
+          false,
+          "7d",
+        );
+        const link = `${webUrl}/api/auth/verify?token=${token}`;
+        await this.mailer.send(
+          person.email,
+          `${academy?.name ?? "Tu academia"} te inscribió en Omnidance`,
+          studentInviteEmailHtml({
+            personName: person.name,
+            academyName: academy?.name ?? "",
+            link,
+          }),
+        );
+      } catch (e) {
+        // best-effort: log y seguir (el alta ya existe)
+      }
+    }
+    return { ...enrollment, invited };
   }
 
   // Listado de alumnos - requireManage: el instructor también lo ve
