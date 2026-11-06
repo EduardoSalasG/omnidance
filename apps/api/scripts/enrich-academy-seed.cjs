@@ -20,10 +20,12 @@
 //   2. NIVELES: asigna EnrollmentLevel a todo Enrollment ACTIVE sin
 //      niveles (~40% Ini, ~30% Ini+Bás, ~20% Bás+Int, ~10% Int+Avan),
 //      con classType ponderado por lo que la academia ofrece.
+//      Academias COBROS efectivas (tier actual o el que el paso 5 les
+//      asignará por hash) quedan fuera: cobranza pura, sin clases.
 //   3. CLASES: materializa instancias Class del mes vigente y el
 //      siguiente para slots sin ellas (misma regla que el seed:
-//      Class.date a medianoche UTC por weekday). Crea parrilla mínima
-//      a academias con alumnos pero sin series.
+//      Class.date a medianoche UTC por weekday). Slots de academias
+//      COBROS efectivas quedan fuera.
 //   4. ASISTENCIA: rellena Attendance en clases ya dictadas sin
 //      asistencia (60–85% de los BOOKED, determinista por clase+alumno;
 //      fallback roster ACTIVE). Clases de hoy ya iniciadas reciben
@@ -331,7 +333,7 @@ async function main() {
   const [levels, types, academies] = await Promise.all([
     prisma.classLevel.findMany(),
     prisma.classType.findMany(),
-    prisma.academy.findMany({ where: { active: true }, select: { id: true, name: true, ownerId: true, privateLessonPrice: true } }),
+    prisma.academy.findMany({ where: { active: true }, select: { id: true, name: true, ownerId: true, privateLessonPrice: true, tier: true } }),
   ]);
   // Resolución por línea efectiva (misma regla del API): si la academia
   // tiene niveles custom, el nivel con ese nombre es el custom - la
@@ -352,6 +354,39 @@ async function main() {
   const typeId = Object.fromEntries(types.map((t) => [t.name, t.id]));
   const academyById = new Map(academies.map((a) => [a.id, a]));
 
+  // ── COBROS efectivo: academias ya en tier COBROS + las que el paso 5
+  // convertirá en COBROS por el hash determinista (activas, sin
+  // PlatformSubscription propia y fuera de TRIAL_KEEP). COBROS es
+  // cobranza pura (alumnos + planes): el seed no siembra data de
+  // features que el tier no cubre (niveles, parrilla, asistencias,
+  // particulares) - la limpieza post-suscripciones queda como red de
+  // seguridad para residuos de seeds/corridas anteriores.
+  const TRIAL_KEEP = new Set(["Adrian y Leo", "Mi mambo", "Utopia", "Pasion Latina"]);
+  const tierCycle = [
+    ["COBROS", "MONTHLY"], ["STUDIO", "MONTHLY"], ["STUDIO", "SEMIANNUAL"],
+    ["PRO", "ANNUAL"], ["STUDIO", "ANNUAL"], ["COBROS", "SEMIANNUAL"], ["PRO", "MONTHLY"],
+  ];
+  const cobrosEffective = new Set();
+  {
+    const withSub = new Set(
+      (
+        await prisma.platformSubscription.findMany({
+          where: { kind: "ACADEMY", academyId: { in: academies.map((a) => a.id) } },
+          select: { academyId: true },
+        })
+      ).map((s) => s.academyId)
+    );
+    for (const a of academies) {
+      if (a.tier === "COBROS") {
+        cobrosEffective.add(a.id);
+        continue;
+      }
+      if (TRIAL_KEEP.has(a.name) || withSub.has(a.id)) continue;
+      const [tier] = tierCycle[h(a.id) % tierCycle.length];
+      if (tier === "COBROS") cobrosEffective.add(a.id);
+    }
+  }
+
   // ═══════════ 2. EnrollmentLevel ═══════════
   console.log("\n═══ 2. Niveles de alumnos (EnrollmentLevel) ═══");
   // Tipos ofrecidos por academia (ClassSeriesType de series vivas).
@@ -368,7 +403,7 @@ async function main() {
   const defaultType = typeId["Pareja"] ?? types[0].id;
 
   const enrolls = await prisma.enrollment.findMany({
-    where: { academyId: { in: academies.map((a) => a.id) }, status: "ACTIVE" },
+    where: { academyId: { in: academies.map((a) => a.id), notIn: [...cobrosEffective] }, status: "ACTIVE" },
     select: { id: true, academyId: true, levels: { select: { enrollmentId: true }, take: 1 } },
   });
   const levelRows = [];
@@ -391,56 +426,12 @@ async function main() {
   const levelRes = await prisma.enrollmentLevel.createMany({ data: levelRows, skipDuplicates: true });
   say(`EnrollmentLevel creados: ${levelRes.count} filas (enrollments ACTIVE sin niveles: ${enrolls.filter((e) => !e.levels.length).length})`);
 
-  // ═══════════ 3. Parrilla mínima para academias sin series ═══════════
+  // ═══════════ 3. Clases materializadas para slots sin ellas ═══════════
   console.log("\n═══ 3. Series/slots/clases faltantes ═══");
-  const styleId = async (name) =>
-    (await prisma.style.findFirst({ where: { name: { equals: name, mode: "insensitive" } } }))?.id ?? null;
-  const ensureSeries = async (academyId, name, { styleName, levelName, typeNames, instructorId, slots }) => {
-    const effectiveLevelId = levelName ? levelIdFor(academyId, levelName) : null;
-    let series = await prisma.classSeries.findFirst({ where: { academyId, name, levelId: effectiveLevelId } });
-    if (!series) {
-      series = await prisma.classSeries.create({
-        data: {
-          academyId, name,
-          styleId: styleName ? await styleId(styleName) : null,
-          levelId: effectiveLevelId,
-          instructorId: instructorId ?? null,
-          month: `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`,
-        },
-      });
-    }
-    for (const tn of typeNames ?? []) {
-      await prisma.classSeriesType.upsert({
-        where: { seriesId_typeId: { seriesId: series.id, typeId: typeId[tn] } },
-        update: {},
-        create: { seriesId: series.id, typeId: typeId[tn] },
-      });
-    }
-    const slotIds = [];
-    for (const s of slots) {
-      let slot = await prisma.classSlot.findFirst({
-        where: { academyId, seriesId: series.id, weekday: s.weekday, startTime: s.startTime },
-      });
-      if (!slot) {
-        slot = await prisma.classSlot.create({
-          data: { academyId, seriesId: series.id, weekday: s.weekday, startTime: s.startTime, endTime: s.endTime, instructorId: instructorId ?? null },
-        });
-      }
-      slotIds.push(slot.id);
-      for (const tn of s.typeNames ?? typeNames ?? []) {
-        await prisma.classSlotType.upsert({
-          where: { slotId_typeId: { slotId: slot.id, typeId: typeId[tn] } },
-          update: {},
-          create: { slotId: slot.id, typeId: typeId[tn] },
-        });
-      }
-    }
-    return slotIds;
-  };
-
-  // Academia Tumbao es COBROS (cobranza pura: alumnos + planes): sin
-  // parrilla ni instructores - la limpieza post-suscripciones garantiza
-  // el estado en cualquier academia que quede en ese tier.
+  // Academias COBROS (cobranza pura: alumnos + planes) quedan fuera via
+  // cobrosEffective: sin parrilla ni instructores - la limpieza
+  // post-suscripciones garantiza el estado en cualquier academia que
+  // quede en ese tier.
 
   // Materializa clases del mes vigente + siguiente para slots sin ellas
   // (misma regla que mkClassSeries del seed: medianoche UTC por weekday).
@@ -450,7 +441,7 @@ async function main() {
   };
   const materializeMonths = [prevMonthStart, monthStart, nextMonthStart];
   const liveSlots = await prisma.classSlot.findMany({
-    where: { deletedAt: null, series: { deletedAt: null, active: true } },
+    where: { deletedAt: null, academyId: { notIn: [...cobrosEffective] }, series: { deletedAt: null, active: true } },
     select: { id: true, weekday: true, oneOffDate: true, classes: { select: { date: true } } },
   });
   const classCreates = [];
@@ -477,7 +468,7 @@ async function main() {
       cancelled: false,
       date: { lte: todayUTC },
       attendances: { none: {} },
-      slot: { deletedAt: null, series: { deletedAt: null, active: true } },
+      slot: { deletedAt: null, academyId: { notIn: [...cobrosEffective] }, series: { deletedAt: null, active: true } },
     },
     select: {
       ...capSelect, date: true,
@@ -541,7 +532,7 @@ async function main() {
   const liveClasses = await prisma.class.findMany({
     where: {
       cancelled: false,
-      slot: { deletedAt: null, series: { deletedAt: null, active: true } },
+      slot: { deletedAt: null, academyId: { notIn: [...cobrosEffective] }, series: { deletedAt: null, active: true } },
     },
     select: {
       ...capSelect,
@@ -589,12 +580,8 @@ async function main() {
   console.log("\n═══ 5. Suscripciones (plataforma + membresía) ═══");
   const BILLED_MONTHS = { MONTHLY: 1, SEMIANNUAL: 5.52, ANNUAL: 10.2 };
   const paramNum = async (key) => Number((await prisma.platformParam.findUnique({ where: { key }, select: { value: true } }))?.value ?? 0);
-  // Academias que se quedan en trial a propósito (escena pre-launch).
-  const TRIAL_KEEP = new Set(["Adrian y Leo", "Mi mambo", "Utopia", "Pasion Latina"]);
-  const tierCycle = [
-    ["COBROS", "MONTHLY"], ["STUDIO", "MONTHLY"], ["STUDIO", "SEMIANNUAL"],
-    ["PRO", "ANNUAL"], ["STUDIO", "ANNUAL"], ["COBROS", "SEMIANNUAL"], ["PRO", "MONTHLY"],
-  ];
+  // TRIAL_KEEP y tierCycle viven en "Datos base compartidos": el set
+  // cobrosEffective se computa con ellos antes del paso 2.
   let platSubs = 0;
   const activeAcademies = academies.filter((a) => !TRIAL_KEEP.has(a.name)).sort((a, b) => a.id.localeCompare(b.id));
   for (let i = 0; i < activeAcademies.length; i++) {
@@ -818,7 +805,9 @@ async function main() {
       const found = await prisma.paymentClaim.findFirst({
         where: { academyId: a.id, personId: e.personId, planId: e.planId, status, createdAt: { gte: mStart, lt: mEnd } },
       });
-      if (found) return found;
+      // null cuando ya existe: los contadores del resumen solo cuentan
+      // creaciones reales, no intentos.
+      if (found) return null;
       const c = await prisma.paymentClaim.create({
         data: {
           academyId: a.id, personId: e.personId, planId: e.planId,
@@ -847,8 +836,7 @@ async function main() {
     for (let k = pendingNow; k < 3; k++) {
       const e = enrolled[(h(a.id + "p") + k * 11) % enrolled.length];
       const created = new Date(Date.now() - (k % 3) * 86_400_000 - 3 * 3600e3);
-      await mkClaim(e, "PENDING", created, k % 3 === 2 ? "CASH" : "TRANSFER", k % 3 === 2 ? "Efectivo en clase" : "Transferencia");
-      claimsPending++;
+      if (await mkClaim(e, "PENDING", created, k % 3 === 2 ? "CASH" : "TRANSFER", k % 3 === 2 ? "Efectivo en clase" : "Transferencia")) claimsPending++;
     }
     // Aprobados del mes + MTD anterior si la academia no tiene cobranza.
     const approvedNow = await prisma.paymentClaim.count({
@@ -858,13 +846,11 @@ async function main() {
       for (let k = approvedNow; k < 5; k++) {
         const e = enrolled[(h(a.id + "a") + k * 13) % enrolled.length];
         const day = 1 + ((k * 2) % Math.max(1, now.getUTCDate()));
-        await mkClaim(e, "APPROVED", new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day, 12)));
-        claimsApproved++;
+        if (await mkClaim(e, "APPROVED", new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day, 12)))) claimsApproved++;
       }
       for (let k = 0; k < 3; k++) {
         const e = enrolled[(h(a.id + "v") + k * 17) % enrolled.length];
-        await mkClaim(e, "APPROVED", new Date(+prevMonthStart + (2 + k * 3) * 86_400_000 + 12 * 3600e3));
-        claimsApproved++;
+        if (await mkClaim(e, "APPROVED", new Date(+prevMonthStart + (2 + k * 3) * 86_400_000 + 12 * 3600e3))) claimsApproved++;
       }
     }
   }
@@ -904,7 +890,7 @@ async function main() {
 
   // Clases particulares pendientes donde la academia las vende.
   let lessons = 0;
-  for (const a of academies.filter((x) => x.privateLessonPrice)) {
+  for (const a of academies.filter((x) => x.privateLessonPrice && !cobrosEffective.has(x.id))) {
     const has = await prisma.privateLesson.count({ where: { academyId: a.id, status: "REQUESTED" } });
     if (has) continue;
     const st = await prisma.enrollment.findFirst({ where: { academyId: a.id, status: "ACTIVE" }, select: { personId: true } });
