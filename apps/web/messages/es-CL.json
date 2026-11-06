@@ -1227,5 +1227,10 @@
       "PRODUCER": "Nombre de evento"
     },
     "verified": "Email verificado"
+  },
+  "academyPay": {
+    "report": {
+      "export": "Exportar"
+    }
   }
 }

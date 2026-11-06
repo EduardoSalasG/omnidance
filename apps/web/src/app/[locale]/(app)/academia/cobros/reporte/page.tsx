@@ -291,6 +291,30 @@ function ReportModule({ academyId }: { academyId: string }) {
         options={{ academyPlans: dedupeOptions(planOptions) }}
       />
 
+      {/* Export del reporte con los filtros actuales (spec
+          academy-cobros-reporte): <a download> preserva la cookie vía
+          el proxy /api; filename y contenido localizados por `lang`. */}
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-xs text-ink/50">{t("report.export")}</span>
+        {(["csv", "pdf"] as const).map((f) => {
+          const qs = filterQuery(filters);
+          return (
+            <a
+              key={f}
+              href={`/api/academies/${academyId}/billing-report.${f}${qs}${qs ? "&" : "?"}lang=${locale.startsWith("en") ? "en" : "es"}`}
+              download
+              className={`inline-flex min-h-11 min-w-16 items-center justify-center rounded-xl border px-4 text-xs font-bold uppercase tracking-wide transition-colors ${
+                f === "csv"
+                  ? "border-line bg-surface text-ink hover:border-neon/60"
+                  : "border-neon/40 bg-neon/10 text-neon hover:border-neon/70"
+              }`}
+            >
+              {f}
+            </a>
+          );
+        })}
+      </div>
+
       {/* KPIs del período filtrado: solo Facturado y Alumnos (los
           títulos largos se cortaban). */}
       <ul className="grid grid-cols-2 gap-3">
