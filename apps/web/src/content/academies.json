@@ -1,19 +1,10 @@
 {
-  "generatedAt": "2026-11-04T22:38:17.156Z",
+  "generatedAt": "2026-11-06T14:02:10.266Z",
   "academies": [
     {
       "id": "cmua3gao7003buas59g9fyxn5",
       "name": "Academia Tumbao",
-      "styles": [
-        {
-          "id": "cmu62tqvn0003yo42gs9omsj7",
-          "name": "Bachata sensual"
-        },
-        {
-          "id": "cmu62tqug0000yo42zmzt46sq",
-          "name": "Salsa cubana (casino)"
-        }
-      ]
+      "styles": []
     },
     {
       "id": "cmud59xng011idtbmcsanud70",
@@ -44,16 +35,8 @@
           "name": "Bachata sensual"
         },
         {
-          "id": "cmud59npi0001dtbm7728ahgn",
-          "name": "Cubano"
-        },
-        {
           "id": "cmu8otql7000013qthgrnhyd4",
           "name": "Mambo on2"
-        },
-        {
-          "id": "cmu62tqwl0006yo42p3u5dl9w",
-          "name": "Rueda de casino"
         },
         {
           "id": "cmu62tqug0000yo42zmzt46sq",
@@ -80,14 +63,6 @@
           "name": "Bachata sensual"
         },
         {
-          "id": "cmud59npi0001dtbm7728ahgn",
-          "name": "Cubano"
-        },
-        {
-          "id": "cmu62tqwl0006yo42p3u5dl9w",
-          "name": "Rueda de casino"
-        },
-        {
           "id": "cmu62tqug0000yo42zmzt46sq",
           "name": "Salsa cubana (casino)"
         }
@@ -100,14 +75,6 @@
         {
           "id": "cmu62tqvn0003yo42gs9omsj7",
           "name": "Bachata sensual"
-        },
-        {
-          "id": "cmud59npi0001dtbm7728ahgn",
-          "name": "Cubano"
-        },
-        {
-          "id": "cmu62tqwl0006yo42p3u5dl9w",
-          "name": "Rueda de casino"
         },
         {
           "id": "cmu62tqug0000yo42zmzt46sq",
@@ -124,12 +91,12 @@
           "name": "Bachata sensual"
         },
         {
-          "id": "cmud59npi0001dtbm7728ahgn",
-          "name": "Cubano"
-        },
-        {
           "id": "cmu8otql7000013qthgrnhyd4",
           "name": "Mambo on2"
+        },
+        {
+          "id": "cmu62tqug0000yo42zmzt46sq",
+          "name": "Salsa cubana (casino)"
         }
       ]
     },
@@ -172,14 +139,6 @@
       "name": "Habana Dance Company",
       "styles": [
         {
-          "id": "cmud59npi0001dtbm7728ahgn",
-          "name": "Cubano"
-        },
-        {
-          "id": "cmu62tqwl0006yo42p3u5dl9w",
-          "name": "Rueda de casino"
-        },
-        {
           "id": "cmu62tqug0000yo42zmzt46sq",
           "name": "Salsa cubana (casino)"
         }
@@ -202,14 +161,6 @@
         {
           "id": "cmud59npv0002dtbmmfnq95rp",
           "name": "Afrocubano"
-        },
-        {
-          "id": "cmud59npi0001dtbm7728ahgn",
-          "name": "Cubano"
-        },
-        {
-          "id": "cmu62tqwl0006yo42p3u5dl9w",
-          "name": "Rueda de casino"
         },
         {
           "id": "cmu62tqug0000yo42zmzt46sq",
@@ -250,14 +201,6 @@
           "name": "Bachata sensual"
         },
         {
-          "id": "cmud59npi0001dtbm7728ahgn",
-          "name": "Cubano"
-        },
-        {
-          "id": "cmu62tqwl0006yo42p3u5dl9w",
-          "name": "Rueda de casino"
-        },
-        {
           "id": "cmu62tqug0000yo42zmzt46sq",
           "name": "Salsa cubana (casino)"
         }
@@ -282,14 +225,6 @@
           "name": "Bachata sensual"
         },
         {
-          "id": "cmud59npi0001dtbm7728ahgn",
-          "name": "Cubano"
-        },
-        {
-          "id": "cmu62tqwl0006yo42p3u5dl9w",
-          "name": "Rueda de casino"
-        },
-        {
           "id": "cmu62tqug0000yo42zmzt46sq",
           "name": "Salsa cubana (casino)"
         }
@@ -302,14 +237,6 @@
         {
           "id": "cmu62tqvn0003yo42gs9omsj7",
           "name": "Bachata sensual"
-        },
-        {
-          "id": "cmud59npi0001dtbm7728ahgn",
-          "name": "Cubano"
-        },
-        {
-          "id": "cmu62tqwl0006yo42p3u5dl9w",
-          "name": "Rueda de casino"
         },
         {
           "id": "cmu62tqug0000yo42zmzt46sq",
