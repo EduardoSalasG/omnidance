@@ -79,6 +79,33 @@
       "membershipPlan": "{plan} plan",
       "validUntil": "Valid until {date}",
       "viewPlan": "View plan"
+    },
+    "kpi": {
+      "streakHint": "Consecutive weeks with at least one dance",
+      "pointsHint": "Points this season",
+      "badgesHint": "Badges earned",
+      "dances7dHint": "Dances in the last 7 days",
+      "enrollmentsHint": "Active academy enrollments",
+      "classesMonthHint": "Classes attended this month",
+      "classes7dHint": "Classes in the last 7 days",
+      "activeEventsHint": "Published, upcoming events",
+      "ticketsSoldHint": "Cumulative tickets sold",
+      "pendingPayoutsHint": "Payouts awaiting transfer",
+      "pendingPayoutNetHint": "Net amount to transfer",
+      "pendingRolesHint": "Role requests to review",
+      "usersHint": "Registered people",
+      "academiesHint": "Registered academies",
+      "studentsHint": "Students with active enrollment",
+      "attendance7dHint": "Attendances in the last 7 days",
+      "mySlotsHint": "Slots where I teach",
+      "upcomingAtVenueHint": "Future events at the venue",
+      "upcomingGigsHint": "Future gigs",
+      "upcomingShiftsHint": "Future assigned shifts",
+      "leadsNewHint": "Unreviewed applications",
+      "txRevenueMonthHint": "Service fee charged this month",
+      "subRevenueMonthHint": "Subscription revenue this month",
+      "subsAcademyHint": "Academies with an active subscription",
+      "subsProducerHint": "Producers with an active subscription"
     }
   },
   "profile": {

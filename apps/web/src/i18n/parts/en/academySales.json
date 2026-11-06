@@ -8,6 +8,8 @@
   "academySales": {
     "sectionTitle": "Presale by academies",
     "backToHub": "Console",
+    "pendingTitle": "To respond",
+    "resolvedTitle": "History",
     "invite": "Invite academy",
     "inviteTitle": "Invite an academy to sell presale",
     "inviteDesc": "The academy sells with its link and gets a percentage of the list price. You pay their commission outside the app; the record of what you owe them lives here.",

@@ -5,16 +5,44 @@ TBD - created by archiving change enrollment-level-kpi. Update Purpose after arc
 
 ## Requirements
 
-### Requirement: Nivel del alumno por tipo de clase, multinivel
+### Requirement: Nivel del alumno por tipo de clase
 
-El sistema SHALL registrar el/los niveles de un alumno por tipo de
-clase (`ClassType`: En Pareja | Shines | Corporalidad): un enrollment
-puede tener uno o más `EnrollmentLevel` (ej. Iniciación + Básico en En
-Pareja). Solo el owner/admin de la academia SHALL poder asignarlos;
-el alumno no se auto-nivela.
+El sistema SHALL registrar el nivel de un alumno por tipo de clase
+(`ClassType`: En Pareja | Shines | Corporalidad): un enrollment tiene
+a lo más un `EnrollmentLevel` por tipo. Solo el owner/admin de la
+academia SHALL poder asignarlo (cap `students` **y feature `classes`**:
+una academia COBROS no dicta clases y recibe 403 `tier.required`); el
+alumno no se auto-nivela. `PATCH /enrollments/:id/levels` SHALL
+rechazar con 400 cualquier entrada que traiga más de un `levelId` para
+el mismo `classTypeId`.
 
-#### Scenario: Asignación multinivel por el owner
+#### Scenario: Asignación de un nivel por tipo
 
-- **WHEN** el owner marca al alumno "Iniciación + Básico" en En Pareja
-- **THEN** quedan dos EnrollmentLevel persistidos y los KPIs los
-  cuentan en ambos niveles
+- **WHEN** el owner marca al alumno "Básico" en En Pareja
+- **THEN** queda un EnrollmentLevel persistido para ese tipo y los
+  KPIs lo cuentan una sola vez
+
+#### Scenario: Multi-nivel del mismo tipo rechazado
+
+- **WHEN** el body trae `levelIds: ["ini", "bas"]` para En Pareja
+- **THEN** la API responde 400 y no persiste cambio alguno
+
+#### Scenario: COBROS no nivela alumnos
+
+- **GIVEN** una academia tier COBROS (sin feature `classes`)
+- **WHEN** el owner llama `PATCH /enrollments/:id/levels`
+- **THEN** la API responde 403 `tier.required` (feature `classes`)
+
+### Requirement: Opciones del editor = línea efectiva de la academia
+
+El editor de niveles del alumno SHALL ofrecer como opciones solo los
+niveles de la línea efectiva de la academia del enrollment (custom si
+existe, global si no), nunca la unión de ambas.
+
+#### Scenario: Alumno de academia con línea custom
+
+- **GIVEN** un enrollment de Mambo Madness (línea custom)
+- **WHEN** el staff abre el editor de niveles por tipo
+- **THEN** las chips muestran los niveles custom (Iniciación,
+  Iniciación 2, Básico, Intermedio, Avanzado) y al guardar persiste
+  `levelId`s de esa línea

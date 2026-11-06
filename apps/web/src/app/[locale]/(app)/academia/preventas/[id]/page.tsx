@@ -10,9 +10,12 @@ import {
   Badge,
   Button,
   Card,
+  LIST_PREVIEW,
   PriceTag,
   RefreshIcon,
+  SeeAllRow,
   SkeletonCard,
+  Spinner,
 } from "@/components/ui";
 import {
   ActionNotice,
@@ -62,6 +65,8 @@ function DealDetail({
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  // Códigos emitidos: preview acotado + "Ver todo" (patrón series/[id]).
+  const [showAllCodes, setShowAllCodes] = useState(false);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -194,25 +199,36 @@ function DealDetail({
         </div>
       )}
       {state === "notFound" && (
-        <p role="alert" className="text-sm text-ink/70">
-          {t("notFound")}
-        </p>
+        <div className="flex flex-col items-start gap-3">
+          <p role="alert" className="text-sm text-ink/70">
+            {t("notFound")}
+          </p>
+          <Button
+            href="/academia/preventas"
+            size="sm"
+            variant="secondary"
+          >
+            {tc("back")}
+          </Button>
+        </div>
       )}
 
       {state === "ok" && deal && (
+        <div className="flex flex-col gap-6">
+        {/* Header de entidad desnudo: la identidad va sobre el canvas
+            (el acuerdo no tiene página de editar, no es Link). */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h2 className="text-lg font-semibold">
+            {deal.eventName ?? deal.seriesName ?? deal.id}
+          </h2>
+          <Badge variant={STATUS_VARIANT[deal.status] ?? "muted"}>
+            {t.has(`status.${deal.status}`)
+              ? t(`status.${deal.status}`)
+              : deal.status}
+          </Badge>
+        </div>
         <Card className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-xl font-bold">
-              {deal.eventName ?? deal.seriesName ?? deal.id}
-            </h2>
-            <Badge variant={STATUS_VARIANT[deal.status] ?? "muted"}>
-              {t.has(`status.${deal.status}`)
-                ? t(`status.${deal.status}`)
-                : deal.status}
-            </Badge>
-          </div>
-
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
             <div>
               <dt className="text-xs text-ink/50">{t("commission")}</dt>
               <dd className="tabular-nums">{deal.commissionPct}%</dd>
@@ -290,7 +306,8 @@ function DealDetail({
                   onClick={() => void emitCode()}
                   disabled={codeBusy}
                 >
-                  {codeBusy ? tc("loading") : t("generateCode")}
+                  {codeBusy ? <Spinner size="sm" /> : null}
+                  {t("generateCode")}
                 </Button>
               </div>
               <p className="text-xs text-ink/50">{t("codesDesc")}</p>
@@ -298,35 +315,42 @@ function DealDetail({
                 <p className="text-sm text-ink/50">{t("codesEmpty")}</p>
               ) : (
                 <ul className="flex flex-col divide-y divide-line">
-                  {codes.map((c) => (
-                    <li
-                      key={c.id}
-                      className="flex flex-wrap items-center justify-between gap-2 py-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <code className="text-sm font-medium tracking-wide">
-                          {c.code}
-                        </code>
-                        {!c.redemption && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => void copyCode(c.code)}
-                          >
-                            {copiedCode === c.code ? t("copied") : t("copy")}
-                          </Button>
-                        )}
-                      </div>
-                      <span className="text-xs text-ink/60">
-                        {c.redemption
-                          ? t("codeUsedBy", {
-                              name: c.redemption.buyerName ?? "—",
-                            })
-                          : t("codeUnused")}
-                      </span>
-                    </li>
-                  ))}
+                  {codes
+                    .slice(0, showAllCodes ? undefined : LIST_PREVIEW)
+                    .map((c) => (
+                      <li
+                        key={c.id}
+                        className="flex flex-wrap items-center justify-between gap-2 py-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <code className="text-sm font-medium tracking-wide">
+                            {c.code}
+                          </code>
+                          {!c.redemption && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => void copyCode(c.code)}
+                            >
+                              {copiedCode === c.code ? t("copied") : t("copy")}
+                            </Button>
+                          )}
+                        </div>
+                        <span className="text-xs text-ink/60">
+                          {c.redemption
+                            ? t("codeUsedBy", {
+                                name: c.redemption.buyerName ?? "—",
+                              })
+                            : t("codeUnused")}
+                        </span>
+                      </li>
+                    ))}
+                  <SeeAllRow
+                    total={codes.length}
+                    expanded={showAllCodes}
+                    onToggle={() => setShowAllCodes((v) => !v)}
+                  />
                 </ul>
               )}
             </div>
@@ -341,7 +365,8 @@ function DealDetail({
                   onClick={() => void respond("accept")}
                   disabled={busy}
                 >
-                  {busy ? tc("loading") : t("accept")}
+                  {busy ? <Spinner size="sm" /> : null}
+                  {t("accept")}
                 </Button>
                 <Button
                   type="button"
@@ -356,6 +381,7 @@ function DealDetail({
           )}
 
         </Card>
+        </div>
       )}
 
       <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
@@ -371,7 +397,7 @@ export default function AcademyPresaleDetailPage(
   const params = use(props.params);
   const t = useTranslations("academySales");
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader
         backHref="/academia/preventas"
         backLabel={t("sectionTitle")}

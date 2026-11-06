@@ -1,0 +1,156 @@
+{
+  "comment": "docs/e2e-flow-tests-design.md. Al tocar una ruta o modulo listado, correr los tags. Al agregar superficie, agregar regla. Matching: prefijo de path, gana la primera que matchea.",
+  "rules": [
+    {
+      "paths": [
+        "apps/web/src/app/[locale]/(app)/academia/alumnos",
+        "apps/web/src/app/[locale]/(app)/academia/configuracion/niveles"
+      ],
+      "tags": ["@alumnos"]
+    },
+    {
+      "paths": ["apps/web/src/app/[locale]/(app)/academia/cobros"],
+      "tags": ["@cobros"]
+    },
+    {
+      "paths": [
+        "apps/web/src/app/[locale]/(app)/academia/clases",
+        "apps/web/src/app/[locale]/(app)/academia/series",
+        "apps/web/src/app/[locale]/(app)/academia/horarios",
+        "apps/web/src/app/[locale]/(app)/academia/asistencia"
+      ],
+      "tags": ["@series", "@roster"]
+    },
+    {
+      "paths": ["apps/web/src/app/[locale]/(app)/academia/videos"],
+      "tags": ["@videos"]
+    },
+    {
+      "paths": [
+        "apps/web/src/app/[locale]/(app)/academia/planes",
+        "apps/web/src/app/[locale]/(app)/academia/promos"
+      ],
+      "tags": ["@planes", "@promos"]
+    },
+    {
+      "paths": ["apps/web/src/app/[locale]/(app)/academia"],
+      "tags": ["@academia"]
+    },
+    {
+      "paths": [
+        "apps/api/src/academies",
+        "apps/api/src/discounts",
+        "apps/web/src/app/[locale]/(app)/academias",
+        "apps/web/src/app/[locale]/(app)/clases"
+      ],
+      "tags": ["@academia", "@clases"]
+    },
+    {
+      "paths": [
+        "apps/web/src/app/[locale]/(app)/eventos",
+        "apps/web/src/app/[locale]/(app)/checkout",
+        "apps/web/src/app/[locale]/(app)/entradas",
+        "apps/api/src/events",
+        "apps/api/src/payments"
+      ],
+      "tags": ["@eventos", "@checkout"]
+    },
+    {
+      "paths": [
+        "apps/web/src/app/[locale]/(app)/qr",
+        "apps/web/src/app/[locale]/(app)/escanear",
+        "apps/web/src/app/[locale]/(app)/bailes",
+        "apps/api/src/qr",
+        "apps/api/src/sessions"
+      ],
+      "tags": ["@qr"]
+    },
+    {
+      "paths": [
+        "apps/web/src/app/[locale]/(app)/amigos",
+        "apps/web/src/app/[locale]/(app)/practicas",
+        "apps/api/src/social"
+      ],
+      "tags": ["@amigos", "@practicas"]
+    },
+    {
+      "paths": [
+        "apps/api/src/auth",
+        "apps/web/src/app/[locale]/(marketing)/login",
+        "apps/web/src/app/[locale]/(app)/bienvenida",
+        "apps/web/src/app/[locale]/(app)/perfil/completar"
+      ],
+      "tags": ["@login", "@smoke"]
+    },
+    {
+      "paths": [
+        "apps/web/src/app/[locale]/(app)/perfil",
+        "apps/web/src/app/[locale]/(app)/notificaciones",
+        "apps/web/src/app/[locale]/(app)/inicio",
+        "apps/api/src/people",
+        "apps/api/src/home",
+        "apps/api/src/notifications"
+      ],
+      "tags": ["@perfil"]
+    },
+    {
+      "paths": ["apps/web/src/app/[locale]/(app)/productor"],
+      "tags": ["@productor"]
+    },
+    {
+      "paths": ["apps/web/src/app/[locale]/(app)/crm", "apps/api/src/crm"],
+      "tags": ["@crm"]
+    },
+    {
+      "paths": [
+        "apps/web/src/app/[locale]/(app)/analitica",
+        "apps/api/src/analytics",
+        "apps/api/src/query"
+      ],
+      "tags": ["@analitica"]
+    },
+    {
+      "paths": ["apps/web/src/app/[locale]/(app)/admin", "apps/api/src/admin"],
+      "tags": ["@admin"]
+    },
+    {
+      "paths": ["apps/web/src/app/[locale]/(app)/soporte"],
+      "tags": ["@soporte"]
+    },
+    {
+      "paths": [
+        "apps/web/src/app/[locale]/(app)/staff",
+        "apps/api/src/checkins"
+      ],
+      "tags": ["@staff"]
+    },
+    {
+      "paths": ["apps/web/src/app/[locale]/(app)/venue"],
+      "tags": ["@venue"]
+    },
+    {
+      "paths": [
+        "apps/web/src/app/[locale]/(app)/mi-viaje",
+        "apps/api/src/cities",
+        "apps/api/src/trip",
+        "apps/web/src/app/[locale]/(marketing)/pase",
+        "apps/web/src/app/[locale]/(marketing)/ciudades"
+      ],
+      "tags": ["@flags"]
+    },
+    {
+      "paths": ["apps/api/src/jobs", "apps/api/src/params", "apps/api/src/leads"],
+      "tags": ["@admin"]
+    },
+    {
+      "paths": [
+        "packages/shared",
+        "apps/api/src/prisma",
+        "apps/web/src/components/ui",
+        "apps/web/src/i18n"
+      ],
+      "tags": ["@smoke"]
+    }
+  ],
+  "defaultTags": ["@smoke"]
+}

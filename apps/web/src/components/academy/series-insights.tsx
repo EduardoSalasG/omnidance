@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Card } from "@/components/ui";
+import { academyTierHas } from "@/lib/academy-features";
+import { Card, ChevronRightIcon, Skeleton } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 
 type SeriesInsightsData = {
@@ -20,12 +21,27 @@ type SeriesInsightsData = {
  * después (top/bottom 5 series por asistencia histórica) - mismo orden
  * que el inicio. Filas navegables al detalle de la serie.
  */
-export function SeriesInsights({ academyId }: { academyId: string }) {
+export function SeriesInsights({
+  academyId,
+  tier,
+}: {
+  academyId: string;
+  tier?: string | null;
+}) {
   const t = useTranslations("academy");
   const [data, setData] = useState<SeriesInsightsData | null>(null);
-  const [hidden, setHidden] = useState(false);
+  // El endpoint exige `insights` (PRO): sin la feature no se dispara el
+  // fetch - mismo criterio que useAcademyLevelInsights (spec
+  // academy-tier-gates-refine).
+  const [hidden, setHidden] = useState(
+    () => !academyTierHas(tier, "insights"),
+  );
 
   const load = useCallback(async () => {
+    if (!academyTierHas(tier, "insights")) {
+      setHidden(true);
+      return;
+    }
     const res = await apiFetch(`/academies/${academyId}/series/insights`).catch(
       () => null,
     );
@@ -34,13 +50,32 @@ export function SeriesInsights({ academyId }: { academyId: string }) {
       return;
     }
     setData((await res.json()) as SeriesInsightsData);
-  }, [academyId]);
+  }, [academyId, tier]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  if (hidden || data === null) return null;
+  if (hidden) return null;
+  // Carga con estructura (spec loading-states): skeleton de los KPI
+  // cards difiere su aparición 200ms - sin pop-in al resolver.
+  if (data === null) {
+    return (
+      <ul
+        aria-hidden="true"
+        className="page-loading grid grid-cols-2 gap-3"
+      >
+        {Array.from({ length: 2 }, (_, i) => (
+          <li key={i}>
+            <Card className="flex h-full flex-col gap-1 p-4">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-8 w-16" />
+            </Card>
+          </li>
+        ))}
+      </ul>
+    );
+  }
   const hasKpis =
     data.avgAttendancePerClass !== null ||
     data.avgWeeklyClassesPerStudent !== null;
@@ -76,6 +111,7 @@ export function SeriesInsights({ academyId }: { academyId: string }) {
                       count: s.attendance,
                     })}
                   </span>
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                 </Link>
               </li>
             ))}
@@ -87,34 +123,40 @@ export function SeriesInsights({ academyId }: { academyId: string }) {
   return (
     <div className="flex flex-col gap-6">
       {hasKpis && (
-        <ul className="grid grid-cols-2 gap-3">
-          <li>
-            <Card className="flex h-full flex-col gap-1 p-4">
-              <span className="text-xs font-medium uppercase tracking-wide text-ink/50">
-                {t("kpis.avgAttendance")}
-              </span>
-              <span className="text-3xl font-bold leading-none tabular-nums text-neon">
-                {data.avgAttendancePerClass ?? "—"}
-              </span>
-              <span className="mt-0.5 text-xs text-ink/40">
-                {t("seriesAvgAttendanceHint")}
-              </span>
-            </Card>
-          </li>
-          <li>
-            <Card className="flex h-full flex-col gap-1 p-4">
-              <span className="text-xs font-medium uppercase tracking-wide text-ink/50">
-                {t("seriesWeeklyAvgTitle")}
-              </span>
-              <span className="text-3xl font-bold leading-none tabular-nums text-neon">
-                {data.avgWeeklyClassesPerStudent ?? "—"}
-              </span>
-              <span className="mt-0.5 text-xs text-ink/40">
-                {t("seriesWeeklyAvgHint")}
-              </span>
-            </Card>
-          </li>
-        </ul>
+        <section aria-label={t("kpis.title")}>
+          <ul className="grid grid-cols-2 gap-3">
+            {[
+              {
+                label: t("kpis.avgAttendance"),
+                value: data.avgAttendancePerClass,
+                hint: t("seriesAvgAttendanceHint"),
+              },
+              {
+                label: t("seriesWeeklyAvgTitle"),
+                value: data.avgWeeklyClassesPerStudent,
+                hint: t("seriesWeeklyAvgHint"),
+              },
+            ].map((k) => (
+              <li key={k.label}>
+                <Card
+                  title={k.hint}
+                  aria-label={`${k.label}: ${k.value ?? "—"}. ${k.hint}`}
+                  className="flex h-full flex-col gap-1 p-4"
+                >
+                  <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
+                    {k.label}
+                  </span>
+                  <span className="text-3xl font-bold leading-none tabular-nums text-neon">
+                    {k.value ?? "—"}
+                  </span>
+                  <span className="text-[11px] leading-tight text-ink/50">
+                    {k.hint}
+                  </span>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       <div className="grid gap-6 lg:grid-cols-2">
         {rankList(t("seriesTopAttendanceTitle"), data.topSeries)}

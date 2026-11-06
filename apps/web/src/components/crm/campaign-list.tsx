@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, Pager, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, ChevronRightIcon, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { actionLabel, audienceLabel } from "./campaign-labels";
 import type { CrmActor, CrmCampaign } from "./types";
@@ -116,6 +116,7 @@ export function CampaignList({
                         : c.status}
                     </Badge>
                     <Badge variant="outline">{actionLabel(t, c, locale)}</Badge>
+                    <ChevronRightIcon className="ml-auto h-4 w-4 shrink-0 text-ink/40" />
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/60">
                     <span>

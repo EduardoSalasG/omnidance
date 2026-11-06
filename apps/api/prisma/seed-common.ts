@@ -45,9 +45,7 @@ const STYLE_CATALOG = [
   { name: "Bachata sensual", genre: Genre.BACHATA },
   { name: "Bachata tradicional", genre: Genre.BACHATA },
   { name: "Bachata moderna", genre: Genre.BACHATA },
-  { name: "Cubano", genre: Genre.CUBANO },
   { name: "Afrocubano", genre: Genre.CUBANO },
-  { name: "Rueda de casino", genre: Genre.CUBANO },
   { name: "Mambo on2", genre: Genre.SALSA },
   { name: "Fusión", genre: Genre.OTHER },
 ] as const;
@@ -175,7 +173,6 @@ const PARAM_DEFAULTS: Array<{
   { key: "producer_tier.starter_monthly_clp", value: 79700, description: "Precio mensual tier PRO_STARTER/Pro (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
   { key: "producer_tier.growth_monthly_clp", value: 79700, description: "Precio mensual tier PRO_GROWTH/Standard (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
   { key: "producer_tier.big_monthly_clp", value: 169500, description: "Precio mensual tier PRO_BIG/Pro (CLP) - semestral cobra ×5.52 (-8%), anual ×10.2 (-15%)" },
-  { key: "producer_tier.free_staff_max", value: 2, description: "Staff máximo por evento sin suscripción Pro - 1-2 personas en puerta es la norma; multiStaff (Pro) se exige solo sobre este cupo" },
   // Costo de pasarela descontado del payout de academia (línea GATEWAY_FEE_PASSTHROUGH).
   { key: "gateway_fee.academy_passthrough_pct", value: 3.19, description: "% de pasarela descontado del payout de academia" },
   // Ventanas de los insights de retención del dashboard de academia
@@ -323,6 +320,18 @@ const FEATURE_FLAG_SEED: {
     description: "Superficies de academia del bailarín (clases, directorio) - OFF si la operación parte solo con nightlife",
     enabled: true,
   },
+  {
+    key: "academy_explore",
+    label: "Explorar academias y clases",
+    description: "Listados de descubrimiento del bailarín (scope explorar de /academias y /clases) - las fichas siguen accesibles por link directo",
+    enabled: true,
+  },
+  {
+    key: "academy_videos",
+    label: "Videos de academia",
+    description: "Módulo de videos de la consola de academia (/academia/videos) - OFF lo apaga para todos los tiers, incluido PRO",
+    enabled: true,
+  },
 ];
 
 /** Crea o confirma una persona con sus roles. Idempotente por email. */
@@ -401,8 +410,17 @@ export async function seedCommon(prisma: PrismaClient) {
   // Depuración del catálogo: estilos que salieron de STYLE_CATALOG pero
   // DBs ya pobladas conservan las filas. Acá se eliminan con sus
   // referencias personales; las referencias estructurales (series,
-  // bloques de horario, sesiones) quedan desvinculadas (null).
-  const REMOVED_STYLES = ["Salsa on2", "Bachata dominicana", "Timba"];
+  // bloques de horario, sesiones) quedan desvinculadas (null) en vez de
+  // renombrarse - una serie "Rueda de Casino" conserva su nombre y solo
+  // pierde el tag de estilo (decisión del usuario 2026-11: "Cubano" y
+  // "Rueda de casino" salen del catálogo en dev y prod).
+  const REMOVED_STYLES = [
+    "Salsa on2",
+    "Bachata dominicana",
+    "Timba",
+    "Cubano",
+    "Rueda de casino",
+  ];
   for (const stale of await prisma.style.findMany({
     where: { name: { in: REMOVED_STYLES } },
   })) {

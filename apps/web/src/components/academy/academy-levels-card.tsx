@@ -17,18 +17,20 @@ export type LevelInsightsState = "loading" | "ready" | "hidden" | "error";
 
 /**
  * Fetch del insight de niveles/cupos (GET /academies/:id/insights/levels):
- * gate owner/ADMIN + feature PRO `insights`; sin la feature no se
- * fetchea y en 403 el estado queda "hidden" (COBROS/STUDIO y lentes sin
+ * gate owner/ADMIN + feature `classes` (STUDIO+): la card es
+ * planificación operativa (nivel sin asignar, cupo por horario), no
+ * analítica estratégica (spec academy-tier-gates-refine). Sin la
+ * feature no se fetchea y en 403 el estado queda "hidden" (COBROS y
  * privilegio no conocen el dato). Lo consume el inicio completo (KPI
- * "sin nivel" en ambos modos + card de niveles y cupos en Extendido):
- * un solo fetch para todos los consumidores.
+ * "sin nivel" + card de niveles y cupos): un solo fetch para todos
+ * los consumidores.
  */
 export function useAcademyLevelInsights(academy: Academy): {
   data: AcademyLevelInsights | null;
   state: LevelInsightsState;
   reload: () => void;
 } {
-  const canInsights = academyTierHas(academy.tier, "insights");
+  const canInsights = academyTierHas(academy.tier, "classes");
   const [data, setData] = useState<AcademyLevelInsights | null>(null);
   const [state, setState] = useState<LevelInsightsState>(
     canInsights ? "loading" : "hidden",
@@ -62,7 +64,7 @@ export function useAcademyLevelInsights(academy: Academy): {
 }
 
 /**
- * Card "Niveles y cupos" del inicio Extendido (spec
+ * Card "Niveles y cupos" del inicio (spec
  * academies/owner-insights). Un solo set de KPI cards por nivel
  * (número grande + label, mismo lenguaje que MiniKpi/KpiCard) y un
  * solo calendario semanal con una card por horario: ocupación y cupos
@@ -71,7 +73,8 @@ export function useAcademyLevelInsights(academy: Academy): {
  * /analitica) y ambos bloques le responden: un tipo concreto muestra
  * sus niveles y solo sus horarios (la semana usa solo sus días);
  * "Todos" agrega los niveles por nombre sumando entre tipos (un
- * alumno puede contar en más de uno: el total del pie lo aclara) y
+ * alumno tiene a lo más un nivel por tipo desde 2026-11: el total
+ * del pie lo aclara) y
  * junta todos los horarios en la semana unificada, incluidos los que
  * no matchean ningún tipo. Un slot que sirve varios tipos aparece
  * una sola vez.
@@ -242,7 +245,11 @@ export function AcademyLevelsCard({
             <ul className="grid grid-cols-2 gap-2 sm:grid-flow-col sm:auto-cols-fr">
               {visibleLevels.map((l) => (
                 <li key={l.key}>
-                  <Card className="flex h-full flex-col gap-0.5 px-3 py-2.5">
+                  <Card
+                    className="flex h-full flex-col gap-0.5 px-3 py-2.5"
+                    title={t("levels.levelCountHint")}
+                    aria-label={`${l.name}: ${l.count}. ${t("levels.levelCountHint")}`}
+                  >
                     <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
                       {l.name}
                     </span>
@@ -253,13 +260,16 @@ export function AcademyLevelsCard({
                     >
                       {l.count}
                     </span>
+                    <span className="text-[11px] leading-tight text-ink/50">
+                      {t("levels.levelCountHint")}
+                    </span>
                   </Card>
                 </li>
               ))}
             </ul>
             {/* Total del pie: en "Todos" con varios tipos aclara que
-                la suma es por tipo (un alumno puede contar en más de
-                uno); con un solo tipo o filtrado es el total plano. */}
+                la suma es por tipo (un nivel por tipo por alumno);
+                con un solo tipo o filtrado es el total plano. */}
             <p className="text-xs tabular-nums text-ink/50">
               {typeSel.size === 0 && data.byType.length > 1
                 ? t("levels.allTotal", { count: levelTotal })
@@ -315,6 +325,20 @@ function aggregateLevels(byType: AcademyLevelInsights["byType"]): {
   return [...agg.values()];
 }
 
+// Helpers de hora "HH:MM" compartidos por la agenda desktop y las
+// filas de mobile (endTime puede faltar en el payload - se asume 1h,
+// misma convención que endMinOf).
+const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
+const floor30 = (m: number) => m - (m % 30);
+const toHHMM = (m: number) =>
+  `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const endMinOf = (s: AcademyLevelInsights["bySlot"][number]) =>
+  s.endTime ? toMin(s.endTime) : toMin(s.startTime) + 60;
+const startMinOf = (s: AcademyLevelInsights["bySlot"][number]) =>
+  toMin(s.startTime);
+const slotEndTime = (s: AcademyLevelInsights["bySlot"][number]) =>
+  s.endTime ?? toHHMM(toMin(s.startTime) + 60);
+
 /**
  * Calendario semanal tipo agenda: en desktop la hora va en una
  * columna a la izquierda (una vez por horario) y cada día laborado
@@ -341,13 +365,6 @@ function WeekCalendar({
   // la columna en carriles (lanes) lado a lado.
   const ROW_H = 80; // px por cada 30min (1h ≈ 148px: la card se lee completa)
   const today = new Date().getDay();
-  const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
-  const floor30 = (m: number) => m - (m % 30);
-  const endMinOf = (s: AcademyLevelInsights["bySlot"][number]) =>
-    s.endTime ? toMin(s.endTime) : toMin(s.startTime) + 60;
-  const startMinOf = (
-    s: AcademyLevelInsights["bySlot"][number],
-  ) => toMin(s.startTime);
   const gridStart = floor30(
     Math.min(...slots.map((s) => {
       const m = toMin(s.startTime);
@@ -363,8 +380,6 @@ function WeekCalendar({
   const totalH = ((gridEnd - gridStart) / 30) * ROW_H;
   const hours: number[] = [];
   for (let m = gridStart; m <= gridEnd; m += 60) hours.push(m);
-  const toHHMM = (m: number) =>
-    `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
   // Carriles por día: grupos de slots traslapados → lane/lanes.
   const lanesByDay = new Map<number, Map<string, { lane: number; lanes: number }>>();
@@ -486,6 +501,11 @@ function WeekCalendar({
                           slot={s}
                           numFmt={numFmt}
                           compact={estH < 120}
+                          // 2+ clases compartiendo el día se reparten
+                          // el ancho en carriles: la card completa no
+                          // cabe - la variante densa baja a hora +
+                          // nombre + estado (review 2026-11-05).
+                          dense={lanes >= 2}
                           levelNum={s.levelId ? levelNum.get(s.levelId) : undefined}
                         />
                       </div>
@@ -603,7 +623,7 @@ function ToggleChips({
   onClear: () => void;
 }) {
   const chipCls = (on: boolean) =>
-    `inline-flex min-h-8 items-center rounded-full px-3 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+    `inline-flex min-h-11 items-center rounded-full px-3 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
       on
         ? "bg-neon/15 text-neon"
         : "border border-line text-ink/60 hover:border-ink/30"
@@ -719,17 +739,21 @@ function MetricCell({
   male,
   female,
   partner,
+  title,
 }: {
   label: string;
   value: string | number;
   male: number | null;
   female: number | null;
   partner?: boolean;
+  /** Descripción completa de la métrica abreviada (Últ./Prom./Próx.) -
+      el tooltip explica qué mide, no repite la sigla. */
+  title?: string;
 }) {
   return (
     <div
       className="flex flex-col items-center gap-0.5 text-center tabular-nums"
-      title={label}
+      title={title ?? label}
     >
       <span className="text-[11px] font-medium uppercase tracking-wide text-ink/60">
         {label}
@@ -765,6 +789,7 @@ export function MetricsGrid({
     >
       <MetricCell
         label={t("levels.lastShort")}
+        title={t("levels.lastTitle")}
         value={s.lastClassAttendance ?? "—"}
         male={s.lastMale}
         female={s.lastFemale}
@@ -772,6 +797,7 @@ export function MetricsGrid({
       />
       <MetricCell
         label={t("levels.avgShort")}
+        title={t("levels.avgTitle")}
         value={s.avgAttendance !== null ? numFmt.format(s.avgAttendance) : "—"}
         male={s.avgMale}
         female={s.avgFemale}
@@ -779,6 +805,7 @@ export function MetricsGrid({
       />
       <MetricCell
         label={t("levels.nextShort")}
+        title={t("levels.nextTitle")}
         value={s.nextBooked ?? "—"}
         male={s.nextMale}
         female={s.nextFemale}
@@ -803,17 +830,25 @@ function MobileSlotRow({
   const { variant, text } = slotStatus(s, t);
   return (
     <li className="flex gap-2">
-      <p className="w-9 shrink-0 pt-2 text-right text-xs font-semibold tabular-nums text-ink/50">
+      {/* Inicio Y término en mobile (review 2026-11-05): dos líneas en
+          la columna de hora; sin endTime se asume 1h (convención del
+          endpoint). */}
+      <p className="w-9 shrink-0 pt-2 text-right text-[11px] font-semibold tabular-nums leading-tight text-ink/50">
         {s.startTime}
+        <span className="block text-ink/40">{slotEndTime(s)}</span>
       </p>
-      <Card className="min-w-0 flex-1 px-3 py-2">
+      {/* El borde neon del Card en hover es el affordance de click -
+          el Link cubre casi toda la card así que hover ≈ link hover. */}
+      <Card className="min-w-0 flex-1 px-3 py-2 transition-colors hover:border-neon/60">
         <Link
           href={
           s.nextClassId
             ? `/academia/clases/${s.nextClassId}`
-            : "/academia/alumnos"
+            // Sin próxima clase no hay ficha de clase: el fallback es
+            // la ficha del horario (seriesId llega en bySlot).
+            : `/academia/series/${s.seriesId}/horarios/${s.slotId}`
         }
-          className="block"
+          className="block focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
           aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
         >
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
@@ -845,20 +880,61 @@ function SlotCard({
   slot: s,
   numFmt,
   compact,
+  dense,
   levelNum,
 }: {
   slot: AcademyLevelInsights["bySlot"][number];
   numFmt: Intl.NumberFormat;
   /** Clase corta (alto < 130px): solo titulo + chips, sin metricas. */
   compact?: boolean;
+  /** 2+ clases traslapadas reparten la celda en carriles angostos:
+      solo hora + nombre truncado + estado; las métricas no caben. */
+  dense?: boolean;
   /** Numero de nivel 1-4 (compacto: el nombre completo va en title). */
   levelNum?: number;
 }) {
   const t = useTranslations("academy");
   const { variant: statusVariant, text: statusText } = slotStatus(s, t);
+  // Destino del slot: la próxima clase si existe; sin ella, la ficha
+  // del horario (seriesId llega en bySlot).
+  const slotHref = s.nextClassId
+    ? `/academia/clases/${s.nextClassId}`
+    : `/academia/series/${s.seriesId}/horarios/${s.slotId}`;
+  const linkAria = `${s.seriesName} - ${t("levels.gotoClasses")}`;
+  if (dense) {
+    return (
+      <Card className="flex h-full w-full min-w-0 flex-col gap-0.5 overflow-hidden px-2 py-1.5 transition-colors hover:border-neon/60">
+        <Link
+          href={slotHref}
+          className="flex min-w-0 flex-col gap-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+          aria-label={linkAria}
+          title={
+            s.levelName
+              ? `${s.seriesName} · ${s.levelName}`
+              : s.seriesName
+          }
+        >
+          <p className="text-[11px] font-semibold tabular-nums leading-tight text-ink/60">
+            {s.startTime}–{slotEndTime(s)}
+          </p>
+          <p className="line-clamp-2 min-w-0 text-xs font-bold leading-tight">
+            {shortSlotName(s.seriesName)}
+          </p>
+          <Badge variant={statusVariant} className="!py-0 self-start text-[10px]">
+            {statusText}
+          </Badge>
+        </Link>
+      </Card>
+    );
+  }
   if (compact) {
     return (
-      <Card className="flex h-full w-full min-w-0 flex-col justify-center gap-1 overflow-hidden px-2.5 py-1.5">
+      <Card className="flex h-full w-full min-w-0 flex-col justify-center gap-1 overflow-hidden px-2.5 py-1.5 transition-colors hover:border-neon/60">
+        <Link
+          href={slotHref}
+          className="flex min-w-0 flex-col gap-1 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+          aria-label={linkAria}
+        >
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
           <p className="min-w-0 flex-1 text-xs font-semibold">
             {s.seriesName}
@@ -874,21 +950,21 @@ function SlotCard({
         <Badge variant={statusVariant} className="self-start">
           {statusText}
         </Badge>
+        </Link>
       </Card>
     );
   }
   return (
     <Card
-      className="flex w-full min-w-0 flex-col gap-1 overflow-hidden px-2 pb-0 pt-1.5"
+      className="flex w-full min-w-0 flex-col gap-1 overflow-hidden px-2 pb-0 pt-1.5 transition-colors hover:border-neon/60"
     >
+      {/* `contents` dejaba al Link sin caja: el foco de teclado no
+          dibujaba anillo. `block` con el mismo flex-col conserva la
+          maquetación y da superficie al outline. */}
       <Link
-        href={
-          s.nextClassId
-            ? `/academia/clases/${s.nextClassId}`
-            : "/academia/alumnos"
-        }
-        className="contents"
-        aria-label={`${s.seriesName} - ${t("levels.gotoClasses")}`}
+        href={slotHref}
+        className="flex min-w-0 flex-col gap-1 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+        aria-label={linkAria}
       >
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
         <p className="line-clamp-2 min-w-0 flex-1 text-sm font-bold leading-tight" title={s.seriesName}>

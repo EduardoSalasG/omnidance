@@ -3,9 +3,18 @@
 import { useCallback, useEffect, useState, use } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PillTabs } from "@/components/ui";
-import { SkeletonList } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  LIST_PREVIEW,
+  PillTabs,
+  SeeAllRow,
+  SkeletonList,
+} from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
+import { ConsoleHeader } from "@/components/console/console-header";
+import { Link } from "@/i18n/navigation";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
 
 // GET /admin/users/:personId/detail → person + historial de roles.
@@ -96,11 +105,6 @@ type MetaSections = {
 type BootPhase = "loading" | "ready" | "notfound" | "error";
 type SectionPhase = "loading" | "ready" | "notHeld" | "error";
 
-;
-;
-;
-;
-
 /** "23.4" → "23:24" - hora decimal del avgCheckinHour. */
 function fmtHour(v: number): string {
   let h = Math.floor(v);
@@ -112,55 +116,102 @@ function fmtHour(v: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-/** Tile KPI - mismo patrón que los tiles de /analitica (neon + label). */
-function Kpi({ label, value }: { label: string; value: string }) {
+/** Tile KPI - mismo patrón que los tiles de /analitica (neon + label +
+    hint visible bajo el label, como AcademyKpiCards). */
+function Kpi({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   return (
-    <li className="rounded-xl border border-line bg-elevated/60 px-4 py-3">
+    <li
+      className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
+      title={hint}
+      aria-label={`${label}: ${value}${hint ? `. ${hint}` : ""}`}
+    >
       <span className="block text-2xl font-bold tabular-nums text-neon">
         {value}
       </span>
       <span className="text-xs text-ink/50">{label}</span>
+      {hint && (
+        <span className="block text-[11px] leading-tight text-ink/40">
+          {hint}
+        </span>
+      )}
     </li>
   );
 }
 
-function KpiGrid({ items }: { items: { label: string; value: string }[] }) {
+function KpiGrid({
+  items,
+}: {
+  items: { label: string; value: string; hint?: string }[];
+}) {
   if (items.length === 0) return null;
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {items.map((k) => (
-        <Kpi key={k.label} label={k.label} value={k.value} />
+        <Kpi key={k.label} label={k.label} value={k.value} hint={k.hint} />
       ))}
     </ul>
   );
 }
 
-/** Fila label → valor dentro de una Card de detalle. */
+/** Par label → valor dentro de una Card de detalle (dt/dd en dl). */
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <li className="flex items-center justify-between gap-3 py-2.5">
-      <span className="text-sm text-ink/60">{label}</span>
-      <span className="min-w-0 text-right text-sm font-medium">{value}</span>
-    </li>
+    <div className="flex items-center justify-between gap-3 py-2.5">
+      <dt className="text-sm text-ink/60">{label}</dt>
+      <dd className="min-w-0 text-right text-sm font-medium">{value}</dd>
+    </div>
   );
 }
 
 function SectionCard({
   title,
   children,
+  list = "dl",
 }: {
   title: string;
   children: React.ReactNode;
+  /** "dl" para pares label/valor (Row); "ul" para listas de ítems. */
+  list?: "dl" | "ul";
 }) {
+  const ListTag = list;
   return (
     <Card>
       <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {title}
       </h3>
-      <ul className="mt-1 flex flex-col divide-y divide-line">
+      <ListTag className="mt-1 flex flex-col divide-y divide-line">
         {children}
-      </ul>
+      </ListTag>
     </Card>
+  );
+}
+
+/** Filas <li> acotadas a LIST_PREVIEW + "Ver todo" (estado por lista). */
+function ExpandableList<T>({
+  items,
+  renderItem,
+}: {
+  items: T[];
+  renderItem: (item: T, index: number) => React.ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <>
+      {items.slice(0, expanded ? undefined : LIST_PREVIEW).map(renderItem)}
+      <SeeAllRow
+        total={items.length}
+        expanded={expanded}
+        onToggle={() => setExpanded((v) => !v)}
+      />
+    </>
   );
 }
 
@@ -168,11 +219,22 @@ function SectionCard({
 function CountList({ rows }: { rows: { label: string; count: number }[] }) {
   const num = useNumFmt();
   return (
-    <>
-      {rows.map((r) => (
-        <Row key={r.label} label={r.label} value={num.format(r.count)} />
-      ))}
-    </>
+    <ExpandableList
+      items={rows}
+      renderItem={(r) => (
+        <li
+          key={r.label}
+          className="flex items-center justify-between gap-3 py-2.5"
+        >
+          <span className="min-w-0 truncate text-sm text-ink/60">
+            {r.label}
+          </span>
+          <span className="shrink-0 text-sm font-medium">
+            {num.format(r.count)}
+          </span>
+        </li>
+      )}
+    />
   );
 }
 
@@ -191,7 +253,11 @@ export default function AnaliticaUsuarioPage(
   const t = useTranslations("analytics");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-4xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
+      <ConsoleHeader
+        backHref="/analitica/usuarios"
+        backLabel={t("userSearch.title")}
+      />
       <AdminGate>
         <UserPanel personId={params.personId} />
       </AdminGate>
@@ -289,8 +355,11 @@ function UserPanel({ personId }: { personId: string }) {
 
   if (phase === "notfound") {
     return (
-      <Card className="py-6 text-center">
+      <Card className="flex flex-col items-center gap-3 py-6 text-center">
         <p className="text-sm text-ink/70">{t("user.notFound")}</p>
+        <Button href="/analitica/usuarios" size="sm" variant="secondary">
+          {tc("back")}
+        </Button>
       </Card>
     );
   }
@@ -298,7 +367,9 @@ function UserPanel({ personId }: { personId: string }) {
   if (phase === "error" || !detail) {
     return (
       <Card className="flex flex-col items-center gap-3 py-6 text-center">
-        <p className="text-sm text-ink/70">{tc("error")}</p>
+        <p role="alert" className="text-sm text-ink/70">
+          {tc("error")}
+        </p>
         <Button variant="secondary" size="sm" onClick={() => void boot()}>
           {tc("retry")}
         </Button>
@@ -345,7 +416,9 @@ function UserPanel({ personId }: { personId: string }) {
 
       {sectionPhase === "error" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-ink/70">{tc("error")}</p>
+          <p role="alert" className="text-sm text-ink/70">
+            {tc("error")}
+          </p>
           <Button
             variant="secondary"
             size="sm"
@@ -442,14 +515,14 @@ function RoleSections({
 }) {
   const num = useNumFmt();
   const clp = useNumFmt({
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  });
   const dateTimeFmt = useDateFmt({
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
   const dateFmt = useDateFmt({ dateStyle: "medium" });
   const t = useTranslations("analytics");
   const tp = useTranslations("profile");
@@ -457,6 +530,7 @@ function RoleSections({
   const tg = useTranslations("adminCatalogs");
 
   const f = (k: string) => t(`user.fields.${k}`);
+  const fh = (k: string) => t(`user.fields.${k}Hint`);
   const roleLabel = (r: string) =>
     tp.has(`roleLabels.${r}`) ? tp(`roleLabels.${r}`) : r;
   const statusLabel = (s: string) =>
@@ -482,20 +556,21 @@ function RoleSections({
               </h2>
               <KpiGrid
                 items={[
-                  { label: f("totalSpent"), value: clp.format(social.totalSpentClp) },
-                  { label: f("monthSpent"), value: clp.format(social.monthSpentClp) },
-                  { label: f("monthlyAvg"), value: clp.format(social.monthlyAvgClp) },
-                  { label: f("dances"), value: num.format(social.dancesCount) },
-                  { label: f("seasonPoints"), value: num.format(social.seasonPoints) },
+                  { label: f("totalSpent"), value: clp.format(social.totalSpentClp), hint: fh("totalSpent") },
+                  { label: f("monthSpent"), value: clp.format(social.monthSpentClp), hint: fh("monthSpent") },
+                  { label: f("monthlyAvg"), value: clp.format(social.monthlyAvgClp), hint: fh("monthlyAvg") },
+                  { label: f("dances"), value: num.format(social.dancesCount), hint: fh("dances") },
+                  { label: f("seasonPoints"), value: num.format(social.seasonPoints), hint: fh("seasonPoints") },
                   {
                     label: f("rank"),
                     value: social.rank != null ? `#${num.format(social.rank)}` : "·",
+                    hint: fh("rank"),
                   },
                 ]}
               />
               {(social.lastEvent || social.avgCheckinHour != null) && (
                 <Card>
-                  <ul className="flex flex-col divide-y divide-line">
+                  <dl className="flex flex-col divide-y divide-line">
                     {social.lastEvent && (
                       <Row
                         label={f("lastEvent")}
@@ -508,7 +583,7 @@ function RoleSections({
                         value={fmtHour(social.avgCheckinHour)}
                       />
                     )}
-                  </ul>
+                  </dl>
                 </Card>
               )}
               {social.badges.length > 0 && (
@@ -551,36 +626,39 @@ function RoleSections({
               </h2>
               <KpiGrid
                 items={[
-                  { label: f("currentMonthly"), value: clp.format(academy.currentMonthlyClp) },
-                  { label: f("totalPaid"), value: clp.format(academy.totalPaidClp) },
-                  { label: f("classesTaken"), value: num.format(academy.classesTaken) },
-                  { label: f("classesUpcoming"), value: num.format(academy.classesUpcoming) },
+                  { label: f("currentMonthly"), value: clp.format(academy.currentMonthlyClp), hint: fh("currentMonthly") },
+                  { label: f("totalPaid"), value: clp.format(academy.totalPaidClp), hint: fh("totalPaid") },
+                  { label: f("classesTaken"), value: num.format(academy.classesTaken), hint: fh("classesTaken") },
+                  { label: f("classesUpcoming"), value: num.format(academy.classesUpcoming), hint: fh("classesUpcoming") },
                 ]}
               />
               {academy.activeEnrollments.length > 0 && (
-                <SectionCard title={f("activeEnrollments")}>
-                  {academy.activeEnrollments.map((e, i) => (
-                    <li
-                      key={`${e.academy.id}-${i}`}
-                      className="flex items-center justify-between gap-3 py-2.5"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">
-                          {e.academy.name}
-                        </p>
-                        {e.plan && (
-                          <p className="truncate text-xs text-ink/50">
-                            {e.plan.name} · {clp.format(e.plan.price)}
+                <SectionCard title={f("activeEnrollments")} list="ul">
+                  <ExpandableList
+                    items={academy.activeEnrollments}
+                    renderItem={(e, i) => (
+                      <li
+                        key={`${e.academy.id}-${i}`}
+                        className="flex items-center justify-between gap-3 py-2.5"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">
+                            {e.academy.name}
                           </p>
-                        )}
-                      </div>
-                      <Badge variant="outline">{enrollLabel(e.status)}</Badge>
-                    </li>
-                  ))}
+                          {e.plan && (
+                            <p className="truncate text-xs text-ink/50">
+                              {e.plan.name} · {clp.format(e.plan.price)}
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant="outline">{enrollLabel(e.status)}</Badge>
+                      </li>
+                    )}
+                  />
                 </SectionCard>
               )}
               {academy.byAcademy.length > 0 && (
-                <SectionCard title={f("byAcademy")}>
+                <SectionCard title={f("byAcademy")} list="ul">
                   <CountList
                     rows={academy.byAcademy.map((r) => ({
                       label: r.name,
@@ -590,7 +668,7 @@ function RoleSections({
                 </SectionCard>
               )}
               {academy.byStyle.length > 0 && (
-                <SectionCard title={f("byStyle")}>
+                <SectionCard title={f("byStyle")} list="ul">
                   <CountList
                     rows={academy.byStyle.map((r) => ({
                       label: r.name,
@@ -600,7 +678,7 @@ function RoleSections({
                 </SectionCard>
               )}
               {academy.byGenre.length > 0 && (
-                <SectionCard title={f("byGenre")}>
+                <SectionCard title={f("byGenre")} list="ul">
                   <CountList
                     rows={academy.byGenre.map((r) => ({
                       label: genreLabel(r.genre),
@@ -621,17 +699,18 @@ function RoleSections({
         <>
           <KpiGrid
             items={[
-              { label: f("eventsTotal"), value: num.format(d.eventsTotal) },
-              { label: f("eventsUpcoming"), value: num.format(d.eventsUpcoming) },
-              { label: f("grossAll"), value: clp.format(d.grossAllClp) },
-              { label: f("grossMonth"), value: clp.format(d.grossMonthClp) },
-              { label: f("ticketsSold"), value: num.format(d.ticketsSold) },
+              { label: f("eventsTotal"), value: num.format(d.eventsTotal), hint: fh("eventsTotal") },
+              { label: f("eventsUpcoming"), value: num.format(d.eventsUpcoming), hint: fh("eventsUpcoming") },
+              { label: f("grossAll"), value: clp.format(d.grossAllClp), hint: fh("grossAll") },
+              { label: f("grossMonth"), value: clp.format(d.grossMonthClp), hint: fh("grossMonth") },
+              { label: f("ticketsSold"), value: num.format(d.ticketsSold), hint: fh("ticketsSold") },
               {
                 label: f("avgOccupancy"),
                 value:
                   d.avgOccupancyPct != null
                     ? `${num.format(d.avgOccupancyPct)}%`
                     : "·",
+                hint: fh("avgOccupancy"),
               },
             ]}
           />
@@ -652,19 +731,31 @@ function RoleSections({
         <>
           <KpiGrid
             items={[
-              { label: f("eventsWorked"), value: num.format(d.eventsWorked) },
-              { label: f("upcomingShifts"), value: num.format(d.upcomingShifts) },
+              { label: f("eventsWorked"), value: num.format(d.eventsWorked), hint: fh("eventsWorked") },
+              { label: f("upcomingShifts"), value: num.format(d.upcomingShifts), hint: fh("upcomingShifts") },
             ]}
           />
           {d.producers.length > 0 && (
-            <SectionCard title={f("producers")}>
-              {d.producers.map((p) => (
-                <Row
-                  key={p.id}
-                  label={p.name}
-                  value={`${num.format(p.shifts)} ${f("shifts")}`}
-                />
-              ))}
+            <SectionCard title={f("producers")} list="ul">
+              <ExpandableList
+                items={d.producers}
+                renderItem={(p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-center justify-between gap-3 py-2.5"
+                  >
+                    <Link
+                      href={`/analitica/usuarios/${p.id}`}
+                      className="min-w-0 truncate text-sm font-medium text-neon underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                    >
+                      {p.name}
+                    </Link>
+                    <span className="shrink-0 text-sm font-medium">
+                      {num.format(p.shifts)} {f("shifts")}
+                    </span>
+                  </li>
+                )}
+              />
             </SectionCard>
           )}
         </>
@@ -677,20 +768,28 @@ function RoleSections({
         <>
           <KpiGrid
             items={[
-              { label: f("classesTaught"), value: num.format(d.classesTaught) },
-              { label: f("classesUpcoming"), value: num.format(d.classesUpcoming) },
+              { label: f("classesTaught"), value: num.format(d.classesTaught), hint: fh("classesTaught") },
+              { label: f("classesUpcoming"), value: num.format(d.classesUpcoming), hint: fh("classesUpcoming") },
               {
                 label: f("avgFill"),
                 value:
                   d.avgFillPct != null ? `${num.format(d.avgFillPct)}%` : "·",
+                hint: fh("avgFill"),
               },
             ]}
           />
           {d.academies.length > 0 && (
-            <SectionCard title={f("academies")}>
-              {d.academies.map((a) => (
-                <Row key={a.id} label={a.name} value="" />
-              ))}
+            <SectionCard title={f("academies")} list="ul">
+              <ExpandableList
+                items={d.academies}
+                renderItem={(a) => (
+                  <li key={a.id} className="py-2.5">
+                    <span className="block truncate text-sm font-medium">
+                      {a.name}
+                    </span>
+                  </li>
+                )}
+              />
             </SectionCard>
           )}
         </>
@@ -703,8 +802,8 @@ function RoleSections({
         <>
           <KpiGrid
             items={[
-              { label: f("gigsTotal"), value: num.format(d.gigsTotal) },
-              { label: f("gigsUpcoming"), value: num.format(d.gigsUpcoming) },
+              { label: f("gigsTotal"), value: num.format(d.gigsTotal), hint: fh("gigsTotal") },
+              { label: f("gigsUpcoming"), value: num.format(d.gigsUpcoming), hint: fh("gigsUpcoming") },
             ]}
           />
           {d.events.length > 0 && (
@@ -730,10 +829,17 @@ function RoleSections({
       return (
         <>
           {d.venues.length > 0 && (
-            <SectionCard title={f("venues")}>
-              {d.venues.map((v) => (
-                <Row key={v.id} label={v.name} value="" />
-              ))}
+            <SectionCard title={f("venues")} list="ul">
+              <ExpandableList
+                items={d.venues}
+                renderItem={(v) => (
+                  <li key={v.id} className="py-2.5">
+                    <span className="block truncate text-sm font-medium">
+                      {v.name}
+                    </span>
+                  </li>
+                )}
+              />
             </SectionCard>
           )}
           {rentalEntries.length > 0 && (
@@ -762,40 +868,43 @@ function RoleSections({
             {f("academies")}
           </h2>
           <ul className="flex flex-col gap-3">
-            {d.academies.map((a) => (
-              <li
-                key={a.id}
-                className="rounded-2xl border border-line bg-surface p-4"
-              >
-                <p className="truncate text-sm font-semibold">{a.name}</p>
-                <div className="mt-3 grid grid-cols-3 gap-3">
-                  <div className="flex flex-col">
-                    <span className="text-base font-semibold tabular-nums">
-                      {num.format(a.students)}
-                    </span>
-                    <span className="text-xs text-ink/50">
-                      {f("students")}
-                    </span>
+            <ExpandableList
+              items={d.academies}
+              renderItem={(a) => (
+                <li
+                  key={a.id}
+                  className="rounded-2xl border border-line bg-surface p-4"
+                >
+                  <p className="truncate text-sm font-semibold">{a.name}</p>
+                  <div className="mt-3 grid grid-cols-3 gap-3">
+                    <div className="flex flex-col">
+                      <span className="text-base font-semibold tabular-nums">
+                        {num.format(a.students)}
+                      </span>
+                      <span className="text-xs text-ink/50">
+                        {f("students")}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-base font-semibold tabular-nums">
+                        {num.format(a.attendance30d)}
+                      </span>
+                      <span className="text-xs text-ink/50">
+                        {f("attendance30d")}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-base font-semibold tabular-nums">
+                        {num.format(a.classes30d)}
+                      </span>
+                      <span className="text-xs text-ink/50">
+                        {f("classes30d")}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-base font-semibold tabular-nums">
-                      {num.format(a.attendance30d)}
-                    </span>
-                    <span className="text-xs text-ink/50">
-                      {f("attendance30d")}
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-base font-semibold tabular-nums">
-                      {num.format(a.classes30d)}
-                    </span>
-                    <span className="text-xs text-ink/50">
-                      {f("classes30d")}
-                    </span>
-                  </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              )}
+            />
           </ul>
         </section>
       );
@@ -819,27 +928,30 @@ function RoleSections({
             </p>
           </Card>
           {meta.roleHistory.length > 0 && (
-            <SectionCard title={f("roleHistory")}>
-              {meta.roleHistory.map((r) => (
-                <li
-                  key={r.id}
-                  className="flex items-center justify-between gap-3 py-2.5"
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-sm font-medium">
-                      {roleLabel(r.role)}
+            <SectionCard title={f("roleHistory")} list="ul">
+              <ExpandableList
+                items={meta.roleHistory}
+                renderItem={(r) => (
+                  <li
+                    key={r.id}
+                    className="flex items-center justify-between gap-3 py-2.5"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-sm font-medium">
+                        {roleLabel(r.role)}
+                      </span>
+                      <Badge
+                        variant={r.status === "APPROVED" ? "neon" : "outline"}
+                      >
+                        {statusLabel(r.status)}
+                      </Badge>
+                    </div>
+                    <span className="shrink-0 text-xs text-ink/50">
+                      {dateFmt.format(new Date(r.createdAt))}
                     </span>
-                    <Badge
-                      variant={r.status === "APPROVED" ? "neon" : "outline"}
-                    >
-                      {statusLabel(r.status)}
-                    </Badge>
-                  </div>
-                  <span className="shrink-0 text-xs text-ink/50">
-                    {dateFmt.format(new Date(r.createdAt))}
-                  </span>
-                </li>
-              ))}
+                  </li>
+                )}
+              />
             </SectionCard>
           )}
         </section>

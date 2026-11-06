@@ -10,6 +10,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   EventDate,
   Pager,
   RefreshIcon,
@@ -237,13 +238,16 @@ function ProducerEvents() {
                         <h2 className="min-w-0 flex-1 text-lg font-semibold">
                           {ev.name}
                         </h2>
-                        <Badge
-                          variant={EVENT_STATUS_VARIANT[ev.status] ?? "muted"}
-                        >
-                          {t.has(`status.${ev.status}`)
-                            ? t(`status.${ev.status}`)
-                            : ev.status}
-                        </Badge>
+                        <span className="flex shrink-0 items-center gap-1.5">
+                          <Badge
+                            variant={EVENT_STATUS_VARIANT[ev.status] ?? "muted"}
+                          >
+                            {t.has(`status.${ev.status}`)
+                              ? t(`status.${ev.status}`)
+                              : ev.status}
+                          </Badge>
+                          <ChevronRightIcon className="h-4 w-4 text-ink/40" />
+                        </span>
                       </div>
                       <EventDate
                         start={ev.startsAt}

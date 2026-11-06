@@ -7,6 +7,8 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
+  ConfirmSheet,
   PriceTag,
   RefreshIcon,
   SkeletonList,
@@ -136,10 +138,8 @@ type PendingOrder = {
 
 const dayMs = 86_400_000;
 
-;
-
 /**
- * /academia/suscripcion - billing SaaS de la academia (S6,
+ * /academia/configuracion/suscripcion - billing SaaS de la academia (S6,
  * academy-saas-billing): estado del plan (tier/ciclo, alumnos vs límite,
  * próxima facturación, trial, gracia, bloqueo), contratación vía registro
  * de tarjeta Flow (interstitial honesto antes del salto), cambio de plan
@@ -329,7 +329,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
     // La retomada de una orden pendiente ya pasó por el consentimiento.
     if (!via && !consent) return;
     setBusy(true);
-    setNotice(null);
+    setNotice(null);
     try {
       const res = await apiFetch(`/academies/${academy.id}/subscribe`, {
         method: "POST",
@@ -418,6 +418,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         { method: "POST" },
       );
       if (!res.ok) {
+        setConfirmCancel(false);
         setNotice({
           text: (await errorMessage(res)) ?? tc("error"),
           error: true,
@@ -428,6 +429,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
       setNotice({ text: t("cancelOk") });
       await load();
     } catch {
+      setConfirmCancel(false);
       setNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
@@ -451,12 +453,22 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
       : null;
   }
 
-  if (state === "loading") return <SkeletonList items={2} lines={2} />;
+  // Skeleton solo en carga inicial: las acciones (suscribir,
+  // cancelar, upload) re-fetchean y el contenido previo queda
+  // visible hasta que llega la nueva data (anti-flash).
+  if (state === "loading" && !view) {
+    return <SkeletonList items={2} lines={2} />;
+  }
   if (state === "denied") {
     return (
-      <p role="status" className="text-sm text-ink/60">
-        {t("noAccess")}
-      </p>
+      <div className="flex flex-col items-start gap-3">
+        <p role="alert" className="text-sm text-ink/60">
+          {t("noAccess")}
+        </p>
+        <Button size="sm" variant="secondary" href="/academia">
+          {tc("back")}
+        </Button>
+      </div>
     );
   }
   if (state === "error" || !view) {
@@ -581,7 +593,9 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           Pro: el descuento se calcula del precio real del param, no se
           hardcodea el −2%/−4% del design. */}
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-xs uppercase tracking-wide text-ink/50">
+        {/* pb-2: aire entre el label "Ciclo de facturación" y las
+            opciones Mensual/Semestral/Anual (review consola). */}
+        <legend className="pb-2 text-xs uppercase tracking-wide text-ink/50">
           {t("cycleLabel")}
         </legend>
         <div className="grid grid-cols-3 gap-2">
@@ -825,45 +839,6 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
               {t("apply")}
             </Button>
           </div>
-
-          {view.status === "ACTIVE" && (
-            <div className="border-t border-line pt-3">
-              {confirmCancel ? (
-                <div className="flex flex-col gap-3">
-                  <p className="text-sm text-ink/70">
-                    {t("cancelConfirm")}
-                  </p>
-                  <div className="flex gap-3">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="danger"
-                      disabled={busy}
-                      onClick={() => void cancel()}
-                    >
-                      {busy ? tc("loading") : ts("cancelYes")}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setConfirmCancel(false)}
-                    >
-                      {ts("cancelKeep")}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirmCancel(true)}
-                  className="min-h-11 rounded-lg px-1 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-                >
-                  {t("cancel")}
-                </button>
-              )}
-            </div>
-          )}
         </Card>
       )}
 
@@ -877,10 +852,11 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           variant="platform"
           onPaid={() => {
             setPendingOrder(null);
+            setForceForm(false);
             showActionNotice({ text: t("subscribeOk") });
             void load();
           }}
-          returnHref="/academia/suscripcion"
+          returnHref="/academia/configuracion/suscripcion"
         />
       )}
 
@@ -892,9 +868,21 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         (!pendingPayment || forceForm) &&
         !pendingOrder && (
         <Card className="flex flex-col gap-4">
+          {pendingPayment && forceForm && (
+            <div>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setForceForm(false)}
+              >
+                {tc("back")}
+              </Button>
+            </div>
+          )}
           {planSelector}
           {chargeTotal == null ? (
-            <p role="status" className="text-sm text-ink/60">
+            <p role="alert" className="text-sm text-red-400">
               {t("subscribeError")}
             </p>
           ) : (
@@ -912,7 +900,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                   className="flex flex-col gap-2"
                 >
                   <label
-                    className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
+                    className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-neon ${
                       payVia === "CARD"
                         ? "border-neon/60 bg-neon/10"
                         : "border-line bg-elevated"
@@ -929,7 +917,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                     {t("payViaCard")}
                   </label>
                   <label
-                    className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
+                    className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-neon ${
                       payVia === "TRANSFER"
                         ? "border-neon/60 bg-neon/10"
                         : "border-line bg-elevated"
@@ -1017,26 +1005,57 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         ) : (
           <ul className="flex flex-col divide-y divide-line">
             {view.invoices.map((inv) => (
-              <li
-                key={inv.id}
-                className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
-              >
-                <span className="text-sm text-ink/60 tabular-nums">
-                  {planDateFmt(locale).format(new Date(inv.createdAt))}
-                </span>
-                <span className="flex items-center gap-3">
-                  <PriceTag amount={inv.amount} currency={inv.currency} />
-                  <Badge
-                    variant={PAYMENT_STATUS_VARIANT[inv.status] ?? "muted"}
-                  >
-                    {t(`invoiceStatus.${inv.status}`)}
-                  </Badge>
-                </span>
+              <li key={inv.id}>
+                {/* Fila navegable al detalle del cobro (mismo pago/[id]
+                    del módulo; ?from= devuelve el back a suscripción). */}
+                <Link
+                  href={`/academia/cobros/pago/${inv.id}?from=/academia/configuracion/suscripcion`}
+                  className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-elevated/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
+                  <span className="text-sm text-ink/60 tabular-nums">
+                    {planDateFmt(locale).format(new Date(inv.createdAt))}
+                  </span>
+                  <span className="flex items-center gap-3">
+                    <PriceTag amount={inv.amount} currency={inv.currency} />
+                    <Badge
+                      variant={PAYMENT_STATUS_VARIANT[inv.status] ?? "muted"}
+                    >
+                      {t(`invoiceStatus.${inv.status}`)}
+                    </Badge>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
         )}
       </Card>
+
+      {/* Zona roja canónica (console-patterns §4): cancelación al pie,
+          ghost rojo centrado + ConfirmSheet. */}
+      {view.status === "ACTIVE" && (
+        <div className="flex justify-center border-t border-line pt-6">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            className="text-red-400 hover:text-red-300"
+            onClick={() => setConfirmCancel(true)}
+          >
+            {t("cancel")}
+          </Button>
+        </div>
+      )}
+      <ConfirmSheet
+        open={confirmCancel}
+        title={t("cancel")}
+        description={t("cancelConfirm")}
+        confirmLabel={ts("cancelYes")}
+        busy={busy}
+        onConfirm={() => void cancel()}
+        onClose={() => setConfirmCancel(false)}
+      />
 
       <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </section>

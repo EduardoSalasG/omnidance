@@ -27,11 +27,6 @@ import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
-import {
-  assertActorFeature,
-  resolveProducerEntitlement,
-} from "../../common/actor-entitlements";
-import { PRODUCER_TIER_STAFF_LIMIT } from "../../payments/domain/actor-entitlements";
 import { ParamsService } from "../../params/params.service";
 import { PRESALE_CUTOFF_MAX_MINUTES } from "../../common/presale-cutoff";
 import { AuthService } from "../../auth/domain/auth.service";
@@ -388,39 +383,9 @@ export class ProducerController {
   @Post("staff")
   async addStaff(@Body() dto: AddCollaboratorDto, @Req() req: Request) {
     const me = req.person!;
-    const admin = await this.assertProducerOrAdmin(me.id, me.roles);
+    await this.assertProducerOrAdmin(me.id, me.roles);
     if (!dto.personId && !dto.email) {
       throw new BadRequestException("envía personId o email");
-    }
-
-    // La nómina comparte el cupo mínimo de puerta con el staff por
-    // evento (producer_tier.free_staff_max, default 2 - la norma
-    // operativa real): FREE sin Pro arma su puerta; sobre el cupo
-    // se exige multiStaff (403 tier.required). Un admin soporte nunca
-    // se gatea. Con tier Pro/trial vigente aplica el cupo del tier.
-    let staffLimit: number | null = null;
-    if (!admin) {
-      const entitlement = await resolveProducerEntitlement(this.prisma, me.id);
-      if (entitlement?.tier != null) {
-        staffLimit =
-          PRODUCER_TIER_STAFF_LIMIT[entitlement.tier] ?? null;
-      } else {
-        const freeMax = await this.params.getNumber(
-          "producer_tier.free_staff_max",
-          2,
-        );
-        const rosterCount = await this.prisma.producerStaff.count({
-          where: { producerId: me.id },
-        });
-        if (rosterCount >= freeMax) {
-          await assertActorFeature(
-            this.prisma,
-            "PRODUCER",
-            me.id,
-            "multiStaff",
-          );
-        }
-      }
     }
 
     let invited = false;
@@ -445,28 +410,6 @@ export class ProducerController {
     }
     if (person?.id === me.id) {
       throw new BadRequestException("no puedes agregarte como colaborador");
-    }
-
-    // Cupo de la nómina por tier (spec producer-pro): re-agregar a
-    // alguien que ya está en nómina es idempotente y no consume cupo;
-    // al llegar al tope → 403 staff_quota ANTES de crear el stub (un
-    // alta rechazada no deja Person huérfana).
-    if (staffLimit != null) {
-      const roster = await this.prisma.producerStaff.findMany({
-        where: { producerId: me.id },
-        select: { personId: true },
-      });
-      const pid = person?.id ?? null;
-      const alreadyIn =
-        pid != null && roster.some((r) => r.personId === pid);
-      if (!alreadyIn && roster.length >= staffLimit) {
-        throw new ForbiddenException({
-          error: "staff_quota",
-          message: `tu plan cubre hasta ${staffLimit} colaborador(es) - sube de tier para sumar más`,
-          limit: staffLimit,
-          used: roster.length,
-        });
-      }
     }
 
     if (!person && !dto.personId) {

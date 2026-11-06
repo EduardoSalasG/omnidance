@@ -10,6 +10,7 @@ import {
   Query,
   Req,
   Res,
+  StreamableFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -38,6 +39,8 @@ import {
 import { ProducerClaimsService } from "../../payments/infrastructure/producer-claims.service";
 import { mimeForKey } from "../../storage/storage.service";
 import { dayRange, pageParams, whitelist } from "./list-filters";
+import { toCsv } from "../../query/producer-export";
+import { buildTablePdf } from "../../common/pdf-report";
 import { ApiQuery } from "@nestjs/swagger";
 
 // Whitelist del filtro `status` de la cola (spec analytics/query-console)
@@ -62,6 +65,81 @@ const BILLING_REPORT_STATUSES = [
   "FAILED",
   "REFUNDED",
 ] as const;
+
+// Labels localizados del export billing-report.{csv,pdf} (spec
+// academy-cobros-reporte): `lang` del query param, es default.
+const EXPORT_I18N = {
+  es: {
+    title: "Reporte de cobros",
+    fileBase: "reporte-cobros",
+    headers: ["Fecha", "Alumno", "Plan", "Método", "Estado", "Monto"],
+    billed: "Facturado",
+    payers: "Alumnos",
+    filters: "Filtros",
+    filterPlan: "Plan",
+    filterStatus: "Estado",
+    byMethod: "Métodos de pago",
+    methodsOther: "Otro",
+    periodOf: (f: string | null, t: string | null) =>
+      f && t ? `Período: ${f} a ${t}` : f ? `Período: desde ${f}` : "Período: mes en curso",
+    statuses: {
+      PENDING: "Pendiente",
+      AWAITING: "Por revisar",
+      APPROVED: "Aprobado",
+      REJECTED: "Rechazado",
+      PAID: "Pagado",
+      FAILED: "Fallido",
+      REFUNDED: "Reembolsado",
+    } as Record<string, string>,
+    methods: {
+      TRANSFER: "Transferencia",
+      CASH: "Efectivo",
+      CARD: "Tarjeta",
+      CREDIT_CARD: "Tarjeta",
+      DEBIT: "Débito",
+      DEBIT_CARD: "Débito",
+      WEBPAY: "Webpay",
+      MERCADOPAGO: "MercadoPago",
+      FLOW: "Flow",
+      FREE: "Gratis",
+    } as Record<string, string>,
+  },
+  en: {
+    title: "Billing report",
+    fileBase: "billing-report",
+    headers: ["Date", "Student", "Plan", "Method", "Status", "Amount"],
+    billed: "Billed",
+    payers: "Students",
+    filters: "Filters",
+    filterPlan: "Plan",
+    filterStatus: "Status",
+    byMethod: "Payment methods",
+    methodsOther: "Other",
+    periodOf: (f: string | null, t: string | null) =>
+      f && t ? `Period: ${f} to ${t}` : f ? `Period: from ${f}` : "Period: current month",
+    statuses: {
+      PENDING: "Pending",
+      AWAITING: "Awaiting review",
+      APPROVED: "Approved",
+      REJECTED: "Rejected",
+      PAID: "Paid",
+      FAILED: "Failed",
+      REFUNDED: "Refunded",
+    } as Record<string, string>,
+    methods: {
+      TRANSFER: "Transfer",
+      CASH: "Cash",
+      CARD: "Card",
+      CREDIT_CARD: "Card",
+      DEBIT: "Debit",
+      DEBIT_CARD: "Debit",
+      WEBPAY: "Webpay",
+      MERCADOPAGO: "MercadoPago",
+      FLOW: "Flow",
+      FREE: "Free",
+    } as Record<string, string>,
+  },
+} as const;
 
 class CreateMethodDto {
   @IsIn([...CLAIM_METHOD_TYPES])
@@ -356,6 +434,172 @@ export class AcademyClaimsController {
   async myClaims(@Param("id") id: string, @Req() req: Request) {
     await this.access.loadContext(id);
     return this.claims.listMyClaims(id, req.person!.id);
+  }
+
+  /**
+   * GET /academies/:id/billing-report.{csv,pdf} - export del reporte
+   * (spec academy-cobros-reporte): dataset completo sin paginar,
+   * filename y contenido localizados por `lang` (es default).
+   */
+  @Get(":id/billing-report.csv")
+  @ApiQuery({ name: "lang", required: false })
+  async billingReportCsv(
+    @Param("id") id: string,
+    @Query("from") from: string | undefined,
+    @Query("to") to: string | undefined,
+    @Query("planId") planId: string | undefined,
+    @Query("status") status: string | undefined,
+    @Query("lang") lang: string | undefined,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const ex = await this.billingExport(id, from, to, planId, status, lang, req);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${ex.filename}.csv"`,
+    );
+    return toCsv(ex.headers, ex.rows);
+  }
+
+  @Get(":id/billing-report.pdf")
+  @ApiQuery({ name: "lang", required: false })
+  async billingReportPdf(
+    @Param("id") id: string,
+    @Query("from") from: string | undefined,
+    @Query("to") to: string | undefined,
+    @Query("planId") planId: string | undefined,
+    @Query("status") status: string | undefined,
+    @Query("lang") lang: string | undefined,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const ex = await this.billingExport(id, from, to, planId, status, lang, req);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${ex.filename}.pdf"`,
+    );
+    const pdf = await buildTablePdf({
+      title: ex.title,
+      subtitle: ex.subtitle,
+      summary: ex.summary,
+      kpis: ex.kpis,
+      headers: ex.headers,
+      // Pesos por columna: # chica, Alumno y Plan amplios (los textos
+      // largos del reporte), Monto alcanza para $1.234.567.
+      colWidths: [0.05, 0.12, 0.26, 0.24, 0.12, 0.1, 0.11],
+      rows: ex.rows,
+    });
+    return new StreamableFile(pdf);
+  }
+
+  /** Compone el export del billing-report localizado (csv/pdf). */
+  private async billingExport(
+    id: string,
+    from: string | undefined,
+    to: string | undefined,
+    planId: string | undefined,
+    status: string | undefined,
+    lang: string | undefined,
+    req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "payments");
+    const statusF = whitelist(status, BILLING_REPORT_STATUSES, "status");
+    let range = dayRange(from, to);
+    if (!range) {
+      const now = new Date();
+      range = {
+        gte: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)),
+      };
+    }
+    const report = await this.claims.billingReportExport(id, {
+      createdAt: range,
+      planId: planId?.trim() || undefined,
+      status: statusF,
+    });
+    const L = EXPORT_I18N[lang === "en" ? "en" : "es"];
+    const locale = lang === "en" ? "en-US" : "es-CL";
+    const money = (a: number, c = "CLP") =>
+      `${c === "CLP" ? "$" : `${c} `}${new Intl.NumberFormat(locale).format(a)}`;
+    const statusLabel = (s: string) => L.statuses[s] ?? s;
+    // Normalizador de método: los valores crudos llegan en varios
+    // formatos (TRANSFER, credit_card, webpay, "Transferencia") -
+    // busca por clave mayúscula y cae a title-case del snake_case.
+    const methodLabel = (m: string | null) => {
+      if (!m) return L.methodsOther;
+      const key = m.toUpperCase().replace(/[\s-]/g, "_");
+      return (
+        L.methods[key] ??
+        m
+          .replace(/[_-]+/g, " ")
+          .replace(/^\w|\s\w/g, (c) => c.toUpperCase())
+      );
+    };
+    const day = (iso: string) =>
+      new Date(iso).toLocaleDateString(locale, {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+
+    // El rango es día-calendario UTC (dayRange): se formatea en UTC o
+    // la zona local corre la medianoche al día anterior.
+    const dayUtc = (d: Date) =>
+      d.toLocaleDateString(locale, {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "UTC",
+      });
+    const period = L.periodOf(
+      range.gte ? dayUtc(range.gte) : null,
+      range.lte ? dayUtc(range.lte) : null,
+    );
+    const filters = [
+      report.planName ? `${L.filterPlan}: ${report.planName}` : null,
+      statusF ? `${L.filterStatus}: ${statusLabel(statusF)}` : null,
+    ].filter(Boolean);
+    const slug = report.academyName
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    const stamp = new Date().toISOString().slice(0, 10);
+
+    return {
+      filename: `${L.fileBase}-${slug || "academia"}-${stamp}`,
+      title: L.title,
+      // Subtítulo multi-línea: academia en la primera línea y el
+      // período en la segunda (spec console-lists/exports).
+      subtitle: `${report.academyName}\n${period}`,
+      summary: filters.length
+        ? [`${L.filters}: ${filters.join(" · ")}`]
+        : [],
+      // KPIs como cards (misma UI que el reporte web): Facturado y
+      // Alumnos en la fila principal; los métodos de pago abren fila
+      // propia (newRow) igual que la sección de la página.
+      kpis: [
+        { label: L.billed, value: money(report.billed) },
+        { label: L.payers, value: String(report.payers) },
+        ...report.byMethod.map((m, i) => ({
+          label: methodLabel(m.method),
+          value: money(m.amount),
+          newRow: i === 0,
+        })),
+      ],
+      headers: ["#", ...L.headers],
+      rows: report.items.map((r, i) => [
+        i + 1,
+        day(r.createdAt),
+        r.personName ?? "-",
+        r.planName ?? "-",
+        methodLabel(r.method),
+        statusLabel(r.status),
+        money(r.amount, r.currency),
+      ]),
+    };
   }
 
   /**

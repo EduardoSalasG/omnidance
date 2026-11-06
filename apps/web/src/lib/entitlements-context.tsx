@@ -9,6 +9,7 @@ import {
 } from "react";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import { useStoredAcademyId } from "@/lib/academy-selection";
 
 // Entitlements unificados por actor (spec unified-actor-entitlements) -
 // espejo de GET /me/entitlements: una fuente para el productor y las
@@ -42,10 +43,13 @@ const EntitlementsContext = createContext<EntitlementsContextValue | null>(
 /**
  * Mapa unificado de entitlements de la sesión: un solo fetch de
  * /me/entitlements por sesión de (app), montado junto a
- * MeProvider/FeaturesProvider. Si el fetch falla quedan null/[] → las
- * superficies gated se ocultan (fail-closed, mismo criterio que los
- * flags). Solo se pide cuando hay un rol que lo consume (PRODUCER u
- * ACADEMY_OWNER) - el bailarín puro no paga el request.
+ * MeProvider/FeaturesProvider. Si el fetch falla quedan null/[] →
+ * `resolved=false` en useActorEntitlements (selección no resoluble)
+ * y el chrome no recorta (fail-open, igual que durante la carga):
+ * las páginas gatean por `academy.tier`/endpoint y el 403
+ * `tier.required` es la red de seguridad. Solo se pide cuando hay
+ * un rol que lo consume (PRODUCER u ACADEMY_OWNER) - el bailarín
+ * puro no paga el request.
  */
 export function EntitlementsProvider({ children }: { children: ReactNode }) {
   const { me, loading: meLoading } = useMe();
@@ -110,8 +114,6 @@ export function useEntitlements(): EntitlementsContextValue {
   return ctx;
 }
 
-const STORAGE_KEY = "omnidance:academy-id";
-
 /**
  * Entitlements de un actor concreto (spec unified-actor-entitlements):
  * - "PRODUCER" → el entitlement propio (el endpoint solo expone el del
@@ -128,27 +130,36 @@ export function useActorEntitlements(
   tier: string | null;
   features: string[];
   loading: boolean;
+  /** false cuando los entitlements no resuelven la selección: la
+      persistida no es una academia propia (membresía instructor/staff),
+      la lista propia viene vacía o el fetch falló. En todos los casos
+      el caller no puede afirmar el tier y no debe recortar (fail-open;
+      las páginas y el API gatean por `academy.tier` - spec
+      academy-tier-gates-refine). */
+  resolved: boolean;
   has: (feature: string) => boolean;
 } {
   const { producer, academies, loading } = useEntitlements();
+  // Selección persistida reactiva: cambios desde el switcher de la
+  // nav, el gate del hub u otra pestaña re-resuelven la entrada.
+  const stored = useStoredAcademyId();
 
   let entry: ActorEntitlement | null = null;
+  let resolved = true;
   if (actorType === "PRODUCER") {
     entry = producer;
+    resolved = producer != null;
   } else {
-    let stored: string | null = null;
-    if (actorId == null && typeof window !== "undefined") {
-      try {
-        stored = window.localStorage.getItem(STORAGE_KEY);
-      } catch {
-        // Sin storage - cae a la primera academia.
-      }
-    }
     const target = actorId ?? stored;
-    entry =
-      (target ? academies.find((a) => a.id === target) : null) ??
-      academies[0] ??
-      null;
+    if (target != null) {
+      // Selección explícita/persistida: solo cuenta el match exacto -
+      // caer a academies[0] gatearía con el tier de otra academia.
+      entry = academies.find((a) => a.id === target) ?? null;
+      resolved = entry != null;
+    } else {
+      entry = academies[0] ?? null;
+      resolved = academies.length > 0;
+    }
   }
 
   const features = entry?.features ?? [];
@@ -157,6 +168,7 @@ export function useActorEntitlements(
     tier: entry?.tier ?? null,
     features,
     loading,
+    resolved,
     has: (feature: string) => set.has(feature),
   };
 }

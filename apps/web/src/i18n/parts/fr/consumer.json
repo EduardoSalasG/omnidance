@@ -79,6 +79,33 @@
       "membershipPlan": "Plan {plan}",
       "validUntil": "Valide jusqu'au {date}",
       "viewPlan": "Voir le plan"
+    },
+    "kpi": {
+      "streakHint": "Semaines consécutives avec au moins une danse",
+      "pointsHint": "Points de la saison en cours",
+      "badgesHint": "Badges obtenus",
+      "dances7dHint": "Danses des 7 derniers jours",
+      "enrollmentsHint": "Inscriptions actives en académie",
+      "classesMonthHint": "Cours suivis ce mois-ci",
+      "classes7dHint": "Cours des 7 derniers jours",
+      "activeEventsHint": "Événements publiés à venir",
+      "ticketsSoldHint": "Billets vendus au total",
+      "pendingPayoutsHint": "Versements en attente de virement",
+      "pendingPayoutNetHint": "Montant net à virer",
+      "pendingRolesHint": "Demandes de rôle à examiner",
+      "usersHint": "Personnes inscrites",
+      "academiesHint": "Académies enregistrées",
+      "studentsHint": "Élèves avec inscription active",
+      "attendance7dHint": "Présences des 7 derniers jours",
+      "mySlotsHint": "Créneaux où j'enseigne",
+      "upcomingAtVenueHint": "Événements à venir dans le lieu",
+      "upcomingGigsHint": "Prestations à venir",
+      "upcomingShiftsHint": "Shifts assignés à venir",
+      "leadsNewHint": "Candidatures non examinées",
+      "txRevenueMonthHint": "Frais de service encaissés ce mois-ci",
+      "subRevenueMonthHint": "Revenu d'abonnements ce mois-ci",
+      "subsAcademyHint": "Académies avec abonnement actif",
+      "subsProducerHint": "Producteurs avec abonnement actif"
     }
   },
   "profile": {

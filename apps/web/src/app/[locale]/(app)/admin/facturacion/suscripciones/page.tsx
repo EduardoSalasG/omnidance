@@ -116,11 +116,20 @@ function SubscriptionsPanel() {
           {/* KPIs SaaS */}
           <section aria-label={t("kpisLabel")}>
             <div className="grid grid-cols-2 gap-3">
-              <KpiCard label={t("kpiMrr")} value={clp.format(mrr.mrr)} />
-              <KpiCard label={t("kpiArr")} value={clp.format(mrr.arr)} />
+              <KpiCard
+                label={t("kpiMrr")}
+                value={clp.format(mrr.mrr)}
+                hint={t("kpiMrrHint")}
+              />
+              <KpiCard
+                label={t("kpiArr")}
+                value={clp.format(mrr.arr)}
+                hint={t("kpiArrHint")}
+              />
               <KpiCard
                 label={t("kpiActive")}
                 value={num.format(activeCount)}
+                hint={t("kpiActiveHint")}
               />
               <KpiCard
                 label={t("kpiCustom")}

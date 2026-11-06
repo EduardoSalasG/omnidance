@@ -8,7 +8,41 @@
       "SERIES_PASS": "Pase de serie",
       "MEMBERSHIP": "Plan de academia",
       "PRIVATE_LESSON": "Clase particular",
-      "WORKSHOP": "Workshop"
+      "WORKSHOP": "Workshop",
+      "PLATFORM_SUB": "Suscripción Omnidance"
+    },
+    "media": {
+      "credit_card": "Tarjeta de crédito",
+      "debit_card": "Tarjeta de débito",
+      "prepaid_card": "Tarjeta prepago",
+      "card": "Tarjeta",
+      "bank_transfer": "Transferencia",
+      "account_money": "Dinero en cuenta",
+      "ticket": "Pago en efectivo",
+      "atm": "Cajero automático",
+      "link": "Link de pago",
+      "visa": "Visa",
+      "master": "Mastercard",
+      "amex": "American Express",
+      "diners": "Diners Club",
+      "cabal": "Cabal",
+      "naranja": "Naranja",
+      "magna": "Magna",
+      "webpay": "Webpay",
+      "mach": "MACH",
+      "khipu": "Khipu",
+      "redcompra": "Redcompra",
+      "servipag": "Servipag",
+      "multicaja": "Multicaja",
+      "STUB": "Pasarela de prueba"
+    },
+    "gateways": {
+      "FLOW": "Flow",
+      "STRIPE": "Stripe",
+      "MERCADOPAGO": "Mercado Pago",
+      "FINTOC": "Fintoc",
+      "STUB": "Pasarela de prueba",
+      "MANUAL": "Método propio"
     },
     "status": {
       "PENDING": "Pendiente",
@@ -25,7 +59,7 @@
     "cols": {
       "paidAt": "Cobrado",
       "buyer": "Comprador",
-      "medium": "Medio",
+      "medium": "Método",
       "amount": "Monto",
       "gatewayFee": "Costo pasarela",
       "net": "Neto",
@@ -40,8 +74,8 @@
       "empty": "Sin eventos registrados",
       "type": {
         "ORDER_CREATED": "Orden creada",
-        "GATEWAY_REQUEST": "Enviado al medio de pago",
-        "WEBHOOK_RECEIVED": "Respuesta del medio de pago",
+        "GATEWAY_REQUEST": "Enviado al método de pago",
+        "WEBHOOK_RECEIVED": "Respuesta del método de pago",
         "STATUS_CONFIRMED": "Estado confirmado",
         "SETTLED": "Pago confirmado",
         "RENEWAL_SETTLED": "Renovación cobrada",

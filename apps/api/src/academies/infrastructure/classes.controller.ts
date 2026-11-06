@@ -290,13 +290,37 @@ export class ClassesController {
   }
 
 
-  /** Catálogos públicos para los filtros del explorador (lectura). */
+  /**
+   * Catálogos públicos para los filtros del explorador (lectura).
+   * `academyId` resuelve la línea efectiva de niveles de esa academia
+   * (custom si tiene al menos uno, global si no - misma regla de
+   * GET /academies/:id/class-levels). Sin parámetro solo viaja la
+   * línea global: el catálogo público no mezcla customs de todas las
+   * academias. `types` es siempre el catálogo global completo (los
+   * tipos no son por academia).
+   */
   @Get("catalogs")
-  catalogs() {
-    return Promise.all([
-      this.prisma.classLevel.findMany({ orderBy: { order: "asc" } }),
-      this.prisma.classType.findMany({ orderBy: { name: "asc" } }),
-    ]).then(([levels, types]) => ({ levels, types }));
+  @ApiQuery({ name: "academyId", required: false })
+  async catalogs(@Query("academyId") academyId?: string) {
+    const levels = academyId
+      ? await this.prisma.classLevel
+          .findMany({ where: { academyId }, orderBy: { order: "asc" } })
+          .then((custom) =>
+            custom.length
+              ? custom
+              : this.prisma.classLevel.findMany({
+                  where: { academyId: null },
+                  orderBy: { order: "asc" },
+                }),
+          )
+      : await this.prisma.classLevel.findMany({
+          where: { academyId: null },
+          orderBy: { order: "asc" },
+        });
+    const types = await this.prisma.classType.findMany({
+      orderBy: { name: "asc" },
+    });
+    return { levels, types };
   }
 
   /**
@@ -367,6 +391,9 @@ export class ClassesController {
           },
           series: {
             active: true,
+            // Series borradas directo en datos (seed/admin) pueden
+            // quedar active:true - deletedAt las saca igual.
+            deletedAt: null,
             ...(styleId ? { styleId } : {}),
             ...(levelId ? { levelId } : {}),
           },
@@ -461,7 +488,13 @@ export class ClassesController {
         where: {
           personId: me,
           status: { in: ["BOOKED", "WAITLIST"] },
-          class: { date: { gte: yesterday }, cancelled: false },
+          class: {
+            date: { gte: yesterday },
+            cancelled: false,
+            // Clase de una serie borrada por datos (no por API - esa ya
+            // quedó CANCELLED+refunded): la clase no se dictará.
+            slot: { series: { deletedAt: null } },
+          },
         },
         orderBy: { class: { date: "asc" } },
         select: { class: { select: CLASS_CARD_SELECT } },
@@ -779,14 +812,13 @@ export class ClassesController {
           { slot: { instructors: { some: { personId: me.id } } } },
           { slot: { series: { instructorId: me.id } } },
         ],
-        ...(seriesId || academyId
-          ? {
-              slot: {
-                ...(seriesId ? { seriesId } : {}),
-                ...(academyId ? { academyId } : {}),
-              },
-            }
-          : {}),
+        slot: {
+          // Las series borradas por datos (active:true con deletedAt)
+          // tampoco entran a la parrilla del instructor.
+          series: { deletedAt: null },
+          ...(seriesId ? { seriesId } : {}),
+          ...(academyId ? { academyId } : {}),
+        },
       },
       orderBy: { date: "asc" },
       take: 200,
@@ -1249,6 +1281,9 @@ export class ClassesController {
             endTime: true,
             capacity: true,
             instructorId: true,
+            // FK a la serie: el front la usa para el deeplink header→
+            // ficha del horario (console-patterns header navegable).
+            seriesId: true,
             instructors: { select: { personId: true } },
             academy: { select: { defaultQuorum: true } },
             series: {
@@ -1347,6 +1382,7 @@ export class ClassesController {
         startTime: cls.slot.startTime,
         endTime: cls.slot.endTime,
         academyId: cls.slot.academyId,
+        seriesId: cls.slot.seriesId,
         seriesName: cls.slot.series.name,
         styleName: cls.slot.series.style?.name ?? null,
         levelName: cls.slot.series.level?.name ?? null,

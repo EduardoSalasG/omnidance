@@ -1,4 +1,5 @@
 import {
+  All,
   BadRequestException,
   Body,
   Controller,
@@ -297,8 +298,7 @@ export class PaymentsController {
    * la sesión. Acepta GET también (otros providers redirigen con GET).
    * El paymentId viaja en la query del urlReturn que arma el checkout.
    */
-  @Get("order-return")
-  @Post("order-return")
+  @All("order-return")
   orderReturn(
     @Query("paymentId") paymentId: string | undefined,
     @Res() res: Response,

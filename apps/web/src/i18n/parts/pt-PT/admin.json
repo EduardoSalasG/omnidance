@@ -96,7 +96,24 @@
       "roleAdded": "Papel atribuído",
       "roleRevoked": "Papel revogado",
       "reactivated": "Conta reativada",
-      "deleteOk": "Conta desativada"
+      "deleteOk": "Conta desativada",
+      "charge": {
+        "title": "Cobrança direta",
+        "body": "Cobra um valor pontual no meio de pagamento registado desta pessoa (dívida, taxa especial, ajuste). Sem cartão, a gateway gera um link de pagamento.",
+        "amount": "Montante (CLP)",
+        "subject": "Conceito",
+        "subjectPh": "Ex. Dívida evento de outubro",
+        "cta": "Cobrar",
+        "confirm": "Cobrar {amount} a {name}? Conceito: {subject}",
+        "confirmCta": "Confirmar cobrança",
+        "collected": "Cobrança confirmada",
+        "failed": "O meio de pagamento recusou a cobrança",
+        "pending": "Sem cartão registado: partilha o link de pagamento",
+        "payLink": "Link de pagamento",
+        "copyLink": "Copiar link",
+        "copied": "Link copiado",
+        "invalid": "Indica um montante válido e um conceito"
+      }
     },
     "status": {
       "REJECTED": "Rejeitado"
@@ -251,13 +268,20 @@
       "back": "Academias",
       "kpi": {
         "enrolled": "Inscritos",
+        "enrolledHint": "Inscrições registadas",
         "plan": "Com plano",
+        "planHint": "Inscrições com plano atribuído",
         "checkin": "Com check-in",
+        "checkinHint": "Alunos com presença este mês",
         "score": "Score médio",
+        "scoreHint": "Pontuação média dos alunos",
         "billing": "Faturação mês",
         "classes": "Horários",
+        "classesHint": "Horários semanais configurados",
         "plans": "Planos",
-        "computed": "Score atualizado"
+        "plansHint": "Planos de membro criados",
+        "computed": "Score atualizado",
+        "computedHint": "Último cálculo da pontuação"
       },
       "detail": {
         "general": "Dados gerais",
@@ -621,8 +645,11 @@
       "desc": "Subscrições de plataforma: academias e Producer Pro.",
       "kpisLabel": "Métricas SaaS",
       "kpiMrr": "MRR",
+      "kpiMrrHint": "Receita recorrente mensal",
       "kpiArr": "ARR",
+      "kpiArrHint": "MRR × 12",
       "kpiActive": "Ativas",
+      "kpiActiveHint": "Subscrições ativas",
       "kpiCustom": "Personalizado",
       "kpiCustomHint": "Contratos fora do MRR",
       "tiersTitle": "Por tier",

@@ -13,6 +13,7 @@ import {
 import { ProfilePlansSection } from "@/components/academy/profile-plans-section";
 import { AcademyClaimsMine } from "@/components/academy/academy-claims-mine";
 import { serverApiUrl } from "@/lib/server-api";
+import { featureEnabled } from "@/lib/public-features";
 import { getDateFmt } from "@/lib/intl";
 
 export const dynamic = "force-dynamic";
@@ -117,7 +118,12 @@ export default async function AcademiaDetailPage(
   const t = m.academy;
   const tc = m.common;
   const ts = m.subscriptions;
-  const academy = await getProfile(params.id);
+  const [academy, exploreOn] = await Promise.all([
+    getProfile(params.id),
+    // Flag academy_explore: la ficha vive por link directo, pero el
+    // salto al listado explorar se apaga con el flag (fail-closed).
+    featureEnabled("academy_explore"),
+  ]);
 
   if (academy === "error") {
     return (
@@ -402,7 +408,7 @@ export default async function AcademiaDetailPage(
                 </li>
               ))}
             </ul>
-            {academy.classes.length > 2 && (
+            {academy.classes.length > 2 && exploreOn && (
               <div className="mt-3 flex justify-center">
                 <Button
                   href={`/clases?s=explorar&academy=${academy.id}`}

@@ -1114,8 +1114,8 @@ model Enrollment {
 }
 
 // Nivel del alumno por tipo de clase (spec academies/enrollment-levels):
-// multinivel - un enrollment puede tener N filas (Iniciación+Básico en
-// Pareja). Las asigna solo el owner/staff de la academia en la ficha del
+// un nivel por tipo - a lo más una fila por (enrollment, classType).
+// Las asigna solo el owner/staff de la academia en la ficha del
 // alumno; el alumno nunca se auto-nivela. Alimenta el KPI nivel×horario
 // del inicio Extendido (GET /academies/:id/insights/levels).
 model EnrollmentLevel {
@@ -1511,7 +1511,7 @@ enum PaymentStatus {
 
 model Payment {
   id        String        @id @default(cuid())
-  orderType String // TICKET | SERIES_PASS | MEMBERSHIP | WORKSHOP | PRIVATE | PLATFORM_SUB
+  orderType String // TICKET | SERIES_PASS | MEMBERSHIP | WORKSHOP | PRIVATE | PLATFORM_SUB | PLATFORM_CHARGE
   refId     String @unique // correlación con la pasarela (webhook lo busca por refId)
   personId  String
   eventId   String? // contexto desnormalizado de la compra

@@ -1,21 +1,10 @@
-"use client";
+import { getLocale } from "next-intl/server";
 
-import { AcademyGate } from "@/components/academy/academy-gate";
-import { PaymentMethodsAdmin } from "@/components/academy/payment-methods-admin";
+import { redirect } from "@/i18n/navigation";
 
-/**
- * /academia/configuracion/pagos - medios de cobro propios de la
- * academia (transferencia/efectivo que el alumno elige al pagar su
- * plan). Página raíz de la sección Configuración - sin back.
- */
-export default function ConfigPagosPage() {
-  return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
-      <AcademyGate>
-        {({ academy }) => (
-          <PaymentMethodsAdmin key={academy.id} academyId={academy.id} />
-        )}
-      </AcademyGate>
-    </main>
-  );
+// Los medios de pago se renombraron para que la URL matchee su título
+// ("Métodos de pago"). Redirect de deep-links viejos.
+export default async function ConfigPagosRedirect() {
+  const locale = await getLocale();
+  redirect({ href: "/academia/configuracion/metodos-de-pago", locale });
 }

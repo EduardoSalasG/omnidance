@@ -5,7 +5,7 @@ import { JsonLd } from "@/components/landing/JsonLd";
 import { getMessages, getLocale } from "next-intl/server";
 import { localeAlternates } from "@/lib/seo";
 import { type Locale } from "@/i18n/routing";
-import { fetchPublicEvents, thisWeek } from "@/lib/public-events";
+import { marketingEvents, thisWeek } from "@/lib/marketing-content";
 
 
 
@@ -24,11 +24,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Landing de audiencia PRODUCER: ticketing, puerta QR y números.
+// Data del catálogo commiteado - cero requests al API (spec
+// marketing-content); el revalidate solo recalcula "esta semana".
+export const revalidate = 3600;
+
 export default async function ProducerLanding() {
   const m = (await getMessages()) as typeof import("@/i18n/catalogs/es-CL").default;
   const t = m.landingProducer;
   // Logueado → /inicio lo decide el middleware (página estática).
-  const events = await fetchPublicEvents();
+  const events = marketingEvents();
   return (
     <>
       <JsonLd events={events.slice(0, 3)} />

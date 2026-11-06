@@ -187,11 +187,11 @@ export type AcademyDashboard = {
 };
 
 // GET /academies/:id/insights/levels: card "niveles y cupos" del
-// inicio Extendido (spec academies/owner-insights). Solo owner/ADMIN
+// inicio (spec academies/owner-insights). Solo owner/ADMIN
 // de la academia + feature PRO `insights`; el front la oculta en 403.
 export type AcademyLevelInsights = {
-  // Alumnos ACTIVE por tipo×nivel (multinivel: un alumno puede contar
-  // en más de un nivel del mismo tipo).
+  // Alumnos ACTIVE por tipo×nivel (un nivel por tipo: cada alumno
+  // cuenta a lo sumo una vez dentro del tipo).
   byType: {
     typeId: string;
     typeName: string;
@@ -201,6 +201,7 @@ export type AcademyLevelInsights = {
   // level de la serie), capacidad efectiva y asistencia reciente.
   bySlot: {
     slotId: string;
+    seriesId: string;
     seriesName: string;
     // Estilo de la serie (mismo display que la card de /clases).
     styleName: string | null;
@@ -406,6 +407,9 @@ export type Series = {
   style: NamedRef | null;
   level: NamedRef | null;
   types: { type: NamedRef }[];
+  // Roster de profesores habilitados (SERIES_INCLUDE): solo ellos son
+  // asignables a los horarios (spec serie habilita -> slot asigna).
+  instructors?: { person: { id: string; name: string | null } }[];
   slots: SeriesSlot[];
 };
 
@@ -463,6 +467,7 @@ export type ClassRoster = {
     startTime: string;
     endTime: string;
     academyId: string;
+    seriesId: string | null;
     seriesName: string | null;
     styleName: string | null;
     levelName: string | null;
@@ -488,11 +493,24 @@ export type ClassRoster = {
   waitlist: { personId: string; name: string | null; createdAt: string }[];
 };
 
+// GET /academies/:id/students/candidates?q= - candidatos del buscador
+// del alta de enrollment (spec academies/console-lists).
+export type PersonCandidate = {
+  id: string;
+  name: string | null;
+  email: string | null;
+};
+
 // GET /academies/:id/students/:personId - perfil del alumno con historial.
 // status es string libre del server: attended|booked|cancelled en history,
 // BOOKED|WAITLIST en upcoming (casing distinto en cada lista, por contrato).
 export type StudentProfile = {
-  person: { id: string; name: string | null };
+  person: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+  };
   plan: { name: string } | null;
   /** Enrollment vigente (el editable desde la ficha). */
   enrollmentId: string | null;
@@ -510,6 +528,9 @@ export type StudentProfile = {
     startedAt: string | null;
     endsAt: string | null;
     plan: { id: string; name: string; type: string; price: number } | null;
+    /** Último método de pago conocido de esta membresía (claim ligado
+        o pago de pasarela); null = sin registro de cobro. */
+    method: string | null;
     // Niveles por tipo de clase del alumno (spec enrollment-level-kpi).
     levels: { classTypeId: string; levelId: string }[];
   }[];
@@ -586,6 +607,47 @@ export const toDateInput = (iso: string) => {
 export const fromDateInput = (v: string) =>
   new Date(`${v}T12:00:00`).toISOString();
 
+const DAY_MS = 86_400_000;
+
+const toInputValue = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+
+/**
+ * "Pagado hasta" sugerido al elegir plan en el alta (spec
+ * academies/console-lists): espejo de `membershipEndsAt` del dominio
+ * (payments/domain/membership-vigency.ts) en fechas locales del input.
+ * "" = sin sugerencia (CLASS_PACK, o PERIOD/TRIAL sin periodDays).
+ */
+export function suggestedEndsAt(
+  plan: Pick<MembershipPlan, "type" | "periodDays">,
+  startsAt: string,
+): string {
+  const base = startsAt ? new Date(`${startsAt}T12:00:00`) : new Date();
+  // Último día del mes local (month 0-based; Date(y, m+1, 0) = fin de m).
+  const endOfMonth = (m0: number) =>
+    new Date(base.getFullYear(), m0 + 1, 0, 12);
+  const m = base.getMonth();
+  switch (plan.type) {
+    case "MONTHLY":
+      return toInputValue(endOfMonth(m));
+    case "QUARTERLY":
+      return toInputValue(endOfMonth(m + 2));
+    case "SEMIANNUAL":
+      return toInputValue(endOfMonth(m + 5));
+    case "SINGLE":
+      return toInputValue(new Date(base.getTime() + DAY_MS));
+    case "PERIOD":
+    case "TRIAL":
+      return plan.periodDays
+        ? toInputValue(new Date(base.getTime() + plan.periodDays * DAY_MS))
+        : "";
+    default:
+      return ""; // CLASS_PACK: vence por consumo, sin fecha
+  }
+}
+
 /**
  * Extrae `message` de una respuesta de error de NestJS
  * (string o string[] de class-validator). null → el caller usa fallback i18n.
@@ -610,8 +672,12 @@ export async function readError(res: Response): Promise<string | null> {
 }
 
 // Academia seleccionada en la consola (AcademyGate + /academia/nueva) -
-// persiste entre el hub y las subrutas de módulo.
-export const ACADEMY_STORAGE_KEY = "omnidance:academy-id";
+// persiste entre el hub y las subrutas de módulo. El mecanismo
+// completo (key + evento + helpers) vive en lib/academy-selection.
+export {
+  ACADEMY_CHANGED_EVENT,
+  ACADEMY_STORAGE_KEY,
+} from "@/lib/academy-selection";
 
 // Inputs compactos dark-first; min-h-11 = touch target 44px.
 export const inputCls =

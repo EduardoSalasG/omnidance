@@ -3005,7 +3005,91 @@
     },
     "/api/payments/order-return": {
       "get": {
-        "operationId": "PaymentsController_orderReturn",
+        "operationId": "PaymentsController_orderReturn_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "post": {
+        "operationId": "PaymentsController_orderReturn_post",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "put": {
+        "operationId": "PaymentsController_orderReturn_put",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "delete": {
+        "operationId": "PaymentsController_orderReturn_delete",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "patch": {
+        "operationId": "PaymentsController_orderReturn_patch",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "options": {
+        "operationId": "PaymentsController_orderReturn_options",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "head": {
+        "operationId": "PaymentsController_orderReturn_head",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "search": {
+        "operationId": "PaymentsController_orderReturn_search",
         "parameters": [],
         "responses": {
           "200": {
@@ -5736,6 +5820,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5764,6 +5856,14 @@
             "name": "personId",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -5968,6 +6068,35 @@
         ]
       }
     },
+    "/api/academies/{id}/students/candidates": {
+      "get": {
+        "operationId": "AcademiesController_studentCandidates",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Academies"
+        ]
+      }
+    },
     "/api/academies/{id}/students/{personId}": {
       "get": {
         "operationId": "AcademiesController_studentDetail",
@@ -6122,6 +6251,27 @@
         },
         "responses": {
           "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Academies"
+        ]
+      },
+      "delete": {
+        "operationId": "AcademiesController_deleteAcademyLevels",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },
@@ -6727,6 +6877,64 @@
             "schema": {
               "type": "string"
             }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
+      }
+    },
+    "/api/academies/{id}/billing-report.csv": {
+      "get": {
+        "operationId": "AcademyClaimsController_billingReportCsv",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
+      }
+    },
+    "/api/academies/{id}/billing-report.pdf": {
+      "get": {
+        "operationId": "AcademyClaimsController_billingReportPdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {}
           }
         ],
         "responses": {
@@ -7489,6 +7697,14 @@
             }
           },
           {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "page",
             "required": false,
             "in": "query",
@@ -7701,7 +7917,16 @@
     "/api/classes/catalogs": {
       "get": {
         "operationId": "ClassesController_catalogs",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "academyId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -8109,6 +8334,29 @@
     "/api/academies/{id}/series/insights": {
       "get": {
         "operationId": "ClassSeriesController_insights",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
+      }
+    },
+    "/api/academies/{id}/series/styles": {
+      "get": {
+        "operationId": "ClassSeriesController_styles",
         "parameters": [
           {
             "name": "id",
@@ -8661,6 +8909,74 @@
       }
     },
     "/api/academies/{id}/videos/{videoId}": {
+      "get": {
+        "operationId": "VideosController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "videoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Videos"
+        ]
+      },
+      "patch": {
+        "operationId": "VideosController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "videoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVideoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Videos"
+        ]
+      },
       "delete": {
         "operationId": "VideosController_remove",
         "parameters": [
@@ -10552,6 +10868,30 @@
         ]
       }
     },
+    "/api/admin/platform-charges": {
+      "post": {
+        "operationId": "AdminPlatformChargesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlatformChargeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminPlatformCharges"
+        ]
+      }
+    },
     "/api/crm/people": {
       "get": {
         "operationId": "CrmController_listPeople",
@@ -11574,6 +11914,30 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "levelId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "seriesId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slotId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -12392,6 +12756,10 @@
         "type": "object",
         "properties": {}
       },
+      "UpdateVideoDto": {
+        "type": "object",
+        "properties": {}
+      },
       "SetRoleDto": {
         "type": "object",
         "properties": {}
@@ -12457,6 +12825,10 @@
         "properties": {}
       },
       "UpdateTierPriceDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreatePlatformChargeDto": {
         "type": "object",
         "properties": {}
       },

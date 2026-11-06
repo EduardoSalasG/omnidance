@@ -3,16 +3,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { showActionNotice } from "@/components/ui/action-notice";
-import { Button, Card, ConfirmSheet, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
+import { Button, Card, ChevronRightIcon, ConfirmSheet, Pager, RefreshIcon, SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { CourseSurveyResults } from "@/components/academy/survey-results";
 import { readError } from "@/components/academy/shared";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
+import { useConsolePageSize } from "@/lib/console-page-size";
 
 type InstructorDetail = {
   person: { id: string; name: string | null; email: string | null; phone: string | null };
@@ -31,9 +33,6 @@ type InstructorDetail = {
   }[];
 };
 
-;
-;
-
 /**
  * /academia/equipo/profesor/[id] - detalle del profesor (nivel 2):
  * datos, acuerdo económico, clases impartidas y próximas. La edición
@@ -44,15 +43,17 @@ export default function InstructorDetailPage() {
   const params = useParams<{ id: string }>();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/academia/equipo" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
+          <AcademyTierGate academy={academy} feature="staff">
           <Detail
             key={`${academy.id}:${params.id}`}
             academyId={academy.id}
             personId={params.id}
           />
+          </AcademyTierGate>
         )}
       </AcademyGate>
     </main>
@@ -79,8 +80,8 @@ function Detail({
   year: "numeric",
   timeZone: "UTC",
 });
-  const locale = useLocale();
   const t = useTranslations("academyStaff");
+  const ta = useTranslations("academy");
   const tc = useTranslations("common");
   const router = useRouter();
 
@@ -88,6 +89,11 @@ function Detail({
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  // Próximas clases: lista pesada client-side (regla 20/10,
+  // lib/console-page-size) - slice local + Pager solo si excede.
+  const pageSize = useConsolePageSize();
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  useEffect(() => setUpcomingPage(1), [pageSize]);
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -118,6 +124,7 @@ function Detail({
         showActionNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
+      showActionNotice({ text: t("removed") });
       router.push("/academia/equipo");
     } catch {
       setConfirmRemove(false);
@@ -155,9 +162,9 @@ function Detail({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">
-          {detail.person.name ?? detail.person.email}
+          {detail.person.name ?? detail.person.email ?? personId}
         </h2>
         <Card className="flex flex-col gap-3 p-4">
           <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
@@ -181,7 +188,7 @@ function Detail({
             </div>
           </dl>
         </Card>
-      </section>
+      </div>
 
       <section className="flex flex-col gap-3" aria-label={t("agreementTitle")}>
         <div className="flex items-center justify-between gap-2">
@@ -201,23 +208,41 @@ function Detail({
         </Card>
       </section>
 
-      <section className="flex flex-col gap-3" aria-label={t("statsTaughtMonth")}>
-        <ul className="grid grid-cols-3 gap-3">
+      <section className="flex flex-col gap-3" aria-label={ta("kpis.title")}>
+        {/* Una columna en mobile: tres KPI en 100px cada uno dejaban
+            el número y el hint ilegibles (review 2026-11-05). */}
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
-            { label: t("statsTaughtMonth"), value: detail.stats.taughtMonth },
-            { label: t("statsTaughtTotal"), value: detail.stats.taughtTotal },
+            {
+              label: t("statsTaughtMonth"),
+              value: detail.stats.taughtMonth,
+              hint: t("statsTaughtMonthHint"),
+            },
+            {
+              label: t("statsTaughtTotal"),
+              value: detail.stats.taughtTotal,
+              hint: t("statsTaughtTotalHint"),
+            },
             {
               label: t("statsAttendanceMonth"),
               value: detail.stats.attendanceMonth,
+              hint: t("statsAttendanceMonthHint"),
             },
           ].map((s) => (
             <li key={s.label}>
-              <Card className="flex h-full flex-col gap-1 p-4">
+              <Card
+                className="flex h-full flex-col gap-1 p-4"
+                title={s.hint}
+                aria-label={`${s.label}: ${s.value}. ${s.hint}`}
+              >
                 <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
                   {s.label}
                 </span>
                 <span className="text-3xl font-bold leading-none text-neon">
                   {s.value}
+                </span>
+                <span className="text-[11px] leading-tight text-ink/50">
+                  {s.hint}
                 </span>
               </Card>
             </li>
@@ -233,26 +258,48 @@ function Detail({
           {detail.upcoming.length === 0 ? (
             <p className="text-sm text-ink/50">{t("upcomingEmpty")}</p>
           ) : (
+            <>
             <ul className="flex flex-col divide-y divide-line">
-              {detail.upcoming.map((c) => (
+              {detail.upcoming
+                .slice(
+                  (upcomingPage - 1) * pageSize,
+                  upcomingPage * pageSize,
+                )
+                .map((c) => (
                 <li key={c.id}>
+                  {/* En mobile la fila se apila (nombre línea completa,
+                      meta debajo) - en sm+ vuelve a una sola fila. */}
                   <Link
-                    href={`/academia/clases/${c.id}`}
-                    className="flex items-center gap-3 py-2 text-sm transition-colors hover:text-neon"
+                    href={`/academia/clases/${c.id}?from=${encodeURIComponent(`/academia/equipo/profesor/${personId}`)}`}
+                    className="flex min-h-11 flex-col justify-center gap-0.5 py-2 text-sm transition-colors hover:text-neon sm:flex-row sm:items-center sm:gap-3"
                   >
                     <span className="min-w-0 flex-1 truncate font-medium">
                       {c.seriesName ?? "—"}
                     </span>
-                    <span className="shrink-0 text-xs tabular-nums text-ink/50">
-                      {dayFmt.format(new Date(c.date))} · {c.startTime}
-                    </span>
-                    <span className="shrink-0 text-xs text-ink/40">
-                      {t("bookingsOf", { count: c.bookings })}
+                    <span className="flex shrink-0 items-center gap-2 text-xs text-ink/50 sm:gap-3">
+                      <span className="tabular-nums">
+                        {dayFmt.format(new Date(c.date))} · {c.startTime}
+                      </span>
+                      <span className="text-ink/40">
+                        {t("bookingsOf", { count: c.bookings })}
+                      </span>
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                     </span>
                   </Link>
                 </li>
               ))}
             </ul>
+            {detail.upcoming.length > pageSize && (
+              <div className="border-t border-line pt-3">
+                <Pager
+                  page={upcomingPage}
+                  pageSize={pageSize}
+                  total={detail.upcoming.length}
+                  onPage={setUpcomingPage}
+                />
+              </div>
+            )}
+            </>
           )}
         </Card>
       </section>
@@ -260,18 +307,18 @@ function Detail({
       {/* Encuestas del profe - agrupadas mes × serie, solo owner/ADMIN. */}
       <CourseSurveyResults academyId={academyId} instructorId={personId} />
 
-      {/* Zona destructiva al pie, centrada y en rojo - mismo patrón que
-          "Eliminar amigo" (/amigos/[id]). */}
-      <div className="flex justify-center pt-2">
-        <button
-          type="button"
+      {/* Zona destructiva al pie (console-patterns §4): div centrado
+          separado por border-t, ghost rojo + ConfirmSheet. */}
+      <div className="flex justify-center border-t border-line pt-6">
+        <Button
+          variant="ghost"
+          size="sm"
           disabled={busy}
           onClick={() => setConfirmRemove(true)}
-          className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
+          className="text-red-400 hover:text-red-300"
         >
-          {busy ? <Spinner size="sm" /> : null}
           {t("removeInstructor")}
-        </button>
+        </Button>
       </div>
 
       <ConfirmSheet

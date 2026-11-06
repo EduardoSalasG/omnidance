@@ -28,16 +28,17 @@ export interface ActorEntitlement {
 
 // ─── Productor ─────────────────────────────────────────────────────
 // Features Producer Pro (spec producer-pro): matriz acumulativa por
-// tier - PRO_STARTER vende analítica + exports + staff (cupo 1),
-// PRO_GROWTH suma el CRM (cupo 2) y PRO_BIG lo habilita todo (staff
-// ilimitado). Cada endpoint declara su feature; el tier efectivo es el
-// tierCode real del Pro vigente.
+// tier - PRO_STARTER vende analítica + exports, PRO_GROWTH suma el CRM
+// y PRO_BIG agrega campañas (benchmark queda reservado sin
+// implementación). El staff de evento y la nómina NO son feature:
+// ningún tier limita colaboradores (la puerta con 1-2 personas es la
+// norma operativa, no un diferenciador pago). Cada endpoint declara su
+// feature; el tier efectivo es el tierCode real del Pro vigente.
 
 export const PRODUCER_FEATURES = [
   "analytics",
   "crm",
   "exports",
-  "multiStaff",
   "campaigns",
   "benchmark",
 ] as const;
@@ -46,7 +47,6 @@ export type ProducerFeature = (typeof PRODUCER_FEATURES)[number];
 const PRO_STARTER_FEATURES = [
   "analytics",
   "exports",
-  "multiStaff",
 ] as const satisfies readonly ProducerFeature[];
 
 /** Tier (código del enum ProducerProTier) → features habilitadas. */
@@ -63,27 +63,14 @@ export const PRODUCER_TIER_FEATURES: Record<
 const PRODUCER_TIER_ORDER = ["PRO_STARTER", "PRO_GROWTH", "PRO_BIG"] as const;
 
 /**
- * Cupo de la nómina de colaboradores por tier (spec producer-pro):
- * staff pasa de booleano a tope numérico - PRO_BIG no tiene entrada
- * (sin cupo). Sin tier efectivo tampoco hay entrada: el alta ya quedó
- * bloqueada por el gate de `multiStaff`.
- */
-export const PRODUCER_TIER_STAFF_LIMIT: Record<string, number> = {
-  // PRO_STARTER legado y FREE comparten el cupo de la norma operativa
-  // (1-2 personas en puerta); el diferenciador pago es ilimitado (BIG).
-  PRO_STARTER: 2,
-  PRO_GROWTH: 2,
-};
-
-/**
  * Tier efectivo del productor (spec unified-actor-entitlements +
  * producer-pro): el `tierCode` real del Pro vigente
  * (Person.proTier lo proyecta la PlatformSubscription vía
  * applyEntitlement/settlePlatformSub).
  *
  * Trial de lanzamiento (proTier FREE + proTrialEndsAt vigente) →
- * PRO_STARTER: el trial vende el piso Pro (analytics + exports +
- * staff ≤1), no el tope de la matriz. Decisión del change
+ * PRO_STARTER: el trial vende el piso Pro (analytics + exports), no
+ * el tope de la matriz. Decisión del change
  * producer-pro-tiers: documentada acá porque proTrialEndsAt no guarda
  * tier - el trial nunca tuvo tierCode propio.
  */

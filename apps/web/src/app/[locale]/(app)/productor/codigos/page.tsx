@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   Pager,
   PriceTag,
   RefreshIcon,
@@ -191,6 +192,7 @@ function DiscountCodes() {
                           ? t(`types.${c.type}`)
                           : c.type}
                       </Badge>
+                      <ChevronRightIcon className="ml-auto h-4 w-4 shrink-0 text-ink/40" />
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/70">
                       <span>

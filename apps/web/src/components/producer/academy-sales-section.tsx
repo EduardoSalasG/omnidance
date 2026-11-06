@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   PriceTag,
   RefreshIcon,
   SkeletonList,
@@ -126,9 +127,18 @@ export function AcademySalesSection({ eventId }: { eventId: string }) {
       )}
 
       {deals !== null && deals.length === 0 && !error && (
-        <p role="status" className="text-sm text-ink/50">
-          {t("empty")}
-        </p>
+        <div className="flex flex-col items-start gap-3">
+          <p role="status" className="text-sm text-ink/50">
+            {t("empty")}
+          </p>
+          <Button
+            size="sm"
+            variant="secondary"
+            href={`/productor/eventos/${eventId}/academias/nueva`}
+          >
+            {`＋ ${t("invite")}`}
+          </Button>
+        </div>
       )}
 
       {deals !== null && deals.length > 0 && (
@@ -166,6 +176,7 @@ export function AcademySalesSection({ eventId }: { eventId: string }) {
                         ? t(`status.${d.status}`)
                         : d.status}
                     </Badge>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </div>
                 </Card>
               </Link>

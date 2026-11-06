@@ -722,6 +722,7 @@ sequenceDiagram
     WH->>API: {token} → reconcileAll fire-and-forget (200 siempre)
     GET->>GW: subscription/get (refresh activo del detalle)
     GW-->>API: invoices[] + status + next_invoice_date + morose
+    Note over API,GW: recuperación de mora (overdue-invoice-collect):<br/>invoice impaga sin next_attemp_date → collect() (customer/collect)<br/>sobre la tarjeta del pagador, ANTES de notificar mora.<br/>COLLECTED → Payment renewal PAID + settle (mora resuelta, sin aviso);<br/>FAILED → Payment FAILED + mora sigue su curso (dedup: 1 intento/invoice);<br/>PENDING (sin tarjeta) → collectUrl en la notificación de mora;<br/>error de API → sin Payment, reintenta en el próximo barrido
     alt invoice pagada nueva (dedup lastInvoiceId + refId único)
         API->>DB: Payment PENDING mem_<planId>_<invoiceId><br/>+ ORDER_CREATED
         API->>DB: settleMembership → PAID + RENEWAL_SETTLED<br/>+ Enrollment.endsAt extendido

@@ -43,6 +43,7 @@ import {
 import type { GenreKey } from "@/lib/calendar";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useDateFmt } from "@/lib/intl";
+import { useFeatures } from "@/lib/features-context";
 
 // GET /classes/browse - clase materializada futura con contexto de
 // serie. El shape vive en el componente del card (lo reusa el home).
@@ -114,13 +115,18 @@ function ClasesInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Flag academy_explore (spec academy-explore-flag): OFF → el scope
+  // explorar no existe; fail-closed mientras /features no responde.
+  const { flags } = useFeatures();
+  const exploreOn = flags.academy_explore === true;
+
   // ─── Estado en URL (mismo patrón que /eventos: deep-linkable) ───
   const rawView = searchParams.get("view"); // legado: mezclaba scope+display
   const rawS = searchParams.get("s");
   const rawV = searchParams.get("v");
   const rawScope = searchParams.get("scope");
   // Scope (qué datos): legado view=explore|history|mine.
-  const scope: Scope =
+  const parsedScope: Scope =
     rawS === "explorar" || rawS === "historial" || rawS === "mias"
       ? rawS
       : rawView === "explore"
@@ -128,6 +134,10 @@ function ClasesInner() {
         : rawView === "history"
           ? "historial"
           : "mias";
+  // Flag OFF → un deep link a explorar (o view=explore legado)
+  // normaliza a "mias" sin redirect; mias/historial no se tocan.
+  const scope: Scope =
+    !exploreOn && parsedScope === "explorar" ? "mias" : parsedScope;
   // Display (cómo se ve): calendario en mias y explorar; el historial
   // es siempre lista. Legado view=calendar.
   const view: Display =
@@ -660,7 +670,7 @@ function ClasesInner() {
           ariaLabel={t("scopesLabel")}
           active={scope}
           className="w-full"
-          innerClassName="grid w-full grid-cols-3"
+          innerClassName={`grid w-full ${exploreOn ? "grid-cols-3" : "grid-cols-2"}`}
           items={[
             {
               key: "mias",
@@ -672,12 +682,18 @@ function ClasesInner() {
               href: hrefFor({ s: "historial" }),
               children: t("history"),
             },
-            {
-              key: "explorar",
-              href: hrefFor({ s: "explorar" }),
-              tour: "cl-explore",
-              children: t("viewExplore"),
-            },
+            // Pill explorar solo con el flag ON - OFF la opción no
+            // existe y el deep link ya normalizó a mias arriba.
+            ...(exploreOn
+              ? [
+                  {
+                    key: "explorar",
+                    href: hrefFor({ s: "explorar" }),
+                    tour: "cl-explore",
+                    children: t("viewExplore"),
+                  },
+                ]
+              : []),
           ]}
         />
 
@@ -1076,9 +1092,11 @@ function ClasesInner() {
                 <p role="status" className="text-ink/70">
                   {t("emptyMine")}
                 </p>
-                <Button href={hrefFor({ s: "explorar" })}>
-                  {t("explore")}
-                </Button>
+                {exploreOn && (
+                  <Button href={hrefFor({ s: "explorar" })}>
+                    {t("explore")}
+                  </Button>
+                )}
               </Card>
             ))}
         </section>
@@ -1112,9 +1130,11 @@ function ClasesInner() {
                   <p role="status" className="text-ink/70">
                     {t("emptyEnrolled")}
                   </p>
-                  <Button href={hrefFor({ s: "explorar" })}>
-                    {t("explore")}
-                  </Button>
+                  {exploreOn && (
+                    <Button href={hrefFor({ s: "explorar" })}>
+                      {t("explore")}
+                    </Button>
+                  )}
                 </Card>
               )
             ) : (

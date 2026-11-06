@@ -9,8 +9,8 @@ import {
   EnrollmentsController,
 } from "./academies.controller";
 
-// spec academies/enrollment-levels: niveles del alumno por tipo de
-// clase (multinivel), gestionados solo por la academia; KPI
+// spec academies/enrollment-levels: nivel del alumno por tipo de
+// clase (uno por tipo), gestionado solo por la academia; KPI
 // tipo×nivel/horario del inicio Extendido (owner-insights).
 
 type Person = { id: string; roles: string[] };
@@ -69,7 +69,7 @@ const makeEnrollmentsCtrl = (prisma: unknown, access: unknown) =>
   new EnrollmentsController(prisma as never, access as never);
 
 describe("EnrollmentsController.setLevels", () => {
-  it("reemplazo completo multinivel: deleteMany + createMany dentro de $transaction", async () => {
+  it("reemplazo completo, un nivel por tipo: deleteMany + createMany dentro de $transaction", async () => {
     const prisma = makeLevelsPrisma();
     const ctrl = makeEnrollmentsCtrl(prisma, makeLevelsAccess());
 
@@ -77,7 +77,7 @@ describe("EnrollmentsController.setLevels", () => {
       "enr-1",
       {
         levels: [
-          { classTypeId: "ct-pareja", levelIds: ["lv-ini", "lv-bas"] },
+          { classTypeId: "ct-pareja", levelIds: ["lv-bas"] },
           { classTypeId: "ct-shines", levelIds: ["lv-ini"] },
         ],
       } as never,
@@ -90,7 +90,6 @@ describe("EnrollmentsController.setLevels", () => {
     });
     expect(prisma.tx.enrollmentLevel.createMany).toHaveBeenCalledWith({
       data: [
-        { enrollmentId: "enr-1", classTypeId: "ct-pareja", levelId: "lv-ini" },
         { enrollmentId: "enr-1", classTypeId: "ct-pareja", levelId: "lv-bas" },
         { enrollmentId: "enr-1", classTypeId: "ct-shines", levelId: "lv-ini" },
       ],
@@ -98,10 +97,31 @@ describe("EnrollmentsController.setLevels", () => {
     expect(res).toEqual({
       enrollmentId: "enr-1",
       levels: [
-        { classTypeId: "ct-pareja", levelIds: ["lv-ini", "lv-bas"] },
+        { classTypeId: "ct-pareja", levelIds: ["lv-bas"] },
         { classTypeId: "ct-shines", levelIds: ["lv-ini"] },
       ],
     });
+  });
+
+  it("400 si un tipo trae más de un levelId (un nivel por tipo)", async () => {
+    const prisma = makeLevelsPrisma();
+    const ctrl = makeEnrollmentsCtrl(prisma, makeLevelsAccess());
+
+    // Van los dos tipos para pasar el check de catálogo: el 400 tiene
+    // que salir por el multi-nivel, no por "tipo no encontrado".
+    await expect(
+      ctrl.setLevels(
+        "enr-1",
+        {
+          levels: [
+            { classTypeId: "ct-pareja", levelIds: ["lv-ini", "lv-bas"] },
+            { classTypeId: "ct-shines", levelIds: ["lv-ini"] },
+          ],
+        } as never,
+        reqAs(OWNER),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("gate: exige cap students sobre la academia del enrollment", async () => {
@@ -120,6 +140,7 @@ describe("EnrollmentsController.setLevels", () => {
       "acad-1",
       expect.anything(),
       "students",
+      "classes",
     );
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
@@ -255,7 +276,8 @@ function makeInsightsPrisma() {
       findMany: vi.fn().mockResolvedValue([
         // e-1: Iniciación Pareja → cuenta en slot-1 y en byType Pareja/Ini.
         { enrollmentId: "e-1", classTypeId: "ct-pareja", levelId: "lv-ini", enrollment: { personId: "p-1" } },
-        // e-1 multinivel: también Básico Pareja.
+        // e-1 con dos filas en el mismo tipo (dato legacy previo a la
+        // regla de un nivel por tipo): cuenta en ambos niveles.
         { enrollmentId: "e-1", classTypeId: "ct-pareja", levelId: "lv-bas", enrollment: { personId: "p-1" } },
         // e-2: Básico Shines → cuenta en slot-2.
         { enrollmentId: "e-2", classTypeId: "ct-shines", levelId: "lv-bas", enrollment: { personId: "p-2" } },
@@ -299,10 +321,12 @@ const makeAcademiesCtrl = (prisma: unknown, access: unknown) =>
     {} as never,
     {} as never,
     {} as never, // FileStorage - no se usa en este endpoint
+      {} as never,
+      {} as never,
   );
 
 describe("AcademiesController.levelInsights", () => {
-  it("gate: requireAdminister con feature insights", async () => {
+  it("gate: requireAdminister con feature classes", async () => {
     const prisma = makeInsightsPrisma();
     const access = makeInsightsAccess();
     const ctrl = makeAcademiesCtrl(prisma, access);
@@ -312,11 +336,11 @@ describe("AcademiesController.levelInsights", () => {
     expect(access.requireAdminister).toHaveBeenCalledWith(
       "acad-1",
       expect.anything(),
-      "insights",
+      "classes",
     );
   });
 
-  it("byType cuenta alumnos multinivel en cada nivel", async () => {
+  it("byType cuenta al alumno en cada nivel que tenga fila", async () => {
     const ctrl = makeAcademiesCtrl(
       makeInsightsPrisma(),
       makeInsightsAccess(),
@@ -408,5 +432,204 @@ describe("AcademiesController.levelInsights", () => {
     const slot1 = res.bySlot.find((s) => s.slotId === "slot-1")!;
     expect(slot1.assigned).toBe(5);
     expect(slot1.empty).toBe(-1);
+  });
+
+  // "Niveles y cupos" solo considera series vigentes (spec
+  // academy-level-line-consistency): los mocks devuelven data fija -
+  // la aserción va sobre el where con el que el endpoint consulta.
+  it("los queries de slots y clases excluyen series con deletedAt", async () => {
+    const prisma = makeInsightsPrisma();
+    const ctrl = makeAcademiesCtrl(prisma, makeInsightsAccess());
+
+    await ctrl.levelInsights("acad-1", reqAs(OWNER));
+
+    // bySlot se alimenta solo de horarios de series vivas.
+    expect(prisma.classSlot.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          academyId: "acad-1",
+          deletedAt: null,
+          series: { deletedAt: null },
+        }),
+      }),
+    );
+    // Asistencia reciente y próximas clases: acotadas a slots vigentes
+    // de series vivas (solo alimentan los horarios listados).
+    expect(prisma.class.findMany.mock.calls.length).toBeGreaterThan(0);
+    for (const call of prisma.class.findMany.mock.calls) {
+      expect(call[0].where.slot).toEqual({
+        academyId: "acad-1",
+        deletedAt: null,
+        series: { deletedAt: null },
+      });
+    }
+  });
+});
+
+// ─── DELETE /academies/:id/class-levels (reset a la línea global) ───
+
+function makeResetPrisma(opts?: {
+  custom?: { id: string; name: string }[];
+  seriesUse?: string[];
+  enrollmentUse?: string[];
+}) {
+  const custom = opts?.custom ?? [
+    { id: "lv-c1", name: "Pro" },
+    { id: "lv-c2", name: "Elite" },
+  ];
+  return {
+    classLevel: {
+      findMany: vi.fn().mockResolvedValue(custom),
+      deleteMany: vi.fn().mockResolvedValue({ count: custom.length }),
+    },
+    classSeries: {
+      findMany: vi
+        .fn()
+        .mockResolvedValue(
+          (opts?.seriesUse ?? []).map((levelId) => ({ levelId })),
+        ),
+    },
+    enrollmentLevel: {
+      findMany: vi
+        .fn()
+        .mockResolvedValue(
+          (opts?.enrollmentUse ?? []).map((levelId) => ({ levelId })),
+        ),
+    },
+  };
+}
+
+describe("AcademiesController.deleteAcademyLevels", () => {
+  it("gate: exige escritura de schedule sobre la academia", async () => {
+    const prisma = makeResetPrisma();
+    const access = makeLevelsAccess();
+    const ctrl = makeAcademiesCtrl(prisma, access);
+
+    await ctrl.deleteAcademyLevels("acad-1", reqAs(OWNER));
+
+    expect(access.requireCapabilityWrite).toHaveBeenCalledWith(
+      "acad-1",
+      expect.anything(),
+      "schedule",
+      "classes",
+    );
+  });
+
+  it("borra todos los niveles custom en una sola operación", async () => {
+    const prisma = makeResetPrisma();
+    const ctrl = makeAcademiesCtrl(prisma, makeLevelsAccess());
+
+    const res = await ctrl.deleteAcademyLevels("acad-1", reqAs(OWNER));
+
+    expect(prisma.classLevel.deleteMany).toHaveBeenCalledWith({
+      where: { academyId: "acad-1" },
+    });
+    expect(res).toEqual({ ok: true, deleted: 2 });
+  });
+
+  it("idempotente: sin customs no borra nada", async () => {
+    const prisma = makeResetPrisma({ custom: [] });
+    const ctrl = makeAcademiesCtrl(prisma, makeLevelsAccess());
+
+    const res = await ctrl.deleteAcademyLevels("acad-1", reqAs(OWNER));
+
+    expect(res).toEqual({ ok: true, deleted: 0 });
+    expect(prisma.classLevel.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("409 con los nombres en uso: no borra nada", async () => {
+    const prisma = makeResetPrisma({
+      seriesUse: ["lv-c1"],
+      enrollmentUse: ["lv-c2"],
+    });
+    const ctrl = makeAcademiesCtrl(prisma, makeLevelsAccess());
+
+    await expect(
+      ctrl.deleteAcademyLevels("acad-1", reqAs(OWNER)),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      ctrl.deleteAcademyLevels("acad-1", reqAs(OWNER)),
+    ).rejects.toThrow(/Pro.*Elite|Elite.*Pro/);
+    expect(prisma.classLevel.deleteMany).not.toHaveBeenCalled();
+  });
+});
+
+// ─── GET /academies/:id/students/:personId - set vigente en la ficha ───
+// El editor de niveles abre con la marca actual: levels viaja en cada
+// enrollment del perfil (spec academies/enrollment-levels).
+
+describe("AcademiesController.studentDetail - niveles vigentes", () => {
+  it("cada enrollment del perfil incluye su set de niveles", async () => {
+    const prisma = {
+      person: {
+        findUnique: vi
+          .fn()
+          .mockResolvedValue({ id: "p-1", name: "Alumna" }),
+      },
+      enrollment: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "e-1",
+            status: "ACTIVE",
+            startedAt: new Date("2026-01-01"),
+            endsAt: null,
+            plan: { id: "pl-1", name: "Mensual", type: "PERIOD", price: 50000 },
+            levels: [
+              { classTypeId: "ct-pareja", levelId: "lv-bas" },
+            ],
+          },
+        ]),
+      },
+      attendance: { findMany: vi.fn().mockResolvedValue([]) },
+      classBooking: { findMany: vi.fn().mockResolvedValue([]) },
+      relationshipScore: { findUnique: vi.fn().mockResolvedValue(null) },
+      paymentClaim: { findMany: vi.fn().mockResolvedValue([]) },
+      payment: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    const access = {
+      requireManage: vi.fn().mockResolvedValue({ academy: {}, ctx: {} }),
+      requireCapability: vi.fn().mockResolvedValue({ academy: {}, ctx: {} }),
+    };
+    const ctrl = makeAcademiesCtrl(prisma, access);
+
+    const res = await ctrl.studentDetail("acad-1", "p-1", reqAs(OWNER));
+
+    expect(res.enrollments[0]?.levels).toEqual([
+      { classTypeId: "ct-pareja", levelId: "lv-bas" },
+    ]);
+  });
+});
+
+// ─── GET /academies/:id/slots - series borradas fuera de la parrilla ───
+// (spec academy-level-line-consistency).
+
+describe("AcademiesController.listSlots", () => {
+  it("la parrilla excluye horarios de series con deletedAt", async () => {
+    const prisma = {
+      classSlot: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    const access = {
+      requireCapability: vi
+        .fn()
+        .mockResolvedValue({ academy: {}, ctx: {} }),
+    };
+    const ctrl = makeAcademiesCtrl(prisma, access);
+
+    await ctrl.listSlots("acad-1", reqAs(OWNER));
+
+    expect(access.requireCapability).toHaveBeenCalledWith(
+      "acad-1",
+      expect.anything(),
+      "schedule",
+      "classes",
+    );
+    expect(prisma.classSlot.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          academyId: "acad-1",
+          series: { deletedAt: null },
+        }),
+      }),
+    );
   });
 });

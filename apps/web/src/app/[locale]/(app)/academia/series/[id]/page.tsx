@@ -1,16 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
 import { apiFetch } from "@/lib/api";
 import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   ConfirmSheet,
+  LIST_PREVIEW,
   RefreshIcon,
+  SeeAllRow,
+  Spinner,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import {
@@ -26,7 +30,6 @@ import { CourseSurveyResults } from "@/components/academy/survey-results";
 import {
   inputCls,
   readError,
-  type AcademyInstructor,
   type Series,
 } from "@/components/academy/shared";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -73,7 +76,7 @@ export default function SerieDetailPage() {
   const params = useParams<{ id: string }>();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:gap-4 lg:px-4">
       <ConsoleHeader backHref="/academia/series" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
@@ -95,7 +98,6 @@ function SeriesDetail({
   academyId: string;
   seriesId: string;
 }) {
-  const locale = useLocale();
   const t = useTranslations("academySeries");
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
@@ -106,17 +108,21 @@ function SeriesDetail({
     upcoming: SeriesClass[];
     past: SeriesClass[];
   } | null>(null);
+  // Error del fetch secundario de clases: sección propia, no tumba la
+  // ficha ni finge listas vacías (antes tragaba con {upcoming:[],past:[]}).
+  const [classesError, setClassesError] = useState(false);
   const [loadError, setLoadError] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
-  // Confirmación destructiva compartida: serie entera o un horario.
-  // La cancelación por instancia vive en la ficha de la clase
-  // (/academia/clases/[id], zona roja - spec workshop-one-off-class).
-  const [confirm, setConfirm] = useState<
-    | { kind: "series" }
-    | { kind: "slot"; slotId: string }
-    | null
-  >(null);
+  // Preview acotado de las listas: 5 filas + "Ver todo" expande (el
+  // historial puede ser largo en series viejas).
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+  const [showAllPast, setShowAllPast] = useState(false);
+  // Confirmación destructiva del borrado de la serie. La cancelación
+  // por instancia vive en la ficha de la clase (/academia/clases/[id],
+  // zona roja - spec workshop-one-off-class) y la de horarios en la
+  // ficha del horario.
+  const [confirm, setConfirm] = useState(false);
 
   // ─── mini-form "agregar horario" (PATCH addSlots) - día/hora +
   // instructor opcional; cupos y modalidad son de la serie. ───
@@ -125,9 +131,6 @@ function SeriesDetail({
   const [nsStart, setNsStart] = useState("19:00");
   const [nsEnd, setNsEnd] = useState("20:00");
   const [nsInstructors, setNsInstructors] = useState<string[]>([]);
-  const [instructors, setInstructors] = useState<AcademyInstructor[] | null>(
-    null,
-  );
 
   const clpFmt = useNumFmt({
         style: "currency",
@@ -150,73 +153,49 @@ function SeriesDetail({
         timeZone: "UTC",
       });
 
+  // Fetch secundario de clases: su error se marca por sección
+  // (classesError) y el retry de cada lista re-dispara solo este fetch.
+  const loadClasses = useCallback(async () => {
+    try {
+      const cRes = await apiFetch(
+        `/academies/${academyId}/series/${seriesId}/classes`,
+      );
+      if (!cRes.ok) {
+        setClassesError(true);
+        return;
+      }
+      setClasses(
+        (await cRes.json()) as {
+          upcoming: SeriesClass[];
+          past: SeriesClass[];
+        },
+      );
+      setClassesError(false);
+    } catch {
+      setClassesError(true);
+    }
+  }, [academyId, seriesId]);
+
   const reload = useCallback(async () => {
     setLoadError(null);
     try {
-      const [sRes, cRes] = await Promise.all([
+      const [sRes] = await Promise.all([
         apiFetch(`/academies/${academyId}/series/${seriesId}`),
-        apiFetch(`/academies/${academyId}/series/${seriesId}/classes`),
+        loadClasses(),
       ]);
       if (!sRes.ok) {
         setLoadError(sRes.status);
         return;
       }
       setSeries((await sRes.json()) as Series);
-      setClasses(
-        cRes.ok
-          ? ((await cRes.json()) as {
-              upcoming: SeriesClass[];
-              past: SeriesClass[];
-            })
-          : { upcoming: [], past: [] },
-      );
     } catch {
       setLoadError(0);
     }
-  }, [academyId, seriesId]);
+  }, [academyId, seriesId, loadClasses]);
 
   useEffect(() => {
     void reload();
   }, [reload]);
-
-  // Instructores de la academia para el override del horario.
-  useEffect(() => {
-    void (async () => {
-      try {
-        const [detailRes, dirRes] = await Promise.all([
-          apiFetch(`/academies/${academyId}`),
-          apiFetch("/academies"),
-        ]);
-        const detail = detailRes.ok
-          ? ((await detailRes.json()) as {
-              instructors?: { personId: string }[];
-            })
-          : null;
-        const directory = dirRes.ok
-          ? ((await dirRes.json()) as {
-              id: string;
-              instructors?: { personId: string; name: string | null }[];
-            }[])
-          : [];
-        const dirEntry = directory.find((a) => a.id === academyId);
-        const names = new Map(
-          (dirEntry?.instructors ?? []).map((i) => [i.personId, i.name]),
-        );
-        const ids =
-          detail?.instructors?.map((i) => i.personId) ??
-          dirEntry?.instructors?.map((i) => i.personId) ??
-          [];
-        setInstructors(
-          ids.map((personId) => ({
-            personId,
-            name: names.get(personId) ?? null,
-          })),
-        );
-      } catch {
-        setInstructors([]);
-      }
-    })();
-  }, [academyId]);
 
   // Devuelve éxito: el caller decide si cerrar UI asociada (ej. el
   // mini-form de horario no se cierra si el PATCH falla).
@@ -258,22 +237,23 @@ function SeriesDetail({
         { method: "DELETE" },
       );
       if (!res.ok) {
-        setConfirm(null);
+        setConfirm(false);
         setNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
       showActionNotice({ text: t("seriesDeleted") });
       router.replace("/academia/series");
     } catch {
-      setConfirm(null);
+      setConfirm(false);
       setNotice({ text: t("error"), error: true });
+    } finally {
       setBusy(false);
     }
   }
 
   async function addSlot(): Promise<void> {
     if (!nsStart || !nsEnd || nsStart >= nsEnd) {
-      setNotice({ text: t("error"), error: true });
+      setNotice({ text: t("invalidTimeRange"), error: true });
       return;
     }
     const ok = await patch({
@@ -291,35 +271,34 @@ function SeriesDetail({
     if (ok) setSlotForm(false);
   }
 
-  async function removeSlot(slotId: string): Promise<void> {
-    setBusy(true);
-    setNotice(null);
-    try {
-      const res = await apiFetch(
-        `/academies/${academyId}/slots/${slotId}`,
-        { method: "DELETE" },
-      );
-      if (!res.ok) {
-        setConfirm(null);
-        setNotice({ text: (await readError(res)) ?? t("error"), error: true });
-        return;
-      }
-      setConfirm(null);
-      setNotice({ text: t("updated") });
-      await reload();
-    } catch {
-      setConfirm(null);
-      setNotice({ text: t("error"), error: true });
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (loadError !== null) {
+    // 404 y 401/403 no son transitorios: CTA de salida, no retry
+    // (mismo patrón que la ficha del horario). El error genérico sí
+    // conserva role="alert" + retry.
+    if (loadError === 404) {
+      return (
+        <div className="flex flex-col items-start gap-4">
+          <p className="text-sm text-ink/60">{t("notFound")}</p>
+          <Button variant="secondary" size="sm" href="/academia/series">
+            {tc("back")}
+          </Button>
+        </div>
+      );
+    }
+    if (loadError === 401 || loadError === 403) {
+      return (
+        <div className="flex flex-col items-start gap-4">
+          <p className="text-sm text-ink/60">{ta("forbidden")}</p>
+          <Button variant="secondary" size="sm" href="/academia/series">
+            {tc("back")}
+          </Button>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center gap-3">
         <p role="alert" className="text-sm text-ink/60">
-          {loadError === 404 ? t("empty") : tc("error")}
+          {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void reload()}>
           <RefreshIcon /> {tc("retry")}
@@ -327,78 +306,118 @@ function SeriesDetail({
       </div>
     );
   }
-  if (!series || !classes) {
+  // classes null + classesError = falló el fetch secundario: se renderiza
+  // la ficha con el bloque de error por sección, no skeleton eterno.
+  if (!series || (classes === null && !classesError)) {
     return <SkeletonList />;
   }
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Datos de la clase */}
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h2 className="text-lg font-semibold">{series.name}</h2>
-          {!series.active && <Badge variant="live">{t("inactive")}</Badge>}
+      {/* Datos de la clase - header de entidad: headline
+          identidad+estado, clasificación, descripción y datos en
+          <dl>. Desactivar/Reactivar vive en la zona inferior junto a
+          Eliminar. */}
+      {/* Header de entidad desnudo (estándar industria: la identidad
+          de la página va sobre el canvas, las cajas se reservan a las
+          secciones) - el bloque completo navega a editar: chevron +
+          nombre/chevron neon en hover + focus ring en el Link. */}
+      <Link
+        href={`/academia/series/nueva?edit=${series.id}`}
+        className="group block rounded-2xl transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+      >
+      <div className="flex flex-col gap-3">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <h2 className="truncate text-lg font-semibold transition-colors group-hover:text-neon">
+              {series.name}
+            </h2>
+            {!series.active && (
+              <Badge variant="live">{t("inactive")}</Badge>
+            )}
+          </div>
+          <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40 transition-colors group-hover:text-neon" />
         </div>
+        {(series.style || series.level || series.types.length > 0) && (
+          <div className="flex flex-wrap gap-1.5">
+            {series.style && (
+              <Badge variant="neon">{series.style.name}</Badge>
+            )}
+            {series.level && (
+              <Badge variant="muted">{series.level.name}</Badge>
+            )}
+            {series.types.map((x) => (
+              <Badge key={x.type.id} variant="outline">
+                {x.type.name}
+              </Badge>
+            ))}
+          </div>
+        )}
         {series.description && (
           <p className="text-sm text-ink/60">{series.description}</p>
         )}
-        <div className="flex flex-wrap gap-1.5">
-          {series.style && <Badge variant="neon">{series.style.name}</Badge>}
-          {series.level && <Badge variant="muted">{series.level.name}</Badge>}
-          {series.quorum != null && (
-            <Badge variant="outline">
-              {t("quorumValue", { value: series.quorum })}
-            </Badge>
-          )}
-          {series.types.map((x) => (
-            <Badge key={x.type.id} variant="outline">
-              {x.type.name}
-            </Badge>
-          ))}
-          {series.dropInPrice != null && (
-            <Badge variant="outline">
-              {t("dropInValue", { value: clpFmt.format(series.dropInPrice) })}
-            </Badge>
+        {(series.quorum != null || series.dropInPrice != null) && (
+          <dl className="flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-3 text-xs">
+            {series.quorum != null && (
+              <div className="flex items-baseline gap-1.5">
+                <dt className="text-ink/50">{t("quorum")}</dt>
+                <dd className="tabular-nums text-ink/80">
+                  {series.quorum}
+                </dd>
+              </div>
+            )}
+            {series.dropInPrice != null && (
+              <div className="flex items-baseline gap-1.5">
+                <dt className="text-ink/50">{t("dropIn")}</dt>
+                <dd className="tabular-nums text-ink/80">
+                  {clpFmt.format(series.dropInPrice)}
+                </dd>
+              </div>
+            )}
+          </dl>
+        )}
+      </div>
+      </Link>
+
+      {/* El DOM ordena mobile: Horarios → Encuestas → Próximas →
+          Pasadas. En lg la posición explícita por celda recompone el
+          2×2: Horarios+Próximas a la izquierda, Encuestas+Pasadas a la
+          derecha. La celda de encuestas es fija porque el componente
+          puede devolver null (carga, 403, sin permiso). */}
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+      {/* Horarios de la serie */}
+      <section
+        aria-label={t("slotsTitle")}
+        className="flex flex-col gap-3 lg:col-start-1 lg:row-start-1"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+            {t("slotsTitle")}
+          </h3>
+          {series.active && !slotForm && (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setSlotForm(true);
+                setNsWeekday(1);
+                setNsStart("19:00");
+                setNsEnd("20:00");
+                setNsInstructors([]);
+                setNotice(null);
+              }}
+            >
+              + {t("addSlot")}
+            </Button>
           )}
         </div>
-      </section>
-
-      {/* Acciones de la clase */}
-      <section aria-label={t("actions")} className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          variant="secondary"
-          href={`/academia/series/nueva?edit=${series.id}`}
-        >
-          {t("edit")}
-        </Button>
-        {series.active ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => void patch({ active: false })}
-          >
-            {t("deactivate")}
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => void patch({ active: true })}
-          >
-            {t("reactivate")}
-          </Button>
-        )}
-      </section>
-
-      {/* Horarios de la serie */}
-      <section aria-label={t("slotsTitle")} className="flex flex-col gap-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-          {t("slotsTitle")}
-        </h3>
         <Card padded={false}>
+          {series.slots.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-ink/50">
+              {t("slotsEmpty")}
+            </p>
+          ) : (
           <ul className="divide-y divide-line">
             {series.slots.map((slot) => (
               <li key={slot.id}>
@@ -406,7 +425,7 @@ function SeriesDetail({
                     asignar plantel y eliminar viven ahí (console-patterns). */}
                 <Link
                   href={`/academia/series/${seriesId}/horarios/${slot.id}`}
-                  className="flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-elevated"
+                  className="flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
                 >
                   <span className="tabular-nums text-ink/80">
                     {/* Slot de taller: muestra su fecha puntual, no el
@@ -422,37 +441,20 @@ function SeriesDetail({
                   {/* Plantel del horario (multi-instructor): co-profes
                       separados por " · " junto al horario. */}
                   {!!slot.instructors?.length && (
-                    <span className="truncate text-xs text-ink/50">
+                    <span className="min-w-0 truncate text-xs text-ink/50">
                       {slot.instructors
                         .map((i) => i.person.name)
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
                   )}
+                  <ChevronRightIcon className="ml-auto h-4 w-4 shrink-0 text-ink/40" />
                 </Link>
               </li>
             ))}
           </ul>
+          )}
         </Card>
-        {series.active && !slotForm && (
-          <div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setSlotForm(true);
-                setNsWeekday(1);
-                setNsStart("19:00");
-                setNsEnd("20:00");
-                setNsInstructors([]);
-                setNotice(null);
-              }}
-            >
-              + {t("addSlot")}
-            </Button>
-          </div>
-        )}
         {series.active && slotForm && (
           <form
             className="flex flex-wrap items-end gap-2 rounded-xl border border-line bg-elevated p-3"
@@ -499,14 +501,15 @@ function SeriesDetail({
               <span className="text-xs text-ink/50">{t("slotInstructors")}</span>
               {/* Solo el roster habilitado de la serie es asignable. */}
               <InstructorChecklist
-                options={((series as { instructors?: { person: { id: string; name: string | null } }[] } | null)?.instructors ?? []).map((i) => ({ id: i.person.id, name: i.person.name }))}
+                options={(series.instructors ?? []).map((i) => ({ id: i.person.id, name: i.person.name }))}
                 selected={nsInstructors}
                 onChange={setNsInstructors}
+                label={t("slotInstructors")}
               />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="submit" size="sm" disabled={busy}>
-                {busy ? tc("loading") : t("addSlot")}
+                {busy ? <Spinner /> : t("addSlot")}
               </Button>
               <Button
                 type="button"
@@ -521,22 +524,44 @@ function SeriesDetail({
         )}
       </section>
 
+      {/* Encuestas mensuales del curso - solo owner/ADMIN (el endpoint
+          403 se oculta solo); anónimas por contrato. El wrapper sostiene
+          la celda del grid aunque el componente devuelva null. */}
+      <div className="lg:col-start-2 lg:row-start-1">
+        <CourseSurveyResults academyId={academyId} seriesId={series.id} />
+      </div>
+
       {/* Próximas clases con reservas */}
       <section
         aria-label={t("upcomingTitle")}
-        className="flex flex-col gap-3"
+        className="flex flex-col gap-3 lg:col-start-1 lg:row-start-2"
       >
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("upcomingTitle")}
         </h3>
         <Card padded={false}>
-          {classes.upcoming.length === 0 ? (
+          {classesError ? (
+            <div className="flex items-center gap-3 px-4 py-4">
+              <p role="alert" className="text-sm text-ink/60">
+                {tc("error")}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void loadClasses()}
+              >
+                <RefreshIcon /> {tc("retry")}
+              </Button>
+            </div>
+          ) : (classes?.upcoming.length ?? 0) === 0 ? (
             <p className="px-4 py-4 text-sm text-ink/50">
               {t("upcomingEmpty")}
             </p>
           ) : (
             <ul className="divide-y divide-line">
-              {classes.upcoming.map((c) => (
+              {(classes?.upcoming ?? [])
+                .slice(0, showAllUpcoming ? undefined : LIST_PREVIEW)
+                .map((c) => (
                 <li key={c.id} className="flex items-center">
                   <Link
                     href={`/academia/clases/${c.id}`}
@@ -562,25 +587,49 @@ function SeriesDetail({
                     <span className="shrink-0 text-xs tabular-nums text-ink/50">
                       {t("bookedCount", { count: c.bookedCount })}
                     </span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </Link>
                 </li>
               ))}
+              <SeeAllRow
+                total={classes?.upcoming.length ?? 0}
+                expanded={showAllUpcoming}
+                onToggle={() => setShowAllUpcoming((v) => !v)}
+              />
             </ul>
           )}
         </Card>
       </section>
 
       {/* Historial: clases pasadas con asistencia + profesor */}
-      <section aria-label={t("pastTitle")} className="flex flex-col gap-3">
+      <section
+        aria-label={t("pastTitle")}
+        className="flex flex-col gap-3 lg:col-start-2 lg:row-start-2"
+      >
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("pastTitle")}
         </h3>
         <Card padded={false}>
-          {classes.past.length === 0 ? (
+          {classesError ? (
+            <div className="flex items-center gap-3 px-4 py-4">
+              <p role="alert" className="text-sm text-ink/60">
+                {tc("error")}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void loadClasses()}
+              >
+                <RefreshIcon /> {tc("retry")}
+              </Button>
+            </div>
+          ) : (classes?.past.length ?? 0) === 0 ? (
             <p className="px-4 py-4 text-sm text-ink/50">{t("pastEmpty")}</p>
           ) : (
             <ul className="divide-y divide-line">
-              {classes.past.map((c) => (
+              {(classes?.past ?? [])
+                .slice(0, showAllPast ? undefined : LIST_PREVIEW)
+                .map((c) => (
                 <li key={c.id}>
                   <Link
                     href={`/academia/clases/${c.id}`}
@@ -606,49 +655,62 @@ function SeriesDetail({
                     <span className="shrink-0 text-xs tabular-nums text-ink/50">
                       {t("attendedCount", { count: c.attendanceCount })}
                     </span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </Link>
                 </li>
               ))}
+              <SeeAllRow
+                total={classes?.past.length ?? 0}
+                expanded={showAllPast}
+                onToggle={() => setShowAllPast((v) => !v)}
+              />
             </ul>
           )}
         </Card>
       </section>
+      </div>
 
-      {/* Encuestas mensuales del curso - solo owner/ADMIN (el endpoint
-          403 se oculta solo); anónimas por contrato. */}
-      <CourseSurveyResults academyId={academyId} seriesId={series.id} />
-
-      {/* Zona destructiva al pie, centrada y en rojo - mismo patrón que
-          "Eliminar amigo" (/amigos/[id]). Borrado lógico: la serie se
-          desactiva y sale de la consola. */}
-      <div className="flex justify-center pt-2">
-        <button
-          type="button"
+      {/* Zona destructiva al pie: separada con border-t, centrada,
+          ghost rojo + ConfirmSheet (console-patterns §4). Borrado
+          lógico: la serie se desactiva y sale de la consola. */}
+      <div className="flex justify-center gap-2 border-t border-line pt-6">
+        {series.active ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={() => void patch({ active: false })}
+          >
+            {t("deactivate")}
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={() => void patch({ active: true })}
+          >
+            {t("reactivate")}
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-red-400 hover:text-red-300"
           disabled={busy}
-          onClick={() => setConfirm({ kind: "series" })}
-          className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
+          onClick={() => setConfirm(true)}
         >
           {t("delete")}
-        </button>
+        </Button>
       </div>
 
       <ConfirmSheet
-        open={confirm !== null}
-        title={
-          confirm?.kind === "slot"
-            ? t("removeSlotConfirm")
-            : t("deleteConfirm")
-        }
-        confirmLabel={
-          confirm?.kind === "slot" ? t("removeSlot") : t("delete")
-        }
+        open={confirm}
+        title={t("deleteConfirm")}
+        confirmLabel={t("delete")}
         busy={busy}
-        onConfirm={() =>
-          confirm?.kind === "slot"
-            ? void removeSlot(confirm.slotId)
-            : void remove()
-        }
-        onClose={() => setConfirm(null)}
+        onConfirm={() => void remove()}
+        onClose={() => setConfirm(false)}
       />
 
       <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />

@@ -9,7 +9,8 @@
     "test": "vitest run --passWithNoTests",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "analyze": "ANALYZE=true next build"
+    "analyze": "ANALYZE=true next build",
+    "content:sync": "node scripts/sync-marketing-content.mjs"
   },
   "dependencies": {
     "@omnidance/shared": "workspace:*",

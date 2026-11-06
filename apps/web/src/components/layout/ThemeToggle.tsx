@@ -93,7 +93,7 @@ export function ThemeToggle({
           role="radio"
           aria-checked={pref === opt}
           onClick={() => setThemePref(opt)}
-          className={`flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+          className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
             pref === opt
               ? "bg-elevated text-neon"
               : "text-ink/60 hover:text-ink"

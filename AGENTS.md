@@ -34,13 +34,16 @@ Ejecutar desde la raíz del repo:
 - Preparar esquema: `pnpm db:push` · migración versionada: `pnpm db:migrate`
 - Seed de datos: `pnpm db:seed` - idempotente (upserts por clave natural). `SEED_ENV=dev` (default) siembra baseline + demo Santiago con personas `*@omnidance.dev` logueables por magic link; `SEED_ENV=prod` solo baseline + admin (requiere `SEED_ADMIN_EMAIL`). Ambos se pueden re-correr sin duplicar ni pisar params editados en /admin.
 - Enriquecimiento demo de academias: `pnpm db:enrich` (`apps/api/scripts/enrich-academy-seed.cjs`) - corre DESPUÉS de `db:seed`; idempotente. Limpia fixtures de prueba (eventos QA/GP, personas `* Test`/`Gamif`/`GE-*`, venue/academia/serie smoke) y llena los dashboards de todas las academias: EnrollmentLevel, clases materializadas, asistencias de clases pasadas, PlatformSubscription por tier/ciclo, MembershipSubscription CARD/TRANSFER (con PENDING_PAYMENT + claim en cola), PaymentClaim por revisar, cumpleaños y check-ins de eventos.
+- Personas reales para QA con Flow sandbox: `pnpm db:qa-personas` (`apps/api/scripts/qa-real-personas.cjs`) - idempotente; asigna roles APPROVED + password `omnidance123` a los correos reales (Flow rechaza `*@omnidance.dev`). Mapa de cuentas y mecánica del checkout sandbox en `docs/qa-flows-inventory.md` §0 "Palancas dev".
 - Backend dev: `pnpm dev:api` → http://localhost:4000 (requiere `pnpm --filter @omnidance/shared build` antes la primera vez - la API importa `shared/dist` en runtime)
 - Frontend dev: `pnpm dev:web` → http://localhost:3000
 - Ambos: `pnpm dev`
 - Build completo: `pnpm build`
 - Tests: `pnpm test` (Vitest unit + componente) · `pnpm test:e2e` (Playwright smoke, chromium + mobile/WebKit; requiere stack vivo + `pnpm exec playwright install` la 1ª vez). Los 6 logins del setup golpean `/auth/login` (throttle 8/min por IP): en dev conviene `THROTTLE_AUTH_LIMIT=120` en `apps/api/.env`; el setup igual reintenta una vez tras ~65s si aparece el genericError.
+  - **Corrida completa e2e**: contra build de producción, no `next dev` - el dev server corrompe `.next` bajo carga paralela (páginas 500 `SyntaxError: JSON.parse`). Receta: `pnpm --filter @omnidance/web build && pnpm --filter @omnidance/web start` en :3000 + API con `PAYMENT_GATEWAY=stub` (la `.env` raíz trae flow: rechaza emails `*@omnidance.dev`) + `THROTTLE_AUTH_LIMIT=120`. Specs individuales sí corren contra `next dev`.
 - Lint: `pnpm lint` · Typecheck: `pnpm typecheck`
 - Prisma Studio: `pnpm db:studio`
+- Catálogos de landings: `pnpm --filter @omnidance/web content:sync` (regenera `apps/web/src/content/*.json` desde el API público; commitear el resultado. Las landings `/`, `/pro`, `/para-*` no pegan al API en render - spec marketing-content)
 
 Para una modificación acotada, verifica primero la superficie afectada (`pnpm --filter @omnidance/api build`, etc.) y amplía según riesgo.
 
@@ -49,6 +52,10 @@ Para una modificación acotada, verifica primero la superficie afectada (`pnpm -
 **Dev server zombie / `.next` corrupto** (visto 2026-10-18): síntomas; páginas (app) devuelven 500 con `SyntaxError: JSON.parse at position N` fijo, gotos que nunca responden, o `ECONNREFUSED` al proxy /api. Causa: procesos `nest`/`next` huérfanos de sesiones anteriores comen RAM → OOM del dev server → cache corrupto. Diagnóstico: `Get-CimInstance Win32_Process -Filter "Name='node.exe'"` (PowerShell) y mata los `start --watch`/`next dev` viejos; fix: matar el dev server, `rm -rf apps/web/.next`, reiniciar.
 
 ## Flujo de trabajo
+
+### Capturas de pantalla del usuario
+
+Cuando el usuario diga "te dejé una captura", "revisa la captura" o similar, la imagen está en `C:\Users\salas\Pictures\Screenshots\`. No viene adjunta al mensaje: hay que listar la carpeta ordenada por fecha de modificación (`ls -lt` o `Get-ChildItem | Sort LastWriteTime -Desc`) y leer la más reciente con el tool `read` (soporta PNG/JPG).
 
 ### Gates obligatorios (no saltarse)
 
@@ -68,7 +75,7 @@ Estos pasos se incumplieron en sesiones reales - son gates, no sugerencias:
 5. Implementa la **menor unidad coherente**; evita refactors no relacionados.
 6. Actualiza pruebas, contratos y documentación **en el mismo cambio**.
 7. Revisa el diff, verifica con los comandos reales, y comunica qué quedó verificado y qué brecha de prueba queda pendiente.
-8. Al cerrar sesión o con presupuesto bajo: escribe el handoff en `docs/` con trabajo completado, bloqueos, evidencia de verificación, próximo slice y gaps conocidos.
+8. Al cerrar sesión o con presupuesto bajo: escribe el handoff en `docs/` con trabajo completado, bloqueos, evidencia de verificación, próximo slice y gaps conocidos. **Regla de margen de contexto**: cuando el uso de contexto supere ~90% o quede margen insuficiente para cerrar la tarea en curso, para el trabajo nuevo, genera el handoff de inmediato (commiteado) y avisa explícitamente al usuario que debe cambiar de sesión - el agente no puede gatillar el cambio, la decisión es del usuario.
 
 ## Reglas por tipo de cambio
 
@@ -122,9 +129,9 @@ El agente principal **orquesta**; los subagentes **ejecutan**. Pipeline por feat
 
 1. **Orquestador - contexto pesado, nunca delegado**: handoff + grafo Codebase Memory (G1) + change OpenSpec completo (G2: proposal, spec deltas con scenarios, design, tasks). Los tasks del change son los requisitos vinculantes del implementador. Todas las decisiones de diseño y ambigüedades se resuelven **antes** de despachar.
 2. **Detección de choques**: si dos pedidos tocan archivos compartidos (`schema.prisma`, i18n parts, `globals.css`, lockfile, specs canónicas), se secuencian o el orquestador integra los puntos comunes. Migraciones de DB pasan solo por el orquestador, una a la vez.
-3. **Dispatch**: un subagente implementador por task con **brief autocontenido** - los subagentes no heredan la conversación ni el MCP; todo va en el prompt: paths exactos, snippets, decisiones tomadas, convenciones, evidencia del grafo (tier, generation, coverage, call-chains). Implementadores **en serie** sobre el mismo working tree (git index, lockfile). En paralelo solo van: investigaciones read-only, reviews, o scopes 100% disjuntos.
-4. **Review por task**: tras cada implementación, subagente reviewer read-only sobre el diff - exige spec-compliance **y** calidad; ambas son gate.
-5. **Integración (orquestador)**: revisa diffs, corre typecheck/tests, archiva el change OpenSpec, regenera docs API si tocó endpoints, escribe handoff. El implementador commitea solo su task y **nunca pushea**; los commits de integración son del orquestador.
+3. **Dispatch**: un subagente implementador por scope con **brief autocontenido** - los subagentes no heredan la conversación ni el MCP; todo va en el prompt: paths exactos, snippets, decisiones tomadas, convenciones, evidencia del grafo (tier, generation, coverage, call-chains), y la **partición de archivos declarada** (archivos propios + prohibidos: `schema.prisma`, `common.json`, lockfile, specs canónicas van del orquestador). **Serie vs paralelo** (regla formalizada desde `docs/orchestration-model.md`): escritura paralela permitida solo cuando cada brief declara una partición disjunta verificable y hasta ~4 implementadores concurrentes sobre el mismo working tree; scopes con solape van en serie o los integra el orquestador. Read-only (investigación, reviews) siempre puede ir en paralelo.
+4. **Review por scope, bajo demanda**: reviewer read-only sobre el diff acotado cuando el scope toca contratos, estados o supera ~3 archivos; los scopes mecánicos quedan con el gate de checks del orquestador (tsc, i18n-audit, vitest) + lectura de diff. **Pod-reviewer** (devin-kind, siempre read-only) solo cuando coinciden fan-out de 5+ implementadores y pod con frontera de contrato compartida. Espera **al-vuelo**: `herdr agent list` → procesar el primero settled no procesado → `agent wait` con timeout acotado como sleep → repetir; el primero que termina entra a review primero. **Stragglers**: diagnóstico con `agent get`/`read` antes de actuar (diálogo de permiso conocido → `send-keys` tras leerlo; desconocido → escalar al usuario; stalled → prompt de cierre sobre trabajo parcial; nunca reasignar un scope a medio editar). Ojo: `done`/`idle` de `agent list` puede ser prematuro - la señal real es el reporte entregado.
+5. **Integración (orquestador)**: revisa diffs, corre typecheck/tests, archiva el change OpenSpec, regenera docs API si tocó endpoints, escribe handoff. El implementador **no corre git** cuando hay paralelismo (los commits de integración son del orquestador); en ejecución serial puede commitear solo su task y **nunca pushea**.
 6. **Front además**: antes de editar UI se lee `craft-floor.md` del skill `impeccable` y sus bans van en el brief; `apple-design` aplica a motion física (springs, sheets, momentum), materiales translúcidos y tipografía. Autoridad visual = sistema incumbente (`apps/web/src/ui`, tokens, globals.css); superficie nueva o redesign pasa por `init`/`shape` con el usuario primero. Al terminar UI cambiada, el orquestador corre `impeccable detect --json <targets>` **una vez** sobre el diff y corrige el batch.
 7. **Excepción de tamaño**: tweaks acotados (1-2 archivos, cambio trivial) los hace el orquestador directo - despachar cuesta más que el cambio.
 

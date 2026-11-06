@@ -140,8 +140,8 @@ describe("CrmController - gating Producer Pro", () => {
     expect(errBody(err)).toMatchObject({
       error: "tier.required",
       upgrade: true,
-      requiredTier: "PRO_GROWTH",
-      feature: "crm",
+      requiredTier: "PRO_BIG",
+      feature: "campaigns",
     });
     expect(crm.createCampaign).not.toHaveBeenCalled();
 
@@ -168,24 +168,46 @@ describe("CrmController - gating Producer Pro", () => {
     }
   });
 
-  it("productor FREE con trial vigente (PRO_STARTER efectivo) → 403 tier.required PRO_GROWTH", async () => {
+  it("productor FREE con trial vigente (PRO_STARTER efectivo) → 403 tier.required PRO_BIG en campaigns", async () => {
     // mkProducer default: trial vigente → el trial vende el piso Pro
-    // (spec producer-pro) - crm arranca en PRO_GROWTH.
+    // (spec producer-pro) - crm arranca en PRO_GROWTH y campaigns en
+    // PRO_BIG.
     const err = await ctrl
       .createCampaign(campaignDto, reqAs("prod-1"))
       .catch((e: unknown) => e);
     expect(errBody(err)).toMatchObject({
       error: "tier.required",
-      requiredTier: "PRO_GROWTH",
-      feature: "crm",
+      requiredTier: "PRO_BIG",
+      feature: "campaigns",
     });
     expect(crm.createCampaign).not.toHaveBeenCalled();
   });
 
-  it("productor PRO_GROWTH sin trial → pasa", async () => {
+  it("productor PRO_GROWTH sin trial → pasa en crm, 403 PRO_BIG en campaigns", async () => {
     prisma.people.set(
       "prod-1",
       mkProducer("prod-1", { proTier: "PRO_GROWTH", proTrialEndsAt: null }),
+    );
+    const res = await ctrl.listPeople(
+      { actorType: "PRODUCER", actorId: "prod-1" },
+      reqAs("prod-1"),
+    );
+    expect(res).toEqual([]);
+    const err = await ctrl
+      .createCampaign(campaignDto, reqAs("prod-1"))
+      .catch((e: unknown) => e);
+    expect(errBody(err)).toMatchObject({
+      error: "tier.required",
+      requiredTier: "PRO_BIG",
+      feature: "campaigns",
+    });
+    expect(crm.createCampaign).not.toHaveBeenCalled();
+  });
+
+  it("productor PRO_BIG sin trial → pasa en campaigns", async () => {
+    prisma.people.set(
+      "prod-1",
+      mkProducer("prod-1", { proTier: "PRO_BIG", proTrialEndsAt: null }),
     );
     await ctrl.createCampaign(campaignDto, reqAs("prod-1"));
     expect(crm.createCampaign).toHaveBeenCalledOnce();

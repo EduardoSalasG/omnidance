@@ -13,7 +13,8 @@
     "create": "Criar",
     "seeAll": "Ver tudo",
     "skipToContent": "Ir para o conteúdo",
-    "newTab": "Abrir num novo separador"
+    "newTab": "Abrir num novo separador",
+    "showLess": "Ver menos"
   },
   "home": {
     "subtitle": "Nightlife + Academias. Um só QR para toda a cena.",
@@ -441,7 +442,7 @@
     "markPresent": "Presente",
     "planName": "Nome do plano",
     "planPrice": "Preço",
-    "planClasses": "Aulas por período",
+    "planClasses": "Aulas incluídas",
     "personId": "ID de pessoa",
     "empty": "Ainda não tens uma academia registada.",
     "directoryTitle": "Academias",
@@ -494,7 +495,7 @@
     "planTypes": {
       "MONTHLY": "Mensal",
       "CLASS_PACK": "Pacote de aulas",
-      "PERIOD": "Período",
+      "PERIOD": "Período personalizado",
       "TRIAL": "Teste"
     },
     "studentStatus": "Estado de {name}",
@@ -503,9 +504,9 @@
     "planDescPlaceholder": "Aulas ilimitadas de todas as séries\nAcesso à avaliação de nível\nDesconto em aulas particulares",
     "planStudents": "{count, plural, one {# aluno} other {# alunos}}",
     "planKpiActive": "Planos ativos",
-    "planKpiActiveHint": "Planos de assinatura com active=true",
+    "planKpiActiveHint": "Planos que os teus alunos podem comprar agora",
     "planKpiTop": "Top planos",
-    "planKpiTopHint": "Planos com mais alunos ativos este mês",
+    "planKpiTopHint": "Alunos com este plano vigente",
     "sortLabel": "Ordenar",
     "sortNameAsc": "Nome A→Z",
     "sortNameDesc": "Nome Z→A",
@@ -515,7 +516,15 @@
     "planStudentsEmpty": "Ninguém tem este plano ativo",
     "planFrom": "De",
     "planUntil": "Até",
-    "newAcademy": "Nova academia"
+    "newAcademy": "Nova academia",
+    "personSearch": {
+      "registerNew": "Registar nova pessoa",
+      "newPersonHint": "Criamos a conta e enviamos o convite por e-mail.",
+      "emailLabel": "E-mail",
+      "nameLabel": "Nome (opcional)",
+      "backToSearch": "← Voltar à busca"
+    },
+    "enrollmentSavedInvited": "Inscrição guardada - convite enviado por e-mail"
   },
   "practices": {
     "title": "Práticas",
@@ -1012,29 +1021,21 @@
     "style": "Estilo",
     "level": "Nível",
     "types": "Tipos de aula",
-    "instructor": "Instrutor",
     "slots": "Horários semanais",
     "addSlot": "Adicionar horário",
     "removeSlot": "Remover o horário",
-    "removeSlotConfirm": "Remover este horário? As suas aulas futuras são canceladas.",
     "weekday": "Dia",
     "start": "Início",
     "end": "Fim",
     "create": "Criar",
-    "creating": "A criar…",
     "deactivate": "Desativar",
-    "deactivateConfirm": "Desativar a série? As aulas futuras e as suas reservas são canceladas.",
     "inactive": "Inativa",
     "empty": "Ainda não há séries. Cria a tua primeira série de aulas",
-    "edit": "Editar",
     "save": "Guardar alterações",
     "created": "Série criada",
     "updated": "Série atualizada",
     "error": "Não foi possível guardar",
     "reactivate": "Reativar",
-    "importClasses": "Importar aulas",
-    "detailBack": "Aulas",
-    "actions": "Ações",
     "delete": "Eliminar",
     "deleteConfirm": "Eliminar a aula? É desativada, ocultada da lista e as aulas futuras com as suas reservas são canceladas. Ficará visível só na analítica.",
     "slotsTitle": "Horários semanais",
@@ -1045,7 +1046,8 @@
     "bookedCount": "{count} reservas",
     "attendedCount": "{count} presenças",
     "cancelled": "Cancelada",
-    "slotAdded": "Horário adicionado"
+    "slotAdded": "Horário adicionado",
+    "entityTitle": "Aula"
   },
   "adminCatalogs": {
     "title": "Catálogos",
@@ -1233,5 +1235,10 @@
       "PRODUCER": "Nome do evento"
     },
     "verified": "E-mail verificado"
+  },
+  "academyPay": {
+    "report": {
+      "export": "Exportar"
+    }
   }
 }

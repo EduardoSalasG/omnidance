@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, ChevronRightIcon, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { rulesLabel } from "./segment-labels";
 import type { CrmActor, CrmSegment } from "./types";
@@ -88,6 +88,7 @@ export function SegmentList({
                     <Badge variant="neon">
                       {t("actorSegments.memberCount", { count: s.members })}
                     </Badge>
+                    <ChevronRightIcon className="ml-auto h-4 w-4 shrink-0 text-ink/40" />
                   </div>
                   <p className="text-sm text-ink/60">{rulesLabel(t, s)}</p>
                 </Card>

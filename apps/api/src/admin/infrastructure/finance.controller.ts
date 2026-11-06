@@ -39,7 +39,12 @@ class SummaryQueryDto {
 
 const SOCIAL_ORDER_TYPES = new Set(["TICKET", "SERIES_PASS"]);
 const ACADEMY_ORDER_TYPES = new Set(["MEMBERSHIP", "WORKSHOP", "PRIVATE"]);
-/** orderTypes que devengan a un actor (PLATFORM_SUB es ingreso directo). */
+/** Ingreso directo de plataforma (sin devengo a ningún actor). */
+const PLATFORM_REVENUE_ORDER_TYPES = new Set([
+  "PLATFORM_SUB",
+  "PLATFORM_CHARGE",
+]);
+/** orderTypes que devengan a un actor (PLATFORM_* es ingreso directo). */
 const ACCRUABLE_ORDER_TYPES = [
   "TICKET",
   "SERIES_PASS",
@@ -118,7 +123,7 @@ export class AdminFinanceController {
       if (p.gateway === "MANUAL") {
         // La plata pasó por afuera - solo el fee devengado cuenta.
         gmv.ownMethod += p.amount;
-      } else if (p.orderType === "PLATFORM_SUB") {
+      } else if (PLATFORM_REVENUE_ORDER_TYPES.has(p.orderType)) {
         gmv.saas += p.amount;
       } else if (SOCIAL_ORDER_TYPES.has(p.orderType)) {
         gmv.social += p.amount;

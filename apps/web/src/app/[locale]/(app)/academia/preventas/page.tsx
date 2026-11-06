@@ -11,8 +11,11 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
+  LIST_PREVIEW,
   PriceTag,
   RefreshIcon,
+  SeeAllRow,
   SkeletonList,
 } from "@/components/ui";
 import type { AcademyDealView } from "@/components/producer/academy-sales-section";
@@ -44,6 +47,9 @@ function PresaleDeals({ academyId }: { academyId: string }) {
 
   const [deals, setDeals] = useState<AcademyDealRow[] | null>(null);
   const [error, setError] = useState(false);
+  // Historial de resueltos: preview acotado + "Ver todo" (la cola
+  // pendiente se muestra completa, es la bandeja de trabajo).
+  const [showAllResolved, setShowAllResolved] = useState(false);
 
   const load = useCallback(async () => {
     setError(false);
@@ -63,8 +69,69 @@ function PresaleDeals({ academyId }: { academyId: string }) {
     void load();
   }, [load]);
 
+  // Cola de trabajo vs historial: INVITED espera respuesta de la
+  // academia y se muestra completa; el resto (ACTIVE, DECLINED,
+  // DISABLED) es historial acotado con "Ver todo".
+  const pending = (deals ?? []).filter((d) => d.status === "INVITED");
+  const resolved = (deals ?? []).filter((d) => d.status !== "INVITED");
+
+  const dealRow = (d: AcademyDealRow) => (
+    <li key={d.id}>
+      <Link href={`/academia/preventas/${d.id}`} className="block">
+        <Card className="flex flex-wrap items-center justify-between gap-3 p-4 transition-colors hover:border-neon/60">
+          <div className="min-w-0">
+            <p className="truncate font-medium">
+              {d.eventName ?? d.seriesName ?? d.id}
+            </p>
+            <p className="text-xs text-ink/50">
+              {t("commissionPctLabel", { pct: d.commissionPct })}
+              {d.seriesId ? ` · ${t("seriesScope")}` : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {d.stats.pendingClp > 0 && (
+              <span className="text-sm">
+                <span className="text-xs text-ink/50">
+                  {t("paymentPending")}{" "}
+                </span>
+                <PriceTag
+                  amount={d.stats.pendingClp}
+                  className="text-sm font-semibold"
+                />
+              </span>
+            )}
+            {d.stats.pendingClp < 0 && (
+              <span className="text-sm">
+                <span className="text-xs text-ink/50">
+                  {t("paymentOwed")}{" "}
+                </span>
+                <PriceTag
+                  amount={Math.abs(d.stats.pendingClp)}
+                  className="text-sm font-semibold"
+                />
+              </span>
+            )}
+            {d.stats.pendingClp === 0 && d.stats.commissionAccruedClp > 0 && (
+              <span className="text-sm">
+                <span className="text-xs text-ink/50">{t("accrued")} </span>
+                <PriceTag
+                  amount={d.stats.commissionAccruedClp}
+                  className="text-sm font-semibold"
+                />
+              </span>
+            )}
+            <Badge variant={STATUS_VARIANT[d.status] ?? "muted"}>
+              {t.has(`status.${d.status}`) ? t(`status.${d.status}`) : d.status}
+            </Badge>
+            <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+          </div>
+        </Card>
+      </Link>
+    </li>
+  );
+
   return (
-    <section className="flex flex-col gap-3">
+    <section aria-label={t("sectionTitle")} className="flex flex-col gap-3">
       {deals === null && !error && <SkeletonList items={3} lines={2} />}
       {error && (
         <div className="flex items-center gap-3">
@@ -79,74 +146,39 @@ function PresaleDeals({ academyId }: { academyId: string }) {
 
       {deals !== null && deals.length === 0 && !error && (
         <Card className="flex flex-col items-center gap-3 py-10 text-center">
-          <p role="status" className="text-ink/70">
-            {t("academyEmpty")}
-          </p>
+          <p className="text-ink/70">{t("academyEmpty")}</p>
           <p className="max-w-sm text-xs text-ink/50">{t("academyEmptyHint")}</p>
         </Card>
       )}
 
       {deals !== null && deals.length > 0 && (
-        <ul className="flex flex-col gap-2">
-          {deals.map((d) => (
-            <li key={d.id}>
-              <Link href={`/academia/preventas/${d.id}`} className="block">
-                <Card className="flex flex-wrap items-center justify-between gap-3 p-4 transition-colors hover:border-neon/60">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">
-                      {d.eventName ?? d.seriesName ?? d.id}
-                    </p>
-                    <p className="text-xs text-ink/50">
-                      {t("commissionPctLabel", { pct: d.commissionPct })}
-                      {d.seriesId ? ` · ${t("seriesScope")}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {d.stats.pendingClp > 0 && (
-                      <span className="text-sm">
-                        <span className="text-xs text-ink/50">
-                          {t("paymentPending")}{" "}
-                        </span>
-                        <PriceTag
-                          amount={d.stats.pendingClp}
-                          className="text-sm font-semibold"
-                        />
-                      </span>
-                    )}
-                    {d.stats.pendingClp < 0 && (
-                      <span className="text-sm">
-                        <span className="text-xs text-ink/50">
-                          {t("paymentOwed")}{" "}
-                        </span>
-                        <PriceTag
-                          amount={Math.abs(d.stats.pendingClp)}
-                          className="text-sm font-semibold"
-                        />
-                      </span>
-                    )}
-                    {d.stats.pendingClp === 0 &&
-                      d.stats.commissionAccruedClp > 0 && (
-                        <span className="text-sm">
-                          <span className="text-xs text-ink/50">
-                            {t("accrued")}{" "}
-                          </span>
-                          <PriceTag
-                            amount={d.stats.commissionAccruedClp}
-                            className="text-sm font-semibold"
-                          />
-                        </span>
-                      )}
-                    <Badge variant={STATUS_VARIANT[d.status] ?? "muted"}>
-                      {t.has(`status.${d.status}`)
-                        ? t(`status.${d.status}`)
-                        : d.status}
-                    </Badge>
-                  </div>
-                </Card>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          {pending.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+                {t("pendingTitle")}
+              </h3>
+              <ul className="flex flex-col gap-2">{pending.map(dealRow)}</ul>
+            </div>
+          )}
+          {resolved.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+                {t("resolvedTitle")}
+              </h3>
+              <ul className="flex flex-col gap-2">
+                {resolved
+                  .slice(0, showAllResolved ? undefined : LIST_PREVIEW)
+                  .map(dealRow)}
+                <SeeAllRow
+                  total={resolved.length}
+                  expanded={showAllResolved}
+                  onToggle={() => setShowAllResolved((v) => !v)}
+                />
+              </ul>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
@@ -155,7 +187,7 @@ function PresaleDeals({ academyId }: { academyId: string }) {
 export default function AcademyPresalesPage() {
   const t = useTranslations("academySales");
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/academia" backLabel={t("backToHub")} />
       <p className="text-sm text-ink/50">{t("academyPageDesc")}</p>
       <AcademyGate>

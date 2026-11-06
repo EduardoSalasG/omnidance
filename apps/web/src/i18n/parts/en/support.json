@@ -24,7 +24,9 @@
     "noPayments": "No payments",
     "roleSince": "since {date}",
     "checkins": "Check-ins",
+    "checkinsHint": "Check-ins logged at events and classes",
     "friends": "Friends",
+    "friendsHint": "Friends added in the app",
     "roleStatus": {
       "PENDING": "Pending",
       "SANDBOX": "Sandbox",

@@ -945,20 +945,14 @@ describe("EventsController.addStaff - gating Producer Pro", () => {
     expect(res).toMatchObject({ eventId: "ev-1", personId: "door" });
   });
 
-  it("owner FREE con el cupo lleno → 403 tier.required", async () => {
+  it("owner FREE asigna staff sin cupo (spec producer-pro)", async () => {
     prisma.people.set(
       "prod-1",
       mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
     );
     prisma.staffCount = 2;
-    const err = await ctrl
-      .addStaff("ev-1", dto, reqAs("prod-1"))
-      .catch((e: unknown) => e);
-    expect(err).toMatchObject({ status: 403 });
-    expect(errBody(err)).toMatchObject({
-      error: "tier.required",
-      feature: "multiStaff",
-    });
+    const res = await ctrl.addStaff("ev-1", dto, reqAs("prod-1"));
+    expect(res).toMatchObject({ eventId: "ev-1", personId: "door" });
   });
 
   it("owner con trial vigente → asigna staff", async () => {

@@ -213,7 +213,7 @@ function CheckoutReturn() {
           <Badge variant="neon">{ts("activated")}</Badge>
           <h1 className="text-xl font-bold">{ts("subOk")}</h1>
           <Button
-            href={src === "member" ? "/academias" : "/academia/suscripcion"}
+            href={src === "member" ? "/academias" : "/academia/configuracion/suscripcion"}
             size="lg"
             className="w-full"
           >
@@ -227,7 +227,7 @@ function CheckoutReturn() {
           <Badge variant="live">{tc("error")}</Badge>
           <h1 className="text-xl font-bold">{ts("subError")}</h1>
           <Button
-            href={src === "member" ? "/academias" : "/academia/suscripcion"}
+            href={src === "member" ? "/academias" : "/academia/configuracion/suscripcion"}
             size="lg"
             className="w-full"
           >

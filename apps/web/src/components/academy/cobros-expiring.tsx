@@ -49,8 +49,9 @@ export function CobrosExpiring({ academyId }: { academyId: string }) {
   const expiringWeek = items.filter(
     (e) => e.endsAt.slice(0, 10) > todayStr && e.endsAt.slice(0, 10) <= weekStr,
   );
-  const expiringLater =
-    items.length - expiringToday.length - expiringWeek.length;
+  const expiringLater = items.filter(
+    (e) => e.endsAt.slice(0, 10) > weekStr,
+  );
 
   return (
     <div
@@ -64,11 +65,11 @@ export function CobrosExpiring({ academyId }: { academyId: string }) {
           t={t}
         />
       )}
-      {(expiringWeek.length > 0 || expiringLater > 0) && (
+      {(expiringWeek.length > 0 || expiringLater.length > 0) && (
         <ExpiringList
           title={t("insights.expiringWeekTitle")}
           items={expiringWeek}
-          extraCount={expiringLater}
+          extraItems={expiringLater}
           t={t}
         />
       )}

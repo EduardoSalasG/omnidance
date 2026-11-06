@@ -69,12 +69,16 @@ export function PlanForm({
             name: name.trim(),
             type,
             price: Number.parseInt(price, 10) || 0,
-            // En edición, vacío = limpiar (null); en creación se omite.
-            ...(classCount.trim()
-              ? { classCount: Number.parseInt(classCount, 10) }
-              : plan
-                ? { classCount: null }
-                : {}),
+            // classCount solo lo usa CLASS_PACK (cupo del pack);
+            // SINGLE lo fija en 1 implícito. En edición, vacío o tipo
+            // sin cupo = limpiar (null); en creación se omite.
+            ...(type === "SINGLE"
+              ? { classCount: 1 }
+              : type === "CLASS_PACK" && classCount.trim()
+                ? { classCount: Number.parseInt(classCount, 10) }
+                : plan
+                  ? { classCount: null }
+                  : {}),
             ...(weeklyClasses.trim()
               ? { weeklyClasses: Number.parseInt(weeklyClasses, 10) }
               : plan
@@ -142,11 +146,11 @@ export function PlanForm({
               </option>
             ))}
           </select>
-          {plan?.flowPlanId && (
-            <span className="text-xs text-ink/40">
-              {t("planTypeLocked")}
-            </span>
-          )}
+          <span className="text-xs text-ink/40">
+            {plan?.flowPlanId
+              ? t("planTypeLocked")
+              : t(`planTypeHints.${type}`)}
+          </span>
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-ink/50">
@@ -164,18 +168,25 @@ export function PlanForm({
             required
           />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-ink/50">{t("planClasses")}</span>
-          <input
-            className={inputCls}
-            type="number"
-            inputMode="numeric"
-            min={1}
-            step={1}
-            value={classCount}
-            onChange={(e) => setClassCount(e.target.value)}
-          />
-        </label>
+        {/* Cupo de clases: solo lo consume el pack (CLASS_PACK); el
+            tipo SINGLE lo fija en 1 implícito y el resto de tipos no
+            usa el campo (review 2026-11). */}
+        {type === "CLASS_PACK" && (
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-ink/50">
+              {t("planPackClasses")}
+            </span>
+            <input
+              className={inputCls}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              step={1}
+              value={classCount}
+              onChange={(e) => setClassCount(e.target.value)}
+            />
+          </label>
+        )}
         {/* Cuota semanal: solo la usan los planes por tiempo
             (mensual/trimestral/semestral); packs llevan classCount. */}
         {(type === "MONTHLY" ||
@@ -225,7 +236,7 @@ export function PlanForm({
           />
         </label>
         {plan && (
-          <label className="flex items-center gap-2 sm:col-span-2">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 sm:col-span-2">
             <input
               type="checkbox"
               checked={active}

@@ -176,7 +176,10 @@ export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 // filtra la lista y GET /notifications?lens= acota el unreadCount del
 // badge del appbar.
 export const NOTIFICATION_LENS_TYPES = {
-  academy: { prefixes: ["class."], exact: ["payment.series_pass"] },
+  academy: {
+    prefixes: ["class."],
+    exact: ["payment.series_pass", "academy.courseSurvey"],
+  },
   social: {
     prefixes: ["session.", "friend.", "ticket.", "waitlist."],
     exact: ["payment.paid", "payment.failed", "event.survey"],

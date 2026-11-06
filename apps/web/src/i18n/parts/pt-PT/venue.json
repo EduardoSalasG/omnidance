@@ -11,8 +11,11 @@
     "capacity": "Lotação: {count} pessoas",
     "kpi": {
       "upcoming": "Próximos",
+      "upcomingHint": "Eventos futuros neste local",
       "events30d": "Eventos 30d",
-      "checkins30d": "Check-ins 30d"
+      "events30dHint": "Eventos dos últimos 30 dias",
+      "checkins30d": "Check-ins 30d",
+      "checkins30dHint": "Check-ins dos últimos 30 dias"
     },
     "sections": {
       "upcoming": "Próximos eventos",

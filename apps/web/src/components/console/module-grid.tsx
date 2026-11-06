@@ -1,4 +1,6 @@
+"use client";
 
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 
 // Tarjeta de módulo para hubs de consola - patrón "lista de ajustes" iOS:
@@ -35,9 +37,12 @@ export function ModuleCard({
 }
 
 export function ModuleGrid({ children }: { children: React.ReactNode }) {
+  // Hoy solo la consume /academia - si otro hub la reusa, mover el label
+  // a prop en vez de sumar namespaces.
+  const t = useTranslations("academy");
   return (
     <nav
-      aria-label="Módulos"
+      aria-label={t("modules.gridLabel")}
       className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
     >
       {children}

@@ -355,27 +355,76 @@ antigüedad, referrals) con los puntos aportados por cada uno. Cuando
 
 ### Requirement: Card de alumnos por nivel y cupos por horario
 
-El inicio de /academia SHALL mostrar (modo Extendido) una card con
-alumnos activos por tipo×nivel y, por cada horario, alumnos
-asignables, capacidad, cupos vacíos, promedio de asistencia y
-asistencia de la última clase. Alumnos sin nivel asignado SHALL
-agruparse en "sin nivel" para que el owner complete el dato.
+El inicio de /academia SHALL mostrar una card con alumnos activos por
+tipo×nivel y, por cada horario **de una serie vigente**
+(`series.deletedAt: null`), alumnos asignables, capacidad, cupos
+vacíos, promedio de asistencia y asistencia de la última clase. Los
+horarios de series eliminadas lógicamente MUST NOT aparecer en la card
+ni alimentar sus métricas. Alumnos sin nivel asignado SHALL agruparse
+en "sin nivel" para que el owner complete el dato.
 
 #### Scenario: Owner elige horario para alumno nuevo
 
-- **WHEN** el owner abre el inicio Extendido
+- **WHEN** el owner abre el inicio
 - **THEN** ve por cada horario cuántos cupos vacíos quedan por nivel y
   puede decidir a cuál derivar al alumno sin saturar
 
-### Requirement: Modo de inicio Simplificado por defecto
+#### Scenario: Horario de serie eliminada no cuenta
 
-El inicio de /academia SHALL ofrecer modo Simplificado (default):
-3-4 cards accionables en lenguaje llano (cupos de hoy, alumnos por
-vencer, comprobantes por revisar) en vez de métricas crudas; el modo
-Extendido muestra las cards analíticas completas. No habrá
-configuración de KPIs por usuario.
+- **GIVEN** una serie eliminada lógicamente cuyos slots siguen en la
+  base (borrado directo en datos)
+- **WHEN** el owner abre "Niveles y cupos"
+- **THEN** esos slots no aparecen y sus clases no entran a los
+  promedios ni a "próxima clase"
 
-#### Scenario: Owner abre su inicio
+### Requirement: Inicio del owner en vista única extendida
 
-- **WHEN** el owner entra a /academia sin haber elegido modo
-- **THEN** ve el modo Simplificado con acciones claras y lenguaje llano
+El inicio del owner SHALL renderizar siempre la vista extendida: KPIs
+del mes (alumnos activos, operativos por tier, facturado y ticket por
+alumno), operación del día y niveles y cupos. MUST NOT existir
+selector de vista ni persistencia de modo por dispositivo.
+
+En desktop (`sm` y mayor) los KPIs de facturación (facturado del mes,
+ticket por alumno) SHALL compartir la misma grilla que los KPIs del
+resumen, sin sección ni landmark propio; en mobile el orden visual
+queda igual (apilado). Los títulos de las cards de cola SHALL
+envolver en vez de truncarse con elipsis, de modo que labels como
+"Cobros por revisar" y "Planes que vencen esta semana" se lean
+completos.
+
+#### Scenario: owner abre su inicio
+
+- **WHEN** el owner entra a `/inicio` con lente ACADEMY_OWNER
+- **THEN** ve la vista extendida completa sin toggle de modo, con los
+  KPIs de facturación en la misma fila del resumen en desktop
+
+#### Scenario: títulos de colas legibles
+
+- **GIVEN** una academia con colas pendientes
+- **WHEN** se renderizan las MiniKpi de "Cobros por revisar" y "Planes
+  que vencen esta semana" en mobile o desktop
+- **THEN** el título se lee completo, sin elipsis
+
+### Requirement: Agenda legible con clases traslapadas
+
+En la agenda semanal de "Niveles y cupos", los horarios traslapados
+de un mismo día SHALL repartirse el ancho en carriles con una card
+densa (hora de inicio-término, nombre truncado y estado del cupo):
+las métricas de género y el chip de nivel no caben en medio carril y
+quedan fuera de la variante densa (el nivel viaja en `title`/aria).
+En mobile, cada fila SHALL mostrar hora de inicio Y de término del
+horario.
+
+#### Scenario: dos clases a la misma hora un martes
+
+- **GIVEN** dos slots que se traslapan el martes
+- **WHEN** se renderiza la agenda en desktop
+- **THEN** cada carril muestra la card densa legible (hora + nombre +
+  estado) en vez de la card completa aplastada
+
+#### Scenario: fila de mobile
+
+- **GIVEN** la vista mobile de la agenda
+- **WHEN** un día tiene una clase 19:00-20:30
+- **THEN** su etiqueta muestra "19:00" y "20:30" (endTime ausente =
+  +1h, misma convención del endpoint)

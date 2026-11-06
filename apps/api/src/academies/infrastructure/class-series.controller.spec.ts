@@ -63,6 +63,7 @@ interface FakeSeries {
   name?: string;
   active: boolean;
   deletedAt: Date | null;
+  levelId?: string | null;
 }
 
 class FakePrisma {
@@ -166,6 +167,18 @@ class FakePrisma {
       const a = this.academies.get(where.id);
       return a ? { name: a.name } : null;
     },
+  };
+
+  // Línea de niveles: academyId = custom de esa academia, null = global
+  // (spec academy-level-line-consistency - validación de levelId).
+  levels = new Map<string, { id: string; academyId: string | null }>();
+  classLevel = {
+    findUnique: async ({ where }: { where: { id: string } }) =>
+      this.levels.get(where.id) ?? null,
+    count: async ({ where }: { where: { academyId?: string | null } }) =>
+      [...this.levels.values()].filter(
+        (l) => where.academyId === undefined || l.academyId === where.academyId,
+      ).length,
   };
 
   classSeries = {
@@ -1010,5 +1023,157 @@ describe("ClassSeriesController - taller de fecha única y cancel por instancia"
       NotFoundException,
     );
     expect(prisma.classes.find((c) => c.id === "cx")!.cancelled).toBe(false);
+  });
+});
+
+// levelId restringido a la línea efectiva de la academia (spec
+// academy-level-line-consistency): custom si la academia tiene la
+// suya, global si no - nunca mezcladas.
+describe("ClassSeriesController - levelId contra la línea efectiva", () => {
+  let prisma: FakePrisma;
+  let ctrl: ClassSeriesController;
+
+  const slot = { weekday: 3, startTime: "19:00", endTime: "20:00" };
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    ctrl = new ClassSeriesController(
+      prisma as unknown as PrismaService,
+      {
+        requireCapability: vi.fn(async () => undefined),
+        requireCapabilityWrite: vi.fn(async () => undefined),
+      } as unknown as AcademyAccess,
+      {
+        notifySafe: vi.fn(async () => undefined),
+      } as unknown as NotificationsService,
+      new AcademyMaterializeService(prisma as unknown as PrismaService),
+    );
+    prisma.academies.set("acad-1", { id: "acad-1", name: "Academia Test" });
+    prisma.academies.set("acad-3", { id: "acad-3", name: "Academia Global" });
+    prisma.series.set("ser-1", {
+      id: "ser-1",
+      academyId: "acad-1",
+      name: "Serie Test",
+      active: true,
+      deletedAt: null,
+      levelId: "lv-c1",
+    });
+    // Línea global + customs: acad-1 tiene la suya, lv-c2 es ajeno.
+    prisma.levels.set("lv-g", { id: "lv-g", academyId: null });
+    prisma.levels.set("lv-c1", { id: "lv-c1", academyId: "acad-1" });
+    prisma.levels.set("lv-c1b", { id: "lv-c1b", academyId: "acad-1" });
+    prisma.levels.set("lv-c2", { id: "lv-c2", academyId: "acad-2" });
+  });
+
+  it("create: academia con línea custom rechaza nivel global → 400", async () => {
+    await expect(
+      ctrl.create(
+        "acad-1",
+        { name: "Salsa", levelId: "lv-g", slots: [slot] },
+        req,
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.series.size).toBe(1); // no creó nada (ser-1 previa)
+  });
+
+  it("create: nivel de otra academia → 400", async () => {
+    await expect(
+      ctrl.create(
+        "acad-1",
+        { name: "Salsa", levelId: "lv-c2", slots: [slot] },
+        req,
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it("create: levelId inexistente → 400", async () => {
+    await expect(
+      ctrl.create(
+        "acad-1",
+        { name: "Salsa", levelId: "lv-x", slots: [slot] },
+        req,
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it("create: nivel custom propio pasa y queda persistido", async () => {
+    const res = await ctrl.create(
+      "acad-1",
+      { name: "Salsa", levelId: "lv-c1", slots: [slot] },
+      req,
+    );
+    expect(res.levelId).toBe("lv-c1");
+  });
+
+  it("create: academia sin customs acepta nivel global", async () => {
+    const res = await ctrl.create(
+      "acad-3",
+      { name: "Salsa", levelId: "lv-g", slots: [slot] },
+      req,
+    );
+    expect(res.levelId).toBe("lv-g");
+  });
+
+  it("update: levelId fuera de la línea → 400 y la serie no cambia", async () => {
+    await expect(
+      ctrl.update("acad-1", "ser-1", { levelId: "lv-g" }, req),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.series.get("ser-1")!.levelId).toBe("lv-c1");
+  });
+
+  it("update: nivel de la línea efectiva actualiza", async () => {
+    const res = await ctrl.update(
+      "acad-1",
+      "ser-1",
+      { levelId: "lv-c1b" },
+      req,
+    );
+    expect(res.levelId).toBe("lv-c1b");
+  });
+
+  it("update: levelId null explícito limpia el nivel (permitido)", async () => {
+    const res = await ctrl.update(
+      "acad-1",
+      "ser-1",
+      { levelId: null } as never,
+      req,
+    );
+    expect(res.levelId).toBeNull();
+  });
+});
+
+describe("ClassSeriesController - gate de tier en getSlot", () => {
+  // Spec academy-tier-gates-refine: el detalle del horario exige la
+  // misma feature que el listado y las mutaciones (`classes` sobre cap
+  // `schedule`) - COBROS responde 403 tier.required igual que sus
+  // hermanos.
+  let prisma: FakePrisma;
+  let ctrl: ClassSeriesController;
+  let access: { requireCapability: ReturnType<typeof vi.fn> };
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    access = { requireCapability: vi.fn(async () => undefined) };
+    ctrl = new ClassSeriesController(
+      prisma as unknown as PrismaService,
+      access as unknown as AcademyAccess,
+      { notifySafe: vi.fn(async () => undefined) } as unknown as NotificationsService,
+      new AcademyMaterializeService(prisma as unknown as PrismaService),
+    );
+    prisma.slots.set("slot-1", {
+      id: "slot-1",
+      academyId: "acad-1",
+      seriesId: "ser-1",
+    });
+  });
+
+  it("getSlot exige feature classes además de cap schedule", async () => {
+    await ctrl.getSlot("acad-1", "slot-1", req);
+    expect(access.requireCapability).toHaveBeenCalledWith(
+      "acad-1",
+      req.person,
+      "schedule",
+      "classes",
+    );
   });
 });
