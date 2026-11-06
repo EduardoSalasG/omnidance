@@ -731,7 +731,11 @@ export function HomeHub() {
         <>
         {/* Rol PENDING: qué le falta para la aprobación (spec rbac). */}
         <PendingRoleCard />
-        <AcademyGate>
+        {/* selector: el home del owner es su consola - cambio de
+            academia y CTA "Nueva academia" (multiAcademy) viven acá;
+            el hub /academia lo conserva para staff/instructor/ADMIN
+            (spec academies/console-lists). */}
+        <AcademyGate selector>
           {({ academy }) => (
             <>
               <AcademyDashboard
