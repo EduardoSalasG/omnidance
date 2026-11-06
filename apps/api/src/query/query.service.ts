@@ -39,6 +39,17 @@ import type { ExportTable } from "./producer-export";
 const PREVIEW_ROWS = 50;
 const OPTION_TAKE = 300;
 
+// Labels es-CL de las opciones slot/clase (Class.date es medianoche UTC,
+// convención día-calendario - formatear en UTC para no correr el día).
+const WEEKDAY_SHORT = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const dayCl = (d: Date) =>
+  new Intl.DateTimeFormat("es-CL", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(d);
+
 export interface QueryOption {
   value: string;
   label: string;
@@ -65,7 +76,6 @@ const ENTITY_TITLES: Record<QueryRole, Record<string, string>> = {
   ACADEMY_OWNER: {
     students: "Alumnos",
     attendance: "Asistencia",
-    bookings: "Reservas de clases",
     memberships: "Suscripciones",
     payments: "Pagos",
     private_lessons: "Clases particulares",
@@ -245,6 +255,18 @@ export class QueryService {
             }));
           }),
         };
+      case "academyScheduleSlots":
+        return {
+          options: await this.academyScoped(personId, role, scopeId, (id) =>
+            this.academySlotOptions(id),
+          ),
+        };
+      case "academyClasses":
+        return {
+          options: await this.academyScoped(personId, role, scopeId, (id) =>
+            this.academyClassOptions(id),
+          ),
+        };
       case "eventGuestLists": {
         if (!scopeId) throw new BadRequestException("scopeId requerido");
         const scope = await this.producerEventScope(personId, role, scopeId);
@@ -266,22 +288,94 @@ export class QueryService {
     }
   }
 
-  /** Opciones de una academia - validando ownership según lente. */
+  /**
+   * Opciones de una academia - validando ownership según lente. Con
+   * scopeId informado: ADMIN resuelve directo; ACADEMY_OWNER solo si es
+   * propia (ajena → []). Sin scopeId (ACADEMY_OWNER): unión sobre todas
+   * las academias propias, misma semántica que run() ("sin academia =
+   * todas"); con más de una academia el label lleva sufijo
+   * `· {academia}` y se deduplica por `value` (un instructor puede
+   * estar en dos). ADMIN sin scopeId → 400 (sus fuentes son globales).
+   */
   private async academyScoped(
     personId: string,
     role: QueryRole,
     academyId: string | undefined,
     resolve: (academyId: string) => Promise<QueryOption[]>,
   ): Promise<QueryOption[]> {
-    if (!academyId) throw new BadRequestException("scopeId requerido");
-    if (role === "ADMIN") return resolve(academyId);
-    // ACADEMY_OWNER: solo academias propias - ajena → lista vacía.
-    const owned = await this.prisma.academy.findFirst({
-      where: { id: academyId, ownerId: personId },
-      select: { id: true },
+    if (academyId) {
+      if (role === "ADMIN") return resolve(academyId);
+      // ACADEMY_OWNER: solo academias propias - ajena → lista vacía.
+      const owned = await this.prisma.academy.findFirst({
+        where: { id: academyId, ownerId: personId },
+        select: { id: true },
+      });
+      if (!owned) return [];
+      return resolve(academyId);
+    }
+    if (role === "ADMIN") throw new BadRequestException("scopeId requerido");
+    const academies = await this.prisma.academy.findMany({
+      where: { ownerId: personId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
     });
-    if (!owned) return [];
-    return resolve(academyId);
+    const groups = await Promise.all(
+      academies.map((a) => resolve(a.id)),
+    );
+    const suffix = academies.length > 1;
+    const seen = new Set<string>();
+    const out: QueryOption[] = [];
+    groups.forEach((opts, i) => {
+      for (const o of opts) {
+        if (seen.has(o.value)) continue;
+        seen.add(o.value);
+        out.push(suffix ? { ...o, label: `${o.label} · ${academies[i].name}` } : o);
+      }
+    });
+    return out;
+  }
+
+  /** Horarios (ClassSlot) de una academia: "Serie · lun 19:00". */
+  private async academySlotOptions(academyId: string): Promise<QueryOption[]> {
+    const slots = await this.prisma.classSlot.findMany({
+      where: { academyId },
+      select: {
+        id: true,
+        weekday: true,
+        startTime: true,
+        oneOffDate: true,
+        series: { select: { name: true } },
+      },
+      orderBy: [{ series: { name: "asc" } }, { weekday: "asc" }, { startTime: "asc" }],
+      take: OPTION_TAKE,
+    });
+    return slots.map((s) => ({
+      value: s.id,
+      label: `${s.series.name} · ${
+        s.oneOffDate ? dayCl(s.oneOffDate) : WEEKDAY_SHORT[s.weekday] ?? s.weekday
+      } ${s.startTime}`,
+    }));
+  }
+
+  /** Clases concretas (Class) recientes de una academia:
+      "Serie · jue 20 nov 19:00". */
+  private async academyClassOptions(academyId: string): Promise<QueryOption[]> {
+    const classes = await this.prisma.class.findMany({
+      where: { slot: { academyId } },
+      select: {
+        id: true,
+        date: true,
+        slot: {
+          select: { startTime: true, series: { select: { name: true } } },
+        },
+      },
+      orderBy: { date: "desc" },
+      take: OPTION_TAKE,
+    });
+    return classes.map((c) => ({
+      value: c.id,
+      label: `${c.slot.series.name} · ${dayCl(c.date)} ${c.slot.startTime}`,
+    }));
   }
 
   // ─── Ejecución ──────────────────────────────────────────────────────

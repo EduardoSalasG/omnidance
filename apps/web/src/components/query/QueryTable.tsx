@@ -3,12 +3,12 @@
 import { useLocale, useTranslations } from "next-intl";
 import { Card } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
-import { getNumFmt, useNumFmt } from "@/lib/intl";
+import { getNumFmt, useDateFmt } from "@/lib/intl";
 
 const num = (locale: string) => getNumFmt(locale);
 
 // Columnas que muestran a la persona-sujeto de la fila, en orden de
-// prioridad (drill a /analitica/usuarios/[personId] cuando el runner
+// prioridad (drill a personBasePath/[personId] cuando el runner
 // adjunta `personId` como celda suplementaria al final de la fila -
 // fuera de `headers`, nunca se pinta como columna). `nombre` va último:
 // en entidades mixtas puede ser una org (events.productor va antes).
@@ -56,11 +56,31 @@ type QueryTableProps = {
   rows: unknown[][];
   /** Total real del resultado (rows puede venir capado para preview). */
   total: number;
+  /** Base del link de la celda persona, por lente:
+      `/academia/alumnos` en ACADEMY_OWNER, `/analitica/usuarios` en el
+      resto (ficha solo-admin). */
+  personBasePath: string;
 };
 
-export function QueryTable({ entity, headers, rows, total }: QueryTableProps) {
+// Fechas en las celdas: el motor emite ISO; `YYYY-MM-DD` y los ISO a
+// medianoche UTC son días-calendario (convención Class.date) → se
+// formatean en UTC para no correr el día; el resto de ISO son instantes
+// → fecha+hora del locale en zona local.
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_MIDNIGHT_RE = /^\d{4}-\d{2}-\d{2}T00:00:00(?:\.\d+)?Z$/;
+const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+
+export function QueryTable({
+  entity,
+  headers,
+  rows,
+  total,
+  personBasePath,
+}: QueryTableProps) {
   const locale = useLocale();
   const t = useTranslations("query");
+  const dayUtcFmt = useDateFmt({ dateStyle: "medium", timeZone: "UTC" });
+  const dateTimeFmt = useDateFmt({ dateStyle: "medium", timeStyle: "short" });
 
   const colLabel = (col: string) =>
     t.has(`cols.${entity}.${col}`)
@@ -74,7 +94,19 @@ export function QueryTable({ entity, headers, rows, total }: QueryTableProps) {
     if (typeof v === "number") return num(locale).format(v);
     if (typeof v === "boolean")
       return t(v ? "optionLabels.true" : "optionLabels.false");
-    if (typeof v === "string") return v;
+    if (typeof v === "string") {
+      if (DAY_RE.test(v) || ISO_MIDNIGHT_RE.test(v)) {
+        const d = new Date(v);
+        return Number.isNaN(d.getTime()) ? v : dayUtcFmt.format(d);
+      }
+      if (ISO_RE.test(v)) {
+        const d = new Date(v);
+        return Number.isNaN(d.getTime()) ? v : dateTimeFmt.format(d);
+      }
+      // Enum conocido (estado/método/tipo de orden…) → label i18n; el
+      // resto de strings se muestran tal cual (nombres, ids, emails).
+      return t.has(`optionLabels.${v}`) ? t(`optionLabels.${v}`) : v;
+    }
     return JSON.stringify(v);
   };
 
@@ -86,7 +118,7 @@ export function QueryTable({ entity, headers, rows, total }: QueryTableProps) {
       colIdx === pCol ? personIdOf(row, headers.length) : null;
     if (!pid || text === "·") return text;
     return (
-      <Link href={`/analitica/usuarios/${pid}`} className={personLinkCls}>
+      <Link href={`${personBasePath}/${pid}`} className={personLinkCls}>
         {text}
       </Link>
     );

@@ -74,16 +74,22 @@ export function FilterBar({
 
   // Recarga de opciones lazy al cambiar el scope (o la entidad). Las keys
   // dependientes se limpian desde el handler de scope (ver setFilter).
+  // Las fuentes academy resuelven también sin scope (unión de las
+  // academias propias); solo las marcadas `requiresScope` en el catálogo
+  // (eventGuestLists) esperan a que el usuario elija scope.
   useEffect(() => {
     if (!loadScopeOptions || lazySources.length === 0) return;
     const req = ++lazyReq.current;
-    if (!scopeValue) {
+    const loadable = lazySources.filter(
+      (f) => !f.requiresScope || !!scopeValue,
+    );
+    if (loadable.length === 0) {
       setLazyOptions({});
       return;
     }
     let cancelled = false;
     void Promise.all(
-      lazySources.map(async (f) => {
+      loadable.map(async (f) => {
         try {
           const items = await loadScopeOptions(f.source, scopeValue);
           return [f.source, items] as const;

@@ -677,6 +677,46 @@ describe("QueryService - lentes y scope", () => {
       svc.options("prod-1", "PRODUCER", "producers"),
     ).rejects.toMatchObject({ status: 400 });
   });
+
+  it("options academy sin scopeId → unión de academias propias", async () => {
+    prisma.academies.push(
+      { id: "ac-1", ownerId: "acad-1", name: "Alfa", tier: "PRO" },
+      { id: "ac-2", ownerId: "acad-1", name: "Beta", tier: "PRO" },
+      { id: "ac-ajena", ownerId: "otro", name: "Ajena", tier: "PRO" },
+    );
+    prisma.plans.push(
+      { id: "pl-1", academyId: "ac-1", name: "Mensual" },
+      { id: "pl-2", academyId: "ac-2", name: "Mensual" },
+      { id: "pl-x", academyId: "ac-ajena", name: "Ajeno" },
+    );
+    // Sin scopeId: unión de las propias; >1 academia → sufijo · academia.
+    const res = await svc.options(
+      "acad-1",
+      "ACADEMY_OWNER",
+      "academyPlans",
+      undefined,
+    );
+    expect(res.options).toEqual([
+      { value: "pl-1", label: "Mensual · Alfa" },
+      { value: "pl-2", label: "Mensual · Beta" },
+    ]);
+    // Una sola academia → labels sin sufijo.
+    const solo = await svc.options(
+      "acad-1",
+      "ACADEMY_OWNER",
+      "academyPlans",
+      "ac-1",
+    );
+    expect(solo.options).toEqual([{ value: "pl-1", label: "Mensual" }]);
+    // scopeId ajeno → vacío, nunca datos de otra academia.
+    const foreign = await svc.options(
+      "acad-1",
+      "ACADEMY_OWNER",
+      "academyPlans",
+      "ac-ajena",
+    );
+    expect(foreign.options).toEqual([]);
+  });
 });
 
 describe("QueryService - consultas guardadas", () => {

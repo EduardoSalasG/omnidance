@@ -14,7 +14,7 @@ import {
 
 /**
  * Entidades del lente ACADEMY_OWNER (spec analytics/query-console):
- * students/attendance/bookings/memberships/payments/private_lessons,
+ * students/attendance/memberships/payments/private_lessons,
  * scopiadas a las academias del owner (scope.academyId ya validado -
  * academia ajena llega como `{in: []}` → vacío).
  */
@@ -29,7 +29,6 @@ const ENROLLMENT_STATUS = [
   "FROZEN",
   "ONLINE",
 ] as const;
-const BOOKING_STATUS = ["BOOKED", "WAITLIST", "CANCELLED"] as const;
 const SUBSCRIPTION_STATUS = [
   "PENDING_CARD",
   "ACTIVATING",
@@ -39,6 +38,9 @@ const SUBSCRIPTION_STATUS = [
   "FAILED_CARD",
 ] as const;
 const PAYMENT_STATUS = ["PENDING", "PAID", "FAILED", "REFUNDED"] as const;
+// Whitelist = la del catálogo (PLATFORM_CHARGE no es atribuible a la
+// academia - su refId platchg_* no entra en el scope - pero aceptarlo
+// evita un 400 sobre un valor que el propio catálogo ofrece).
 const ORDER_TYPES = [
   "TICKET",
   "SERIES_PASS",
@@ -46,6 +48,7 @@ const ORDER_TYPES = [
   "PRIVATE_LESSON",
   "WORKSHOP",
   "PLATFORM_SUB",
+  "PLATFORM_CHARGE",
 ] as const;
 const PRIVATE_LESSON_STATUS = [
   "REQUESTED",
@@ -129,6 +132,9 @@ const attendance: EntityHandler = {
         academyId: acad(scope),
         ...(f.seriesId ? { seriesId: f.seriesId } : {}),
       },
+      // slotId = horario semanal concreto (ClassSlot); classId = la
+      // ocurrencia exacta (va directo sobre Attendance.classId).
+      ...(f.slotId ? { classSlotId: f.slotId } : {}),
       ...(range ? { date: range } : {}),
       // instructorId matchea el override de la clase o el default del slot.
       ...(f.instructorId
@@ -143,7 +149,10 @@ const attendance: EntityHandler = {
           }
         : {}),
     };
-    const where: Prisma.AttendanceWhereInput = { class: classWhere };
+    const where: Prisma.AttendanceWhereInput = {
+      ...(f.classId ? { classId: f.classId } : {}),
+      class: classWhere,
+    };
     const rows = await prisma.attendance.findMany({
       where,
       orderBy: { class: { date: "desc" } },
@@ -188,65 +197,6 @@ const attendance: EntityHandler = {
       objects: rows,
       total,
       summary: [`${total} asistencias`],
-    };
-  },
-};
-
-// ─── bookings: ClassBooking → Class → ClassSlot ───────────────────────
-
-const bookings: EntityHandler = {
-  async execute(prisma, scope, f, opts) {
-    const status = whitelist(f.status, BOOKING_STATUS, "status");
-    const range = dateRange(f.from, f.to);
-    const where: Prisma.ClassBookingWhereInput = {
-      ...(status ? { status } : {}),
-      class: {
-        slot: {
-          academyId: acad(scope),
-          ...(f.seriesId ? { seriesId: f.seriesId } : {}),
-        },
-        ...(range ? { date: range } : {}),
-      },
-    };
-    const rows = await prisma.classBooking.findMany({
-      where,
-      orderBy: { class: { date: "desc" } },
-      take: opts?.take,
-      skip: opts?.skip,
-      select: {
-        id: true,
-        personId: true,
-        status: true,
-        refunded: true,
-        createdAt: true,
-        class: {
-          select: {
-            date: true,
-            slot: { select: { series: { select: { name: true } } } },
-          },
-        },
-      },
-    });
-    const names = await personNames(
-      prisma,
-      rows.map((r) => r.personId),
-    );
-    const total =
-      opts?.total === false
-        ? rows.length
-        : await prisma.classBooking.count({ where });
-    return {
-      rows: rows.map((r) => [
-        iso(r.class.date),
-        r.class.slot.series?.name ?? "",
-        names.get(r.personId) ?? "?",
-        r.status,
-        r.refunded ? "si" : "no",
-      ]),
-      personIds: rows.map((r) => r.personId),
-      objects: rows,
-      total,
-      summary: [`${total} reservas de clase`],
     };
   },
 };
@@ -484,7 +434,6 @@ const privateLessons: EntityHandler = {
 export const ACADEMY_ENTITIES: Record<string, EntityHandler> = {
   students,
   attendance,
-  bookings,
   memberships,
   payments,
   private_lessons: privateLessons,
