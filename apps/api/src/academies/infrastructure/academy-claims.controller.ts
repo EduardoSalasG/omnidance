@@ -569,33 +569,20 @@ export class AcademyClaimsController {
       filename: `${L.fileBase}-${slug || "academia"}-${stamp}`,
       title: L.title,
       subtitle: `${report.academyName} · ${period}`,
-      summary: [
-        ...(filters.length
-          ? [`${L.filters}: ${filters.join(" · ")}`]
-          : []),
-        // Con más métodos de los que caben en la fila de KPI cards,
-        // el resto sigue declarado en el resumen.
-        ...(report.byMethod.length > 2
-          ? [
-              `${L.byMethod}: ` +
-                report.byMethod
-                  .slice(2)
-                  .map((m) => `${methodLabel(m.method)} ${money(m.amount)}`)
-                  .join(" · "),
-            ]
-          : []),
-      ],
+      summary: filters.length
+        ? [`${L.filters}: ${filters.join(" · ")}`]
+        : [],
       // KPIs como cards (misma UI que el reporte web): Facturado y
-      // Alumnos + un card por método de pago del período.
+      // Alumnos en la fila principal; los métodos de pago abren fila
+      // propia (newRow) igual que la sección de la página.
       kpis: [
         { label: L.billed, value: money(report.billed) },
         { label: L.payers, value: String(report.payers) },
-        ...report.byMethod
-          .slice(0, 2)
-          .map((m) => ({
-            label: methodLabel(m.method),
-            value: money(m.amount),
-          })),
+        ...report.byMethod.map((m, i) => ({
+          label: methodLabel(m.method),
+          value: money(m.amount),
+          newRow: i === 0,
+        })),
       ],
       headers: ["#", ...L.headers],
       rows: report.items.map((r, i) => [
