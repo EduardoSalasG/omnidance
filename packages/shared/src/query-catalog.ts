@@ -17,6 +17,7 @@ export type FkSource =
   | "academyPlans" // planes de la academia en scope
   | "academyClassSeries" // series de clases de la academia en scope
   | "academyInstructors" // instructores de la academia en scope
+  | "academyLevels" // niveles usados por las series de la academia en scope
   | "academyScheduleSlots" // horarios (ClassSlot) de la academia en scope
   | "academyClasses" // clases concretas (Class) de la academia en scope
   | "eventGuestLists" // listas de invitados del evento en scope
@@ -48,6 +49,10 @@ export interface FilterDef {
   /** true = selección múltiple: la UI muestra chips toggle y el valor
       viaja CSV ("a,b") en el query param. Solo enum/fk. */
   multi?: boolean;
+  /** Filtros de los que dependen las opciones de este select: la UI
+      re-pide `/query/options` con sus valores actuales y limpia la
+      selección si cambian (cascada nivel→serie→horario→clase). */
+  dependsOn?: readonly string[];
 }
 
 export interface EntityDef {
@@ -226,10 +231,31 @@ export const QUERY_CATALOG: Record<QueryRole, readonly EntityDef[]> = {
         scopeAcademy,
         from,
         to,
-        { key: "seriesId", type: "fk", source: "academyClassSeries" },
-        { key: "slotId", type: "fk", source: "academyScheduleSlots" },
-        { key: "classId", type: "fk", source: "academyClasses" },
-        { key: "instructorId", type: "fk", source: "academyInstructors" },
+        { key: "levelId", type: "fk", source: "academyLevels" },
+        {
+          key: "seriesId",
+          type: "fk",
+          source: "academyClassSeries",
+          dependsOn: ["levelId"],
+        },
+        {
+          key: "slotId",
+          type: "fk",
+          source: "academyScheduleSlots",
+          dependsOn: ["seriesId"],
+        },
+        {
+          key: "classId",
+          type: "fk",
+          source: "academyClasses",
+          dependsOn: ["slotId"],
+        },
+        {
+          key: "instructorId",
+          type: "fk",
+          source: "academyInstructors",
+          dependsOn: ["slotId"],
+        },
       ],
       columns: ["fecha", "clase", "alumno", "instructor"],
     },

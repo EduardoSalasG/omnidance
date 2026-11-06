@@ -131,6 +131,8 @@ const attendance: EntityHandler = {
       slot: {
         academyId: acad(scope),
         ...(f.seriesId ? { seriesId: f.seriesId } : {}),
+        // levelId = nivel de la serie (ClassLevel global o custom).
+        ...(f.levelId ? { series: { levelId: f.levelId } } : {}),
       },
       // slotId = horario semanal concreto (ClassSlot); classId = la
       // ocurrencia exacta (va directo sobre Attendance.classId).

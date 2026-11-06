@@ -30,10 +30,12 @@ type FilterBarProps = {
   /** Opciones FK ya resueltas por /query/catalog, indexadas por source. */
   options: Record<string, QueryOption[]>;
   /** Loader de fuentes scope-dependientes (academyPlans, eventGuestLists…):
-      se llama con el valor actual del filtro de scope. */
+      se llama con el valor actual del filtro de scope más los valores
+      de los filtros padre (dependsOn, cascada de selects). */
   loadScopeOptions?: (
     source: FkSource,
     scopeId: string,
+    deps?: Record<string, string | undefined>,
   ) => Promise<QueryOption[]>;
   className?: string;
 };
@@ -72,11 +74,22 @@ export function FilterBar({
   >({});
   const lazyReq = useRef(0);
 
-  // Recarga de opciones lazy al cambiar el scope (o la entidad). Las keys
-  // dependientes se limpian desde el handler de scope (ver setFilter).
-  // Las fuentes academy resuelven también sin scope (unión de las
-  // academias propias); solo las marcadas `requiresScope` en el catálogo
-  // (eventGuestLists) esperan a que el usuario elija scope.
+  // Valores de los filtros padre de cada fuente lazy (cascada): cuando
+  // cambian, las opciones se re-piden acotadas y la selección se
+  // limpia desde setFilter.
+  const depsFor = (f: FilterDef) =>
+    Object.fromEntries(
+      (f.dependsOn ?? []).map((k) => [k, filters[k]]),
+    ) as Record<string, string | undefined>;
+  const depKey = lazySources
+    .flatMap((f) => (f.dependsOn ?? []).map((k) => `${k}=${filters[k] ?? ""}`))
+    .join("|");
+
+  // Recarga de opciones lazy al cambiar el scope, la entidad o un
+  // filtro padre (cascada). Las keys dependientes se limpian desde
+  // setFilter. Las fuentes academy resuelven también sin scope (unión
+  // de las academias propias); solo las marcadas `requiresScope` en el
+  // catálogo (eventGuestLists) esperan a que el usuario elija scope.
   useEffect(() => {
     if (!loadScopeOptions || lazySources.length === 0) return;
     const req = ++lazyReq.current;
@@ -91,7 +104,11 @@ export function FilterBar({
     void Promise.all(
       loadable.map(async (f) => {
         try {
-          const items = await loadScopeOptions(f.source, scopeValue);
+          const items = await loadScopeOptions(
+            f.source,
+            scopeValue,
+            depsFor(f),
+          );
           return [f.source, items] as const;
         } catch {
           return [f.source, []] as const;
@@ -105,7 +122,7 @@ export function FilterBar({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entity.entity, scopeValue, loadScopeOptions]);
+  }, [entity.entity, scopeValue, depKey, loadScopeOptions]);
 
   function setFilter(key: string, value: string) {
     const next = { ...filters };
@@ -115,6 +132,23 @@ export function FilterBar({
     if (key === scopeKey) {
       for (const f of lazySources) delete next[f.key];
       setLazyOptions({});
+    }
+    // Cascada: al cambiar un filtro padre se limpian los valores de los
+    // selects que dependen de él, en cadena (nivel→serie→horario→clase).
+    const dirty = new Set<string>([key]);
+    let again = true;
+    while (again) {
+      again = false;
+      for (const f of entity.filters) {
+        if (
+          f.dependsOn?.some((k) => dirty.has(k)) &&
+          !dirty.has(f.key)
+        ) {
+          delete next[f.key];
+          dirty.add(f.key);
+          again = true;
+        }
+      }
     }
     onChange(next);
   }
