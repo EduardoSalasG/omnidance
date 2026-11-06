@@ -701,6 +701,9 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     },
     // El CRM del owner es sección propia (igual que en productor).
     CRM_DRAWER_GROUP,
+    // Orden: CRM → Analítica → Configuración (la operación va antes
+    // que el setup de una vez).
+    ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM]),
     // Configuración: una página por sección (clases, niveles, cobro,
     // perfil público, apariencia). La raíz /academia/configuracion
     // redirige a perfil (destino de todos los tiers) - los items
@@ -759,7 +762,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
         },
       ],
     },
-    ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM]),
   ],
   // El instructor tampoco usa drawer: sus 3 destinos (Inicio, Mis
   // clases, Alumnos) caben en el tab bar - Videos y Clases particulares
