@@ -30,10 +30,15 @@ async function login(page, email) {
 }
 
 const hasText = (page, re) => page.getByText(re).first().isVisible({ timeout: 8000 }).catch(() => false);
-const drawer = async (page) => {
-  // El chrome desktop lista el sidebar (lg+). Viewport 1280.
-  return page.locator("nav, aside, [data-tour='app-sidebar']").first();
-};
+
+// Personas con varios roles caen en la lente de mayor privilegio
+// (PRODUCER > ACADEMY_OWNER). La lente se persiste en
+// localStorage["omnidance:active-role"] (lib/active-role.ts).
+async function setLens(page, role) {
+  await page.evaluate((r) => localStorage.setItem("omnidance:active-role", r), role);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
+}
 
 (async () => {
   const browser = await chromium.launch();
@@ -42,6 +47,7 @@ const drawer = async (page) => {
 
   // ─── gabriel@ PRO (Mambo Madness) ───
   await login(page, "gabriel@omnidance.dev");
+  await setLens(page, "ACADEMY_OWNER");
   // P0 corregido: /crm no debe ser paywall para owner PRO.
   await page.goto(`${BASE}/crm`, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(2500);
@@ -59,6 +65,7 @@ const drawer = async (page) => {
   // ─── tumbao@ COBROS ───
   const page2 = await ctx.newPage();
   await login(page2, "tumbao@omnidance.dev");
+  await setLens(page2, "ACADEMY_OWNER");
   await page2.waitForTimeout(1500);
   const body = await page2.locator("body").innerText();
   ok("COBROS drawer sin Series/Equipo/Videos/CRM", !/Series|Equipo|Videos|Segmentos/i.test(body));
@@ -70,12 +77,13 @@ const drawer = async (page) => {
   ok("COBROS /series paywall", await hasText(page2, /parte del plan/i));
   await page2.goto(`${BASE}/academia/cobros`, { waitUntil: "domcontentloaded" });
   await page2.waitForTimeout(2000);
-  ok("COBROS /cobros sin botón Reporte", !(await page2.locator('a[href*="cobros/reporte"], button:has-text("Reporte")').first().isVisible({ timeout: 3000 }).catch(() => false)));
+  ok("COBROS /cobros sin botón Reporte", !(await page2.locator('main a[href*="cobros/reporte"], main button:has-text("Reporte")').first().isVisible({ timeout: 3000 }).catch(() => false)));
   ok("COBROS /cobros sin historial", !(await hasText(page2, /Historial de cobros/i)));
 
   // ─── muvet@ STUDIO ───
   const page3 = await ctx.newPage();
   await login(page3, "muvet@omnidance.dev");
+  await setLens(page3, "ACADEMY_OWNER");
   await page3.waitForTimeout(2000);
   const body3 = await page3.locator("body").innerText();
   ok("STUDIO drawer con Series+Equipo, sin Videos/CRM", /Series/i.test(body3) && !/Videos|Segmentos/i.test(body3));
