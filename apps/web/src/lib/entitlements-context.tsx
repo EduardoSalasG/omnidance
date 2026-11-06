@@ -9,6 +9,7 @@ import {
 } from "react";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import { useStoredAcademyId } from "@/lib/academy-selection";
 
 // Entitlements unificados por actor (spec unified-actor-entitlements) -
 // espejo de GET /me/entitlements: una fuente para el productor y las
@@ -113,8 +114,6 @@ export function useEntitlements(): EntitlementsContextValue {
   return ctx;
 }
 
-const STORAGE_KEY = "omnidance:academy-id";
-
 /**
  * Entitlements de un actor concreto (spec unified-actor-entitlements):
  * - "PRODUCER" → el entitlement propio (el endpoint solo expone el del
@@ -141,6 +140,9 @@ export function useActorEntitlements(
   has: (feature: string) => boolean;
 } {
   const { producer, academies, loading } = useEntitlements();
+  // Selección persistida reactiva: cambios desde el switcher de la
+  // nav, el gate del hub u otra pestaña re-resuelven la entrada.
+  const stored = useStoredAcademyId();
 
   let entry: ActorEntitlement | null = null;
   let resolved = true;
@@ -148,14 +150,6 @@ export function useActorEntitlements(
     entry = producer;
     resolved = producer != null;
   } else {
-    let stored: string | null = null;
-    if (actorId == null && typeof window !== "undefined") {
-      try {
-        stored = window.localStorage.getItem(STORAGE_KEY);
-      } catch {
-        // Sin storage - cae a la primera academia.
-      }
-    }
     const target = actorId ?? stored;
     if (target != null) {
       // Selección explícita/persistida: solo cuenta el match exacto -

@@ -10,7 +10,12 @@ import { PageLoading } from "@/components/ui/spinner";
 import { AcademyBillingBanner } from "./academy-billing-banner";
 import { CreateAcademyForm } from "./create-academy-form";
 import { academyTierHas } from "@/lib/academy-features";
-import { ACADEMY_STORAGE_KEY, inputCls, type Academy } from "./shared";
+import {
+  ACADEMY_CHANGED_EVENT,
+  ACADEMY_STORAGE_KEY,
+  selectStoredAcademy,
+} from "@/lib/academy-selection";
+import { inputCls, type Academy } from "./shared";
 
 type Gate = "loading" | "unauth" | "empty" | "ready" | "error";
 
@@ -106,12 +111,22 @@ export function AcademyGate({
 
   function selectAcademy(id: string) {
     setSelectedId(id);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, id);
-    } catch {
-      // Sin storage - la selección vive solo en memoria.
-    }
+    // El switcher de la nav (drawer/sidebar del owner) escucha el
+    // mismo evento: la selección queda sincronizada entre superficies.
+    selectStoredAcademy(id);
   }
+
+  // Selección hecha desde otra superficie (switcher de la nav): el
+  // gate la adopta si el id pertenece a su lista, sin recarga.
+  useEffect(() => {
+    const onChanged = (e: Event) => {
+      const id = (e as CustomEvent<{ id?: string }>).detail?.id;
+      if (id && academies.some((a) => a.id === id)) setSelectedId(id);
+    };
+    window.addEventListener(ACADEMY_CHANGED_EVENT, onChanged);
+    return () =>
+      window.removeEventListener(ACADEMY_CHANGED_EVENT, onChanged);
+  }, [academies]);
 
   const selected = academies.find((a) => a.id === selectedId) ?? null;
 

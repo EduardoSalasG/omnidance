@@ -8448,6 +8448,70 @@
           }
         },
         {
+          "name": "GET /api/academies/{id}/billing-report.csv",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/billing-report.csv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "billing-report.csv"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "lang",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/billing-report.pdf",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/billing-report.pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "billing-report.pdf"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "lang",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/academies/{id}/claims/{claimId}",
           "request": {
             "method": "GET",
@@ -13677,6 +13741,21 @@
               "query": [
                 {
                   "key": "scopeId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "levelId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "seriesId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "slotId",
                   "value": "",
                   "disabled": true
                 }

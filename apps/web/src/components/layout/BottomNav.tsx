@@ -20,6 +20,7 @@ import {
   type SheetItem,
 } from "./DancerActionsSheet";
 import { ModeToggle } from "./ModeToggle";
+import { AcademySwitcher } from "@/components/academy/academy-switcher";
 import { ChevronRightIcon } from "@/components/ui/icons";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 
@@ -1737,6 +1738,14 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           onToggle={() =>
             setSidebarState(sidebarCollapsed ? "expanded" : "collapsed")
           }
+          header={
+            // Selector de academia del owner (spec
+            // academies/console-lists): solo si >1 propia o el tier
+            // cubre multiAcademy - el componente decide solo.
+            meChecked && activeRole === "ACADEMY_OWNER" ? (
+              <AcademySwitcher />
+            ) : undefined
+          }
         />
       )}
 
@@ -1934,6 +1943,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
         onClose={() => setDrawerOpen(false)}
         groups={drawerGroups}
         roleLabel={me ? roleLabel : undefined}
+        header={
+          meChecked && activeRole === "ACADEMY_OWNER" ? (
+            <AcademySwitcher onNavigate={() => setDrawerOpen(false)} />
+          ) : undefined
+        }
       />
 
       {/* Sheet de acciones - solo la lente bailarín; los demás roles
