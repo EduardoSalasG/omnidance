@@ -6889,6 +6889,64 @@
         ]
       }
     },
+    "/api/academies/{id}/billing-report.csv": {
+      "get": {
+        "operationId": "AcademyClaimsController_billingReportCsv",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
+      }
+    },
+    "/api/academies/{id}/billing-report.pdf": {
+      "get": {
+        "operationId": "AcademyClaimsController_billingReportPdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyClaims"
+        ]
+      }
+    },
     "/api/academies/{id}/claims/{claimId}": {
       "get": {
         "operationId": "AcademyClaimsController_getClaim",
@@ -11851,6 +11909,30 @@
         "parameters": [
           {
             "name": "scopeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "levelId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "seriesId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slotId",
             "required": false,
             "in": "query",
             "schema": {

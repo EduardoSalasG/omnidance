@@ -672,8 +672,12 @@ export async function readError(res: Response): Promise<string | null> {
 }
 
 // Academia seleccionada en la consola (AcademyGate + /academia/nueva) -
-// persiste entre el hub y las subrutas de módulo.
-export const ACADEMY_STORAGE_KEY = "omnidance:academy-id";
+// persiste entre el hub y las subrutas de módulo. El mecanismo
+// completo (key + evento + helpers) vive en lib/academy-selection.
+export {
+  ACADEMY_CHANGED_EVENT,
+  ACADEMY_STORAGE_KEY,
+} from "@/lib/academy-selection";
 
 // Inputs compactos dark-first; min-h-11 = touch target 44px.
 export const inputCls =
