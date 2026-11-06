@@ -95,9 +95,12 @@ const EXPORT_I18N = {
       TRANSFER: "Transferencia",
       CASH: "Efectivo",
       CARD: "Tarjeta",
+      CREDIT_CARD: "Tarjeta",
       DEBIT: "Débito",
+      DEBIT_CARD: "Débito",
       WEBPAY: "Webpay",
       MERCADOPAGO: "MercadoPago",
+      FLOW: "Flow",
       FREE: "Gratis",
     } as Record<string, string>,
   },
@@ -127,9 +130,12 @@ const EXPORT_I18N = {
       TRANSFER: "Transfer",
       CASH: "Cash",
       CARD: "Card",
+      CREDIT_CARD: "Card",
       DEBIT: "Debit",
+      DEBIT_CARD: "Debit",
       WEBPAY: "Webpay",
       MERCADOPAGO: "MercadoPago",
+      FLOW: "Flow",
       FREE: "Free",
     } as Record<string, string>,
   },
@@ -478,6 +484,7 @@ export class AcademyClaimsController {
       title: ex.title,
       subtitle: ex.subtitle,
       summary: ex.summary,
+      kpis: ex.kpis,
       headers: ex.headers,
       rows: ex.rows,
     });
@@ -513,8 +520,19 @@ export class AcademyClaimsController {
     const money = (a: number, c = "CLP") =>
       `${c === "CLP" ? "$" : `${c} `}${new Intl.NumberFormat(locale).format(a)}`;
     const statusLabel = (s: string) => L.statuses[s] ?? s;
-    const methodLabel = (m: string | null) =>
-      m ? (L.methods[m] ?? m) : L.methodsOther;
+    // Normalizador de método: los valores crudos llegan en varios
+    // formatos (TRANSFER, credit_card, webpay, "Transferencia") -
+    // busca por clave mayúscula y cae a title-case del snake_case.
+    const methodLabel = (m: string | null) => {
+      if (!m) return L.methodsOther;
+      const key = m.toUpperCase().replace(/[\s-]/g, "_");
+      return (
+        L.methods[key] ??
+        m
+          .replace(/[_-]+/g, " ")
+          .replace(/^\w|\s\w/g, (c) => c.toUpperCase())
+      );
+    };
     const day = (iso: string) =>
       new Date(iso).toLocaleDateString(locale, {
         day: "2-digit",
@@ -522,9 +540,18 @@ export class AcademyClaimsController {
         year: "numeric",
       });
 
+    // El rango es día-calendario UTC (dayRange): se formatea en UTC o
+    // la zona local corre la medianoche al día anterior.
+    const dayUtc = (d: Date) =>
+      d.toLocaleDateString(locale, {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "UTC",
+      });
     const period = L.periodOf(
-      range.gte ? day(range.gte.toISOString()) : null,
-      range.lte ? day(range.lte.toISOString()) : null,
+      range.gte ? dayUtc(range.gte) : null,
+      range.lte ? dayUtc(range.lte) : null,
     );
     const filters = [
       report.planName ? `${L.filterPlan}: ${report.planName}` : null,
@@ -543,21 +570,36 @@ export class AcademyClaimsController {
       title: L.title,
       subtitle: `${report.academyName} · ${period}`,
       summary: [
-        `${L.billed}: ${money(report.billed)} · ${L.payers}: ${report.payers}`,
         ...(filters.length
           ? [`${L.filters}: ${filters.join(" · ")}`]
           : []),
-        ...(report.byMethod.length
+        // Con más métodos de los que caben en la fila de KPI cards,
+        // el resto sigue declarado en el resumen.
+        ...(report.byMethod.length > 2
           ? [
               `${L.byMethod}: ` +
                 report.byMethod
+                  .slice(2)
                   .map((m) => `${methodLabel(m.method)} ${money(m.amount)}`)
                   .join(" · "),
             ]
           : []),
       ],
-      headers: [...L.headers],
-      rows: report.items.map((r) => [
+      // KPIs como cards (misma UI que el reporte web): Facturado y
+      // Alumnos + un card por método de pago del período.
+      kpis: [
+        { label: L.billed, value: money(report.billed) },
+        { label: L.payers, value: String(report.payers) },
+        ...report.byMethod
+          .slice(0, 2)
+          .map((m) => ({
+            label: methodLabel(m.method),
+            value: money(m.amount),
+          })),
+      ],
+      headers: ["#", ...L.headers],
+      rows: report.items.map((r, i) => [
+        i + 1,
         day(r.createdAt),
         r.personName ?? "-",
         r.planName ?? "-",

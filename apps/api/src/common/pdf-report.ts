@@ -17,6 +17,9 @@ interface TableReport {
   subtitle?: string;
   /** Líneas de resumen entre el subtítulo y la tabla (totales, conteos). */
   summary?: string[];
+  /** KPIs como cards (misma lectura que los KPI del reporte web):
+      borde suave, label muted en caps chica, valor bold. */
+  kpis?: { label: string; value: string }[];
   headers: string[];
   rows: unknown[][];
 }
@@ -41,6 +44,7 @@ export function buildTablePdf({
   title,
   subtitle,
   summary = [],
+  kpis = [],
   headers,
   rows,
 }: TableReport): Promise<Buffer> {
@@ -105,6 +109,43 @@ export function buildTablePdf({
     doc.font("Helvetica").fontSize(9).fillColor(BRAND.text).text(s);
   });
   doc.moveDown(0.8);
+
+  // Fila de KPI cards (mismo lenguaje visual que el reporte web).
+  if (kpis.length) {
+    const GAP = 8;
+    const cardW =
+      (width - GAP * Math.min(kpis.length, 4) + GAP) /
+      Math.min(kpis.length, 4);
+    const cardH = 34;
+    const y0 = doc.y;
+    kpis.slice(0, 4).forEach((k, i) => {
+      const x = MARGIN + i * (cardW + GAP);
+      doc
+        .roundedRect(x, y0, cardW, cardH, 4)
+        .lineWidth(0.7)
+        .strokeColor(BRAND.line)
+        .stroke();
+      doc.rect(x, y0, 2.5, cardH).fill(BRAND.accent);
+      doc
+        .font("Helvetica")
+        .fontSize(6.5)
+        .fillColor(BRAND.muted)
+        .text(k.label.toUpperCase(), x + 8, y0 + 6, {
+          lineBreak: false,
+          width: cardW - 12,
+        });
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(11)
+        .fillColor(BRAND.ink)
+        .text(k.value, x + 8, y0 + 17, {
+          lineBreak: false,
+          width: cardW - 12,
+        });
+    });
+    doc.y = y0 + cardH;
+    doc.moveDown(0.9);
+  }
 
   drawHeader();
   doc.font("Helvetica").fontSize(FONT_SIZE);
