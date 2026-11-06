@@ -571,6 +571,11 @@ export default function AnaliticaPage() {
                     headers={result.headers}
                     rows={result.rows}
                     total={result.total}
+                    personBasePath={
+                      role === "ACADEMY_OWNER"
+                        ? "/academia/alumnos"
+                        : "/analitica/usuarios"
+                    }
                   />
                   <Pager
                     page={result.page}

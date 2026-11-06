@@ -17,6 +17,8 @@ export type FkSource =
   | "academyPlans" // planes de la academia en scope
   | "academyClassSeries" // series de clases de la academia en scope
   | "academyInstructors" // instructores de la academia en scope
+  | "academyScheduleSlots" // horarios (ClassSlot) de la academia en scope
+  | "academyClasses" // clases concretas (Class) de la academia en scope
   | "eventGuestLists" // listas de invitados del evento en scope
   // fuentes admin (global):
   | "producers"
@@ -39,6 +41,10 @@ export interface FilterDef {
   source?: FkSource;
   /** true = filtro de scope obligatorio (evento/serie o academia). */
   scope?: boolean;
+  /** fk: la fuente exige scope explícito - sin scope elegido la UI no
+      pide sus opciones (eventGuestLists → 400). Las fuentes academy sí
+      resuelven sin scope (unión de las academias propias). */
+  requiresScope?: boolean;
   /** true = selección múltiple: la UI muestra chips toggle y el valor
       viaja CSV ("a,b") en el query param. Solo enum/fk. */
   multi?: boolean;
@@ -69,7 +75,6 @@ const GUESTLIST_STATUS = ["PENDING", "ARRIVED"];
 const RESERVATION_STATUS = ["REQUESTED", "CONFIRMED", "CANCELLED"];
 const WAITLIST_STATUS = ["WAITING", "PROMOTED", "EXPIRED"];
 const ENROLLMENT_STATUS = ENROLLMENT_STATUSES;
-const BOOKING_STATUS = ["BOOKED", "WAITLIST", "CANCELLED"];
 const SUBSCRIPTION_STATUS = [
   "PENDING_CARD",
   "ACTIVATING",
@@ -161,7 +166,12 @@ export const QUERY_CATALOG: Record<QueryRole, readonly EntityDef[]> = {
         from,
         to,
         { key: "status", type: "enum", options: GUESTLIST_STATUS },
-        { key: "listId", type: "fk", source: "eventGuestLists" },
+        {
+          key: "listId",
+          type: "fk",
+          source: "eventGuestLists",
+          requiresScope: true,
+        },
       ],
       columns: ["lista", "dueno_lista", "invitado", "estado", "creado"],
     },
@@ -217,20 +227,11 @@ export const QUERY_CATALOG: Record<QueryRole, readonly EntityDef[]> = {
         from,
         to,
         { key: "seriesId", type: "fk", source: "academyClassSeries" },
+        { key: "slotId", type: "fk", source: "academyScheduleSlots" },
+        { key: "classId", type: "fk", source: "academyClasses" },
         { key: "instructorId", type: "fk", source: "academyInstructors" },
       ],
       columns: ["fecha", "clase", "alumno", "instructor"],
-    },
-    {
-      entity: "bookings",
-      filters: [
-        scopeAcademy,
-        { key: "status", type: "enum", options: BOOKING_STATUS },
-        { key: "seriesId", type: "fk", source: "academyClassSeries" },
-        from,
-        to,
-      ],
-      columns: ["fecha", "clase", "alumno", "estado", "reembolsada"],
     },
     {
       entity: "memberships",
