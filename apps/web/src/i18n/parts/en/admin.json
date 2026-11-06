@@ -96,7 +96,24 @@
       "roleAdded": "Role assigned",
       "roleRevoked": "Role revoked",
       "reactivated": "Account reactivated",
-      "deleteOk": "Account deactivated"
+      "deleteOk": "Account deactivated",
+      "charge": {
+        "title": "Direct charge",
+        "body": "Charge a one-off amount to this person's saved payment method (debt, special fee, adjustment). If there is no card, the gateway issues a payment link.",
+        "amount": "Amount (CLP)",
+        "subject": "Concept",
+        "subjectPh": "e.g. October event debt",
+        "cta": "Charge",
+        "confirm": "Charge {amount} to {name}? Concept: {subject}",
+        "confirmCta": "Confirm charge",
+        "collected": "Charge confirmed",
+        "failed": "The payment method declined the charge",
+        "pending": "No card on file: share the payment link",
+        "payLink": "Payment link",
+        "copyLink": "Copy link",
+        "copied": "Link copied",
+        "invalid": "Enter a valid amount and a concept"
+      }
     },
     "status": {
       "REJECTED": "Rejected"
@@ -251,13 +268,20 @@
       "back": "Academies",
       "kpi": {
         "enrolled": "Enrolled",
+        "enrolledHint": "Registered enrollments",
         "plan": "With plan",
+        "planHint": "Enrollments with an assigned plan",
         "checkin": "Checked in",
+        "checkinHint": "Students who attended this month",
         "score": "Avg score",
+        "scoreHint": "Average student score",
         "billing": "Month billing",
         "classes": "Schedules",
+        "classesHint": "Weekly slots configured",
         "plans": "Plans",
-        "computed": "Score updated"
+        "plansHint": "Membership plans created",
+        "computed": "Score updated",
+        "computedHint": "Last score computation"
       },
       "detail": {
         "general": "General data",
@@ -621,8 +645,11 @@
       "desc": "Platform subscriptions: academies and Producer Pro.",
       "kpisLabel": "SaaS metrics",
       "kpiMrr": "MRR",
+      "kpiMrrHint": "Monthly recurring revenue",
       "kpiArr": "ARR",
+      "kpiArrHint": "MRR × 12",
       "kpiActive": "Active",
+      "kpiActiveHint": "Active subscriptions",
       "kpiCustom": "Custom",
       "kpiCustomHint": "Contracts outside MRR",
       "tiersTitle": "By tier",

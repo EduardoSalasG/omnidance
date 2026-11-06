@@ -11,8 +11,11 @@
     "capacity": "Jauge : {count} personnes",
     "kpi": {
       "upcoming": "À venir",
+      "upcomingHint": "Événements à venir dans ce lieu",
       "events30d": "Événements 30j",
-      "checkins30d": "Check-ins 30j"
+      "events30dHint": "Événements des 30 derniers jours",
+      "checkins30d": "Check-ins 30j",
+      "checkins30dHint": "Check-ins des 30 derniers jours"
     },
     "sections": {
       "upcoming": "Prochains événements",

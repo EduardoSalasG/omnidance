@@ -1,0 +1,1628 @@
+{
+  "generatedAt": "2026-11-06T14:02:10.266Z",
+  "events": [
+    {
+      "id": "cmw308ekz003j59ls3684yb3q",
+      "name": "QA Puerta 1793850435513",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-06T05:47:15.513Z",
+      "endsAt": "2026-11-06T10:47:15.513Z",
+      "presalePrice": null,
+      "doorPrice": null,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": null,
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmw30aeie005j59lsqc2hvly0",
+      "name": "QA Puerta 1793850528720",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-06T05:48:48.720Z",
+      "endsAt": "2026-11-06T10:48:48.720Z",
+      "presalePrice": null,
+      "doorPrice": null,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": null,
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmw30jp58009m59ls6p3zgy94",
+      "name": "QA Puerta 1793850962415",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-06T05:56:02.415Z",
+      "endsAt": "2026-11-06T10:56:02.415Z",
+      "presalePrice": null,
+      "doorPrice": null,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": null,
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmw30mn3l00as59ls1khmfy1p",
+      "name": "QA Puerta 1793851099715",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-06T05:58:19.715Z",
+      "endsAt": "2026-11-06T10:58:19.715Z",
+      "presalePrice": null,
+      "doorPrice": null,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": null,
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmw30s76y00bm59lsx637qcq0",
+      "name": "QA Puerta 1793851359042",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-06T06:02:39.042Z",
+      "endsAt": "2026-11-06T11:02:39.042Z",
+      "presalePrice": null,
+      "doorPrice": null,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": null,
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmw30xfj000f859lstj68jg7s",
+      "name": "QA Puerta 1793851603118",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-06T06:06:43.118Z",
+      "endsAt": "2026-11-06T11:06:43.118Z",
+      "presalePrice": null,
+      "doorPrice": null,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": null,
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmuws38zd02eogp1qr0impdiu",
+      "name": "Social en vivo - demo",
+      "type": "SOCIAL",
+      "status": "LIVE",
+      "startsAt": "2026-11-06T12:01:44.910Z",
+      "endsAt": "2026-11-06T18:01:44.910Z",
+      "presalePrice": null,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmubd9oq200n213hetp2cx88h",
+      "name": "Viernes Sabroso",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-07T01:00:00.000Z",
+      "endsAt": "2026-11-07T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr6g001gyo42ob7aoqr6",
+        "name": "Havana",
+        "address": "Domínica 142, Recoleta",
+        "lat": -33.4286429,
+        "lng": -70.6391064
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 2
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmu62trb7001xyo424ualc2th",
+      "name": "La Gozadera",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-07T01:00:00.000Z",
+      "endsAt": "2026-11-07T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 2
+        }
+      ],
+      "series": {
+        "id": "cmu62trav001vyo42vdr80cnd",
+        "name": "La Gozadera"
+      }
+    },
+    {
+      "id": "cmubely3900nqbram296rt6ak",
+      "name": "Exóticas",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-07T01:00:00.000Z",
+      "endsAt": "2026-11-07T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 1
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmubd9osf00ni13hecl8fk8bv",
+      "name": "Sábado con Sabrosura",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-08T01:00:00.000Z",
+      "endsAt": "2026-11-08T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr6g001gyo42ob7aoqr6",
+        "name": "Havana",
+        "address": "Domínica 142, Recoleta",
+        "lat": -33.4286429,
+        "lng": -70.6391064
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 2
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmv1hfw8b0tq76kp6oxusumiv",
+      "name": "Trilogía",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-08T01:00:00.000Z",
+      "endsAt": "2026-11-08T07:00:00.000Z",
+      "presalePrice": 6000,
+      "doorPrice": 8000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 5
+        },
+        {
+          "genre": "SALSA",
+          "songs": 4
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 1
+        }
+      ],
+      "series": {
+        "id": "cmv1hfw850tq56kp6x9sklbe8",
+        "name": "Trilogía"
+      }
+    },
+    {
+      "id": "cmubely4e00nybram4x8mrlkq",
+      "name": "Bachatazo",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-08T01:00:00.000Z",
+      "endsAt": "2026-11-08T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 1
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmv1xf9t30ua0735868ppa361",
+      "name": "Muévete Social",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-09T01:00:00.000Z",
+      "endsAt": "2026-11-09T07:00:00.000Z",
+      "presalePrice": 4000,
+      "doorPrice": 5000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": null,
+      "series": {
+        "id": "cmv1xf9sx0u9y7358n0mp6l65",
+        "name": "Muévete Social"
+      }
+    },
+    {
+      "id": "cmubelxzq00n4bram67nir6zd",
+      "name": "Bachata Club",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-11T01:00:00.000Z",
+      "endsAt": "2026-11-11T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 6000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 1
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmuwva3yc00m6h7h7kuszd5sc",
+      "name": "Bachata con Salsa",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-12T00:00:00.000Z",
+      "endsAt": "2026-11-12T05:00:00.000Z",
+      "presalePrice": 0,
+      "doorPrice": 5000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA",
+        "SALSA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 4
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        }
+      ],
+      "series": {
+        "id": "cmuwva3y600m4h7h79h48euny",
+        "name": "Bachata con Salsa"
+      }
+    },
+    {
+      "id": "cmu62tr86001lyo423gke8z9l",
+      "name": "Bachatamanía",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-12T01:00:00.000Z",
+      "endsAt": "2026-11-12T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 6000,
+      "platformFeePct": 10,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 15
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 15
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 2
+        }
+      ],
+      "series": {
+        "id": "cmu62tr7k001jyo42d7x1k1py",
+        "name": "Bachatamanía"
+      }
+    },
+    {
+      "id": "cmu62tra2001ryo42leemi6c4",
+      "name": "Baila Cubano con Bachata",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-13T01:00:00.000Z",
+      "endsAt": "2026-11-13T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "CUBANO",
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "CUBANO",
+          "songs": 4
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        }
+      ],
+      "series": {
+        "id": "cmu62tr9o001pyo4273alu7cm",
+        "name": "Baila Cubano con Bachata"
+      }
+    },
+    {
+      "id": "cmubely2300nibramjjxffnaj",
+      "name": "Switch",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-13T01:00:00.000Z",
+      "endsAt": "2026-11-13T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 1
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmubd9oqp00n613her8d4muyn",
+      "name": "Zona Salsera",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-14T01:00:00.000Z",
+      "endsAt": "2026-11-14T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr6g001gyo42ob7aoqr6",
+        "name": "Havana",
+        "address": "Domínica 142, Recoleta",
+        "lat": -33.4286429,
+        "lng": -70.6391064
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 2
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmu62trch0023yo42yimc49ct",
+      "name": "Desafío de Tronos",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-14T01:00:00.000Z",
+      "endsAt": "2026-11-14T07:00:00.000Z",
+      "presalePrice": 6000,
+      "doorPrice": 8000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 2
+        }
+      ],
+      "series": {
+        "id": "cmu62trc50021yo42gt9bdwv1",
+        "name": "Desafío de Tronos"
+      }
+    },
+    {
+      "id": "cmubely3k00nsbramlbt8j6zg",
+      "name": "Galaxy",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-14T01:00:00.000Z",
+      "endsAt": "2026-11-14T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA",
+        "SALSA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 5
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmubely4o00o0bramqsjcgomu",
+      "name": "Lovers",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-15T01:00:00.000Z",
+      "endsAt": "2026-11-15T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 1
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmu62tre3002dyo42o7v9s54v",
+      "name": "Ashe",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-15T01:00:00.000Z",
+      "endsAt": "2026-11-15T07:00:00.000Z",
+      "presalePrice": 6000,
+      "doorPrice": 8000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "CUBANO",
+          "songs": 1
+        }
+      ],
+      "series": {
+        "id": "cmu62trds002byo42ynfx6b4f",
+        "name": "Ashe"
+      }
+    },
+    {
+      "id": "cmu62trd50027yo42w6uj4heu",
+      "name": "Social con Estilo",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-15T01:00:00.000Z",
+      "endsAt": "2026-11-15T07:00:00.000Z",
+      "presalePrice": 6000,
+      "doorPrice": 8000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "SALSA",
+          "songs": 4
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 2
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        }
+      ],
+      "series": {
+        "id": "cmu62trct0025yo42i707o35o",
+        "name": "Social con Estilo"
+      }
+    },
+    {
+      "id": "cmubd9ot200nm13hei9cyugds",
+      "name": "Salseo Night",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-15T01:00:00.000Z",
+      "endsAt": "2026-11-15T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr6g001gyo42ob7aoqr6",
+        "name": "Havana",
+        "address": "Domínica 142, Recoleta",
+        "lat": -33.4286429,
+        "lng": -70.6391064
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 2
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmvzt3jqn02dm11xy9imwuwkr",
+      "name": "César presenta: Social de Noviembre",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-15T22:00:00.000Z",
+      "endsAt": "2026-11-16T03:00:00.000Z",
+      "presalePrice": 8000,
+      "doorPrice": 10000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA"
+      ],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmvzt3jlu02c911xyjv3xg2s7",
+      "name": "Gabriel presenta: Social de Noviembre",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-16T22:00:00.000Z",
+      "endsAt": "2026-11-17T03:00:00.000Z",
+      "presalePrice": 8000,
+      "doorPrice": 10000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA"
+      ],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmubely0000n6bramfvkx4cvz",
+      "name": "Bachata Club",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-18T01:00:00.000Z",
+      "endsAt": "2026-11-18T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 6000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 1
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmvzt3js702e211xyafnt4l7w",
+      "name": "DJ presenta: Social de Noviembre",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-18T22:00:00.000Z",
+      "endsAt": "2026-11-19T03:00:00.000Z",
+      "presalePrice": 8000,
+      "doorPrice": 10000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA"
+      ],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmubely2d00nkbramy7m7zmf5",
+      "name": "AbraZouk",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-20T01:00:00.000Z",
+      "endsAt": "2026-11-20T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmvzt3jka02bw11xytvkvsc47",
+      "name": "Carlos presenta: Social de Noviembre",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-20T22:00:00.000Z",
+      "endsAt": "2026-11-21T03:00:00.000Z",
+      "presalePrice": 8000,
+      "doorPrice": 10000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA"
+      ],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmubely3u00nubrammvutrqyv",
+      "name": "Bachata Club",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-21T01:00:00.000Z",
+      "endsAt": "2026-11-21T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 1
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmubd9or900na13he350omz6f",
+      "name": "Estrellas de la rumba",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-21T01:00:00.000Z",
+      "endsAt": "2026-11-21T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr6g001gyo42ob7aoqr6",
+        "name": "Havana",
+        "address": "Domínica 142, Recoleta",
+        "lat": -33.4286429,
+        "lng": -70.6391064
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 2
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmvzt3jpa02d811xyu8dq5hsr",
+      "name": "Ardilla presenta: Social de Noviembre",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-21T22:00:00.000Z",
+      "endsAt": "2026-11-22T03:00:00.000Z",
+      "presalePrice": 8000,
+      "doorPrice": 10000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA"
+      ],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmubely4y00o2bramf7sblhdo",
+      "name": "Exóticas",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-22T01:00:00.000Z",
+      "endsAt": "2026-11-22T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 1
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmu62trgo002ryo4219t6u5w3",
+      "name": "Salsa City",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-22T01:00:00.000Z",
+      "endsAt": "2026-11-22T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr6g001gyo42ob7aoqr6",
+        "name": "Havana",
+        "address": "Domínica 142, Recoleta",
+        "lat": -33.4286429,
+        "lng": -70.6391064
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 2
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmvzt3jnh02cq11xyele4bzga",
+      "name": "Dueño presenta: Social de Noviembre",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-22T22:00:00.000Z",
+      "endsAt": "2026-11-23T03:00:00.000Z",
+      "presalePrice": 8000,
+      "doorPrice": 10000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr5r001eyo42cd8huq7u",
+        "name": "Orixas",
+        "address": "Tarapacá 755, Santiago Centro",
+        "lat": -33.4477,
+        "lng": -70.6527
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA"
+      ],
+      "genreMix": null,
+      "series": null
+    },
+    {
+      "id": "cmubelxze00n2bramd24c0q3r",
+      "name": "Bachata Club",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-25T01:00:00.000Z",
+      "endsAt": "2026-11-25T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 6000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 1
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmubely2o00nmbram754v44sj",
+      "name": "Switch",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-27T01:00:00.000Z",
+      "endsAt": "2026-11-27T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 1
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmubd9ort00ne13hejb9hpvvy",
+      "name": "Reyes de la Gozadera",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-28T01:00:00.000Z",
+      "endsAt": "2026-11-28T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr6g001gyo42ob7aoqr6",
+        "name": "Havana",
+        "address": "Domínica 142, Recoleta",
+        "lat": -33.4286429,
+        "lng": -70.6391064
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 2
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmubely4400nwbramya94slat",
+      "name": "Bachatazo",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-28T01:00:00.000Z",
+      "endsAt": "2026-11-28T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 1
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmubd9oua00nu13he4bbipv75",
+      "name": "Salsa con Clase",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-29T01:00:00.000Z",
+      "endsAt": "2026-11-29T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr6g001gyo42ob7aoqr6",
+        "name": "Havana",
+        "address": "Domínica 142, Recoleta",
+        "lat": -33.4286429,
+        "lng": -70.6391064
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "SALSA",
+        "BACHATA",
+        "CUBANO"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        },
+        {
+          "genre": "BACHATA",
+          "songs": 2
+        },
+        {
+          "genre": "CUBANO",
+          "songs": 2
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmubely5800o4bram4a0qf5v2",
+      "name": "Galaxy",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-11-29T01:00:00.000Z",
+      "endsAt": "2026-11-29T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA",
+        "SALSA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 5
+        },
+        {
+          "genre": "SALSA",
+          "songs": 2
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmubely0c00n8bram3rfgakls",
+      "name": "Bachata Club",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-12-02T01:00:00.000Z",
+      "endsAt": "2026-12-02T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 6000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [
+        "BACHATA"
+      ],
+      "genreMix": [
+        {
+          "genre": "BACHATA",
+          "songs": 1
+        }
+      ],
+      "series": null
+    },
+    {
+      "id": "cmubely2z00nobramhxmc1cin",
+      "name": "AbraZouk",
+      "type": "SOCIAL",
+      "status": "PUBLISHED",
+      "startsAt": "2026-12-04T01:00:00.000Z",
+      "endsAt": "2026-12-04T07:00:00.000Z",
+      "presalePrice": 5000,
+      "doorPrice": 7000,
+      "platformFeePct": null,
+      "visibility": "PUBLIC",
+      "academyId": null,
+      "venue": {
+        "id": "cmu62tr66001fyo42dfzjrj52",
+        "name": "Tierra",
+        "address": "Av. Vicuña Mackenna 1459, Santiago",
+        "lat": -33.4558,
+        "lng": -70.6342
+      },
+      "city": {
+        "timezone": "America/Santiago"
+      },
+      "genres": [],
+      "genreMix": null,
+      "series": null
+    }
+  ]
+}

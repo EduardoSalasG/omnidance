@@ -92,11 +92,26 @@ academia no está disponible") sin perder su historial. Un
 activos vs límite, ciclo, próxima facturación, días de gracia
 restantes e historial de invoices (del ledger de la suscripción).
 
+Cada invoice SHALL ser navegable al detalle del cobro
+(`/academia/cobros/pago/[id]` con `?from=` a la página de suscripción),
+que muestra plan (tier/ciclo), método de pago, referencia, número de
+operación y estado. `GET /academies/:id/payments/:paymentId` SHALL
+adjudicar también los `refId` `platsub_<subId>_*` cuya suscripción
+pertenece a la academia (404 fuera de ella, misma política
+anti-enumeración).
+
 #### Scenario: Estado visible para el owner
 
 - **GIVEN** academia PRO con 120/150 alumnos activos **WHEN** el owner
   abre `GET /academies/:id/billing` **THEN** ve tier PRO, 120/150,
   fecha de renovación e invoices previos.
+
+#### Scenario: invoice navegable
+
+- **GIVEN** una academia con invoices PLATFORM_SUB
+- **WHEN** el owner toca una fila del historial de cobros
+- **THEN** abre el detalle del cobro con tier/ciclo, método,
+  referencia, transacción y estado, y el back vuelve a suscripción
 
 ### Requirement: Cancelación
 
@@ -119,13 +134,120 @@ a módulo sin tier SHALL responder 403 `{error:"tier.required",
 upgrade:true, requiredTier}`. Admins y alumnos nunca se gatean. Cuentas
 existentes migran a STUDIO por defecto.
 
+El gate client-side de la consola (`AcademyTierGate`) SHALL derivar la
+feature del `tier` de la academia seleccionada, que viaja en
+`GET /academies/mine` para owner, staff e instructor por igual - el
+mismo criterio para cualquier miembro del equipo, no solo para el
+owner. El paywall es comunicación de upsell al owner; para staff e
+instructor la restricción real la impone el 403 del API.
+
+Las superficies de navegación de la consola SHALL aplicar el mismo
+criterio: el drawer/sidebar del owner filtra ítems por `academyFeature`
+y la grilla de módulos del hub `/academia` (superficie de staff,
+instructor y ADMIN) filtra cards por feature del tier de la academia
+seleccionada, además del capability del miembro. Cuando la selección
+persistida apunta a una academia que el viewer no posee (membresía
+instructor/staff) y su tier no es resoluble en cliente, el filtro del
+nav SHALL no recortar - las páginas y el API gatean.
+
+Los puntos de entrada transversales SHALL no aterrizar en una
+superficie gated cuando exista un destino equivalente disponible en
+todos los tiers: `/academia/configuracion` SHALL redirigir a
+`configuracion/perfil`. El alias legado `configuracion/general`
+(renombrado de la página de defaults de clases) SHALL seguir
+redirigiendo a `configuracion/clases` - quien entra por ese deep-link
+pide esa página y, si su tier no la cubre, ve su TierPaywall
+informativo, no un destino sustituto.
+
 #### Scenario: COBROS sin clases
 
 - **WHEN** una academia COBROS llama a crear clase o marcar asistencia
 - **THEN** recibe 403 tier.required con requiredTier STUDIO
+
+#### Scenario: Staff de academia STUDIO abre series
+
+- **GIVEN** una academia con tier STUDIO y un staff con cap `schedule`
+- **WHEN** el staff abre `/academia/series`
+- **THEN** el gate client-side no muestra paywall y el contenido carga
+
+#### Scenario: Staff de academia COBROS abre series
+
+- **GIVEN** una academia con tier COBROS y un staff con cap `schedule`
+- **WHEN** el staff abre `/academia/series`
+- **THEN** ve el paywall "parte del plan STUDIO" (y el API respondería
+  403 tier.required si lo intentara por otra vía)
 
 #### Scenario: Nav filtrado por tier
 
 - **WHEN** la consola academia carga con tier COBROS
 - **THEN** solo se listan cobros/membresías/alumnos; el resto no se
   enlaza ni responde
+
+#### Scenario: Grilla del hub filtrada por tier
+
+- **GIVEN** un staff de una academia COBROS con cap `schedule`
+- **WHEN** abre el hub `/academia`
+- **THEN** la grilla lista solo los módulos que su cap y el tier cubren
+  (alumnos, planes, promos, cobros, configuración, suscripción); las
+  cards de series, particulares, videos, preventas, equipo y CRM no se
+  muestran
+
+#### Scenario: Entrada a configuración en COBROS
+
+- **GIVEN** una academia COBROS
+- **WHEN** alguien con acceso abre `/academia/configuracion`
+- **THEN** aterriza en `configuracion/perfil` (disponible en su tier),
+  no en un paywall
+
+#### Scenario: Importar clases sin feature
+
+- **GIVEN** una academia COBROS cuyo viewer tiene cap `schedule`
+- **WHEN** abre `/academia/configuracion/importar`
+- **THEN** ve la card de importación de alumnos pero no la de clases
+
+#### Scenario: Detalle de horario por API en COBROS
+
+- **GIVEN** una academia COBROS
+- **WHEN** alguien llama `GET /academies/:id/slots/:slotId`
+- **THEN** recibe 403 tier.required con requiredTier STUDIO (feature
+  `classes`), igual que el listado de slots
+
+#### Scenario: Niveles y cupos en STUDIO
+
+- **GIVEN** una academia STUDIO
+- **WHEN** el owner abre su inicio en modo Extendido
+- **THEN** la card "Niveles y cupos por horario" carga con data
+  (el endpoint `GET /academies/:id/insights/levels` exige `classes`,
+  no `insights`: es planificación operativa, no analítica PRO)
+
+#### Scenario: Niveles y cupos en COBROS
+
+- **GIVEN** una academia COBROS
+- **WHEN** el owner abre su inicio
+- **THEN** la card "Niveles y cupos" no existe en la vista y el
+  endpoint respondería 403 tier.required con requiredTier STUDIO
+
+### Requirement: Paywall consistente en superficies gated de academia
+
+Toda página de la consola de academia detrás de una feature de tier
+SHALL mostrar `TierPaywall` (no un 403 genérico) en dos caminos:
+proactivo (`AcademyTierGate` por `academy.tier`) y reactivo (403
+`tier.required` del endpoint mapeado por `isTierRequired`). Las fichas
+del equipo (`/academia/equipo/[id]` y sus ediciones, incluido
+`equipo/profesor/[id]`) SHALL gatear `staff` igual que la lista y el
+alta; el roster `/academia/clases/[id]` SHALL mapear el 403
+`tier.required` a `TierPaywall` (feature `attendance`); las páginas de
+configuración `clases` y `niveles*` SHALL gatear `classes`.
+
+#### Scenario: COBROS abre ficha de colaborador
+
+- **GIVEN** staff de una academia COBROS
+- **WHEN** navega a `/academia/equipo/<id>`
+- **THEN** ve `TierPaywall` (feature staff, CTA a suscripción), no un
+  error genérico
+
+#### Scenario: Roster de clase en academia sin asistencia
+
+- **GIVEN** una academia cuyo tier no cubre `attendance`
+- **WHEN** alguien con acceso abre `/academia/clases/<id>`
+- **THEN** el 403 `tier.required` del roster muestra `TierPaywall`

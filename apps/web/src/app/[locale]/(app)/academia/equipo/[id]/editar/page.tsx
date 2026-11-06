@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, RefreshIcon, SkeletonList } from "@/components/ui";
+import { Button, Card, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
   CAPS,
@@ -25,18 +26,20 @@ export default function StaffEditPage() {
   const params = useParams<{ id: string }>();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader
         backHref={`/academia/equipo/${params.id}`}
         backLabel={t("detailTitle")}
       />
       <AcademyGate>
         {({ academy }) => (
+          <AcademyTierGate academy={academy} feature="staff">
           <EditCaps
             key={`${academy.id}:${params.id}`}
             academyId={academy.id}
             personId={params.id}
           />
+          </AcademyTierGate>
         )}
       </AcademyGate>
     </main>
@@ -145,7 +148,8 @@ function EditCaps({
         </div>
         <div>
           <Button type="submit" size="sm" disabled={busy}>
-            {busy ? t("adding") : t("saveCaps")}
+            {busy ? <Spinner className="h-4 w-4" /> : null}
+            {t("saveCaps")}
           </Button>
         </div>
       </form>

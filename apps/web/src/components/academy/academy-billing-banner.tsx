@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import { useTranslations } from "next-intl";
 import { useMe } from "@/lib/me-context";
 import type { Academy } from "./shared";
@@ -16,10 +14,10 @@ const DAY_MS = 86_400_000;
  * - billingBlockedAt → banner rojo "bloqueada" (las mutaciones ya
  *   responden 403 billing.blocked - el banner explica el porqué).
  * - billingGraceUntil > ahora → banner ámbar con los días de gracia.
- * El CTA a /academia/suscripcion solo se muestra a owner/ADMIN (los
+ * El CTA a /academia/configuracion/suscripcion solo se muestra a owner/ADMIN (los
  * endpoints de billing son requireAdminister) - usa el /me compartido;
- * mientras resuelve, el slot del CTA queda reservado con un skeleton
- * pill para que el banner no se reajuste al resolver. En la propia
+ * mientras resuelve no se pinta CTA (al manager le aparece una sola
+ * vez, mejor que un bloque fantasma que colapsa). En la propia
  * página de suscripción no se repite: el estado ya va detallado ahí.
  */
 export function AcademyBillingBanner({ academy }: { academy: Academy }) {
@@ -44,9 +42,9 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
     !!me &&
     (me.roles.includes("ADMIN") || me.id === academy.ownerId);
 
-  // En /academia/suscripcion el estado va completo - el banner sería
+  // En /academia/configuracion/suscripcion el estado va completo - el banner sería
   // redundante.
-  if (!show || pathname === "/academia/suscripcion") return null;
+  if (!show || pathname === "/academia/configuracion/suscripcion") return null;
 
   // CTA opcional según permiso - nada mientras /me resuelve (para el
   // no-manager un skeleton que colapsa sería flash; para el manager un
@@ -55,7 +53,7 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
     !meLoading &&
     canManage && (
       <Link
-        href="/academia/suscripcion"
+        href="/academia/configuracion/suscripcion"
         className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
           blocked
             ? "border border-red-300/40 hover:bg-red-300/10"
@@ -72,7 +70,7 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
         role="alert"
         className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
       >
-        {t("bannerBlocked")}
+        <p className="min-w-0">{t("bannerBlocked")}</p>
         {cta}
       </div>
     );
@@ -83,7 +81,7 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
       role="alert"
       className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-sm text-warn"
     >
-      {t("bannerGrace", { days: graceDays ?? 0 })}
+      <p className="min-w-0">{t("bannerGrace", { days: graceDays ?? 0 })}</p>
       {cta}
     </div>
   );

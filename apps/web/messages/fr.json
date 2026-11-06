@@ -13,7 +13,8 @@
     "create": "Créer",
     "seeAll": "Tout voir",
     "skipToContent": "Aller au contenu",
-    "newTab": "Ouvrir dans un nouvel onglet"
+    "newTab": "Ouvrir dans un nouvel onglet",
+    "showLess": "Voir moins"
   },
   "home": {
     "subtitle": "Nightlife + Académies. Un seul QR pour toute la scène.",
@@ -441,7 +442,7 @@
     "markPresent": "Présent",
     "planName": "Nom du plan",
     "planPrice": "Prix",
-    "planClasses": "Cours par période",
+    "planClasses": "Cours inclus",
     "personId": "ID de personne",
     "empty": "Tu n'as pas encore d'académie enregistrée.",
     "directoryTitle": "Académies",
@@ -494,7 +495,7 @@
     "planTypes": {
       "MONTHLY": "Mensuel",
       "CLASS_PACK": "Pack de cours",
-      "PERIOD": "Période",
+      "PERIOD": "Période personnalisée",
       "TRIAL": "Essai"
     },
     "studentStatus": "Statut de {name}",
@@ -503,9 +504,9 @@
     "planDescPlaceholder": "Cours illimités de toutes les séries\nAccès à l'évaluation de niveau\nRéduction sur les cours particuliers",
     "planStudents": "{count, plural, one {# élève} other {# élèves}}",
     "planKpiActive": "Plans actifs",
-    "planKpiActiveHint": "Plans d'abonnement avec active=true",
+    "planKpiActiveHint": "Plans que tes élèves peuvent acheter maintenant",
     "planKpiTop": "Top plans",
-    "planKpiTopHint": "Plans avec le plus d'élèves actifs ce mois-ci",
+    "planKpiTopHint": "Élèves avec ce plan en cours",
     "sortLabel": "Trier",
     "sortNameAsc": "Nom A→Z",
     "sortNameDesc": "Nom Z→A",
@@ -515,7 +516,15 @@
     "planStudentsEmpty": "Personne n'a ce plan actif",
     "planFrom": "Du",
     "planUntil": "Jusqu'au",
-    "newAcademy": "Nouvelle académie"
+    "newAcademy": "Nouvelle académie",
+    "personSearch": {
+      "registerNew": "Enregistrer une nouvelle personne",
+      "newPersonHint": "Nous créons le compte et envoyons l’invitation par e-mail.",
+      "emailLabel": "E-mail",
+      "nameLabel": "Nom (optionnel)",
+      "backToSearch": "← Retour à la recherche"
+    },
+    "enrollmentSavedInvited": "Inscription enregistrée - invitation envoyée par e-mail"
   },
   "practices": {
     "title": "Pratiques",
@@ -1012,29 +1021,21 @@
     "style": "Style",
     "level": "Niveau",
     "types": "Types de cours",
-    "instructor": "Instructeur",
     "slots": "Horaires hebdomadaires",
     "addSlot": "Ajouter un horaire",
     "removeSlot": "Retirer l'horaire",
-    "removeSlotConfirm": "Retirer cet horaire ? Ses cours futurs sont annulés.",
     "weekday": "Jour",
     "start": "Début",
     "end": "Fin",
     "create": "Créer",
-    "creating": "Création…",
     "deactivate": "Désactiver",
-    "deactivateConfirm": "Désactiver la série ? Les cours futurs et leurs réservations sont annulés.",
     "inactive": "Inactive",
     "empty": "Pas encore de séries. Crée ta première série de cours",
-    "edit": "Modifier",
     "save": "Enregistrer les modifications",
     "created": "Série créée",
     "updated": "Série mise à jour",
     "error": "Enregistrement impossible",
     "reactivate": "Réactiver",
-    "importClasses": "Importer des cours",
-    "detailBack": "Cours",
-    "actions": "Actions",
     "delete": "Supprimer",
     "deleteConfirm": "Supprimer le cours ? Il est désactivé, masqué de la liste et les cours futurs avec leurs réservations sont annulés. Il restera visible seulement dans l'analytique.",
     "slotsTitle": "Horaires hebdomadaires",
@@ -1045,7 +1046,8 @@
     "bookedCount": "{count} réservations",
     "attendedCount": "{count} présences",
     "cancelled": "Annulé",
-    "slotAdded": "Horaire ajouté"
+    "slotAdded": "Horaire ajouté",
+    "entityTitle": "Cours"
   },
   "adminCatalogs": {
     "title": "Catalogues",
@@ -1233,5 +1235,10 @@
       "PRODUCER": "Nom de l'événement"
     },
     "verified": "E-mail vérifié"
+  },
+  "academyPay": {
+    "report": {
+      "export": "Exporter"
+    }
   }
 }

@@ -118,8 +118,8 @@ describe("assertActorFeature - PRODUCER", () => {
   });
 
   it("matriz por tier (spec producer-pro): STARTER base, GROWTH +crm, BIG todo", async () => {
-    // Trial vigente → PRO_STARTER efectivo (analytics/exports/multiStaff).
-    for (const feature of ["analytics", "exports", "multiStaff"] as const) {
+    // Trial vigente → PRO_STARTER efectivo (analytics/exports).
+    for (const feature of ["analytics", "exports"] as const) {
       await expect(
         assertActorFeature(
           prisma as unknown as PrismaService,
@@ -173,7 +173,6 @@ describe("assertActorFeature - PRODUCER", () => {
       "analytics",
       "crm",
       "exports",
-      "multiStaff",
       "campaigns",
       "benchmark",
     ] as const) {
@@ -267,7 +266,7 @@ describe("resolveProducerEntitlement / resolveAcademyEntitlements", () => {
     // Trial vigente → PRO_STARTER efectivo (spec producer-pro).
     expect(pro).toEqual({
       tier: "PRO_STARTER",
-      features: ["analytics", "exports", "multiStaff"],
+      features: ["analytics", "exports"],
     });
 
     prisma.people.set(
@@ -346,7 +345,7 @@ describe("dominio puro", () => {
   it("producerRequiredTierFor: mínimo que cubre la feature (matriz acumulativa)", () => {
     expect(producerRequiredTierFor("analytics")).toBe("PRO_STARTER");
     expect(producerRequiredTierFor("exports")).toBe("PRO_STARTER");
-    expect(producerRequiredTierFor("multiStaff")).toBe("PRO_STARTER");
+    expect(producerRequiredTierFor("crm")).toBe("PRO_GROWTH");
     expect(producerRequiredTierFor("crm")).toBe("PRO_GROWTH");
     expect(producerRequiredTierFor("campaigns")).toBe("PRO_BIG");
     expect(producerRequiredTierFor("benchmark")).toBe("PRO_BIG");

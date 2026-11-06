@@ -13,7 +13,8 @@
     "create": "Crear",
     "seeAll": "Ver todo",
     "skipToContent": "Saltar al contenido",
-    "newTab": "Abrir en pestaña nueva"
+    "newTab": "Abrir en pestaña nueva",
+    "showLess": "Ver menos"
   },
   "home": {
     "subtitle": "Nightlife + Academias. Un solo QR para toda la escena.",
@@ -441,7 +442,7 @@
     "markPresent": "Presente",
     "planName": "Nombre del plan",
     "planPrice": "Precio",
-    "planClasses": "Clases por período",
+    "planClasses": "Clases incluidas",
     "personId": "ID de persona",
     "empty": "Aún no tienes academia registrada.",
     "directoryTitle": "Academias",
@@ -495,8 +496,8 @@
     "planTypes": {
       "MONTHLY": "Mensual",
       "CLASS_PACK": "Pack de clases",
-      "PERIOD": "Período",
-      "TRIAL": "Trial"
+      "PERIOD": "Período personalizado",
+      "TRIAL": "De prueba"
     },
     "studentStatus": "Estado de {name}",
     "planPeriodDays": "Días de vigencia",
@@ -504,9 +505,9 @@
     "planDescPlaceholder": "Clases ilimitadas de todas las series\nAcceso a evaluación de nivel\nDescuento en privadas",
     "planStudents": "{count, plural, one {# alumno} other {# alumnos}}",
     "planKpiActive": "Planes activos",
-    "planKpiActiveHint": "Planes de membresía con active=true",
+    "planKpiActiveHint": "Planes que tus alumnos pueden comprar ahora",
     "planKpiTop": "Top planes",
-    "planKpiTopHint": "Planes con más alumnos activos este mes",
+    "planKpiTopHint": "Alumnos con este plan vigente",
     "sortLabel": "Ordenar",
     "sortNameAsc": "Nombre A→Z",
     "sortNameDesc": "Nombre Z→A",
@@ -515,7 +516,15 @@
     "planStudentsTitle": "Alumnos con este plan",
     "planStudentsEmpty": "Nadie tiene este plan vigente",
     "planFrom": "Desde",
-    "planUntil": "Hasta"
+    "planUntil": "Hasta",
+    "personSearch": {
+      "registerNew": "Registrar nueva persona",
+      "newPersonHint": "Creamos la cuenta y le enviamos la invitación por mail para que la complete.",
+      "emailLabel": "Correo",
+      "nameLabel": "Nombre (opcional)",
+      "backToSearch": "← Volver a buscar"
+    },
+    "enrollmentSavedInvited": "Inscripción guardada - le enviamos la invitación por mail"
   },
   "practices": {
     "title": "Prácticas",
@@ -1012,29 +1021,21 @@
     "style": "Estilo",
     "level": "Nivel",
     "types": "Tipos de clase",
-    "instructor": "Profesor",
     "slots": "Horarios semanales",
     "addSlot": "Agregar horario",
     "removeSlot": "Quitar horario",
-    "removeSlotConfirm": "¿Quitar este horario? Se cancelan sus clases futuras.",
     "weekday": "Día",
     "start": "Inicio",
     "end": "Término",
     "create": "Crear",
-    "creating": "Creando…",
     "deactivate": "Desactivar",
-    "deactivateConfirm": "¿Desactivar la serie? Se cancelan las clases futuras y sus reservas.",
     "inactive": "Inactiva",
     "empty": "Aún no hay series. Crea tu primera serie de clases",
-    "edit": "Editar",
     "save": "Guardar cambios",
     "created": "Serie creada",
     "updated": "Serie actualizada",
     "error": "No se pudo guardar",
     "reactivate": "Reactivar",
-    "importClasses": "Importar clases",
-    "detailBack": "Clases",
-    "actions": "Acciones",
     "delete": "Eliminar",
     "deleteConfirm": "¿Eliminar la clase? Se desactiva, se oculta del listado y se cancelan las clases futuras con sus reservas. Seguirá visible solo en analítica.",
     "slotsTitle": "Horarios semanales",
@@ -1045,7 +1046,8 @@
     "bookedCount": "{count} reservas",
     "attendedCount": "{count} asistencias",
     "cancelled": "Cancelada",
-    "slotAdded": "Horario agregado"
+    "slotAdded": "Horario agregado",
+    "entityTitle": "Clase"
   },
   "adminCatalogs": {
     "title": "Catálogos",
@@ -1233,5 +1235,10 @@
       "PRODUCER": "Nombre de evento"
     },
     "verified": "Email verificado"
+  },
+  "academyPay": {
+    "report": {
+      "export": "Exportar"
+    }
   }
 }

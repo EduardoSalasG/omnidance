@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { safeInternalPath } from "@/lib/safe-next";
 import {
   Badge,
   Button,
   Card,
+  PageLoading,
   PriceTag,
   RefreshIcon,
   SkeletonList,
@@ -15,9 +17,10 @@ import {
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
-  PAYMENT_STATUS_VARIANT,
+  gatewayLabel,
   paymentDateTimeFmt,
-  paymentPaidAt,
+  paymentMediumLabel,
+  PAYMENT_STATUS_VARIANT,
 } from "@/components/payments/shared";
 
 type AcademyPaymentDetail = {
@@ -39,6 +42,10 @@ type AcademyPaymentDetail = {
   eventCount: number;
   personName: string | null;
   contextName: string | null;
+  /** Tier/ciclo cuando el cobro es una invoice PLATFORM_SUB (spec
+      academy-cobros-reporte) - el front los traduce vía academyBilling. */
+  contextTier?: string | null;
+  contextCycle?: string | null;
 };
 
 /**
@@ -46,12 +53,26 @@ type AcademyPaymentDetail = {
  * academia (GET /academies/:id/payments/:paymentId). Solo lectura.
  */
 export default function AcademyPaymentDetailPage() {
+  // useSearchParams (?from= de la lista o de suscripción) exige
+  // boundary Suspense.
+  return (
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
+      <Suspense fallback={<PageLoading />}>
+        <PaymentChrome />
+      </Suspense>
+    </main>
+  );
+}
+
+function PaymentChrome() {
   const t = useTranslations("academyPay");
   const params = useParams<{ id: string }>();
+  const backTo =
+    safeInternalPath(useSearchParams().get("from")) ?? "/academia/cobros";
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
-      <ConsoleHeader backHref="/academia/cobros" backLabel={t("detailBack")} />
+    <>
+      <ConsoleHeader backHref={backTo} backLabel={t("detailBack")} />
       <AcademyGate>
         {({ academy }) => (
           <PaymentDetail
@@ -61,7 +82,7 @@ export default function AcademyPaymentDetailPage() {
           />
         )}
       </AcademyGate>
-    </main>
+    </>
   );
 }
 
@@ -75,16 +96,25 @@ function PaymentDetail({
   const locale = useLocale();
   const t = useTranslations("academyPay");
   const tp = useTranslations("payments");
+  const tb = useTranslations("academyBilling");
   const tc = useTranslations("common");
 
   const [payment, setPayment] = useState<AcademyPaymentDetail | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [forbidden, setForbidden] = useState(false);
 
   const load = useCallback(async () => {
     setLoadError(false);
+    setForbidden(false);
     const res = await apiFetch(
       `/academies/${academyId}/payments/${paymentId}`,
     ).catch(() => null);
+    if (res && (res.status === 401 || res.status === 403 || res.status === 404)) {
+      // Sin acceso o inexistente en esta academia: estado "sin acceso"
+      // con CTA de salida - no es un error reintentable.
+      setForbidden(true);
+      return;
+    }
     if (!res?.ok) {
       setLoadError(true);
       return;
@@ -106,6 +136,20 @@ function PaymentDetail({
     [payment, tp],
   );
 
+  if (forbidden) {
+    return (
+      <Card className="flex flex-col items-center gap-3 py-6 text-center">
+        <p className="text-sm text-ink/70">{t("forbidden")}</p>
+        <Button
+          href="/academia/cobros"
+          variant="secondary"
+          size="sm"
+        >
+          {t("detailBack")}
+        </Button>
+      </Card>
+    );
+  }
   if (loadError) {
     return (
       <div className="flex items-center gap-3">
@@ -141,7 +185,13 @@ function PaymentDetail({
           <div>
             <dt className="text-xs text-ink/50">{t("fieldContext")}</dt>
             <dd className="font-medium">
-              {payment.contextName ?? orderLabel}
+              {payment.contextTier
+                ? `${tb.has(`tiers.${payment.contextTier}`) ? tb(`tiers.${payment.contextTier}`) : payment.contextTier}${
+                    payment.contextCycle
+                      ? ` · ${tb.has(`cycles.${payment.contextCycle}`) ? tb(`cycles.${payment.contextCycle}`) : payment.contextCycle}`
+                      : ""
+                  }`
+                : (payment.contextName ?? orderLabel)}
             </dd>
           </div>
           <div>
@@ -153,7 +203,8 @@ function PaymentDetail({
           <div>
             <dt className="text-xs text-ink/50">{t("fieldMethod")}</dt>
             <dd className="font-medium">
-              {payment.gatewayMedia ?? payment.gateway}
+              {paymentMediumLabel(payment.gatewayMedia, tp) ??
+                gatewayLabel(payment.gateway, tp)}
             </dd>
           </div>
           <div>

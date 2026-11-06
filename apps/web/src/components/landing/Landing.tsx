@@ -9,7 +9,7 @@ import { EscapableDetails } from "@/components/ui/escapable-details";
 import { getLocale, getMessages } from "next-intl/server";
 import type { JsonLdEvent } from "./JsonLd";
 import { PricingSection } from "./PricingSection";
-import type { PublicAcademy } from "@/lib/public-academies";
+import type { PublicAcademy } from "@/lib/marketing-content";
 
 import { Link } from "@/i18n/navigation";
 import { getDateFmt } from "@/lib/intl";

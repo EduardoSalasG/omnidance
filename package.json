@@ -32,11 +32,13 @@
     "db:migrate": "pnpm --filter @omnidance/api prisma migrate dev",
     "db:seed": "pnpm --filter @omnidance/api prisma db seed",
     "db:enrich": "pnpm --filter @omnidance/api exec node scripts/enrich-academy-seed.cjs",
+    "db:qa-personas": "pnpm --filter @omnidance/api exec node scripts/qa-real-personas.cjs",
     "db:studio": "pnpm --filter @omnidance/api prisma studio",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:which": "node scripts/e2e-which.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1"

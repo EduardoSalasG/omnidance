@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useMessages, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
-import { Button, Card, SkeletonList } from "@/components/ui";
+import { ArrowUpRightIcon, Button, Card, SkeletonList, Spinner } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 
 import { inputCls, readError, type Academy } from "./shared";
@@ -13,26 +13,44 @@ import { useRouter } from "@/i18n/navigation";
 
 
 
-/**
- * Formulario de alta de video (link externo, nunca self-host) - vive en
- * la página dedicada /academia/videos/nuevo. POST /academies/:id/videos
- * exige owner/ADMIN (requireAdminister): el form solo se renderiza con
- * canAdminister (misma regla que canAdministerAcademy del dominio:
- * ADMIN u ownerId === me.id).
- */
-type AcademyExtras = (typeof import("@/i18n/parts/academyExtras.json"))["academyExtras"];
+/** Video existente para modo edición (detalle de GET by-id). */
+export type EditableVideo = {
+  id: string;
+  title: string;
+  url?: string | null;
+  classId?: string | null;
+  restrictedToAttended?: boolean;
+};
 
-export function VideoForm({ academy }: { academy: Academy }) {
+/**
+ * Formulario de video (link externo, nunca self-host): alta en
+ * /academia/videos/nuevo (POST) y edición en la ficha
+ * /academia/videos/[id] (PATCH, precargado con `video`). Ambos
+ * endpoints exigen owner/ADMIN (requireCapabilityWrite): el form solo
+ * se renderiza con canAdminister (misma regla que
+ * canAdministerAcademy del dominio: ADMIN u ownerId === me.id), por lo
+ * que el detalle siempre llega completo (la máscara locked solo
+ * aplica a viewers).
+ */
+export function VideoForm({
+  academy,
+  video,
+}: {
+  academy: Academy;
+  video?: EditableVideo;
+}) {
   const t = (useMessages() as { academyExtras: { videos: Record<string,string> } }).academyExtras.videos;
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
   const router = useRouter();
 
   const { me, loading: meLoading } = useMe();
-  const [title, setTitle] = useState("");
-  const [url, setUrl] = useState("");
-  const [classId, setClassId] = useState("");
-  const [restricted, setRestricted] = useState(true);
+  const [title, setTitle] = useState(video?.title ?? "");
+  const [url, setUrl] = useState(video?.url ?? "");
+  const [classId, setClassId] = useState(video?.classId ?? "");
+  const [restricted, setRestricted] = useState(
+    video?.restrictedToAttended ?? true,
+  );
   const [busy, setBusy] = useState(false);
 
   const canAdminister =
@@ -42,21 +60,37 @@ export function VideoForm({ academy }: { academy: Academy }) {
     e.preventDefault();
     setBusy(true);
     try {
-      const res = await apiFetch(`/academies/${academy.id}/videos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          url: url.trim(),
-          ...(classId.trim() ? { classId: classId.trim() } : {}),
-          restrictedToAttended: restricted,
-        }),
-      });
+      const res = await apiFetch(
+        video
+          ? `/academies/${academy.id}/videos/${video.id}`
+          : `/academies/${academy.id}/videos`,
+        {
+          method: video ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            video
+              ? {
+                  title: title.trim(),
+                  url: url.trim(),
+                  // En edición el campo vacío desvincula (null); el
+                  // create lo omite.
+                  classId: classId.trim() ? classId.trim() : null,
+                  restrictedToAttended: restricted,
+                }
+              : {
+                  title: title.trim(),
+                  url: url.trim(),
+                  ...(classId.trim() ? { classId: classId.trim() } : {}),
+                  restrictedToAttended: restricted,
+                },
+          ),
+        },
+      );
       if (!res.ok) {
         showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
-      showActionNotice({ text: t.added });
+      showActionNotice({ text: video ? t.saved : t.added });
       router.push("/academia/videos");
     } catch {
       showActionNotice({ text: tc("error"), error: true });
@@ -70,17 +104,34 @@ export function VideoForm({ academy }: { academy: Academy }) {
   }
   if (!canAdminister) {
     return (
-      <p role="alert" className="text-sm text-ink/60">
-        {ta("forbidden")}
-      </p>
+      <div className="flex flex-col items-start gap-3">
+        <p className="text-sm text-ink/60">
+          {ta("forbidden")}
+        </p>
+        <Button href="/academia/videos" size="sm" variant="secondary">
+          {tc("back")}
+        </Button>
+      </div>
     );
   }
 
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-        {t.addTitle}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+          {video ? t.editTitle : t.addTitle}
+        </h2>
+        {video?.url && (
+          <a
+            href={video.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          >
+            <ArrowUpRightIcon /> {t.watch}
+          </a>
+        )}
+      </div>
       <form
         onSubmit={submit}
         className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
@@ -118,7 +169,7 @@ export function VideoForm({ academy }: { academy: Academy }) {
             onChange={(e) => setClassId(e.target.value)}
           />
         </label>
-        <label className="flex items-end gap-2 pb-1">
+        <label className="flex min-h-11 items-center gap-2">
           <input
             type="checkbox"
             className="h-5 w-5 rounded border-line bg-elevated accent-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
@@ -131,7 +182,8 @@ export function VideoForm({ academy }: { academy: Academy }) {
         </label>
         <div className="flex items-center gap-2 sm:col-span-2">
           <Button type="submit" size="sm" disabled={busy}>
-            {busy ? tc("loading") : tc("create")}
+            {busy ? <Spinner className="h-4 w-4" /> : null}
+            {video ? tc("save") : tc("create")}
           </Button>
           <Button
             type="button"

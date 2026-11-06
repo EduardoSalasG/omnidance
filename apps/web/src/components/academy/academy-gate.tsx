@@ -10,7 +10,12 @@ import { PageLoading } from "@/components/ui/spinner";
 import { AcademyBillingBanner } from "./academy-billing-banner";
 import { CreateAcademyForm } from "./create-academy-form";
 import { academyTierHas } from "@/lib/academy-features";
-import { ACADEMY_STORAGE_KEY, inputCls, type Academy } from "./shared";
+import {
+  ACADEMY_CHANGED_EVENT,
+  ACADEMY_STORAGE_KEY,
+  selectStoredAcademy,
+} from "@/lib/academy-selection";
+import { inputCls, type Academy } from "./shared";
 
 type Gate = "loading" | "unauth" | "empty" | "ready" | "error";
 
@@ -37,6 +42,7 @@ export function AcademyGate({
 }) {
   const t = useTranslations("academy");
   const tc = useTranslations("common");
+  const tn = useTranslations("nav");
   const router = useRouter();
 
   const [gate, setGate] = useState<Gate>("loading");
@@ -45,7 +51,7 @@ export function AcademyGate({
 
   // ACADEMY_OWNER (APPROVED o PENDING - registrado por landing) puede
   // crear academias adicionales; instructor/staff de otras no ven el CTA.
-  const { me } = useMe();
+  const { me, loading: meLoading } = useMe();
   const canCreate = (me?.roleStates ?? []).some(
     (r) =>
       r.role === "ACADEMY_OWNER" &&
@@ -105,12 +111,22 @@ export function AcademyGate({
 
   function selectAcademy(id: string) {
     setSelectedId(id);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, id);
-    } catch {
-      // Sin storage - la selección vive solo en memoria.
-    }
+    // El switcher de la nav (drawer/sidebar del owner) escucha el
+    // mismo evento: la selección queda sincronizada entre superficies.
+    selectStoredAcademy(id);
   }
+
+  // Selección hecha desde otra superficie (switcher de la nav): el
+  // gate la adopta si el id pertenece a su lista, sin recarga.
+  useEffect(() => {
+    const onChanged = (e: Event) => {
+      const id = (e as CustomEvent<{ id?: string }>).detail?.id;
+      if (id && academies.some((a) => a.id === id)) setSelectedId(id);
+    };
+    window.addEventListener(ACADEMY_CHANGED_EVENT, onChanged);
+    return () =>
+      window.removeEventListener(ACADEMY_CHANGED_EVENT, onChanged);
+  }, [academies]);
 
   const selected = academies.find((a) => a.id === selectedId) ?? null;
 
@@ -141,33 +157,54 @@ export function AcademyGate({
 
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-ink/70">{tc("error")}</p>
+          <p role="alert" className="text-ink/70">{tc("error")}</p>
           <Button variant="secondary" onClick={() => void boot()}>
             <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
 
-      {gate === "empty" && (
+      {/* empty espera a /me: canCreate decide entre form y "sin
+          acceso" - renderizar antes mostraría el aviso a un owner por
+          un instante. */}
+      {gate === "empty" && meLoading && <PageLoading />}
+      {gate === "empty" && !meLoading && (
         <div className="flex flex-col gap-4">
-          <p className="text-ink/70">{t("empty")}</p>
-          <Card>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-              {t("create")}
-            </h2>
-            <CreateAcademyForm onCreated={() => void boot()} />
-          </Card>
+          {canCreate ? (
+            <>
+              <p className="text-ink/70">{t("empty")}</p>
+              <Card>
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+                  {t("create")}
+                </h2>
+                <CreateAcademyForm onCreated={() => void boot()} />
+              </Card>
+            </>
+          ) : (
+            // mine=[] sin permiso de crear (staff/instructor removido o
+            // cuenta sin rol de academia): mostrar el form sería un
+            // dead-end - el backend rechaza el POST igual.
+            <div className="flex flex-col items-start gap-4">
+              <p className="text-ink/70">{t("forbidden")}</p>
+              <Button href="/inicio" variant="secondary">
+                {tn("home")}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
       {gate === "ready" && selected && (
         <>
           {/* Mora SaaS: banner de gracia/bloqueo arriba de todo el
-              contenido de la consola (en /academia/suscripcion el
+              contenido de la consola (en /academia/configuracion/suscripcion el
               componente se auto-omite - el estado va detallado ahí). */}
           <AcademyBillingBanner academy={selected} />
-          <div className="flex flex-wrap items-center gap-2">
-            {selector && (academies.length > 1 || canCreate) && (
+          {/* El wrapper vive dentro de la condición: un div vacío sigue
+              siendo un item flex del padre y duplicaba el gap-6 del
+              contenedor de página (doble espacio bajo el back). */}
+          {selector && (academies.length > 1 || canCreate) && (
+            <div className="flex flex-wrap items-center gap-2">
               <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-xs">
                 <span className="sr-only">{t("title")}</span>
                 {/* La opción "Nueva academia" vive dentro del selector
@@ -194,8 +231,8 @@ export function AcademyGate({
                   )}
                 </select>
               </label>
-            )}
-          </div>
+            </div>
+          )}
           {children({ academy: selected, academies })}
         </>
       )}

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { showActionNotice } from "@/components/ui/action-notice";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, SeeAllRow, Spinner } from "@/components/ui";
 import { readError } from "./shared";
 
 type RowResult = {
@@ -27,6 +27,11 @@ const STATUS_VARIANT: Record<
   error: "live",
 };
 
+// La tabla de resultados es transitoria (feedback de la carga que
+// acaba de correr): preview de 10 filas + "Ver todo" expande, sin
+// scroll container ni paginación (design console-audit-fixes §11).
+const RESULTS_PREVIEW = 10;
+
 // Card de carga masiva CSV (spec academy-bulk-import). Ambas clases de
 // importación (students/schedule) se agrupan en
 // /academia/configuracion/importar - son setup de una vez, no operación
@@ -44,6 +49,7 @@ export function ImportCard({
   const [fileName, setFileName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<RowResult[] | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   async function upload() {
     const file = fileRef.current?.files?.[0];
@@ -63,6 +69,7 @@ export function ImportCard({
       }
       const body = (await res.json()) as { results: RowResult[] };
       setResults(body.results);
+      setExpanded(false);
     } catch {
       showActionNotice({ text: t("error"), error: true });
       setResults(null);
@@ -81,10 +88,9 @@ export function ImportCard({
         <p className="mt-1 text-xs text-ink/40">{t(`${kind}Cols`)}</p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid -- link directo a CSV descargable */}
         <a
           href={`/api/academies/${academyId}/import/template/${kind}`}
-          className="text-sm text-neon underline-offset-2 hover:underline"
+          className="inline-flex min-h-11 items-center text-sm text-neon underline-offset-2 hover:underline"
         >
           {t("downloadTemplate")}
         </a>
@@ -113,6 +119,7 @@ export function ImportCard({
           disabled={!fileName || busy}
           onClick={() => void upload()}
         >
+          {busy ? <Spinner size="sm" /> : null}
           {busy ? t("uploading") : t("upload")}
         </Button>
       </div>
@@ -131,13 +138,17 @@ export function ImportCard({
               </tr>
             </thead>
             <tbody>
-              {results.map((r, i) => (
-                <tr key={i} className="border-t border-line align-top">
-                  <td className="py-2 pr-3 text-ink/50">{r.row}</td>
+              {results
+                .slice(0, expanded ? undefined : RESULTS_PREVIEW)
+                .map((r) => (
+                <tr key={r.row} className="border-t border-line align-top">
+                  <td className="py-2 pr-3 tabular-nums text-ink/50">{r.row}</td>
                   <td className="py-2 pr-3">{r.email ?? r.serie ?? "—"}</td>
                   <td className="py-2 pr-3">
-                    <Badge variant={STATUS_VARIANT[r.status] ?? "neutral"}>
-                      {t(`status.${r.status}`)}
+                    <Badge variant={STATUS_VARIANT[r.status] ?? "muted"}>
+                      {t.has(`status.${r.status}`)
+                        ? t(`status.${r.status}`)
+                        : r.status}
                     </Badge>
                   </td>
                   <td className="py-2 text-ink/60">{r.detail}</td>
@@ -145,6 +156,17 @@ export function ImportCard({
               ))}
             </tbody>
           </table>
+          {/* SeeAllRow es un <li> (patrón de lista en fichas); en una
+              tabla va fuera de <table> dentro de su propio <ul> para
+              conservar el mismo control "Ver todo". */}
+          <ul>
+            <SeeAllRow
+              total={results.length}
+              expanded={expanded}
+              onToggle={() => setExpanded((v) => !v)}
+              preview={RESULTS_PREVIEW}
+            />
+          </ul>
         </div>
       )}
     </Card>

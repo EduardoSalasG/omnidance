@@ -1,12 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useState, use } from "react";
+import { Suspense, useCallback, useEffect, useState, use } from "react";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
-import { Badge, Button, Card, type BadgeVariant, PriceTag, RefreshIcon } from "@/components/ui";
-import { SkeletonList } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  type BadgeVariant,
+  ChevronRightIcon,
+  LIST_PREVIEW,
+  PriceTag,
+  RefreshIcon,
+  SeeAllRow,
+  SkeletonList,
+  Spinner,
+} from "@/components/ui";
 import {
   ActionNotice,
   type ActionNoticeData,
@@ -28,6 +40,8 @@ import {
   type EnrollmentStatus,
   type StudentProfile,
 } from "@/components/academy/shared";
+import { Link } from "@/i18n/navigation";
+import { safeInternalPath } from "@/lib/safe-next";
 
 type LoadState = "loading" | "ready" | "forbidden" | "error";
 
@@ -66,8 +80,12 @@ export default function AcademiaAlumnoPage(
   const t = useTranslations("academy");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
-      <ConsoleHeader backHref="/academia/alumnos" backLabel={t("students")} />
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
+      {/* useSearchParams (?from= de la ficha del plan) exige boundary
+          Suspense; el header real monta dentro de AlumnoHeader. */}
+      <Suspense fallback={null}>
+        <AlumnoHeader />
+      </Suspense>
       <AcademyGate>
         {({ academy }) => (
           <ProfileModule
@@ -78,6 +96,21 @@ export default function AcademiaAlumnoPage(
         )}
       </AcademyGate>
     </main>
+  );
+}
+
+// Back contextual: la ficha abierta desde otra ficha (p.ej. el listado
+// de alumnos del plan pasa ?from=/academia/planes/<id>) vuelve a su
+// origen real; sin `from` válido cae al listado de alumnos.
+function AlumnoHeader() {
+  const t = useTranslations("academy");
+  const tc = useTranslations("common");
+  const backFrom = safeInternalPath(useSearchParams().get("from"));
+  return (
+    <ConsoleHeader
+      backHref={backFrom ?? "/academia/alumnos"}
+      backLabel={backFrom ? tc("back") : t("students")}
+    />
   );
 }
 
@@ -114,11 +147,20 @@ function ProfileModule({
 
   // Edición del enrollment vigente - solo visible si el caller tiene la
   // capacidad "students" (canEdit del endpoint: owner/ADMIN/staff; el
-  // instructor lee pero no muta).
+  // instructor lee pero no muta). Edición protegida (spec
+  // academies/console-lists): el bloque queda en lectura hasta el gesto
+  // explícito "Editar", que evita mutar la vigencia por un toque
+  // accidental.
+  const [editing, setEditing] = useState(false);
   const [statusDraft, setStatusDraft] = useState<EnrollmentStatus | "">("");
   const [endsDraft, setEndsDraft] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
+  // Preview acotado de las listas de la ficha: 5 filas + "Ver todo"
+  // expande in-place (patrón canónico nacido en series/[id]).
+  const [showAllPayments, setShowAllPayments] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -141,6 +183,7 @@ function ProfileModule({
       // Drafts inicializados con los valores reales del enrollment.
       setStatusDraft((data.enrollmentStatus as EnrollmentStatus) ?? "");
       setEndsDraft(data.enrollmentEndsAt ? toDateInput(data.enrollmentEndsAt) : "");
+      setEditing(false);
       setNotice(null);
       setState("ready");
     } catch {
@@ -220,6 +263,7 @@ function ProfileModule({
             }
           : prev,
       );
+      setEditing(false);
       setNotice({ text: tp("paymentSaved") });
     } catch {
       setNotice({ text: tp("paymentSaveError"), error: true });
@@ -228,133 +272,206 @@ function ProfileModule({
     }
   }
 
+  // "Editar" habilita los campos con los valores vigentes; "Cancelar"
+  // revierte los drafts y vuelve a lectura (edición protegida).
+  function startEdit() {
+    if (!profile) return;
+    setStatusDraft((profile.enrollmentStatus as EnrollmentStatus) ?? "");
+    setEndsDraft(
+      profile.enrollmentEndsAt ? toDateInput(profile.enrollmentEndsAt) : "",
+    );
+    setNotice(null);
+    setEditing(true);
+  }
+
+  function cancelEdit() {
+    if (!profile) return;
+    setStatusDraft((profile.enrollmentStatus as EnrollmentStatus) ?? "");
+    setEndsDraft(
+      profile.enrollmentEndsAt ? toDateInput(profile.enrollmentEndsAt) : "",
+    );
+    setEditing(false);
+  }
+
   const canEdit =
     !instructorLens && profile.canEdit && !!profile.enrollmentId;
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Encabezado: nombre + plan + estado/pagado-hasta (editable si el
-          caller tiene capacidad students; el instructor solo lee) */}
-      <Card className="flex flex-col gap-2 p-4">
-        <p className="text-lg font-semibold">
+      {/* Header de entidad desnudo: la identidad va sobre el canvas
+          (h2 - el h1 de la página es "Alumnos" del appbar) y la caja se
+          reserva a los datos + edición. Estado/pagado-hasta editable si
+          el caller tiene capacidad students; el instructor solo lee. */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">
           {profile.person.name ?? shortId(profile.person.id)}
-        </p>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink/60">
-          <span>
-            {tp("plan")}: {profile.plan?.name ?? "·"}
-          </span>
-          {/* Score de relación academia↔alumno (CRM): privado de la
-              academia - solo se muestra en su consola. Feature `crm`
-              (PRO): COBROS/STUDIO no ven score ni clasificación (spec
-              academy-tier-v2). */}
-          {canCrm && (
-            <Badge variant="muted">
-              {tp("score")}:{" "}
-              {profile.score !== null
-                ? `${Math.round(profile.score)}${profile.segment ? ` · ${tcrm(`segments.${profile.segment}`)}` : ""}`
-                : tp("scoreNone")}
-            </Badge>
-          )}
-        </div>
-        {/* Desglose por componente (spec academy-score-refine): explica
-            el número. Scores previos al cambio traen breakdown null →
-            solo se muestra el badge. */}
-        {canCrm && profile.scoreBreakdown?.points && (
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
-            {(
-              [
-                "attendanceRecent",
-                "weeklyStreak",
-                "monthsContinuous",
-                "purchases",
-                "tenure",
-                "referrals",
-              ] as const
-            ).map((k) => (
-              <div key={k} className="flex items-baseline justify-between gap-2">
-                <dt className="text-ink/50">{tp(`breakdown.${k}`)}</dt>
-                <dd className="tabular-nums text-ink/80">
-                  {profile.scoreBreakdown?.[k] ?? 0}
-                  {typeof profile.scoreBreakdown?.points?.[k] === "number" && (
-                    <span className="text-ink/40">
-                      {" "}
-                      (+{profile.scoreBreakdown.points[k]})
-                    </span>
-                  )}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        )}
-        {canEdit ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
-              <label className="flex flex-col gap-1 text-xs text-ink/60">
-                {tp("enrollmentStatus")}
-                <select
-                  aria-label={tp("enrollmentStatus")}
-                  className={`${inputCls} w-auto min-h-11`}
-                  value={statusDraft}
-                  disabled={saving}
-                  onChange={(e) =>
-                    setStatusDraft(e.target.value as EnrollmentStatus)
-                  }
-                >
-                  {ENROLLMENT_STATUSES.map((st) => (
-                    <option key={st} value={st}>
-                      {statusLabel(st)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-xs text-ink/60">
-                {tp("endsAt")}
-                <input
-                  type="date"
-                  aria-label={tp("endsAt")}
-                  className={`${inputCls} w-auto`}
-                  value={endsDraft}
-                  disabled={saving}
-                  onChange={(e) => setEndsDraft(e.target.value)}
-                />
-              </label>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={saving}
-                onClick={() => void saveEnrollment()}
-              >
-                {tc("save")}
-              </Button>
-            </div>
-          </div>
-        ) : (
+        </h2>
+        <Card className="flex flex-col gap-2 p-4">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink/60">
-            <Badge variant="outline">
-              {tp("enrollmentStatus")}:{" "}
-              {statusLabel(profile.enrollmentStatus)}
-            </Badge>
-            {(profile.enrollmentStartedAt || profile.enrollmentEndsAt) && (
-              <p className="text-xs text-ink/50">
-                {profile.enrollmentStartedAt &&
-                  `${tp("startsAt")}: ${planDateFmt(locale).format(new Date(profile.enrollmentStartedAt))}`}
-                {profile.enrollmentStartedAt &&
-                  profile.enrollmentEndsAt &&
-                  " · "}
-                {profile.enrollmentEndsAt &&
-                  `${tp("endsAt")}: ${planDateFmt(locale).format(new Date(profile.enrollmentEndsAt))}`}
-              </p>
+            <span>
+              {tp("plan")}: {profile.plan?.name ?? "·"}
+            </span>
+            {/* Score de relación academia↔alumno (CRM): privado de la
+                academia - solo se muestra en su consola. Feature `crm`
+                (PRO): COBROS/STUDIO no ven score ni clasificación (spec
+                academy-tier-v2). */}
+            {canCrm && (
+              <Badge variant="muted">
+                {tp("score")}:{" "}
+                {profile.score !== null
+                  ? `${Math.round(profile.score)}${profile.segment ? ` · ${tcrm(`segments.${profile.segment}`)}` : ""}`
+                  : tp("scoreNone")}
+              </Badge>
             )}
           </div>
-        )}
-      </Card>
+          {/* Contacto del alumno (email + teléfono, spec
+              academies/console-lists): solo lo que la persona declaró;
+              campos ausentes no se renderizan. */}
+          {(profile.person.email || profile.person.phone) && (
+            <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+              {profile.person.email && (
+                <div className="flex min-w-0 items-baseline gap-1.5">
+                  <dt className="shrink-0 text-ink/50">{tp("email")}</dt>
+                  <dd className="min-w-0 break-all text-ink/80">
+                    {profile.person.email}
+                  </dd>
+                </div>
+              )}
+              {profile.person.phone && (
+                <div className="flex items-baseline gap-1.5">
+                  <dt className="shrink-0 text-ink/50">{tp("phone")}</dt>
+                  <dd className="tabular-nums text-ink/80">
+                    {profile.person.phone}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
+          {/* Desglose por componente (spec academy-score-refine): explica
+              el número. Scores previos al cambio traen breakdown null →
+              solo se muestra el badge. */}
+          {canCrm && profile.scoreBreakdown?.points && (
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+              {(
+                [
+                  "attendanceRecent",
+                  "weeklyStreak",
+                  "monthsContinuous",
+                  "purchases",
+                  "tenure",
+                  "referrals",
+                ] as const
+              ).map((k) => (
+                <div key={k} className="flex items-baseline justify-between gap-2">
+                  <dt className="text-ink/50">{tp(`breakdown.${k}`)}</dt>
+                  <dd className="tabular-nums text-ink/80">
+                    {profile.scoreBreakdown?.[k] ?? 0}
+                    {typeof profile.scoreBreakdown?.points?.[k] === "number" && (
+                      <span className="text-ink/40">
+                        {" "}
+                        (+{profile.scoreBreakdown.points[k]})
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {/* Estado + "pagado hasta": lectura por defecto con edición
+              protegida (spec academies/console-lists): el botón
+              "Editar" habilita los campos y Guardar/Cancelar devuelve a
+              lectura. Las fechas van en fila propia (basis-full): en
+              mobile "pagado hasta" baja a la tercera fila sin competir
+              por ancho con el chip de estado. */}
+          {canEdit && editing ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+                <label className="flex flex-col gap-1 text-xs text-ink/60">
+                  {tp("enrollmentStatus")}
+                  <select
+                    aria-label={tp("enrollmentStatus")}
+                    className={`${inputCls} w-auto min-h-11`}
+                    value={statusDraft}
+                    disabled={saving}
+                    onChange={(e) =>
+                      setStatusDraft(e.target.value as EnrollmentStatus)
+                    }
+                  >
+                    {ENROLLMENT_STATUSES.map((st) => (
+                      <option key={st} value={st}>
+                        {statusLabel(st)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-xs text-ink/60">
+                  {tp("endsAt")}
+                  <input
+                    type="date"
+                    aria-label={tp("endsAt")}
+                    className={`${inputCls} w-auto`}
+                    value={endsDraft}
+                    disabled={saving}
+                    onChange={(e) => setEndsDraft(e.target.value)}
+                  />
+                </label>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={saving}
+                  onClick={() => void saveEnrollment()}
+                >
+                  {saving ? <Spinner size="sm" /> : null}
+                  {tc("save")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={saving}
+                  onClick={cancelEdit}
+                >
+                  {tc("cancel")}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink/60">
+              <Badge variant="outline">
+                {tp("enrollmentStatus")}:{" "}
+                {statusLabel(profile.enrollmentStatus)}
+              </Badge>
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  className="min-h-9 rounded px-2 text-xs font-medium text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
+                  {tp("edit")}
+                </button>
+              )}
+              {(profile.enrollmentStartedAt || profile.enrollmentEndsAt) && (
+                <p className="basis-full text-xs text-ink/50">
+                  {profile.enrollmentStartedAt &&
+                    `${tp("startsAt")}: ${planDateFmt(locale).format(new Date(profile.enrollmentStartedAt))}`}
+                  {profile.enrollmentStartedAt &&
+                    profile.enrollmentEndsAt &&
+                    " · "}
+                  {profile.enrollmentEndsAt &&
+                    `${tp("endsAt")}: ${planDateFmt(locale).format(new Date(profile.enrollmentEndsAt))}`}
+                </p>
+              )}
+            </div>
+          )}
+        </Card>
+      </section>
 
-      {/* Niveles por tipo de clase (spec academies/enrollment-levels):
-          multinivel, los asigna la academia (cap students, mismo gate
+      {/* Nivel por tipo de clase (spec academies/enrollment-levels):
+          uno por tipo, lo asigna la academia (cap students, mismo gate
           que la edición del enrollment); el alumno no se auto-nivela. */}
-      {canEdit && profile.enrollmentId && (
+      {canEdit && canClasses && profile.enrollmentId && (
         <EnrollmentLevelsEditor
           enrollmentId={profile.enrollmentId}
+          academyId={academy.id}
           initialLevels={
             profile.enrollments.find((e) => e.id === profile.enrollmentId)
               ?.levels ?? []
@@ -367,39 +484,54 @@ function ProfileModule({
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {tp("payments")}
         </h3>
-        {profile.enrollments.length === 0 ? (
-          <p className="text-sm text-ink/50">{tp("emptyPayments")}</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {profile.enrollments.map((e) => (
-              <li
-                key={e.id}
-                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-line bg-elevated/60 px-4 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">
-                    {e.plan?.name ?? "·"}
-                  </p>
-                  <p className="text-xs text-ink/50 tabular-nums">
-                    {e.startedAt
-                      ? `${tp("startsAt")}: ${planDateFmt(locale).format(new Date(e.startedAt))}`
-                      : ""}
-                    {e.startedAt && e.endsAt ? " · " : ""}
-                    {e.endsAt
-                      ? `${tp("endsAt")}: ${planDateFmt(locale).format(new Date(e.endsAt))}`
-                      : ""}
-                  </p>
-                </div>
-                {e.plan && e.plan.price > 0 && (
-                  <PriceTag amount={e.plan.price} />
-                )}
-                <Badge variant={e.status === "ACTIVE" ? "neon" : "muted"}>
-                  {statusLabel(e.status)}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
+        <Card padded={false}>
+          {profile.enrollments.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-ink/50">
+              {tp("emptyPayments")}
+            </p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {profile.enrollments
+                .slice(0, showAllPayments ? undefined : LIST_PREVIEW)
+                .map((e) => (
+                  <li
+                    key={e.id}
+                    className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">
+                        {e.plan?.name ?? "·"}
+                      </p>
+                      <p className="text-xs text-ink/50 tabular-nums">
+                        {e.startedAt
+                          ? `${tp("startsAt")}: ${planDateFmt(locale).format(new Date(e.startedAt))}`
+                          : ""}
+                        {e.startedAt && e.endsAt ? " · " : ""}
+                        {e.endsAt
+                          ? `${tp("endsAt")}: ${planDateFmt(locale).format(new Date(e.endsAt))}`
+                          : ""}
+                        {/* Último método de pago conocido de la
+                            membresía (claim ligado o pasarela); sin
+                            registro no se muestra nada. */}
+                        {e.method ? ` · ${tp("method")}: ${e.method}` : ""}
+                      </p>
+                    </div>
+                    {e.plan && e.plan.price > 0 && (
+                      <PriceTag amount={e.plan.price} />
+                    )}
+                    <Badge variant={e.status === "ACTIVE" ? "neon" : "muted"}>
+                      {statusLabel(e.status)}
+                    </Badge>
+                  </li>
+                ))}
+              <SeeAllRow
+                total={profile.enrollments.length}
+                expanded={showAllPayments}
+                onToggle={() => setShowAllPayments((v) => !v)}
+              />
+            </ul>
+          )}
+        </Card>
       </section>
 
       {/* Clases frecuentes: a qué clase viene realmente el alumno
@@ -412,32 +544,36 @@ function ProfileModule({
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {tp("frequent")}
         </h3>
-        {profile.frequentSlots.length === 0 ? (
-          <p className="text-sm text-ink/50">{tp("emptyFrequent")}</p>
-        ) : (
-          <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2">
-            {profile.frequentSlots.map((f) => (
-              <li
-                key={`${f.weekday}-${f.startTime}-${f.seriesName}`}
-                className="flex items-center gap-3 rounded-xl border border-line bg-elevated/60 px-4 py-3"
-              >
-                <p className="w-16 shrink-0 text-sm font-semibold capitalize tabular-nums">
-                  {t(`weekday.${f.weekday}`).slice(0, 3)}{" "}
-                  <span className="font-normal text-ink/50">{f.startTime}</span>
-                </p>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
-                    {f.seriesName}
-                    {f.styleName ? ` · ${f.styleName}` : ""}
+        <Card padded={false}>
+          {profile.frequentSlots.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-ink/50">
+              {tp("emptyFrequent")}
+            </p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {profile.frequentSlots.map((f) => (
+                <li
+                  key={`${f.weekday}-${f.startTime}-${f.seriesName}`}
+                  className="flex min-h-11 items-center gap-3 px-4 py-2.5"
+                >
+                  <p className="w-16 shrink-0 text-sm font-semibold capitalize tabular-nums">
+                    {t(`weekday.${f.weekday}`).slice(0, 3)}{" "}
+                    <span className="font-normal text-ink/50">{f.startTime}</span>
                   </p>
-                </div>
-                <Badge variant="muted" className="shrink-0">
-                  {tp("frequentCount", { count: f.count })}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {f.seriesName}
+                      {f.styleName ? ` · ${f.styleName}` : ""}
+                    </p>
+                  </div>
+                  <Badge variant="muted" className="shrink-0">
+                    {tp("frequentCount", { count: f.count })}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       </section>
       )}
 
@@ -455,33 +591,49 @@ function ProfileModule({
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {tp("history")}
         </h3>
-        {profile.history.length === 0 ? (
-          <p className="text-sm text-ink/50">{tp("emptyHistory")}</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {profile.history.map((h) => (
-              <li
-                key={h.classId}
-                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-elevated/60 px-4 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold capitalize tabular-nums">
-                    {classDayFmt(locale).format(new Date(h.date))}
-                  </p>
-                  <p className="truncate text-xs text-ink/60">
-                    {h.seriesName ?? "·"}
-                    {h.styleName ? ` · ${h.styleName}` : ""}
-                  </p>
-                </div>
-                <Badge variant={HISTORY_VARIANT[h.status] ?? "muted"}>
-                  {KNOWN_HISTORY_STATUS.includes(h.status)
-                    ? tp(`historyStatus.${h.status}`)
-                    : h.status}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
+        <Card padded={false}>
+          {profile.history.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-ink/50">
+              {tp("emptyHistory")}
+            </p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {profile.history
+                .slice(0, showAllHistory ? undefined : LIST_PREVIEW)
+                .map((h) => (
+                <li key={h.classId}>
+                  {/* La fila navega a la ficha de la clase: asistencia
+                      y roster viven ahí (console-patterns §2). */}
+                  <Link
+                    href={`/academia/clases/${h.classId}`}
+                    className="flex min-h-11 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold capitalize tabular-nums">
+                        {classDayFmt(locale).format(new Date(h.date))}
+                      </span>
+                      <span className="block truncate text-xs text-ink/60">
+                        {h.seriesName ?? "·"}
+                        {h.styleName ? ` · ${h.styleName}` : ""}
+                      </span>
+                    </span>
+                    <Badge variant={HISTORY_VARIANT[h.status] ?? "muted"}>
+                      {KNOWN_HISTORY_STATUS.includes(h.status)
+                        ? tp(`historyStatus.${h.status}`)
+                        : h.status}
+                    </Badge>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                  </Link>
+                </li>
+              ))}
+              <SeeAllRow
+                total={profile.history.length}
+                expanded={showAllHistory}
+                onToggle={() => setShowAllHistory((v) => !v)}
+              />
+            </ul>
+          )}
+        </Card>
       </section>
       )}
 
@@ -495,34 +647,51 @@ function ProfileModule({
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {tp("upcoming")}
         </h3>
-        {profile.upcoming.length === 0 ? (
-          <p className="text-sm text-ink/50">{tp("emptyUpcoming")}</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {profile.upcoming.map((u) => (
-              <li
-                key={u.classId}
-                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-elevated/60 px-4 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold capitalize tabular-nums">
-                    {classDayFmt(locale).format(new Date(u.date))}
-                  </p>
-                  <p className="truncate text-xs text-ink/60">
-                    {u.seriesName ?? "·"}
-                  </p>
-                </div>
-                <Badge variant={u.status === "BOOKED" ? "neon" : "outline"}>
-                  {u.status === "BOOKED"
-                    ? tClasses("booked")
-                    : u.status === "WAITLIST"
-                      ? tClasses("waitlist")
-                      : u.status}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
+        <Card padded={false}>
+          {profile.upcoming.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-ink/50">
+              {tp("emptyUpcoming")}
+            </p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {profile.upcoming
+                .slice(0, showAllUpcoming ? undefined : LIST_PREVIEW)
+                .map((u) => (
+                <li key={u.classId}>
+                  {/* Reserva → ficha de la clase (console-patterns §2). */}
+                  <Link
+                    href={`/academia/clases/${u.classId}`}
+                    className="flex min-h-11 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold capitalize tabular-nums">
+                        {classDayFmt(locale).format(new Date(u.date))}
+                      </span>
+                      <span className="block truncate text-xs text-ink/60">
+                        {u.seriesName ?? "·"}
+                      </span>
+                    </span>
+                    <Badge
+                      variant={u.status === "BOOKED" ? "neon" : "outline"}
+                    >
+                      {u.status === "BOOKED"
+                        ? tClasses("booked")
+                        : u.status === "WAITLIST"
+                          ? tClasses("waitlist")
+                          : u.status}
+                    </Badge>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                  </Link>
+                </li>
+              ))}
+              <SeeAllRow
+                total={profile.upcoming.length}
+                expanded={showAllUpcoming}
+                onToggle={() => setShowAllUpcoming((v) => !v)}
+              />
+            </ul>
+          )}
+        </Card>
       </section>
       )}
       </div>

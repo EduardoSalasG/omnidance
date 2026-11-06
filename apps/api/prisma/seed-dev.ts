@@ -728,8 +728,18 @@ export async function seedDev(prisma: PrismaClient) {
   step("series/slots/clases…");
   const styleId = async (name: string) =>
     (await prisma.style.findFirst({ where: { name } }))!.id;
-  const levelId = async (name: string) =>
-    (await prisma.classLevel.findFirst({ where: { name, academyId: null } }))!.id;
+  // Resolución por línea efectiva: si la academia tiene un nivel custom
+  // con ese nombre, ese gana (la línea custom reemplaza a la global);
+  // si no, cae al catálogo global (academies sin customs = igual que antes).
+  const levelId = async (name: string, academyId?: string) => {
+    if (academyId) {
+      const custom = await prisma.classLevel.findFirst({
+        where: { name, academyId },
+      });
+      if (custom) return custom.id;
+    }
+    return (await prisma.classLevel.findFirst({ where: { name, academyId: null } }))!.id;
+  };
   const typeId = async (name: string) =>
     (await prisma.classType.findUnique({ where: { name } }))!.id;
 
@@ -781,7 +791,9 @@ export async function seedDev(prisma: PrismaClient) {
     withNext?: boolean;
   }) => {
     const sId = opts.styleName ? await styleId(opts.styleName) : null;
-    const lId = opts.levelName ? await levelId(opts.levelName) : null;
+    const lId = opts.levelName
+      ? await levelId(opts.levelName, opts.academyId)
+      : null;
     // Identidad = academia+nombre+nivel: el mismo estilo puede existir
     // en dos niveles (p. ej. "Salsa" Iniciación y Básico son series
     // distintas) - la llave de la normalización ya incluye levelId.
@@ -789,6 +801,9 @@ export async function seedDev(prisma: PrismaClient) {
       () =>
         prisma.classSeries.findFirst({
           where: { academyId: opts.academyId, name: opts.name, levelId: lId },
+          // Si hay duplicados vivos y borrados, prefiere la fila viva
+          // (resucitar una borrada espeja el PATCH restore del API).
+          orderBy: { deletedAt: { sort: "asc", nulls: "first" } },
         }),
       () =>
         prisma.classSeries.create({
@@ -815,6 +830,10 @@ export async function seedDev(prisma: PrismaClient) {
             dropInPrice: opts.dropInPrice ?? null,
             month: currentMonth,
             active: opts.active ?? true,
+            // Resurrección explícita: una serie que fue keeper del dedupe
+            // o restaurada vía API puede llegar con deletedAt set; sin
+            // limpiarlo quedaría oculta de la consola.
+            deletedAt: null,
           },
         }),
     );
@@ -863,6 +882,10 @@ export async function seedDev(prisma: PrismaClient) {
             where: { id: sl.id },
             data: {
               endTime: s.endTime,
+              // Resurrección como la de la serie: un slot borrado
+              // lógico que vuelve a la parrilla queda visible otra vez
+              // (cupos/insights/materialización filtran deletedAt).
+              deletedAt: null,
               capacity: s.capacity ?? null,
               instructorId: opts.instructorId ?? null,
             },
@@ -1001,7 +1024,9 @@ export async function seedDev(prisma: PrismaClient) {
   const rueda = await mkClassSeries({
     academyId: muvet.id,
     name: "Rueda de Casino",
-    styleName: "Rueda de casino",
+    // "Rueda de casino" salió del catálogo (decisión 2026-11): la serie
+    // conserva el nombre y etiqueta el estilo cubano vigente.
+    styleName: "Salsa cubana (casino)",
     levelName: "Iniciación",
     typeNames: ["Pareja"],
     instructorId: vale.id,
@@ -1025,8 +1050,8 @@ export async function seedDev(prisma: PrismaClient) {
     { label: "Bachata Sensual", styleName: "Bachata sensual" }, // 2
     { label: "Bachata Tradicional", styleName: "Bachata tradicional" }, // 3
     { label: "Bachata Moderna", styleName: "Bachata moderna" }, // 4
-    { label: "Cubano", styleName: "Cubano" }, // 5
-    { label: "Rueda de Casino", styleName: "Rueda de casino" }, // 6
+    { label: "Cubano", styleName: "Salsa cubana (casino)" }, // 5
+    { label: "Rueda de Casino", styleName: "Salsa cubana (casino)" }, // 6
     { label: "Casino", styleName: "Salsa cubana (casino)" }, // 7
     { label: "Afrocubano", styleName: "Afrocubano" }, // 8
     { label: "Fusión", styleName: "Fusión" }, // 9
@@ -1261,31 +1286,106 @@ export async function seedDev(prisma: PrismaClient) {
     create: { academyId: mambo.id, personId: gabriel.id },
   });
 
-  // Series fuera de la parrilla real (genéricas viejas o de mappings
-  // previos de nivel) → soft delete: conserva sus clases e historial.
-  const mmTarget = new Set([
-    "Salsa|Iniciación",
-    "Bachata|Iniciación",
-    "Bachata Pareja|Básico",
-    "Salsa Pareja|Básico",
-    "Movimiento Corporal|Básico",
-    "Pasos Libres|Básico",
-    "Partnerwork|Básico",
-    "Lady Style|Básico",
-    "Shines|Intermedio",
-    "Movimiento Corporal|Intermedio",
-    "Partnerwork|Intermedio",
-  ]);
-  for (const s of await prisma.classSeries.findMany({
-    where: { academyId: mambo.id, deletedAt: null },
-    select: { id: true, name: true, level: { select: { name: true } } },
-  })) {
-    if (!mmTarget.has(`${s.name}|${s.level?.name ?? ""}`)) {
-      await prisma.classSeries.update({
-        where: { id: s.id },
-        data: { deletedAt: new Date() },
+  // Parrilla objetivo (mambomadnesscl.com) - ordenada: hay entradas
+  // que repiten nombre en distinto nivel (Movimiento Corporal y
+  // Partnerwork Básico/Intermedio) y cada una elige su propio keeper.
+  const mmTarget: { name: string; levelName: string }[] = [
+    { name: "Salsa", levelName: "Iniciación" },
+    { name: "Bachata", levelName: "Iniciación" },
+    { name: "Bachata Pareja", levelName: "Básico" },
+    { name: "Salsa Pareja", levelName: "Básico" },
+    { name: "Movimiento Corporal", levelName: "Básico" },
+    { name: "Pasos Libres", levelName: "Básico" },
+    { name: "Partnerwork", levelName: "Básico" },
+    { name: "Lady Style", levelName: "Básico" },
+    { name: "Shines", levelName: "Intermedio" },
+    { name: "Movimiento Corporal", levelName: "Intermedio" },
+    { name: "Partnerwork", levelName: "Intermedio" },
+  ];
+
+  // Dedupe histórico: la misma clase quedó sembrada en versión
+  // global-level y custom-level (y seeds viejos dejaron filas borradas
+  // lógicas aún activas). Por cada entrada del target se elige keeper =
+  // la serie de ese nombre con más data acumulada (clases + asistencias
+  // + reservas en sus slots); el keeper hereda el historial y se
+  // reasigna al nivel efectivo (custom) de la academia.
+  const mmAll = await prisma.classSeries.findMany({
+    where: { academyId: mambo.id },
+    select: { id: true, name: true },
+  });
+  const mmScore = new Map<string, number>();
+  for (const s of mmAll) {
+    const [cls, att, bk] = await Promise.all([
+      prisma.class.count({ where: { slot: { seriesId: s.id } } }),
+      prisma.attendance.count({
+        where: { class: { slot: { seriesId: s.id } } },
+      }),
+      prisma.classBooking.count({
+        where: { class: { slot: { seriesId: s.id } } },
+      }),
+    ]);
+    mmScore.set(s.id, cls + att + bk);
+  }
+  const mmByName = new Map<string, string[]>();
+  for (const s of mmAll) {
+    const list = mmByName.get(s.name) ?? [];
+    list.push(s.id);
+    mmByName.set(s.name, list);
+  }
+  const mmKeepers = new Set<string>();
+  for (const t of mmTarget) {
+    const pool = (mmByName.get(t.name) ?? []).filter(
+      (id) => !mmKeepers.has(id),
+    );
+    pool.sort((a, b) => (mmScore.get(b) ?? 0) - (mmScore.get(a) ?? 0));
+    const keeper = pool[0];
+    if (!keeper) continue; // no existe aún - mkClassSeries la crea
+    mmKeepers.add(keeper);
+    await prisma.classSeries.update({
+      where: { id: keeper },
+      data: {
+        levelId: await levelId(t.levelName, mambo.id),
+        active: true,
+        deletedAt: null,
+      },
+    });
+  }
+
+  // Cleanup espejo de DELETE /academies/:id/series/:seriesId para toda
+  // serie que no sea keeper (perdedoras del dedupe y fuera de parrilla):
+  // active:false + deletedAt + clases futuras canceladas + reservas
+  // BOOKED/WAITLIST liberadas con refund. Las clases pasadas se
+  // conservan (historial para analítica).
+  for (const s of mmAll) {
+    if (mmKeepers.has(s.id)) continue;
+    // Sin filtro cancelled:false: una clase ya cancelada por otra vía
+    // puede tener reservas revividas por el upsert de book() en seeds
+    // anteriores - también hay que liberarlas para cerrar el estado.
+    const futureClasses = await prisma.class.findMany({
+      where: {
+        slot: { seriesId: s.id },
+        date: { gte: todayUTC },
+      },
+      select: { id: true },
+    });
+    const futureIds = futureClasses.map((c) => c.id);
+    if (futureIds.length) {
+      await prisma.class.updateMany({
+        where: { id: { in: futureIds } },
+        data: { cancelled: true },
+      });
+      await prisma.classBooking.updateMany({
+        where: {
+          classId: { in: futureIds },
+          status: { in: ["BOOKED", "WAITLIST"] },
+        },
+        data: { status: "CANCELLED", cancelledAt: now, refunded: true },
       });
     }
+    await prisma.classSeries.update({
+      where: { id: s.id },
+      data: { active: false, deletedAt: now },
+    });
   }
 
   // Parrilla real (mambomadnesscl.com). Niveles del flyer → catálogo:
@@ -1317,10 +1417,46 @@ export async function seedDev(prisma: PrismaClient) {
     // del seed) se podan con sus clases/reservas - nunca existieron en
     // la parrilla real.
     const keep = new Set(slots.map((s) => `${s.weekday}|${s.startTime}`));
-    for (const stale of await prisma.classSlot.findMany({
+    const allSlots = await prisma.classSlot.findMany({
       where: { seriesId: r.series.id },
-    })) {
-      if (keep.has(`${stale.weekday}|${stale.startTime}`)) continue;
+    });
+    // Dedupe intra-serie: la serie puede tener varios slots en el mismo
+    // weekday|startTime (los heredó al fusionarse duplicados). Se
+    // conserva el de más data (clases + asistencias + reservas) y el
+    // resto se poda con la misma cascada de abajo.
+    const dupeSlotIds = new Set<string>();
+    const slotsByKey = new Map<string, typeof allSlots>();
+    for (const sl of allSlots) {
+      const key = `${sl.weekday}|${sl.startTime}`;
+      const list = slotsByKey.get(key) ?? [];
+      list.push(sl);
+      slotsByKey.set(key, list);
+    }
+    for (const [key, list] of slotsByKey) {
+      if (!keep.has(key) || list.length < 2) continue;
+      let bestId = list[0].id;
+      let bestScore = -1;
+      for (const sl of list) {
+        const [cls, att, bk] = await Promise.all([
+          prisma.class.count({ where: { classSlotId: sl.id } }),
+          prisma.attendance.count({
+            where: { class: { classSlotId: sl.id } },
+          }),
+          prisma.classBooking.count({
+            where: { class: { classSlotId: sl.id } },
+          }),
+        ]);
+        const score = cls + att + bk;
+        if (score > bestScore) {
+          bestScore = score;
+          bestId = sl.id;
+        }
+      }
+      for (const sl of list) if (sl.id !== bestId) dupeSlotIds.add(sl.id);
+    }
+    for (const stale of allSlots) {
+      const inSchedule = keep.has(`${stale.weekday}|${stale.startTime}`);
+      if (inSchedule && !dupeSlotIds.has(stale.id)) continue;
       const staleClasses = await prisma.class.findMany({
         where: { classSlotId: stale.id },
         select: { id: true },
@@ -1711,7 +1847,8 @@ export async function seedDev(prisma: PrismaClient) {
   await mkClassSeries({
     academyId: muvet.id,
     name: "Cubano",
-    styleName: "Cubano",
+    // "Cubano" salió del catálogo (decisión 2026-11): etiqueta casino.
+    styleName: "Salsa cubana (casino)",
     levelName: "Básico",
     typeNames: ["Pareja", "Shines"],
     instructorId: muvetOwner.id,
@@ -4010,32 +4147,29 @@ export async function seedDev(prisma: PrismaClient) {
     styleRole(camila, "Bachata sensual", "FOLLOWER", "intermedio"),
     styleRole(camila, "Salsa cubana (casino)", "FOLLOWER", "intermedio"),
     styleRole(josefa, "Salsa cubana (casino)", "FOLLOWER", "avanzado"),
-    styleRole(josefa, "Cubano", "FOLLOWER", "intermedio"),
     styleRole(diego, "Salsa cubana (casino)", "LEADER", "intermedio"),
-    styleRole(diego, "Rueda de casino", "LEADER", "iniciacion"),
     styleRole(antonia, "Bachata sensual", "FOLLOWER", "avanzado"),
     styleRole(antonia, "Salsa cubana (casino)", "FOLLOWER", "intermedio"),
     styleRole(sebastian, "Mambo on2", "LEADER", "intermedio"),
     styleRole(francisca, "Bachata sensual", "FOLLOWER", "iniciacion"),
-    styleRole(felipe, "Cubano", "LEADER", "intermedio"),
+    styleRole(felipe, "Salsa cubana (casino)", "LEADER", "intermedio"),
     styleRole(felipe, "Salsa cubana (casino)", "SWITCH", "iniciacion"),
     styleRole(daniela, "Bachata sensual", "FOLLOWER", "iniciacion"),
     // Instructores y DJs también bailan social - sus perfiles lo reflejan.
     styleRole(vale, "Salsa cubana (casino)", "SWITCH", "avanzado"),
     styleRole(vale, "Bachata sensual", "FOLLOWER", "avanzado"),
     styleRole(rodrigo, "Salsa cubana (casino)", "LEADER", "avanzado"),
-    styleRole(rodrigo, "Rueda de casino", "LEADER", "avanzado"),
-    styleRole(jesus, "Cubano", "LEADER", "avanzado"),
+    styleRole(jesus, "Salsa cubana (casino)", "LEADER", "avanzado"),
     styleRole(steban, "Salsa on1", "LEADER", "intermedio"),
     styleRole(matias, "Salsa cubana (casino)", "LEADER", "intermedio"),
     styleRole(fabian, "Bachata sensual", "SWITCH", "intermedio"),
     styleRole(cesar, "Salsa cubana (casino)", "LEADER", "avanzado"),
     styleRole(ardilla, "Bachata tradicional", "LEADER", "intermedio"),
-    // Gabriel (Mambo Madness): mambo on2 / bachata sensual / cubano,
+    // Gabriel (Mambo Madness): mambo on2 / bachata sensual / casino,
     // los tres leader avanzado.
     styleRole(gabriel, "Mambo on2", "LEADER", "avanzado"),
     styleRole(gabriel, "Bachata sensual", "LEADER", "avanzado"),
-    styleRole(gabriel, "Cubano", "LEADER", "avanzado"),
+    styleRole(gabriel, "Salsa cubana (casino)", "LEADER", "avanzado"),
     // Mónica - alumna de Adrian y Leo: mambo follower en progreso.
     styleRole(monica, "Mambo on2", "FOLLOWER", "básico"),
     styleRole(monica, "Bachata sensual", "FOLLOWER", "intermedio"),
@@ -4297,7 +4431,7 @@ export async function seedDev(prisma: PrismaClient) {
   await session(prevEdition.id, antonia, daniela, "CONFIRMED", at(110), "Salsa cubana (casino)", [
     [antonia, 5],
   ]);
-  await session(prevEdition.id, josefa, diego, "CONFIRMED", at(145), "Cubano");
+  await session(prevEdition.id, josefa, diego, "CONFIRMED", at(145), "Salsa cubana (casino)");
   // Gabriel/Mónica/María también bailaron la edición pasada - sus
   // /bailes arrancan con historial, no con una lista vacía.
   await session(prevEdition.id, gabriel, antonia, "RATED", at(80), "Bachata sensual", [
@@ -4393,17 +4527,17 @@ export async function seedDev(prisma: PrismaClient) {
     [dancer, 4, 4, 5, 4],
     [felipe, 5],
   ]);
-  await session(liveEvent.id, dancer, sebastian, "CONFIRMED", liveAt(50), "Cubano");
+  await session(liveEvent.id, dancer, sebastian, "CONFIRMED", liveAt(50), "Salsa cubana (casino)");
   await session(liveEvent.id, vale, dancer, "RATED", liveAt(70), "Salsa cubana (casino)", [
     [dancer, 5, 5, 4, 5],
     [vale, 4],
   ]);
   await session(liveEvent.id, dancer, daniela, "CONFIRMED", liveAt(80), "Bachata sensual");
-  await session(liveEvent.id, francisca, dancer, "CONFIRMED", liveAt(105), "Cubano");
+  await session(liveEvent.id, francisca, dancer, "CONFIRMED", liveAt(105), "Salsa cubana (casino)");
   // Jorge también está en la pista esta noche.
   await session(liveEvent.id, jorge, josefa, "CONFIRMED", liveAt(65), "Mambo on2");
   // Camila: su propia noche - el card también debe verse rico en su cuenta.
-  await session(liveEvent.id, camila, diego, "RATED", liveAt(20), "Cubano", [
+  await session(liveEvent.id, camila, diego, "RATED", liveAt(20), "Salsa cubana (casino)", [
     [camila, 5, 5, 5, 4],
     [diego, 4],
   ]);
@@ -4526,11 +4660,11 @@ export async function seedDev(prisma: PrismaClient) {
   await session(edition2.id, josefa, dancer, "CONFIRMED", atEdition(edition2, 90), "Salsa cubana (casino)", [
     [josefa, 5],
   ]);
-  await session(edition2.id, dancer, diego, "CONFIRMED", atEdition(edition2, 120), "Cubano");
+  await session(edition2.id, dancer, diego, "CONFIRMED", atEdition(edition2, 120), "Salsa cubana (casino)");
   await session(edition2.id, daniela, dancer, "CONFIRMED", atEdition(edition2, 150), "Bachata sensual");
   await session(edition2.id, dancer, francisca, "CONFIRMED", atEdition(edition2, 180), "Salsa cubana (casino)");
   await session(edition2.id, sebastian, dancer, "CONFIRMED", atEdition(edition2, 210), "Bachata sensual");
-  await session(edition2.id, dancer, felipe, "RATED", atEdition(edition2, 240), "Cubano", [
+  await session(edition2.id, dancer, felipe, "RATED", atEdition(edition2, 240), "Salsa cubana (casino)", [
     [felipe, 4],
   ]);
   await session(edition2.id, vale, dancer, "RATED", atEdition(edition2, 270), "Salsa cubana (casino)", [
@@ -4558,7 +4692,7 @@ export async function seedDev(prisma: PrismaClient) {
   await session(edition3.id, dancer, antonia, "CONFIRMED", atEdition(edition3, 70), "Bachata sensual", [
     [antonia, 5],
   ]);
-  await session(edition3.id, josefa, diego, "RATED", atEdition(edition3, 100), "Cubano", [
+  await session(edition3.id, josefa, diego, "RATED", atEdition(edition3, 100), "Salsa cubana (casino)", [
     [josefa, 4],
     [diego, 4],
   ]);

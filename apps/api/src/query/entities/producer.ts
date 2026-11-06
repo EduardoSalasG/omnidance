@@ -30,11 +30,7 @@ const eventScope = (scope: QueryScope): string | { in: string[] } =>
 const evCol = (scope: QueryScope, eventId: string): unknown[] =>
   scope.labelByEvent ? [scope.labelByEvent.get(eventId) ?? ""] : [];
 
-const capped = (
-  rows: unknown[][],
-  take?: number,
-  skip?: number,
-): unknown[][] => {
+const capped = <T>(rows: T[], take?: number, skip?: number): T[] => {
   const from = skip ?? 0;
   return take == null ? rows.slice(from) : rows.slice(from, from + take);
 };
@@ -51,6 +47,9 @@ function producerDataset(dataset: ExportDataset): EntityHandler {
       );
       return {
         rows: capped(table.rows, opts?.take, opts?.skip),
+        personIds: table.personIds
+          ? capped(table.personIds, opts?.take, opts?.skip)
+          : undefined,
         total: table.rows.length,
         summary: table.summary,
       };
@@ -105,18 +104,15 @@ const attendees: EntityHandler = {
     }
     const objects: Attendee[] = [...byPerson.values()];
     const total = objects.length;
-    const rows = capped(
-      objects.map((a) => [
+    const page = capped(objects, opts?.take, opts?.skip);
+    return {
+      rows: page.map((a) => [
         names.get(a.personId) ?? "?",
         iso(a.first),
         iso(a.last),
         a.visits,
       ]),
-      opts?.take,
-      opts?.skip,
-    );
-    return {
-      rows,
+      personIds: page.map((a) => a.personId),
       total,
       summary: [`${total} asistentes únicos · ${checkins.length} check-ins`],
     };
@@ -146,19 +142,17 @@ const reservations: EntityHandler = {
       rows0.map((r) => r.personId),
     );
     const total = rows0.length;
+    const page = capped(rows0, opts?.take, opts?.skip);
     return {
-      rows: capped(
-        rows0.map((r) => [
-          ...evCol(scope, r.eventId),
-          iso(r.createdAt),
-          names.get(r.personId) ?? "?",
-          r.partySize,
-          r.tableNo ?? "",
-          r.status,
-        ]),
-        opts?.take,
-        opts?.skip,
-      ),
+      rows: page.map((r) => [
+        ...evCol(scope, r.eventId),
+        iso(r.createdAt),
+        names.get(r.personId) ?? "?",
+        r.partySize,
+        r.tableNo ?? "",
+        r.status,
+      ]),
+      personIds: page.map((r) => r.personId),
       total,
       summary: [
         `${total} reservas · ${rows0
@@ -192,18 +186,16 @@ const waitlist: EntityHandler = {
       rows0.map((r) => r.personId),
     );
     const total = rows0.length;
+    const page = capped(rows0, opts?.take, opts?.skip);
     return {
-      rows: capped(
-        rows0.map((r) => [
-          ...evCol(scope, r.eventId),
-          iso(r.createdAt),
-          names.get(r.personId) ?? "?",
-          r.position,
-          r.status,
-        ]),
-        opts?.take,
-        opts?.skip,
-      ),
+      rows: page.map((r) => [
+        ...evCol(scope, r.eventId),
+        iso(r.createdAt),
+        names.get(r.personId) ?? "?",
+        r.position,
+        r.status,
+      ]),
+      personIds: page.map((r) => r.personId),
       total,
       summary: [`${total} en lista de espera`],
     };
@@ -228,16 +220,14 @@ const rsvps: EntityHandler = {
       rows0.map((r) => r.personId),
     );
     const total = rows0.length;
+    const page = capped(rows0, opts?.take, opts?.skip);
     return {
-      rows: capped(
-        rows0.map((r) => [
-          ...evCol(scope, r.eventId),
-          names.get(r.personId) ?? "?",
-          iso(r.createdAt),
-        ]),
-        opts?.take,
-        opts?.skip,
-      ),
+      rows: page.map((r) => [
+        ...evCol(scope, r.eventId),
+        names.get(r.personId) ?? "?",
+        iso(r.createdAt),
+      ]),
+      personIds: page.map((r) => r.personId),
       total,
       summary: [`${total} confirmaciones`],
     };

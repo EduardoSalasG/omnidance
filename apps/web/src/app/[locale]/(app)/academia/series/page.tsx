@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, Pager, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, ChevronRightIcon, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { AcademyGate } from "@/components/academy/academy-gate";
@@ -15,8 +15,8 @@ import { SeriesInsights } from "@/components/academy/series-insights";
 import {
   filterQuery,
   type FilterOption,
+  type NamedRef,
   type Series,
-  type SeriesStyle,
 } from "@/components/academy/shared";
 import { Link } from "@/i18n/navigation";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
@@ -53,28 +53,46 @@ const PAGE_SIZE = 12;
  */
 export default function AcademiaSeriesPage() {
   const t = useTranslations("academy");
+  const ts = useTranslations("academySeries");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
-      <ConsoleHeader backHref="/academia" backLabel={t("title")} />
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
+      <ConsoleHeader
+        backHref="/academia"
+        backLabel={t("title")}
+        actions={
+          <Button href="/academia/series/nueva" size="sm">
+            + {ts("new")}
+          </Button>
+        }
+      />
       <AcademyGate>
         {({ academy }) => (
-          <AcademyTierGate academy={academy} feature="classes"><SeriesModule key={academy.id} academyId={academy.id} /></AcademyTierGate>
+          <AcademyTierGate academy={academy} feature="classes"><SeriesModule key={academy.id} academyId={academy.id} tier={academy.tier} /></AcademyTierGate>
         )}
       </AcademyGate>
     </main>
   );
 }
 
-function SeriesModule({ academyId }: { academyId: string }) {
+function SeriesModule({
+  academyId,
+  tier,
+}: {
+  academyId: string;
+  tier?: string | null;
+}) {
   const t = useTranslations("academySeries");
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
+  const tq = useTranslations("query");
 
   const [series, setSeries] = useState<Series[] | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [loadError, setLoadError] = useState(false);
+  // null = ok; status HTTP del fallo (0 = excepción de red) - 401/403
+  // elevan a forbidden, el resto a error con retry.
+  const [loadError, setLoadError] = useState<number | null>(null);
   // Default del listado: solo clases activas (spec academies/class-series).
   const [filters, setFilters] = useState<QueryFilters>({ status: "active" });
 
@@ -96,22 +114,31 @@ function SeriesModule({ academyId }: { academyId: string }) {
         timeZone: "UTC",
       });
 
+  // Secuencia de requests: solo el más reciente aplica su resultado.
+  // Sin la guardia, un request viejo que falla tarde pisaba el éxito
+  // de uno más nuevo y dejaba el banner "Algo salió mal" sobre una
+  // lista ya cargada (bug intermitente 2026-11, visible con el doble
+  // efecto de StrictMode y con cambios rápidos de filtros).
+  const reqSeq = useRef(0);
   const reload = useCallback(async () => {
-    setLoadError(false);
+    const seq = ++reqSeq.current;
+    setLoadError(null);
     try {
       const qs = filterQuery(filters);
       const res = await apiFetch(
         `/academies/${academyId}/series${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
       );
+      if (seq !== reqSeq.current) return; // respuesta vieja: descartar
       if (!res.ok) {
-        setLoadError(true);
+        setLoadError(res.status);
         return;
       }
       const data = (await res.json()) as { items: Series[]; total: number };
+      if (seq !== reqSeq.current) return;
       setSeries(data.items);
       setTotal(data.total);
     } catch {
-      setLoadError(true);
+      if (seq === reqSeq.current) setLoadError(0);
     }
   }, [academyId, filters, page]);
 
@@ -119,12 +146,15 @@ function SeriesModule({ academyId }: { academyId: string }) {
     void reload();
   }, [reload]);
 
-  // Catálogos de filtros: styles + levels + types (GET /classes/catalogs
-  // es público y trae levels/types juntos).
+  // Catálogos de filtros: levels/types del catálogo público
+  // (GET /classes/catalogs). Los estilos NO son el catálogo global:
+  // el select solo ofrece los presentes en las series de ESTA
+  // academia (GET :id/series/styles) - filtrar por un estilo sin
+  // series daría vacíos garantizados (review 2026-11-05).
   useEffect(() => {
-    apiFetch("/styles")
+    apiFetch(`/academies/${academyId}/series/styles`)
       .then(async (res) =>
-        res.ok ? ((await res.json()) as SeriesStyle[]) : [],
+        res.ok ? ((await res.json()) as NamedRef[]) : [],
       )
       .then((styles) =>
         setStyleOptions(
@@ -132,7 +162,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
         ),
       )
       .catch(() => setStyleOptions([]));
-    apiFetch("/classes/catalogs")
+    apiFetch(`/classes/catalogs?academyId=${academyId}`)
       .then(async (res) => (res.ok ? ((await res.json()) as Catalogs) : {}))
       .then((c) => {
         setLevelOptions(
@@ -146,9 +176,21 @@ function SeriesModule({ academyId }: { academyId: string }) {
         setLevelOptions([]);
         setTypeOptions([]);
       });
-  }, []);
+  }, [academyId]);
 
-  if (loadError) {
+  if (loadError !== null) {
+    // 401/403 no son transitorios: CTA de salida, no retry (mismo
+    // patrón que la ficha del horario).
+    if (loadError === 401 || loadError === 403) {
+      return (
+        <div className="flex flex-col items-start gap-4">
+          <p className="text-sm text-ink/60">{ta("forbidden")}</p>
+          <Button variant="secondary" size="sm" href="/academia">
+            {tc("back")}
+          </Button>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center gap-3">
         <p role="alert" className="text-sm text-ink/60">
@@ -166,15 +208,9 @@ function SeriesModule({ academyId }: { academyId: string }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button href="/academia/series/nueva" size="sm">
-          + {t("new")}
-        </Button>
-      </div>
-
       {/* Insights del módulo: KPIs primero, listas después (mismo
           orden que el inicio). */}
-      <SeriesInsights academyId={academyId} />
+      <SeriesInsights academyId={academyId} tier={tier} />
 
       <FilterBar
         entity={SERIES_ENTITY}
@@ -191,32 +227,34 @@ function SeriesModule({ academyId }: { academyId: string }) {
       />
 
       {series.length === 0 ? (
-        <p className="text-sm text-ink/50">{t("empty")}</p>
+        // Filtros en el default ({status:"active"}) = academia sin
+        // series: empty de primera vez + CTA a crear. Con filtros
+        // activos es "sin resultados para esta consulta".
+        Object.keys(filters).length === 1 && filters.status === "active" ? (
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm text-ink/50">{t("empty")}</p>
+            <Button href="/academia/series/nueva" size="sm">
+              + {t("new")}
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm text-ink/50">{tq("empty")}</p>
+        )
       ) : (
-        <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start">
+        <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
           {series.map((s) => (
             <li key={s.id}>
               {/* Card navegable - sin acciones visibles: editar,
-                  desactivar, horarios y eliminar viven en el detalle. */}
+                  desactivar, horarios y eliminar viven en el detalle.
+                  Anatomía (ui-cards A): tag-row de clasificación,
+                  headline identidad+estado, descripción clamp-2,
+                  divider + evidencia de horarios al flujo natural. */}
               <Link
                 href={`/academia/series/${s.id}`}
-                className="block rounded-2xl transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                className="block h-full rounded-2xl transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
               >
-                <Card className="flex flex-col gap-3 p-4 transition-colors hover:border-neon/40">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <p className="font-semibold">{s.name}</p>
-                    {!s.active && (
-                      <Badge variant="live">{t("inactive")}</Badge>
-                    )}
-                  </div>
-                  {s.description && (
-                    <p className="text-sm text-ink/60">{s.description}</p>
-                  )}
-                  {(s.style ||
-                    s.level ||
-                    s.types.length > 0 ||
-                    s.quorum != null ||
-                    s.dropInPrice != null) && (
+                <Card className="flex h-full flex-col gap-3 p-4 transition-colors hover:border-neon/60">
+                  {(s.style || s.level || s.types.length > 0) && (
                     <div className="flex flex-wrap gap-1.5">
                       {s.style && (
                         <Badge variant="neon">{s.style.name}</Badge>
@@ -224,48 +262,74 @@ function SeriesModule({ academyId }: { academyId: string }) {
                       {s.level && (
                         <Badge variant="muted">{s.level.name}</Badge>
                       )}
-                      {s.quorum != null && (
-                        <Badge variant="outline">
-                          {t("quorumValue", { value: s.quorum })}
-                        </Badge>
-                      )}
                       {s.types.map((x) => (
                         <Badge key={x.type.id} variant="outline">
                           {x.type.name}
                         </Badge>
                       ))}
-                      {s.dropInPrice != null && (
-                        <Badge variant="outline">
-                          {t("dropInValue", {
-                            value: clpFmt.format(s.dropInPrice),
-                          })}
-                        </Badge>
-                      )}
                     </div>
                   )}
-                  {s.slots.length > 0 && (
-                    <ul className="flex flex-col gap-1">
-                      {s.slots.map((slot) => (
-                        <li
-                          key={slot.id}
-                          className="flex items-center gap-2 text-sm text-ink/70"
-                        >
-                          {/* Cupos/modalidad viven en la serie (badges
-                              arriba) - el slot solo muestra día y hora.
-                              Slot de taller: fecha puntual + chip, no el
-                              weekday recurrente (workshop-one-off-class). */}
-                          <span className="tabular-nums">
-                            {slot.oneOffDate
-                              ? slotDateFmt.format(new Date(slot.oneOffDate))
-                              : ta(`weekday.${slot.weekday}`).slice(0, 3)}{" "}
-                            {slot.startTime}–{slot.endTime}
-                          </span>
-                          {slot.oneOffDate && (
-                            <Badge variant="neon">{t("workshopBadge")}</Badge>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="min-w-0 truncate font-semibold">
+                      {s.name}
+                    </p>
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      {!s.active && (
+                        <Badge variant="live">{t("inactive")}</Badge>
+                      )}
+                      <ChevronRightIcon className="h-4 w-4 text-ink/40" />
+                    </span>
+                  </div>
+                  {s.description && (
+                    <p className="line-clamp-2 text-sm text-ink/60">
+                      {s.description}
+                    </p>
+                  )}
+                  {(s.slots.length > 0 ||
+                    s.quorum != null ||
+                    s.dropInPrice != null) && (
+                    <div className="flex flex-col gap-1.5 border-t border-line pt-3">
+                      {s.slots.length > 0 && (
+                        <ul className="flex flex-col gap-1">
+                          {s.slots.map((slot) => (
+                            <li
+                              key={slot.id}
+                              className="flex items-center gap-2 text-sm text-ink/70"
+                            >
+                              {/* Slot de taller: fecha puntual + hora +
+                                  chip, no el weekday recurrente
+                                  (workshop-one-off-class). */}
+                              <span className="tabular-nums">
+                                {slot.oneOffDate
+                                  ? `${slotDateFmt.format(new Date(slot.oneOffDate))} ${slot.startTime}`
+                                  : `${ta(`weekday.${slot.weekday}`).slice(0, 3)} ${slot.startTime}–${slot.endTime}`}
+                              </span>
+                              {slot.oneOffDate && (
+                                <Badge variant="neon">
+                                  {t("workshopBadge")}
+                                </Badge>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {(s.quorum != null || s.dropInPrice != null) && (
+                        <p className="text-xs text-ink/50">
+                          {[
+                            s.quorum != null
+                              ? t("quorumValue", { value: s.quorum })
+                              : null,
+                            s.dropInPrice != null
+                              ? t("dropInValue", {
+                                  value: clpFmt.format(s.dropInPrice),
+                                })
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </Card>
               </Link>

@@ -9,6 +9,7 @@ import {
   Button,
   Card,
   ChevronDownIcon,
+  ChevronRightIcon,
   ClockIcon,
   RefreshIcon,
   SkeletonList,
@@ -73,7 +74,7 @@ const SEGMENT_VARIANT: Record<string, BadgeVariant> = {
 
 export default function AdminAcademiasPage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <AdminGate>
         <HealthPanel />
       </AdminGate>
@@ -255,6 +256,7 @@ function HealthPanel() {
                         prom.
                       </span>
                     </span>
+                    <ChevronRightIcon className="mt-1 h-4 w-4 shrink-0 text-ink/40" />
                   </div>
 
                   {/* Conteos con delta vs mes anterior: inscritos,

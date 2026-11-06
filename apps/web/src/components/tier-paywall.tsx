@@ -6,7 +6,7 @@ import type { EntitlementActorType } from "@/lib/entitlements-context";
 
 /** Destino del CTA de upgrade según el actor gateado. */
 const UPGRADE_HREF: Record<EntitlementActorType, string> = {
-  ACADEMY: "/academia/suscripcion",
+  ACADEMY: "/academia/configuracion/suscripcion",
   PRODUCER: "/productor/suscripcion",
 };
 
@@ -54,7 +54,7 @@ function LockIcon() {
  * el antiguo ProPaywall de productor y AcademyTierPaywall): se renderiza
  * donde una feature no cubierta respondió 403 `tier.required` o donde
  * los entitlements del actor ya dicen que el plan no la incluye. El CTA
- * lleva a la suscripción del actor (/academia/suscripcion o
+ * lleva a la suscripción del actor (/academia/configuracion/suscripcion o
  * /productor/suscripcion). `feature` nombra la herramienta bloqueada y
  * `requiredTier` pisa el tier deducido (viene en el body del 403).
  */

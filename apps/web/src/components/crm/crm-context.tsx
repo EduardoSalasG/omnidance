@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import { useActiveRole } from "@/lib/active-role";
 import { useActorEntitlements } from "@/lib/entitlements-context";
+import { useStoredAcademyId } from "@/lib/academy-selection";
 import { Button, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import type { CrmActor } from "./types";
@@ -35,8 +37,10 @@ type CrmContextValue = {
  * - ACADEMY_OWNER → la academia seleccionada en su consola
  *   (localStorage omnidance:academy-id; fallback: la primera donde es
  *   owner - assertActorAccess solo acepta ownerId, no instructores).
- * - Con ambos roles gana la academia seleccionada si existe; si no, el
- *   primer actor disponible.
+ * - Con ambos roles manda la lente activa (useActiveRole): un owner
+ *   en lente academia sin selección persistida resuelve a su primera
+ *   academia propia, no al productor (bug 2026-11: el productor sin
+ *   Pro arrastraba el paywall al CRM de la academia PRO).
  */
 export function useCrmContext(): CrmContextValue {
   const t = useTranslations("crm");
@@ -120,21 +124,37 @@ export function useCrmContext(): CrmContextValue {
     return list;
   }, [me, myAcademies, t]);
 
-  // Actor automático: la academia seleccionada en la consola del owner
-  // (misma key que AcademyGate/AcademyKpiStrip); si no, el primero.
+  // Actor automático: manda la lente activa. ACADEMY_OWNER → la
+  // academia seleccionada en la consola del owner (misma key que
+  // AcademyGate/AcademyKpiStrip) o la primera propia; PRODUCER → su
+  // productor; el resto conserva la preferencia por la academia
+  // persistida y luego el primer actor.
+  const activeRole = useActiveRole(me?.roles);
+  // Selección persistida reactiva: un cambio desde la nav (switcher
+  // del owner) u otra pestaña re-corre la resolución del actor.
+  const stored = useStoredAcademyId();
   const actor = useMemo<CrmActor | null>(() => {
-    let stored: string | null = null;
-    try {
-      stored = window.localStorage.getItem("omnidance:academy-id");
-    } catch {
-      // Sin storage (modo privado) - cae al primer actor.
-    }
-    return (
-      actors.find(
-        (a) => a.actorType === "ACADEMY" && a.actorId === stored,
-      ) ?? actors[0] ?? null
+    const storedAcademy = actors.find(
+      (a) => a.actorType === "ACADEMY" && a.actorId === stored,
     );
-  }, [actors]);
+    if (activeRole === "ACADEMY_OWNER") {
+      return (
+        storedAcademy ??
+        actors.find((a) => a.actorType === "ACADEMY") ??
+        actors[0] ??
+        null
+      );
+    }
+    if (activeRole === "PRODUCER") {
+      return (
+        actors.find((a) => a.actorType === "PRODUCER") ??
+        storedAcademy ??
+        actors[0] ??
+        null
+      );
+    }
+    return storedAcademy ?? actors[0] ?? null;
+  }, [actors, activeRole, stored]);
 
   const boot = useCallback(async () => {
     setAcademiesError(false);
@@ -161,8 +181,16 @@ export function useCrmContext(): CrmContextValue {
         ? academyEnt
         : null
     : null;
+  // `resolved` = el actor resolvió a un entitlement real: sin él no se
+  // puede afirmar que falte la feature (academia de membresía no-owner,
+  // o academia inspeccionada por un ADMIN - ambas ausentes de
+  // /me/entitlements). Bloquear ahí mostraba paywall a quien sí puede
+  // entrar por API (spec academy-tier-gates-refine).
   const blocked =
-    actorEnt != null && !actorEnt.loading && !actorEnt.has("crm");
+    actorEnt != null &&
+    !actorEnt.loading &&
+    actorEnt.resolved &&
+    !actorEnt.has("crm");
 
   return {
     gate,

@@ -116,13 +116,26 @@ export class QueryController {
    */
   @Get("options")
   @ApiQuery({ name: "scopeId", required: false })
+  @ApiQuery({ name: "levelId", required: false })
+  @ApiQuery({ name: "seriesId", required: false })
+  @ApiQuery({ name: "slotId", required: false })
   options(
     @Req() req: Request,
     @Query("role") role = "",
     @Query("source") source = "",
     @Query("scopeId") scopeId?: string,
+    // Dependencias en cascada (spec query-console): los selects
+    // anidados re-piden opciones acotadas por el filtro padre
+    // (nivel→serie→horario→clase, horario→instructor).
+    @Query("levelId") levelId?: string,
+    @Query("seriesId") seriesId?: string,
+    @Query("slotId") slotId?: string,
   ) {
-    return this.query.options(req.person!.id, role, source, scopeId);
+    return this.query.options(req.person!.id, role, source, scopeId, {
+      levelId,
+      seriesId,
+      slotId,
+    });
   }
 
   /** POST /query/run; preview: headers + rows (≤50) + total + summary. */

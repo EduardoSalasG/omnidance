@@ -307,6 +307,14 @@
       "s7": {
         "title": "La campana",
         "desc": "Acá llegan los avisos: comprobantes nuevos, solicitudes y novedades de tu academia."
+      },
+      "s8": {
+        "title": "La facturación del mes",
+        "desc": "Cuánto llevas facturado y el ticket por alumno: la señal rápida de cómo va el negocio. Toca el card para entrar a cobros."
+      },
+      "s9": {
+        "title": "Niveles y cupos",
+        "desc": "Cada horario con su asistencia reciente, promedio y cupos libres por nivel: para ver dónde hay sobrecupo o clase que reforzar."
       }
     },
     "staff": {
@@ -398,7 +406,7 @@
     "academia-cobros": {
       "s1": {
         "title": "El mes en plata",
-        "desc": "Facturado del mes, ticket promedio y los medios de pago que más usan tus alumnos, con su variación."
+        "desc": "Facturado del mes, ticket promedio y los métodos de pago que más usan tus alumnos, con su variación."
       },
       "s2": {
         "title": "Planes por vencer",
@@ -409,8 +417,8 @@
         "desc": "Los comprobantes que declararon tus alumnos: toca uno para revisarlo y aprobarlo o rechazarlo en su detalle."
       },
       "s4": {
-        "title": "El historial",
-        "desc": "Todas las validaciones y los pagos por pasarela en orden: la trazabilidad completa de cada cobro."
+        "title": "Inscripciones por validar",
+        "desc": "Altas y renovaciones pagadas por transferencia: cada comprobante se aprueba o rechaza en su ficha."
       }
     },
     "academia-clases": {

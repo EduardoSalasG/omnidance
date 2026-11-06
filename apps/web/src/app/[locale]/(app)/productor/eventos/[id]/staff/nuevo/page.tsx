@@ -3,14 +3,11 @@
 import { useCallback, useEffect, useState, use } from "react";
 
 import { useTranslations } from "next-intl";
-import { apiFetch, isTierRequired } from "@/lib/api";
-import { useMe } from "@/lib/me-context";
-import { useActorEntitlements } from "@/lib/entitlements-context";
+import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon, SkeletonCard } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
-import { TierPaywall } from "@/components/tier-paywall";
 import {
   STAFF_ROLES,
   inputCls,
@@ -26,16 +23,13 @@ type Candidate = { id: string; name: string | null; email: string | null };
 /**
  * /productor/eventos/[id]/staff/nuevo - alta de staff de puerta
  * (POST /events/:id/staff upsert por personId). Los toggles de rol/estado
- * por fila quedan en el detalle del evento (acción por fila).
- * Multi-staff es feature del plan del productor: si su entitlement no
- * la cubre (o el POST responde 403 tier.required) se muestra el paywall.
+ * por fila quedan en el detalle del evento (acción por fila). El staff
+ * no es feature del plan ni tiene cupo (spec producer-pro).
  */
 function NewEventStaff({ eventId }: { eventId: string }) {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
   const router = useRouter();
-  const { me } = useMe();
-  const producerEnt = useActorEntitlements("PRODUCER");
 
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [eventState, setEventState] = useState<EventState>("loading");
@@ -52,9 +46,6 @@ function NewEventStaff({ eventId }: { eventId: string }) {
   const [selected, setSelected] = useState<Candidate | null>(null);
   const [role, setRole] = useState<StaffRole>("DOOR");
   const [busy, setBusy] = useState(false);
-  // Lock detectado en el POST (403 tier.required) - complementa el
-  // gateo proactivo por si los entitlements quedaron stale.
-  const [serverLocked, setServerLocked] = useState(false);
 
   const backHref = `/productor/eventos/${eventId}`;
 
@@ -112,14 +103,6 @@ function NewEventStaff({ eventId }: { eventId: string }) {
     return () => clearTimeout(timer);
   }, [query, eventId, selected, tc]);
 
-  // requireProSelf: el gateo aplica solo cuando el caller ES el dueño.
-  const locked =
-    serverLocked ||
-    (event != null &&
-      event.producerId === me?.id &&
-      !producerEnt.loading &&
-      !producerEnt.has("multiStaff"));
-
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!selected || busy) return;
@@ -131,10 +114,6 @@ function NewEventStaff({ eventId }: { eventId: string }) {
         body: JSON.stringify({ personId: selected!.id, role }),
       });
       if (!res.ok) {
-        if (await isTierRequired(res)) {
-          setServerLocked(true);
-          return;
-        }
         showActionNotice({ text: (await readError(res)) ?? tc("error"), error: true });
         return;
       }
@@ -185,10 +164,7 @@ function NewEventStaff({ eventId }: { eventId: string }) {
           </div>
         )}
 
-        {eventState === "ok" &&
-          (locked ? (
-            <TierPaywall actorType="PRODUCER" feature="staff" />
-          ) : (
+        {eventState === "ok" && (
             <Card>
               <form onSubmit={submit} className="flex flex-col gap-4">
                 {selected ? (
@@ -301,7 +277,7 @@ function NewEventStaff({ eventId }: { eventId: string }) {
                 </Button>
               </form>
             </Card>
-          ))}
+          )}
       </section>
     </>
   );

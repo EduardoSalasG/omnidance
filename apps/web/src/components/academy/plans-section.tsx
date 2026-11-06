@@ -2,7 +2,13 @@
 
 import { useTranslations } from "next-intl";
 
-import { Badge, Card, PriceTag } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ChevronRightIcon,
+  PriceTag,
+} from "@/components/ui";
 import type { MembershipPlan } from "./shared";
 import { Link } from "@/i18n/navigation";
 
@@ -30,9 +36,16 @@ export function PlansSection({ plans }: Props) {
   const t = useTranslations("academy");
 
   if (plans.length === 0) {
-    // Empty state: el CTA de crear ya vive en el header de la página -
-    // acá solo el texto (console-patterns: un solo punto de creación).
-    return <p className="text-sm text-ink/50">{t("plansEmpty")}</p>;
+    // Vacío real (sin filtros): copy + CTA de crear, mismo destino que
+    // el botón de la página.
+    return (
+      <div className="flex flex-col items-center gap-3 py-6 text-center">
+        <p className="text-sm text-ink/50">{t("plansEmpty")}</p>
+        <Button href="/academia/planes/nueva" size="sm" variant="secondary">
+          + {t("newPlan")}
+        </Button>
+      </div>
+    );
   }
 
   const recurring = plans.filter((p) => RECURRING_TYPES.has(p.type));
@@ -55,12 +68,17 @@ export function PlansSection({ plans }: Props) {
                     angosto y el row horizontal colapsaba el nombre a un
                     par de letras. Nombre+precio arriba, meta debajo y
                     badges al pie - legible a cualquier ancho. */}
-                <Card className="flex h-full flex-col gap-2 p-4 transition-colors hover:border-neon/40">
+                <Card className="flex h-full flex-col gap-2 p-4 transition-colors hover:border-neon/60">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="min-w-0 font-medium leading-snug">
+                    <p className="min-w-0 flex-1 font-medium leading-snug">
                       {p.name}
                     </p>
-                    <PriceTag amount={p.price} currency={p.currency} className="shrink-0" />
+                    {/* Chevron al filo derecho del headline: affordance
+                        permanente de "se toca" (mobile no tiene hover). */}
+                    <span className="flex shrink-0 items-center gap-2">
+                      <PriceTag amount={p.price} currency={p.currency} />
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                    </span>
                   </div>
                   <div className="flex flex-col">
                     {p.classCount != null && (

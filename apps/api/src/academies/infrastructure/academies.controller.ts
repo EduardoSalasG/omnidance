@@ -42,6 +42,9 @@ import type { Request } from "express";
 import type { EnrollmentStatus, PlanType, Prisma } from "@prisma/client";
 import { normalizePhone } from "@omnidance/shared";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { AuthService } from "../../auth/domain/auth.service";
+import { MAILER, type Mailer } from "../../auth/domain/ports";
+import { studentInviteEmailHtml } from "./invite-emails";
 import { PrismaService } from "../../prisma.service";
 import { ParamsService } from "../../params/params.service";
 import { SubscriptionsService } from "../../payments/application/subscriptions.service";
@@ -183,8 +186,22 @@ class UpdatePlanDto {
 }
 
 class CreateEnrollmentDto {
+  /** personId directo O email para registro parcial + invitación
+      (spec academy-student-invite). */
+  @IsOptional()
   @IsString()
-  personId!: string;
+  personId?: string;
+
+  /** Registro parcial: crea el stub de Person y le envía la
+      invitación por mail para que complete su cuenta. */
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  name?: string;
 
   @IsString()
   planId!: string;
@@ -215,7 +232,6 @@ class UpdateEnrollmentDto {
   endsAt?: string | null;
 }
 
-/** Niveles del alumno dentro de un tipo de clase (multinivel). */
 class AcademyClassLevelDto {
   @IsString()
   @IsNotEmpty()
@@ -225,6 +241,7 @@ class AcademyClassLevelDto {
   order?: number;
 }
 
+/** Nivel del alumno dentro de un tipo de clase (a lo más uno). */
 class EnrollmentLevelSetDto {
   @IsString()
   classTypeId!: string;
@@ -424,7 +441,9 @@ export class AcademiesController {
     private readonly access: AcademyAccess,
     private readonly subscriptions: SubscriptionsService,
     private readonly params: ParamsService,
+    private readonly auth: AuthService,
     @Inject(STORAGE) private readonly storage: FileStorage,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
   /**
@@ -779,16 +798,35 @@ export class AcademiesController {
   @UseGuards(SessionGuard)
   async detail(@Param("id") id: string, @Req() req: Request) {
     const { academy } = await this.access.requireManage(id, req.person!);
-    const [activeStudents, plansCount, slotsCount] = await Promise.all([
-      this.prisma.enrollment.count({
-        where: { academyId: id, status: "ACTIVE" },
-      }),
-      this.prisma.membershipPlan.count({ where: { academyId: id } }),
-      this.prisma.classSlot.count({ where: { academyId: id } }),
-    ]);
+    const [activeStudents, plansCount, slotsCount, instructorRows] =
+      await Promise.all([
+        this.prisma.enrollment.count({
+          where: { academyId: id, status: "ACTIVE" },
+        }),
+        this.prisma.membershipPlan.count({ where: { academyId: id } }),
+        this.prisma.classSlot.count({ where: { academyId: id } }),
+        // Instructores con nombre incluido: evita que la consola
+        // pida el directorio completo solo para resolver nombres
+        // (personId es string plano, sin relación → lookup aparte).
+        this.prisma.academyInstructor.findMany({
+          where: { academyId: id },
+          select: { personId: true },
+        }),
+      ]);
+    const names = instructorRows.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: instructorRows.map((i) => i.personId) } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameOf = new Map(names.map((p) => [p.id, p.name]));
     const checks = await evaluateAcademyChecks(this.prisma, [id]);
     return {
       ...academy,
+      instructors: instructorRows.map((i) => ({
+        personId: i.personId,
+        name: nameOf.get(i.personId) ?? null,
+      })),
       reviewChecks: checks.get(id) ?? null,
       stats: { activeStudents, plansCount, slotsCount },
     };
@@ -908,7 +946,12 @@ export class AcademiesController {
           where: {
             cancelled: false,
             date: { gte: new Date() },
-            slot: { academyId: id, series: { active: true } },
+            slot: {
+              academyId: id,
+              // deletedAt cubre series borradas por datos que quedaron
+              // active:true (el soft-delete del API ya pone ambas).
+              series: { active: true, deletedAt: null },
+            },
           },
           orderBy: { date: "asc" },
           take: 30,
@@ -1345,16 +1388,21 @@ export class AcademiesController {
    * dueño y siempre anónimos - nunca sale personId ni el nombre del
    * evaluador; los comentarios viajan como texto plano.
    * Filtros opcionales: ?seriesId= & ?month=YYYY-MM.
+   * ?limit= capa la cantidad de grupos devueltos (default 12, max 60;
+   * inválido cae al default) - mismo contrato que el listado por
+   * instructor; la ficha pide 60 y pagina client-side.
    */
   @Get(":id/surveys")
   @ApiQuery({ name: "seriesId", required: false })
   @ApiQuery({ name: "month", required: false })
+  @ApiQuery({ name: "limit", required: false })
   @UseGuards(SessionGuard)
   async courseSurveys(
     @Param("id") id: string,
     @Req() req: Request,
     @Query("seriesId") seriesId?: string,
     @Query("month") month?: string,
+    @Query("limit") limit?: string,
   ) {
     await this.access.requireAdminister(id, req.person!, "insights");
     const surveys = await this.prisma.courseSurvey.findMany({
@@ -1365,27 +1413,33 @@ export class AcademiesController {
       },
       orderBy: [{ month: "desc" }, { createdAt: "desc" }],
     });
-    return this.groupCourseSurveys(surveys);
+    const groupLimit = Math.min(Math.max(Number(limit) || 12, 1), 60);
+    return (await this.groupCourseSurveys(surveys)).slice(0, groupLimit);
   }
 
   /**
    * GET /academies/:id/instructors/:personId/surveys - encuestas donde el
    * snapshot del profe evaluado es esa persona, agrupadas mes × serie.
    * Mismo gate y anonimato que /surveys (solo owner/ADMIN).
+   * ?limit= capa la cantidad de grupos devueltos (default 12, max 60;
+   * inválido cae al default) - la ficha pide 60 y pagina client-side.
    */
   @Get(":id/instructors/:personId/surveys")
+  @ApiQuery({ name: "limit", required: false })
   @UseGuards(SessionGuard)
   async instructorSurveys(
     @Param("id") id: string,
     @Param("personId") personId: string,
     @Req() req: Request,
+    @Query("limit") limit?: string,
   ) {
     await this.access.requireAdminister(id, req.person!, "insights");
     const surveys = await this.prisma.courseSurvey.findMany({
       where: { academyId: id, instructorId: personId },
       orderBy: [{ month: "desc" }, { createdAt: "desc" }],
     });
-    return this.groupCourseSurveys(surveys);
+    const groupLimit = Math.min(Math.max(Number(limit) || 12, 1), 60);
+    return (await this.groupCourseSurveys(surveys)).slice(0, groupLimit);
   }
 
   /** Agrega CourseSurvey[] por (seriesId, month) - shape anónimo. */
@@ -1442,7 +1496,9 @@ export class AcademiesController {
         g.instructorSum += s.instructorRating;
         g.instructorCount++;
       }
-      if (s.comment) g.comments.push(s.comment);
+      // Cap de comentarios por grupo: textos libres, ninguna vista
+      // muestra más de 50 (audit console-2026-11-04).
+      if (s.comment && g.comments.length < 50) g.comments.push(s.comment);
     }
     return [...groups.values()].map((g) => ({
       seriesId: g.seriesId,
@@ -1616,7 +1672,20 @@ export class AcademiesController {
     // Adjudicación por refId - mismo decode que by-academy.
     const ref = payment.refId;
     let contextName: string | null = null;
-    if (ref.startsWith("mem_")) {
+    // Invoice de suscripción de plataforma (spec
+    // academy-cobros-reporte): el front traduce tier/ciclo vía
+    // academyBilling.tiers/cycles.
+    let contextTier: string | null = null;
+    let contextCycle: string | null = null;
+    if (ref.startsWith("platsub_")) {
+      const sub = await this.prisma.platformSubscription.findFirst({
+        where: { id: ref.split("_")[1], academyId: id },
+        select: { tierCode: true, billingCycle: true },
+      });
+      if (!sub) throw new NotFoundException("pago no encontrado");
+      contextTier = sub.tierCode;
+      contextCycle = sub.billingCycle;
+    } else if (ref.startsWith("mem_")) {
       const plan = await this.prisma.membershipPlan.findFirst({
         where: { id: ref.split("_")[1], academyId: id },
         select: { name: true },
@@ -1656,6 +1725,8 @@ export class AcademiesController {
       eventCount,
       personName: person?.name ?? null,
       contextName,
+      contextTier,
+      contextCycle,
     };
   }
 
@@ -1743,10 +1814,29 @@ export class AcademiesController {
   ) {
     await this.access.requireCapabilityWrite(id, req.person!, "students");
 
-    const person = await this.prisma.person.findUnique({
-      where: { id: dto.personId },
-    });
-    if (!person) throw new NotFoundException("persona no encontrada");
+    // Persona: personId directo (buscador) o email → registro parcial
+    // (stub + magic link para que complete su cuenta; spec
+    // academy-student-invite).
+    let person: { id: string; email: string | null; name: string | null } | null = null;
+    let invited = false;
+    if (dto.personId) {
+      person = await this.prisma.person.findUnique({
+        where: { id: dto.personId },
+        select: { id: true, email: true, name: true },
+      });
+      if (!person) throw new NotFoundException("persona no encontrada");
+    } else if (dto.email?.trim()) {
+      const email = dto.email.trim().toLowerCase();
+      person = await this.prisma.person.findUnique({ where: { email } });
+      if (!person) {
+        person = await this.prisma.person.create({
+          data: { email, name: dto.name?.trim() || email.split("@")[0] },
+        });
+        invited = true;
+      }
+    } else {
+      throw new BadRequestException("personId o email requerido");
+    }
 
     const plan = await this.prisma.membershipPlan.findFirst({
       where: { id: dto.planId, academyId: id },
@@ -1754,7 +1844,7 @@ export class AcademiesController {
     if (!plan) throw new NotFoundException("plan no encontrado en la academia");
 
     const duplicate = await this.prisma.enrollment.findFirst({
-      where: { academyId: id, personId: dto.personId, planId: plan.id, status: "ACTIVE" },
+      where: { academyId: id, personId: person.id, planId: plan.id, status: "ACTIVE" },
     });
     if (duplicate) {
       throw new ConflictException({
@@ -1776,7 +1866,7 @@ export class AcademiesController {
 
     // Nivel inicial por defecto (spec enrollment-level-kpi): el alumno
     // nuevo parte en el nivel más bajo del catálogo en cada tipo de
-    // clase; el owner lo ajusta en la ficha (multinivel por tipo).
+    // clase; el owner lo ajusta en la ficha (un nivel por tipo).
     const [types, base] = await Promise.all([
       this.prisma.classType.findMany({ select: { id: true } }),
       this.prisma.classLevel.findFirst({
@@ -1784,10 +1874,10 @@ export class AcademiesController {
         select: { id: true },
       }),
     ]);
-    return this.prisma.enrollment.create({
+    const enrollment = await this.prisma.enrollment.create({
       data: {
         academyId: id,
-        personId: dto.personId,
+        personId: person.id,
         planId: plan.id,
         status: dto.status ?? "ACTIVE",
         startedAt,
@@ -1804,6 +1894,37 @@ export class AcademiesController {
           : {}),
       },
     });
+
+    // Registro parcial (spec academy-student-invite): al stub recién
+    // creado le llega un magic link para completar su cuenta. El mail
+    // es best-effort - el alta queda igual si el envío falla.
+    if (invited && person.email) {
+      try {
+        const academy = await this.prisma.academy.findUnique({
+          where: { id },
+          select: { name: true },
+        });
+        const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+        const token = await this.auth.createMagicToken(
+          person.email,
+          false,
+          "7d",
+        );
+        const link = `${webUrl}/api/auth/verify?token=${token}`;
+        await this.mailer.send(
+          person.email,
+          `${academy?.name ?? "Tu academia"} te inscribió en Omnidance`,
+          studentInviteEmailHtml({
+            personName: person.name,
+            academyName: academy?.name ?? "",
+            link,
+          }),
+        );
+      } catch (e) {
+        // best-effort: log y seguir (el alta ya existe)
+      }
+    }
+    return { ...enrollment, invited };
   }
 
   // Listado de alumnos - requireManage: el instructor también lo ve
@@ -2024,6 +2145,39 @@ export class AcademiesController {
   }
 
   /**
+   * Candidatos a alumno para el alta de enrollment (spec
+   * academies/console-lists): búsqueda por nombre o email (contains
+   * insensitive, ≥2 chars, top 10) usada por el buscador con debounce
+   * del form - el personId nunca se tipea a mano. Declarado antes de
+   * :personId para que "candidates" no se capture como id. Capacidad
+   * `students`, la misma que autoriza el POST de enrollment.
+   */
+  @Get(":id/students/candidates")
+  @ApiQuery({ name: "q", required: false })
+  @UseGuards(SessionGuard)
+  async studentCandidates(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Query("q") q = "",
+  ) {
+    await this.access.requireCapability(id, req.person!, "students");
+    const term = q.trim();
+    if (term.length < 2) return [];
+    return this.prisma.person.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { name: { contains: term, mode: "insensitive" } },
+          { email: { contains: term, mode: "insensitive" } },
+        ],
+      },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+      take: 10,
+    });
+  }
+
+  /**
    * Ficha del alumno dentro de la academia: plan/enrollment vigente,
    * historial (asistencias + reservas pasadas, últimas 50 - la asistencia
    * prevalece sobre la reserva de la misma clase) y reservas futuras.
@@ -2039,7 +2193,7 @@ export class AcademiesController {
     await this.access.requireManage(id, req.person!);
     const person = await this.prisma.person.findUnique({
       where: { id: personId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, email: true, phone: true },
     });
     if (!person) throw new NotFoundException("persona no encontrada");
 
@@ -2070,6 +2224,57 @@ export class AcademiesController {
       },
     });
     const enrollment = enrollments[0] ?? null;
+
+    // Método de pago por membresía (spec academies/console-lists): el
+    // claim más reciente ligado al enrollment da el método declarado
+    // (prioriza APPROVED sobre un intento rechazado); sin claim, el
+    // último pago PAID de pasarela de la persona sobre ese plan
+    // (refId mem_<planId>_*) aporta methodLabel/gatewayMedia. Un
+    // enrollment cargado a mano sin cobro registrado queda en null.
+    const enrollmentPlanIds = [
+      ...new Set(
+        enrollments
+          .map((e) => e.plan?.id)
+          .filter((p): p is string => p != null),
+      ),
+    ];
+    const [enrollmentClaims, gatewayPays] = await Promise.all([
+      this.prisma.paymentClaim.findMany({
+        where: { enrollmentId: { in: enrollments.map((e) => e.id) } },
+        orderBy: { createdAt: "desc" },
+        select: { enrollmentId: true, status: true, methodLabel: true },
+      }),
+      enrollmentPlanIds.length
+        ? this.prisma.payment.findMany({
+            where: {
+              personId,
+              orderType: "MEMBERSHIP",
+              status: "PAID",
+              OR: enrollmentPlanIds.map((p) => ({
+                refId: { startsWith: `mem_${p}_` },
+              })),
+            },
+            orderBy: { createdAt: "desc" },
+            select: { refId: true, methodLabel: true, gatewayMedia: true },
+          })
+        : Promise.resolve([]),
+    ]);
+    const methodByEnrollment = new Map<string, string>();
+    for (const e of enrollments) {
+      const claims = enrollmentClaims.filter((c) => c.enrollmentId === e.id);
+      const best =
+        claims.find((c) => c.status === "APPROVED") ?? claims[0];
+      if (best) {
+        methodByEnrollment.set(e.id, best.methodLabel);
+        continue;
+      }
+      if (!e.plan) continue;
+      const pay = gatewayPays.find((p) =>
+        p.refId.startsWith(`mem_${e.plan!.id}_`),
+      );
+      const label = pay?.methodLabel ?? pay?.gatewayMedia ?? null;
+      if (label) methodByEnrollment.set(e.id, label);
+    }
 
     const classSelect = {
       date: true,
@@ -2220,6 +2425,8 @@ export class AcademiesController {
         startedAt: e.startedAt,
         endsAt: e.endsAt,
         plan: e.plan,
+        method: methodByEnrollment.get(e.id) ?? null,
+        levels: e.levels,
       })),
       score: relScore?.score ?? null,
       segment: relScore?.segment ?? null,
@@ -2245,7 +2452,12 @@ export class AcademiesController {
   ) {
     await this.access.requireCapability(id, req.person!, "schedule", "classes");
     return this.prisma.classSlot.findMany({
-      where: { academyId: id, ...(seriesId ? { seriesId } : {}) },
+      where: {
+        academyId: id,
+        ...(seriesId ? { seriesId } : {}),
+        // La parrilla no lista horarios de series eliminadas.
+        series: { deletedAt: null },
+      },
       orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
       include: {
         series: { select: { id: true, name: true } },
@@ -2261,8 +2473,9 @@ export class AcademiesController {
    * type ∈ tipos del slot y level = level de la serie), capacidad
    * efectiva, cupos vacíos y asistencia reciente. Alumnos sin nivel se
    * agrupan en `unassigned` por tipo para que el owner complete el
-   * dato. Solo owner/ADMIN + feature PRO `insights` (mismo gate que
-   * /surveys).
+   * dato. Solo owner/ADMIN + feature `classes` (STUDIO+: es
+   * planificación operativa del horario, no analítica estratégica -
+   * spec academy-tier-gates-refine).
    */
   @Get(":id/insights/levels")
   @UseGuards(SessionGuard)
@@ -2270,7 +2483,7 @@ export class AcademiesController {
     const { academy } = await this.access.requireAdminister(
       id,
       req.person!,
-      "insights",
+      "classes",
     );
     const now = new Date();
     // Class.date vive a medianoche UTC (misma convención del dashboard):
@@ -2305,10 +2518,17 @@ export class AcademiesController {
                 }),
           ),
         this.prisma.classSlot.findMany({
-          where: { academyId: id, deletedAt: null },
+          where: {
+            academyId: id,
+            deletedAt: null,
+            // Solo horarios de series vigentes - "Niveles y cupos" no
+            // muestra parrilla de series eliminadas.
+            series: { deletedAt: null },
+          },
           orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
           select: {
             id: true,
+            seriesId: true,
             weekday: true,
             startTime: true,
             endTime: true,
@@ -2343,7 +2563,13 @@ export class AcademiesController {
           where: {
             cancelled: false,
             date: { gte: attendanceSince, lt: todayUTC },
-            slot: { academyId: id },
+            // Acotadas a slots vigentes de series vivas - solo alimentan
+            // los horarios listados en bySlot.
+            slot: {
+              academyId: id,
+              deletedAt: null,
+              series: { deletedAt: null },
+            },
           },
           orderBy: { date: "desc" },
           select: {
@@ -2359,7 +2585,11 @@ export class AcademiesController {
           where: {
             cancelled: false,
             date: { gte: todayUTC },
-            slot: { academyId: id },
+            slot: {
+              academyId: id,
+              deletedAt: null,
+              series: { deletedAt: null },
+            },
           },
           orderBy: { date: "asc" },
           select: {
@@ -2527,6 +2757,7 @@ export class AcademiesController {
       const next = nextBySlot.get(s.id);
       return {
         slotId: s.id,
+        seriesId: s.seriesId,
         seriesName: s.series.name,
         styleName: s.series.style?.name ?? null,
         levelId: seriesLevelId,
@@ -2694,9 +2925,12 @@ export class AcademiesController {
           },
         }),
         // Clases semanales ofrecidas: slots de recurrencia de series
-        // activas (un slot = una clase por semana).
+        // activas y vigentes (un slot = una clase por semana).
         this.prisma.classSlot.count({
-          where: { academyId: id, series: { active: true } },
+          where: {
+            academyId: id,
+            series: { active: true, deletedAt: null },
+          },
         }),
         // Cobros declarados por alumnos pendientes de revisión (la
         // sección "Cobros por revisar" del home).
@@ -3031,7 +3265,7 @@ export class AcademiesController {
   @Get(":id/class-levels")
   @UseGuards(SessionGuard)
   async academyClassLevels(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireCapability(id, req.person!, "schedule");
+    await this.access.requireCapability(id, req.person!, "schedule", "classes");
     const [custom, global] = await Promise.all([
       this.prisma.classLevel.findMany({
         where: { academyId: id },
@@ -3052,7 +3286,7 @@ export class AcademiesController {
     @Body() dto: AcademyClassLevelDto,
     @Req() req: Request,
   ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const dup = await this.prisma.classLevel.findFirst({
       where: {
         academyId: id,
@@ -3084,7 +3318,7 @@ export class AcademiesController {
     @Body() dto: AcademyClassLevelDto,
     @Req() req: Request,
   ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const level = await this.prisma.classLevel.findUnique({
       where: { id: levelId },
     });
@@ -3105,7 +3339,7 @@ export class AcademiesController {
     @Param("levelId") levelId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const level = await this.prisma.classLevel.findUnique({
       where: { id: levelId },
     });
@@ -3123,6 +3357,51 @@ export class AcademiesController {
     }
     await this.prisma.classLevel.delete({ where: { id: levelId } });
     return { ok: true };
+  }
+
+  /**
+   * DELETE /academies/:id/class-levels - reset a la línea global
+   * (spec academies/class-levels): borra todos los niveles custom en
+   * una operación; sin customs es idempotente. Todo o nada: si alguno
+   * está en uso (series o alumnos) responde 409 con los nombres, para
+   * que el owner los libere antes de reintentar.
+   */
+  @Delete(":id/class-levels")
+  @HttpCode(200)
+  @UseGuards(SessionGuard)
+  async deleteAcademyLevels(@Param("id") id: string, @Req() req: Request) {
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
+    const custom = await this.prisma.classLevel.findMany({
+      where: { academyId: id },
+      select: { id: true, name: true },
+    });
+    if (!custom.length) return { ok: true, deleted: 0 };
+    const ids = custom.map((l) => l.id);
+    const [seriesUse, enrollmentUse] = await Promise.all([
+      this.prisma.classSeries.findMany({
+        where: { levelId: { in: ids } },
+        select: { levelId: true },
+      }),
+      this.prisma.enrollmentLevel.findMany({
+        where: { levelId: { in: ids } },
+        select: { levelId: true },
+      }),
+    ]);
+    const used = new Set([
+      ...seriesUse.map((s) => s.levelId),
+      ...enrollmentUse.map((e) => e.levelId),
+    ]);
+    if (used.size) {
+      const names = custom
+        .filter((l) => used.has(l.id))
+        .map((l) => l.name)
+        .join(", ");
+      throw new ConflictException(
+        `no se puede volver a la línea global: niveles en uso (${names})`,
+      );
+    }
+    await this.prisma.classLevel.deleteMany({ where: { academyId: id } });
+    return { ok: true, deleted: custom.length };
   }
 }
 
@@ -3168,12 +3447,12 @@ export class EnrollmentsController {
   }
 
   /**
-   * PATCH /enrollments/:id/levels - niveles del alumno por tipo de
+   * PATCH /enrollments/:id/levels - nivel del alumno por tipo de
    * clase (spec academies/enrollment-levels). Reemplazo completo del
-   * set: cada entrada fija los niveles del tipo y las filas fuera del
-   * body se borran (levels: [] deja al alumno sin nivel en todo). La
-   * asigna la academia (cap `students`, la misma que gestiona el
-   * enrollment); el alumno nunca se auto-nivela.
+   * set: cada entrada fija el nivel del tipo (a lo más uno) y las
+   * filas fuera del body se borran (levels: [] deja al alumno sin
+   * nivel en todo). La asigna la academia (cap `students`, la misma
+   * que gestiona el enrollment); el alumno nunca se auto-nivela.
    */
   @Patch(":id/levels")
   @UseGuards(SessionGuard)
@@ -3190,6 +3469,7 @@ export class EnrollmentsController {
       enrollment.academyId,
       req.person!,
       "students",
+      "classes",
     );
 
     // Un classTypeId por entrada: repetido haría ambiguo el "reemplazo
@@ -3198,6 +3478,15 @@ export class EnrollmentsController {
     if (new Set(typeIds).size !== typeIds.length) {
       throw new BadRequestException(
         "cada tipo de clase puede venir una sola vez",
+      );
+    }
+    // Un nivel por tipo (spec academies/enrollment-levels): el alumno
+    // no acumula niveles del mismo tipo - evita conteos duplicados en
+    // "Niveles y cupos". El editor ya manda uno; esto cierra la
+    // puerta a payloads directos.
+    if (dto.levels.some((l) => new Set(l.levelIds).size > 1)) {
+      throw new BadRequestException(
+        "cada tipo de clase admite un solo nivel",
       );
     }
     const levelIds = [...new Set(dto.levels.flatMap((l) => l.levelIds))];

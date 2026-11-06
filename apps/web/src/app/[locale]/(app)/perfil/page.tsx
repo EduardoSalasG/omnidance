@@ -353,7 +353,7 @@ export default function PerfilPage() {
       <main
         aria-busy="true"
         aria-label={tc("loading")}
-        className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-4xl lg:px-8"
+        className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-4xl lg:px-8"
       >
         <Card className="flex items-center gap-4" aria-hidden="true">
           <Skeleton className="page-loading h-16 w-16 shrink-0 rounded-full" />
@@ -425,7 +425,7 @@ export default function PerfilPage() {
   return (
     // Sin min-h-dvh: el wrapper del chrome ya reserva el clearance de
     // la tab bar - forzar alto de viewport dejaba scroll muerto al pie.
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-4xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-4xl lg:px-8">
       {/* Fallback del retorno de suscripción de plataforma (?sub=error)
           - useSearchParams exige Suspense. */}
       <Suspense>

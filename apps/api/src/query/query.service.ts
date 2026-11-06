@@ -39,6 +39,17 @@ import type { ExportTable } from "./producer-export";
 const PREVIEW_ROWS = 50;
 const OPTION_TAKE = 300;
 
+// Labels es-CL de las opciones slot/clase (Class.date es medianoche UTC,
+// convención día-calendario - formatear en UTC para no correr el día).
+const WEEKDAY_SHORT = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const dayCl = (d: Date) =>
+  new Intl.DateTimeFormat("es-CL", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(d);
+
 export interface QueryOption {
   value: string;
   label: string;
@@ -65,7 +76,6 @@ const ENTITY_TITLES: Record<QueryRole, Record<string, string>> = {
   ACADEMY_OWNER: {
     students: "Alumnos",
     attendance: "Asistencia",
-    bookings: "Reservas de clases",
     memberships: "Suscripciones",
     payments: "Pagos",
     private_lessons: "Clases particulares",
@@ -182,6 +192,7 @@ export class QueryService {
     roleRaw: string,
     source: string,
     scopeId?: string,
+    deps: Record<string, string | undefined> = {},
   ): Promise<{ options: QueryOption[] }> {
     const role = await this.assertLensGated(personId, roleRaw, "analytics");
     const declared = new Set(
@@ -215,17 +226,96 @@ export class QueryService {
           options: await this.academyScoped(personId, role, scopeId, (id) =>
             this.prisma.classSeries
               .findMany({
-                where: { academyId: id },
-                select: { id: true, name: true },
+                where: {
+                  academyId: id,
+                  deletedAt: null,
+                  // Cascada nivel→serie: con levelId elegido solo las
+                  // series de ese nivel (spec query-console).
+                  ...(deps.levelId ? { levelId: deps.levelId } : {}),
+                },
+                select: {
+                  id: true,
+                  name: true,
+                  // El horario en el label desambigua series con el
+                  // mismo nombre (spec console-lists: opciones sin
+                  // duplicados por etiqueta).
+                  slots: {
+                    where: { deletedAt: null },
+                    select: { weekday: true, startTime: true },
+                    orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+                  },
+                },
                 orderBy: { name: "asc" },
                 take: OPTION_TAKE,
               })
-              .then((r) => r.map((s) => ({ value: s.id, label: s.name }))),
+              .then((r) =>
+                r.map((s) => ({
+                  value: s.id,
+                  label: s.slots.length
+                    ? `${s.name} · ${s.slots
+                        .map(
+                          (sl) =>
+                            `${WEEKDAY_SHORT[sl.weekday] ?? sl.weekday} ${sl.startTime}`,
+                        )
+                        .join(" + ")}`
+                    : s.name,
+                })),
+              ),
+          ),
+        };
+      case "academyLevels":
+        return {
+          // Solo niveles realmente usados por las series activas de la
+          // academia (global o custom) - filtrar por niveles que no
+          // existen en su parrilla no traería resultados.
+          options: await this.academyScoped(personId, role, scopeId, (id) =>
+            this.prisma.classLevel
+              .findMany({
+                where: {
+                  series: { some: { academyId: id, deletedAt: null } },
+                },
+                select: { id: true, name: true },
+                orderBy: { order: "asc" },
+                take: OPTION_TAKE,
+              })
+              .then((r) => r.map((l) => ({ value: l.id, label: l.name }))),
           ),
         };
       case "academyInstructors":
         return {
           options: await this.academyScoped(personId, role, scopeId, async (id) => {
+            // Cascada horario→instructor: con slotId elegido solo el
+            // instructor de ese horario (default del slot).
+            if (deps.slotId) {
+              const slot = await this.prisma.classSlot.findUnique({
+                where: { id: deps.slotId },
+                select: { instructorId: true },
+              });
+              if (!slot?.instructorId) return [];
+              const person = await this.prisma.person.findUnique({
+                where: { id: slot.instructorId },
+                select: { id: true, name: true },
+              });
+              return person
+                ? [{ value: person.id, label: person.name ?? "?" }]
+                : [];
+            }
+            // Sin horario pero con serie: el instructor titular de la
+            // serie (mismo encadenamiento que el slot).
+            if (deps.seriesId) {
+              const serie = await this.prisma.classSeries.findUnique({
+                where: { id: deps.seriesId },
+                select: { instructorId: true },
+              });
+              if (!serie?.instructorId) return [];
+              const person = await this.prisma.person.findUnique({
+                where: { id: serie.instructorId },
+                select: { id: true, name: true },
+              });
+              return person
+                ? [{ value: person.id, label: person.name ?? "?" }]
+                : [];
+            }
             const rows = await this.prisma.academyInstructor.findMany({
               where: { academyId: id },
               select: { personId: true },
@@ -244,6 +334,12 @@ export class QueryService {
               label: names.get(r.personId) ?? "?",
             }));
           }),
+        };
+      case "academyScheduleSlots":
+        return {
+          options: await this.academyScoped(personId, role, scopeId, (id) =>
+            this.academySlotOptions(id, deps.seriesId, deps.levelId),
+          ),
         };
       case "eventGuestLists": {
         if (!scopeId) throw new BadRequestException("scopeId requerido");
@@ -266,23 +362,92 @@ export class QueryService {
     }
   }
 
-  /** Opciones de una academia - validando ownership según lente. */
+  /**
+   * Opciones de una academia - validando ownership según lente. Con
+   * scopeId informado: ADMIN resuelve directo; ACADEMY_OWNER solo si es
+   * propia (ajena → []). Sin scopeId (ACADEMY_OWNER): unión sobre todas
+   * las academias propias, misma semántica que run() ("sin academia =
+   * todas"); con más de una academia el label lleva sufijo
+   * `· {academia}` y se deduplica por `value` (un instructor puede
+   * estar en dos). ADMIN sin scopeId → 400 (sus fuentes son globales).
+   */
   private async academyScoped(
     personId: string,
     role: QueryRole,
     academyId: string | undefined,
     resolve: (academyId: string) => Promise<QueryOption[]>,
   ): Promise<QueryOption[]> {
-    if (!academyId) throw new BadRequestException("scopeId requerido");
-    if (role === "ADMIN") return resolve(academyId);
-    // ACADEMY_OWNER: solo academias propias - ajena → lista vacía.
-    const owned = await this.prisma.academy.findFirst({
-      where: { id: academyId, ownerId: personId },
-      select: { id: true },
+    if (academyId) {
+      if (role === "ADMIN") return resolve(academyId);
+      // ACADEMY_OWNER: solo academias propias - ajena → lista vacía.
+      const owned = await this.prisma.academy.findFirst({
+        where: { id: academyId, ownerId: personId },
+        select: { id: true },
+      });
+      if (!owned) return [];
+      return resolve(academyId);
+    }
+    if (role === "ADMIN") throw new BadRequestException("scopeId requerido");
+    const academies = await this.prisma.academy.findMany({
+      where: { ownerId: personId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
     });
-    if (!owned) return [];
-    return resolve(academyId);
+    const groups = await Promise.all(
+      academies.map((a) => resolve(a.id)),
+    );
+    const suffix = academies.length > 1;
+    const seen = new Set<string>();
+    const out: QueryOption[] = [];
+    groups.forEach((opts, i) => {
+      for (const o of opts) {
+        if (seen.has(o.value)) continue;
+        seen.add(o.value);
+        out.push(suffix ? { ...o, label: `${o.label} · ${academies[i].name}` } : o);
+      }
+    });
+    return out;
   }
+
+  /** Horarios (ClassSlot) de una academia: "Serie · lun 19:00".
+      Cascada acumulativa: seriesId acota a su serie y levelId a las
+      series de ese nivel. */
+  private async academySlotOptions(
+    academyId: string,
+    seriesId?: string,
+    levelId?: string,
+  ): Promise<QueryOption[]> {
+    const slots = await this.prisma.classSlot.findMany({
+      where: {
+        academyId,
+        deletedAt: null,
+        series: {
+          deletedAt: null,
+          ...(levelId ? { levelId } : {}),
+        },
+        ...(seriesId ? { seriesId } : {}),
+      },
+      select: {
+        id: true,
+        weekday: true,
+        startTime: true,
+        oneOffDate: true,
+        series: { select: { name: true } },
+      },
+      orderBy: [{ series: { name: "asc" } }, { weekday: "asc" }, { startTime: "asc" }],
+      take: OPTION_TAKE,
+    });
+    return slots.map((s) => ({
+      value: s.id,
+      label: `${s.series.name} · ${
+        s.oneOffDate ? dayCl(s.oneOffDate) : WEEKDAY_SHORT[s.weekday] ?? s.weekday
+      } ${s.startTime}`,
+    }));
+  }
+
+  // academyClassOptions y la fuente academyClasses se retiraron: el
+  // select de clase era redundante con horario + rango de fechas
+  // (spec analytics/query-console).
 
   // ─── Ejecución ──────────────────────────────────────────────────────
 
@@ -310,9 +475,14 @@ export class QueryService {
       take: pageSize,
       skip: (page - 1) * pageSize,
     });
+    // Celda suplementaria personId (drill a la ficha persona): va al
+    // final de cada row, fuera de headers - nunca columna ni export.
+    const personIds = res.personIds;
     return {
       headers: this.headers(def.columns, scope),
-      rows: res.rows,
+      rows: personIds
+        ? res.rows.map((r, i) => [...r, personIds[i] ?? null])
+        : res.rows,
       total: res.total,
       page,
       pageSize,

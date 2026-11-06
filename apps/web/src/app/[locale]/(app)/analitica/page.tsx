@@ -15,7 +15,6 @@ import {
   Pager,
   PillTabs,
   SkeletonList,
-  SkeletonText,
   Spinner,
 } from "@/components/ui";
 import { TierPaywall } from "@/components/tier-paywall";
@@ -226,11 +225,21 @@ export default function AnaliticaPage() {
   }, [role, tierLocked, loadCatalog, loadSaved]);
 
   // Opciones de fuentes scope-dependientes (planId/seriesId/listId…).
+  // `deps` lleva los valores de los filtros padre declarados en
+  // dependsOn (cascada nivel→serie→horario→clase, horario→instructor).
   const loadScopeOptions = useCallback(
-    async (source: FkSource, scopeId: string): Promise<QueryOption[]> => {
+    async (
+      source: FkSource,
+      scopeId: string,
+      deps: Record<string, string | undefined> = {},
+    ): Promise<QueryOption[]> => {
       if (!role || !isQueryRole(role)) return [];
+      const depQs = Object.entries(deps)
+        .filter(([, v]) => !!v)
+        .map(([k, v]) => `&${k}=${encodeURIComponent(v!)}`)
+        .join("");
       const res = await apiFetch(
-        `/query/options?role=${role}&source=${source}&scopeId=${encodeURIComponent(scopeId)}`,
+        `/query/options?role=${role}&source=${source}&scopeId=${encodeURIComponent(scopeId)}${depQs}`,
       );
       if (!res.ok) return [];
       const body = (await res.json()) as
@@ -384,12 +393,14 @@ export default function AnaliticaPage() {
     phase === "loading" || (phase === "ready" && catalogPhase === "loading");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-none lg:px-4">
       {bootLoading && <SkeletonList />}
 
       {phase === "error" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-ink/70">{ta("error")}</p>
+          <p role="alert" className="text-sm text-ink/70">
+            {ta("error")}
+          </p>
           <Button variant="secondary" size="sm" onClick={() => void boot()}>
             {tc("retry")}
           </Button>
@@ -397,8 +408,11 @@ export default function AnaliticaPage() {
       )}
 
       {phase === "forbidden" && (
-        <Card className="py-6 text-center">
+        <Card className="flex flex-col items-center gap-3 py-6 text-center">
           <p className="text-sm text-ink/70">{ta("forbidden")}</p>
+          <Button href="/inicio" variant="secondary" size="sm">
+            {tc("appName")}
+          </Button>
         </Card>
       )}
 
@@ -421,14 +435,19 @@ export default function AnaliticaPage() {
           )}
 
           {catalogPhase === "forbidden" && (
-            <Card className="py-6 text-center">
+            <Card className="flex flex-col items-center gap-3 py-6 text-center">
               <p className="text-sm text-ink/70">{ta("forbidden")}</p>
+              <Button href="/inicio" variant="secondary" size="sm">
+                {tc("appName")}
+              </Button>
             </Card>
           )}
 
           {catalogPhase === "error" && (
             <Card className="flex flex-col items-center gap-3 py-6 text-center">
-              <p className="text-sm text-ink/70">{ta("error")}</p>
+              <p role="alert" className="text-sm text-ink/70">
+                {ta("error")}
+              </p>
               <Button
                 variant="secondary"
                 size="sm"
@@ -531,11 +550,13 @@ export default function AnaliticaPage() {
                 </span>
               </div>
 
-              {runPhase === "loading" && <SkeletonText lines={3} />}
+              {runPhase === "loading" && <SkeletonList items={3} />}
 
               {runPhase === "error" && (
                 <Card className="flex flex-col items-center gap-3 py-6 text-center">
-                  <p className="text-sm text-ink/70">{ta("error")}</p>
+                  <p role="alert" className="text-sm text-ink/70">
+                    {ta("error")}
+                  </p>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -560,6 +581,11 @@ export default function AnaliticaPage() {
                     headers={result.headers}
                     rows={result.rows}
                     total={result.total}
+                    personBasePath={
+                      role === "ACADEMY_OWNER"
+                        ? "/academia/alumnos"
+                        : "/analitica/usuarios"
+                    }
                   />
                   <Pager
                     page={result.page}

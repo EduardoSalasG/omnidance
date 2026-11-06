@@ -122,11 +122,11 @@ describe("gap-closure: CRM transversal e2e", () => {
     // El CRM del actor PRODUCER es feature Producer Pro (S5) - ambos
     // productores del fixture necesitan tier vigente para operar su propio
     // actor (sus 403 esperados son por ownership ajeno, no por el gate).
-    // `crm` entra en PRO_GROWTH (PRO_STARTER solo analytics/exports/
-    // multiStaff - matriz PRODUCER_TIER_FEATURES).
+    // `crm` entra en PRO_GROWTH y `campaigns` en PRO_BIG (matriz
+    // PRODUCER_TIER_FEATURES) - el fixture va a BIG para cubrir ambos.
     await prisma.person.updateMany({
       where: { id: { in: [producer.id, producer2.id] } },
-      data: { proTier: "PRO_GROWTH" },
+      data: { proTier: "PRO_BIG" },
     });
     ids.academyOwnerId = academyOwner.id;
     ids.dancerId = dancer.id;

@@ -8,6 +8,8 @@
   "academySales": {
     "sectionTitle": "Pré-venda por academias",
     "backToHub": "Consola",
+    "pendingTitle": "Por responder",
+    "resolvedTitle": "Histórico",
     "invite": "Convidar uma academia",
     "inviteTitle": "Convidar uma academia para vender a pré-venda",
     "inviteDesc": "A academia vende com o seu link e recebe uma percentagem do preço publicado. Pagas-lhe a comissão fora da app; o registo do que lhe deves vive aqui.",

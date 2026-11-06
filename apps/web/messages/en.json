@@ -13,7 +13,8 @@
     "create": "Create",
     "seeAll": "See all",
     "skipToContent": "Skip to content",
-    "newTab": "Open in new tab"
+    "newTab": "Open in new tab",
+    "showLess": "Show less"
   },
   "home": {
     "subtitle": "Nightlife + Academies. One QR for the whole scene.",
@@ -441,7 +442,7 @@
     "markPresent": "Present",
     "planName": "Plan name",
     "planPrice": "Price",
-    "planClasses": "Classes per period",
+    "planClasses": "Included classes",
     "personId": "Person ID",
     "empty": "You don't have an academy registered yet.",
     "directoryTitle": "Academies",
@@ -494,7 +495,7 @@
     "planTypes": {
       "MONTHLY": "Monthly",
       "CLASS_PACK": "Class pack",
-      "PERIOD": "Period",
+      "PERIOD": "Custom period",
       "TRIAL": "Trial"
     },
     "studentStatus": "{name}'s status",
@@ -503,9 +504,9 @@
     "planDescPlaceholder": "Unlimited classes in all series\nAccess to level evaluation\nDiscount on private lessons",
     "planStudents": "{count, plural, one {# student} other {# students}}",
     "planKpiActive": "Active plans",
-    "planKpiActiveHint": "Membership plans with active=true",
+    "planKpiActiveHint": "Plans your students can buy now",
     "planKpiTop": "Top plans",
-    "planKpiTopHint": "Plans with the most active students this month",
+    "planKpiTopHint": "Students with this plan active",
     "sortLabel": "Sort",
     "sortNameAsc": "Name A→Z",
     "sortNameDesc": "Name Z→A",
@@ -515,7 +516,15 @@
     "planStudentsEmpty": "Nobody has this plan active",
     "planFrom": "From",
     "planUntil": "Until",
-    "newAcademy": "New academy"
+    "newAcademy": "New academy",
+    "personSearch": {
+      "registerNew": "Register new person",
+      "newPersonHint": "We create the account and email the invite so they can complete it.",
+      "emailLabel": "Email",
+      "nameLabel": "Name (optional)",
+      "backToSearch": "← Back to search"
+    },
+    "enrollmentSavedInvited": "Enrollment saved - invite sent by email"
   },
   "practices": {
     "title": "Practices",
@@ -1012,29 +1021,21 @@
     "style": "Style",
     "level": "Level",
     "types": "Class types",
-    "instructor": "Instructor",
     "slots": "Weekly schedules",
     "addSlot": "Add slot",
     "removeSlot": "Remove slot",
-    "removeSlotConfirm": "Remove this slot? Its future classes are cancelled.",
     "weekday": "Day",
     "start": "Start",
     "end": "End",
     "create": "Create",
-    "creating": "Creating…",
     "deactivate": "Deactivate",
-    "deactivateConfirm": "Deactivate the series? Future classes and their bookings are cancelled.",
     "inactive": "Inactive",
     "empty": "No series yet. Create your first class series",
-    "edit": "Edit",
     "save": "Save changes",
     "created": "Series created",
     "updated": "Series updated",
     "error": "Couldn't save",
     "reactivate": "Reactivate",
-    "importClasses": "Import classes",
-    "detailBack": "Classes",
-    "actions": "Actions",
     "delete": "Delete",
     "deleteConfirm": "Delete the class? It deactivates, gets hidden from the list and future classes with their bookings are cancelled. It will remain visible only in analytics.",
     "slotsTitle": "Weekly schedules",
@@ -1045,7 +1046,8 @@
     "bookedCount": "{count} bookings",
     "attendedCount": "{count} attendances",
     "cancelled": "Cancelled",
-    "slotAdded": "Slot added"
+    "slotAdded": "Slot added",
+    "entityTitle": "Class"
   },
   "adminCatalogs": {
     "title": "Catalogs",
@@ -1233,5 +1235,10 @@
       "PRODUCER": "Event name"
     },
     "verified": "Email verified"
+  },
+  "academyPay": {
+    "report": {
+      "export": "Export"
+    }
   }
 }

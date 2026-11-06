@@ -6,7 +6,7 @@ import { ProLeadForm } from "@/components/landing/ProLeadForm";
 import { getMessages, getLocale } from "next-intl/server";
 import { localeAlternates } from "@/lib/seo";
 import { type Locale } from "@/i18n/routing";
-import { fetchPublicEvents } from "@/lib/public-events";
+import { marketingEvents } from "@/lib/marketing-content";
 import { Link } from "@/i18n/navigation";
 
 
@@ -31,12 +31,16 @@ const cardClass =
 
 // Selector de audiencia: cada rol tiene su landing propia; DJ y locales
 // usan el form compacto de abajo (roles restringidos).
+// JsonLd con eventos del catálogo commiteado - cero requests al API
+// (spec marketing-content). El revalidate solo recalcula el render.
+export const revalidate = 3600;
+
 export default async function ProHub() {
   const m = (await getMessages()) as { landingProHub: Record<string, string>; landing: Record<string, string> };
   const t = m.landingProHub;
   const base = m.landing;
   // Logueado → /inicio lo decide el middleware (página estática).
-  const events = await fetchPublicEvents();
+  const events = marketingEvents();
   return (
     <>
       <JsonLd events={events.slice(0, 3)} />

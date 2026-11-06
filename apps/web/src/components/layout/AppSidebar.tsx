@@ -48,11 +48,15 @@ export function AppSidebar({
   roleLabel,
   collapsed,
   onToggle,
+  header,
 }: {
   groups: DrawerGroup[];
   roleLabel?: string;
   collapsed: boolean;
   onToggle: () => void;
+  /** Contenido extra bajo el header de marca (selector de academia del
+      owner) - solo en modo expandido; el riel no tiene ancho. */
+  header?: React.ReactNode;
 }) {
   const t = useTranslations("nav");
   // Los grupos vacíos no renderizan nada (ni header ni separador) -
@@ -96,6 +100,10 @@ export function AppSidebar({
           <ToggleIcon collapsed={collapsed} />
         </button>
       </div>
+
+      {!collapsed && header != null && (
+        <div className="border-b border-line px-3 py-3">{header}</div>
+      )}
 
       <nav
         id={NAV_ID}

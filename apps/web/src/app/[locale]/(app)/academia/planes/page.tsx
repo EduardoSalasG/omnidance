@@ -5,12 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, Pager, RefreshIcon } from "@/components/ui";
+import { Button, Card, ChevronRightIcon, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { ConsoleHeader } from "@/components/console/console-header";
 import { PlansSection } from "@/components/academy/plans-section";
 import { FilterBar } from "@/components/query/FilterBar";
-import { ConsoleHeader } from "@/components/console/console-header";
 import {
   filterQuery,
   inputCls,
@@ -43,7 +43,9 @@ export default function AcademiaPlanesPage() {
   const t = useTranslations("academy");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
+      {/* Raíz del drawer: el back a /academia no se pinta en raíces
+          (isSidebarRoute), quedan solo las acciones a la derecha. */}
       <ConsoleHeader
         backHref="/academia"
         backLabel={t("title")}
@@ -178,7 +180,15 @@ function PlansModule({ academyId }: { academyId: string }) {
           </select>
         </label>
       </div>
-      {plans === null ? <SkeletonList /> : <PlansSection plans={plans} />}
+      {/* Vacío con filtros activos ≠ vacío real: el copy lo distingue
+          (la FilterBar sigue montada para limpiar). */}
+      {plans === null ? (
+        <SkeletonList />
+      ) : plans.length === 0 && Object.keys(filters).length > 0 ? (
+        <p className="text-sm text-ink/50">{tq("empty")}</p>
+      ) : (
+        <PlansSection plans={plans} />
+      )}
       {plans !== null && plans.length > 0 && (
         <Pager
           page={page}
@@ -202,6 +212,7 @@ function PlansKpiCards({ kpis }: { kpis: PlansKpis }) {
     >
       <Card
         className="flex flex-col gap-1 p-4"
+        title={t("planKpiActiveHint")}
         aria-label={`${t("planKpiActive")}: ${kpis.activePlans}. ${t("planKpiActiveHint")}`}
       >
         <span className="text-xs font-medium text-ink/50">
@@ -209,6 +220,9 @@ function PlansKpiCards({ kpis }: { kpis: PlansKpis }) {
         </span>
         <span className="text-2xl font-bold tabular-nums">
           {kpis.activePlans}
+        </span>
+        <span className="text-[11px] leading-tight text-ink/50">
+          {t("planKpiActiveHint")}
         </span>
       </Card>
       {kpis.topPlans.map((p) => {
@@ -219,6 +233,7 @@ function PlansKpiCards({ kpis }: { kpis: PlansKpis }) {
           <Card
             key={p.planId}
             className="flex flex-col gap-1 p-4"
+            title={t("planKpiTopHint")}
             aria-label={`${p.name ?? p.planId}: ${p.students}. ${t("planKpiTopHint")}`}
           >
             <span className="truncate text-xs font-medium text-ink/50">
@@ -230,13 +245,16 @@ function PlansKpiCards({ kpis }: { kpis: PlansKpis }) {
             <span
               className={`text-xs font-medium tabular-nums ${
                 delta > 0
-                  ? "text-neon"
+                  ? "text-green-400"
                   : delta < 0
-                    ? "text-warn"
+                    ? "text-red-400"
                     : "text-ink/40"
               }`}
             >
               {deltaLabel} {t("kpis.vsPrevMonth")}
+            </span>
+            <span className="text-[11px] leading-tight text-ink/50">
+              {t("planKpiTopHint")}
             </span>
           </Card>
         );
@@ -272,6 +290,7 @@ function TopPurchasedList({
                 <span className="shrink-0 text-xs tabular-nums text-ink/50">
                   {t("topPurchasedCount", { count: p.count })}
                 </span>
+                <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
               </Link>
             </li>
           ))}

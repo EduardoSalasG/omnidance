@@ -477,6 +477,28 @@ export class ClassSeriesController {
   }
 
   /**
+   * Estilos presentes en las series de la academia - opciones del
+   * filtro `styleId` del listado (review 2026-11-05): el catálogo
+   * global de /styles ofrecería valores sin ninguna serie y el filtro
+   * caería en vacíos garantizados. [{id,name}] ordenado por nombre.
+   */
+  @Get(":id/series/styles")
+  async styles(@Param("id") id: string, @Req() req: Request) {
+    await this.access.requireCapability(id, req.person!, "schedule", "classes");
+    const rows = await this.prisma.classSeries.findMany({
+      where: { academyId: id, deletedAt: null, styleId: { not: null } },
+      select: { style: { select: { id: true, name: true } } },
+    });
+    const byId = new Map<string, string>();
+    for (const r of rows) {
+      if (r.style) byId.set(r.style.id, r.style.name);
+    }
+    return [...byId.entries()]
+      .map(([styleId, name]) => ({ id: styleId, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }
+
+  /**
    * Detalle de una serie de la academia. Las eliminadas (deletedAt)
    * responden 404 - fuera de la consola solo existen para analítica.
    */
@@ -660,6 +682,9 @@ export class ClassSeriesController {
       dto: s,
       schedule: resolveSlotSchedule(s.date, s.weekday, today),
     }));
+    // El nivel debe pertenecer a la línea efectiva de la academia
+    // (custom si existe, global si no) - el form solo ofrece esos ids.
+    await this.assertLevelInLine(id, dto.levelId);
 
     const created = await this.prisma.$transaction(async (tx) => {
       const series = await tx.classSeries.create({
@@ -769,6 +794,12 @@ export class ClassSeriesController {
   ) {
     await this.access.requireCapabilityWrite(id, req.person!, "schedule", "classes");
     const prev = await this.findSeriesOr404(id, seriesId);
+    // levelId explícito valida contra la línea efectiva (null limpia
+    // el nivel - siempre permitido). Una serie legacy con nivel fuera
+    // de línea se corrige al elegir uno válido.
+    if (dto.levelId !== undefined) {
+      await this.assertLevelInLine(id, dto.levelId);
+    }
     const reactivated = dto.active === true && !prev.active;
     // Asignaciones nuevas de instructor (spec academies/class-series):
     // el de la serie si cambia + instructor explícito de slots nuevos.
@@ -1143,7 +1174,7 @@ export class ClassSeriesController {
     @Param("slotId") slotId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireCapability(id, req.person!, "schedule");
+    await this.access.requireCapability(id, req.person!, "schedule", "classes");
     const slot = await this.prisma.classSlot.findFirst({
       where: { id: slotId, academyId: id, deletedAt: null },
       include: {
@@ -1456,6 +1487,34 @@ export class ClassSeriesController {
     });
     if (!series) throw new NotFoundException("serie no encontrada");
     return series;
+  }
+
+  /**
+   * El levelId de la serie debe pertenecer a la línea efectiva de la
+   * academia: si tiene niveles propios (custom) solo esos valen; si
+   * no, solo los de la línea global (academyId null). null/undefined
+   * pasan - la serie queda sin nivel. 400 si el id no existe o es de
+   * otra línea (otra academia, o global con línea custom).
+   */
+  private async assertLevelInLine(
+    academyId: string,
+    levelId: string | null | undefined,
+  ) {
+    if (levelId == null) return;
+    const lvl = await this.prisma.classLevel.findUnique({
+      where: { id: levelId },
+      select: { academyId: true },
+    });
+    const custom = await this.prisma.classLevel.count({
+      where: { academyId },
+    });
+    const inLine =
+      custom > 0 ? lvl?.academyId === academyId : lvl?.academyId === null;
+    if (!inLine) {
+      throw new BadRequestException(
+        "nivel fuera de la línea de la academia",
+      );
+    }
   }
 }
 

@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, RefreshIcon, SkeletonList } from "@/components/ui";
+import { Button, PageLoading, RefreshIcon, SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { SeriesForm } from "@/components/academy/series-form";
@@ -20,10 +20,19 @@ type LoadState = "loading" | "ready" | "notFound" | "error";
  */
 function NuevaSerie() {
   const t = useTranslations("academySeries");
+  const tc = useTranslations("common");
+  // En modo edición (?edit=<seriesId>) el padre real es la ficha de la
+  // serie, no el listado - mismo criterio que planes/nueva.
+  const editId = useSearchParams().get("edit");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
-      <ConsoleHeader backHref="/academia/series" backLabel={t("title")} />
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
+      <ConsoleHeader
+        backHref={
+          editId ? `/academia/series/${editId}` : "/academia/series"
+        }
+        backLabel={editId ? tc("back") : t("title")}
+      />
       <AcademyGate>
         {({ academy }) => (
           <AcademyTierGate academy={academy} feature="classes"><SeriesFormLoader key={academy.id} academyId={academy.id} /></AcademyTierGate>
@@ -91,9 +100,12 @@ function SeriesFormLoader({ academyId }: { academyId: string }) {
   }
   if (state === "notFound") {
     return (
-      <p role="alert" className="text-sm text-ink/60">
-        {t("notFound")}
-      </p>
+      <div className="flex flex-col items-start gap-4">
+        <p className="text-sm text-ink/60">{t("notFound")}</p>
+        <Button variant="secondary" size="sm" href="/academia/series">
+          {tc("back")}
+        </Button>
+      </div>
     );
   }
   return <SeriesForm academyId={academyId} editing={series} />;
@@ -101,9 +113,7 @@ function SeriesFormLoader({ academyId }: { academyId: string }) {
 
 export default function AcademiaNuevaSeriePage() {
   return (
-    <Suspense
-      fallback={<main className="min-h-dvh bg-canvas" aria-hidden="true" />}
-    >
+    <Suspense fallback={<PageLoading />}>
       <NuevaSerie />
     </Suspense>
   );

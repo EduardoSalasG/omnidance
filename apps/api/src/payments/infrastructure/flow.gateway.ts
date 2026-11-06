@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { createHmac, randomUUID } from "node:crypto";
 import type {
+  CollectResult,
   NormalizedGatewayData,
   PaymentGateway,
   RemoteSubscription,
@@ -39,6 +40,9 @@ interface FlowRawInvoice {
   amount: number | string;
   period_start?: string;
   period_end?: string;
+  // Próximo reintento programado por Flow; null = el motor ya no
+  // reintenta la invoice (elegible para customer/collect).
+  next_attemp_date?: string | null;
   payment?: {
     status?: number;
     flowOrder?: number;
@@ -83,6 +87,7 @@ function normalizeInvoice(inv: FlowRawInvoice): SubscriptionInvoice {
     paid: isFlowInvoicePaid(inv),
     periodStart: inv.period_start,
     periodEnd: inv.period_end,
+    nextAttemptDate: inv.next_attemp_date,
     payment: inv.payment
       ? {
           orderRef:
@@ -443,6 +448,77 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
       { method: "GET", correlationId: opts?.correlationId },
     );
     return normalizeSubscription(data);
+  }
+
+  /**
+   * customer/collect - cargo on-demand sobre la tarjeta registrada del
+   * customer (spec overdue-invoice-collect): lo usa el reconcile para
+   * recuperar invoices impagas que Flow ya no reintenta. Respuesta:
+   * type 1 = cobro sincrónico a tarjeta (`paymenResult` -sic- es el
+   * PaymentStatus del cobro: status 2 pagado, 3/4 rechazado);
+   * type 2 = link de pago, type 3 = cobro por email (ambos asíncronos,
+   * resuelven por urlConfirmation = webhook de payments).
+   */
+  async collect(
+    p: {
+      customerId: string;
+      amount: number;
+      subject: string;
+      commerceOrder: string;
+      returnUrl: string;
+    },
+    opts?: SubscriptionCallOpts,
+  ): Promise<CollectResult> {
+    const data = await this.call<{
+      type?: number;
+      flowOrder?: number;
+      url?: string;
+      token?: string;
+      paymenResult?: {
+        status?: number;
+        paymentData?: Record<string, unknown>;
+      };
+    }>(
+      "customer/collect",
+      {
+        apiKey: this.apiKey,
+        customerId: p.customerId,
+        amount: String(p.amount),
+        subject: p.subject,
+        commerceOrder: p.commerceOrder,
+        urlConfirmation: this.confirmationUrl,
+        urlReturn: p.returnUrl,
+      },
+      { correlationId: opts?.correlationId },
+    );
+    const flowOrder =
+      data.flowOrder != null ? String(data.flowOrder) : undefined;
+    if (data.type === 1) {
+      const st = data.paymenResult?.status;
+      if (st === 2) {
+        return {
+          outcome: "COLLECTED",
+          flowOrder,
+          gatewayData: data.paymenResult?.paymentData as
+            | NormalizedGatewayData
+            | undefined,
+        };
+      }
+      if (st === 3 || st === 4) {
+        return { outcome: "FAILED", flowOrder };
+      }
+      // type=1 sin paymenResult o no terminal: queda al webhook/polling.
+      return { outcome: "PENDING", flowOrder };
+    }
+    if (data.type === 2 || data.type === 3) {
+      return {
+        outcome: "PENDING",
+        flowOrder,
+        paymentUrl:
+          data.url && data.token ? `${data.url}?token=${data.token}` : undefined,
+      };
+    }
+    throw new Error("flow customer/collect: respuesta inválida");
   }
 
   /**

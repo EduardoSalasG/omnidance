@@ -117,12 +117,12 @@ export function ProducerDashboard() {
     );
   }
 
-  const kpis: [string, string][] = [
+  const kpis = [
     ["upcoming", num.format(dash.kpis.upcoming)],
     ["sold", num.format(dash.kpis.sold)],
     ["grossMonth", clp.format(dash.kpis.grossMonth)],
     ["pendingClaims", num.format(dash.kpis.pendingClaims)],
-  ];
+  ] as const;
 
   return (
     <div className="flex flex-col gap-6">
@@ -134,19 +134,28 @@ export function ProducerDashboard() {
       <section aria-label={t("dash.title")} data-tour="producer-kpis">
         <h2 className={`mb-3 ${sectionTitleCls}`}>{t("dash.title")}</h2>
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {kpis.map(([key, value]) => (
-            <li
-              key={key}
-              className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
-            >
-              <span className="block text-2xl font-bold tabular-nums text-neon">
-                {value}
-              </span>
-              <span className="mt-0.5 block text-xs text-ink/60">
-                {t(`dash.kpi.${key}`)}
-              </span>
-            </li>
-          ))}
+          {kpis.map(([key, value]) => {
+            const label = t(`dash.kpi.${key}`);
+            const hint = t(`dash.kpi.${key}Hint`);
+            return (
+              <li
+                key={key}
+                title={hint}
+                aria-label={`${label}: ${value}. ${hint}`}
+                className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
+              >
+                <span className="block text-2xl font-bold tabular-nums text-neon">
+                  {value}
+                </span>
+                <span className="mt-0.5 block text-xs text-ink/60">
+                  {label}
+                </span>
+                <span className="block text-[11px] leading-tight text-ink/40">
+                  {hint}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </section>
 

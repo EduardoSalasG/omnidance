@@ -6,9 +6,10 @@ import { useLocale, useTranslations } from "next-intl";
 import type { QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { academyTierHas } from "@/lib/academy-features";
-import { Badge, Button, Card, EventDate, Pager, type BadgeVariant, RefreshIcon } from "@/components/ui";
+import { Badge, type BadgeVariant, Button, Card, ChevronRightIcon, ClockIcon, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
+import { useConsolePageSize } from "@/lib/console-page-size";
 import {
   academyEntity,
   dedupeOptions,
@@ -44,7 +45,9 @@ const STUDENTS_ENTITY = {
   ),
 };
 
-const PAGE_SIZE = 24;
+// Regla transversal de paginación de consola (spec
+// academies/console-lists): 20 por página en desktop (≥lg) y 10 en
+// mobile, resuelta por el hook compartido useConsolePageSize.
 
 const STATUS_VARIANT: Record<EnrollmentStatus, BadgeVariant> = {
   ACTIVE: "neon",
@@ -76,8 +79,13 @@ export function StudentsSection({
   const locale = useLocale();
   const t = useTranslations("academy");
   const tc = useTranslations("common");
-  const tp = useTranslations("practices");
+  const tq = useTranslations("query");
   const tcrm = useTranslations("crm");
+
+  // pageSize responsivo 20/10 (hook compartido). Al cruzar el
+  // breakpoint la página vuelve a 1: una página alta del modo anterior
+  // podría quedar fuera de rango en el nuevo.
+  const pageSize = useConsolePageSize();
 
   const [students, setStudents] = useState<Student[]>([]);
   const [total, setTotal] = useState(0);
@@ -103,7 +111,7 @@ export function StudentsSection({
     try {
       const qs = filterQuery(filters);
       const res = await apiFetch(
-        `/academies/${academyId}/students${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
+        `/academies/${academyId}/students${qs}${qs ? "&" : "?"}page=${page}&pageSize=${pageSize}`,
       );
       if (!res.ok) {
         setError(true);
@@ -128,11 +136,16 @@ export function StudentsSection({
     } finally {
       setLoading(false);
     }
-  }, [academyId, filters, page]);
+  }, [academyId, filters, page, pageSize]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Cambio de breakpoint → repaginar desde el inicio.
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,7 +171,7 @@ export function StudentsSection({
   return (
     <div className="flex flex-col gap-4">
       {!readOnly && (
-        <div data-tour="academy-alumnos-new">
+        <div data-tour="academy-alumnos-new" className="flex justify-end">
           <Button href="/academia/alumnos/nuevo" size="sm">
             + {t("newEnrollment")}
           </Button>
@@ -189,8 +202,10 @@ export function StudentsSection({
           </Button>
         </div>
       ) : students.length === 0 ? (
+        // Con filtros activos el vacío es del filtro (el FilterBar se
+        // conserva para limpiar); sin filtros es la cartera vacía.
         <p role="status" className="text-sm text-ink/50">
-          {t("studentsEmpty")}
+          {filterQuery(filters) !== "" ? tq("empty") : t("studentsEmpty")}
         </p>
       ) : (
         <ul
@@ -207,12 +222,15 @@ export function StudentsSection({
                 })}
                 className="block rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
               >
-                <Card className="flex h-full flex-col gap-2 p-4 transition-colors hover:border-neon/40">
+                <Card className="flex h-full flex-col gap-2 p-4 transition-colors hover:border-neon/60">
                   {/* Nombre: primera sección de la card y a fila
                       completa; nunca compite por ancho con badges ni
                       score, así que el truncate siempre deja leerlo. */}
-                  <span className="block truncate font-medium">
-                    {s.person.name ?? s.person.email ?? s.person.id}
+                  <span className="flex items-center justify-between gap-2 font-medium">
+                    <span className="min-w-0 truncate">
+                      {s.person.name ?? s.person.email ?? s.person.id}
+                    </span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </span>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <Badge variant={STATUS_VARIANT[s.status]}>
@@ -253,22 +271,50 @@ export function StudentsSection({
                               ? "neon"
                               : "outline"
                         }
-                        title={
-                          s.endsAt
-                            ? `${tp("endsAt")}: ${planDateFmt(locale).format(new Date(s.endsAt))}`
-                            : s.plan.name
-                        }
+                        title={s.plan.name}
                       >
                         {s.plan.name}
                       </Badge>
                     ) : (
                       <span className="truncate">-</span>
                     )}
-                    {s.startsAt && <EventDate start={s.startsAt} />}
-                    {s.endsAt && (
+                    {/* Vigencia en palabras, no solo en color: la frase
+                        con ícono dice qué fecha es y si ya venció
+                        (spec academies/console-lists). */}
+                    {s.endsAt ? (
+                      <span
+                        className={`inline-flex items-center gap-1 ${
+                          s.endsAt.slice(0, 10) < todayStr
+                            ? "text-red-400"
+                            : ""
+                        }`}
+                      >
+                        <ClockIcon className="h-3.5 w-3.5 shrink-0" />
+                        {s.endsAt.slice(0, 10) < todayStr
+                          ? t("studentCard.expiredOn", {
+                              date: planDateFmt(locale).format(
+                                new Date(s.endsAt),
+                              ),
+                            })
+                          : t("studentCard.paidUntil", {
+                              date: planDateFmt(locale).format(
+                                new Date(s.endsAt),
+                              ),
+                            })}
+                      </span>
+                    ) : s.plan ? (
+                      <span className="inline-flex items-center gap-1">
+                        <ClockIcon className="h-3.5 w-3.5 shrink-0" />
+                        {t("studentCard.noExpiry")}
+                      </span>
+                    ) : null}
+                    {s.startsAt && (
                       <span>
-                        {tp("endsAt")}:{" "}
-                        {planDateFmt(locale).format(new Date(s.endsAt))}
+                        {t("studentCard.since", {
+                          date: planDateFmt(locale).format(
+                            new Date(s.startsAt),
+                          ),
+                        })}
                       </span>
                     )}
                   </div>
@@ -281,7 +327,7 @@ export function StudentsSection({
       {!loading && !error && students.length > 0 && (
         <Pager
           page={page}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           total={total}
           onPage={setPage}
         />

@@ -7,6 +7,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   RefreshIcon,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
@@ -162,6 +163,7 @@ function CatalogSection({
                     </span>
                   )}
                 </span>
+                <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
               </div>
             </Link>
           ))}

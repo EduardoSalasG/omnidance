@@ -1,13 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { showActionNotice } from "@/components/ui/action-notice";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 
-import { Badge, Button, Card, PriceTag, RefreshIcon, Spinner } from "@/components/ui";
-import { SkeletonList } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ChevronRightIcon,
+  LIST_PREVIEW,
+  PriceTag,
+  RefreshIcon,
+  SeeAllRow,
+  SkeletonList,
+  Spinner,
+} from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { shortId, type PlanDetail } from "@/components/academy/shared";
@@ -15,16 +28,17 @@ import { Link } from "@/i18n/navigation";
 import { useDateFmt } from "@/lib/intl";
 
 /**
- * /academia/planes/[id] - detalle del plan: datos, CTA de edición
- * (/academia/planes/nueva?edit=<id>) y alumnos con el plan vigente
- * (inicio/fin). El listado solo navega hasta acá.
+ * /academia/planes/[id] - detalle del plan: el card de entidad navega a
+ * editar (/academia/planes/nueva?edit=<id>), activar/desactivar queda
+ * como acción propia debajo y alumnos con el plan vigente (inicio/fin).
+ * El listado solo navega hasta acá.
  */
 export default function PlanDetailPage() {
   const t = useTranslations("academy");
   const params = useParams<{ id: string }>();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/academia/planes" backLabel={t("plans")} />
       <AcademyGate>
         {({ academy }) => (
@@ -51,7 +65,9 @@ function PlanDetail({
   const [plan, setPlan] = useState<PlanDetail | null>(null);
   const [loadError, setLoadError] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
+  // Alumnos vigentes: preview acotado + "Ver todo" (patrón series/[id]).
+  const [showAllStudents, setShowAllStudents] = useState(false);
 
   const dateFmt = useDateFmt({
         day: "numeric",
@@ -93,13 +109,13 @@ function PlanDetail({
         },
       );
       if (!res.ok) {
-        showActionNotice({ text: tc("error"), error: true });
+        setNotice({ text: tc("error"), error: true });
         return;
       }
-      setNotice(t("planSaved"));
+      setNotice({ text: t("planSaved") });
       await reload();
     } catch {
-      showActionNotice({ text: tc("error"), error: true });
+      setNotice({ text: tc("error"), error: true });
     } finally {
       setBusy(false);
     }
@@ -109,7 +125,7 @@ function PlanDetail({
     return (
       <div className="flex items-center gap-3">
         <p role="alert" className="text-sm text-ink/60">
-          {loadError === 404 ? t("plansEmpty") : tc("error")}
+          {loadError === 404 ? t("planNotFound") : tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void reload()}>
           <RefreshIcon /> {tc("retry")}
@@ -121,60 +137,68 @@ function PlanDetail({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h2 className="text-lg font-semibold">{plan.name}</h2>
-          <Badge variant="outline">
-            {t.has(`planTypes.${plan.type}`)
-              ? t(`planTypes.${plan.type}`)
-              : plan.type}
-          </Badge>
-          {!plan.active && (
-            <Badge variant="live">{t("planInactive")}</Badge>
-          )}
-          <PriceTag amount={plan.price} />
-        </div>
-        {plan.classCount != null && (
-          <p className="text-sm text-ink/60">
-            {t("planClasses")}: {plan.classCount}
-          </p>
-        )}
-        {plan.weeklyClasses != null && (
-          <p className="text-sm text-ink/60">
-            {t("planWeeklyCount", { count: plan.weeklyClasses })}
-          </p>
-        )}
-        {plan.description.length > 0 && (
-          <ul className="list-disc space-y-0.5 pl-5 text-sm text-ink/60">
-            {plan.description.map((d, i) => (
-              <li key={i}>{d}</li>
-            ))}
-          </ul>
-        )}
-        {notice && (
-          <p role="status" className="text-sm text-neon">
-            {notice}
-          </p>
-        )}
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            href={`/academia/planes/nueva?edit=${plan.id}`}
-          >
-            {t("editPlan")}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => void toggleActive()}
-          >
-            {busy ? <Spinner size="sm" /> : null}
-            {plan.active ? t("planDeactivate") : t("planReactivate")}
-          </Button>
-        </div>
-      </section>
+      <div className="flex flex-col gap-3">
+        {/* Header de entidad desnudo (estándar industria: identidad de
+            la página sobre el canvas, las cajas son para secciones) -
+            el bloque navega a editar: chevron + nombre/chevron neon en
+            hover + focus ring en el Link. */}
+        <Link
+          href={`/academia/planes/nueva?edit=${plan.id}`}
+          className="group block rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+        >
+          <div className="flex flex-col gap-3">
+            <div className="flex min-w-0 items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <h2 className="truncate text-lg font-semibold transition-colors group-hover:text-neon">
+                  {plan.name}
+                </h2>
+                {!plan.active && (
+                  <Badge variant="outline">{t("planInactive")}</Badge>
+                )}
+              </div>
+              <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40 transition-colors group-hover:text-neon" />
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <Badge variant="outline">
+                {t.has(`planTypes.${plan.type}`)
+                  ? t(`planTypes.${plan.type}`)
+                  : plan.type}
+              </Badge>
+            </div>
+            <dl className="flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-3 text-xs">
+              <div className="flex items-baseline gap-1.5">
+                <dt className="text-ink/50">{t("planPrice")}</dt>
+                <dd className="tabular-nums text-ink/80">
+                  <PriceTag amount={plan.price} currency={plan.currency} />
+                </dd>
+              </div>
+              {plan.classCount != null && (
+                <div className="flex items-baseline gap-1.5">
+                  <dt className="text-ink/50">{t("planClasses")}</dt>
+                  <dd className="tabular-nums text-ink/80">
+                    {plan.classCount}
+                  </dd>
+                </div>
+              )}
+              {plan.weeklyClasses != null && (
+                <div className="flex items-baseline gap-1.5">
+                  <dt className="text-ink/50">{t("planWeekly")}</dt>
+                  <dd className="tabular-nums text-ink/80">
+                    {plan.weeklyClasses}
+                  </dd>
+                </div>
+              )}
+            </dl>
+            {plan.description.length > 0 && (
+              <ul className="list-disc space-y-0.5 pl-5 text-sm text-ink/60">
+                {plan.description.map((d, i) => (
+                  <li key={i}>{d}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </Link>
+      </div>
 
       {/* Alumnos con el plan vigente (enrollment ACTIVE): inicio y fin. */}
       <section
@@ -191,10 +215,12 @@ function PlanDetail({
             </p>
           ) : (
             <ul className="divide-y divide-line">
-              {plan.students.map((s) => (
+              {plan.students
+                .slice(0, showAllStudents ? undefined : LIST_PREVIEW)
+                .map((s) => (
                 <li key={s.personId}>
                   <Link
-                    href={`/academia/alumnos/${s.personId}`}
+                    href={`/academia/alumnos/${s.personId}?from=${encodeURIComponent(`/academia/planes/${plan.id}`)}`}
                     className="flex min-h-11 items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
                   >
                     <span className="min-w-0 flex-1 truncate font-medium">
@@ -206,13 +232,35 @@ function PlanDetail({
                       {s.endsAt &&
                         ` · ${t("planUntil")} ${dateFmt.format(new Date(s.endsAt))}`}
                     </span>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </Link>
                 </li>
               ))}
+              <SeeAllRow
+                total={plan.students.length}
+                expanded={showAllStudents}
+                onToggle={() => setShowAllStudents((v) => !v)}
+              />
             </ul>
           )}
         </Card>
       </section>
+
+      {/* Mutación de estado al pie (console-patterns §3/§4): centrada
+          y separada por border-t, igual que el toggle de promos/[id]. */}
+      <div className="flex justify-center border-t border-line pt-6">
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => void toggleActive()}
+        >
+          {busy ? <Spinner size="sm" /> : null}
+          {plan.active ? t("planDeactivate") : t("planReactivate")}
+        </Button>
+      </div>
+
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }

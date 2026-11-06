@@ -662,7 +662,7 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 
 | Tier | Precio mensual | Facturación 90d | Incluye |
 |---|---|---|---|
-| **Free** | $0 | sin tope | Publica y vende siempre: ticketing online + QR + check-in + liquidación; comisión 9,14% por venta; staff hasta 2 por evento |
+| **Free** | $0 | sin tope | Publica y vende siempre: ticketing online + QR + check-in + liquidación; comisión 9,14% por venta; staff sin cupo por evento ni nómina |
 | **Standard** | $79.700 | ≤$8M | Analíticas, CRM de la audiencia, exportaciones; comisión baja a ~7,36% |
 | **Pro** | $169.500 | >$8M | + campañas segmentadas, benchmark vs escena; comisión baja a ~6,17% |
 
@@ -979,10 +979,11 @@ Wireframe - Mi QR:
 
 | Pantalla | Contenido clave |
 |---|---|
+| Selector de academia | En el hub (`/inicio` del owner, `/academia` para staff) y en la navegación del owner (drawer móvil + sidebar desktop): visible solo con >1 academia propia o tier con `multiAcademy`; persiste `localStorage["omnidance:academy-id"]` y propaga el cambio por evento sin recarga; incluye "Nueva academia" → `/academia/nueva` |
 | Dashboard | Alumnos activos/trial/en riesgo, asistencia de hoy, ingresos del mes, clases del día |
-| Alumnos | Lista con `academy_score` + segmento (núcleo/riesgo/nuevo), `actor_tag`; card completo clickeable → detalle con edición de estado/pagado-hasta (owner/staff con capacidad) e historial de membresías/pagos |
+| Alumnos | Lista con `academy_score` + segmento (núcleo/riesgo/nuevo), `actor_tag`; card completo clickeable → detalle con edición de estado/pagado-hasta (owner/staff con capacidad) e historial de membresías/pagos. Alta por búsqueda de persona; si no existe, "Registrar nueva persona" con email+nombre crea la ficha stub y envía invitación por magic link (7 días) |
 | Planes | CRUD de `membership_plan` seccionado recurrentes vs. pago único con chip activo/inactivo, estados de `enrollment`, prorrateo/pausas, morosos con recordatorio automático |
-| Cobros | KPIs (facturado mes, por cobrar, validaciones), cola "pagos por validar" (incluye intentos `AWAITING` sin comprobante), historial unificado en lista: comprobantes manuales resueltos + pagos de pasarela; detalle con n° de transacción, canal y fecha de orden |
+| Cobros | KPIs (facturado mes, por cobrar, validaciones), cola "pagos por validar" (incluye intentos `AWAITING` sin comprobante), historial unificado en lista: comprobantes manuales resueltos + pagos de pasarela; detalle con n° de transacción, canal y fecha de orden. El reporte de cobranza se exporta a CSV/PDF con marca Omnidance y los mismos filtros de la vista |
 | Clases | `class_series` (borrado lógico) con filtros nivel/modalidad/estado/q; detalle de serie → instancias del día → roster donde **el instructor marca presente** |
 | Particulares | `private_lesson`: instructor, alumno, slot, precio - compra online como producto (`Academy.privateLessonPrice`, orden PRIVATE), el owner asigna instructor+fecha post-pago; **el instructor marca la clase como realizada** (owner 403) |
 | Equipo | Colaboradores (permisos por capacidad) e instructores con acuerdo económico editable; card clickeable → detalle/edición dedicada |

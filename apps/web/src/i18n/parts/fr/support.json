@@ -24,7 +24,9 @@
     "noPayments": "Pas de paiements",
     "roleSince": "depuis le {date}",
     "checkins": "Check-ins",
+    "checkinsHint": "Check-ins enregistrés aux événements et cours",
     "friends": "Amis",
+    "friendsHint": "Amis ajoutés dans l'app",
     "roleStatus": {
       "PENDING": "En attente",
       "SANDBOX": "Sandbox",

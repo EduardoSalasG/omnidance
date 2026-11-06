@@ -7,7 +7,11 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import type { MembershipSubscription, Prisma } from "@prisma/client";
+import type {
+  MembershipSubscription,
+  Payment,
+  Prisma,
+} from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { ParamsService } from "../../params/params.service";
 import { academyFeeBreakdown } from "../../common/fee-breakdown";
@@ -15,6 +19,7 @@ import { NotificationsService } from "../../notifications/domain/notifications.s
 import { emitPaymentEvent } from "../domain/payment-ledger";
 import {
   type BillingWebhookEvent,
+  type CollectResult,
   type PaymentGateway,
   type RemoteSubscription,
   type SubscriptionProvider,
@@ -2026,14 +2031,38 @@ export class SubscriptionsService {
       sub.reminderSentFor = nextInvoiceAt;
     }
 
+    // Recuperación de mora por collect (spec overdue-invoice-collect):
+    // invoices impagas que el proveedor ya no reintentará → cargo
+    // on-demand a la tarjeta del subscriber, antes de notificar.
+    let collectUrl: string | null = null;
+    let covered: Set<string> = new Set();
+    if (sub.flowSubscriptionId) {
+      try {
+        const r = await this.collectOverdueInvoices(sub, fs, actor);
+        settled += r.settled;
+        collectUrl = r.paymentUrl;
+        covered = r.coveredIds;
+      } catch (e) {
+        this.logger.error(
+          `collect-overdue sub ${sub.id}: ${e instanceof Error ? e.message : e}`,
+        );
+      }
+    }
+
     // Mora: el proveedor reporta mora (Flow morose=1 → `morose`) con
     // la invoice impaga en invoices[]. Sin grace period - solo se
     // notifica una vez por invoice impaga (dedup por invoiceId en la
     // notificación enviada; la más antigua es el inicio del episodio -
-    // clave estable mientras dure la mora).
-    if (fs.morose) {
+    // clave estable mientras dure la mora). Una invoice recuperada por
+    // collect (Payment PAID con su refId) ya no es deuda.
+    if (
+      fs.morose &&
+      (fs.invoices ?? []).some(
+        (i) => !i.paid && !covered.has(String(i.id)),
+      )
+    ) {
       const unpaid = (fs.invoices ?? [])
-        .filter((inv) => !inv.paid)
+        .filter((inv) => !inv.paid && !covered.has(String(inv.id)))
         .sort((a, b) => Number(a.id) - Number(b.id))[0];
       const invoiceId = unpaid != null ? String(unpaid.id) : null;
       const already = await this.prisma.notification.findFirst({
@@ -2086,6 +2115,9 @@ export class SubscriptionsService {
             planId: sub.planId,
             planName: plan?.name ?? null,
             invoiceId,
+            // Link de pago del collect degradado (sin tarjeta) para
+            // regularizar la deuda (spec overdue-invoice-collect).
+            ...(collectUrl ? { collectUrl } : {}),
           },
         });
       }
@@ -2264,6 +2296,153 @@ export class SubscriptionsService {
       );
     }
     return true;
+  }
+
+  /**
+   * Cobro on-demand de invoices impagas que el proveedor ya no
+   * reintentará (spec overdue-invoice-collect): `customer/collect`
+   * sobre la tarjeta del subscriber. Mismas reglas que plataforma:
+   * elegible = impaga con `nextAttemptDate === null` o `undefined`
+   * bajo morose; dedup por refId `mem_<planId>_<invoiceId>` @unique
+   * (un intento automático por invoice); COLLECTED liquida por el
+   * camino de renovación, FAILED marca y corta, PENDING deja el link
+   * en la notificación de mora; error de API libera el claim.
+   */
+  private async collectOverdueInvoices(
+    sub: MembershipSubscription,
+    fs: RemoteSubscription,
+    actor: string,
+  ): Promise<{
+    settled: number;
+    paymentUrl: string | null;
+    coveredIds: Set<string>;
+  }> {
+    const coveredIds = new Set<string>();
+    const eligible = (fs.invoices ?? []).filter(
+      (inv) =>
+        !inv.paid &&
+        (inv.nextAttemptDate === null ||
+          (fs.morose && inv.nextAttemptDate == null)),
+    );
+    if (!eligible.length) return { settled: 0, paymentUrl: null, coveredIds };
+    const { provider, name: providerName } = await this.provider(
+      sub.currency ?? "CLP",
+    );
+    if (typeof provider.collect !== "function") {
+      return { settled: 0, paymentUrl: null, coveredIds };
+    }
+    let settled = 0;
+    let paymentUrl: string | null = null;
+    for (const inv of eligible) {
+      const invId = String(inv.id);
+      const refId = `mem_${sub.planId}_${invId}`;
+      const exists = await this.prisma.payment.findFirst({
+        where: { refId },
+        select: { id: true, status: true },
+      });
+      if (exists) {
+        if (exists.status === "PAID") coveredIds.add(invId);
+        continue;
+      }
+      const { customerId } = await ensureFlowCustomer(
+        this.prisma,
+        provider,
+        providerName,
+        sub.personId,
+        { correlationId: randomUUID() },
+      );
+      const plan = await this.prisma.membershipPlan.findUnique({
+        where: { id: sub.planId },
+        select: { price: true, name: true },
+      });
+      const amount = inv.amount > 0 ? inv.amount : (plan?.price ?? 0);
+      const cardPct = await this.params.getNumber(
+        "gateway_fee.card_pct",
+        3.19,
+      );
+      let payment: Payment;
+      try {
+        payment = await this.prisma.payment.create({
+          data: {
+            orderType: "MEMBERSHIP",
+            refId,
+            personId: sub.personId,
+            amount,
+            fee: 0,
+            net: amount,
+            academyPromoId: sub.academyPromoId ?? null,
+            currency: sub.currency ?? "CLP",
+            gateway: providerName,
+            ...academyFeeBreakdown(amount, cardPct),
+          },
+        });
+      } catch (e) {
+        if ((e as { code?: string }).code === "P2002") continue;
+        throw e;
+      }
+      await this.prisma.$transaction((tx) =>
+        emitPaymentEvent(tx, payment.id, "ORDER_CREATED", actor, {
+          refId,
+          invoiceId: invId,
+          subscriptionId: sub.id,
+          via: "collect",
+        }),
+      );
+      let res: CollectResult;
+      try {
+        res = await provider.collect(
+          {
+            customerId,
+            amount,
+            subject: `Renovación ${plan?.name ?? "membresía"}`,
+            commerceOrder: refId,
+            returnUrl: `${this.apiUrl}/api/payments/order-return`,
+            currency: sub.currency ?? "CLP",
+          },
+          { correlationId: randomUUID() },
+        );
+      } catch (e) {
+        this.logger.warn(
+          `collect sub ${sub.id} inv ${invId}: ${e instanceof Error ? e.message : e}`,
+        );
+        await this.prisma
+          .$transaction(async (tx) => {
+            await tx.paymentEvent.deleteMany({
+              where: { paymentId: payment.id },
+            });
+            await tx.payment.delete({ where: { id: payment.id } });
+          })
+          .catch(() => undefined);
+        break;
+      }
+      if (res.flowOrder) {
+        await this.prisma.payment.updateMany({
+          where: { id: payment.id },
+          data: { gatewayRef: res.flowOrder },
+        });
+      }
+      const current = {
+        ...payment,
+        gatewayRef: res.flowOrder ?? payment.gatewayRef,
+      };
+      if (res.outcome === "COLLECTED") {
+        await this.settlement.settleMembership(current, {
+          actor,
+          kind: "renewal",
+          gatewayData: res.gatewayData,
+        });
+        await this.markInvoice(sub.id, invId);
+        sub.lastInvoiceId = invId;
+        coveredIds.add(invId);
+        settled++;
+      } else if (res.outcome === "FAILED") {
+        await this.settlement.settle(current, "FAILED", { actor });
+        break;
+      } else {
+        paymentUrl = res.paymentUrl ?? paymentUrl;
+      }
+    }
+    return { settled, paymentUrl, coveredIds };
   }
 
   private async markInvoice(

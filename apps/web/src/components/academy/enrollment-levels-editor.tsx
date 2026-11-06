@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/action-notice";
 import { readError, type NamedRef, type SeriesLevel } from "./shared";
 
-// Chip multinivel del editor: mismo lenguaje visual que los toggles de
+// Chip del editor: mismo lenguaje visual que los toggles de
 // género (pills con aria-pressed, activo neon).
 const chipBase =
   "inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon active:scale-[0.98] motion-reduce:active:scale-100 disabled:pointer-events-none disabled:opacity-50";
@@ -21,7 +21,7 @@ type LoadState = "loading" | "ready" | "error";
 /**
  * Editor de niveles del alumno por tipo de clase (spec
  * academies/enrollment-levels): por cada ClassType un grupo de chips
- * multinivel (un alumno de iniciación también va a básico). PATCH
+ * de selección única (un nivel por tipo). PATCH
  * /enrollments/:id/levels reemplaza el set completo: se envían todos
  * los tipos del catálogo para que un tipo sin marca quede vacío.
  *
@@ -30,9 +30,13 @@ type LoadState = "loading" | "ready" | "error";
  */
 export function EnrollmentLevelsEditor({
   enrollmentId,
+  academyId,
   initialLevels = [],
 }: {
   enrollmentId: string;
+  /** Academia del alumno: las opciones de nivel son su línea efectiva
+   *  (custom si tiene, global si no - spec academies/class-levels). */
+  academyId: string;
   /** Niveles vigentes del alumno (viene del GET de ficha): el editor
    *  abre con la marca actual, no vacío. */
   initialLevels?: { classTypeId: string; levelId: string }[];
@@ -56,7 +60,7 @@ export function EnrollmentLevelsEditor({
   const load = useCallback(async () => {
     setState("loading");
     try {
-      const res = await apiFetch("/classes/catalogs");
+      const res = await apiFetch(`/classes/catalogs?academyId=${academyId}`);
       if (!res.ok) {
         setState("error");
         return;
@@ -66,7 +70,7 @@ export function EnrollmentLevelsEditor({
     } catch {
       setState("error");
     }
-  }, []);
+  }, [academyId]);
 
   useEffect(() => {
     void load();
@@ -193,7 +197,7 @@ export function EnrollmentLevelsEditor({
             disabled={saving}
             onClick={() => void save()}
           >
-            {t("save")}
+            {saving ? tc("loading") : t("save")}
           </Button>
         </div>
       </Card>

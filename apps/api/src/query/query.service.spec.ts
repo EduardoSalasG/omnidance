@@ -545,6 +545,9 @@ describe("QueryService - lentes y scope", () => {
       "ACTIVE",
       expect.any(String),
       "",
+      // Celda suplementaria personId (drill a la ficha persona) - va
+      // después de la última columna, fuera de headers.
+      "asist",
     ]);
     // academyId ajena → scope {in:[]} → vacío
     const foreign = await svc.run("acad-1", {
@@ -626,6 +629,41 @@ describe("QueryService - lentes y scope", () => {
     expect(pFar.total).toBe(5);
   });
 
+  it("run adjunta personId como celda suplementaria; exportTable no", async () => {
+    prisma.academies.push({
+      id: "ac-1",
+      ownerId: "acad-1",
+      name: "Mía",
+      tier: "PRO",
+    });
+    prisma.enrollments.push({
+      id: "en-1",
+      academyId: "ac-1",
+      personId: "asist",
+      status: "ACTIVE",
+      startedAt: new Date("2026-08-01T00:00:00Z"),
+      endsAt: null,
+      plan: { id: "pl-1", name: "Mensual" },
+    });
+    const res = await svc.run("acad-1", {
+      role: "ACADEMY_OWNER",
+      entity: "students",
+      filters: {},
+    });
+    // La celda suplementaria va al final del row, fuera de headers.
+    expect(res.rows[0]).toHaveLength(res.headers.length + 1);
+    expect(res.rows[0][res.headers.length]).toBe("asist");
+    // exportTable NO propaga la celda: el CSV/PDF no gana columna oculta.
+    const exp = await svc.exportTable(
+      "acad-1",
+      "ACADEMY_OWNER",
+      "students",
+      {},
+    );
+    expect(exp.table.rows[0]).toHaveLength(exp.table.headers.length);
+    expect(exp.table.rows[0]).not.toContain("asist");
+  });
+
   it("options scope-dependiente valida ownership (eventGuestLists ajeno → [])", async () => {
     const res = await svc.options(
       "prod-1",
@@ -638,6 +676,46 @@ describe("QueryService - lentes y scope", () => {
     await expect(
       svc.options("prod-1", "PRODUCER", "producers"),
     ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("options academy sin scopeId → unión de academias propias", async () => {
+    prisma.academies.push(
+      { id: "ac-1", ownerId: "acad-1", name: "Alfa", tier: "PRO" },
+      { id: "ac-2", ownerId: "acad-1", name: "Beta", tier: "PRO" },
+      { id: "ac-ajena", ownerId: "otro", name: "Ajena", tier: "PRO" },
+    );
+    prisma.plans.push(
+      { id: "pl-1", academyId: "ac-1", name: "Mensual" },
+      { id: "pl-2", academyId: "ac-2", name: "Mensual" },
+      { id: "pl-x", academyId: "ac-ajena", name: "Ajeno" },
+    );
+    // Sin scopeId: unión de las propias; >1 academia → sufijo · academia.
+    const res = await svc.options(
+      "acad-1",
+      "ACADEMY_OWNER",
+      "academyPlans",
+      undefined,
+    );
+    expect(res.options).toEqual([
+      { value: "pl-1", label: "Mensual · Alfa" },
+      { value: "pl-2", label: "Mensual · Beta" },
+    ]);
+    // Una sola academia → labels sin sufijo.
+    const solo = await svc.options(
+      "acad-1",
+      "ACADEMY_OWNER",
+      "academyPlans",
+      "ac-1",
+    );
+    expect(solo.options).toEqual([{ value: "pl-1", label: "Mensual" }]);
+    // scopeId ajeno → vacío, nunca datos de otra academia.
+    const foreign = await svc.options(
+      "acad-1",
+      "ACADEMY_OWNER",
+      "academyPlans",
+      "ac-ajena",
+    );
+    expect(foreign.options).toEqual([]);
   });
 });
 

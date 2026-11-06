@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, RefreshIcon, SkeletonList } from "@/components/ui";
+import { Button, Card, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError } from "@/components/academy/shared";
 import { useRouter } from "@/i18n/navigation";
@@ -23,18 +24,20 @@ export default function InstructorEditPage() {
   const params = useParams<{ id: string }>();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader
         backHref={`/academia/equipo/profesor/${params.id}`}
         backLabel={t("instructorDetailTitle")}
       />
       <AcademyGate>
         {({ academy }) => (
+          <AcademyTierGate academy={academy} feature="staff">
           <EditAgreement
             key={`${academy.id}:${params.id}`}
             academyId={academy.id}
             personId={params.id}
           />
+          </AcademyTierGate>
         )}
       </AcademyGate>
     </main>
@@ -177,7 +180,7 @@ function EditAgreement({
       <form onSubmit={save} className="flex flex-col gap-3">
         <fieldset className="flex flex-col gap-1">
           <legend className="text-xs text-ink/50">{t("agreementLegend")}</legend>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {([null, "MONTHLY", "PER_CLASS", "COMMISSION"] as const).map((k) => (
               <label
                 key={k ?? "none"}
@@ -257,7 +260,8 @@ function EditAgreement({
         )}
         <div>
           <Button type="submit" size="sm" disabled={busy}>
-            {busy ? t("adding") : t("saveAgreement")}
+            {busy ? <Spinner className="h-4 w-4" /> : null}
+            {t("saveAgreement")}
           </Button>
         </div>
       </form>

@@ -7,6 +7,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   RefreshIcon,
   SkeletonList,
   type BadgeVariant,
@@ -36,7 +37,7 @@ export default function AdminCiudadesPage() {
   const t = useTranslations("admin");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/inicio" backLabel={t("modules.backHome")} />
       <AdminGate>
         <CityGuidesPanel />
@@ -113,9 +114,12 @@ function CityGuidesPanel() {
                     <span className="min-w-0 truncate font-semibold">
                       {c.name}
                     </span>
-                    <Badge variant={STATUS_VARIANT[c.status]}>
-                      {t(`cities.status.${c.status}`)}
-                    </Badge>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <Badge variant={STATUS_VARIANT[c.status]}>
+                        {t(`cities.status.${c.status}`)}
+                      </Badge>
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                    </span>
                   </div>
                   <span className="text-xs text-ink/50">
                     {c.country.name}

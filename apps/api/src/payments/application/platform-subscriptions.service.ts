@@ -11,6 +11,7 @@ import type {
   Academy,
   AcademyTier,
   BillingCycle,
+  Payment,
   PlatformPromo,
   PlatformSubscription,
   PlatformSubKind,
@@ -43,12 +44,10 @@ import {
   platformPromoPlanId,
   promoChargeClp,
 } from "../domain/platform-promos";
-import {
-  PRODUCER_TIER_STAFF_LIMIT,
-  producerEntitlement,
-} from "../domain/actor-entitlements";
+import { producerEntitlement } from "../domain/actor-entitlements";
 import {
   type BillingWebhookEvent,
+  type CollectResult,
   type PaymentGateway,
   type RemoteSubscription,
   type SubscriptionProvider,
@@ -2090,12 +2089,9 @@ export class PlatformSubscriptionsService {
     // muestra el desglose completo, nunca una suma cruzada.
     const viewCurrency = (current?.currency ?? "CLP").toUpperCase();
     const monthlyGross = grossByCurrency[viewCurrency] ?? 0;
-    // Uso de la nómina vs cupo del tier efectivo + features habilitadas
-    // (spec producer-pro): trial → PRO_STARTER, null si no hay Pro.
+    // Features habilitadas del tier efectivo (spec producer-pro):
+    // trial → PRO_STARTER, null si no hay Pro. El staff no tiene cupo.
     const entitlement = producerEntitlement(person);
-    const staffUsed = await this.prisma.producerStaff.count({
-      where: { producerId: personId },
-    });
     const tierKey = producerTierParamKey(
       current?.tierCode ?? person.proTier,
     );
@@ -2135,11 +2131,6 @@ export class PlatformSubscriptionsService {
       monthlyGross,
       monthlyGrossByCurrency: grossByCurrency,
       maxGross,
-      staffUsed,
-      staffLimit:
-        entitlement.tier != null
-          ? (PRODUCER_TIER_STAFF_LIMIT[entitlement.tier] ?? null)
-          : await this.params.getNumber("producer_tier.free_staff_max", 2),
       enabledFeatures: entitlement.features,
       nextInvoiceAt: current?.nextInvoiceAt ?? null,
       canceledAt: current?.canceledAt ?? null,
@@ -2725,10 +2716,36 @@ export class PlatformSubscriptionsService {
       await this.enforceProducerTier(sub);
     }
 
+    // Recuperación de mora por collect (spec overdue-invoice-collect):
+    // invoices impagas que el proveedor ya no reintentará → cargo
+    // on-demand a la tarjeta del payer. Corre antes del handler de mora
+    // para que un cobro exitoso resuelva sin emitir gracia ni aviso.
+    let collectUrl: string | null = null;
+    let covered: Set<string> = new Set();
+    if (sub.flowSubscriptionId) {
+      try {
+        const r = await this.collectOverdueInvoices(sub, fs, actor);
+        settled += r.settled;
+        collectUrl = r.paymentUrl;
+        covered = r.coveredIds;
+      } catch (e) {
+        this.logger.error(
+          `collect-overdue platsub ${sub.id}: ${e instanceof Error ? e.message : e}`,
+        );
+      }
+    }
+
     // Mora: el proveedor reporta mora con la invoice impaga en
-    // invoices[] (Flow morose=1 → `fs.morose` ya normalizado).
-    if (fs.morose) {
-      await this.handleMorose(sub, fs, actor);
+    // invoices[] (Flow morose=1 → `fs.morose` ya normalizado). Una
+    // invoice recuperada por collect (Payment PAID con su refId) no
+    // cuenta como deuda: la mora solo corre sobre lo que sigue impago.
+    if (
+      fs.morose &&
+      (fs.invoices ?? []).some(
+        (i) => !i.paid && !covered.has(String(i.id)),
+      )
+    ) {
+      await this.handleMorose(sub, fs, actor, { collectUrl, coveredIds: covered });
     }
 
     // Drift de precio (spec platform-promos): la remota debe cobrar lo
@@ -3109,13 +3126,164 @@ export class PlatformSubscriptionsService {
    * S5). Ambos emiten RENEWAL_FAILED sobre el último Payment de la sub -
    * una vez por episodio (dedup por la invoice impaga más antigua).
    */
+  /**
+   * Cobro on-demand de invoices impagas que el proveedor ya no
+   * reintentará (spec overdue-invoice-collect): `customer/collect` de
+   * Flow sobre la tarjeta del payer. Elegible = impaga con
+   * `nextAttemptDate === null`, o `undefined` bajo morose (el adaptador
+   * no reporta la fecha). Con retry agendado JAMÁS se colecta: Flow
+   * podría cobrar la misma invoice en paralelo y el actor pagaría dos
+   * veces. Dedup = refId @unique de renovación: un intento automático
+   * por invoice; FAILED/ERROR no generan reintentos posteriores salvo
+   * error de API (claim liberado).
+   */
+  private async collectOverdueInvoices(
+    sub: PlatformSubscription,
+    fs: RemoteSubscription,
+    actor: string,
+  ): Promise<{
+    settled: number;
+    paymentUrl: string | null;
+    coveredIds: Set<string>;
+  }> {
+    const coveredIds = new Set<string>();
+    const eligible = (fs.invoices ?? []).filter(
+      (inv) =>
+        !inv.paid &&
+        (inv.nextAttemptDate === null ||
+          (fs.morose && inv.nextAttemptDate == null)),
+    );
+    if (!eligible.length) return { settled: 0, paymentUrl: null, coveredIds };
+    const { provider, name: providerName } = await this.provider(
+      sub.currency ?? "CLP",
+    );
+    if (typeof provider.collect !== "function") {
+      return { settled: 0, paymentUrl: null, coveredIds };
+    }
+    let settled = 0;
+    let paymentUrl: string | null = null;
+    for (const inv of eligible) {
+      const invId = String(inv.id);
+      const refId = encodePlatformSubRef(sub.id, invId);
+      const exists = await this.prisma.payment.findFirst({
+        where: { refId },
+        select: { id: true, status: true },
+      });
+      // Dedup: un intento automático por invoice. Si el intento ya
+      // quedó PAID, la invoice está recuperada - no es deuda de mora.
+      if (exists) {
+        if (exists.status === "PAID") coveredIds.add(invId);
+        continue;
+      }
+      const { customerId } = await ensureFlowCustomer(
+        this.prisma,
+        provider,
+        providerName,
+        sub.personId,
+        { correlationId: randomUUID() },
+      );
+      const amount =
+        inv.amount > 0 ? inv.amount : await this.fallbackAmount(sub);
+      // Claim PENDING antes del cargo: un reconcile concurrente choca
+      // en el refId @unique y no duplica el cobro.
+      let payment: Payment;
+      try {
+        payment = await this.prisma.payment.create({
+          data: {
+            orderType: "PLATFORM_SUB",
+            refId,
+            personId: sub.personId,
+            amount,
+            fee: 0,
+            net: amount,
+            platformPromoId: sub.promoId ?? null,
+            currency: sub.currency ?? "CLP",
+            gateway: providerName,
+          },
+        });
+      } catch (e) {
+        if ((e as { code?: string }).code === "P2002") continue;
+        throw e;
+      }
+      await this.prisma.$transaction((tx) =>
+        emitPaymentEvent(tx, payment.id, "ORDER_CREATED", actor, {
+          refId,
+          invoiceId: invId,
+          subscriptionId: sub.id,
+          kind: sub.kind,
+          via: "collect",
+        }),
+      );
+      let res: CollectResult;
+      try {
+        res = await provider.collect(
+          {
+            customerId,
+            amount,
+            subject: `Renovación suscripción ${sub.tierCode}`,
+            commerceOrder: refId,
+            returnUrl: `${this.apiUrl}/api/payments/order-return`,
+            currency: sub.currency ?? "CLP",
+          },
+          { correlationId: randomUUID() },
+        );
+      } catch (e) {
+        // Error transitorio (red/HTTP del proveedor): se libera el
+        // claim para que el próximo reconcile reintente. Si el delete
+        // falla queda un PENDING huérfano que dedup la invoice igual.
+        this.logger.warn(
+          `collect platsub ${sub.id} inv ${invId}: ${e instanceof Error ? e.message : e}`,
+        );
+        await this.prisma
+          .$transaction(async (tx) => {
+            await tx.paymentEvent.deleteMany({
+              where: { paymentId: payment.id },
+            });
+            await tx.payment.delete({ where: { id: payment.id } });
+          })
+          .catch(() => undefined);
+        break;
+      }
+      if (res.flowOrder) {
+        await this.prisma.payment.updateMany({
+          where: { id: payment.id },
+          data: { gatewayRef: res.flowOrder },
+        });
+      }
+      const current = {
+        ...payment,
+        gatewayRef: res.flowOrder ?? payment.gatewayRef,
+      };
+      if (res.outcome === "COLLECTED") {
+        await this.settlement.settlePlatformSub(current, {
+          actor,
+          kind: "renewal",
+          gatewayData: res.gatewayData,
+        });
+        await this.markInvoice(sub.id, invId);
+        sub.lastInvoiceId = invId;
+        coveredIds.add(invId);
+        settled++;
+      } else if (res.outcome === "FAILED") {
+        await this.settlement.settle(current, "FAILED", { actor });
+        break; // tarjeta rechazada: las siguientes invoices caen igual
+      } else {
+        paymentUrl = res.paymentUrl ?? paymentUrl;
+      }
+    }
+    return { settled, paymentUrl, coveredIds };
+  }
+
   private async handleMorose(
     sub: PlatformSubscription,
     fs: RemoteSubscription,
     actor: string,
+    extra?: { collectUrl?: string | null; coveredIds?: Set<string> },
   ): Promise<void> {
     const unpaid = (fs.invoices ?? [])
-      .filter((inv) => !inv.paid)
+      .filter(
+        (inv) => !inv.paid && !extra?.coveredIds?.has(String(inv.id)),
+      )
       .sort((a, b) => Number(a.id) - Number(b.id))[0];
     const invoiceId = unpaid != null ? String(unpaid.id) : null;
     const type =
@@ -3187,6 +3355,9 @@ export class PlatformSubscriptionsService {
         producerId: sub.producerId,
         invoiceId,
         graceDays,
+        // Link de pago del collect degradado (sin tarjeta): el actor
+        // puede regularizar pagándolo directo (spec overdue-invoice-collect).
+        ...(extra?.collectUrl ? { collectUrl: extra.collectUrl } : {}),
       },
     });
   }

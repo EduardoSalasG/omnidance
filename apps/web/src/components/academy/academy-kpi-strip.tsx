@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -8,8 +7,6 @@ import { Button, Card, RefreshIcon, Skeleton } from "@/components/ui";
 import type { Academy, AcademyDashboard } from "./shared";
 import { Link } from "@/i18n/navigation";
 import { useNumFmt } from "@/lib/intl";
-
-;
 
 // Academia seleccionada persiste en localStorage (misma key que
 // AcademyGate) - el strip autocontenido la respeta al auto-resolver.
@@ -27,6 +24,7 @@ export function AcademyKpiCards({
   onRetry,
   keys,
   extra,
+  ariaLabel,
 }: {
   data: AcademyDashboard | null;
   error?: boolean;
@@ -34,8 +32,14 @@ export function AcademyKpiCards({
   /** Subset de cards por página (módulo alumnos solo muestra 3); sin
    *  `keys` se muestran todas en el orden del dashboard. */
   keys?: string[];
-  /** Items extra (MiniKpi de la página) dentro de la misma fila. */
+  /** Items extra (MiniKpi de la página) dentro de la misma fila. Se
+   *  renderiza también en el estado skeleton: el caller decide si el
+   *  slot tiene forma de carga (spec loading-states, sin pop-in). */
   extra?: React.ReactNode;
+  /** Label del landmark; default "Resumen del mes". Si una página
+   *  monta dos strips, el segundo lo pasa para no duplicar landmarks
+   *  con el mismo nombre. */
+  ariaLabel?: string;
 }) {
   const clpFmt = useNumFmt({
   style: "currency",
@@ -160,13 +164,16 @@ export function AcademyKpiCards({
   const visible = keys ? items.filter((k) => keys.includes(k.key)) : items;
 
   return (
-    <section aria-label={t("kpis.title")} data-tour="academy-kpis">
+    <section
+      aria-label={ariaLabel ?? t("kpis.title")}
+      data-tour="academy-kpis"
+    >
       {data === null ? (
         <ul
           aria-hidden="true"
           className="page-loading grid grid-cols-2 gap-3 sm:grid-cols-4"
         >
-          {[0, 1, 2, 3, 4, 5].map((i) => (
+          {Array.from({ length: keys?.length ?? 6 }, (_, i) => (
             <li key={i}>
               <Card className="flex h-full flex-col gap-1 p-4">
                 <Skeleton className="h-3 w-20" />
@@ -174,6 +181,7 @@ export function AcademyKpiCards({
               </Card>
             </li>
           ))}
+          {extra}
         </ul>
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -206,7 +214,7 @@ export function AcademyKpiCards({
                   aria-label={`${label}: ${k.value ?? t("kpis.noData")}. ${k.hint}`}
                   className="block h-full rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98]"
                 >
-                  <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/40">
+                  <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/60">
                     <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
                       {label}
                     </span>
@@ -218,10 +226,10 @@ export function AcademyKpiCards({
                         aria-hidden="true"
                         className={`mt-0.5 text-xs font-medium tabular-nums ${
                           delta! > 0
-                            ? "text-neon/80"
+                            ? "text-green-400"
                             : delta! < 0
-                              ? "text-warn"
-                              : "text-ink/40"
+                              ? "text-red-400"
+                              : "text-ink/50"
                         }`}
                       >
                         {deltaText} {t("kpis.vsPrevMonth")}

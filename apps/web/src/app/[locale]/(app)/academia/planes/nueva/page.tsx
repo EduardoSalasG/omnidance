@@ -19,10 +19,17 @@ type LoadState = "loading" | "ready" | "notFound" | "error";
  */
 function NuevaPlan() {
   const t = useTranslations("academy");
+  const tc = useTranslations("common");
+  // En modo edición (?edit=<planId>) el padre real es la ficha del
+  // plan, no el listado - mismo criterio que series/nueva.
+  const editId = useSearchParams().get("edit");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
-      <ConsoleHeader backHref="/academia/planes" backLabel={t("plans")} />
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
+      <ConsoleHeader
+        backHref={editId ? `/academia/planes/${editId}` : "/academia/planes"}
+        backLabel={editId ? tc("back") : t("plans")}
+      />
       <AcademyGate>
         {({ academy }) => (
           <PlanFormLoader key={academy.id} academyId={academy.id} />
@@ -90,9 +97,14 @@ function PlanFormLoader({ academyId }: { academyId: string }) {
   }
   if (state === "notFound") {
     return (
-      <p role="alert" className="text-sm text-ink/60">
-        {t("planNotFound")}
-      </p>
+      <div className="flex flex-col items-start gap-3">
+        <p role="alert" className="text-sm text-ink/60">
+          {t("planNotFound")}
+        </p>
+        <Button href="/academia/planes" size="sm" variant="secondary">
+          {tc("back")}
+        </Button>
+      </div>
     );
   }
   return <PlanForm academyId={academyId} plan={plan} />;
@@ -101,7 +113,11 @@ function PlanFormLoader({ academyId }: { academyId: string }) {
 export default function AcademiaNuevaPlanPage() {
   return (
     <Suspense
-      fallback={<main className="min-h-dvh bg-canvas" aria-hidden="true" />}
+      fallback={
+        <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
+          <SkeletonList />
+        </main>
+      }
     >
       <NuevaPlan />
     </Suspense>

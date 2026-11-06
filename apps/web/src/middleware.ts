@@ -66,10 +66,18 @@ const LOCALE_SHAPED = /^\/([a-z]{2}(?:-[a-zA-Z]{2,4})?)(?=\/|$)/;
 // framework SIN nonce (Next no los re-escribe en HTML prerenderizado),
 // y forzar todo a render dinámico por CSP estricta costaría TTFB real.
 // La policy aún bloquea scripts externos no-self, eval en prod,
-// framing, objects, exfil por connect-src y sube http→https.
+// framing, objects, exfil por connect-src y sube http→https (solo en
+// hosts no-locales: ver isLocalHost).
 const isDev = process.env.NODE_ENV !== "production";
 
-function cspHeader(): string {
+// upgrade-insecure-requests solo tiene sentido en despliegues https
+// reales: en hosts locales (next start de QA/e2e sobre http) la
+// directiva rompe WebKit - Chrome exime localhost del upgrade, WebKit
+// lo honra y todo subrecurso/llamada cae en SSL connect error.
+const isLocalHost = (host: string) =>
+  /^(localhost|127\.|::1|\[::1\])/.test(host);
+
+function cspHeader(hostname: string): string {
   return [
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms${isDev ? " 'unsafe-eval'" : ""}`,
@@ -85,13 +93,13 @@ function cspHeader(): string {
     "frame-ancestors 'none'",
     // GTM: iframe noscript del contenedor (spec web-tag-manager).
     "frame-src https://www.googletagmanager.com",
-    ...(isDev ? [] : ["upgrade-insecure-requests"]),
+    ...(isDev || isLocalHost(hostname) ? [] : ["upgrade-insecure-requests"]),
   ].join("; ");
 }
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const csp = cspHeader();
+  const csp = cspHeader(req.nextUrl.hostname);
 
   // /es-CL/x → /x (308): el default nunca lleva prefijo; normalizar
   // ANTES del gate evita que next= capture el path ya prefijado.

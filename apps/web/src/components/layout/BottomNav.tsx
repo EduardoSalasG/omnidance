@@ -20,6 +20,7 @@ import {
   type SheetItem,
 } from "./DancerActionsSheet";
 import { ModeToggle } from "./ModeToggle";
+import { AcademySwitcher } from "@/components/academy/academy-switcher";
 import { ChevronRightIcon } from "@/components/ui/icons";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 
@@ -620,13 +621,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           academyFeature: "classes",
         },
         {
-          href: "/academia/niveles",
-          ns: "academy",
-          key: "modules.levels",
-          icon: ICONS.layers,
-          academyFeature: "classes",
-        },
-        {
           href: "/academia/particulares",
           ns: "academy",
           key: "modules.lessons",
@@ -639,6 +633,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.videos",
           icon: ICONS.play,
           academyFeature: "videos",
+          flag: "academy_videos",
         },
       ],
     },
@@ -677,6 +672,15 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "academy",
           key: "modules.payments",
           icon: ICONS.money,
+          // exact: su prefijo también cubre /cobros/reporte, que es
+          // ítem propio - sin exact ambos quedarían activos a la vez.
+          exact: true,
+        },
+        {
+          href: "/academia/cobros/reporte",
+          ns: "academy",
+          key: "modules.report",
+          icon: ICONS.chart,
         },
         // Preventa por comisión (spec academy-presale-commission):
         // acuerdos con productores, link de venta y comisión devengada.
@@ -698,23 +702,37 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     },
     // El CRM del owner es sección propia (igual que en productor).
     CRM_DRAWER_GROUP,
-    // Configuración: una página por sección (general, cobro, perfil
-    // público, apariencia). La raíz /academia/configuracion redirige a
-    // general - los items apuntan directo a cada página.
+    // Orden: CRM → Analítica → Configuración (la operación va antes
+    // que el setup de una vez).
+    ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM]),
+    // Configuración: una página por sección (clases, niveles, cobro,
+    // perfil público, apariencia). La raíz /academia/configuracion
+    // redirige a perfil (destino de todos los tiers) - los items
+    // apuntan directo a cada página.
     {
       labelNs: "academy",
       labelKey: "navGroups.config",
       items: [
         {
-          href: "/academia/configuracion/general",
+          href: "/academia/configuracion/clases",
           ns: "academy",
-          key: "configPages.general",
+          key: "configPages.classes",
           icon: ICONS.slider,
+          academyFeature: "classes",
+        },
+        // La línea de niveles es configuración de una vez (definir o
+        // heredar), no trabajo diario: vive en esta sección.
+        {
+          href: "/academia/configuracion/niveles",
+          ns: "academy",
+          key: "configPages.levels",
+          icon: ICONS.layers,
+          academyFeature: "classes",
         },
         {
-          href: "/academia/configuracion/pagos",
+          href: "/academia/configuracion/metodos-de-pago",
           ns: "academy",
-          key: "configPages.payments",
+          key: "configPages.payMethods",
           icon: ICONS.bank,
         },
         {
@@ -738,14 +756,13 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.upload,
         },
         {
-          href: "/academia/suscripcion",
+          href: "/academia/configuracion/suscripcion",
           ns: "academy",
-          key: "modules.subscription",
+          key: "configPages.subscription",
           icon: ICONS.star,
         },
       ],
     },
-    ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM]),
   ],
   // El instructor tampoco usa drawer: sus 3 destinos (Inicio, Mis
   // clases, Alumnos) caben en el tab bar - Videos y Clases particulares
@@ -1098,8 +1115,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   const { flags } = useFeatures();
   // Entitlements de la academia seleccionada (spec
   // unified-actor-entitlements): filtra los módulos del owner por feature.
-  const { has: academyHas, loading: entLoading } =
-    useActorEntitlements("ACADEMY");
+  const {
+    has: academyHas,
+    loading: entLoading,
+    resolved: entResolved,
+  } = useActorEntitlements("ACADEMY");
   // null = sin sesión (o fetch aún no responde con certeza) → sin badge.
   const [unread, setUnread] = useState<number | null>(null);
   // null = sin sesión → el drawer muestra solo Perfil.
@@ -1363,7 +1383,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           // ítems con `academyFeature` solo aplican a la lente owner:
           // entran si la academia seleccionada cubre la feature
           // (mientras cargan los entitlements se muestran - el 403 del
-          // API es la red de seguridad).
+          // API es la red de seguridad). `!entResolved` = la selección
+          // apunta a una academia donde el viewer no es owner
+          // (membresía instructor/staff): los entitlements no la cubren
+          // y recortar ocultaría módulos que sí tiene - las páginas
+          // gatean por academy.tier (spec academy-tier-gates-refine).
           items: g.items
             .filter((spec) => !spec.flag || flags[spec.flag] === true)
             .filter(
@@ -1371,6 +1395,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
                 spec.academyFeature == null ||
                 activeRole !== "ACADEMY_OWNER" ||
                 entLoading ||
+                !entResolved ||
                 academyHas(spec.academyFeature),
             )
             .map((spec) => {
@@ -1545,14 +1570,21 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
         ? nsT.academySeries("editTitle")
         : nsT.academySeries("newTitle"),
     ],
+    // Detalle de serie (y sus horarios): el centro del appbar nombra
+    // la entidad en singular, no la sección plural.
+    ["/academia/series/", nsT.academySeries("entityTitle")],
     // Subsecciones del CRM: el appbar nombra la sección activa en vez
     // del "CRM" genérico del nav entry raíz.
     ["/crm/campanas", nsT.crm("campaigns.title")],
     ["/crm/triggers", nsT.crm("triggers.title")],
   ];
   const pageLabel =
-    LABEL_OVERRIDES.find(
-      ([href]) => pathname === href || pathname.startsWith(`${href}/`),
+    LABEL_OVERRIDES.find(([href]) =>
+      // href con "/" final = prefix puro (hijos de una ruta, no la
+      // ruta misma); sin "/" = la ruta y sus hijos.
+      href.endsWith("/")
+        ? pathname.startsWith(href)
+        : pathname === href || pathname.startsWith(`${href}/`),
     )?.[1] ??
     navEntries.find(
       ([href]) => pathname === href || pathname.startsWith(`${href}/`),
@@ -1705,6 +1737,14 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           collapsed={sidebarCollapsed}
           onToggle={() =>
             setSidebarState(sidebarCollapsed ? "expanded" : "collapsed")
+          }
+          header={
+            // Selector de academia del owner (spec
+            // academies/console-lists): solo si >1 propia o el tier
+            // cubre multiAcademy - el componente decide solo.
+            meChecked && activeRole === "ACADEMY_OWNER" ? (
+              <AcademySwitcher />
+            ) : undefined
           }
         />
       )}
@@ -1903,6 +1943,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
         onClose={() => setDrawerOpen(false)}
         groups={drawerGroups}
         roleLabel={me ? roleLabel : undefined}
+        header={
+          meChecked && activeRole === "ACADEMY_OWNER" ? (
+            <AcademySwitcher onNavigate={() => setDrawerOpen(false)} />
+          ) : undefined
+        }
       />
 
       {/* Sheet de acciones - solo la lente bailarín; los demás roles

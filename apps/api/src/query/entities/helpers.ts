@@ -24,6 +24,14 @@ export interface QueryScope {
 export interface EntityResult {
   /** Filas planas en el orden de columnas del catálogo (+ "evento" si aplica). */
   rows: unknown[][];
+  /**
+   * personId del sujeto de cada fila, alineado por índice con `rows`
+   * (null cuando la fila no tiene persona sujeto). QueryService.run lo
+   * anexa como celda suplementaria al final del row - fuera de headers,
+   * habilita el drill a la ficha persona en el front. Nunca se propaga
+   * a exportTable (el CSV/PDF no gana columna oculta).
+   */
+  personIds?: (string | null)[];
   /** Shape de objetos (solo entidades admin - consumo de /admin/browse). */
   objects?: unknown[];
   /** Total real del resultado (independiente del cap de rows). */

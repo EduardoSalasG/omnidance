@@ -25,7 +25,7 @@ export default function AcademiaPromoNuevaPage() {
   const [busy, setBusy] = useState(false);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-none lg:px-4">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/academia/promos" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
@@ -49,10 +49,10 @@ export default function AcademiaPromoNuevaPage() {
                     showActionNotice({ text: res ? ((await readError(res)) ?? t("error")) : t("error"), error: true });
                     return;
                   }
-                  const created = (await res.json()) as { id: string };
-                  // Navega a la ficha: aviso global que sobrevive el push.
+                  // Vuelve al listado (console-patterns §1): aviso
+                  // global que sobrevive el push.
                   showActionNotice({ text: t("saved") });
-                  router.push(`/academia/promos/${created.id}`);
+                  router.push("/academia/promos");
                 }}
               />
             </Card>

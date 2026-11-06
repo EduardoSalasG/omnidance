@@ -31,9 +31,13 @@
       "topAttendance": "Top by attendance",
       "kpi": {
         "upcoming": "Scheduled events",
+        "upcomingHint": "Published events with a future date",
         "sold": "Tickets sold",
+        "soldHint": "Cumulative tickets sold",
         "grossMonth": "Month's revenue",
-        "pendingClaims": "Payments to review"
+        "grossMonthHint": "Gross sales this month",
+        "pendingClaims": "Payments to review",
+        "pendingClaimsHint": "Receipts awaiting validation"
       }
     },
     "editEvent": "Edit event",

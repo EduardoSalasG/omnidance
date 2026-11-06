@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
-import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, ChevronRightIcon, RefreshIcon } from "@/components/ui";
 import { SkeletonCard, SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
@@ -212,13 +212,16 @@ export default function CrmSegmentoPage() {
                           className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                         >
                           <Card className="flex items-center justify-between gap-3 py-3 transition-colors hover:border-neon/60">
-                            <span className="font-medium">
+                            <span className="min-w-0 truncate font-medium">
                               {m.person?.name ?? m.personId}
                             </span>
-                            <span className="text-xs tabular-nums text-ink/50">
-                              {t("actorSegments.memberSince", {
-                                date: fmtDay.format(new Date(m.since)),
-                              })}
+                            <span className="flex shrink-0 items-center gap-2">
+                              <span className="text-xs tabular-nums text-ink/50">
+                                {t("actorSegments.memberSince", {
+                                  date: fmtDay.format(new Date(m.since)),
+                                })}
+                              </span>
+                              <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                             </span>
                           </Card>
                         </Link>

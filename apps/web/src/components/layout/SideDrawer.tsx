@@ -43,11 +43,15 @@ export function SideDrawer({
   onClose,
   groups,
   roleLabel,
+  header,
 }: {
   open: boolean;
   onClose: () => void;
   groups: DrawerGroup[];
   roleLabel?: string;
+  /** Contenido extra bajo el header de marca (selector de academia
+      del owner). */
+  header?: React.ReactNode;
 }) {
   const t = useTranslations("nav");
   const dialogRef = useDialogFocus<HTMLDivElement>(open);
@@ -116,6 +120,10 @@ export function SideDrawer({
             </svg>
           </button>
         </div>
+
+        {header != null && (
+          <div className="border-b border-line px-3 py-3">{header}</div>
+        )}
 
         <nav
           aria-label={t("menu")}

@@ -3703,6 +3703,132 @@
           }
         },
         {
+          "name": "POST /api/payments/order-return",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/order-return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "order-return"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /api/payments/order-return",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/order-return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "order-return"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/payments/order-return",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/order-return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "order-return"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/payments/order-return",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/order-return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "order-return"
+              ]
+            }
+          }
+        },
+        {
+          "name": "OPTIONS /api/payments/order-return",
+          "request": {
+            "method": "OPTIONS",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/order-return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "order-return"
+              ]
+            }
+          }
+        },
+        {
+          "name": "HEAD /api/payments/order-return",
+          "request": {
+            "method": "HEAD",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/order-return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "order-return"
+              ]
+            }
+          }
+        },
+        {
+          "name": "SEARCH /api/payments/order-return",
+          "request": {
+            "method": "SEARCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/order-return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "order-return"
+              ]
+            }
+          }
+        },
+        {
           "name": "POST /api/payments/subscription-webhook",
           "request": {
             "method": "POST",
@@ -6794,6 +6920,11 @@
                   "key": "month",
                   "value": "",
                   "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true
                 }
               ]
             }
@@ -6827,7 +6958,13 @@
                   "value": ":personId"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -7019,6 +7156,39 @@
           }
         },
         {
+          "name": "GET /api/academies/{id}/students/candidates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/students/candidates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "students",
+                "candidates"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/academies/{id}/students/{personId}",
           "request": {
             "method": "GET",
@@ -7197,6 +7367,32 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/academies/{id}/class-levels",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/class-levels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "class-levels"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
             }
           }
         },
@@ -7581,6 +7777,11 @@
                 }
               ],
               "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
                 {
                   "key": "page",
                   "value": "",
@@ -8243,6 +8444,70 @@
                 }
               ],
               "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/billing-report.csv",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/billing-report.csv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "billing-report.csv"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "lang",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/billing-report.pdf",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/billing-report.pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "billing-report.pdf"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "lang",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -9038,6 +9303,14 @@
                 "api",
                 "classes",
                 "catalogs"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "academyId",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -9456,6 +9729,33 @@
                 "{id}",
                 "series",
                 "insights"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/series/styles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/series/styles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "series",
+                "styles"
               ],
               "variable": [
                 {
@@ -10032,6 +10332,82 @@
                   "disabled": true
                 }
               ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/videos/{videoId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/videos/{videoId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "videos",
+                "{videoId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "videoId",
+                  "value": ":videoId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/academies/{id}/videos/{videoId}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/videos/{videoId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "videos",
+                "{videoId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "videoId",
+                  "value": ":videoId"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -12264,6 +12640,43 @@
       ]
     },
     {
+      "name": "AdminPlatformCharges",
+      "item": [
+        {
+          "name": "POST /api/admin/platform-charges",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/platform-charges",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "platform-charges"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Crm",
       "item": [
         {
@@ -13328,6 +13741,21 @@
               "query": [
                 {
                   "key": "scopeId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "levelId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "seriesId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "slotId",
                   "value": "",
                   "disabled": true
                 }

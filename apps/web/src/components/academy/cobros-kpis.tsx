@@ -4,15 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Card, Skeleton } from "@/components/ui";
-import { getNumFmt, useNumFmt } from "@/lib/intl";
+import { getNumFmt } from "@/lib/intl";
 
 const clp = (locale: string) => getNumFmt(locale, {
   style: "currency",
   currency: "CLP",
   maximumFractionDigits: 0,
 });
-
-;
 
 type CobrosKpis = {
   billedMonth: number;
@@ -30,6 +28,9 @@ type CobrosKpis = {
 export function CobrosKpiStrip({ academyId }: { academyId: string }) {
   const locale = useLocale();
   const t = useTranslations("academyPay");
+  // Hints del KPI comparten el copy del strip canónico del inicio:
+  // billedMonth/avgTicket miden lo mismo que academy.kpis - se reusan.
+  const ta = useTranslations("academy");
   const [data, setData] = useState<CobrosKpis | null>(null);
   const [hidden, setHidden] = useState(false);
 
@@ -62,8 +63,10 @@ export function CobrosKpiStrip({ academyId }: { academyId: string }) {
         ? "text-neon/80"
         : "text-warn";
 
+  // Landmark sin nombre fiel (el label cubría solo 1 de 3 KPIs): div,
+  // no section; un region con nombre engañoso es peor que ninguno.
   return (
-    <section aria-label={t("kpiBilled")} data-tour="academy-cobros-kpis">
+    <div data-tour="academy-cobros-kpis">
       {data === null ? (
         <ul
           aria-hidden="true"
@@ -81,7 +84,11 @@ export function CobrosKpiStrip({ academyId }: { academyId: string }) {
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <li>
-            <Card className="flex h-full flex-col gap-1 p-4">
+            <Card
+              className="flex h-full flex-col gap-1 p-4"
+              title={ta("kpis.billedMonthHint")}
+              aria-label={`${t("kpiBilled")}: ${clp(locale).format(data.billedMonth)}. ${ta("kpis.billedMonthHint")}`}
+            >
               <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
                 {t("kpiBilled")}
               </span>
@@ -94,10 +101,17 @@ export function CobrosKpiStrip({ academyId }: { academyId: string }) {
                 {delta(data.billedMonth, data.billedMonthPrev)}{" "}
                 {t("kpiVsPrev")}
               </span>
+              <span className="text-[11px] leading-tight text-ink/50">
+                {ta("kpis.billedMonthHint")}
+              </span>
             </Card>
           </li>
           <li>
-            <Card className="flex h-full flex-col gap-1 p-4">
+            <Card
+              className="flex h-full flex-col gap-1 p-4"
+              title={ta("kpis.avgTicketHint")}
+              aria-label={`${t("kpiTicket")}: ${data.avgTicketMonth === null ? "—" : clp(locale).format(data.avgTicketMonth)}. ${ta("kpis.avgTicketHint")}`}
+            >
               <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
                 {t("kpiTicket")}
               </span>
@@ -114,10 +128,17 @@ export function CobrosKpiStrip({ academyId }: { academyId: string }) {
                   {t("kpiVsPrev")}
                 </span>
               )}
+              <span className="text-[11px] leading-tight text-ink/50">
+                {ta("kpis.avgTicketHint")}
+              </span>
             </Card>
           </li>
           <li className="col-span-2 sm:col-span-1">
-            <Card className="flex h-full flex-col gap-1 p-4">
+            <Card
+              className="flex h-full flex-col gap-1 p-4"
+              title={t("kpiTopMethodsHint")}
+              aria-label={`${t("kpiTopMethods")}. ${t("kpiTopMethodsHint")}`}
+            >
               <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
                 {t("kpiTopMethods")}
               </span>
@@ -159,10 +180,13 @@ export function CobrosKpiStrip({ academyId }: { academyId: string }) {
                   })}
                 </ul>
               )}
+              <span className="text-[11px] leading-tight text-ink/50">
+                {t("kpiTopMethodsHint")}
+              </span>
             </Card>
           </li>
         </ul>
       )}
-    </section>
+    </div>
   );
 }

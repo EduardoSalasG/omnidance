@@ -10,18 +10,15 @@ import {
   Badge,
   Button,
   Card,
-  ConfirmSheet,
+  ChevronRightIcon,
   Pager,
   RefreshIcon,
+  SkeletonList,
 } from "@/components/ui";
-import { SkeletonList } from "@/components/ui";
-import {
-  ActionNotice,
-  type ActionNoticeData,
-} from "@/components/ui/action-notice";
 import { FilterBar } from "@/components/query/FilterBar";
+import { Link } from "@/i18n/navigation";
 
-import { filterQuery, readError, type Academy } from "./shared";
+import { filterQuery, type Academy } from "./shared";
 
 
 
@@ -67,28 +64,29 @@ const linkBtnCls =
  * Videos de la academia (links externos) - solo listado.
  * - Lista para cualquier usuario autenticado con contexto de academia;
  *   locked → metadatos + hint, unlocked → link "Ver video" externo.
- * - Crear vive en /academia/videos/nuevo y DELETE exige owner/ADMIN
- *   (requireAdminister): el CTA y el botón eliminar solo se renderizan
- *   con canAdminister (misma regla que canAdministerAcademy del dominio:
- *   ADMIN u ownerId === me.id).
+ * - Crear vive en /academia/videos/nuevo y mutaciones (PATCH/DELETE)
+ *   exigen owner/ADMIN (requireCapabilityWrite): con canAdminister
+ *   (misma regla que canAdministerAcademy del dominio: ADMIN u
+ *   ownerId === me.id) la card navega a la ficha /academia/videos/[id],
+ *   donde viven la edición, el link externo y la zona destructiva.
+ *   Sin canAdminister la card queda como hoy: link "Ver video"
+ *   externo cuando está unlocked.
  */
 export function Videos({ academy }: { academy: Academy }) {
   const t = (useMessages() as { academyExtras: { videos: Record<string,string> } }).academyExtras.videos;
   const tc = useTranslations("common");
+  const tq = useTranslations("query");
 
   const { me } = useMe();
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [state, setState] = useState<LoadState>("loading");
-  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  // Borrado de video con confirmación destructiva (sheet).
-  const [pendingVideo, setPendingVideo] = useState<VideoItem | null>(null);
   const [filters, setFilters] = useState<QueryFilters>({});
 
   const canAdminister =
     !!me && (me.roles.includes("ADMIN") || me.id === academy.ownerId);
+  const hasFilters = filterQuery(filters) !== "";
 
   const load = useCallback(async () => {
     setState("loading");
@@ -117,30 +115,6 @@ export function Videos({ academy }: { academy: Academy }) {
     void load();
   }, [load]);
 
-  async function remove(v: VideoItem): Promise<void> {
-    setBusyId(v.id);
-    setNotice(null);
-    try {
-      const res = await apiFetch(
-        `/academies/${academy.id}/videos/${v.id}`,
-        { method: "DELETE" },
-      );
-      if (!res.ok) {
-        setPendingVideo(null);
-        setNotice({ text: (await readError(res)) ?? tc("error"), error: true });
-        return;
-      }
-      setPendingVideo(null);
-      setNotice({ text: t.deleted });
-      await load();
-    } catch {
-      setPendingVideo(null);
-      setNotice({ text: tc("error"), error: true });
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   return (
     <section aria-label={t.title} className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -165,7 +139,7 @@ export function Videos({ academy }: { academy: Academy }) {
       {state === "loading" && <SkeletonList items={2} lines={1} />}
       {state === "error" && (
         <div className="flex items-center gap-3">
-          <p className="text-sm text-ink/60">{tc("error")}</p>
+          <p role="alert" className="text-sm text-ink/60">{tc("error")}</p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
             <RefreshIcon /> {tc("retry")}
           </Button>
@@ -173,58 +147,87 @@ export function Videos({ academy }: { academy: Academy }) {
       )}
       {state === "ready" &&
         (videos.length === 0 ? (
-          <p className="text-sm text-ink/50">{t.empty}</p>
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm text-ink/50">
+              {hasFilters ? tq("empty") : t.empty}
+            </p>
+            {canAdminister && !hasFilters && (
+              <Button
+                href="/academia/videos/nuevo"
+                size="sm"
+                variant="secondary"
+              >
+                + {t.addTitle}
+              </Button>
+            )}
+          </div>
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {videos.map((v) => {
               const locked = v.locked === true || !v.url;
+              // Anatomía ui-cards A: tag-row de clasificación,
+              // headline identidad, hint de desbloqueo y acciones
+              // ancladas al pie (mt-auto alinea la fila entre cards
+              // de la grilla).
+              const card = (
+                <Card
+                  className={
+                    "flex h-full flex-col gap-3 p-4" +
+                    (canAdminister
+                      ? " transition-colors hover:border-neon/60"
+                      : "")
+                  }
+                >
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {v.classId && (
+                      <Badge variant="muted">{t.classBadge}</Badge>
+                    )}
+                    {v.restrictedToAttended && (
+                      <Badge variant="outline">{t.restricted}</Badge>
+                    )}
+                    <Badge variant={locked ? "muted" : "neon"}>
+                      {locked ? t.locked : t.unlocked}
+                    </Badge>
+                  </div>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1 truncate font-semibold">
+                      {v.title}
+                    </p>
+                    {/* Chevron al filo derecho del headline: affordance
+                        permanente de "se toca" (mobile no tiene hover). */}
+                    {canAdminister && (
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                    )}
+                  </div>
+                  {locked && (
+                    <p className="text-xs text-ink/50">{t.lockedHint}</p>
+                  )}
+                  {!canAdminister && !locked && (
+                    <div className="mt-auto flex flex-wrap items-center gap-2">
+                      <a
+                        href={v.url ?? undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={linkBtnCls}
+                      >
+                        <ArrowUpRightIcon /> {t.watch}
+                      </a>
+                    </div>
+                  )}
+                </Card>
+              );
               return (
                 <li key={v.id}>
-                  <Card className="flex h-full flex-col gap-3 p-4">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                      <p className="min-w-0 flex-1 truncate font-medium">
-                        {v.title}
-                      </p>
-                      {v.classId && (
-                        <Badge variant="muted">{t.classBadge}</Badge>
-                      )}
-                      {v.restrictedToAttended && (
-                        <Badge variant="outline">{t.restricted}</Badge>
-                      )}
-                      <Badge variant={locked ? "muted" : "neon"}>
-                        {locked ? t.locked : t.unlocked}
-                      </Badge>
-                    </div>
-                    {locked ? (
-                      <p className="text-xs text-ink/50">
-                        {t.lockedHint}
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <a
-                          href={v.url ?? undefined}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={linkBtnCls}
-                        >
-                          <ArrowUpRightIcon /> {t.watch}
-                        </a>
-                      </div>
-                    )}
-                    {canAdminister && (
-                      <div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-red-400/80 hover:text-red-400"
-                          disabled={busyId === v.id}
-                          onClick={() => setPendingVideo(v)}
-                        >
-                          {t.delete}
-                        </Button>
-                      </div>
-                    )}
-                  </Card>
+                  {canAdminister ? (
+                    <Link
+                      href={`/academia/videos/${v.id}`}
+                      className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                    >
+                      {card}
+                    </Link>
+                  ) : (
+                    card
+                  )}
                 </li>
               );
             })}
@@ -238,17 +241,6 @@ export function Videos({ academy }: { academy: Academy }) {
           onPage={setPage}
         />
       )}
-
-      <ConfirmSheet
-        open={pendingVideo !== null}
-        title={t.confirmDelete}
-        confirmLabel={t.delete}
-        busy={busyId !== null}
-        onConfirm={() => pendingVideo && void remove(pendingVideo)}
-        onClose={() => setPendingVideo(null)}
-      />
-
-      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </section>
   );
 }

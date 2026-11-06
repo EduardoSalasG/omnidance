@@ -10,7 +10,8 @@ import { PageLoading } from "@/components/ui/spinner";
 import { TierPaywall } from "@/components/tier-paywall";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { CreateAcademyForm } from "@/components/academy/create-academy-form";
-import { ACADEMY_STORAGE_KEY, type Academy } from "@/components/academy/shared";
+import { selectStoredAcademy } from "@/lib/academy-selection";
+import { type Academy } from "@/components/academy/shared";
 
 /**
  * /academia/nueva - alta de una academia adicional (patrón crear =
@@ -46,11 +47,11 @@ export default function NuevaAcademiaPage() {
     (me?.roles.includes("ACADEMY_OWNER") ?? false) && ent.loading;
 
   function onCreated(academy: Academy) {
-    try {
-      window.localStorage.setItem(ACADEMY_STORAGE_KEY, academy.id);
-    } catch {
-      // Sin storage - el gate cae a la primera academia del listado.
-    }
+    // Persiste + propaga: el switcher de la nav refetchea
+    // /academies/mine al recibir un id que aún no conoce - la
+    // academia nueva aparece seleccionada ahí. Sin storage (modo
+    // privado) el gate cae a la primera academia del listado.
+    selectStoredAcademy(academy.id);
     // Vuelve al hub: aviso global para que sobreviva el push.
     showActionNotice({ text: t("created") });
     router.push("/academia");
