@@ -18,8 +18,9 @@ interface TableReport {
   /** Líneas de resumen entre el subtítulo y la tabla (totales, conteos). */
   summary?: string[];
   /** KPIs como cards (misma lectura que los KPI del reporte web):
-      borde suave, label muted en caps chica, valor bold. */
-  kpis?: { label: string; value: string }[];
+      borde suave, label muted en caps chica, valor bold. `newRow`
+      inicia una fila nueva (métodos de pago van en su propia fila). */
+  kpis?: { label: string; value: string; newRow?: boolean }[];
   headers: string[];
   rows: unknown[][];
 }
@@ -90,15 +91,15 @@ export function buildTablePdf({
     doc.y = y + ROW_H;
   };
 
-  // Banda de marca: wordmark + línea accent (identidad en todos los
-  // exportes, spec console-lists/exports).
-  doc.rect(MARGIN, MARGIN - 14, width, 2.5).fill(BRAND.accent);
+  // Banda de marca en la parte superior de la página: línea accent +
+  // wordmark, con aire real bajo el título del reporte.
+  doc.rect(MARGIN, 18, width, 2.5).fill(BRAND.accent);
   doc
     .font("Helvetica-Bold")
     .fontSize(8)
     .fillColor(BRAND.accentSoft)
-    .text("Omnidance", MARGIN, MARGIN - 10, { lineBreak: false });
-  doc.moveDown(0.3);
+    .text("Omnidance", MARGIN, 23, { lineBreak: false });
+  doc.y = MARGIN + 8;
 
   doc.font("Helvetica-Bold").fontSize(15).fillColor(BRAND.ink).text(title);
   if (subtitle) {
@@ -110,40 +111,56 @@ export function buildTablePdf({
   });
   doc.moveDown(0.8);
 
-  // Fila de KPI cards (mismo lenguaje visual que el reporte web).
+  // KPI cards en filas de 4 (mismo lenguaje visual que el reporte
+  // web): `newRow` fuerza fila nueva (los métodos van aparte); con
+  // más de 4 por fila hace wrap.
   if (kpis.length) {
     const GAP = 8;
-    const cardW =
-      (width - GAP * Math.min(kpis.length, 4) + GAP) /
-      Math.min(kpis.length, 4);
+    const PER_ROW = 4;
+    const cardW = (width - GAP * (PER_ROW - 1)) / PER_ROW;
     const cardH = 34;
-    const y0 = doc.y;
-    kpis.slice(0, 4).forEach((k, i) => {
-      const x = MARGIN + i * (cardW + GAP);
-      doc
-        .roundedRect(x, y0, cardW, cardH, 4)
-        .lineWidth(0.7)
-        .strokeColor(BRAND.line)
-        .stroke();
-      doc.rect(x, y0, 2.5, cardH).fill(BRAND.accent);
-      doc
-        .font("Helvetica")
-        .fontSize(6.5)
-        .fillColor(BRAND.muted)
-        .text(k.label.toUpperCase(), x + 8, y0 + 6, {
-          lineBreak: false,
-          width: cardW - 12,
-        });
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(11)
-        .fillColor(BRAND.ink)
-        .text(k.value, x + 8, y0 + 17, {
-          lineBreak: false,
-          width: cardW - 12,
-        });
+    // Segmentos por newRow, luego chunks de 4.
+    const segs: (typeof kpis)[] = [[]];
+    for (const k of kpis) {
+      if (k.newRow && segs[segs.length - 1].length) segs.push([]);
+      segs[segs.length - 1].push(k);
+    }
+    const lines = segs.flatMap((seg) => {
+      const out: (typeof kpis)[] = [];
+      for (let i = 0; i < seg.length; i += PER_ROW)
+        out.push(seg.slice(i, i + PER_ROW));
+      return out;
     });
-    doc.y = y0 + cardH;
+    lines.forEach((line, li) => {
+      if (li > 0) doc.y += 8;
+      const y0 = doc.y;
+      line.forEach((k, i) => {
+        const x = MARGIN + i * (cardW + GAP);
+        doc
+          .roundedRect(x, y0, cardW, cardH, 4)
+          .lineWidth(0.7)
+          .strokeColor(BRAND.line)
+          .stroke();
+        doc.rect(x, y0, 2.5, cardH).fill(BRAND.accent);
+        doc
+          .font("Helvetica")
+          .fontSize(6.5)
+          .fillColor(BRAND.muted)
+          .text(k.label.toUpperCase(), x + 8, y0 + 6, {
+            lineBreak: false,
+            width: cardW - 12,
+          });
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(11)
+          .fillColor(BRAND.ink)
+          .text(k.value, x + 8, y0 + 17, {
+            lineBreak: false,
+            width: cardW - 12,
+          });
+      });
+      doc.y = y0 + cardH;
+    });
     doc.moveDown(0.9);
   }
 
