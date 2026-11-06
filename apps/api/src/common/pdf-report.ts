@@ -22,6 +22,10 @@ interface TableReport {
       inicia una fila nueva (métodos de pago van en su propia fila). */
   kpis?: { label: string; value: string; newRow?: boolean }[];
   headers: string[];
+  /** Pesos de columna (fracciones del ancho, ~suma 1). Sin ellos el
+      ancho se reparte parejo - columna # o fechas comen espacio de
+      nombres largos. */
+  colWidths?: readonly number[];
   rows: unknown[][];
 }
 
@@ -47,6 +51,7 @@ export function buildTablePdf({
   summary = [],
   kpis = [],
   headers,
+  colWidths,
   rows,
 }: TableReport): Promise<Buffer> {
   const doc = new PDFDocument({
@@ -63,7 +68,15 @@ export function buildTablePdf({
   });
 
   const width = doc.page.width - MARGIN * 2;
-  const colW = width / Math.max(1, headers.length);
+  // Ancho por columna: pesos explícitos o reparto parejo.
+  const colWs = headers.map((_, i) =>
+    colWidths?.[i] ? colWidths[i] * width : width / Math.max(1, headers.length),
+  );
+  const colX: number[] = [];
+  colWs.reduce((acc, w) => {
+    colX.push(acc);
+    return acc + w;
+  }, 0);
   const bottomLimit = () => doc.page.height - doc.page.margins.bottom - ROW_H;
 
   /** Texto que cabe en `maxW` puntos; si no, corta y cierra con «…». */
@@ -75,11 +88,12 @@ export function buildTablePdf({
   };
 
   /** Texto crudo (lineBreak:false + sin width → sin wrapper → no pagina). */
-  const cell = (s: string, x: number, y: number, numeric: boolean) => {
-    const t = fit(s, colW - 8);
+  const cell = (s: string, i: number, y: number, numeric: boolean) => {
+    const w = colWs[i] ?? 0;
+    const t = fit(s, w - 8);
     const tx = numeric
-      ? MARGIN + x + colW - 4 - doc.widthOfString(t)
-      : MARGIN + x + 4;
+      ? MARGIN + colX[i] + w - 4 - doc.widthOfString(t)
+      : MARGIN + colX[i] + 4;
     doc.text(t, tx, y, { lineBreak: false });
   };
 
@@ -87,7 +101,7 @@ export function buildTablePdf({
     const y = doc.y;
     doc.rect(MARGIN, y, width, ROW_H).fill(BRAND.accent);
     doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(FONT_SIZE);
-    headers.forEach((h, i) => cell(h, i * colW, y + 3.5, false));
+    headers.forEach((h, i) => cell(h, i, y + 3.5, false));
     doc.y = y + ROW_H;
   };
 
@@ -101,9 +115,19 @@ export function buildTablePdf({
     .text("Omnidance", MARGIN, 23, { lineBreak: false });
   doc.y = MARGIN + 8;
 
-  doc.font("Helvetica-Bold").fontSize(15).fillColor(BRAND.ink).text(title);
+  // Header explícito a la izquierda (x = margen), título y
+  // subtítulo multi-línea (academia en línea 1, período en línea 2).
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(15)
+    .fillColor(BRAND.ink)
+    .text(title, MARGIN, doc.y);
   if (subtitle) {
-    doc.font("Helvetica").fontSize(8.5).fillColor(BRAND.muted).text(subtitle);
+    doc
+      .font("Helvetica")
+      .fontSize(8.5)
+      .fillColor(BRAND.muted)
+      .text(subtitle, MARGIN, doc.y);
   }
   doc.moveDown(0.4);
   summary.forEach((s) => {
@@ -180,7 +204,7 @@ export function buildTablePdf({
     row.forEach((v, i) => {
       cell(
         v === null || v === undefined ? "" : String(v),
-        i * colW,
+        i,
         y + 3.5,
         typeof v === "number",
       );

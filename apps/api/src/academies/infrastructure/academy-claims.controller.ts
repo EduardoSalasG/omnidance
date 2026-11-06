@@ -486,6 +486,9 @@ export class AcademyClaimsController {
       summary: ex.summary,
       kpis: ex.kpis,
       headers: ex.headers,
+      // Pesos por columna: # chica, Alumno y Plan amplios (los textos
+      // largos del reporte), Monto alcanza para $1.234.567.
+      colWidths: [0.05, 0.12, 0.26, 0.24, 0.12, 0.1, 0.11],
       rows: ex.rows,
     });
     return new StreamableFile(pdf);
@@ -568,7 +571,9 @@ export class AcademyClaimsController {
     return {
       filename: `${L.fileBase}-${slug || "academia"}-${stamp}`,
       title: L.title,
-      subtitle: `${report.academyName} · ${period}`,
+      // Subtítulo multi-línea: academia en la primera línea y el
+      // período en la segunda (spec console-lists/exports).
+      subtitle: `${report.academyName}\n${period}`,
       summary: filters.length
         ? [`${L.filters}: ${filters.join(" · ")}`]
         : [],

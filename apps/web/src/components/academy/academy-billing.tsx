@@ -453,7 +453,12 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
       : null;
   }
 
-  if (state === "loading") return <SkeletonList items={2} lines={2} />;
+  // Skeleton solo en carga inicial: las acciones (suscribir,
+  // cancelar, upload) re-fetchean y el contenido previo queda
+  // visible hasta que llega la nueva data (anti-flash).
+  if (state === "loading" && !view) {
+    return <SkeletonList items={2} lines={2} />;
+  }
   if (state === "denied") {
     return (
       <div className="flex flex-col items-start gap-3">

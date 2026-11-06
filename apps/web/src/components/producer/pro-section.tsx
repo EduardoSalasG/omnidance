@@ -308,7 +308,12 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
     }
   }
 
-  if (state === "loading") return <SkeletonList items={2} lines={1} />;
+  // Skeleton solo en carga inicial: las acciones (suscribir,
+  // cancelar) re-fetchean y el contenido previo queda visible
+  // hasta que llega la nueva data (anti-flash).
+  if (state === "loading" && !view) {
+    return <SkeletonList items={2} lines={1} />;
+  }
   if (state === "error" || !view) {
     return (
       <div className="flex items-center gap-3">
