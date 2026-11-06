@@ -25,6 +25,18 @@ const MARGIN = 40;
 const ROW_H = 15;
 const FONT_SIZE = 8.5;
 
+// Paleta de marca (apps/web/src/app/globals.css): accent #7c3aed en el
+// tema oscuro default; violeta suave para bandas y hover.
+const BRAND = {
+  accent: "#7c3aed",
+  accentSoft: "#6d28d9",
+  accentTint: "#ede9fe",
+  ink: "#0b0b10",
+  text: "#1f1f2a",
+  muted: "#6b6b7a",
+  line: "#e4e4ef",
+};
+
 export function buildTablePdf({
   title,
   subtitle,
@@ -68,19 +80,29 @@ export function buildTablePdf({
 
   const drawHeader = () => {
     const y = doc.y;
-    doc.rect(MARGIN, y, width, ROW_H).fill("#1a1a2e");
+    doc.rect(MARGIN, y, width, ROW_H).fill(BRAND.accent);
     doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(FONT_SIZE);
     headers.forEach((h, i) => cell(h, i * colW, y + 3.5, false));
     doc.y = y + ROW_H;
   };
 
-  doc.font("Helvetica-Bold").fontSize(15).fillColor("#111111").text(title);
+  // Banda de marca: wordmark + línea accent (identidad en todos los
+  // exportes, spec console-lists/exports).
+  doc.rect(MARGIN, MARGIN - 14, width, 2.5).fill(BRAND.accent);
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(8)
+    .fillColor(BRAND.accentSoft)
+    .text("Omnidance", MARGIN, MARGIN - 10, { lineBreak: false });
+  doc.moveDown(0.3);
+
+  doc.font("Helvetica-Bold").fontSize(15).fillColor(BRAND.ink).text(title);
   if (subtitle) {
-    doc.font("Helvetica").fontSize(8.5).fillColor("#555555").text(subtitle);
+    doc.font("Helvetica").fontSize(8.5).fillColor(BRAND.muted).text(subtitle);
   }
   doc.moveDown(0.4);
   summary.forEach((s) => {
-    doc.font("Helvetica").fontSize(9).fillColor("#222222").text(s);
+    doc.font("Helvetica").fontSize(9).fillColor(BRAND.text).text(s);
   });
   doc.moveDown(0.8);
 
@@ -94,9 +116,9 @@ export function buildTablePdf({
     }
     const y = doc.y;
     if (r % 2 === 1) {
-      doc.rect(MARGIN, y, width, ROW_H).fill("#f3f3f6");
+      doc.rect(MARGIN, y, width, ROW_H).fill(BRAND.accentTint);
     }
-    doc.fillColor("#222222");
+    doc.fillColor(BRAND.text);
     row.forEach((v, i) => {
       cell(
         v === null || v === undefined ? "" : String(v),
@@ -109,13 +131,13 @@ export function buildTablePdf({
     doc
       .moveTo(MARGIN, doc.y)
       .lineTo(MARGIN + width, doc.y)
-      .strokeColor("#dddddd")
+      .strokeColor(BRAND.line)
       .lineWidth(0.5)
       .stroke();
   });
 
   const pages = doc.bufferedPageRange();
-  doc.font("Helvetica").fontSize(7.5).fillColor("#888888");
+  doc.font("Helvetica").fontSize(7.5).fillColor(BRAND.muted);
   for (let i = 0; i < pages.count; i++) {
     doc.switchToPage(pages.start + i);
     const label = `Página ${i + 1} de ${pages.count}`;

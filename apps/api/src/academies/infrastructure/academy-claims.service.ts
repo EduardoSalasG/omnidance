@@ -828,6 +828,45 @@ export class AcademyClaimsService {
     };
   }
 
+  /**
+   * Dataset completo del billing-report para export (spec
+   * academy-cobros-reporte): mismo contrato y agregados que
+   * billingReport pero sin paginar (cap fijo) + nombre de la academia
+   * para título y filename.
+   */
+  async billingReportExport(
+    academyId: string,
+    opts: {
+      createdAt?: { gte?: Date; lte?: Date };
+      planId?: string;
+      status?: string;
+    },
+  ) {
+    const [report, academy, plan] = await Promise.all([
+      this.billingReport(academyId, {
+        ...opts,
+        pg: { page: 1, pageSize: 5000, skip: 0, take: 5000 },
+      }),
+      this.prisma.academy.findUnique({
+        where: { id: academyId },
+        select: { name: true },
+      }),
+      // Nombre del plan filtrado: el PDF/CSV declara los filtros
+      // aplicados en su cabecera.
+      opts.planId
+        ? this.prisma.membershipPlan.findUnique({
+            where: { id: opts.planId },
+            select: { name: true },
+          })
+        : Promise.resolve(null),
+    ]);
+    return {
+      academyName: academy?.name ?? "",
+      planName: plan?.name ?? null,
+      ...report,
+    };
+  }
+
   /** Detalle de un claim de la cola (owner/staff con capacidad payments). */
   async getClaim(academyId: string, claimId: string) {
     const claim = await this.prisma.paymentClaim.findFirst({
