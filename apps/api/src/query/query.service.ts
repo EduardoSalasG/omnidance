@@ -192,6 +192,7 @@ export class QueryService {
     roleRaw: string,
     source: string,
     scopeId?: string,
+    deps: Record<string, string | undefined> = {},
   ): Promise<{ options: QueryOption[] }> {
     const role = await this.assertLensGated(personId, roleRaw, "analytics");
     const declared = new Set(
@@ -225,7 +226,13 @@ export class QueryService {
           options: await this.academyScoped(personId, role, scopeId, (id) =>
             this.prisma.classSeries
               .findMany({
-                where: { academyId: id, deletedAt: null },
+                where: {
+                  academyId: id,
+                  deletedAt: null,
+                  // Cascada nivel→serie: con levelId elegido solo las
+                  // series de ese nivel (spec query-console).
+                  ...(deps.levelId ? { levelId: deps.levelId } : {}),
+                },
                 select: {
                   id: true,
                   name: true,
@@ -256,9 +263,43 @@ export class QueryService {
               ),
           ),
         };
+      case "academyLevels":
+        return {
+          // Solo niveles realmente usados por las series activas de la
+          // academia (global o custom) - filtrar por niveles que no
+          // existen en su parrilla no traería resultados.
+          options: await this.academyScoped(personId, role, scopeId, (id) =>
+            this.prisma.classLevel
+              .findMany({
+                where: {
+                  series: { some: { academyId: id, deletedAt: null } },
+                },
+                select: { id: true, name: true },
+                orderBy: { order: "asc" },
+                take: OPTION_TAKE,
+              })
+              .then((r) => r.map((l) => ({ value: l.id, label: l.name }))),
+          ),
+        };
       case "academyInstructors":
         return {
           options: await this.academyScoped(personId, role, scopeId, async (id) => {
+            // Cascada horario→instructor: con slotId elegido solo el
+            // instructor de ese horario (default del slot).
+            if (deps.slotId) {
+              const slot = await this.prisma.classSlot.findUnique({
+                where: { id: deps.slotId },
+                select: { instructorId: true },
+              });
+              if (!slot?.instructorId) return [];
+              const person = await this.prisma.person.findUnique({
+                where: { id: slot.instructorId },
+                select: { id: true, name: true },
+              });
+              return person
+                ? [{ value: person.id, label: person.name ?? "?" }]
+                : [];
+            }
             const rows = await this.prisma.academyInstructor.findMany({
               where: { academyId: id },
               select: { personId: true },
@@ -281,13 +322,13 @@ export class QueryService {
       case "academyScheduleSlots":
         return {
           options: await this.academyScoped(personId, role, scopeId, (id) =>
-            this.academySlotOptions(id),
+            this.academySlotOptions(id, deps.seriesId),
           ),
         };
       case "academyClasses":
         return {
           options: await this.academyScoped(personId, role, scopeId, (id) =>
-            this.academyClassOptions(id),
+            this.academyClassOptions(id, deps.slotId),
           ),
         };
       case "eventGuestLists": {
@@ -358,10 +399,19 @@ export class QueryService {
     return out;
   }
 
-  /** Horarios (ClassSlot) de una academia: "Serie · lun 19:00". */
-  private async academySlotOptions(academyId: string): Promise<QueryOption[]> {
+  /** Horarios (ClassSlot) de una academia: "Serie · lun 19:00".
+      Con seriesId en cascada, solo los horarios de esa serie. */
+  private async academySlotOptions(
+    academyId: string,
+    seriesId?: string,
+  ): Promise<QueryOption[]> {
     const slots = await this.prisma.classSlot.findMany({
-      where: { academyId, deletedAt: null, series: { deletedAt: null } },
+      where: {
+        academyId,
+        deletedAt: null,
+        series: { deletedAt: null },
+        ...(seriesId ? { seriesId } : {}),
+      },
       select: {
         id: true,
         weekday: true,
@@ -381,11 +431,20 @@ export class QueryService {
   }
 
   /** Clases concretas (Class) recientes de una academia:
-      "Serie · jue 20 nov 19:00". */
-  private async academyClassOptions(academyId: string): Promise<QueryOption[]> {
+      "Serie · jue 20 nov 19:00". Con slotId en cascada, solo las
+      ocurrencias de ese horario. */
+  private async academyClassOptions(
+    academyId: string,
+    slotId?: string,
+  ): Promise<QueryOption[]> {
     const classes = await this.prisma.class.findMany({
       where: {
-        slot: { academyId, deletedAt: null, series: { deletedAt: null } },
+        slot: {
+          academyId,
+          deletedAt: null,
+          series: { deletedAt: null },
+          ...(slotId ? { id: slotId } : {}),
+        },
       },
       select: {
         id: true,

@@ -225,11 +225,21 @@ export default function AnaliticaPage() {
   }, [role, tierLocked, loadCatalog, loadSaved]);
 
   // Opciones de fuentes scope-dependientes (planId/seriesId/listId…).
+  // `deps` lleva los valores de los filtros padre declarados en
+  // dependsOn (cascada nivel→serie→horario→clase, horario→instructor).
   const loadScopeOptions = useCallback(
-    async (source: FkSource, scopeId: string): Promise<QueryOption[]> => {
+    async (
+      source: FkSource,
+      scopeId: string,
+      deps: Record<string, string | undefined> = {},
+    ): Promise<QueryOption[]> => {
       if (!role || !isQueryRole(role)) return [];
+      const depQs = Object.entries(deps)
+        .filter(([, v]) => !!v)
+        .map(([k, v]) => `&${k}=${encodeURIComponent(v!)}`)
+        .join("");
       const res = await apiFetch(
-        `/query/options?role=${role}&source=${source}&scopeId=${encodeURIComponent(scopeId)}`,
+        `/query/options?role=${role}&source=${source}&scopeId=${encodeURIComponent(scopeId)}${depQs}`,
       );
       if (!res.ok) return [];
       const body = (await res.json()) as
