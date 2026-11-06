@@ -92,12 +92,26 @@ consistente; gaps rellenados y verificados:
 - **Niveles custom**: +3 en La Gozadera (además de Mambo Madness).
 - Re-corrida: todo +0 - idempotente confirmado.
 
+## Stack dejado (2026-11-05 cierre)
+
+- **Web :3000** `next dev` (levantado por esta sesión).
+- **API :4000** `nest start --watch` (dev) - el `dist` viejo se mató
+  y el proceso nuevo ya trae el código del día. Verificado en vivo:
+  `GET /academies/<cobros>/class-levels` → 403 `tier.required`
+  feature `classes` (gate que el build viejo no tenía).
+- Ambos en watch: cambios futuros se reflejan sin rebuild.
+
 ## Notas / gaps conocidos
 
-- Stack dejado: `next dev` en :3000 (levantado por esta sesión),
-  API prod `dist/main` en :4000 (pid 30540, de antes).
 - No se actualizó `qa-flows-inventory.md`: el smoke script es tooling
   dev, no un flujo de usuario nuevo.
 - La persona `academias@omnidance.dev` es owner de 3 academias COBROS
   (Ritmo y Guaperia, As you wish, Acrodance); `tumbao@` de Tumbao -
-  ambas sirven para QA de gates COBROS.
+  ambas sirven para QA de gates COBROS. `profe@omnidance.dev` es
+  instructora de varias STUDIO (QA de gates STUDIO/PRO).
+- Backlog abierto: `multipais-foundation` tasks 10 (pases multi-día),
+  11 (prácticas/socials free), 13 (congresos) y el Pase Social
+  (task 12, diseño listo sin implementación - candidato natural a
+  próximo feature grande).
+- Smoke pendiente del usuario: toggle admin del scope explorar
+  (academy-explore-flag) - cubierto por tests, falta vista real.
