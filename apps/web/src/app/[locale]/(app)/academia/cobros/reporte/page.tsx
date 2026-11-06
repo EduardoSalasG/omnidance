@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
@@ -25,7 +25,11 @@ import {
   type FilterOption,
   type MembershipPlan,
 } from "@/components/academy/shared";
-import { PAYMENT_STATUS_VARIANT } from "@/components/payments/shared";
+import {
+  paymentMediumLabel,
+  PAYMENT_STATUS_VARIANT,
+} from "@/components/payments/shared";
+import { useConsolePageSize } from "@/lib/console-page-size";
 import { Link } from "@/i18n/navigation";
 import { formatMoney, useNumFmt, useDateFmt } from "@/lib/intl";
 
@@ -47,19 +51,14 @@ type ReportRow = {
 type BillingReport = {
   billed: number;
   payers: number;
-  topPlan: {
-    planId: string;
-    name: string;
-    count: number;
-    amount: number;
-  } | null;
+  /** Cobrado por método del período filtrado (spec
+      academy-cobros-reporte): método crudo + total + conteo. */
+  byMethod: { method: string | null; amount: number; count: number }[];
   items: ReportRow[];
   total: number;
   page: number;
   pageSize: number;
 };
-
-const PAGE_SIZE = 25;
 
 // Vocabulario unión del reporte (Payment + PaymentClaim) - la API lo
 // whitelista y cada fuente aplica solo sus valores nativos.
@@ -98,10 +97,11 @@ const STATUS_VARIANT: Record<string, BadgeVariant> = {
 
 /**
  * /academia/cobros/reporte - reporte de cobranza por período (spec
- * academy-tier-v2): el piso del tier COBROS - sin gate de feature, va
- * por la capacidad payments (owner/staff/admin, lo refuerza el API).
- * Facturado del período + alumnos que pagaron + plan más vendido, con
- * filtros período/plan/estado y paginación (FilterBar + Pager).
+ * academy-tier-v2): destino propio del drawer del owner - sin gate de
+ * feature, va por la capacidad payments (owner/staff/admin, lo refuerza
+ * el API). KPIs "Facturado" y "Alumnos", sección "Métodos de pago"
+ * (un KPI por método con su total), filtros período/plan/estado y
+ * paginación 20 desktop / 10 mobile (FilterBar + Pager).
  */
 export default function CobrosReportePage() {
   const t = useTranslations("academyPay");
@@ -139,6 +139,9 @@ function ReportModule({ academyId }: { academyId: string }) {
     minute: "2-digit",
   });
 
+  // pageSize responsivo (spec academy-cobros-reporte): 20 desktop /
+  // 10 mobile - al cambiar vuelve a página 1.
+  const pageSize = useConsolePageSize();
   const [filters, setFilters] = useState<QueryFilters>({});
   const [page, setPage] = useState(1);
   const [report, setReport] = useState<BillingReport | null>(null);
@@ -149,12 +152,16 @@ function ReportModule({ academyId }: { academyId: string }) {
   // fallback cuando el rol no alcanza ese endpoint (cap payments ≠ plans).
   const [planOptions, setPlanOptions] = useState<FilterOption[]>([]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
+
   const load = useCallback(async () => {
     setState("loading");
     try {
       const qs = filterQuery(filters);
       const res = await apiFetch(
-        `/academies/${academyId}/billing-report${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
+        `/academies/${academyId}/billing-report${qs}${qs ? "&" : "?"}page=${page}&pageSize=${pageSize}`,
       );
       if (res.status === 401 || res.status === 403 || res.status === 404) {
         setState("forbidden");
@@ -180,7 +187,7 @@ function ReportModule({ academyId }: { academyId: string }) {
     } catch {
       setState("error");
     }
-  }, [academyId, filters, page]);
+  }, [academyId, filters, page, pageSize]);
 
   useEffect(() => {
     void load();
@@ -206,6 +213,42 @@ function ReportModule({ academyId }: { academyId: string }) {
       cancelled = true;
     };
   }, [academyId]);
+
+  const statusLabel = useCallback(
+    (r: ReportRow): string => {
+      // Labels por fuente: claims usan el vocabulario de la cola
+      // (academyPay.status*), pagos el de payments.status - crudo si falta.
+      const CLAIM_LABEL_KEY: Record<string, string> = {
+        PENDING: "statusPending",
+        AWAITING: "statusAwaiting",
+        APPROVED: "statusApproved",
+        REJECTED: "statusRejected",
+      };
+      return r.kind === "CLAIM" && CLAIM_LABEL_KEY[r.status]
+        ? t(CLAIM_LABEL_KEY[r.status])
+        : tp.has(`status.${r.status}`)
+          ? tp(`status.${r.status}`)
+          : r.status;
+    },
+    [t, tp],
+  );
+
+  // Métodos de pago del período: etiqueta humana agrupando valores
+  // crudos equivalentes (spec academy-cobros-reporte).
+  const methodGroups = useMemo(() => {
+    const byLabel = new Map<string, { amount: number; count: number }>();
+    for (const m of report?.byMethod ?? []) {
+      const label =
+        paymentMediumLabel(m.method, tp) ?? t("fieldMethodOther");
+      const cur = byLabel.get(label) ?? { amount: 0, count: 0 };
+      cur.amount += m.amount;
+      cur.count += m.count;
+      byLabel.set(label, cur);
+    }
+    return [...byLabel.entries()]
+      .map(([label, v]) => ({ label, ...v }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [report, tp, t]);
 
   if (state === "loading") return <SkeletonList />;
   if (state === "forbidden") {
@@ -236,21 +279,6 @@ function ReportModule({ academyId }: { academyId: string }) {
   }
   if (!report) return null;
 
-  // Labels por fuente: claims usan el vocabulario de la cola
-  // (academyPay.status*), pagos el de payments.status - crudo si falta.
-  const CLAIM_LABEL_KEY: Record<string, string> = {
-    PENDING: "statusPending",
-    AWAITING: "statusAwaiting",
-    APPROVED: "statusApproved",
-    REJECTED: "statusRejected",
-  };
-  const statusLabel = (r: ReportRow): string =>
-    r.kind === "CLAIM" && CLAIM_LABEL_KEY[r.status]
-      ? t(CLAIM_LABEL_KEY[r.status])
-      : tp.has(`status.${r.status}`)
-        ? tp(`status.${r.status}`)
-        : r.status;
-
   return (
     <div className="flex flex-col gap-6">
       <FilterBar
@@ -263,9 +291,9 @@ function ReportModule({ academyId }: { academyId: string }) {
         options={{ academyPlans: dedupeOptions(planOptions) }}
       />
 
-      {/* KPIs del período filtrado: facturado, pagantes únicos y plan
-          más vendido (solo cobros efectivos: PAID + APPROVED). */}
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {/* KPIs del período filtrado: solo Facturado y Alumnos (los
+          títulos largos se cortaban). */}
+      <ul className="grid grid-cols-2 gap-3">
         <li>
           <Card
             className="flex h-full flex-col gap-1 p-4"
@@ -300,35 +328,45 @@ function ReportModule({ academyId }: { academyId: string }) {
             </span>
           </Card>
         </li>
-        <li className="col-span-2 sm:col-span-1">
-          <Card
-            className="flex h-full flex-col gap-1 p-4"
-            title={t("report.topPlanHint")}
-            aria-label={`${t("report.topPlan")}: ${report.topPlan?.name ?? "—"}. ${t("report.topPlanHint")}`}
-          >
-            <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
-              {t("report.topPlan")}
-            </span>
-            <span className="truncate text-xl font-bold leading-tight text-neon">
-              {report.topPlan?.name ?? "—"}
-            </span>
-            {report.topPlan && (
-              <span className="text-xs tabular-nums text-ink/50">
-                {t("report.topPlanMeta", {
-                  count: report.topPlan.count,
-                  amount: clpFmt.format(report.topPlan.amount),
-                })}
-              </span>
-            )}
-            <span className="text-[11px] leading-tight text-ink/50">
-              {t("report.topPlanHint")}
-            </span>
-          </Card>
-        </li>
       </ul>
 
-      {/* Lista de cobros del período: cada fila navega a su detalle
-          (pago de pasarela o comprobante de la cola). */}
+      {/* Métodos de pago: un KPI por método con su total cobrado en el
+          período filtrado (PAID + APPROVED). */}
+      {methodGroups.length > 0 && (
+        <section
+          aria-label={t("report.methodsTitle")}
+          className="flex flex-col gap-3"
+        >
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+            {t("report.methodsTitle")}
+          </h2>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {methodGroups.map((m) => (
+              <li key={m.label}>
+                <Card
+                  className="flex h-full flex-col gap-1 p-4"
+                  title={t("report.methodsHint")}
+                  aria-label={`${m.label}: ${clpFmt.format(m.amount)}. ${t("report.methodsHint")}`}
+                >
+                  <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
+                    {m.label}
+                  </span>
+                  <span className="text-2xl font-bold leading-none text-neon">
+                    {clpFmt.format(m.amount)}
+                  </span>
+                  <span className="text-[11px] leading-tight text-ink/50">
+                    {t("report.methodCount", { count: m.count })}
+                  </span>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Lista de cobros del período: cada card navega a su detalle
+          (pago de pasarela o comprobante de la cola) con ?from= para
+          que el back vuelva acá. */}
       {report.items.length === 0 ? (
         <p role="status" className="text-sm text-ink/50">
           {/* Con filtros activos el empty es de la consulta, no del
@@ -336,50 +374,59 @@ function ReportModule({ academyId }: { academyId: string }) {
           {Object.keys(filters).length > 0 ? tq("empty") : t("report.empty")}
         </p>
       ) : (
-        <Card padded={false}>
-          <ul className="flex flex-col divide-y divide-line">
-            {report.items.map((r) => (
-              <li key={`${r.kind}-${r.id}`}>
-                <Link
-                  href={
-                    r.kind === "CLAIM"
-                      ? `/academia/cobros/claim/${r.id}`
-                      : `/academia/cobros/pago/${r.id}`
-                  }
-                  className="flex min-h-11 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {report.items.map((r) => (
+            <li key={`${r.kind}-${r.id}`}>
+              <Link
+                href={
+                  r.kind === "CLAIM"
+                    ? `/academia/cobros/claim/${r.id}?from=/academia/cobros/reporte`
+                    : `/academia/cobros/pago/${r.id}?from=/academia/cobros/reporte`
+                }
+                className="block rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+              >
+                {/* Card de 4 líneas legibles: nombre, plan, método,
+                    fecha; monto + chip de estado a la derecha. */}
+                <Card className="flex h-full flex-col gap-1.5 p-4 transition-colors hover:border-neon/60">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="min-w-0 truncate text-sm font-semibold">
                       {r.personName ?? shortId(r.personId)}
                     </span>
-                    <span className="block truncate text-xs text-ink/50">
-                      {r.planName ?? t("fieldPlanOther")}
-                      {r.method ? ` · ${r.method}` : ""} ·{" "}
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <span className="text-sm font-semibold tabular-nums">
+                        {formatMoney(r.amount, r.currency, locale)}
+                      </span>
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                    </span>
+                  </div>
+                  <span className="truncate text-sm text-ink/70">
+                    {r.planName ?? t("fieldPlanOther")}
+                  </span>
+                  <span className="truncate text-sm text-ink/70">
+                    {paymentMediumLabel(r.method, tp) ??
+                      t("fieldMethodOther")}
+                  </span>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs tabular-nums text-ink/50">
                       {dateFmt.format(new Date(r.createdAt))}
                     </span>
-                  </span>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums">
-                    {formatMoney(r.amount, r.currency, locale)}
-                  </span>
-                  <Badge variant={STATUS_VARIANT[r.status] ?? "muted"}>
-                    {statusLabel(r)}
-                  </Badge>
-                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
+                    <Badge variant={STATUS_VARIANT[r.status] ?? "muted"}>
+                      {statusLabel(r)}
+                    </Badge>
+                  </div>
+                </Card>
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
 
-      {report.total > PAGE_SIZE && (
-        <Pager
-          page={report.page}
-          pageSize={report.pageSize}
-          total={report.total}
-          onPage={setPage}
-        />
-      )}
+      <Pager
+        page={report.page}
+        pageSize={report.pageSize}
+        total={report.total}
+        onPage={setPage}
+      />
     </div>
   );
 }

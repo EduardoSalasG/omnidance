@@ -83,6 +83,9 @@ function LevelCreate({ academyId }: { academyId: string }) {
       for (const l of data.global) {
         const res = await apiFetch(`/academies/${academyId}/class-levels`, {
           method: "POST",
+          // Mismo fix que el listado: sin JSON header el body no se
+          // parsea y el server valida name vacío.
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: l.name, order: l.order }),
         });
         if (!res.ok) {
@@ -161,7 +164,10 @@ function LevelCreate({ academyId }: { academyId: string }) {
   if (phase === "global") {
     return (
       <Card className="flex flex-col gap-3 p-4">
-        <p className="text-sm text-ink/70">{t("levelsConfig.globalHint")}</p>
+        <div className="flex flex-col gap-1 text-sm text-ink/70">
+          <p>{t("levelsConfig.globalHint")}</p>
+          <p>{t("levelsConfig.globalHintCustom")}</p>
+        </div>
         <ul className="flex flex-wrap gap-1.5">
           {data?.global.map((l, i) => (
             <li

@@ -36,9 +36,9 @@ export function AcademyKpiCards({
    *  renderiza también en el estado skeleton: el caller decide si el
    *  slot tiene forma de carga (spec loading-states, sin pop-in). */
   extra?: React.ReactNode;
-  /** Label del landmark; default "Resumen del mes". En páginas con dos
-   *  strips (Extendido: resumen + facturación) el segundo lo pasa para
-   *  no duplicar landmarks con el mismo nombre. */
+  /** Label del landmark; default "Resumen del mes". Si una página
+   *  monta dos strips, el segundo lo pasa para no duplicar landmarks
+   *  con el mismo nombre. */
   ariaLabel?: string;
 }) {
   const clpFmt = useNumFmt({

@@ -22,8 +22,8 @@ export type LevelInsightsState = "loading" | "ready" | "hidden" | "error";
  * analítica estratégica (spec academy-tier-gates-refine). Sin la
  * feature no se fetchea y en 403 el estado queda "hidden" (COBROS y
  * privilegio no conocen el dato). Lo consume el inicio completo (KPI
- * "sin nivel" en ambos modos + card de niveles y cupos en Extendido):
- * un solo fetch para todos los consumidores.
+ * "sin nivel" + card de niveles y cupos): un solo fetch para todos
+ * los consumidores.
  */
 export function useAcademyLevelInsights(academy: Academy): {
   data: AcademyLevelInsights | null;
@@ -64,7 +64,7 @@ export function useAcademyLevelInsights(academy: Academy): {
 }
 
 /**
- * Card "Niveles y cupos" del inicio Extendido (spec
+ * Card "Niveles y cupos" del inicio (spec
  * academies/owner-insights). Un solo set de KPI cards por nivel
  * (número grande + label, mismo lenguaje que MiniKpi/KpiCard) y un
  * solo calendario semanal con una card por horario: ocupación y cupos
@@ -73,7 +73,8 @@ export function useAcademyLevelInsights(academy: Academy): {
  * /analitica) y ambos bloques le responden: un tipo concreto muestra
  * sus niveles y solo sus horarios (la semana usa solo sus días);
  * "Todos" agrega los niveles por nombre sumando entre tipos (un
- * alumno puede contar en más de uno: el total del pie lo aclara) y
+ * alumno tiene a lo más un nivel por tipo desde 2026-11: el total
+ * del pie lo aclara) y
  * junta todos los horarios en la semana unificada, incluidos los que
  * no matchean ningún tipo. Un slot que sirve varios tipos aparece
  * una sola vez.
@@ -267,8 +268,8 @@ export function AcademyLevelsCard({
               ))}
             </ul>
             {/* Total del pie: en "Todos" con varios tipos aclara que
-                la suma es por tipo (un alumno puede contar en más de
-                uno); con un solo tipo o filtrado es el total plano. */}
+                la suma es por tipo (un nivel por tipo por alumno);
+                con un solo tipo o filtrado es el total plano. */}
             <p className="text-xs tabular-nums text-ink/50">
               {typeSel.size === 0 && data.byType.length > 1
                 ? t("levels.allTotal", { count: levelTotal })
@@ -324,6 +325,20 @@ function aggregateLevels(byType: AcademyLevelInsights["byType"]): {
   return [...agg.values()];
 }
 
+// Helpers de hora "HH:MM" compartidos por la agenda desktop y las
+// filas de mobile (endTime puede faltar en el payload - se asume 1h,
+// misma convención que endMinOf).
+const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
+const floor30 = (m: number) => m - (m % 30);
+const toHHMM = (m: number) =>
+  `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const endMinOf = (s: AcademyLevelInsights["bySlot"][number]) =>
+  s.endTime ? toMin(s.endTime) : toMin(s.startTime) + 60;
+const startMinOf = (s: AcademyLevelInsights["bySlot"][number]) =>
+  toMin(s.startTime);
+const slotEndTime = (s: AcademyLevelInsights["bySlot"][number]) =>
+  s.endTime ?? toHHMM(toMin(s.startTime) + 60);
+
 /**
  * Calendario semanal tipo agenda: en desktop la hora va en una
  * columna a la izquierda (una vez por horario) y cada día laborado
@@ -350,13 +365,6 @@ function WeekCalendar({
   // la columna en carriles (lanes) lado a lado.
   const ROW_H = 80; // px por cada 30min (1h ≈ 148px: la card se lee completa)
   const today = new Date().getDay();
-  const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
-  const floor30 = (m: number) => m - (m % 30);
-  const endMinOf = (s: AcademyLevelInsights["bySlot"][number]) =>
-    s.endTime ? toMin(s.endTime) : toMin(s.startTime) + 60;
-  const startMinOf = (
-    s: AcademyLevelInsights["bySlot"][number],
-  ) => toMin(s.startTime);
   const gridStart = floor30(
     Math.min(...slots.map((s) => {
       const m = toMin(s.startTime);
@@ -372,8 +380,6 @@ function WeekCalendar({
   const totalH = ((gridEnd - gridStart) / 30) * ROW_H;
   const hours: number[] = [];
   for (let m = gridStart; m <= gridEnd; m += 60) hours.push(m);
-  const toHHMM = (m: number) =>
-    `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
   // Carriles por día: grupos de slots traslapados → lane/lanes.
   const lanesByDay = new Map<number, Map<string, { lane: number; lanes: number }>>();
@@ -495,6 +501,11 @@ function WeekCalendar({
                           slot={s}
                           numFmt={numFmt}
                           compact={estH < 120}
+                          // 2+ clases compartiendo el día se reparten
+                          // el ancho en carriles: la card completa no
+                          // cabe - la variante densa baja a hora +
+                          // nombre + estado (review 2026-11-05).
+                          dense={lanes >= 2}
                           levelNum={s.levelId ? levelNum.get(s.levelId) : undefined}
                         />
                       </div>
@@ -819,8 +830,12 @@ function MobileSlotRow({
   const { variant, text } = slotStatus(s, t);
   return (
     <li className="flex gap-2">
-      <p className="w-9 shrink-0 pt-2 text-right text-xs font-semibold tabular-nums text-ink/50">
+      {/* Inicio Y término en mobile (review 2026-11-05): dos líneas en
+          la columna de hora; sin endTime se asume 1h (convención del
+          endpoint). */}
+      <p className="w-9 shrink-0 pt-2 text-right text-[11px] font-semibold tabular-nums leading-tight text-ink/50">
         {s.startTime}
+        <span className="block text-ink/40">{slotEndTime(s)}</span>
       </p>
       {/* El borde neon del Card en hover es el affordance de click -
           el Link cubre casi toda la card así que hover ≈ link hover. */}
@@ -865,12 +880,16 @@ function SlotCard({
   slot: s,
   numFmt,
   compact,
+  dense,
   levelNum,
 }: {
   slot: AcademyLevelInsights["bySlot"][number];
   numFmt: Intl.NumberFormat;
   /** Clase corta (alto < 130px): solo titulo + chips, sin metricas. */
   compact?: boolean;
+  /** 2+ clases traslapadas reparten la celda en carriles angostos:
+      solo hora + nombre truncado + estado; las métricas no caben. */
+  dense?: boolean;
   /** Numero de nivel 1-4 (compacto: el nombre completo va en title). */
   levelNum?: number;
 }) {
@@ -882,6 +901,32 @@ function SlotCard({
     ? `/academia/clases/${s.nextClassId}`
     : `/academia/series/${s.seriesId}/horarios/${s.slotId}`;
   const linkAria = `${s.seriesName} - ${t("levels.gotoClasses")}`;
+  if (dense) {
+    return (
+      <Card className="flex h-full w-full min-w-0 flex-col gap-0.5 overflow-hidden px-2 py-1.5 transition-colors hover:border-neon/60">
+        <Link
+          href={slotHref}
+          className="flex min-w-0 flex-col gap-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+          aria-label={linkAria}
+          title={
+            s.levelName
+              ? `${s.seriesName} · ${s.levelName}`
+              : s.seriesName
+          }
+        >
+          <p className="text-[11px] font-semibold tabular-nums leading-tight text-ink/60">
+            {s.startTime}–{slotEndTime(s)}
+          </p>
+          <p className="line-clamp-2 min-w-0 text-xs font-bold leading-tight">
+            {shortSlotName(s.seriesName)}
+          </p>
+          <Badge variant={statusVariant} className="!py-0 self-start text-[10px]">
+            {statusText}
+          </Badge>
+        </Link>
+      </Card>
+    );
+  }
   if (compact) {
     return (
       <Card className="flex h-full w-full min-w-0 flex-col justify-center gap-1 overflow-hidden px-2.5 py-1.5 transition-colors hover:border-neon/60">

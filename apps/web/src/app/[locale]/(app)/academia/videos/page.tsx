@@ -1,26 +1,35 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useMessages, useTranslations } from "next-intl";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
+import { FeatureFlagGate } from "@/components/feature-flag-gate";
 import { Videos } from "@/components/academy/videos";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
  * /academia/videos - material por clase (links externos) de la academia
  * seleccionada, con control de acceso por asistencia/enrollment.
+ * Detrás del flag academy_videos (spec academy-videos-flag): OFF muestra
+ * el estado "módulo desactivado" para todos los tiers, antes del gate
+ * de tier (nunca paywall con el flag apagado).
  */
 export default function AcademiaVideosPage() {
   const t = useTranslations("academy");
+  const tv = (
+    useMessages() as { academyExtras: { videos: Record<string, string> } }
+  ).academyExtras.videos;
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
-          <AcademyTierGate academy={academy} feature="videos">
-            <Videos key={academy.id} academy={academy} />
-          </AcademyTierGate>
+          <FeatureFlagGate flag="academy_videos" disabled={tv.disabled}>
+            <AcademyTierGate academy={academy} feature="videos">
+              <Videos key={academy.id} academy={academy} />
+            </AcademyTierGate>
+          </FeatureFlagGate>
         )}
       </AcademyGate>
     </main>

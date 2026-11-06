@@ -1,12 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ClaimsQueue } from "@/components/academy/claims-queue";
 import { OrderClaimsQueue } from "@/components/academy/order-claims-queue";
 import { CobrosExpiring } from "@/components/academy/cobros-expiring";
-import { CobrosHistory } from "@/components/academy/cobros-history";
 import { CobrosKpiStrip } from "@/components/academy/cobros-kpis";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
@@ -16,10 +14,10 @@ import {
 
 /**
  * /academia/cobros - cobros de la academia: KPIs del mes (facturado,
- * ticket, top medios), cola de comprobantes por validar (cada card abre
- * su página de detalle con aprobar/rechazar) e historial unificado de
- * validaciones + pagos por pasarela. Los medios de pago viven en
- * configuración.
+ * ticket, top métodos), planes por vencer y las colas operativas
+ * (pagos por validar + inscripciones por transferencia). El historial
+ * y la búsqueda viven en /academia/cobros/reporte (ítem propio del
+ * drawer); los métodos de pago viven en configuración.
  */
 export default function AcademiaCobrosPage() {
   const t = useTranslations("academyPay");
@@ -29,13 +27,6 @@ export default function AcademiaCobrosPage() {
       <ConsoleHeader
         backHref="/academia"
         backLabel={t("detailBack")}
-        actions={
-          // Reporte de cobranza por período (spec academy-tier-v2) -
-          // el libro filtrable con agregados; mismo gate que el módulo.
-          <Button href="/academia/cobros/reporte" variant="secondary" size="sm">
-            {t("report.link")}
-          </Button>
-        }
       />
       <AcademyGate>
         {({ academy }) => (
@@ -46,11 +37,10 @@ export default function AcademiaCobrosPage() {
               academyId={academy.id}
             />
             <ClaimsQueue key={`q-${academy.id}`} academyId={academy.id} />
-            {/* Comprobantes de suscripciones por transferencia (spec
+            {/* Comprobantes de inscripciones por transferencia (spec
                 subscription-manual-transfer) - cola aparte de los
                 claims de pago único. */}
             <OrderClaimsQueue key={`o-${academy.id}`} academyId={academy.id} />
-            <CobrosHistory key={`h-${academy.id}`} academyId={academy.id} />
             {/* Tour de primera visita del módulo - las colas vacías se
                 omiten solas (sus anchors no existen en el DOM). */}
             <CobrosTour />
@@ -87,7 +77,7 @@ function CobrosTour() {
             side: "top",
           },
           {
-            element: "[data-tour='academy-cobros-history']",
+            element: "[data-tour='academy-order-claims']",
             title: tt("s4.title"),
             description: tt("s4.desc"),
             side: "top",

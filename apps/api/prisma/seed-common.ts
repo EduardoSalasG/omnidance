@@ -45,9 +45,7 @@ const STYLE_CATALOG = [
   { name: "Bachata sensual", genre: Genre.BACHATA },
   { name: "Bachata tradicional", genre: Genre.BACHATA },
   { name: "Bachata moderna", genre: Genre.BACHATA },
-  { name: "Cubano", genre: Genre.CUBANO },
   { name: "Afrocubano", genre: Genre.CUBANO },
-  { name: "Rueda de casino", genre: Genre.CUBANO },
   { name: "Mambo on2", genre: Genre.SALSA },
   { name: "Fusión", genre: Genre.OTHER },
 ] as const;
@@ -328,6 +326,12 @@ const FEATURE_FLAG_SEED: {
     description: "Listados de descubrimiento del bailarín (scope explorar de /academias y /clases) - las fichas siguen accesibles por link directo",
     enabled: true,
   },
+  {
+    key: "academy_videos",
+    label: "Videos de academia",
+    description: "Módulo de videos de la consola de academia (/academia/videos) - OFF lo apaga para todos los tiers, incluido PRO",
+    enabled: true,
+  },
 ];
 
 /** Crea o confirma una persona con sus roles. Idempotente por email. */
@@ -406,8 +410,17 @@ export async function seedCommon(prisma: PrismaClient) {
   // Depuración del catálogo: estilos que salieron de STYLE_CATALOG pero
   // DBs ya pobladas conservan las filas. Acá se eliminan con sus
   // referencias personales; las referencias estructurales (series,
-  // bloques de horario, sesiones) quedan desvinculadas (null).
-  const REMOVED_STYLES = ["Salsa on2", "Bachata dominicana", "Timba"];
+  // bloques de horario, sesiones) quedan desvinculadas (null) en vez de
+  // renombrarse - una serie "Rueda de Casino" conserva su nombre y solo
+  // pierde el tag de estilo (decisión del usuario 2026-11: "Cubano" y
+  // "Rueda de casino" salen del catálogo en dev y prod).
+  const REMOVED_STYLES = [
+    "Salsa on2",
+    "Bachata dominicana",
+    "Timba",
+    "Cubano",
+    "Rueda de casino",
+  ];
   for (const stale of await prisma.style.findMany({
     where: { name: { in: REMOVED_STYLES } },
   })) {

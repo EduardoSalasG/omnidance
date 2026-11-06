@@ -68,7 +68,6 @@ function MethodDetail({
   // Drafts del formulario.
   const [label, setLabel] = useState("");
   const [details, setDetails] = useState<Record<string, string>>({});
-  const [order, setOrder] = useState("0");
   const [active, setActive] = useState(true);
 
   const [busy, setBusy] = useState(false);
@@ -94,7 +93,6 @@ function MethodDetail({
     setMethod(found);
     setLabel(found.label);
     setDetails(found.details ?? {});
-    setOrder(String(found.order ?? 0));
     setActive(found.active);
     setNotice(null);
   }, [academy.id, methodId]);
@@ -123,7 +121,6 @@ function MethodDetail({
             details: Object.fromEntries(
               Object.entries(details).filter(([, v]) => v.trim()),
             ),
-            order: Number(order) || 0,
             active,
           }),
         },
@@ -271,16 +268,6 @@ function MethodDetail({
                 />
               </label>
             )}
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-ink/60">{t("fOrder")}</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                value={order}
-                onChange={(e) => setOrder(e.target.value)}
-                className={`${inputCls} w-24`}
-              />
-            </label>
             <label className="flex min-h-11 items-center gap-2 text-sm">
               <input
                 type="checkbox"

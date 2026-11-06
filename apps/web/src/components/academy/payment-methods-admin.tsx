@@ -75,19 +75,14 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
 
   return (
     <Card className="flex flex-col gap-4">
-      {/* flex-wrap: en mobile el CTA cae a su propia línea en vez de
-          comprimirse en 3 líneas de texto. */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-            {t("methodsAdminTitle")}
-          </h2>
-          <p className="mt-1 text-xs text-ink/50">
-            {t("methodsAdminDesc")}
-          </p>
-        </div>
+      {/* CTA primario a la derecha del título y encima de la
+          descripción (review consola): flex-wrap lo deja caer a su
+          línea en mobile sin comprimirse. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+          {t("methodsAdminTitle")}
+        </h2>
         <Button
-          variant="secondary"
           size="sm"
           className="shrink-0 whitespace-nowrap"
           href="/academia/configuracion/metodos-de-pago/nuevo"
@@ -95,6 +90,9 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
           + {t("addMethod")}
         </Button>
       </div>
+      <p className="-mt-2 text-xs text-ink/50">
+        {t("methodsAdminDesc")}
+      </p>
 
       {error ? (
         <div className="flex items-center gap-3">

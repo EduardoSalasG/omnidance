@@ -442,7 +442,7 @@
     "markPresent": "Presente",
     "planName": "Nombre del plan",
     "planPrice": "Precio",
-    "planClasses": "Clases por período",
+    "planClasses": "Clases incluidas",
     "personId": "ID de persona",
     "empty": "Aún no tienes academia registrada.",
     "directoryTitle": "Academias",
@@ -496,8 +496,8 @@
     "planTypes": {
       "MONTHLY": "Mensual",
       "CLASS_PACK": "Pack de clases",
-      "PERIOD": "Período",
-      "TRIAL": "Trial"
+      "PERIOD": "Período personalizado",
+      "TRIAL": "De prueba"
     },
     "studentStatus": "Estado de {name}",
     "planPeriodDays": "Días de vigencia",
@@ -505,9 +505,9 @@
     "planDescPlaceholder": "Clases ilimitadas de todas las series\nAcceso a evaluación de nivel\nDescuento en privadas",
     "planStudents": "{count, plural, one {# alumno} other {# alumnos}}",
     "planKpiActive": "Planes activos",
-    "planKpiActiveHint": "Planes de membresía con active=true",
+    "planKpiActiveHint": "Planes que tus alumnos pueden comprar ahora",
     "planKpiTop": "Top planes",
-    "planKpiTopHint": "Planes con más alumnos activos este mes",
+    "planKpiTopHint": "Alumnos con este plan vigente",
     "sortLabel": "Ordenar",
     "sortNameAsc": "Nombre A→Z",
     "sortNameDesc": "Nombre Z→A",

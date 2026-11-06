@@ -48,7 +48,6 @@ function MethodCreate({ academy }: { academy: Academy }) {
   const [type, setType] = useState<Method["type"]>("TRANSFER");
   const [label, setLabel] = useState("");
   const [details, setDetails] = useState<Record<string, string>>({});
-  const [order, setOrder] = useState("0");
   const [busy, setBusy] = useState(false);
 
   function setDetail(k: string, v: string) {
@@ -71,7 +70,6 @@ function MethodCreate({ academy }: { academy: Academy }) {
             details: Object.fromEntries(
               Object.entries(details).filter(([, v]) => v.trim()),
             ),
-            order: Number(order) || 0,
           }),
         },
       );
@@ -172,16 +170,6 @@ function MethodCreate({ academy }: { academy: Academy }) {
             />
           </label>
         )}
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-ink/60">{t("fOrder")}</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={order}
-            onChange={(e) => setOrder(e.target.value)}
-            className={`${inputCls} w-24`}
-          />
-        </label>
         <div className="flex gap-2">
           <Button
             type="submit"

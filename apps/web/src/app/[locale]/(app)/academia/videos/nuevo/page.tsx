@@ -3,6 +3,7 @@
 import { useMessages } from "next-intl";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
+import { FeatureFlagGate } from "@/components/feature-flag-gate";
 import { VideoForm } from "@/components/academy/video-form";
 import { ConsoleHeader } from "@/components/console/console-header";
 
@@ -10,6 +11,8 @@ import { ConsoleHeader } from "@/components/console/console-header";
  * /academia/videos/nuevo - alta de video (link externo) de la academia
  * seleccionada. El form gatea con canAdminister (owner/ADMIN), igual
  * que el POST /academies/:id/videos del backend.
+ * Detrás del flag academy_videos (spec academy-videos-flag): OFF
+ * muestra "módulo desactivado" antes del gate de tier.
  */
 export default function AcademiaNuevoVideoPage() {
   const t = (useMessages() as { academyExtras: { videos: Record<string,string> } }).academyExtras.videos;
@@ -18,9 +21,11 @@ export default function AcademiaNuevoVideoPage() {
       <ConsoleHeader backHref="/academia/videos" backLabel={t.title} />
       <AcademyGate>
         {({ academy }) => (
-          <AcademyTierGate academy={academy} feature="videos">
-            <VideoForm key={academy.id} academy={academy} />
-          </AcademyTierGate>
+          <FeatureFlagGate flag="academy_videos" disabled={t.disabled}>
+            <AcademyTierGate academy={academy} feature="videos">
+              <VideoForm key={academy.id} academy={academy} />
+            </AcademyTierGate>
+          </FeatureFlagGate>
         )}
       </AcademyGate>
     </main>

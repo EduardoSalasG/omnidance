@@ -14,6 +14,7 @@ import {
 import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
+import { FeatureFlagGate } from "@/components/feature-flag-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { readError, type Academy } from "@/components/academy/shared";
 import {
@@ -30,6 +31,8 @@ type LoadState = "loading" | "ready" | "error" | "forbidden" | "notFound";
  * destructiva con delete. El detalle se resuelve con
  * GET /academies/:id/videos/:videoId. Solo owner/ADMIN (canAdminister):
  * para el resto la card del listado navega directo al link externo.
+ * Detrás del flag academy_videos (spec academy-videos-flag): OFF
+ * muestra "módulo desactivado" antes del gate de tier.
  */
 export default function VideoDetailPage() {
   const t = (useMessages() as { academyExtras: { videos: Record<string,string> } }).academyExtras.videos;
@@ -40,13 +43,15 @@ export default function VideoDetailPage() {
       <ConsoleHeader backHref="/academia/videos" backLabel={t.title} />
       <AcademyGate>
         {({ academy }) => (
-          <AcademyTierGate academy={academy} feature="videos">
-            <Detail
-              key={`${academy.id}:${params.id}`}
-              academy={academy}
-              videoId={params.id}
-            />
-          </AcademyTierGate>
+          <FeatureFlagGate flag="academy_videos" disabled={t.disabled}>
+            <AcademyTierGate academy={academy} feature="videos">
+              <Detail
+                key={`${academy.id}:${params.id}`}
+                academy={academy}
+                videoId={params.id}
+              />
+            </AcademyTierGate>
+          </FeatureFlagGate>
         )}
       </AcademyGate>
     </main>

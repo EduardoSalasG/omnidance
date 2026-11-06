@@ -20,10 +20,19 @@ type LoadState = "loading" | "ready" | "notFound" | "error";
  */
 function NuevaSerie() {
   const t = useTranslations("academySeries");
+  const tc = useTranslations("common");
+  // En modo edición (?edit=<seriesId>) el padre real es la ficha de la
+  // serie, no el listado - mismo criterio que planes/nueva.
+  const editId = useSearchParams().get("edit");
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
-      <ConsoleHeader backHref="/academia/series" backLabel={t("title")} />
+      <ConsoleHeader
+        backHref={
+          editId ? `/academia/series/${editId}` : "/academia/series"
+        }
+        backLabel={editId ? tc("back") : t("title")}
+      />
       <AcademyGate>
         {({ academy }) => (
           <AcademyTierGate academy={academy} feature="classes"><SeriesFormLoader key={academy.id} academyId={academy.id} /></AcademyTierGate>

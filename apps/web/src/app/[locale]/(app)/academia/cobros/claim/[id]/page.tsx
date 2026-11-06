@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
+import { safeInternalPath } from "@/lib/safe-next";
+import { Badge, Button, Card, PageLoading, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -42,31 +43,50 @@ type ClaimDetail = {
  * motivo. La cola solo navega hasta acá.
  */
 export default function ClaimDetailPage() {
-  const t = useTranslations("academyPay");
-  const params = useParams<{ id: string }>();
-
+  // useSearchParams (?from= de la cola o del reporte) exige boundary
+  // Suspense; fallback mínimo: el header real monta dentro del chrome.
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
-      <ConsoleHeader backHref="/academia/cobros" backLabel={t("detailBack")} />
+      <Suspense fallback={<PageLoading />}>
+        <ClaimChrome />
+      </Suspense>
+    </main>
+  );
+}
+
+function ClaimChrome() {
+  const t = useTranslations("academyPay");
+  const params = useParams<{ id: string }>();
+  // Origen real del click (cola vs reporte) - el back y la navegación
+  // post-acción vuelven ahí; fallback a cobros si falta o no es interno.
+  const backTo =
+    safeInternalPath(useSearchParams().get("from")) ?? "/academia/cobros";
+
+  return (
+    <>
+      <ConsoleHeader backHref={backTo} backLabel={t("detailBack")} />
       <AcademyGate>
         {({ academy }) => (
           <ClaimDetail
             key={`${academy.id}:${params.id}`}
             academyId={academy.id}
             claimId={params.id}
+            backTo={backTo}
           />
         )}
       </AcademyGate>
-    </main>
+    </>
   );
 }
 
 function ClaimDetail({
   academyId,
   claimId,
+  backTo,
 }: {
   academyId: string;
   claimId: string;
+  backTo: string;
 }) {
   const locale = useLocale();
   const claimDateFmt = useDateFmt({
@@ -137,7 +157,7 @@ function ClaimDetail({
       // Aprobado → aviso global y vuelve a la cola (el claim ya no es
       // accionable). Mismo patrón del resto de la consola.
       showActionNotice({ text: t("approvedMsg") });
-      router.push("/academia/cobros");
+      router.push(backTo);
     } catch {
       showActionNotice({ text: t("error"), error: true });
     } finally {
@@ -162,7 +182,7 @@ function ClaimDetail({
         return;
       }
       showActionNotice({ text: t("rejectedMsg") });
-      router.push("/academia/cobros");
+      router.push(backTo);
     } catch {
       showActionNotice({ text: t("error"), error: true });
     } finally {

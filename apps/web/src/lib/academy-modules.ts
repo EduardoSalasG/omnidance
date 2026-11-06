@@ -11,6 +11,7 @@
 // cobranza/perfil - base de todos los tiers.
 
 import { academyTierHas } from "./academy-features";
+import type { FeatureFlagsMap } from "./features-context";
 import type {
   AcademyAccessInfo,
   AcademyCap,
@@ -24,6 +25,10 @@ export type HubModule = {
   cap?: AcademyCap;
   /** Feature del tier de la academia (spec academy-tier-cobros). */
   feature?: string;
+  /** Flag de funcionalidad del catálogo (spec feature-flags-admin):
+      OFF/ausente oculta la card para todos los tiers - adicional al
+      gate de `feature`, nunca lo reemplaza. */
+  flag?: string;
   /** Fuera de la grilla del instructor puro. */
   noInstructor?: boolean;
   /** Solo owner de la academia o ADMIN de plataforma. */
@@ -51,6 +56,7 @@ export const HUB_MODULES: readonly HubModule[] = [
     key: "videos",
     cap: "schedule",
     feature: "videos",
+    flag: "academy_videos",
   },
   { href: "/academia/cobros", key: "payments", cap: "payments" },
   // Preventa por comisión (spec academy-presale-commission) - misma cap
@@ -83,12 +89,16 @@ export const HUB_MODULES: readonly HubModule[] = [
 export function visibleHubModules({
   access,
   tier,
+  flags,
   viewerId,
   viewerRoles,
   academyOwnerId,
 }: {
   access: AcademyAccessInfo;
   tier: string | null | undefined;
+  /** Mapa público de flags (useFeatures). Fail-closed: mientras el
+      fetch resuelve llega {} y las cards con `flag` no pintan. */
+  flags: FeatureFlagsMap;
   viewerId?: string;
   viewerRoles?: string[];
   academyOwnerId: string;
@@ -115,6 +125,9 @@ export function visibleHubModules({
     } else if (!operational) {
       return false;
     }
+    // Gate por flag de funcionalidad (además de cap y tier): módulo
+    // apagado a nivel plataforma no sale en la grilla para nadie.
+    if (m.flag && flags[m.flag] !== true) return false;
     // Gate por tier (además de cap): staff de COBROS no ve módulos que
     // solo llevarían al TierPaywall - mismo criterio que el nav owner.
     if (m.feature && !academyTierHas(tier, m.feature)) return false;

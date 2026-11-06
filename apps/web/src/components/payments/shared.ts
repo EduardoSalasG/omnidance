@@ -114,3 +114,32 @@ export const paymentDateTimeFmt = (locale: string) => getDateFmt(locale, {
   dateStyle: "medium",
   timeStyle: "short",
 });
+
+// Traductor del namespace `payments` (next-intl): lo usan los helpers
+// de etiqueta humana - `has` evita tirar la key cruda cuando falta.
+type PaymentsT = {
+  has: (key: string) => boolean;
+  (key: string): string;
+};
+
+/**
+ * Etiqueta humana del medio reportado por la pasarela
+ * (`gatewayMedia`): "credit_card", "visa", "bank_transfer"… se
+ * normaliza por `payments.media.*`; valor sin mapeo pasa verbatim
+ * (fallback visible, nunca vacío) y null queda null para que el
+ * caller elija su propio fallback.
+ */
+export function paymentMediumLabel(
+  media: string | null | undefined,
+  tp: PaymentsT,
+): string | null {
+  if (!media) return null;
+  const key = `media.${media}`;
+  return tp.has(key) ? tp(key) : media;
+}
+
+/** Etiqueta humana del gateway (`FLOW`, `MANUAL`, `MERCADOPAGO`…). */
+export function gatewayLabel(gateway: string, tp: PaymentsT): string {
+  const key = `gateways.${gateway}`;
+  return tp.has(key) ? tp(key) : gateway;
+}

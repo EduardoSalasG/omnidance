@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { apiFetch } from "@/lib/api";
@@ -15,8 +15,8 @@ import { SeriesInsights } from "@/components/academy/series-insights";
 import {
   filterQuery,
   type FilterOption,
+  type NamedRef,
   type Series,
-  type SeriesStyle,
 } from "@/components/academy/shared";
 import { Link } from "@/i18n/navigation";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
@@ -114,22 +114,31 @@ function SeriesModule({
         timeZone: "UTC",
       });
 
+  // Secuencia de requests: solo el más reciente aplica su resultado.
+  // Sin la guardia, un request viejo que falla tarde pisaba el éxito
+  // de uno más nuevo y dejaba el banner "Algo salió mal" sobre una
+  // lista ya cargada (bug intermitente 2026-11, visible con el doble
+  // efecto de StrictMode y con cambios rápidos de filtros).
+  const reqSeq = useRef(0);
   const reload = useCallback(async () => {
+    const seq = ++reqSeq.current;
     setLoadError(null);
     try {
       const qs = filterQuery(filters);
       const res = await apiFetch(
         `/academies/${academyId}/series${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
       );
+      if (seq !== reqSeq.current) return; // respuesta vieja: descartar
       if (!res.ok) {
         setLoadError(res.status);
         return;
       }
       const data = (await res.json()) as { items: Series[]; total: number };
+      if (seq !== reqSeq.current) return;
       setSeries(data.items);
       setTotal(data.total);
     } catch {
-      setLoadError(0);
+      if (seq === reqSeq.current) setLoadError(0);
     }
   }, [academyId, filters, page]);
 
@@ -137,12 +146,15 @@ function SeriesModule({
     void reload();
   }, [reload]);
 
-  // Catálogos de filtros: styles + levels + types (GET /classes/catalogs
-  // es público y trae levels/types juntos).
+  // Catálogos de filtros: levels/types del catálogo público
+  // (GET /classes/catalogs). Los estilos NO son el catálogo global:
+  // el select solo ofrece los presentes en las series de ESTA
+  // academia (GET :id/series/styles) - filtrar por un estilo sin
+  // series daría vacíos garantizados (review 2026-11-05).
   useEffect(() => {
-    apiFetch("/styles")
+    apiFetch(`/academies/${academyId}/series/styles`)
       .then(async (res) =>
-        res.ok ? ((await res.json()) as SeriesStyle[]) : [],
+        res.ok ? ((await res.json()) as NamedRef[]) : [],
       )
       .then((styles) =>
         setStyleOptions(

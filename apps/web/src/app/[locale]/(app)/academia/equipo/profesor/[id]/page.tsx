@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { showActionNotice } from "@/components/ui/action-notice";
-import { Button, Card, ChevronRightIcon, ConfirmSheet, RefreshIcon, SkeletonList } from "@/components/ui";
+import { Button, Card, ChevronRightIcon, ConfirmSheet, Pager, RefreshIcon, SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -14,6 +14,7 @@ import { CourseSurveyResults } from "@/components/academy/survey-results";
 import { readError } from "@/components/academy/shared";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
+import { useConsolePageSize } from "@/lib/console-page-size";
 
 type InstructorDetail = {
   person: { id: string; name: string | null; email: string | null; phone: string | null };
@@ -88,6 +89,11 @@ function Detail({
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  // Próximas clases: lista pesada client-side (regla 20/10,
+  // lib/console-page-size) - slice local + Pager solo si excede.
+  const pageSize = useConsolePageSize();
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  useEffect(() => setUpcomingPage(1), [pageSize]);
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -203,7 +209,9 @@ function Detail({
       </section>
 
       <section className="flex flex-col gap-3" aria-label={ta("kpis.title")}>
-        <ul className="grid grid-cols-3 gap-3">
+        {/* Una columna en mobile: tres KPI en 100px cada uno dejaban
+            el número y el hint ilegibles (review 2026-11-05). */}
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
             {
               label: t("statsTaughtMonth"),
@@ -250,27 +258,48 @@ function Detail({
           {detail.upcoming.length === 0 ? (
             <p className="text-sm text-ink/50">{t("upcomingEmpty")}</p>
           ) : (
+            <>
             <ul className="flex flex-col divide-y divide-line">
-              {detail.upcoming.map((c) => (
+              {detail.upcoming
+                .slice(
+                  (upcomingPage - 1) * pageSize,
+                  upcomingPage * pageSize,
+                )
+                .map((c) => (
                 <li key={c.id}>
+                  {/* En mobile la fila se apila (nombre línea completa,
+                      meta debajo) - en sm+ vuelve a una sola fila. */}
                   <Link
-                    href={`/academia/clases/${c.id}`}
-                    className="flex min-h-11 items-center gap-3 py-2 text-sm transition-colors hover:text-neon"
+                    href={`/academia/clases/${c.id}?from=${encodeURIComponent(`/academia/equipo/profesor/${personId}`)}`}
+                    className="flex min-h-11 flex-col justify-center gap-0.5 py-2 text-sm transition-colors hover:text-neon sm:flex-row sm:items-center sm:gap-3"
                   >
                     <span className="min-w-0 flex-1 truncate font-medium">
                       {c.seriesName ?? "—"}
                     </span>
-                    <span className="shrink-0 text-xs tabular-nums text-ink/50">
-                      {dayFmt.format(new Date(c.date))} · {c.startTime}
+                    <span className="flex shrink-0 items-center gap-2 text-xs text-ink/50 sm:gap-3">
+                      <span className="tabular-nums">
+                        {dayFmt.format(new Date(c.date))} · {c.startTime}
+                      </span>
+                      <span className="text-ink/40">
+                        {t("bookingsOf", { count: c.bookings })}
+                      </span>
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                     </span>
-                    <span className="shrink-0 text-xs text-ink/40">
-                      {t("bookingsOf", { count: c.bookings })}
-                    </span>
-                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                   </Link>
                 </li>
               ))}
             </ul>
+            {detail.upcoming.length > pageSize && (
+              <div className="border-t border-line pt-3">
+                <Pager
+                  page={upcomingPage}
+                  pageSize={pageSize}
+                  total={detail.upcoming.length}
+                  onPage={setUpcomingPage}
+                />
+              </div>
+            )}
+            </>
           )}
         </Card>
       </section>

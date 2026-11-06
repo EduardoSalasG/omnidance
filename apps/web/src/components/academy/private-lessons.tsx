@@ -24,6 +24,7 @@ import {
   type FilterOption,
 } from "./shared";
 import { getDateFmt, useDateFmt } from "@/lib/intl";
+import { useConsolePageSize } from "@/lib/console-page-size";
 
 const df = (locale: string) => getDateFmt(locale, {
   dateStyle: "medium",
@@ -46,8 +47,6 @@ function statusLabel(
 }
 
 type LoadState = "loading" | "ready" | "error";
-
-const PAGE_SIZE = 20;
 
 /**
  * PrivateLesson - espejo del schema + join manual del controller.
@@ -126,6 +125,10 @@ export function PrivateLessons({ academy }: Props) {
     toConfirm: number;
   } | null>(null);
   const [page, setPage] = useState(1);
+  // Paginación 20 desktop / 10 mobile (regla de listas pesadas,
+  // lib/console-page-size). Cambio de viewport → vuelve a página 1.
+  const pageSize = useConsolePageSize();
+  useEffect(() => setPage(1), [pageSize]);
   const [staffState, setStaffState] = useState<LoadState>("loading");
   const [staffFilters, setStaffFilters] = useState<QueryFilters>({});
 
@@ -178,7 +181,7 @@ export function PrivateLessons({ academy }: Props) {
     try {
       const qs = filterQuery(staffFilters);
       const res = await apiFetch(
-        `/academies/${academy.id}/private-lessons${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
+        `/academies/${academy.id}/private-lessons${qs}${qs ? "&" : "?"}page=${page}&pageSize=${pageSize}`,
       );
       if (!res.ok) {
         setStaffState("error");
@@ -196,7 +199,7 @@ export function PrivateLessons({ academy }: Props) {
     } catch {
       setStaffState("error");
     }
-  }, [academy, staffFilters, page]);
+  }, [academy, staffFilters, page, pageSize]);
 
   useEffect(() => {
     void loadStaff();
@@ -332,8 +335,10 @@ export function PrivateLessons({ academy }: Props) {
           {/* KPIs de la cola pendiente: REQUESTED sin instructor/fecha
               (por asignar) y asignadas esperando confirm. Mismo lenguaje
               visual que AcademyKpiCards (label uppercase + número
-              grande); warn = la cola requiere acción. */}
-          {staffState === "ready" && pending !== null && (
+              grande); warn = la cola requiere acción. Se mantienen
+              montados durante el refetch (con datos previos) para que
+              el cambio de filtros no parpadee la sección. */}
+          {pending !== null && staffState !== "error" && (
             <ul
               aria-label={t.pendingTitle}
               className="grid grid-cols-2 gap-3 sm:grid-cols-3"
@@ -377,7 +382,13 @@ export function PrivateLessons({ academy }: Props) {
             }}
             options={{ academyInstructors: instructorOptions }}
           />
-          {staffState === "loading" && <SkeletonList items={2} lines={1} />}
+          {/* Skeleton solo en carga inicial: en refetch la lista
+              anterior sigue visible (dim + aria-busy) - un skeleton
+              que reemplaza datos ya pintados se percibe como parpadeo
+              (estándar de carga percibida). */}
+          {staffState === "loading" && lessons.length === 0 && (
+            <SkeletonList items={2} lines={1} />
+          )}
           {staffState === "error" && (
             <div className="flex items-center gap-3">
               <p role="alert" className="text-sm text-ink/60">
@@ -392,39 +403,70 @@ export function PrivateLessons({ academy }: Props) {
               </Button>
             </div>
           )}
-          {staffState === "ready" &&
-            (lessons.length === 0 ? (
+          {staffState !== "error" &&
+            (lessons.length === 0 && staffState === "ready" ? (
               // Con filtros activos el vacío es de la consulta, no de
               // la academia sin particulares.
               <p className="text-sm text-ink/50">
                 {filterQuery(staffFilters) !== "" ? tq("empty") : t.empty}
               </p>
-            ) : (
-              <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            ) : lessons.length === 0 ? null : (
+              <ul
+                aria-busy={staffState === "loading"}
+                className={`grid grid-cols-1 gap-2 transition-opacity sm:grid-cols-2 ${
+                  staffState === "loading" ? "opacity-60" : ""
+                }`}
+              >
                 {lessons.map((l) => {
                   const a = staffActions(l);
                   return (
                     <li key={l.id}>
                       <Card className="flex h-full flex-col gap-3 p-4">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                          <Badge variant={statusVariant(l.status)}>
-                            {statusLabel(t, l.status)}
-                          </Badge>
-                          <span className="font-medium tabular-nums">
-                            {lessonWhen(l)}
+                        {/* Fila de identidad: estado + alumno a la
+                            izquierda; precio y cancelar a la derecha
+                            (el destructivo de lectura rápida vive en
+                            la esquina, no en el action row). */}
+                        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                            <Badge variant={statusVariant(l.status)}>
+                              {statusLabel(t, l.status)}
+                            </Badge>
+                            <span className="min-w-0 truncate font-medium">
+                              {l.person?.name ?? shortId(l.personId)}
+                            </span>
+                          </div>
+                          <span className="flex shrink-0 items-center gap-2">
+                            {l.price > 0 && <PriceTag amount={l.price} />}
+                            {a.cancel && (
+                              /* Destructivo sutil junto al precio:
+                                 borde + texto rojo tenue (misma regla
+                                 de las zonas destructivas: red-400/80
+                                 → red-400 en hover). Button.ghost no
+                                 aplica porque sus colores ganarían por
+                                 especificidad de la variante. */
+                              <button
+                                type="button"
+                                disabled={busyId === l.id}
+                                onClick={() => setPendingCancel(l.id)}
+                                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-400/30 px-3 text-sm font-semibold text-red-400/80 transition-colors transition-transform hover:border-red-400/60 hover:text-red-400 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon disabled:pointer-events-none disabled:opacity-50"
+                              >
+                                {busyId === l.id && <Spinner size="sm" />}
+                                {t.cancel}
+                              </button>
+                            )}
                           </span>
-                          {l.price > 0 && <PriceTag amount={l.price} />}
                         </div>
                         <p className="text-xs text-ink/60">
-                          {t.student}:{" "}
-                          {l.person?.name ?? shortId(l.personId)} ·{" "}
+                          <span className="tabular-nums">
+                            {lessonWhen(l)}
+                          </span>
+                          {" · "}
                           {t.instructor}: {lessonInstructor(l)}
                         </p>
                         {(a.assign ||
                           a.confirm ||
                           a.done ||
-                          a.reschedule ||
-                          a.cancel) && (
+                          a.reschedule) && (
                           <div className="flex flex-wrap gap-2">
                             {a.assign && (
                               <Button
@@ -480,23 +522,6 @@ export function PrivateLessons({ academy }: Props) {
                                 {busyId === l.id && <Spinner size="sm" />}
                                 {t.reschedule}
                               </Button>
-                            )}
-                            {a.cancel && (
-                              /* Destructivo sutil en el action row:
-                                 borde + texto rojo tenue (misma regla
-                                 de las zonas destructivas: red-400/80
-                                 → red-400 en hover). Button.ghost no
-                                 aplica porque sus colores ganarían por
-                                 especificidad de la variante. */
-                              <button
-                                type="button"
-                                disabled={busyId === l.id}
-                                onClick={() => setPendingCancel(l.id)}
-                                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-400/30 px-4 text-sm font-semibold text-red-400/80 transition-colors transition-transform hover:border-red-400/60 hover:text-red-400 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon disabled:pointer-events-none disabled:opacity-50"
-                              >
-                                {busyId === l.id && <Spinner size="sm" />}
-                                {t.cancel}
-                              </button>
                             )}
                           </div>
                         )}
@@ -603,10 +628,10 @@ export function PrivateLessons({ academy }: Props) {
                 })}
               </ul>
             ))}
-          {staffState === "ready" && lessons.length > 0 && (
+          {staffState !== "error" && lessons.length > 0 && (
             <Pager
               page={page}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
               total={total}
               onPage={setPage}
             />

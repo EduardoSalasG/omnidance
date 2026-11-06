@@ -259,6 +259,10 @@ async function main() {
     await prisma.personStyleRole.deleteMany({ where: { styleId: { in: junkStyleIds } } });
     await prisma.scheduleBlock.deleteMany({ where: { styleId: { in: junkStyleIds } } });
     await prisma.classSeries.updateMany({ where: { styleId: { in: junkStyleIds } }, data: { styleId: null } });
+    // DanceSession.styleId también es FK hacia Style (la depuración de
+    // seed-common ya lo desvincula); sin esto el deleteMany reventaba
+    // por FK si alguna sesión quedó etiquetada con un estilo fixture.
+    await prisma.danceSession.updateMany({ where: { styleId: { in: junkStyleIds } }, data: { styleId: null } });
     await prisma.style.deleteMany({ where: { id: { in: junkStyleIds } } });
   }
   say(`Styles fixture borrados (${junkStyleIds.length}): ${junkStyles.filter((s) => junkStyleIds.includes(s.id)).map((s) => s.name).join(", ") || "—"}`);

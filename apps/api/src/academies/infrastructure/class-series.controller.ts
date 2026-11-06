@@ -477,6 +477,28 @@ export class ClassSeriesController {
   }
 
   /**
+   * Estilos presentes en las series de la academia - opciones del
+   * filtro `styleId` del listado (review 2026-11-05): el catálogo
+   * global de /styles ofrecería valores sin ninguna serie y el filtro
+   * caería en vacíos garantizados. [{id,name}] ordenado por nombre.
+   */
+  @Get(":id/series/styles")
+  async styles(@Param("id") id: string, @Req() req: Request) {
+    await this.access.requireCapability(id, req.person!, "schedule", "classes");
+    const rows = await this.prisma.classSeries.findMany({
+      where: { academyId: id, deletedAt: null, styleId: { not: null } },
+      select: { style: { select: { id: true, name: true } } },
+    });
+    const byId = new Map<string, string>();
+    for (const r of rows) {
+      if (r.style) byId.set(r.style.id, r.style.name);
+    }
+    return [...byId.entries()]
+      .map(([styleId, name]) => ({ id: styleId, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }
+
+  /**
    * Detalle de una serie de la academia. Las eliminadas (deletedAt)
    * responden 404 - fuera de la consola solo existen para analítica.
    */
