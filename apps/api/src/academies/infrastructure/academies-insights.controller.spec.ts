@@ -65,6 +65,8 @@ const makeCtrl = (prisma: unknown, access: unknown) =>
     {} as never,
     {} as never,
     {} as never, // FileStorage - no se usa en estos endpoints
+      {} as never,
+      {} as never,
   );
 
 // spec academies/course-surveys: ?limit= capa los grupos mes × serie

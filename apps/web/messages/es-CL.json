@@ -516,7 +516,15 @@
     "planStudentsTitle": "Alumnos con este plan",
     "planStudentsEmpty": "Nadie tiene este plan vigente",
     "planFrom": "Desde",
-    "planUntil": "Hasta"
+    "planUntil": "Hasta",
+    "personSearch": {
+      "registerNew": "Registrar nueva persona",
+      "newPersonHint": "Creamos la cuenta y le enviamos la invitación por mail para que la complete.",
+      "emailLabel": "Correo",
+      "nameLabel": "Nombre (opcional)",
+      "backToSearch": "← Volver a buscar"
+    },
+    "enrollmentSavedInvited": "Inscripción guardada - le enviamos la invitación por mail"
   },
   "practices": {
     "title": "Prácticas",

@@ -516,7 +516,15 @@
     "planStudentsEmpty": "Nobody has this plan active",
     "planFrom": "From",
     "planUntil": "Until",
-    "newAcademy": "New academy"
+    "newAcademy": "New academy",
+    "personSearch": {
+      "registerNew": "Register new person",
+      "newPersonHint": "We create the account and email the invite so they can complete it.",
+      "emailLabel": "Email",
+      "nameLabel": "Name (optional)",
+      "backToSearch": "← Back to search"
+    },
+    "enrollmentSavedInvited": "Enrollment saved - invite sent by email"
   },
   "practices": {
     "title": "Practices",
