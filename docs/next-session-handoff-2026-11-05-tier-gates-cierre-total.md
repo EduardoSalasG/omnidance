@@ -72,6 +72,26 @@ Cierra TODOS los pendientes del handoff `tier-gates-cierre`:
 - Verificado: `db:enrich` re-corrida → `COBROS limpio` todo en 0,
   slots vivos 93 (eran 117), claims +0/+0, validate + archive OK.
 
+## Auditoría seed por tier + relleno (change `academy-enrich-history-fill`)
+
+Audit completo por academia vs matriz (COBROS=billing+students ·
+STUDIO=+clases/asistencia/staff/exports/preventas · PRO=+analytics/crm/
+videos/insights/multiAcademy · null/trial=nivel STUDIO): COBROS 100%
+consistente; gaps rellenados y verificados:
+
+- **Historia sep→dic**: clases sep 701 / oct 805 / nov 787 / dic 450;
+  asistencias sep 8.3k / oct 10.4k / nov 1.2k. Clases pasadas sin
+  reserva reciben ClassBooking BOOKED determinista del roster (shape
+  reserva→asistencia real).
+- **Claims multi-mes**: +81 APPROVED repartidos sep/oct/nov (era solo
+  mes actual + anterior).
+- **Staff**: +16 `AcademyStaff` (canStudents+canSchedule) - una por
+  academia STUDIO+/trial que no tenía.
+- **Videos**: +6 (top-up 3 en La Casa del Mambo y Santiago Baila Salsa;
+  Mambo Madness ya tenía 3).
+- **Niveles custom**: +3 en La Gozadera (además de Mambo Madness).
+- Re-corrida: todo +0 - idempotente confirmado.
+
 ## Notas / gaps conocidos
 
 - Stack dejado: `next dev` en :3000 (levantado por esta sesión),
