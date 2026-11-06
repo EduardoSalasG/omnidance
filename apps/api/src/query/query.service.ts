@@ -341,12 +341,6 @@ export class QueryService {
             this.academySlotOptions(id, deps.seriesId, deps.levelId),
           ),
         };
-      case "academyClasses":
-        return {
-          options: await this.academyScoped(personId, role, scopeId, (id) =>
-            this.academyClassOptions(id, deps.slotId, deps.seriesId, deps.levelId),
-          ),
-        };
       case "eventGuestLists": {
         if (!scopeId) throw new BadRequestException("scopeId requerido");
         const scope = await this.producerEventScope(personId, role, scopeId);
@@ -451,44 +445,9 @@ export class QueryService {
     }));
   }
 
-  /** Clases concretas (Class) recientes de una academia:
-      "Serie · jue 20 nov 19:00". Cascada acumulativa: slotId acota a
-      las ocurrencias del horario; seriesId/levelId alcanzan cuando el
-      usuario no llegó a elegir horario. */
-  private async academyClassOptions(
-    academyId: string,
-    slotId?: string,
-    seriesId?: string,
-    levelId?: string,
-  ): Promise<QueryOption[]> {
-    const classes = await this.prisma.class.findMany({
-      where: {
-        slot: {
-          academyId,
-          deletedAt: null,
-          series: {
-            deletedAt: null,
-            ...(seriesId ? { id: seriesId } : {}),
-            ...(levelId ? { levelId } : {}),
-          },
-          ...(slotId ? { id: slotId } : {}),
-        },
-      },
-      select: {
-        id: true,
-        date: true,
-        slot: {
-          select: { startTime: true, series: { select: { name: true } } },
-        },
-      },
-      orderBy: { date: "desc" },
-      take: OPTION_TAKE,
-    });
-    return classes.map((c) => ({
-      value: c.id,
-      label: `${c.slot.series.name} · ${dayCl(c.date)} ${c.slot.startTime}`,
-    }));
-  }
+  // academyClassOptions y la fuente academyClasses se retiraron: el
+  // select de clase era redundante con horario + rango de fechas
+  // (spec analytics/query-console).
 
   // ─── Ejecución ──────────────────────────────────────────────────────
 
