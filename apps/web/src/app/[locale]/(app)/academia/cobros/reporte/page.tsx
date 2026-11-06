@@ -250,7 +250,10 @@ function ReportModule({ academyId }: { academyId: string }) {
       .sort((a, b) => b.amount - a.amount);
   }, [report, tp, t]);
 
-  if (state === "loading") return <SkeletonList />;
+  // Skeleton de página completa solo en la carga inicial: en
+  // refetches (cambio de filtro o de página) el contenido previo se
+  // queda visible hasta que llega la nueva data (anti-flash).
+  if (state === "loading" && !report) return <SkeletonList />;
   if (state === "forbidden") {
     return (
       <Card className="flex flex-col items-center gap-3 py-6 text-center">
