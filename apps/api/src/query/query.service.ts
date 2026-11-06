@@ -300,6 +300,22 @@ export class QueryService {
                 ? [{ value: person.id, label: person.name ?? "?" }]
                 : [];
             }
+            // Sin horario pero con serie: el instructor titular de la
+            // serie (mismo encadenamiento que el slot).
+            if (deps.seriesId) {
+              const serie = await this.prisma.classSeries.findUnique({
+                where: { id: deps.seriesId },
+                select: { instructorId: true },
+              });
+              if (!serie?.instructorId) return [];
+              const person = await this.prisma.person.findUnique({
+                where: { id: serie.instructorId },
+                select: { id: true, name: true },
+              });
+              return person
+                ? [{ value: person.id, label: person.name ?? "?" }]
+                : [];
+            }
             const rows = await this.prisma.academyInstructor.findMany({
               where: { academyId: id },
               select: { personId: true },
@@ -322,13 +338,13 @@ export class QueryService {
       case "academyScheduleSlots":
         return {
           options: await this.academyScoped(personId, role, scopeId, (id) =>
-            this.academySlotOptions(id, deps.seriesId),
+            this.academySlotOptions(id, deps.seriesId, deps.levelId),
           ),
         };
       case "academyClasses":
         return {
           options: await this.academyScoped(personId, role, scopeId, (id) =>
-            this.academyClassOptions(id, deps.slotId),
+            this.academyClassOptions(id, deps.slotId, deps.seriesId, deps.levelId),
           ),
         };
       case "eventGuestLists": {
@@ -400,16 +416,21 @@ export class QueryService {
   }
 
   /** Horarios (ClassSlot) de una academia: "Serie · lun 19:00".
-      Con seriesId en cascada, solo los horarios de esa serie. */
+      Cascada acumulativa: seriesId acota a su serie y levelId a las
+      series de ese nivel. */
   private async academySlotOptions(
     academyId: string,
     seriesId?: string,
+    levelId?: string,
   ): Promise<QueryOption[]> {
     const slots = await this.prisma.classSlot.findMany({
       where: {
         academyId,
         deletedAt: null,
-        series: { deletedAt: null },
+        series: {
+          deletedAt: null,
+          ...(levelId ? { levelId } : {}),
+        },
         ...(seriesId ? { seriesId } : {}),
       },
       select: {
@@ -431,18 +452,25 @@ export class QueryService {
   }
 
   /** Clases concretas (Class) recientes de una academia:
-      "Serie · jue 20 nov 19:00". Con slotId en cascada, solo las
-      ocurrencias de ese horario. */
+      "Serie · jue 20 nov 19:00". Cascada acumulativa: slotId acota a
+      las ocurrencias del horario; seriesId/levelId alcanzan cuando el
+      usuario no llegó a elegir horario. */
   private async academyClassOptions(
     academyId: string,
     slotId?: string,
+    seriesId?: string,
+    levelId?: string,
   ): Promise<QueryOption[]> {
     const classes = await this.prisma.class.findMany({
       where: {
         slot: {
           academyId,
           deletedAt: null,
-          series: { deletedAt: null },
+          series: {
+            deletedAt: null,
+            ...(seriesId ? { id: seriesId } : {}),
+            ...(levelId ? { levelId } : {}),
+          },
           ...(slotId ? { id: slotId } : {}),
         },
       },
