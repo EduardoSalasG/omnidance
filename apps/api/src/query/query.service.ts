@@ -225,12 +225,35 @@ export class QueryService {
           options: await this.academyScoped(personId, role, scopeId, (id) =>
             this.prisma.classSeries
               .findMany({
-                where: { academyId: id },
-                select: { id: true, name: true },
+                where: { academyId: id, deletedAt: null },
+                select: {
+                  id: true,
+                  name: true,
+                  // El horario en el label desambigua series con el
+                  // mismo nombre (spec console-lists: opciones sin
+                  // duplicados por etiqueta).
+                  slots: {
+                    where: { deletedAt: null },
+                    select: { weekday: true, startTime: true },
+                    orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+                  },
+                },
                 orderBy: { name: "asc" },
                 take: OPTION_TAKE,
               })
-              .then((r) => r.map((s) => ({ value: s.id, label: s.name }))),
+              .then((r) =>
+                r.map((s) => ({
+                  value: s.id,
+                  label: s.slots.length
+                    ? `${s.name} · ${s.slots
+                        .map(
+                          (sl) =>
+                            `${WEEKDAY_SHORT[sl.weekday] ?? sl.weekday} ${sl.startTime}`,
+                        )
+                        .join(" + ")}`
+                    : s.name,
+                })),
+              ),
           ),
         };
       case "academyInstructors":
@@ -338,7 +361,7 @@ export class QueryService {
   /** Horarios (ClassSlot) de una academia: "Serie · lun 19:00". */
   private async academySlotOptions(academyId: string): Promise<QueryOption[]> {
     const slots = await this.prisma.classSlot.findMany({
-      where: { academyId },
+      where: { academyId, deletedAt: null, series: { deletedAt: null } },
       select: {
         id: true,
         weekday: true,
@@ -361,7 +384,9 @@ export class QueryService {
       "Serie · jue 20 nov 19:00". */
   private async academyClassOptions(academyId: string): Promise<QueryOption[]> {
     const classes = await this.prisma.class.findMany({
-      where: { slot: { academyId } },
+      where: {
+        slot: { academyId, deletedAt: null, series: { deletedAt: null } },
+      },
       select: {
         id: true,
         date: true,

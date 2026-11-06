@@ -219,6 +219,11 @@ Un `FilterDef` puede declarar `requiresScope: true`: la barra de
 filtros SHALL omitir la resolución sin scope para esas fuentes
 (`eventGuestLists` sigue exigiendo `scopeId` → 400 sin él).
 
+Las opciones SHALL excluir registros eliminados: series y slots con
+`deletedAt` no nulo, y slots/clases cuya serie fue borrada. Cuando dos
+opciones comparten el mismo nombre, el label SHALL incluir contexto
+que las desambigüe (en series, su horario abreviado).
+
 #### Scenario: owner de una academia ve sus planes sin elegirla
 
 - **GIVEN** un owner con una sola academia y el filtro Academia en
@@ -239,6 +244,21 @@ filtros SHALL omitir la resolución sin scope para esas fuentes
 
 - **WHEN** pide `/query/options?source=academyPlans&scopeId=<ajena>`
 - **THEN** `{options: []}` (sin revelar existencia)
+
+#### Scenario: series borradas no aparecen como opción
+
+- **GIVEN** una academia con series soft-deleted
+- **WHEN** pide `/query/options?source=academyClassSeries` (con o sin
+  `scopeId`)
+- **THEN** el select solo lista las series activas; los slots y clases
+  cuya serie fue borrada tampoco aparecen en sus fuentes
+
+#### Scenario: series homónimas distinguibles por horario
+
+- **GIVEN** una academia con dos series activas llamadas "Partnerwork"
+- **WHEN** abre el filtro de serie
+- **THEN** las opciones se leen "Partnerwork · mié 21:30" y
+  "Partnerwork · jue 20:30" (o el horario que corresponda)
 
 ### Requirement: Filtros de horario y clase en asistencia
 
