@@ -439,7 +439,14 @@ async function main() {
     const days = new Date(Date.UTC(y, m0 + 1, 0)).getUTCDate();
     return Array.from({ length: days }, (_, i) => new Date(Date.UTC(y, m0, i + 1)));
   };
-  const materializeMonths = [prevMonthStart, monthStart, nextMonthStart];
+  // Historia completa de la escena demo: desde septiembre 2026 hasta
+  // el mes siguiente al vigente - los dashboards de tendencia necesitan
+  // varios meses de clases/reservas/asistencias (spec academy-demo-seed).
+  const HISTORY_MONTH0 = new Date(Date.UTC(2026, 8, 1)); // 2026-09
+  const materializeMonths = [];
+  for (let m = new Date(+HISTORY_MONTH0); m <= nextMonthStart; m = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 1, 1))) {
+    materializeMonths.push(m);
+  }
   const liveSlots = await prisma.classSlot.findMany({
     where: { deletedAt: null, academyId: { notIn: [...cobrosEffective] }, series: { deletedAt: null, active: true } },
     select: { id: true, weekday: true, oneOffDate: true, classes: { select: { date: true } } },
@@ -479,6 +486,7 @@ async function main() {
   // Rosters ACTIVE por academia para clases sin reservas.
   const rosterByAcademy = new Map();
   const attCreates = [];
+  const bookingCreates = [];
   let todayFilled = 0;
   for (const cls of emptyClasses) {
     const startH = parseInt(cls.slot.startTime.slice(0, 2), 10);
@@ -502,6 +510,12 @@ async function main() {
       const off = h(cls.id) % roster.length;
       const n = Math.min(roster.length, capOf(cls), 8 + (h(cls.id + "n") % 7));
       candidates = Array.from({ length: n }, (_, k) => roster[(off + k) % roster.length]);
+      // Shape real: la asistencia cuelga de una reserva BOOKED previa -
+      // las clases de la historia materializada no la traen del seed.
+      const bookedAt = new Date(+cls.date - (1 + (h(cls.id + "b") % 2)) * 86_400_000);
+      for (const pid of candidates) {
+        bookingCreates.push({ classId: cls.id, personId: pid, createdAt: bookedAt });
+      }
     }
     // La asistencia nunca supera el cupo efectivo de la clase.
     let filled = 0;
@@ -517,6 +531,13 @@ async function main() {
       }
     }
   }
+  // Reservas de la historia materializada (skipDuplicates por la PK
+  // compuesta classId+personId).
+  let bkTotal = 0;
+  for (let i = 0; i < bookingCreates.length; i += 5000) {
+    bkTotal += (await prisma.classBooking.createMany({ data: bookingCreates.slice(i, i + 5000), skipDuplicates: true })).count;
+  }
+  if (bkTotal) say(`ClassBooking historia: ${bkTotal} reservas`);
   // createMany por lotes (la tabla es grande; skipDuplicates por la PK compuesta).
   let attTotal = 0;
   for (let i = 0; i < attCreates.length; i += 5000) {
@@ -838,23 +859,70 @@ async function main() {
       const created = new Date(Date.now() - (k % 3) * 86_400_000 - 3 * 3600e3);
       if (await mkClaim(e, "PENDING", created, k % 3 === 2 ? "CASH" : "TRANSFER", k % 3 === 2 ? "Efectivo en clase" : "Transferencia")) claimsPending++;
     }
-    // Aprobados del mes + MTD anterior si la academia no tiene cobranza.
-    const approvedNow = await prisma.paymentClaim.count({
-      where: { academyId: a.id, status: "APPROVED", createdAt: { gte: monthStart } },
-    });
-    if (approvedNow < 3) {
-      for (let k = approvedNow; k < 5; k++) {
-        const e = enrolled[(h(a.id + "a") + k * 13) % enrolled.length];
-        const day = 1 + ((k * 2) % Math.max(1, now.getUTCDate()));
-        if (await mkClaim(e, "APPROVED", new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day, 12)))) claimsApproved++;
-      }
-      for (let k = 0; k < 3; k++) {
-        const e = enrolled[(h(a.id + "v") + k * 17) % enrolled.length];
-        if (await mkClaim(e, "APPROVED", new Date(+prevMonthStart + (2 + k * 3) * 86_400_000 + 12 * 3600e3))) claimsApproved++;
+    // Aprobados repartidos en cada mes de la historia (sep→actual):
+    // el Facturado del dashboard necesita varios meses de cobranza.
+    // mkClaim deduplica por academia+persona+plan+status+mes.
+    for (let ms = new Date(+HISTORY_MONTH0); ms <= monthStart; ms = new Date(Date.UTC(ms.getUTCFullYear(), ms.getUTCMonth() + 1, 1))) {
+      const mEnd = new Date(Date.UTC(ms.getUTCFullYear(), ms.getUTCMonth() + 1, 1));
+      const have = await prisma.paymentClaim.count({
+        where: { academyId: a.id, status: "APPROVED", createdAt: { gte: ms, lt: mEnd } },
+      });
+      const lastDay = +ms === +monthStart ? now.getUTCDate() : 28;
+      for (let k = have; k < 4; k++) {
+        const pick = enrolled[(h(a.id + ms.toISOString().slice(0, 7)) + k * 13) % enrolled.length];
+        const day = 1 + ((k * 5 + h(a.id + "d")) % Math.max(1, lastDay));
+        if (await mkClaim(pick, "APPROVED", new Date(Date.UTC(ms.getUTCFullYear(), ms.getUTCMonth(), day, 12)))) claimsApproved++;
       }
     }
   }
   say(`PaymentClaim: +${claimsPending} PENDING, +${claimsApproved} APPROVED`);
+
+  // ── Features por tier: staff delegado, videos PRO, niveles custom ──
+  // (spec academy-demo-seed): las academias reciben data demo de las
+  // features que su tier cubre - COBROS efectivas quedan fuera.
+  let staffNew = 0, vidsNew = 0, lvlNew = 0;
+  for (const a of academies) {
+    if (cobrosEffective.has(a.id)) continue;
+    if (!(await prisma.academyStaff.count({ where: { academyId: a.id } }))) {
+      const st = await prisma.enrollment.findFirst({
+        where: { academyId: a.id, status: "ACTIVE", personId: { not: a.ownerId } },
+        select: { personId: true }, orderBy: { personId: "asc" },
+        skip: h(a.id + "s") % 3,
+      });
+      if (st) {
+        await prisma.academyStaff.create({
+          data: { academyId: a.id, personId: st.personId, canStudents: true, canSchedule: true },
+        });
+        staffNew++;
+      }
+    }
+    const tierEff = a.tier ?? "STUDIO"; // null/trial resuelve a STUDIO
+    if (tierEff === "PRO" || tierEff === "ENTERPRISE") {
+      const have = await prisma.video.count({ where: { academyId: a.id } });
+      for (let k = have; k < 3; k++) {
+        await prisma.video.create({
+          data: {
+            academyId: a.id,
+            url: `https://youtu.be/enrich-${h(a.id + "v" + k).toString(16)}`,
+            title: `${a.name} · repaso ${["En Pareja", "Shines", "Corporalidad"][k % 3]} ${k + 1}`,
+            restrictedToAttended: true,
+            createdAt: new Date(+HISTORY_MONTH0 + k * 30 * 86_400_000),
+          },
+        });
+        vidsNew++;
+      }
+    }
+  }
+  // Una academia STUDIO más con línea propia de niveles (además de las
+  // existentes): demo del feature custom vs herencia global.
+  const lvlAcad = academies.find((a) => a.name === "La Gozadera");
+  if (lvlAcad && !cobrosEffective.has(lvlAcad.id) && !(await prisma.classLevel.count({ where: { academyId: lvlAcad.id } }))) {
+    for (const [i, name] of ["Iniciación", "Básico", "Intermedio"].entries()) {
+      await prisma.classLevel.create({ data: { academyId: lvlAcad.id, name, order: i + 1 } });
+      lvlNew++;
+    }
+  }
+  say(`Features por tier: +${staffNew} staff, +${vidsNew} videos, +${lvlNew} niveles custom`);
 
   // ═══════════ 7. KPIs de inicio ═══════════
   console.log("\n═══ 7. Cumpleaños, particulares y check-ins de eventos ═══");
