@@ -19,7 +19,6 @@ export type FkSource =
   | "academyInstructors" // instructores de la academia en scope
   | "academyLevels" // niveles usados por las series de la academia en scope
   | "academyScheduleSlots" // horarios (ClassSlot) de la academia en scope
-  | "academyClasses" // clases concretas (Class) de la academia en scope
   | "eventGuestLists" // listas de invitados del evento en scope
   // fuentes admin (global):
   | "producers"
@@ -243,12 +242,6 @@ export const QUERY_CATALOG: Record<QueryRole, readonly EntityDef[]> = {
           type: "fk",
           source: "academyScheduleSlots",
           dependsOn: ["levelId", "seriesId"],
-        },
-        {
-          key: "classId",
-          type: "fk",
-          source: "academyClasses",
-          dependsOn: ["levelId", "seriesId", "slotId"],
         },
         {
           key: "instructorId",

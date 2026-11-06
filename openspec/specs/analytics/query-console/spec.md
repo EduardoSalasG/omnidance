@@ -310,7 +310,9 @@ transitiva. Sin padre elegido, las opciones son las del scope
 completo.
 
 En `attendance` (lente ACADEMY_OWNER) el orden es nivel → serie →
-horario → clase, con instructor acotado por serie y por horario.
+horario, con instructor acotado por serie y por horario. No hay select
+de clase: la ocurrencia concreta se alcanza con horario + rango de
+fechas.
 
 #### Scenario: nivel acota el select de serie
 
@@ -323,16 +325,14 @@ horario → clase, con instructor acotado por serie y por horario.
 - **GIVEN** un nivel elegido y el select de serie en "Todos"
 - **WHEN** abre el select de horario
 - **THEN** solo ve los horarios de las series de ese nivel
-- **AND** el select de clase solo ofrece ocurrencias de esas series
 
 #### Scenario: serie acota horario, horario acota clase e instructor
 
 - **GIVEN** una serie elegida
 - **WHEN** abre el select de horario
 - **THEN** solo ve los horarios de esa serie
-- **AND** con un horario elegido, el select de clase solo ofrece las
-  ocurrencias de ese horario y el de instructor solo el instructor del
-  slot
+- **AND** con un horario elegido, el de instructor solo ofrece el
+  instructor del slot
 
 #### Scenario: serie sin horario acota instructor
 
@@ -342,7 +342,6 @@ horario → clase, con instructor acotado por serie y por horario.
 
 #### Scenario: cambiar el padre limpia dependientes
 
-- **WHEN** el usuario cambia el nivel tras haber elegido serie,
-  horario y clase
-- **THEN** serie, horario y clase vuelven a "Todos" (su selección
-  anterior era potencialmente inválida)
+- **WHEN** el usuario cambia el nivel tras haber elegido serie y
+  horario
+- **THEN** serie y horario vuelven a "Todos"
