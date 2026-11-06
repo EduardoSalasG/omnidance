@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { Button, RefreshIcon, SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ImportCard } from "@/components/academy/import-section";
+import { academyTierHas } from "@/lib/academy-features";
 import { ConsoleHeader } from "@/components/console/console-header";
 import type { AcademyCap } from "@/components/academy/use-academy-access";
 
@@ -16,7 +17,9 @@ import type { AcademyCap } from "@/components/academy/use-academy-access";
  * embebidas en /academia/alumnos y /academia/series: son setup de una
  * vez, no operación diaria - por eso van en Configuración.
  * Cada card se muestra solo si el viewer tiene el cap correspondiente
- * (students/schedule) - el backend gatea igual en /import/:kind.
+ * (students/schedule) y el tier la feature (schedule → `classes`,
+ * spec academy-tier-gates-refine) - el backend gatea igual en
+ * /import/:kind.
  */
 export default function ConfigImportarPage() {
   const ta = useTranslations("academy");
@@ -26,7 +29,11 @@ export default function ConfigImportarPage() {
       <ConsoleHeader backHref="/academia" backLabel={ta("title")} />
       <AcademyGate>
         {({ academy }) => (
-          <ImportSection key={academy.id} academyId={academy.id} />
+          <ImportSection
+            key={academy.id}
+            academyId={academy.id}
+            tier={academy.tier}
+          />
         )}
       </AcademyGate>
     </main>
@@ -36,7 +43,13 @@ export default function ConfigImportarPage() {
 type AccessInfo = { caps: Partial<Record<AcademyCap, boolean>> };
 type Phase = "loading" | "ready" | "forbidden" | "error";
 
-function ImportSection({ academyId }: { academyId: string }) {
+function ImportSection({
+  academyId,
+  tier,
+}: {
+  academyId: string;
+  tier?: string | null;
+}) {
   const t = useTranslations("academyImport");
   const tc = useTranslations("common");
   const [phase, setPhase] = useState<Phase>("loading");
@@ -87,7 +100,11 @@ function ImportSection({ academyId }: { academyId: string }) {
   }
 
   const canStudents = access?.caps.students === true;
-  const canSchedule = access?.caps.schedule === true;
+  // Importar clases exige `classes` del tier además del cap: en COBROS
+  // el owner tiene todos los caps pero el endpoint responde 403
+  // tier.required - la card no se ofrece.
+  const canSchedule =
+    access?.caps.schedule === true && academyTierHas(tier, "classes");
 
   // Staff sin caps de importación: estado "sin acceso" explícito con
   // salida al hub; nunca página vacía (el backend gatea igual en

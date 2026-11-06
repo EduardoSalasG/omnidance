@@ -161,8 +161,16 @@ export function useCrmContext(): CrmContextValue {
         ? academyEnt
         : null
     : null;
+  // `resolved` = el actor resolvió a un entitlement real: sin él no se
+  // puede afirmar que falte la feature (academia de membresía no-owner,
+  // o academia inspeccionada por un ADMIN - ambas ausentes de
+  // /me/entitlements). Bloquear ahí mostraba paywall a quien sí puede
+  // entrar por API (spec academy-tier-gates-refine).
   const blocked =
-    actorEnt != null && !actorEnt.loading && !actorEnt.has("crm");
+    actorEnt != null &&
+    !actorEnt.loading &&
+    actorEnt.resolved &&
+    !actorEnt.has("crm");
 
   return {
     gate,

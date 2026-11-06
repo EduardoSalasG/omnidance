@@ -2304,8 +2304,9 @@ export class AcademiesController {
    * type ∈ tipos del slot y level = level de la serie), capacidad
    * efectiva, cupos vacíos y asistencia reciente. Alumnos sin nivel se
    * agrupan en `unassigned` por tipo para que el owner complete el
-   * dato. Solo owner/ADMIN + feature PRO `insights` (mismo gate que
-   * /surveys).
+   * dato. Solo owner/ADMIN + feature `classes` (STUDIO+: es
+   * planificación operativa del horario, no analítica estratégica -
+   * spec academy-tier-gates-refine).
    */
   @Get(":id/insights/levels")
   @UseGuards(SessionGuard)
@@ -2313,7 +2314,7 @@ export class AcademiesController {
     const { academy } = await this.access.requireAdminister(
       id,
       req.person!,
-      "insights",
+      "classes",
     );
     const now = new Date();
     // Class.date vive a medianoche UTC (misma convención del dashboard):

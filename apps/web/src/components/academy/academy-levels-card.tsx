@@ -17,8 +17,10 @@ export type LevelInsightsState = "loading" | "ready" | "hidden" | "error";
 
 /**
  * Fetch del insight de niveles/cupos (GET /academies/:id/insights/levels):
- * gate owner/ADMIN + feature PRO `insights`; sin la feature no se
- * fetchea y en 403 el estado queda "hidden" (COBROS/STUDIO y lentes sin
+ * gate owner/ADMIN + feature `classes` (STUDIO+): la card es
+ * planificación operativa (nivel sin asignar, cupo por horario), no
+ * analítica estratégica (spec academy-tier-gates-refine). Sin la
+ * feature no se fetchea y en 403 el estado queda "hidden" (COBROS y
  * privilegio no conocen el dato). Lo consume el inicio completo (KPI
  * "sin nivel" en ambos modos + card de niveles y cupos en Extendido):
  * un solo fetch para todos los consumidores.
@@ -28,7 +30,7 @@ export function useAcademyLevelInsights(academy: Academy): {
   state: LevelInsightsState;
   reload: () => void;
 } {
-  const canInsights = academyTierHas(academy.tier, "insights");
+  const canInsights = academyTierHas(academy.tier, "classes");
   const [data, setData] = useState<AcademyLevelInsights | null>(null);
   const [state, setState] = useState<LevelInsightsState>(
     canInsights ? "loading" : "hidden",
