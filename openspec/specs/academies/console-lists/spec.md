@@ -324,3 +324,320 @@ soporta búsqueda (`q`) o filtros — sin secciones con solo `Pager`
 - **WHEN** el owner filtra por nombre en la sección de profesores
 - **THEN** el `FilterBar` aplica `q` y el `Pager` refleja el total
   filtrado
+
+### Requirement: Back link contextual con `?from=`
+
+Las páginas de edición y las fichas abiertas desde otra ficha de la
+consola SHALL devolver al origen real, no al listado genérico. El
+patrón es el ya existente del roster de clase: el link de origen pasa
+`?from=<ruta interna>` y el `ConsoleHeader` del destino la usa como
+`backHref` tras sanitizarla (`safeInternalPath`). Casos cubiertos:
+
+- `/academia/planes/nueva?edit=<id>` SHALL volver a
+  `/academia/planes/<id>` (la ficha del plan), no al listado.
+- `/academia/series/nueva?edit=<id>` SHALL volver a
+  `/academia/series/<id>` (la ficha de la serie), no al listado.
+- Los links de alumno dentro de la ficha del plan SHALL llevar
+  `from=/academia/planes/<id>` y la ficha de alumno
+  (`/academia/alumnos/[personId]`) SHALL usarlo como back.
+- Los links de clase dentro de la ficha del profesor
+  (`/academia/equipo/profesor/[id]`) SHALL llevar
+  `from=/academia/equipo/profesor/<id>` y el roster
+  (`/academia/clases/[id]`) SHALL preferirlo sobre su padre canónico.
+
+Un `from` ausente, vacío o no interno SHALL degradar al padre
+canónico de cada página sin error.
+
+#### Scenario: editar plan vuelve a su ficha
+
+- **GIVEN** el owner en `/academia/planes/nueva?edit=abc`
+- **WHEN** presiona el back del header
+- **THEN** navega a `/academia/planes/abc`
+
+#### Scenario: alumno abierto desde un plan
+
+- **GIVEN** el owner en la ficha del plan `abc`
+- **WHEN** toca un alumno de la lista "Alumnos con este plan" y luego
+  el back de la ficha de alumno
+- **THEN** vuelve a `/academia/planes/abc`
+
+#### Scenario: clase abierta desde la ficha del profesor
+
+- **GIVEN** el owner en `/academia/equipo/profesor/xyz`
+- **WHEN** toca una próxima clase y luego el back del roster
+- **THEN** vuelve a `/academia/equipo/profesor/xyz`
+
+#### Scenario: `from` inválido
+
+- **WHEN** el owner abre `/academia/alumnos/p1?from=https://evil.test`
+- **THEN** el back va al padre canónico `/academia/alumnos`
+
+### Requirement: Copy de consola sin tecnicismos
+
+El copy visible para el owner SHALL usar lenguaje de negocio, no
+nombres de campo, flags ni enums crudos. En particular: el hint de la
+KPI "Planes activos" SHALL describir que son los planes comprables
+ahora (no `active=true`); el hint de las KPI por plan SHALL describir
+"alumnos con ese plan vigente"; el pie del card "Niveles y cupos"
+SHALL reflejar la regla vigente de un nivel por tipo (sin disclaimers
+de doble conteo); los tipos de plan del form SHALL tener labels
+claros y una ayuda breve por tipo, y con tipo `SINGLE` el input de
+clases SHALL ocultarse enviando `classCount=1` implícito.
+
+#### Scenario: hints de KPI legibles
+
+- **WHEN** el owner abre `/academia/planes`
+- **THEN** las leyendas de las KPI cards no contienen `active=true`
+  ni describen un ranking: la primera explica "planes comprables" y
+  las de plan, "alumnos con ese plan vigente"
+
+#### Scenario: clase única sin input de clases
+
+- **WHEN** el owner crea un plan y elige el tipo "Clase única"
+- **THEN** el input de clases no se muestra y el POST envía
+  `classCount: 1`
+
+### Requirement: Listado de series ignora respuestas fuera de orden
+
+El fetch del listado `/academia/series` SHALL aplicar solo el
+resultado del request más reciente: una respuesta (éxito o error)
+que llega después de un request más nuevo SHALL descartarse, para
+que una falla tardía no pise datos ya cargados ni un éxito viejo
+pise filtros más recientes.
+
+#### Scenario: falla tardía no pisa la lista
+
+- **GIVEN** dos requests del listado en vuelo (doble efecto en dev o
+  cambio rápido de filtros)
+- **WHEN** el request más nuevo resuelve OK y luego el viejo falla
+- **THEN** la lista cargada se conserva sin banner de error
+
+### Requirement: Paginación 20/10 en listas pesadas
+
+Toda lista pesada de las consolas SHALL paginar con 20 ítems por página
+en desktop (viewport ≥1024px) y 10 en mobile, resuelto en cliente vía
+media query (`useConsolePageSize`). El tamaño de página viaja como
+`pageSize` del envelope paginado; al cambiar de página o de tamaño el
+listado re-consulta.
+
+#### Scenario: reporte en mobile
+
+- **WHEN** el owner abre `/academia/cobros/reporte` en un viewport
+  <1024px con 25 cobros
+- **THEN** la lista muestra 10 por página y el `Pager` ofrece 3 páginas
+
+### Requirement: Preview expandible en "planes que vencen"
+
+La lista de inscripciones por vencer SHALL expandir sus ítems ocultos
+en el lugar con `SeeAllRow` (preview acotado, "Ver todos" alterna a
+"Mostrar menos"), nunca navegando a otro listado. Las filas siguen
+llevando a la ficha del alumno.
+
+#### Scenario: expandir vencimientos
+
+- **GIVEN** más ítems por vencer que el preview
+- **WHEN** el owner toca "Ver todos"
+- **THEN** la misma sección muestra la lista completa sin salir de la
+  página
+
+### Requirement: Búsqueda de persona en el alta de alumno
+
+El alta de enrollment (`/academia/alumnos/nuevo`) SHALL resolver la
+persona por búsqueda (nombre o email) y nunca por id tipeado a mano.
+`GET /academies/:id/students/candidates?q=` SHALL responder los
+candidatos (`{id, name, email}`) filtrados por `q` de al menos 2
+caracteres sobre nombre o email (contains, case-insensitive),
+ordenados por nombre y acotados a 10, excluyendo cuentas con
+`deletedAt`. El endpoint SHALL exigir la capacidad `students` (owner,
+ADMIN o staff con el flag), la misma que autoriza el POST de
+enrollment. La UI SHALL debouncear la consulta (~300ms), mostrar
+nombre y email de cada coincidencia y, si el término no encuentra a
+nadie, un estado vacío honesto ("sin coincidencias"), distinto del
+estado de error. Al elegir un candidato, el formulario fija su id
+internamente y muestra la identidad elegida (nombre/email) con opción
+de cambiar; el `personId` nunca se expone ni se edita como texto.
+
+#### Scenario: candidatos por nombre
+
+- **GIVEN** personas "María Paz" y "Mariano" registradas
+- **WHEN** el owner escribe "mar" y espera el debounce
+- **THEN** el dropdown lista ambas con nombre y email
+
+#### Scenario: término corto no consulta
+
+- **WHEN** el owner escribe "m" (1 carácter)
+- **THEN** la UI no dispara el fetch ni muestra dropdown
+
+#### Scenario: sin coincidencias
+
+- **GIVEN** ninguna persona que contenga "zzzz"
+- **WHEN** el owner busca "zzzz"
+- **THEN** la UI muestra el estado "sin coincidencias" y el alta no
+  puede enviarse hasta elegir una persona
+
+#### Scenario: selección fija el id
+
+- **GIVEN** el dropdown con candidatos
+- **WHEN** el owner elige "María Paz"
+- **THEN** el form muestra su nombre/email como selección (con opción
+  de cambiar) y el POST envía su `personId` real
+
+#### Scenario: sin capacidad students
+
+- **WHEN** un instructor sin cap `students` llama
+  `GET /academies/:id/students/candidates?q=ma`
+- **THEN** recibe 403
+
+### Requirement: "Pagado hasta" sugerido por el plan en el alta
+
+Al elegir plan en el formulario de alta, la UI SHALL pre-rellenar
+`endsAt` con la vigencia que corresponde al tipo y duración del plan,
+misma regla que aplica el backend al cobrar (`membershipEndsAt`):
+MONTHLY → fin del mes calendario en curso; QUARTERLY → fin del 3er
+mes; SEMIANNUAL → fin del 6º; PERIOD y TRIAL → inicio + `periodDays`
+(si el plan lo define); SINGLE → día siguiente; CLASS_PACK → sin
+fecha. La fecha sugerida SHALL quedar editable (override manual) y
+recomputarse al cambiar de plan solo si el usuario no la editó a mano.
+
+#### Scenario: plan mensual sugiere fin de mes
+
+- **GIVEN** un plan MONTHLY y el alta abierta el 12 de octubre
+- **WHEN** el owner elige el plan
+- **THEN** `endsAt` se pre-rellena al 31 de octubre y queda editable
+
+#### Scenario: plan por período sugiere inicio + días
+
+- **GIVEN** un plan PERIOD con `periodDays=30`
+- **WHEN** el owner lo elige
+- **THEN** `endsAt` se pre-rellena al inicio + 30 días
+
+#### Scenario: override manual no se pisa
+
+- **GIVEN** el owner editó `endsAt` a mano
+- **WHEN** cambia el plan seleccionado
+- **THEN** su fecha manual se conserva
+
+### Requirement: Contacto y método de pago en la ficha del alumno
+
+`GET /academies/:id/students/:personId` SHALL incluir `email` y
+`phone` de la persona y, por cada enrollment del historial de pagos,
+`method` con el último método de pago conocido: el `methodLabel` del
+claim más reciente ligado a ese enrollment; si no hay claim, el
+método del pago PAID de pasarela de esa persona y plan
+(`methodLabel` de la orden o `gatewayMedia`); `null` si no hay
+registro. La ficha SHALL mostrar email y teléfono junto a los datos
+del alumno (cuando existan) y el método en cada fila de pagos. En
+viewport mobile la línea "pagado hasta" SHALL ocupar su propia fila
+(tercera, bajo el chip de estado) en vez de competir por ancho con
+los badges.
+
+#### Scenario: enrollment pagado por transferencia
+
+- **GIVEN** un enrollment con claim APPROVED cuyo `methodLabel` es
+  "Transferencia"
+- **WHEN** se abre la ficha
+- **THEN** su fila de pagos muestra "Transferencia"
+
+#### Scenario: enrollment sin registro de pago
+
+- **GIVEN** un enrollment cargado a mano por el staff, sin claim ni
+  pago asociado
+- **WHEN** se abre la ficha
+- **THEN** su fila no muestra método (no inventa uno)
+
+### Requirement: Edición de inscripción tras gesto explícito
+
+El editor de inscripción de la ficha (estado + "pagado hasta") SHALL
+estar bloqueado por defecto: los campos se presentan como lectura y
+un botón "Editar" habilita el modo editable con Guardar y Cancelar.
+Guardar con éxito o Cancelar SHALL devolver el bloque a lectura;
+Cancelar además revierte los drafts a los valores vigentes.
+
+#### Scenario: bloqueado por defecto
+
+- **GIVEN** un owner con cap `students` abre la ficha
+- **THEN** ve estado y vigencia como datos + botón "Editar", sin
+  inputs activos
+
+#### Scenario: editar y guardar
+
+- **WHEN** presiona "Editar", cambia el estado y guarda
+- **THEN** el PATCH corre, el bloque vuelve a lectura y los valores
+  nuevos quedan visibles
+
+#### Scenario: cancelar revierte
+
+- **WHEN** edita campos y presiona "Cancelar"
+- **THEN** el bloque vuelve a lectura con los valores previos intactos
+
+### Requirement: pageSize responsivo en listados de consola
+
+Los listados pesados de la consola SHALL pedir `pageSize=20` en
+viewport desktop (≥1024px) y `pageSize=10` en mobile; el cambio de
+viewport SHALL resetear la página a 1. El listado de alumnos SHALL
+aplicar esta regla usando el hook compartido `useConsolePageSize`.
+
+#### Scenario: mobile pagina de a 10
+
+- **GIVEN** un owner en un viewport <1024px con 35 alumnos
+- **WHEN** abre el listado
+- **THEN** la primera página trae 10 y el Pager refleja 4 páginas
+
+#### Scenario: rotar a desktop repagina
+
+- **GIVEN** el listado abierto en mobile en página 3
+- **WHEN** el viewport cruza a ≥1024px
+- **THEN** la vista vuelve a página 1 y pide `pageSize=20`
+
+### Requirement: Chips del card de alumno legibles
+
+El card del listado de alumnos SHALL comunicar la vigencia con texto
+explícito además del color: el chip del plan conserva su color por
+estado de pago (al día / vencido / sin fecha registrada) y la fecha
+se acompaña de una frase legible con ícono: "Venció el {date}" si la
+vigencia ya pasó, "Pagado hasta el {date}" si está vigente, "Sin
+fecha de término" si no hay `endsAt`. El color nunca es el único
+portador de significado.
+
+#### Scenario: plan vencido se lee sin color
+
+- **GIVEN** un alumno cuyo plan venció el 12 de octubre
+- **WHEN** se renderiza su card
+- **THEN** se lee "Venció el 12 oct" junto al chip del plan
+
+#### Scenario: plan vigente
+
+- **GIVEN** un alumno con `endsAt` futuro
+- **WHEN** se renderiza su card
+- **THEN** se lee "Pagado hasta el {date}" junto al chip del plan
+
+### Requirement: Tamaño de página por viewport
+
+Las listas pesadas de la consola SHALL paginar 20 ítems por página en
+desktop (viewport ≥ lg = 1024px) y 10 en mobile. La regla aplica por
+igual a listados server-side (`pageSize` del query) y a listas
+client-side ya descargadas (slice + `Pager` solo cuando exceden el
+tamaño): roster de clase (reservados y lista de espera), listado de
+clases particulares y próximas clases de la ficha de profesor. El
+hook compartido `useConsolePageSize` (lib) SHALL resolver el valor
+con `useSyncExternalStore` + `matchMedia`, y un cambio de viewport
+SHALL volver a la primera página.
+
+#### Scenario: roster largo en mobile
+
+- **GIVEN** una clase con 24 reservados en un teléfono
+- **WHEN** se abre `/academia/clases/[id]`
+- **THEN** se ven 10 filas por página con `Pager`, y la numeración de
+  la lista de espera conserva el offset de página
+
+#### Scenario: mismo listado en desktop
+
+- **GIVEN** el mismo roster en desktop ≥1024px
+- **WHEN** se abre la ficha
+- **THEN** caben 20 filas por página
+
+#### Scenario: próximas clases del profesor
+
+- **GIVEN** un profesor con 30 clases próximas
+- **WHEN** se abre `/academia/equipo/profesor/[id]`
+- **THEN** la lista se pagina 20/10 con `Pager` dentro de la card

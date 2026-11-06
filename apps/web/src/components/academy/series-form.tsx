@@ -399,7 +399,7 @@ export function SeriesForm({
             <legend className="text-xs text-ink/50">
               {t("types")}
             </legend>
-            <div className="page-loading flex flex-wrap gap-2">
+            <div className="page-loading mt-1 flex flex-wrap gap-2">
               <Skeleton className="h-11 w-24 rounded-xl" />
               <Skeleton className="h-11 w-28 rounded-xl" />
               <Skeleton className="h-11 w-20 rounded-xl" />
@@ -409,7 +409,7 @@ export function SeriesForm({
           types.length > 0 && (
           <fieldset className="flex flex-col gap-2 sm:col-span-2">
             <legend className="text-xs text-ink/50">{t("types")}</legend>
-            <div className="flex flex-wrap gap-2">
+            <div className="mt-1 flex flex-wrap gap-2">
               {types.map((ty) => (
                 <label
                   key={ty.id}
@@ -440,7 +440,7 @@ export function SeriesForm({
             <div
               role="radiogroup"
               aria-label={t("kindLabel")}
-              className="flex flex-wrap gap-2"
+              className="mt-1 flex flex-wrap gap-2"
             >
               {(["recurring", "oneOff"] as const).map((k) => (
                 <label
@@ -460,9 +460,16 @@ export function SeriesForm({
             </div>
             <ul className="flex flex-col gap-2">
               {slots.map((s, i) => (
-                <li key={i} className="flex flex-wrap items-end gap-2">
+                // Fila del horario: día/fecha + inicio + término (+ X)
+                // siempre juntos. En pantallas angostas el día sube a
+                // su propia línea y los dos tiempos comparten la de
+                // abajo (flex-wrap del li + w-full solo en angosto).
+                <li
+                  key={i}
+                  className="flex flex-wrap items-end gap-x-2 gap-y-2"
+                >
                   {kind === "oneOff" ? (
-                    <label className="flex flex-col gap-1">
+                    <label className="flex w-full flex-col gap-1 sm:w-auto">
                       <span className="text-xs text-ink/50">
                         {t("dateLabel")}
                       </span>
@@ -478,7 +485,7 @@ export function SeriesForm({
                       />
                     </label>
                   ) : (
-                    <label className="flex flex-col gap-1">
+                    <label className="flex w-full flex-col gap-1 sm:w-auto">
                       <span className="text-xs text-ink/50">
                         {t("weekday")}
                       </span>
@@ -499,46 +506,51 @@ export function SeriesForm({
                       </select>
                     </label>
                   )}
-                  <label className="flex flex-col gap-1">
-                    <span className="text-xs text-ink/50">
-                      {t("start")}
-                    </span>
-                    <input
-                      type="time"
-                      className={inputCls}
-                      value={s.startTime}
-                      onChange={(e) =>
-                        updateSlot(i, { startTime: e.target.value })
-                      }
-                      required
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1">
-                    <span className="text-xs text-ink/50">{t("end")}</span>
-                    <input
-                      type="time"
-                      className={inputCls}
-                      value={s.endTime}
-                      onChange={(e) =>
-                        updateSlot(i, { endTime: e.target.value })
-                      }
-                      required
-                    />
-                  </label>
-                  {kind === "recurring" && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      aria-label={t("removeSlot")}
-                      disabled={slots.length <= 1}
-                      onClick={() =>
-                        setSlots((prev) => prev.filter((_, j) => j !== i))
-                      }
-                    >
-                      <XIcon className="h-4 w-4" />
-                    </Button>
-                  )}
+                  {/* Inicio+término (+X) nunca se separan entre sí:
+                      el wrapper los mantiene en la misma línea aunque
+                      el día wrappee arriba. */}
+                  <div className="flex flex-1 items-end gap-2 sm:flex-initial">
+                    <label className="flex flex-1 flex-col gap-1 sm:w-auto sm:flex-initial">
+                      <span className="text-xs text-ink/50">
+                        {t("start")}
+                      </span>
+                      <input
+                        type="time"
+                        className={inputCls}
+                        value={s.startTime}
+                        onChange={(e) =>
+                          updateSlot(i, { startTime: e.target.value })
+                        }
+                        required
+                      />
+                    </label>
+                    <label className="flex flex-1 flex-col gap-1 sm:w-auto sm:flex-initial">
+                      <span className="text-xs text-ink/50">{t("end")}</span>
+                      <input
+                        type="time"
+                        className={inputCls}
+                        value={s.endTime}
+                        onChange={(e) =>
+                          updateSlot(i, { endTime: e.target.value })
+                        }
+                        required
+                      />
+                    </label>
+                    {kind === "recurring" && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={t("removeSlot")}
+                        disabled={slots.length <= 1}
+                        onClick={() =>
+                          setSlots((prev) => prev.filter((_, j) => j !== i))
+                        }
+                      >
+                        <XIcon className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

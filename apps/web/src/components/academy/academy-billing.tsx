@@ -7,6 +7,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   ConfirmSheet,
   PriceTag,
   RefreshIcon,
@@ -587,7 +588,9 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           Pro: el descuento se calcula del precio real del param, no se
           hardcodea el −2%/−4% del design. */}
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-xs uppercase tracking-wide text-ink/50">
+        {/* pb-2: aire entre el label "Ciclo de facturación" y las
+            opciones Mensual/Semestral/Anual (review consola). */}
+        <legend className="pb-2 text-xs uppercase tracking-wide text-ink/50">
           {t("cycleLabel")}
         </legend>
         <div className="grid grid-cols-3 gap-2">
@@ -997,21 +1000,26 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         ) : (
           <ul className="flex flex-col divide-y divide-line">
             {view.invoices.map((inv) => (
-              <li
-                key={inv.id}
-                className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
-              >
-                <span className="text-sm text-ink/60 tabular-nums">
-                  {planDateFmt(locale).format(new Date(inv.createdAt))}
-                </span>
-                <span className="flex items-center gap-3">
-                  <PriceTag amount={inv.amount} currency={inv.currency} />
-                  <Badge
-                    variant={PAYMENT_STATUS_VARIANT[inv.status] ?? "muted"}
-                  >
-                    {t(`invoiceStatus.${inv.status}`)}
-                  </Badge>
-                </span>
+              <li key={inv.id}>
+                {/* Fila navegable al detalle del cobro (mismo pago/[id]
+                    del módulo; ?from= devuelve el back a suscripción). */}
+                <Link
+                  href={`/academia/cobros/pago/${inv.id}?from=/academia/configuracion/suscripcion`}
+                  className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-elevated/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
+                  <span className="text-sm text-ink/60 tabular-nums">
+                    {planDateFmt(locale).format(new Date(inv.createdAt))}
+                  </span>
+                  <span className="flex items-center gap-3">
+                    <PriceTag amount={inv.amount} currency={inv.currency} />
+                    <Badge
+                      variant={PAYMENT_STATUS_VARIANT[inv.status] ?? "muted"}
+                    >
+                      {t(`invoiceStatus.${inv.status}`)}
+                    </Badge>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>

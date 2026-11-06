@@ -2,7 +2,8 @@
  * Grilla del hub /academia (spec academy-tier-gates-refine): las cards
  * se filtran por capability del miembro Y por feature del tier de la
  * academia seleccionada - un staff de COBROS no ve módulos que solo
- * llevarían a paywall.
+ * llevarían a paywall. Además los módulos con `flag` se ocultan cuando
+ * el flag de funcionalidad está OFF (spec academy-videos-flag).
  */
 import { describe, expect, it } from "vitest";
 import { visibleHubModules } from "./academy-modules";
@@ -28,10 +29,19 @@ const staff = (
   caps: { ...ALL_CAPS, ...caps },
 });
 
-const hrefs = (tier: string | null, access: AcademyAccessInfo) =>
+// Flags del escenario base: todo ON - conserva el comportamiento de
+// los tests de tier; el flag OFF se ejercita en su propio describe.
+const FLAGS_ON = { academy_videos: true };
+
+const hrefs = (
+  tier: string | null,
+  access: AcademyAccessInfo,
+  flags: Record<string, boolean> = FLAGS_ON,
+) =>
   visibleHubModules({
     access,
     tier,
+    flags,
     academyOwnerId: "owner-1",
     viewerId: "staff-1",
     viewerRoles: [],
@@ -98,6 +108,7 @@ describe("visibleHubModules - reglas previas intactas", () => {
     const result = visibleHubModules({
       access: { ...staff(), isOwner: true },
       tier: "PRO",
+      flags: FLAGS_ON,
       academyOwnerId: "owner-1",
       viewerId: "owner-1",
       viewerRoles: [],
@@ -115,6 +126,7 @@ describe("visibleHubModules - reglas previas intactas", () => {
         caps: { ...ALL_CAPS, schedule: false },
       },
       tier: "PRO",
+      flags: FLAGS_ON,
       academyOwnerId: "owner-1",
       viewerId: "inst-1",
       viewerRoles: [],
@@ -122,5 +134,25 @@ describe("visibleHubModules - reglas previas intactas", () => {
     expect(result).not.toContain("/academia/particulares");
     // Su consola cross-academia no se gatea por tier.
     expect(result).toContain("/academia/clases");
+  });
+});
+
+describe("visibleHubModules - filtro por flag (spec academy-videos-flag)", () => {
+  it("flag OFF oculta videos aunque el tier sea PRO y el cap cubra", () => {
+    const result = hrefs("PRO", staff(), { academy_videos: false });
+    expect(result).not.toContain("/academia/videos");
+    // El resto de módulos PRO/tier sigue igual.
+    expect(result).toContain("/academia/series");
+    expect(result).toContain("/academia/equipo");
+  });
+
+  it("flag ausente del mapa es fail-closed (superficie oculta)", () => {
+    const result = hrefs("PRO", staff(), {});
+    expect(result).not.toContain("/academia/videos");
+  });
+
+  it("flag ON conserva el gate de tier: COBROS sigue sin videos", () => {
+    const result = hrefs("COBROS", staff(), { academy_videos: true });
+    expect(result).not.toContain("/academia/videos");
   });
 });

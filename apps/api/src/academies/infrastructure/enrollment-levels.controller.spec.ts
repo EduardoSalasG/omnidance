@@ -581,6 +581,8 @@ describe("AcademiesController.studentDetail - niveles vigentes", () => {
       attendance: { findMany: vi.fn().mockResolvedValue([]) },
       classBooking: { findMany: vi.fn().mockResolvedValue([]) },
       relationshipScore: { findUnique: vi.fn().mockResolvedValue(null) },
+      paymentClaim: { findMany: vi.fn().mockResolvedValue([]) },
+      payment: { findMany: vi.fn().mockResolvedValue([]) },
     };
     const access = {
       requireManage: vi.fn().mockResolvedValue({ academy: {}, ctx: {} }),

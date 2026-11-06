@@ -3005,7 +3005,91 @@
     },
     "/api/payments/order-return": {
       "get": {
-        "operationId": "PaymentsController_orderReturn",
+        "operationId": "PaymentsController_orderReturn_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "post": {
+        "operationId": "PaymentsController_orderReturn_post",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "put": {
+        "operationId": "PaymentsController_orderReturn_put",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "delete": {
+        "operationId": "PaymentsController_orderReturn_delete",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "patch": {
+        "operationId": "PaymentsController_orderReturn_patch",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "options": {
+        "operationId": "PaymentsController_orderReturn_options",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "head": {
+        "operationId": "PaymentsController_orderReturn_head",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "search": {
+        "operationId": "PaymentsController_orderReturn_search",
         "parameters": [],
         "responses": {
           "200": {
@@ -5984,6 +6068,35 @@
         ]
       }
     },
+    "/api/academies/{id}/students/candidates": {
+      "get": {
+        "operationId": "AcademiesController_studentCandidates",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Academies"
+        ]
+      }
+    },
     "/api/academies/{id}/students/{personId}": {
       "get": {
         "operationId": "AcademiesController_studentDetail",
@@ -8163,6 +8276,29 @@
     "/api/academies/{id}/series/insights": {
       "get": {
         "operationId": "ClassSeriesController_insights",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ClassSeries"
+        ]
+      }
+    },
+    "/api/academies/{id}/series/styles": {
+      "get": {
+        "operationId": "ClassSeriesController_styles",
         "parameters": [
           {
             "name": "id",

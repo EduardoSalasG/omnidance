@@ -220,7 +220,7 @@ function PlanDetail({
                 .map((s) => (
                 <li key={s.personId}>
                   <Link
-                    href={`/academia/alumnos/${s.personId}`}
+                    href={`/academia/alumnos/${s.personId}?from=${encodeURIComponent(`/academia/planes/${plan.id}`)}`}
                     className="flex min-h-11 items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
                   >
                     <span className="min-w-0 flex-1 truncate font-medium">

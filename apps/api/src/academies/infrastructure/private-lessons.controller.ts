@@ -210,7 +210,9 @@ export class PrivateLessonsController {
     const [lessons, total, toAssign, toConfirm] = await Promise.all([
       this.prisma.privateLesson.findMany({
         where,
-        orderBy: { scheduledAt: "asc" },
+        // Más reciente primero (default de la consola); las sin agendar
+        // (scheduledAt null) flotan arriba - son la cola accionable.
+        orderBy: [{ scheduledAt: "desc" }, { createdAt: "desc" }],
         skip: pg.skip,
         take: pg.take,
       }),

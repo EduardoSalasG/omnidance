@@ -632,6 +632,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.videos",
           icon: ICONS.play,
           academyFeature: "videos",
+          flag: "academy_videos",
         },
       ],
     },
@@ -670,6 +671,15 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "academy",
           key: "modules.payments",
           icon: ICONS.money,
+          // exact: su prefijo también cubre /cobros/reporte, que es
+          // ítem propio - sin exact ambos quedarían activos a la vez.
+          exact: true,
+        },
+        {
+          href: "/academia/cobros/reporte",
+          ns: "academy",
+          key: "modules.report",
+          icon: ICONS.chart,
         },
         // Preventa por comisión (spec academy-presale-commission):
         // acuerdos con productores, link de venta y comisión devengada.

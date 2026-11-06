@@ -315,10 +315,6 @@
       "s9": {
         "title": "Niveles y cupos",
         "desc": "Cada horario con su asistencia reciente, promedio y cupos libres por nivel: para ver dónde hay sobrecupo o clase que reforzar."
-      },
-      "s10": {
-        "title": "Dos vistas del inicio",
-        "desc": "Simplificado muestra lo urgente del día; Extendido suma los KPIs del mes y la agenda de niveles y cupos. Tu elección queda guardada."
       }
     },
     "staff": {
@@ -410,7 +406,7 @@
     "academia-cobros": {
       "s1": {
         "title": "El mes en plata",
-        "desc": "Facturado del mes, ticket promedio y los medios de pago que más usan tus alumnos, con su variación."
+        "desc": "Facturado del mes, ticket promedio y los métodos de pago que más usan tus alumnos, con su variación."
       },
       "s2": {
         "title": "Planes por vencer",
@@ -421,8 +417,8 @@
         "desc": "Los comprobantes que declararon tus alumnos: toca uno para revisarlo y aprobarlo o rechazarlo en su detalle."
       },
       "s4": {
-        "title": "El historial",
-        "desc": "Todas las validaciones y los pagos por pasarela en orden: la trazabilidad completa de cada cobro."
+        "title": "Inscripciones por validar",
+        "desc": "Altas y renovaciones pagadas por transferencia: cada comprobante se aprueba o rechaza en su ficha."
       }
     },
     "academia-clases": {

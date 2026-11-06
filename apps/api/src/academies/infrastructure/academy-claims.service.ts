@@ -800,9 +800,24 @@ export class AcademyClaimsService {
         (a, b) => b[1].count - a[1].count || b[1].amount - a[1].amount,
       )[0] ?? null;
 
+    // Cobrado por método del subconjunto filtrado (spec
+    // academy-cobros-reporte): el front normaliza la etiqueta cruda
+    // (gatewayMedia/methodLabel/gateway) vía payments.media.*.
+    const byMethodMap = new Map<string | null, { amount: number; count: number }>();
+    for (const r of collected) {
+      const cur = byMethodMap.get(r.method) ?? { amount: 0, count: 0 };
+      cur.amount += r.amount;
+      cur.count += 1;
+      byMethodMap.set(r.method, cur);
+    }
+    const byMethod = [...byMethodMap.entries()]
+      .map(([method, v]) => ({ method, ...v }))
+      .sort((a, b) => b.amount - a.amount);
+
     return {
       billed,
       payers,
+      byMethod,
       topPlan: top
         ? { planId: top[0], name: top[1].name, count: top[1].count, amount: top[1].amount }
         : null,

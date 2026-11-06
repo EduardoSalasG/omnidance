@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { safeInternalPath } from "@/lib/safe-next";
 import {
   Badge,
   Button,
   Card,
   ConfirmSheet,
+  PageLoading,
   RefreshIcon,
   SkeletonList,
   Spinner,
@@ -52,31 +54,47 @@ type OrderClaimDetail = {
  * suscripción queda ACTIVE.
  */
 export default function OrderClaimDetailPage() {
-  const t = useTranslations("academyPay");
-  const params = useParams<{ id: string }>();
-
+  // useSearchParams (?from= de la cola) exige boundary Suspense.
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
-      <ConsoleHeader backHref="/academia/cobros" backLabel={t("detailBack")} />
+      <Suspense fallback={<PageLoading />}>
+        <OrderClaimChrome />
+      </Suspense>
+    </main>
+  );
+}
+
+function OrderClaimChrome() {
+  const t = useTranslations("academyPay");
+  const params = useParams<{ id: string }>();
+  const backTo =
+    safeInternalPath(useSearchParams().get("from")) ?? "/academia/cobros";
+
+  return (
+    <>
+      <ConsoleHeader backHref={backTo} backLabel={t("detailBack")} />
       <AcademyGate>
         {({ academy }) => (
           <OrderClaimDetail
             key={`${academy.id}:${params.id}`}
             academyId={academy.id}
             claimId={params.id}
+            backTo={backTo}
           />
         )}
       </AcademyGate>
-    </main>
+    </>
   );
 }
 
 function OrderClaimDetail({
   academyId,
   claimId,
+  backTo,
 }: {
   academyId: string;
   claimId: string;
+  backTo: string;
 }) {
   const locale = useLocale();
   const claimDateFmt = useDateFmt({
@@ -149,7 +167,7 @@ function OrderClaimDetail({
       }
       setConfirmApprove(false);
       showActionNotice({ text: t("orderApprovedMsg") });
-      router.push("/academia/cobros");
+      router.push(backTo);
     } catch {
       showActionNotice({ text: t("error"), error: true });
       setConfirmApprove(false);
@@ -175,7 +193,7 @@ function OrderClaimDetail({
         return;
       }
       showActionNotice({ text: t("rejectedMsg") });
-      router.push("/academia/cobros");
+      router.push(backTo);
     } catch {
       // El form de rechazo queda abierto para reintentar.
       showActionNotice({ text: t("error"), error: true });

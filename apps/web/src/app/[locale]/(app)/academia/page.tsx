@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { useTranslations } from "next-intl";
 import { useMe } from "@/lib/me-context";
+import { useFeatures } from "@/lib/features-context";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
 import { useAcademyAccessState } from "@/components/academy/use-academy-access";
@@ -95,11 +96,15 @@ function AcademyHub({
     !access.isOwner;
 
   // Filtro por cap + feature del tier (spec academy-tier-gates-refine):
-  // staff de COBROS no ve cards que solo llevarían a paywall.
+  // staff de COBROS no ve cards que solo llevarían a paywall. `flags`
+  // gatea además los módulos apagados a nivel plataforma (p.ej.
+  // academy_videos OFF - spec academy-videos-flag).
+  const { flags } = useFeatures();
   const visible = access
     ? visibleHubModules({
         access,
         tier: academy.tier,
+        flags,
         viewerId: me?.id,
         viewerRoles: me?.roles,
         academyOwnerId: academy.ownerId,

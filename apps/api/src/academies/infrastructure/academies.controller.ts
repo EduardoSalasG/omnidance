@@ -1653,7 +1653,20 @@ export class AcademiesController {
     // Adjudicación por refId - mismo decode que by-academy.
     const ref = payment.refId;
     let contextName: string | null = null;
-    if (ref.startsWith("mem_")) {
+    // Invoice de suscripción de plataforma (spec
+    // academy-cobros-reporte): el front traduce tier/ciclo vía
+    // academyBilling.tiers/cycles.
+    let contextTier: string | null = null;
+    let contextCycle: string | null = null;
+    if (ref.startsWith("platsub_")) {
+      const sub = await this.prisma.platformSubscription.findFirst({
+        where: { id: ref.split("_")[1], academyId: id },
+        select: { tierCode: true, billingCycle: true },
+      });
+      if (!sub) throw new NotFoundException("pago no encontrado");
+      contextTier = sub.tierCode;
+      contextCycle = sub.billingCycle;
+    } else if (ref.startsWith("mem_")) {
       const plan = await this.prisma.membershipPlan.findFirst({
         where: { id: ref.split("_")[1], academyId: id },
         select: { name: true },
@@ -1693,6 +1706,8 @@ export class AcademiesController {
       eventCount,
       personName: person?.name ?? null,
       contextName,
+      contextTier,
+      contextCycle,
     };
   }
 
@@ -2061,6 +2076,39 @@ export class AcademiesController {
   }
 
   /**
+   * Candidatos a alumno para el alta de enrollment (spec
+   * academies/console-lists): búsqueda por nombre o email (contains
+   * insensitive, ≥2 chars, top 10) usada por el buscador con debounce
+   * del form - el personId nunca se tipea a mano. Declarado antes de
+   * :personId para que "candidates" no se capture como id. Capacidad
+   * `students`, la misma que autoriza el POST de enrollment.
+   */
+  @Get(":id/students/candidates")
+  @ApiQuery({ name: "q", required: false })
+  @UseGuards(SessionGuard)
+  async studentCandidates(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Query("q") q = "",
+  ) {
+    await this.access.requireCapability(id, req.person!, "students");
+    const term = q.trim();
+    if (term.length < 2) return [];
+    return this.prisma.person.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { name: { contains: term, mode: "insensitive" } },
+          { email: { contains: term, mode: "insensitive" } },
+        ],
+      },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+      take: 10,
+    });
+  }
+
+  /**
    * Ficha del alumno dentro de la academia: plan/enrollment vigente,
    * historial (asistencias + reservas pasadas, últimas 50 - la asistencia
    * prevalece sobre la reserva de la misma clase) y reservas futuras.
@@ -2076,7 +2124,7 @@ export class AcademiesController {
     await this.access.requireManage(id, req.person!);
     const person = await this.prisma.person.findUnique({
       where: { id: personId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, email: true, phone: true },
     });
     if (!person) throw new NotFoundException("persona no encontrada");
 
@@ -2107,6 +2155,57 @@ export class AcademiesController {
       },
     });
     const enrollment = enrollments[0] ?? null;
+
+    // Método de pago por membresía (spec academies/console-lists): el
+    // claim más reciente ligado al enrollment da el método declarado
+    // (prioriza APPROVED sobre un intento rechazado); sin claim, el
+    // último pago PAID de pasarela de la persona sobre ese plan
+    // (refId mem_<planId>_*) aporta methodLabel/gatewayMedia. Un
+    // enrollment cargado a mano sin cobro registrado queda en null.
+    const enrollmentPlanIds = [
+      ...new Set(
+        enrollments
+          .map((e) => e.plan?.id)
+          .filter((p): p is string => p != null),
+      ),
+    ];
+    const [enrollmentClaims, gatewayPays] = await Promise.all([
+      this.prisma.paymentClaim.findMany({
+        where: { enrollmentId: { in: enrollments.map((e) => e.id) } },
+        orderBy: { createdAt: "desc" },
+        select: { enrollmentId: true, status: true, methodLabel: true },
+      }),
+      enrollmentPlanIds.length
+        ? this.prisma.payment.findMany({
+            where: {
+              personId,
+              orderType: "MEMBERSHIP",
+              status: "PAID",
+              OR: enrollmentPlanIds.map((p) => ({
+                refId: { startsWith: `mem_${p}_` },
+              })),
+            },
+            orderBy: { createdAt: "desc" },
+            select: { refId: true, methodLabel: true, gatewayMedia: true },
+          })
+        : Promise.resolve([]),
+    ]);
+    const methodByEnrollment = new Map<string, string>();
+    for (const e of enrollments) {
+      const claims = enrollmentClaims.filter((c) => c.enrollmentId === e.id);
+      const best =
+        claims.find((c) => c.status === "APPROVED") ?? claims[0];
+      if (best) {
+        methodByEnrollment.set(e.id, best.methodLabel);
+        continue;
+      }
+      if (!e.plan) continue;
+      const pay = gatewayPays.find((p) =>
+        p.refId.startsWith(`mem_${e.plan!.id}_`),
+      );
+      const label = pay?.methodLabel ?? pay?.gatewayMedia ?? null;
+      if (label) methodByEnrollment.set(e.id, label);
+    }
 
     const classSelect = {
       date: true,
@@ -2257,6 +2356,7 @@ export class AcademiesController {
         startedAt: e.startedAt,
         endsAt: e.endsAt,
         plan: e.plan,
+        method: methodByEnrollment.get(e.id) ?? null,
         levels: e.levels,
       })),
       score: relScore?.score ?? null,

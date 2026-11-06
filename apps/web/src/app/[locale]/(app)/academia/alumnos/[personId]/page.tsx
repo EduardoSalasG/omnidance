@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState, use } from "react";
+import { Suspense, useCallback, useEffect, useState, use } from "react";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
@@ -40,6 +41,7 @@ import {
   type StudentProfile,
 } from "@/components/academy/shared";
 import { Link } from "@/i18n/navigation";
+import { safeInternalPath } from "@/lib/safe-next";
 
 type LoadState = "loading" | "ready" | "forbidden" | "error";
 
@@ -79,7 +81,11 @@ export default function AcademiaAlumnoPage(
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
-      <ConsoleHeader backHref="/academia/alumnos" backLabel={t("students")} />
+      {/* useSearchParams (?from= de la ficha del plan) exige boundary
+          Suspense; el header real monta dentro de AlumnoHeader. */}
+      <Suspense fallback={null}>
+        <AlumnoHeader />
+      </Suspense>
       <AcademyGate>
         {({ academy }) => (
           <ProfileModule
@@ -90,6 +96,21 @@ export default function AcademiaAlumnoPage(
         )}
       </AcademyGate>
     </main>
+  );
+}
+
+// Back contextual: la ficha abierta desde otra ficha (p.ej. el listado
+// de alumnos del plan pasa ?from=/academia/planes/<id>) vuelve a su
+// origen real; sin `from` válido cae al listado de alumnos.
+function AlumnoHeader() {
+  const t = useTranslations("academy");
+  const tc = useTranslations("common");
+  const backFrom = safeInternalPath(useSearchParams().get("from"));
+  return (
+    <ConsoleHeader
+      backHref={backFrom ?? "/academia/alumnos"}
+      backLabel={backFrom ? tc("back") : t("students")}
+    />
   );
 }
 
@@ -126,7 +147,11 @@ function ProfileModule({
 
   // Edición del enrollment vigente - solo visible si el caller tiene la
   // capacidad "students" (canEdit del endpoint: owner/ADMIN/staff; el
-  // instructor lee pero no muta).
+  // instructor lee pero no muta). Edición protegida (spec
+  // academies/console-lists): el bloque queda en lectura hasta el gesto
+  // explícito "Editar", que evita mutar la vigencia por un toque
+  // accidental.
+  const [editing, setEditing] = useState(false);
   const [statusDraft, setStatusDraft] = useState<EnrollmentStatus | "">("");
   const [endsDraft, setEndsDraft] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -158,6 +183,7 @@ function ProfileModule({
       // Drafts inicializados con los valores reales del enrollment.
       setStatusDraft((data.enrollmentStatus as EnrollmentStatus) ?? "");
       setEndsDraft(data.enrollmentEndsAt ? toDateInput(data.enrollmentEndsAt) : "");
+      setEditing(false);
       setNotice(null);
       setState("ready");
     } catch {
@@ -237,12 +263,34 @@ function ProfileModule({
             }
           : prev,
       );
+      setEditing(false);
       setNotice({ text: tp("paymentSaved") });
     } catch {
       setNotice({ text: tp("paymentSaveError"), error: true });
     } finally {
       setSaving(false);
     }
+  }
+
+  // "Editar" habilita los campos con los valores vigentes; "Cancelar"
+  // revierte los drafts y vuelve a lectura (edición protegida).
+  function startEdit() {
+    if (!profile) return;
+    setStatusDraft((profile.enrollmentStatus as EnrollmentStatus) ?? "");
+    setEndsDraft(
+      profile.enrollmentEndsAt ? toDateInput(profile.enrollmentEndsAt) : "",
+    );
+    setNotice(null);
+    setEditing(true);
+  }
+
+  function cancelEdit() {
+    if (!profile) return;
+    setStatusDraft((profile.enrollmentStatus as EnrollmentStatus) ?? "");
+    setEndsDraft(
+      profile.enrollmentEndsAt ? toDateInput(profile.enrollmentEndsAt) : "",
+    );
+    setEditing(false);
   }
 
   const canEdit =
@@ -276,6 +324,29 @@ function ProfileModule({
               </Badge>
             )}
           </div>
+          {/* Contacto del alumno (email + teléfono, spec
+              academies/console-lists): solo lo que la persona declaró;
+              campos ausentes no se renderizan. */}
+          {(profile.person.email || profile.person.phone) && (
+            <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+              {profile.person.email && (
+                <div className="flex min-w-0 items-baseline gap-1.5">
+                  <dt className="shrink-0 text-ink/50">{tp("email")}</dt>
+                  <dd className="min-w-0 break-all text-ink/80">
+                    {profile.person.email}
+                  </dd>
+                </div>
+              )}
+              {profile.person.phone && (
+                <div className="flex items-baseline gap-1.5">
+                  <dt className="shrink-0 text-ink/50">{tp("phone")}</dt>
+                  <dd className="tabular-nums text-ink/80">
+                    {profile.person.phone}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
           {/* Desglose por componente (spec academy-score-refine): explica
               el número. Scores previos al cambio traen breakdown null →
               solo se muestra el badge. */}
@@ -306,7 +377,13 @@ function ProfileModule({
               ))}
             </dl>
           )}
-          {canEdit ? (
+          {/* Estado + "pagado hasta": lectura por defecto con edición
+              protegida (spec academies/console-lists): el botón
+              "Editar" habilita los campos y Guardar/Cancelar devuelve a
+              lectura. Las fechas van en fila propia (basis-full): en
+              mobile "pagado hasta" baja a la tercera fila sin competir
+              por ancho con el chip de estado. */}
+          {canEdit && editing ? (
             <div className="flex flex-col gap-2">
               <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
                 <label className="flex flex-col gap-1 text-xs text-ink/60">
@@ -347,6 +424,14 @@ function ProfileModule({
                   {saving ? <Spinner size="sm" /> : null}
                   {tc("save")}
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={saving}
+                  onClick={cancelEdit}
+                >
+                  {tc("cancel")}
+                </Button>
               </div>
             </div>
           ) : (
@@ -355,8 +440,17 @@ function ProfileModule({
                 {tp("enrollmentStatus")}:{" "}
                 {statusLabel(profile.enrollmentStatus)}
               </Badge>
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  className="min-h-9 rounded px-2 text-xs font-medium text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
+                  {tp("edit")}
+                </button>
+              )}
               {(profile.enrollmentStartedAt || profile.enrollmentEndsAt) && (
-                <p className="text-xs text-ink/50">
+                <p className="basis-full text-xs text-ink/50">
                   {profile.enrollmentStartedAt &&
                     `${tp("startsAt")}: ${planDateFmt(locale).format(new Date(profile.enrollmentStartedAt))}`}
                   {profile.enrollmentStartedAt &&
@@ -416,6 +510,10 @@ function ProfileModule({
                         {e.endsAt
                           ? `${tp("endsAt")}: ${planDateFmt(locale).format(new Date(e.endsAt))}`
                           : ""}
+                        {/* Último método de pago conocido de la
+                            membresía (claim ligado o pasarela); sin
+                            registro no se muestra nada. */}
+                        {e.method ? ` · ${tp("method")}: ${e.method}` : ""}
                       </p>
                     </div>
                     {e.plan && e.plan.price > 0 && (

@@ -763,13 +763,10 @@ export function HomeHub() {
                     side: "top",
                   },
                   {
-                    element: "[data-tour='academy-home-mode']",
-                    title: ttao("s10.title"),
-                    description: ttao("s10.desc"),
-                    side: "bottom",
-                  },
-                  {
-                    element: "[data-tour='academy-billing']",
+                    // La facturación va en la misma grilla del resumen:
+                    // el paso apunta al card de facturado (spec
+                    // academy-home-extended).
+                    element: "[data-tour='academy-kpi-billedMonth']",
                     title: ttao("s8.title"),
                     description: ttao("s8.desc"),
                     side: "top",

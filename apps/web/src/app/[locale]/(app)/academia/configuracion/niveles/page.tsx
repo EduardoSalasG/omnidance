@@ -73,6 +73,9 @@ function LevelsModule({ academyId }: { academyId: string }) {
       for (const l of data?.global ?? []) {
         const res = await apiFetch(`/academies/${academyId}/class-levels`, {
           method: "POST",
+          // Sin JSON header el body viaja text/plain, no se parsea y el
+          // server responde "name should not be empty" (bug 2026-11).
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: l.name, order: l.order }),
         });
         if (!res.ok) {
@@ -151,9 +154,10 @@ function LevelsModule({ academyId }: { academyId: string }) {
     <div className="flex flex-col gap-6">
       {data?.usingGlobal ? (
         <Card className="flex flex-col gap-3 p-4">
-          <p className="text-sm text-ink/70">
-            {t("levelsConfig.globalHint")}
-          </p>
+          <div className="flex flex-col gap-1 text-sm text-ink/70">
+            <p>{t("levelsConfig.globalHint")}</p>
+            <p>{t("levelsConfig.globalHintCustom")}</p>
+          </div>
           <ul className="flex flex-wrap gap-1.5">
             {data.global.map((l, i) => (
               <li
