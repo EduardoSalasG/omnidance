@@ -1,43 +1,65 @@
-# Handoff: bug "clase de prueba" quedó con plan ilimitado
+# Handoff: bug "clase de prueba" ilimitada → change `trial-class-quota`
 
-Sesión 2026-11-09 noche (continuación). El trabajo de
-`onboarding-tours-pass` quedó CERRADO y commiteado (`c1b97e8c` +
-`296d0c1b`, archive con specs aplicadas) - ver
+Sesión 2026-11-09 noche. El trabajo de `onboarding-tours-pass` quedó
+CERRADO (`c1b97e8c` + `296d0c1b`, archivado con specs aplicadas) - ver
 `next-session-handoff-tours-copy-viewport.md`.
 
-## Bug reportado por el usuario (SIN investigar aún)
+## Bug reportado y Causa raíz CONFIRMADA
 
 - Al registrar `salas.eduardo.cl+prueba@gmail.com` desde la invitación
-  de la academia **Mambo Madness**, el usuario escogió "clase de
-  prueba" pero quedó con **plan ilimitado** (debería haber quedado con
-  la clase/entrada de prueba, no una inscripción ilimitada).
-- Sospecha: el flujo invite → `/bienvenida` → alta → elección de plan
-  está creando el enrollment equivocado. Revisar el change
-  `2026-11-09-academy-invites` (verify consume invite, crea
-  `Referral` INVITE y `invite.registered`) y el endpoint de alta de
-  enrollment: qué `kind`/`planId` se pasa cuando se elige "clase de
-  prueba" vs ilimitado.
+  de **Mambo Madness** eligiendo "clase de prueba", el alumno ve su
+  plan como **ilimitado** en `/academia/alumnos/[personId]`.
+- El dato en DB es CORRECTO: `Enrollment` status `TRIAL`, plan
+  "Clase de prueba" (type TRIAL, price 0), `endsAt` 2026-11-09 15:00.
+  Person: `cmw9ou8xr00dosinvgext4mtq`.
+- Causa raíz (dos puntos):
+  1. Todos los planes TRIAL del seed (`seed-dev.ts`, helper `plan()`,
+     5 academias: muvet l.629, tumbao l.660, loop l.1241, mambo l.1572,
+     adrianLeo l.1840) se crean SIN `classCount` → NULL = ilimitado.
+  2. El resolvedor de cuota `resolveQuota()` en
+     `apps/api/src/academies/infrastructure/classes.controller.ts`
+     (~l.214) solo aplica `classCount` cuando `plan.type ===
+     "CLASS_PACK"`; una inscripción TRIAL siempre cae en el bucket
+     `unlimited` (~l.235) aunque el plan tuviera `classCount`.
 
-## Cómo reproducir / dónde mirar
+## Decisión del dueño (confirmada)
 
-1. DB dev (docker `omnidance-db`, Postgres 16):
-   `docker exec omnidance-db psql -U <user> -d <db>` — sacar
-   credenciales reales de `apps/api/.env` (`DATABASE_URL`) o
-   `docker-compose.yml` (mi intento `postgres/omnidance` falló).
-   Buscar `Person` por email `salas.eduardo.cl+prueba@gmail.com`,
-   su `Enrollment` (kind, plan, academyId) y la `AcademyInvite` /
-   `Referral` asociadas. Mambo Madness está en el seed demo.
-2. Código: `apps/api/src/academies/` (invites + enrollments),
-   `POST /academies/:id/invites`, `verify` consume invite;
-   `apps/web/src/app/[locale]/(app)/bienvenida` + ficha pública de
-   academia donde se elige plan/clase de prueba.
-3. Stack: API :4000 viva (nest watch, `PAYMENT_GATEWAY=stub`), DB+Redis
-   docker healthy; web :3000 colgada al momento del cierre (posible
-   `next start` zombie - matar PID + `rm -rf apps/web/.next` si sigue).
+"Clase de prueba = 1 clase solamente, no es recurrente. Se agenda y
+se agota." Sin backfill de planes TRIAL viejos (`classCount = null`
+sigue ilimitado).
 
-## Estado del repo al cierre
+## Change `trial-class-quota` (validado, NO implementado)
 
-- dev limpio tras los 2 commits de tours; working tree limpio.
-- Pendiente de siempre: validación prod params + trial Producer Pro;
-  flake residual dancer-eventos mobile; drift i18n preexistente
-  `academyPay.report.*`/`academy.levelsConfig.*`.
+`openspec/changes/trial-class-quota/` completo: proposal, design,
+tasks, delta `academies/class-credits` (MODIFIED: `classCount` aplica
+a cualquier tipo que lo defina, no solo CLASS_PACK; orden de
+resolución semanal → conteo → ilimitado se conserva; `myCredits`
+reporta `kind:"PACK"` para TRIAL con cupo).
+
+Implementación pendiente (task list del change):
+- Test rojo: TRIAL + `classCount=1` + 1 reserva consumida → book 409.
+- `classes.controller.ts` `resolveQuota()`: condición `plan.type ===
+  "CLASS_PACK" && plan.classCount != null` → `plan.classCount != null`.
+- `seed-dev.ts`: `classCount: 1` en los 5 llamados TRIAL.
+- Verificar display de la ficha (el "ilimitado" sale de `classCount
+  = null`; con 1 se corrige solo, revisar si hay literal adicional).
+- `docs/qa-flows-inventory.md` + archive.
+
+## Stack (quedó corriendo para prueba del usuario)
+
+- Web `next dev` :3000 (maté un node zombie PID 36424 que ocupaba el
+  puerto - mismo patrón de `.next` zombie documentado en AGENTS.md).
+- API :4000 nest watch con `PAYMENT_GATEWAY=stub` (sesión anterior).
+- Docker `omnidance-db`/`omnidance-redis` healthy.
+- DB dev: `omnidance:omnidance@localhost:5433/omnidance` (del
+  `apps/api/.env`; `.env` raíz dice :5432 - el que funciona es :5433).
+  Query: `docker exec omnidance-db psql -U omnidance -d omnidance`.
+
+## Otros pendientes acumulados
+
+- Validación en prod: params de seed + grant trial Producer Pro.
+- Flake residual `dancer-eventos` mobile.
+- Drift i18n preexistente: `academyPay.report.*`,
+  `academy.levelsConfig.backToGlobalBody`.
+- `.openspec-archive.lock` stale reapareció 2 veces esta sesión; fix:
+  `rm openspec/changes/archive/.openspec-archive.lock` y re-correr.
