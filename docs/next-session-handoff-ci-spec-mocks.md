@@ -115,6 +115,7 @@ trial) según la intención del test.
 
 - `academy-invites` (change OpenSpec completo sin empezar) y
   `multipais-foundation` - eran el siguiente slice del backlog.
-- Propuesta de gates pre-push/promoción pendiente de decisión del
-  usuario (análisis en conversación): pre-push hook con suite de API,
-  `pnpm verify`, protección de `main`.
+- Gates del flujo ya aplicados (`d4325d86`): `.githooks/pre-push` con
+  la suite de API en cada push (escape `SKIP_PREPUSH=1`), `pnpm verify`,
+  release gate por PR y `main` protegido (checks static-unit +
+  no-agent-attribution, PR requerido, admin con bypass).
