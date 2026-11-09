@@ -48,6 +48,7 @@ describe("SubscriptionsScheduler", () => {
       platSubs as never,
       {
         sweepTrialLastDay: async () => ({ academies: 0, producers: 0 }),
+        sweepTrialEnded: async () => ({ academies: 0, producers: 0 }),
       } as never,
       registry,
     ).onModuleInit();
@@ -64,6 +65,7 @@ describe("SubscriptionsScheduler", () => {
       manualPlatform: { checked: 1, issued: 0 },
       blocks: { blocked: 3 },
       trials: { academies: 0, producers: 0 },
+      trialsEnded: { academies: 0, producers: 0 },
     });
   });
 

@@ -48,6 +48,7 @@ function mkPayment(over: Partial<Row> = {}): Payment {
 function mkPrisma() {
   const payments = new Map<string, Row>();
   const events: Row[] = [];
+  const activities: Row[] = [];
   const enrollments: Row[] = [];
   const tickets: Row[] = [];
   const bookings: Row[] = [];
@@ -59,6 +60,28 @@ function mkPrisma() {
       findUnique: vi.fn(
         async ({ where }: { where: { id: string } }) =>
           payments.get(where.id) ?? null,
+      ),
+      // count: sub.started vs renewed (spec platform-trials) - el settle
+      // cuenta pagos PAID previos de la misma PlatformSubscription.
+      count: vi.fn(
+        async ({
+          where,
+        }: {
+          where: {
+            orderType?: string;
+            refId?: { startsWith: string };
+            status?: string;
+            id?: { not: string };
+          };
+        }) =>
+          [...payments.values()].filter(
+            (p) =>
+              (!where.orderType || p.orderType === where.orderType) &&
+              (!where.status || p.status === where.status) &&
+              (!where.id?.not || p.id !== where.id.not) &&
+              (!where.refId?.startsWith ||
+                String(p.refId ?? "").startsWith(where.refId.startsWith)),
+          ).length,
       ),
       update: vi.fn(
         async ({
@@ -105,6 +128,25 @@ function mkPrisma() {
         // Round-trip JSON como jsonb real (ver payment-ledger.spec).
         const stored = JSON.parse(JSON.stringify(data));
         events.push(stored);
+        return stored;
+      }),
+    },
+    // ActivityEvent (spec platform-trials): findFirst para el dedup de
+    // emitActivityOnce; create apila para inspección del spec.
+    activityEvent: {
+      findFirst: vi.fn(async ({ where }: { where: Row }) => {
+        return (
+          activities.find(
+            (a) =>
+              a.type === where.type &&
+              a.refType === where.refType &&
+              a.refId === where.refId,
+          ) ?? null
+        );
+      }),
+      create: vi.fn(async ({ data }: { data: Row }) => {
+        const stored = JSON.parse(JSON.stringify(data));
+        activities.push(stored);
         return stored;
       }),
     },
