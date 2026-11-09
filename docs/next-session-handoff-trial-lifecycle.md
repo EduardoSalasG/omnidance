@@ -20,11 +20,9 @@ validados. **Implementación avanzada** - commits en `dev`:
   `scripts/backfill-churn-entitlements.cjs` (dry-run por defecto,
   `--apply` tras revisar lista - en dev lista 6 personas seed
   `CRM Producer*` con proTier sin sub: demo data, revisar antes).
-- **PENDIENTE DE COMMIT** (working tree): correos del trial. Revisar
-  `git status` al abrir; si está sin commitear, verificar tests y
-  commitear.
+- `312f8009` correos del ciclo de vida del trial + barrido (task 4).
 
-## Implementado en el slice sin commitear (task 4)
+## Implementado en el slice de correos (task 4)
 
 - `payments/infrastructure/trial-emails.ts`: welcome academia/productor
   (todos los tiers con el en prueba marcado + contacto CX), último día
