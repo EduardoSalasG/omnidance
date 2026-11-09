@@ -94,6 +94,53 @@ export function tierMeets(
   return featuresForTier(tier).includes(feature);
 }
 
+/**
+ * Corte unificado (spec platform-trials): `tier == null` ya no es
+ * "trial/gracia infinito" - depende del trial. Sin suscripción
+ * vigente (tier null):
+ * - `trialEndsAt` futuro → trial vigente, nivel STUDIO.
+ * - `trialEndsAt` pasado o null → trial vencido/churned/sin trial:
+ *   features vacías (la consola muestra solo Inicio/Suscripción/
+ *   Perfil y la academia se deslista del dancer).
+ * Con tier contratado el trial no aplica (el tier manda).
+ */
+export interface AcademyTrialShape {
+  tier: string | null;
+  trialEndsAt: Date | null;
+}
+
+/** Trial vigente: sin tier y con fin de trial en el futuro. */
+export function academyInTrial(
+  academy: AcademyTrialShape,
+  now: Date = new Date(),
+): boolean {
+  return (
+    academy.tier == null &&
+    academy.trialEndsAt != null &&
+    academy.trialEndsAt.getTime() > now.getTime()
+  );
+}
+
+/** Sin acceso por falta de suscripción y trial (vencido o inexistente). */
+export function academyTrialExpired(
+  academy: AcademyTrialShape,
+  now: Date = new Date(),
+): boolean {
+  return academy.tier == null && !academyInTrial(academy, now);
+}
+
+/**
+ * Features efectivas de una academia: tier contratado manda; sin tier
+ * el trial vigente da STUDIO y el vencido da [].
+ */
+export function featuresForAcademy(
+  academy: AcademyTrialShape,
+  now: Date = new Date(),
+): readonly AcademyFeature[] {
+  if (academy.tier == null && !academyInTrial(academy, now)) return [];
+  return featuresForTier(academy.tier);
+}
+
 /** Tier mínimo que habilita la feature (para `requiredTier` del 403). */
 export function requiredTierFor(
   feature: AcademyFeature,
@@ -130,9 +177,9 @@ export function tierRequiredError(
  * extra); el bypass de ADMIN queda en el caller (AcademyAccess).
  */
 export function assertAcademyFeature(
-  academy: { tier: string | null },
+  academy: AcademyTrialShape,
   feature: AcademyFeature,
 ): void {
-  if (tierMeets(academy.tier, feature)) return;
+  if (featuresForAcademy(academy).includes(feature)) return;
   throw tierRequiredError(requiredTierFor(feature), feature);
 }

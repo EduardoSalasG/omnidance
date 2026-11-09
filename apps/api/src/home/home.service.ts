@@ -411,7 +411,16 @@ export class HomeService {
             // Sugerencia "próxima clase": academia bloqueada por mora no
             // es reservable (S3) - no se sugiere; las reservas ya hechas
             // (myBookings) sí siguen listándose con su flag.
-            academy: { active: true, billingBlockedAt: null },
+            academy: {
+              active: true,
+              billingBlockedAt: null,
+              // Trial vencido sin suscripción tampoco se sugiere
+              // (spec platform-trials - misma regla que mora).
+              OR: [
+                { tier: { not: null } },
+                { trialEndsAt: { gt: new Date() } },
+              ],
+            },
             series: { active: true },
           },
         },

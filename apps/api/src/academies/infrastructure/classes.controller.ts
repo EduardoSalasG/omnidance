@@ -41,7 +41,10 @@ import {
 } from "./class-card-projection";
 import { filterDate } from "./list-filters";
 import { buildClassIcs } from "./class-ics";
-import { tierMeets } from "../domain/academy-tiers";
+import {
+  academyTrialExpired,
+  tierMeets,
+} from "../domain/academy-tiers";
 import { ApiQuery } from "@nestjs/swagger";
 
 // Inscripción vigente: la que habilita ver la academia como "mía" en
@@ -387,6 +390,11 @@ export class ClassesController {
           academy: {
             active: true,
             billingBlockedAt: null,
+            // Trial vencido sin suscripción se deslista (platform-trials).
+            OR: [
+              { tier: { not: null } },
+              { trialEndsAt: { gt: new Date() } },
+            ],
             reviewStatus: { not: "REJECTED" },
           },
           series: {
@@ -1526,16 +1534,25 @@ export class ClassesController {
             academyId: true,
             series: { select: { quorum: true } },
             academy: {
-              select: { defaultQuorum: true, billingBlockedAt: true },
+              select: {
+                defaultQuorum: true,
+                billingBlockedAt: true,
+                tier: true,
+                trialEndsAt: true,
+              },
             },
           },
         },
       },
     });
     if (!cls) throw new NotFoundException("clase no encontrada");
-    // Academia bloqueada por mora (S3): no hay reservas nuevas - copy
-    // honesto para el alumno (la falta es del owner, no de él).
-    if (cls.slot.academy.billingBlockedAt != null) {
+    // Academia bloqueada por mora (S3) o sin acceso por trial vencido
+    // (platform-trials): no hay reservas nuevas - copy honesto para el
+    // alumno (la falta es del owner, no de él).
+    if (
+      cls.slot.academy.billingBlockedAt != null ||
+      academyTrialExpired(cls.slot.academy)
+    ) {
       throw new BadRequestException({
         error: "academy.unavailable",
         message: "la academia no está disponible por el momento",

@@ -34,6 +34,7 @@ import {
   classStart,
   effectiveCapacity,
 } from "../../academies/domain/academy.service";
+import { academyTrialExpired } from "../../academies/domain/academy-tiers";
 import {
   managedFeeBreakdown,
   ownMethodBreakdown,
@@ -1406,11 +1407,21 @@ export class CheckoutService {
         type: true,
         price: true,
         currency: true,
-        academy: { select: { active: true, billingBlockedAt: true } },
+        academy: {
+          select: {
+            active: true,
+            billingBlockedAt: true,
+            tier: true,
+            trialEndsAt: true,
+          },
+        },
       },
     });
     if (!plan || !plan.academy.active) throw new PlanNotFoundError();
-    if (plan.academy.billingBlockedAt != null) {
+    if (
+      plan.academy.billingBlockedAt != null ||
+      academyTrialExpired(plan.academy)
+    ) {
       throw new AcademyUnavailableError();
     }
     if (!plan.active) throw new PlanNotPurchasableError();

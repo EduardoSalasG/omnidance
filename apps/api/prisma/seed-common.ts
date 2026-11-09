@@ -150,7 +150,16 @@ const PARAM_DEFAULTS: Array<{
   { key: "academy_cobros.take_multiplier", value: 1.5, description: "Multiplicador del fee de pasarela cobrado como take a academias tier COBROS (sobre membresías)" },
   // Ciclo de facturación de academia: trial de onboarding, grace de
   // lanzamiento para las existentes y gracia por mora antes del bloqueo.
-  { key: "academy_billing.trial_days", value: 30, description: "Días de trial de onboarding para academias nuevas (sin tarjeta upfront)" },
+  { key: "academy_billing.trial_days", value: 15, description: "Días de trial de onboarding para academias nuevas (sin tarjeta upfront)" },
+  // Trial de onboarding del productor (spec platform-trials): se setea
+  // proTrialEndsAt al aprobar su PersonRole.
+  { key: "producer_pro.trial_days", value: 15, description: "Días de trial de Producer Pro al aprobarse el rol PRODUCER (nivel PRO_STARTER)" },
+  // Contacto Customer Experience mostrado en /perfil a owners y
+  // productores + casilla que recibe la ficha de cada registro de actor.
+  { key: "cx.contact.name", value: "Eduardo Salas", description: "Nombre del contacto Customer Experience mostrado en perfil" },
+  { key: "cx.contact.email", value: "eduardo@omnidance.tech", description: "Email del contacto Customer Experience" },
+  { key: "cx.contact.phone", value: "+56982439041", description: "Teléfono/WhatsApp del contacto Customer Experience" },
+  { key: "cx.notify_email", value: "eduardo@omnidance.tech", description: "Casilla que recibe la ficha de cada nuevo registro de actor (trial iniciado)" },
   { key: "academy_billing.migration_grace_days", value: 60, description: "Días de grace de lanzamiento para academias existentes al despliegue SaaS" },
   { key: "academy_billing.grace_days", value: 5, description: "Días calendario de gracia tras invoice impaga antes del bloqueo por mora" },
   // Datos bancarios de Omnidance para suscripciones por transferencia

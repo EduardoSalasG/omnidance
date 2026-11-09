@@ -11,6 +11,7 @@ import {
 } from "../payments/domain/actor-entitlements";
 import {
   assertAcademyFeature,
+  featuresForAcademy,
   requiredTierFor,
   tierMeets,
   tierRequiredError,
@@ -113,7 +114,7 @@ export async function assertActorFeature(
   }
   const academy = await prisma.academy.findUnique({
     where: { id: actorId },
-    select: { tier: true },
+    select: { tier: true, trialEndsAt: true },
   });
   if (!academy) throw new NotFoundException("academia no encontrada");
   assertAcademyFeature(academy, feature as AcademyFeature);
@@ -133,9 +134,9 @@ export async function anyOwnedAcademyMeets(
 ): Promise<boolean> {
   const academies = await prisma.academy.findMany({
     where: { ownerId },
-    select: { tier: true },
+    select: { tier: true, trialEndsAt: true },
   });
-  return academies.some((a) => tierMeets(a.tier, feature));
+  return academies.some((a) => featuresForAcademy(a).includes(feature));
 }
 
 /**

@@ -98,7 +98,14 @@ export class AcademySalesService {
   private async assertApprovedAcademy(academyId: string) {
     const academy = await this.prisma.academy.findUnique({
       where: { id: academyId },
-      select: { id: true, name: true, active: true, ownerId: true, tier: true },
+      select: {
+        id: true,
+        name: true,
+        active: true,
+        ownerId: true,
+        tier: true,
+        trialEndsAt: true,
+      },
     });
     if (!academy?.active) throw new AcademyNotApprovedError();
     // Preventa por comisión = feature STUDIO+ (spec academy-tier-cobros):

@@ -430,7 +430,12 @@ export class PrivateLessonsController {
 
     const academy = await this.prisma.academy.findUnique({
       where: { id: lesson.academyId },
-      select: { ownerId: true, billingBlockedAt: true, tier: true },
+      select: {
+        ownerId: true,
+        billingBlockedAt: true,
+        tier: true,
+        trialEndsAt: true,
+      },
     });
     const me = req.person!;
     const isAdmin = await roleKeysHavePermission(this.prisma, me.roles, [

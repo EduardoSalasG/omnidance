@@ -464,6 +464,9 @@ export class AcademiesController {
       where: {
         active: true,
         billingBlockedAt: null,
+        // Sin acceso (spec platform-trials): sin tier y con trial
+        // vencido/inexistente se deslista del dancer.
+        OR: [{ tier: { not: null } }, { trialEndsAt: { gt: new Date() } }],
         // REJECTED nunca sale al público; PENDING se evalúa abajo
         // (spec academy-approval-gate).
         reviewStatus: { not: "REJECTED" },
@@ -548,6 +551,9 @@ export class AcademiesController {
       where: {
         active: true,
         billingBlockedAt: null,
+        // Misma regla que directory: sin acceso (trial vencido) se
+        // deslista (spec platform-trials).
+        OR: [{ tier: { not: null } }, { trialEndsAt: { gt: new Date() } }],
         reviewStatus: { not: "REJECTED" },
         // Solo academias de owners validados (APPROVED) salen al
         // público - ownerId es FK escalar, resuelto por subquery.
