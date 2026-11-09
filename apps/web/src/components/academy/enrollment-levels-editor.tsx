@@ -164,8 +164,10 @@ export function EnrollmentLevelsEditor({
         {catalogs.types.map((ty) => {
           const marked = selected[ty.id] ?? [];
           return (
-            <fieldset key={ty.id} className="flex flex-col gap-1.5">
-              <legend className="text-sm font-medium">{ty.name}</legend>
+            <fieldset key={ty.id} className="flex flex-col">
+              {/* gap del fieldset no aplica al legend (no es flex
+                  item en Chromium/WebKit): el aire va en el margin. */}
+              <legend className="mb-2 text-sm font-medium">{ty.name}</legend>
               <div className="flex flex-wrap gap-2">
                 {catalogs.levels.map((lv) => {
                   const active = marked.includes(lv.id);
