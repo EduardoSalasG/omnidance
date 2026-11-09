@@ -63,7 +63,10 @@
       "txRevenueMonth": "Ingreso transacciones (mes)",
       "subRevenueMonth": "Ingreso suscripciones (mes)",
       "subsAcademy": "Academias",
-      "subsProducer": "Productores"
+      "subsProducer": "Productores",
+      "trialsActive": "Trials activos",
+      "trialsExpiring": "Vencen ≤7 días",
+      "trialsExpired": "Vencidos"
     },
     "hasTicketTonight": "Tienes entrada. Muestra tu QR en puerta",
     "buyPresale": "Comprar preventa",
@@ -101,8 +104,11 @@
       "ops": "Operación",
       "billing": "Facturación",
       "subs": "Suscripciones activas",
-      "platform": "Plataforma"
-    }
+      "platform": "Plataforma",
+      "trials": "Trials"
+    },
+    "trialsTitle": "Trials de plataforma",
+    "trialsSummary": "{count, plural, one {# trial} other {# trials}}"
   },
   "nav": {
     "main": "Navegación principal",

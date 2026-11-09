@@ -12,7 +12,7 @@
 // tipos, las matrices y la resolución pura.
 
 import {
-  featuresForTier as academyFeaturesForTier,
+  featuresForAcademy as academyFeaturesForAcademy,
   type AcademyFeature,
 } from "../../academies/domain/academy-tiers";
 import { isProActive } from "./platform-tiers";
@@ -125,10 +125,13 @@ export function producerEntitlement(
 /** Entitlements de la academia ya cargada (puro). */
 export function academyEntitlement(academy: {
   tier: string | null;
+  trialEndsAt: Date | null;
 }): ActorEntitlement {
   return {
     tier: academy.tier,
-    features: [...academyFeaturesForTier(academy.tier)],
+    // Corte unificado (spec platform-trials): tier null con trial
+    // vencido/inexistente → features vacías, no STUDIO.
+    features: [...academyFeaturesForAcademy(academy)],
   };
 }
 

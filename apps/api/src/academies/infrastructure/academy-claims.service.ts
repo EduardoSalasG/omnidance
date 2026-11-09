@@ -20,6 +20,7 @@ import {
 } from "../../payments/domain/membership-vigency";
 import { AcademyPromosService } from "../../payments/application/academy-promos.service";
 import { promoChargeClp } from "../../payments/domain/academy-promos";
+import { emitActivity } from "../../common/activity-log";
 
 const CLAIM_FOLDER = "claims";
 export const CLAIM_MAX_BYTES = 5 * 1024 * 1024; // 5MB
@@ -1046,6 +1047,15 @@ export class AcademyClaimsService {
               status: "ACTIVE",
               endsAt: newEndsAt,
             },
+          });
+          // Línea de vida admin (spec platform-trials §5b).
+          await emitActivity(tx, {
+            type: "enrollment.started",
+            personId: claim.personId,
+            academyId,
+            refType: "Enrollment",
+            refId: created.id,
+            data: { planId: claim.plan.id, via: "claim.approved" },
           });
           enrollmentId = created.id;
         }

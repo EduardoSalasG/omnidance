@@ -66,7 +66,10 @@ describe("academy bulk import e2e (spec academy-bulk-import)", () => {
     ownerSession = await auth.issueSession(owner.id);
 
     const academy = await prisma.academy.create({
-      data: { name: "Academia Import Test", ownerId: owner.id, reviewStatus: "APPROVED" },
+      // tier STUDIO: academia suscrita (spec platform-trials) - tier
+      // null sin trial vigente resuelve features vacías y el import
+      // responde 403 tier.required.
+      data: { name: "Academia Import Test", ownerId: owner.id, reviewStatus: "APPROVED", tier: "STUDIO" },
     });
     academyId.v = academy.id;
 

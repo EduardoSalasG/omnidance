@@ -1,0 +1,26 @@
+#!/bin/sh
+# Gate local de la suite de API (incidente 2026-11-09): el change
+# platform-trials dejó ~84 specs rotos porque solo se corrieron specs
+# puntuales - QA lo detectó post-push y main podría haber promovido
+# código rojo. Esta barrera corre la suite completa antes del push.
+#
+# Escape documentado: SKIP_PREPUSH=1 git push (p.ej. docs-only, WIP a
+# rama propia, o sin el stack local levantado - los e2e usan la DB
+# de docker compose).
+
+if [ "$SKIP_PREPUSH" = "1" ]; then
+  echo "pre-push: SKIP_PREPUSH=1 - suite de API omitida." >&2
+  exit 0
+fi
+
+echo "pre-push: corriendo suite de API (pnpm --filter @omnidance/api exec vitest run)..." >&2
+
+if ! pnpm --filter @omnidance/api exec vitest run; then
+  echo "" >&2
+  echo "pre-push: suite de API roja - push bloqueado." >&2
+  echo "  Arregla los specs y reintenta, o fuerza con" >&2
+  echo "  SKIP_PREPUSH=1 git push." >&2
+  exit 1
+fi
+
+exit 0

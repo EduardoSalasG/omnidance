@@ -10,7 +10,10 @@
 // promos, alumnos, cobros, configuración y suscripción son
 // cobranza/perfil - base de todos los tiers.
 
-import { academyTierHas } from "./academy-features";
+import {
+  academyHasFeature,
+  type AcademyTrialShape,
+} from "./academy-features";
 import type { FeatureFlagsMap } from "./features-context";
 import type {
   AcademyAccessInfo,
@@ -88,14 +91,14 @@ export const HUB_MODULES: readonly HubModule[] = [
  */
 export function visibleHubModules({
   access,
-  tier,
+  academy,
   flags,
   viewerId,
   viewerRoles,
   academyOwnerId,
 }: {
   access: AcademyAccessInfo;
-  tier: string | null | undefined;
+  academy: AcademyTrialShape;
   /** Mapa público de flags (useFeatures). Fail-closed: mientras el
       fetch resuelve llega {} y las cards con `flag` no pintan. */
   flags: FeatureFlagsMap;
@@ -130,7 +133,7 @@ export function visibleHubModules({
     if (m.flag && flags[m.flag] !== true) return false;
     // Gate por tier (además de cap): staff de COBROS no ve módulos que
     // solo llevarían al TierPaywall - mismo criterio que el nav owner.
-    if (m.feature && !academyTierHas(tier, m.feature)) return false;
+    if (m.feature && !academyHasFeature(academy, m.feature)) return false;
     return true;
   });
 }

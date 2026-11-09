@@ -24,6 +24,7 @@ const makeCtrl = (prisma: unknown, access: unknown) =>
     {} as never,
     {} as never,
     {} as never,
+  {} as never,
   );
 
 const okAccess = () => ({

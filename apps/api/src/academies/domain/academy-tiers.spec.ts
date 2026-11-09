@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ForbiddenException } from "@nestjs/common";
 import {
+  academyInTrial,
+  academyTrialExpired,
   assertAcademyFeature,
+  featuresForAcademy,
   featuresForTier,
   requiredTierFor,
   tierMeets,
@@ -75,20 +78,20 @@ describe("tierMeets / requiredTierFor", () => {
 describe("assertAcademyFeature", () => {
   it("pasa cuando el tier cubre la feature", () => {
     expect(() =>
-      assertAcademyFeature({ tier: "STUDIO" }, "classes"),
+      assertAcademyFeature({ tier: "STUDIO", trialEndsAt: null }, "classes"),
     ).not.toThrow();
     expect(() =>
-      assertAcademyFeature({ tier: "PRO" }, "crm"),
+      assertAcademyFeature({ tier: "PRO", trialEndsAt: null }, "crm"),
     ).not.toThrow();
     expect(() =>
-      assertAcademyFeature({ tier: "COBROS" }, "billing"),
+      assertAcademyFeature({ tier: "COBROS", trialEndsAt: null }, "billing"),
     ).not.toThrow();
   });
 
   it("403 tier.required con requiredTier cuando no cubre", () => {
     const err = (() => {
       try {
-        assertAcademyFeature({ tier: "COBROS" }, "classes");
+        assertAcademyFeature({ tier: "COBROS", trialEndsAt: null }, "classes");
         return null;
       } catch (e) {
         return e as ForbiddenException;
@@ -105,7 +108,7 @@ describe("assertAcademyFeature", () => {
   it("requiredTier PRO para features PRO", () => {
     const err = (() => {
       try {
-        assertAcademyFeature({ tier: "STUDIO" }, "crm");
+        assertAcademyFeature({ tier: "STUDIO", trialEndsAt: null }, "crm");
         return null;
       } catch (e) {
         return e as ForbiddenException;
@@ -113,5 +116,43 @@ describe("assertAcademyFeature", () => {
     })();
     const body = err!.getResponse() as Record<string, unknown>;
     expect(body.requiredTier).toBe("PRO");
+  });
+});
+
+// Corte unificado (spec platform-trials): tier null + trial vigente →
+// STUDIO; tier null + trial vencido o inexistente → features vacías.
+const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
+const daysAhead = (n: number) => new Date(Date.now() + n * 86_400_000);
+
+describe("featuresForAcademy / trial", () => {
+  it("tier null + trial vigente opera a nivel STUDIO", () => {
+    const academy = { tier: null, trialEndsAt: daysAhead(10) };
+    expect(academyInTrial(academy)).toBe(true);
+    expect(academyTrialExpired(academy)).toBe(false);
+    expect(featuresForAcademy(academy)).toEqual(featuresForTier("STUDIO"));
+  });
+
+  it("tier null + trial vencido queda sin features", () => {
+    const academy = { tier: null, trialEndsAt: daysAgo(1) };
+    expect(academyInTrial(academy)).toBe(false);
+    expect(academyTrialExpired(academy)).toBe(true);
+    expect(featuresForAcademy(academy)).toEqual([]);
+  });
+
+  it("tier null + sin trialEndsAt queda sin features", () => {
+    expect(featuresForAcademy({ tier: null, trialEndsAt: null })).toEqual([]);
+  });
+
+  it("tier contratado ignora el trial", () => {
+    const academy = { tier: "COBROS", trialEndsAt: daysAhead(5) };
+    expect(academyTrialExpired(academy)).toBe(false);
+    expect(featuresForAcademy(academy)).toEqual(featuresForTier("COBROS"));
+  });
+
+  it("assertAcademyFeature corta módulos con trial vencido", () => {
+    const academy = { tier: null, trialEndsAt: daysAgo(1) };
+    expect(() =>
+      assertAcademyFeature(academy, "classes"),
+    ).toThrow(ForbiddenException);
   });
 });

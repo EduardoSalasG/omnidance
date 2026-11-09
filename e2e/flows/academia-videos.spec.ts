@@ -30,10 +30,22 @@ test.describe("@academia @videos ficha video (edit + delete)", () => {
       });
 
       await page.goto("/login");
-      await page
-        .getByLabel(/correo|email|e-mail/i)
-        .fill("gabriel@omnidance.dev");
-      await page.locator('input[type="password"]').fill(PASSWORD);
+      // Race fill vs hidratación: si el fill cae antes de que React
+      // hidrate, el estado inicial ("") lo pisa y el submit jamás sale
+      // (mobile bajo carga paralela). Re-llenar hasta que el valor
+      // quede persistido en el DOM.
+      const emailInput = page.getByLabel(/correo|email|e-mail/i);
+      const passwordInput = page.locator('input[type="password"]');
+      await expect(async () => {
+        await emailInput.fill("gabriel@omnidance.dev");
+        await passwordInput.fill(PASSWORD);
+        await expect(emailInput).toHaveValue("gabriel@omnidance.dev", {
+          timeout: 1_000,
+        });
+        await expect(passwordInput).toHaveValue(PASSWORD, {
+          timeout: 1_000,
+        });
+      }).toPass({ timeout: 15_000 });
       await page
         .getByRole("button", { name: /entrar|iniciar|login/i })
         .click();

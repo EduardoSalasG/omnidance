@@ -4,6 +4,7 @@ import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { NotificationsModule } from "../src/notifications/notifications.module";
+import { ParamsModule } from "../src/params/params.module";
 import { PrismaService } from "../src/prisma.service";
 import { ConsentService } from "../src/legal/consent.service";
 import { PeopleController } from "../src/people/people.controller";
@@ -72,7 +73,9 @@ describe("dancer-profile-survey-analytics e2e", () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [AuthModule, NotificationsModule],
+      // ParamsModule exporta ParamsService - dependencia de
+      // PeopleController (params del perfil dancer).
+      imports: [AuthModule, NotificationsModule, ParamsModule],
       controllers: [
         PeopleController,
         EventRatingsController,

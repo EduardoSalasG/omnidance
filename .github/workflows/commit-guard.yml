@@ -1,0 +1,42 @@
+name: commit-guard
+
+# Red de seguridad server-side de la regla de commits (AGENTS.md >
+# Ramas y entrega): ningún commit puede llevar autoría ni atribución a
+# agentes/herramientas. Los hooks locales de .githooks/ son la primera
+# barrera; este job es la segunda (cubre pushes hechos sin hooks).
+
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+
+jobs:
+  no-agent-attribution:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rechazar commits con atribución a agente/herramienta
+        run: |
+          set -e
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            RANGE="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            RANGE="HEAD~50..HEAD"
+          else
+            RANGE="${{ github.event.before }}..${{ github.event.after }}"
+          fi
+          echo "Revisando rango: $RANGE"
+          BAD=$(git log --format='%H | %an <%ae> | %cn <%ce>%n%B%n---' "$RANGE" \
+            | grep -inE 'devin|cognition|generated[[:space:]]+with|co-authored-by' || true)
+          if [ -n "$BAD" ]; then
+            echo "::error::Commits con atribución a agente/herramienta detectados:"
+            echo "$BAD"
+            echo ""
+            echo "Regla del repo: autor/committer = identidad real, sin"
+            echo "trailers 'generated with' ni 'co-authored-by'."
+            exit 1
+          fi
+          echo "OK: sin atribución a agentes en el rango."

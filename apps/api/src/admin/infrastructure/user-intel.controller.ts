@@ -75,6 +75,10 @@ export class UserIntelController {
         verifiedAt: true,
         createdAt: true,
         deletedAt: true,
+        // Trial Producer Pro (spec platform-trials): la ficha lo muestra
+        // y el admin lo ajusta con PATCH /admin/users/:id/pro-trial.
+        proTier: true,
+        proTrialEndsAt: true,
         roles: {
           select: { id: true, role: true, status: true, createdAt: true },
           orderBy: { createdAt: "asc" },
@@ -174,6 +178,47 @@ export class UserIntelController {
       breakdown: r.breakdown,
       computedAt: r.computedAt,
     }));
+  }
+
+  /**
+   * GET /api/admin/users/:personId/timeline - línea de vida del actor
+   * (spec platform-trials §5b): una query a ActivityEvent ordenada
+   * desc. La auditoría monetaria sigue siendo PaymentEvent; acá van
+   * los hitos de actor (registro, roles, trial, sub, pagos, mora).
+   * El label sale ya resuelto en español - mismo criterio que los
+   * títulos de Notification (es-CL es el único locale habilitado).
+   */
+  @Get("users/:personId/timeline")
+  async timeline(@Param("personId") personId: string) {
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { id: true },
+    });
+    if (!person) throw new NotFoundException("persona no encontrada");
+    const rows = await this.prisma.activityEvent.findMany({
+      where: { personId },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        type: true,
+        refType: true,
+        refId: true,
+        data: true,
+        createdAt: true,
+      },
+    });
+    return {
+      items: rows.map((r) => ({
+        id: r.id,
+        at: r.createdAt,
+        type: r.type,
+        label: timelineLabel(r.type, r.data as TimelineData),
+        ...(r.refType && r.refId
+          ? { ref: { type: r.refType, id: r.refId } }
+          : {}),
+      })),
+    };
   }
 
   /**
@@ -1735,5 +1780,72 @@ export class UserIntelController {
       select: { id: true, name: true },
     });
     return new Map(people.map((p) => [p.id, p]));
+  }
+}
+
+// ── Línea de vida (spec platform-trials §5b) ─────────────────────────
+// Labels ya resueltos en español: el UI solo pinta, no interpola. El
+// ref permite drill-down (ej. refType Payment → comprobante).
+
+type TimelineData = Record<string, unknown> | null;
+
+const clp = (v: unknown) =>
+  typeof v === "number"
+    ? new Intl.NumberFormat("es-CL", {
+        style: "currency",
+        currency: "CLP",
+        maximumFractionDigits: 0,
+      }).format(v)
+    : null;
+
+function timelineLabel(type: string, data: TimelineData): string {
+  const d = data ?? {};
+  switch (type) {
+    case "person.registered":
+      return "Se registró en Omnidance";
+    case "role.requested":
+      return `Solicitó el rol ${d.role ?? "nuevo"}`;
+    case "role.approved":
+      return `Rol ${d.role ?? ""} aprobado`.replace("  ", " ");
+    case "trial.started":
+      return d.kind === "PRODUCER"
+        ? "Inició su prueba Producer Pro"
+        : "La academia inició su prueba gratis";
+    case "trial.ending":
+      return "Aviso de último día de prueba";
+    case "trial.ended":
+      return d.outcome === "converted"
+        ? "Terminó la prueba: convirtió a plan pagado"
+        : "La prueba venció sin convertir";
+    case "trial.adjusted":
+      return "Fecha de prueba ajustada por admin";
+    case "access.ended":
+      return "Acceso cortado por fin de suscripción";
+    case "sub.started":
+      return `Suscripción ${d.tierCode ?? ""} activada`.replace("  ", " ");
+    case "sub.renewed":
+      return "Renovación pagada";
+    case "sub.canceled":
+      return d.to === "CANCEL_PENDING"
+        ? "Pidió cancelar la suscripción"
+        : "Suscripción cancelada";
+    case "sub.plan_changed": {
+      const to = d.to as { tier?: string } | undefined;
+      return `Cambió de plan a ${to?.tier ?? "otro nivel"}`;
+    }
+    case "billing.blocked":
+      return "Academia bloqueada por pago pendiente";
+    case "enrollment.started":
+      return "Se inscribió en una academia";
+    case "payment.paid": {
+      const amount = clp(d.amount);
+      return `Pago confirmado${amount ? ` · ${amount}` : ""}`;
+    }
+    case "invite.sent":
+      return "Invitación enviada";
+    case "invite.registered":
+      return "Se registró por invitación";
+    default:
+      return type;
   }
 }

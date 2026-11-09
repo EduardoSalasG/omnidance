@@ -9,7 +9,7 @@ import { useRouter } from "@/i18n/navigation";
 import { PageLoading } from "@/components/ui/spinner";
 import { AcademyBillingBanner } from "./academy-billing-banner";
 import { CreateAcademyForm } from "./create-academy-form";
-import { academyTierHas } from "@/lib/academy-features";
+import { academyHasFeature } from "@/lib/academy-features";
 import {
   ACADEMY_CHANGED_EVENT,
   ACADEMY_STORAGE_KEY,
@@ -142,7 +142,7 @@ export function AcademyGate({
     canCreate &&
     (isPlatformAdmin ||
       owned.length === 0 ||
-      owned.some((a) => academyTierHas(a.tier, "multiAcademy")));
+      owned.some((a) => academyHasFeature(a, "multiAcademy")));
 
   return (
     <>

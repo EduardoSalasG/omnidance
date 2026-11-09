@@ -4,7 +4,7 @@ import { Children, useCallback, useEffect, useState, use } from "react";
 
 import {useTranslations, useLocale } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, ClockIcon, ConfirmSheet, RefreshIcon, type BadgeVariant } from "@/components/ui";
+import { Badge, Button, Card, ClockIcon, ConfirmSheet, LIST_PREVIEW, RefreshIcon, SeeAllRow, type BadgeVariant } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import {
   ActionNotice,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/action-notice";
 import { readError } from "@/components/academy/shared";
 import { AdminGate } from "@/components/admin/admin-gate";
+import { TrialDateEditor } from "@/components/admin/trial-date-editor";
 import type { RoleRow } from "@/components/admin/types";
 import { useRouter } from "@/i18n/navigation";
 import { getDateFmt, useNumFmt } from "@/lib/intl";
@@ -102,6 +103,8 @@ type PersonDetail = {
     verifiedAt: string | null;
     createdAt: string;
     deletedAt: string | null;
+    proTier: string | null;
+    proTrialEndsAt: string | null;
   };
   roles: { id: string; role: string; status: string; createdAt: string }[];
   roleData: RoleData;
@@ -115,6 +118,16 @@ type PersonDetail = {
     breakdown: Record<string, unknown> | null;
     computedAt: string;
   }[];
+};
+
+// Shape de GET /admin/users/:personId/timeline (user-intel.controller,
+// spec platform-trials §5b): label ya resuelto server-side.
+type TimelineItem = {
+  id: string;
+  at: string;
+  type: string;
+  label: string;
+  ref?: { type: string; id: string };
 };
 
 type LoadState = "loading" | "ready" | "notFound" | "error";
@@ -173,6 +186,8 @@ function UserDetailPanel({ personId }: { personId: string }) {
   const tcrm = useTranslations("crm");
 
   const [detail, setDetail] = useState<PersonDetail | null>(null);
+  const [timeline, setTimeline] = useState<TimelineItem[] | null>(null);
+  const [timelineExpanded, setTimelineExpanded] = useState(false);
   const [catalog, setCatalog] = useState<RoleRow[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [actionError, setActionError] = useState<string | null>(null);
@@ -238,6 +253,18 @@ function UserDetailPanel({ personId }: { personId: string }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Línea de vida del actor (spec platform-trials §5b): fetch
+  // independiente del detail - un timeline que falla no tumba la ficha.
+  useEffect(() => {
+    apiFetch(`/admin/users/${personId}/timeline`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("fetch failed");
+        const body = (await res.json()) as { items: TimelineItem[] };
+        setTimeline(body.items);
+      })
+      .catch(() => setTimeline([]));
+  }, [personId]);
 
   // Catálogo de roles para el selector "Agregar rol" (y fallback de label
   // para roles custom sin entrada en profile.roleLabels).
@@ -516,6 +543,26 @@ function UserDetailPanel({ personId }: { personId: string }) {
               </dt>
               <dd>{fmtDate(person.createdAt, locale)}</dd>
             </div>
+            {/* Trial Producer Pro (spec platform-trials): ajuste admin
+                del fin; extender reabre features Pro, acortar las corta. */}
+            {(person.proTrialEndsAt != null || heldRoles.has("PRODUCER")) && (
+              <div className="flex items-baseline justify-between gap-2">
+                <dt className="shrink-0 text-ink/50">
+                  {t("users.detail.proTrial")}
+                </dt>
+                <dd className="text-sm">
+                  <TrialDateEditor
+                    endpoint={`/admin/users/${personId}/pro-trial`}
+                    value={person.proTrialEndsAt}
+                    onSaved={async () => {
+                      setNotice({ text: t("trials.saved") });
+                      await load();
+                    }}
+                    onError={(msg) => setNotice({ text: msg, error: true })}
+                  />
+                </dd>
+              </div>
+            )}
           </dl>
         </Card>
       </section>
@@ -713,6 +760,52 @@ function UserDetailPanel({ personId }: { personId: string }) {
           })}
         </section>
       )}
+
+      {/* Línea de vida del actor (spec platform-trials §5b): hitos de
+          ActivityEvent desc - registro, roles, trial, suscripción,
+          pagos, mora. Una card-lista con preview de 5 + SeeAllRow. */}
+      <section className="flex flex-col gap-3" aria-labelledby="timeline-h">
+        <h2
+          id="timeline-h"
+          className="text-sm font-semibold uppercase tracking-wide text-ink/50"
+        >
+          {t("users.detail.timeline.title")}
+        </h2>
+        {timeline === null ? (
+          <SkeletonList />
+        ) : timeline.length === 0 ? (
+          <p className="text-sm text-ink/50">
+            {t("users.detail.timeline.empty")}
+          </p>
+        ) : (
+          <Card className="p-0">
+            <ul className="divide-y divide-line/60">
+              {(timelineExpanded
+                ? timeline
+                : timeline.slice(0, LIST_PREVIEW)
+              ).map((ev) => (
+                <li
+                  key={ev.id}
+                  className="flex items-baseline gap-3 px-4 py-2.5"
+                >
+                  <span className="w-20 shrink-0 text-[11px] tabular-nums text-ink/40">
+                    {fmtDate(ev.at, locale)}
+                  </span>
+                  <span className="min-w-0 flex-1 text-sm">{ev.label}</span>
+                  <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-ink/30">
+                    {ev.type}
+                  </span>
+                </li>
+              ))}
+              <SeeAllRow
+                total={timeline.length}
+                expanded={timelineExpanded}
+                onToggle={() => setTimelineExpanded((v) => !v)}
+              />
+            </ul>
+          </Card>
+        )}
+      </section>
 
       <Button
         href={`/analitica/usuarios/${personId}`}

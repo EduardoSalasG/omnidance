@@ -57,6 +57,8 @@ model Person {
   // productores registrados (ProducerParams) - nadie pierde features que
   // ya usaba al desplegar. isProActive = proTier != FREE || trial vigente.
   proTrialEndsAt DateTime?
+  // Dedup del correo de último día de trial (spec platform-trials).
+  proTrialEndNotifiedAt DateTime?
   // Consentimiento legal (spec legal-consent): versión aceptada
   // (CONSENT_VERSION vigente en @omnidance/shared) + timestamp. null =
   // cuenta legada que aún no acepta → el front muestra el aviso.
@@ -114,6 +116,7 @@ model Person {
   tripItems            TripItem[]
   socialPass           SocialPass?
   socialPassLedger     SocialPassLedger[]
+  activityEvents       ActivityEvent[]
 
   @@index([deletedAt])
 }
@@ -961,9 +964,12 @@ model Academy {
   // tier/ciclo contratados - null = sin suscripción (trial, grace o churn).
   tier            AcademyTier?
   billingCycle    BillingCycle?
-  // Trial de onboarding: 30d academias nuevas; backfill 60d a las existentes
-  // al despliegue (grace de lanzamiento).
+  // Trial de onboarding: `academy_billing.trial_days` (15d) academias
+  // nuevas; backfill 60d a las existentes al despliegue (grace de
+  // lanzamiento).
   trialEndsAt       DateTime?
+  // Dedup del correo de último día de trial (spec platform-trials).
+  trialEndNotifiedAt DateTime?
   // Fin de los 5 días de gracia tras una invoice impaga.
   billingGraceUntil DateTime?
   // non-null = academia bloqueada por mora (consola read-only, fuera de
@@ -985,6 +991,7 @@ model Academy {
   ticketClaims   TicketClaim[]
   saleAgreements AcademySaleAgreement[]
   segmentSnapshots AcademySegmentSnapshot[]
+  activityEvents    ActivityEvent[]
 
   @@index([cityId])
   classLevels ClassLevel[]
@@ -1934,6 +1941,35 @@ model AnalyticsEvent {
   payload   Json?
   createdAt DateTime @default(now())
 
+  @@index([type, createdAt])
+}
+
+/// Línea de vida del actor (spec platform-trials): event store
+/// append-only del ciclo de vida de personas y academias - trials,
+/// suscripciones, acceso, roles, registros, pagos. Frontera con
+/// PaymentEvent: ese es auditoría de pagos con hash-chain; este es la
+/// observabilidad del actor para admin/CX (sin cadena). Emisión vía
+/// emitActivity (tx-safe). `refType`/`refId` referencian la entidad
+/// origen para dedup del backfill histórico.
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  person    Person?  @relation(fields: [personId], references: [id])
+  personId  String?
+  academy   Academy? @relation(fields: [academyId], references: [id])
+  academyId String?
+  // trial.started | trial.ending | trial.ended | trial.adjusted |
+  // access.ended | sub.started | sub.renewed | sub.canceled |
+  // sub.plan_changed | role.requested | role.approved |
+  // person.registered | billing.blocked | enrollment.started |
+  // payment.paid | invite.sent | invite.registered
+  type      String
+  refType   String? // "PlatformSubscription" | "Payment" | "Academy" | "PersonRole"
+  refId     String?
+  data      Json?
+  createdAt DateTime @default(now())
+
+  @@index([personId, createdAt])
+  @@index([academyId, createdAt])
   @@index([type, createdAt])
 }
 

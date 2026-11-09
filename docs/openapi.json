@@ -633,20 +633,6 @@
         ]
       }
     },
-    "/api/qr/mine": {
-      "get": {
-        "operationId": "QrController_mine",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Qr"
-        ]
-      }
-    },
     "/api/params/public": {
       "get": {
         "operationId": "PublicParamsController_public",
@@ -695,6 +681,20 @@
         },
         "tags": [
           "AdminParams"
+        ]
+      }
+    },
+    "/api/qr/mine": {
+      "get": {
+        "operationId": "QrController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Qr"
         ]
       }
     },
@@ -9284,6 +9284,86 @@
         ]
       }
     },
+    "/api/admin/trials": {
+      "get": {
+        "operationId": "AdminController_trials",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/academies/{id}/trial": {
+      "patch": {
+        "operationId": "AdminController_setAcademyTrial",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTrialDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/users/{personId}/pro-trial": {
+      "patch": {
+        "operationId": "AdminController_setProTrial",
+        "parameters": [
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTrialDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
     "/api/admin/roles": {
       "get": {
         "operationId": "AdminController_roles",
@@ -10303,6 +10383,29 @@
     "/api/admin/users/{personId}/detail": {
       "get": {
         "operationId": "UserIntelController_detail",
+        "parameters": [
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserIntel"
+        ]
+      }
+    },
+    "/api/admin/users/{personId}/timeline": {
+      "get": {
+        "operationId": "UserIntelController_timeline",
         "parameters": [
           {
             "name": "personId",
@@ -12761,6 +12864,10 @@
         "properties": {}
       },
       "SetRoleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SetTrialDto": {
         "type": "object",
         "properties": {}
       },

@@ -8,6 +8,7 @@ import {
   HttpCode,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -31,6 +32,9 @@ import { AuthService } from "../../auth/domain/auth.service";
 import { MAILER, type Mailer } from "../../auth/domain/ports";
 import { inviteEmailHtml } from "../../auth/infrastructure/emails";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
+import { ParamsService } from "../../params/params.service";
+import { TrialLifecycleService } from "../../payments/application/trial-lifecycle.service";
+import { grantProducerTrialIfDue } from "../../common/pro-trial";
 import { PrismaService } from "../../prisma.service";
 import {
   invalidateRoleCatalog,
@@ -40,6 +44,8 @@ import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { pageParams } from "../../academies/infrastructure/list-filters";
 import { evaluateAcademyChecks } from "../../academies/infrastructure/academy-review";
 import { roleProfileChecks } from "../../common/role-checks";
+import { emitActivity } from "../../common/activity-log";
+import { listPlatformTrials } from "../../common/platform-trials";
 import { dateRange } from "../../query/entities/helpers";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 
@@ -86,6 +92,11 @@ class GrantPermissionDto {
 
   @IsBoolean()
   grant!: boolean;
+}
+
+class SetTrialDto {
+  @IsISO8601()
+  endsAt!: string;
 }
 
 class UsersQueryDto {
@@ -169,6 +180,8 @@ export class AdminController {
     private readonly auth: AuthService,
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly notifications: NotificationsService,
+    private readonly params: ParamsService,
+    private readonly trialLifecycle: TrialLifecycleService,
   ) {}
 
   // ── Usuarios ──────────────────────────────────────────────────────────
@@ -294,11 +307,61 @@ export class AdminController {
     const prev = await this.prisma.personRole.findUnique({
       where: { personId_role: { personId, role: dto.role } },
     });
-    const row = await this.prisma.personRole.upsert({
-      where: { personId_role: { personId, role: dto.role } },
-      update: { status: dto.status },
-      create: { personId, role: dto.role, status: dto.status },
+    let trialEndsAt: Date | null = null;
+    const row = await this.prisma.$transaction(async (tx) => {
+      const r = await tx.personRole.upsert({
+        where: { personId_role: { personId, role: dto.role } },
+        update: { status: dto.status },
+        create: { personId, role: dto.role, status: dto.status },
+      });
+      // Línea de vida (spec platform-trials §5b): request nuevo PENDING
+      // o transición real a APPROVED.
+      if (prev == null && dto.status === "PENDING") {
+        await emitActivity(tx, {
+          type: "role.requested",
+          personId,
+          refType: "PersonRole",
+          refId: r.id,
+          data: { role: dto.role, via: "admin.setRole" },
+        });
+      } else if (dto.status === "APPROVED" && prev?.status !== "APPROVED") {
+        await emitActivity(tx, {
+          type: "role.approved",
+          personId,
+          refType: "PersonRole",
+          refId: r.id,
+          data: { role: dto.role, via: "admin.setRole" },
+        });
+      }
+      // Trial Producer Pro al entrar a APPROVED (spec platform-trials) -
+      // grant directo admin; la cola de validación hace lo mismo en
+      // approveQueueItem. Solo en transición real a APPROVED.
+      if (
+        dto.role === "PRODUCER" &&
+        dto.status === "APPROVED" &&
+        prev?.status !== "APPROVED"
+      ) {
+        trialEndsAt = await grantProducerTrialIfDue(
+          tx,
+          this.params,
+          personId,
+          "role.grant",
+        );
+      }
+      return r;
     });
+    // Bienvenida del trial + ficha CX - best effort, nunca bota el grant.
+    if (trialEndsAt) {
+      const p = await this.prisma.person.findUnique({
+        where: { id: personId },
+        select: { id: true, name: true, email: true, phone: true },
+      });
+      if (p) {
+        await this.trialLifecycle
+          .sendProducerTrialWelcome(p, trialEndsAt)
+          .catch(() => {});
+      }
+    }
     await this.audit(req, "ROLE_SET", "PersonRole", row.id, {
       personId,
       role: dto.role,
@@ -456,10 +519,46 @@ export class AdminController {
         "perfil incompleto - faltan datos antes de aprobar",
       );
     }
-    await this.prisma.personRole.update({
-      where: { id },
-      data: { status: "APPROVED" },
+    let trialEndsAt: Date | null = null;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.personRole.update({
+        where: { id },
+        data: { status: "APPROVED" },
+      });
+      // Línea de vida del actor (spec platform-trials §5b).
+      await emitActivity(tx, {
+        type: "role.approved",
+        personId: row.person.id,
+        refType: "PersonRole",
+        refId: id,
+        data: { role: row.role, via: "validation-queue" },
+      });
+      // Trial Producer Pro al aprobar el rol (spec platform-trials):
+      // proTrialEndsAt = now + producer_pro.trial_days, sin reiniciar
+      // trial vigente ni pisar suscripción Pro viva.
+      if (row.role === "PRODUCER") {
+        trialEndsAt = await grantProducerTrialIfDue(
+          tx,
+          this.params,
+          row.person.id,
+          "role.approved",
+        );
+      }
     });
+    // Bienvenida del trial + ficha CX - best effort, nunca bota la aprobación.
+    if (trialEndsAt) {
+      await this.trialLifecycle
+        .sendProducerTrialWelcome(
+          {
+            id: row.person.id,
+            name: row.person.name,
+            email: row.person.email,
+            phone: row.person.phone,
+          },
+          trialEndsAt,
+        )
+        .catch(() => {});
+    }
     // Aviso al actor: su rol quedó aprobado (spec rbac) - la card de
     // pendiente desaparece y el rol pasa a visible al público.
     await this.notifications.notifySafe(row.person.id, {
@@ -700,6 +799,96 @@ export class AdminController {
     return { ok: true };
   }
 
+  // ── Trials (spec platform-trials §Ajuste admin) ──────────────────────
+
+  /**
+   * Lista operativa de trials (spec admin/home-insights): todos los
+   * actores en trial o con trial vencido sin suscripción viva, con
+   * nombre, rol, email, tier del trial, fecha fin, días restantes y
+   * estado. Orden por urgencia (vencen antes primero). El preview del
+   * home sale de los mismos datos.
+   */
+  @Get("trials")
+  async trials() {
+    return { items: await listPlatformTrials(this.prisma) };
+  }
+
+  /**
+   * Fija `Academy.trialEndsAt`. Extender reabre el acceso y acortar al
+   * pasado corta de inmediato - ambos se resuelven en caliente por
+   * featuresForAcademy, sin sweep adicional. Resetea
+   * trialEndNotifiedAt: la fecha nueva merece su propio correo de
+   * último día. AuditLog + ActivityEvent trial.adjusted en la misma tx
+   * que el cambio de estado.
+   */
+  @Patch("academies/:id/trial")
+  async setAcademyTrial(
+    @Param("id") id: string,
+    @Body() dto: SetTrialDto,
+    @Req() req: Request,
+  ) {
+    const academy = await this.prisma.academy.findUnique({
+      where: { id },
+      select: { id: true, ownerId: true, trialEndsAt: true },
+    });
+    if (!academy) throw new NotFoundException("academia no encontrada");
+    const endsAt = new Date(dto.endsAt);
+    const prev = academy.trialEndsAt?.toISOString() ?? null;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.academy.update({
+        where: { id },
+        data: { trialEndsAt: endsAt, trialEndNotifiedAt: null },
+      });
+      await emitActivity(tx, {
+        type: "trial.adjusted",
+        personId: academy.ownerId,
+        academyId: id,
+        refType: "Academy",
+        refId: id,
+        data: { prev, next: endsAt.toISOString(), by: req.person!.id },
+      });
+    });
+    await this.audit(req, "TRIAL_SET", "Academy", id, {
+      prev,
+      next: endsAt.toISOString(),
+    });
+    return { ok: true, trialEndsAt: endsAt };
+  }
+
+  /** Idem para el trial Producer Pro (`Person.proTrialEndsAt`). */
+  @Patch("users/:personId/pro-trial")
+  async setProTrial(
+    @Param("personId") personId: string,
+    @Body() dto: SetTrialDto,
+    @Req() req: Request,
+  ) {
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { id: true, proTrialEndsAt: true },
+    });
+    if (!person) throw new NotFoundException("usuario no encontrado");
+    const endsAt = new Date(dto.endsAt);
+    const prev = person.proTrialEndsAt?.toISOString() ?? null;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.person.update({
+        where: { id: personId },
+        data: { proTrialEndsAt: endsAt, proTrialEndNotifiedAt: null },
+      });
+      await emitActivity(tx, {
+        type: "trial.adjusted",
+        personId,
+        refType: "Person",
+        refId: personId,
+        data: { prev, next: endsAt.toISOString(), by: req.person!.id },
+      });
+    });
+    await this.audit(req, "TRIAL_SET", "Person", personId, {
+      prev,
+      next: endsAt.toISOString(),
+    });
+    return { ok: true, proTrialEndsAt: endsAt };
+  }
+
   // ── Catálogo RBAC (roles, permisos, grants) ───────────────────────────
 
   @Get("roles")
@@ -866,7 +1055,7 @@ export class AdminController {
           throw new ConflictException("phone_exists");
         }
       }
-      person = await this.prisma.person.create({
+      const created = await this.prisma.person.create({
         data: {
           name: lead.name,
           email: lead.email,
@@ -880,7 +1069,26 @@ export class AdminController {
             create: known.map((r) => ({ role: r.key, status: "APPROVED" })),
           },
         },
+        include: { roles: { select: { id: true, role: true } } },
       });
+      // Línea de vida admin (spec platform-trials §5b).
+      await emitActivity(this.prisma, {
+        type: "person.registered",
+        personId: created.id,
+        refType: "Person",
+        refId: created.id,
+        data: { via: "admin.lead-convert" },
+      });
+      for (const r of created.roles) {
+        await emitActivity(this.prisma, {
+          type: "role.approved",
+          personId: created.id,
+          refType: "PersonRole",
+          refId: r.id,
+          data: { role: r.role, via: "admin.lead-convert" },
+        });
+      }
+      person = created;
     } else {
       person = await this.prisma.person.update({
         where: { id: person.id },

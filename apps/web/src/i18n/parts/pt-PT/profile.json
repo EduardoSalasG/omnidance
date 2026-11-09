@@ -1,112 +1,116 @@
 {
- "profile": {
-  "appearance": "Aparência",
-  "pendingBanner": "Completa os teus dados para ativar a tua conta",
-  "pendingBannerCta": "Completar",
-  "datos": {
-   "title": "Os meus dados",
-   "personal": "Dados pessoais",
-   "name": "Nome",
-   "email": "E-mail",
-   "phone": "Telefone",
-   "memberSince": "Membro desde",
-   "verified": "Conta verificada",
-   "noPhone": "Sem telefone registado",
-   "instagramEmpty": "Sem utilizador",
-   "socialSection": "A tua dança",
-   "socialEmpty": "Ainda não declaraste os teus estilos de dança",
-   "gender": "Género",
-   "genderEmpty": "Sem declarar",
-   "birthDate": "Aniversário",
-   "birthDateEmpty": "Sem declarar",
-   "genderOptions": {
-    "M": "Homem",
-    "F": "Mulher",
-    "OTHER": "Outro"
-   },
-   "edit": "Editar",
-   "addStyle": "Adicionar estilo",
-   "remove": "Remover",
-   "chooseStyle": "Escolhe um estilo",
-   "chooseRole": "Papel",
-   "level": {
-    "none": "Sem nível",
-    "intermedio": "Intermédio",
-    "avanzado": "Avançado",
-    "iniciacion": "Iniciação",
-    "basico": "Básico"
-   },
-   "saved": "Guardado",
-   "saveError": "Não foi possível guardar. Tenta de novo",
-   "academySection": "As tuas academias",
-   "academyEmpty": "Sem inscrições ativas",
-   "danceRole": {
-    "LEADER": "Leader",
-    "FOLLOWER": "Follower",
-    "SWITCH": "Switch"
-   },
-   "enrollmentStatus": {
-    "ACTIVE": "Ativa",
-    "TRIAL": "Teste",
-    "ONLINE": "Online",
-    "PAUSED": "Em pausa",
-    "FROZEN": "Congelada"
-   },
-   "plan": "Plano {name}",
-   "since": "Desde {date}",
-   "phonePlaceholder": "+56 9 1234 5678",
-   "nameRequired": "O nome não pode ficar vazio",
-   "language": {
-    "title": "Idioma",
-    "hint": "Guardado no teu perfil e aplicado em todos os teus dispositivos."
-   },
-   "jurisdiction": {
-    "title": "Região legal",
-    "hint": "Define que lei de proteção de dados se aplica a ti e o consentimento que te pedimos.",
-    "options": {
-     "CL": "Chile (Lei 19.628 / 21.719)",
-     "EU": "União Europeia (RGPD)"
+  "profile": {
+    "appearance": "Aparência",
+    "pendingBanner": "Completa os teus dados para ativar a tua conta",
+    "pendingBannerCta": "Completar",
+    "datos": {
+      "title": "Os meus dados",
+      "personal": "Dados pessoais",
+      "name": "Nome",
+      "email": "E-mail",
+      "phone": "Telefone",
+      "memberSince": "Membro desde",
+      "verified": "Conta verificada",
+      "noPhone": "Sem telefone registado",
+      "instagramEmpty": "Sem utilizador",
+      "socialSection": "A tua dança",
+      "socialEmpty": "Ainda não declaraste os teus estilos de dança",
+      "gender": "Género",
+      "genderEmpty": "Sem declarar",
+      "birthDate": "Aniversário",
+      "birthDateEmpty": "Sem declarar",
+      "genderOptions": {
+        "M": "Homem",
+        "F": "Mulher",
+        "OTHER": "Outro"
+      },
+      "edit": "Editar",
+      "addStyle": "Adicionar estilo",
+      "remove": "Remover",
+      "chooseStyle": "Escolhe um estilo",
+      "chooseRole": "Papel",
+      "level": {
+        "none": "Sem nível",
+        "intermedio": "Intermédio",
+        "avanzado": "Avançado",
+        "iniciacion": "Iniciação",
+        "basico": "Básico"
+      },
+      "saved": "Guardado",
+      "saveError": "Não foi possível guardar. Tenta de novo",
+      "academySection": "As tuas academias",
+      "academyEmpty": "Sem inscrições ativas",
+      "danceRole": {
+        "LEADER": "Leader",
+        "FOLLOWER": "Follower",
+        "SWITCH": "Switch"
+      },
+      "enrollmentStatus": {
+        "ACTIVE": "Ativa",
+        "TRIAL": "Teste",
+        "ONLINE": "Online",
+        "PAUSED": "Em pausa",
+        "FROZEN": "Congelada"
+      },
+      "plan": "Plano {name}",
+      "since": "Desde {date}",
+      "phonePlaceholder": "+56 9 1234 5678",
+      "nameRequired": "O nome não pode ficar vazio",
+      "language": {
+        "title": "Idioma",
+        "hint": "Guardado no teu perfil e aplicado em todos os teus dispositivos."
+      },
+      "jurisdiction": {
+        "title": "Região legal",
+        "hint": "Define que lei de proteção de dados se aplica a ti e o consentimento que te pedimos.",
+        "options": {
+          "CL": "Chile (Lei 19.628 / 21.719)",
+          "EU": "União Europeia (RGPD)"
+        }
+      },
+      "photoError": "Não foi possível carregar a foto, tenta uma imagem mais leve (máx. 5 MB) ou JPG/PNG."
+    },
+    "reminder": {
+      "title": "Completa o teu perfil",
+      "body": "Faltam-te dados como o telefone, género ou os teus estilos de dança.",
+      "cta": "Completar dados",
+      "dismiss": "Não mostrar de novo"
+    },
+    "complete": {
+      "title": "Completa o teu perfil",
+      "subtitle": "Confirma os teus dados para ativar a tua conta e começar a usar a app.",
+      "name": "Nome",
+      "phone": "Telefone",
+      "password": "Palavra-passe (opcional)",
+      "passwordHint": "mínimo 8 caracteres. Também podes entrar sempre por link no teu e-mail",
+      "submit": "Ativar a minha conta",
+      "success": "Feito, a tua conta já está ativa",
+      "error": "Não foi possível guardar. Tenta de novo",
+      "phoneTaken": "Este telefone já está registado noutra conta.",
+      "passwordShort": "A palavra-passe deve ter pelo menos 8 caracteres.",
+      "loadError": "Não foi possível carregar os teus dados."
+    },
+    "password": {
+      "title": "Segurança",
+      "label": "Palavra-passe",
+      "defined": "Definida",
+      "notSet": "Sem palavra-passe, entras por link no teu e-mail",
+      "set": "Definir palavra-passe",
+      "change": "Alterar palavra-passe",
+      "current": "Palavra-passe atual",
+      "new": "Nova palavra-passe",
+      "confirm": "Confirmar palavra-passe",
+      "hint": "mínimo 8 caracteres",
+      "tooShort": "A palavra-passe deve ter pelo menos 8 caracteres.",
+      "mismatch": "As palavras-passe não coincidem.",
+      "incorrect": "A palavra-passe atual não está correta.",
+      "same": "A nova palavra-passe tem de ser diferente da atual.",
+      "saved": "Palavra-passe atualizada",
+      "saveError": "Não foi possível guardar. Tenta de novo"
+    },
+    "cx": {
+      "title": "Customer Experience",
+      "desc": "O seu contacto direto para dúvidas de conta ou subscrição."
     }
-   },
-   "photoError": "Não foi possível carregar a foto, tenta uma imagem mais leve (máx. 5 MB) ou JPG/PNG."
-  },
-  "reminder": {
-   "title": "Completa o teu perfil",
-   "body": "Faltam-te dados como o telefone, género ou os teus estilos de dança.",
-   "cta": "Completar dados",
-   "dismiss": "Não mostrar de novo"
-  },
-  "complete": {
-   "title": "Completa o teu perfil",
-   "subtitle": "Confirma os teus dados para ativar a tua conta e começar a usar a app.",
-   "name": "Nome",
-   "phone": "Telefone",
-   "password": "Palavra-passe (opcional)",
-   "passwordHint": "mínimo 8 caracteres. Também podes entrar sempre por link no teu e-mail",
-   "submit": "Ativar a minha conta",
-   "success": "Feito, a tua conta já está ativa",
-   "error": "Não foi possível guardar. Tenta de novo",
-   "phoneTaken": "Este telefone já está registado noutra conta.",
-   "passwordShort": "A palavra-passe deve ter pelo menos 8 caracteres.",
-   "loadError": "Não foi possível carregar os teus dados."
-  },
-  "password": {
-   "title": "Segurança",
-   "label": "Palavra-passe",
-   "defined": "Definida",
-   "notSet": "Sem palavra-passe, entras por link no teu e-mail",
-   "set": "Definir palavra-passe",
-   "change": "Alterar palavra-passe",
-   "current": "Palavra-passe atual",
-   "new": "Nova palavra-passe",
-   "confirm": "Confirmar palavra-passe",
-   "hint": "mínimo 8 caracteres",
-   "tooShort": "A palavra-passe deve ter pelo menos 8 caracteres.",
-   "mismatch": "As palavras-passe não coincidem.",
-   "incorrect": "A palavra-passe atual não está correta.",
-   "same": "A nova palavra-passe tem de ser diferente da atual.",
-   "saved": "Palavra-passe atualizada",
-   "saveError": "Não foi possível guardar. Tenta de novo"
   }
- }
 }

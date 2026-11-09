@@ -22,6 +22,7 @@ import { PrismaService } from "../prisma.service";
 import { NotificationsService } from "../notifications/domain/notifications.service";
 import { AuthService } from "../auth/domain/auth.service";
 import { setSessionCookie } from "../auth/infrastructure/auth.controller";
+import { emitActivity } from "../common/activity-log";
 
 // Roles que un lead puede declarar en el formulario de /pro - whitelist
 // dura porque el formulario es público y escribe PersonRole directo.
@@ -260,8 +261,25 @@ export class LeadsController {
             create: known.map((r) => ({ role: r.key, status: "APPROVED" })),
           },
         },
-        select: { id: true },
+        include: { roles: { select: { id: true, role: true } } },
       });
+      // Línea de vida admin (spec platform-trials §5b).
+      await emitActivity(this.prisma, {
+        type: "person.registered",
+        personId: person.id,
+        refType: "Person",
+        refId: person.id,
+        data: { via: "lead.convert" },
+      });
+      for (const r of person.roles) {
+        await emitActivity(this.prisma, {
+          type: "role.approved",
+          personId: person.id,
+          refType: "PersonRole",
+          refId: r.id,
+          data: { role: r.role, via: "lead.convert" },
+        });
+      }
       personId = person.id;
       await this.prisma.lead.update({
         where: { id: lead.id },

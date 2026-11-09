@@ -149,13 +149,15 @@ Roles de colaboración dentro del pipeline: Diseño (orquestador + usuario) → 
 - Promueve `dev → main` solo tras revisión + QA + release gate.
 - Hotfix en `main` → regulariza `dev` inmediatamente. **Nunca quedarse parado en `main`.**
 - No mezcles cambios no relacionados ni cambios locales ajenos en la misma entrega.
-- **Sin co-autoría ni firma de agente en los commits** - solo el mensaje descriptivo.
+- **Sin co-autoría ni firma de agente en los commits** - solo el mensaje descriptivo. Prohibido en autor, committer y mensaje: referencias a agentes/herramientas (`devin`, `cognition`), trailers `Generated with …` y `Co-Authored-By:` (cualquiera - no hay coautores humanos registrados). Autor/committer = la identidad configurada del dueño del repo; si `user.name`/`user.email` no están configurados o apuntan a un bot, NO se commitea - se pide la identidad al usuario. **Enforcement mecánico**: hooks versionados `.githooks/commit-msg` + `.githooks/pre-commit` (activados por `core.hooksPath` vía `postinstall`/`scripts/setup-git-hooks.cjs`) y gate CI `.github/workflows/commit-guard.yml` en push/PR. No intentar saltarlos (`--no-verify` queda prohibido salvo autorización explícita del usuario).
 - **CI/CD**: push a `main` despliega el API (GH Actions → GHCR → SSH a la VM → migrate+seed → health gate); el front va a Netlify vía `netlify.toml` (Next.js runtime). Secrets/vars y setup de la VM en `docs/ci-cd.md`.
+- **Gate de suite antes de push**: `.githooks/pre-push` corre la suite de API completa (`pnpm --filter @omnidance/api exec vitest run`, ~45s) en cada `git push` - el drift de fakes de specs (incidente 2026-11-09, ~84 tests rotos detectados recién en CI) no vuelve a llegar a la rama remota. Escape documentado: `SKIP_PREPUSH=1 git push` (docs-only, WIP a rama propia, stack local apagado - los e2e usan la DB de docker compose). `pnpm verify` = typecheck + lint + test para la verificación manual completa.
+- **`main` protegido**: push directo bloqueado (branch protection) - la promoción `dev → main` se hace por PR con checks `static-unit` (QA) y `no-agent-attribution` (commit-guard) verdes. Admin puede bypassear en emergencias; cada bypass se declara en el handoff.
 
 ### Versionamiento
 
 - SemVer `MAJOR.MINOR.PATCH`: MAJOR = incompatible (API/datos/auth); MINOR = feature compatible; PATCH = fix/docs/mantenimiento.
-- Release gate (`dev → main`): definir incremento → actualizar versión + `CHANGELOG.md` (Keep a Changelog) + notas de release → tests/build/QA → tag anotado `vX.Y.Z` en el commit exacto de `main` → push → supervisar CI/deploy/health checks → sincronizar `main` de vuelta a `dev`.
+- Release gate (`dev → main`): definir incremento → actualizar versión + `CHANGELOG.md` (Keep a Changelog) + notas de release → `pnpm verify` + QA verde en dev para el SHA promovido (`gh run list --branch dev`) → PR `dev → main` con checks verdes (branch protection lo exige) → merge → tag anotado `vX.Y.Z` en el commit exacto de `main` → push del tag → supervisar CI/deploy/health checks → sincronizar `main` de vuelta a `dev`.
 - **QA completo local antes de promover cuando la release toca frontend** (`apps/web/**`): obligatorio correr y citar evidencia de `pnpm lint` (0 errores), `pnpm typecheck`, `pnpm test` y `pnpm test:e2e` (stack vivo). Si la release es solo backend/docs, basta typecheck + tests del área afectada; declararlo explícitamente.
 - **Rollback**: nunca re-desplegar SHA informal ni mover tags. Re-desplegar el artefacto del último tag sano + health checks + documentar motivo/impacto.
 

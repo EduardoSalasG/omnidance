@@ -323,6 +323,7 @@ const makeAcademiesCtrl = (prisma: unknown, access: unknown) =>
     {} as never, // FileStorage - no se usa en este endpoint
       {} as never,
       {} as never,
+  {} as never,
   );
 
 describe("AcademiesController.levelInsights", () => {

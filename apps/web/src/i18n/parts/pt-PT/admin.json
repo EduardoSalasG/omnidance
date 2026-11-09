@@ -24,7 +24,12 @@
         "roleHistory": "Gestão de papéis",
         "grantedAt": "Atribuído a {date}",
         "roleData": "Atividade por papel",
-        "notFound": "Utilizador não encontrado"
+        "notFound": "Utilizador não encontrado",
+        "proTrial": "Trial Producer Pro",
+        "timeline": {
+          "title": "Linha de vida",
+          "empty": "Ainda não há eventos."
+        }
       },
       "scores": {
         "title": "Scores por ator",
@@ -114,6 +119,22 @@
         "copied": "Link copiado",
         "invalid": "Indica um montante válido e um conceito"
       }
+    },
+    "trials": {
+      "title": "Trials da plataforma",
+      "adjust": "Ajustar",
+      "set": "Definir data",
+      "dateLabel": "Fim do trial",
+      "saved": "Trial atualizado",
+      "state": {
+        "ACTIVE": "Ativo",
+        "EXPIRING": "A expirar",
+        "EXPIRED": "Expirado"
+      },
+      "daysLeft": "{count, plural, =0 {expira hoje} one {falta # dia} other {faltam # dias}}",
+      "daysOver": "{count, plural, one {expirou há # dia} other {expirou há # dias}}",
+      "roleAcademy": "Academia",
+      "roleProducer": "Produtor"
     },
     "status": {
       "REJECTED": "Rejeitado"

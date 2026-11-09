@@ -24,6 +24,12 @@ export default defineConfig({
     navigationTimeout: 90_000,
     actionTimeout: 15_000,
     trace: "retain-on-failure",
+    // InstallPrompt registra /sw.js en cada página (skipWaiting +
+    // clients.claim): una vez que controla la página, en WebKit los
+    // fetches pasan por el SW y page.route deja de interceptarlos
+    // (academia-cobros mobile). La suite no prueba el SW - bloquearlo
+    // hace los intercepts deterministas en ambos proyectos.
+    serviceWorkers: "block",
   },
   projects: [
     // Setup: genera storageState por rol (login password dev).

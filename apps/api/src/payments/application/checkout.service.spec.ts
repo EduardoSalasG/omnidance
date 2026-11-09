@@ -163,6 +163,12 @@ function mkPrisma() {
         return data;
       }),
     },
+    // ActivityEvent (spec platform-trials): el emit de ciclo de vida
+    // usa findFirst (dedup) + create dentro de la tx.
+    activityEvent: {
+      findFirst: vi.fn(async () => null),
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => data),
+    },
     // Pase Social (spec pase-social): sin pass por defecto; los tests
     // del pase siembran la fila y verifican balance/ledger.
     socialPass: {
@@ -1604,7 +1610,7 @@ describe("CheckoutService.membershipQuote", () => {
     classCount: null,
     periodDays: null,
     description: ["2 clases por semana"],
-    academy: { id: "ac-1", name: "Academia X", active: true },
+    academy: { id: "ac-1", name: "Academia X", active: true, tier: "STUDIO" },
     ...over,
   });
 
@@ -1737,7 +1743,7 @@ describe("CheckoutService.purchaseMembership", () => {
     active: true,
     type: "MONTHLY",
     price: 15000,
-    academy: { active: true },
+    academy: { active: true, tier: "STUDIO" },
     ...over,
   });
 

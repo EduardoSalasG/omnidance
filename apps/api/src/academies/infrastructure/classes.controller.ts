@@ -41,7 +41,10 @@ import {
 } from "./class-card-projection";
 import { filterDate } from "./list-filters";
 import { buildClassIcs } from "./class-ics";
-import { tierMeets } from "../domain/academy-tiers";
+import {
+  academyTrialExpired,
+  tierMeets,
+} from "../domain/academy-tiers";
 import { ApiQuery } from "@nestjs/swagger";
 
 // Inscripción vigente: la que habilita ver la academia como "mía" en
@@ -387,6 +390,11 @@ export class ClassesController {
           academy: {
             active: true,
             billingBlockedAt: null,
+            // Trial vencido sin suscripción se deslista (platform-trials).
+            OR: [
+              { tier: { not: null } },
+              { trialEndsAt: { gt: new Date() } },
+            ],
             reviewStatus: { not: "REJECTED" },
           },
           series: {
@@ -519,13 +527,19 @@ export class ClassesController {
               where: {
                 id: { in: [...new Set(lessons.map((l) => l.academyId))] },
               },
-              select: { id: true, name: true, billingBlockedAt: true },
+              select: {
+                id: true,
+                name: true,
+                billingBlockedAt: true,
+                tier: true,
+                trialEndsAt: true,
+              },
             })
           ).map((a) => [a.id, a] as const),
         )
       : new Map<
           string,
-          { id: string; name: string; billingBlockedAt: Date | null }
+          { id: string; name: string; billingBlockedAt: Date | null; tier: string | null; trialEndsAt: Date | null }
         >();
     // Créditos del plan vigente por (academia, semana ISO de la clase) -
     // mismo resolveQuota de la ficha; el card muestra "n/m esta semana".
@@ -616,13 +630,19 @@ export class ClassesController {
               where: {
                 id: { in: [...new Set(lessons.map((l) => l.academyId))] },
               },
-              select: { id: true, name: true, billingBlockedAt: true },
+              select: {
+                id: true,
+                name: true,
+                billingBlockedAt: true,
+                tier: true,
+                trialEndsAt: true,
+              },
             })
           ).map((a) => [a.id, a] as const),
         )
       : new Map<
           string,
-          { id: string; name: string; billingBlockedAt: Date | null }
+          { id: string; name: string; billingBlockedAt: Date | null; tier: string | null; trialEndsAt: Date | null }
         >();
     const instructorName = await this.instructorNames([
       ...rows.map((r) => r.cls),
@@ -983,10 +1003,13 @@ export class ClassesController {
                 id: true,
                 name: true,
                 defaultQuorum: true,
-                // Mora SaaS (S3/S6): la ficha de clase del alumno muestra
-                // "academia no disponible" en el CTA (book/checkout ya
-                // rechazan con academy.unavailable - el flag lo anticipa).
+                // Mora SaaS (S3/S6) y trial vencido (platform-trials):
+                // la ficha de clase del alumno muestra "academia no
+                // disponible" en el CTA (book/checkout ya rechazan con
+                // academy.unavailable - el flag lo anticipa).
                 billingBlockedAt: true,
+                tier: true,
+                trialEndsAt: true,
                 // Sede de la clase (spec class-calendar-ics): las clases
                 // se dictan en la academia - su address/addressExtra es
                 // la ubicación y city.timezone fija el TZID del .ics.
@@ -1134,7 +1157,11 @@ export class ClassesController {
       myCredits,
       academy: {
         ...cls.slot.academy,
-        billingBlocked: cls.slot.academy.billingBlockedAt != null,
+        // Mora o trial vencido (spec platform-trials): el CTA muestra
+        // "no disponible" - book/checkout ya rechazan igual.
+        billingBlocked:
+          cls.slot.academy.billingBlockedAt != null ||
+          academyTrialExpired(cls.slot.academy),
       },
       instructor,
       instructors,
@@ -1526,16 +1553,25 @@ export class ClassesController {
             academyId: true,
             series: { select: { quorum: true } },
             academy: {
-              select: { defaultQuorum: true, billingBlockedAt: true },
+              select: {
+                defaultQuorum: true,
+                billingBlockedAt: true,
+                tier: true,
+                trialEndsAt: true,
+              },
             },
           },
         },
       },
     });
     if (!cls) throw new NotFoundException("clase no encontrada");
-    // Academia bloqueada por mora (S3): no hay reservas nuevas - copy
-    // honesto para el alumno (la falta es del owner, no de él).
-    if (cls.slot.academy.billingBlockedAt != null) {
+    // Academia bloqueada por mora (S3) o sin acceso por trial vencido
+    // (platform-trials): no hay reservas nuevas - copy honesto para el
+    // alumno (la falta es del owner, no de él).
+    if (
+      cls.slot.academy.billingBlockedAt != null ||
+      academyTrialExpired(cls.slot.academy)
+    ) {
       throw new BadRequestException({
         error: "academy.unavailable",
         message: "la academia no está disponible por el momento",

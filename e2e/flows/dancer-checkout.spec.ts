@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { statePath } from "../helpers";
+import { apiAs, statePath } from "../helpers";
 
 // Checkout de preventa con stub:// (inventario §2): el pago se
 // simula con los botones dev "Simular aprobado/fallido" que disparan
@@ -13,11 +13,32 @@ test.describe("@dancer @checkout preventa stub", () => {
   test.use({ storageState: statePath("dancer") });
 
   async function openCheckout(page: import("@playwright/test").Page) {
-    // Evento con preventa ABIERTA del seed (Viernes Sabroso, vie 7
-    // nov): directo al checkout - la ficha/CTA la cubre dancer-eventos.
-    // Ojo: si el seed envejece y la preventa cierra, el POST de la
-    // orden falla y el form no avanza a "esperando confirmación".
-    await page.goto("/eventos/cmubd9oq200n213hetp2cx88h/checkout");
+    // Evento comprable resuelto en runtime (un id fijo envejece: la
+    // preventa corta o el evento pasa y el POST de la orden falla).
+    // Criterio: PUBLISHED + PUBLIC, aún no empieza, y con preventa o
+    // precio de puerta (el checkout vende por ambos canales). La
+    // ficha/CTA la cubre dancer-eventos.
+    const api = await apiAs("dancer");
+    const res = await api.get("/api/events?pageSize=100");
+    const events = (await res.json().catch(() => [])) as {
+      id: string;
+      status: string;
+      visibility: string;
+      startsAt: string;
+      presalePrice: number | null;
+      doorPrice: number | null;
+    }[];
+    await api.dispose();
+    const now = Date.now();
+    const event = events.find(
+      (e) =>
+        e.status === "PUBLISHED" &&
+        e.visibility === "PUBLIC" &&
+        new Date(e.startsAt).getTime() > now &&
+        (e.presalePrice != null || e.doorPrice != null),
+    );
+    expect(event, "sin evento futuro comprable en el seed").toBeTruthy();
+    await page.goto(`/eventos/${event!.id}/checkout`);
     await expect(
       page.getByRole("button", { name: /ir a pagar|pagar|pay/i }),
     ).toBeVisible({ timeout: 30_000 });

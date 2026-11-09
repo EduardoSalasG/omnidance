@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
+import { emitActivity } from "../../common/activity-log";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import type {
   CheckinsRepo,
@@ -283,12 +284,14 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
     });
   }
 
-  createLightPerson(input: {
+  async createLightPerson(input: {
     name: string;
     phone: string;
     phoneCountryCode?: string | null;
   }) {
-    return this.prisma.person.create({
+    // Línea de vida admin (spec platform-trials §5b): person.registered
+    // + role.approved del DANCER auto-aprobado.
+    const person = await this.prisma.person.create({
       data: {
         name: input.name,
         phone: input.phone,
@@ -296,8 +299,25 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
         isLightAccount: true,
         roles: { create: { role: "DANCER", status: "APPROVED" } },
       },
-      select: { id: true, name: true },
+      include: { roles: { select: { id: true, role: true } } },
     });
+    await emitActivity(this.prisma, {
+      type: "person.registered",
+      personId: person.id,
+      refType: "Person",
+      refId: person.id,
+      data: { via: "checkin.light-account" },
+    });
+    for (const r of person.roles) {
+      await emitActivity(this.prisma, {
+        type: "role.approved",
+        personId: person.id,
+        refType: "PersonRole",
+        refId: r.id,
+        data: { role: r.role, via: "checkin.light-account" },
+      });
+    }
+    return person;
   }
 
   createDoorSale(input: DoorSaleTxInput) {

@@ -17,10 +17,21 @@ for (const [role, email] of Object.entries(USERS)) {
 
     for (let attempt = 0; attempt < 2; attempt++) {
       await page.goto("/login");
-      await page.getByLabel(/correo|email|e-mail/i).fill(email);
+      // Race fill vs hidratación: un fill pre-hidratación queda pisado
+      // por el estado inicial ("") y el submit jamás sale - re-llenar
+      // hasta que el valor persista en el DOM.
+      const emailInput = page.getByLabel(/correo|email|e-mail/i);
       // Por tipo, no por label: el radio del método "Contraseña" comparte
       // el texto accesible y viola strict mode.
-      await page.locator('input[type="password"]').fill(PASSWORD);
+      const passwordInput = page.locator('input[type="password"]');
+      await expect(async () => {
+        await emailInput.fill(email);
+        await passwordInput.fill(PASSWORD);
+        await expect(emailInput).toHaveValue(email, { timeout: 1_000 });
+        await expect(passwordInput).toHaveValue(PASSWORD, {
+          timeout: 1_000,
+        });
+      }).toPass({ timeout: 15_000 });
       await page.getByRole("button", { name: /entrar|iniciar|login/i }).click();
       // El redirect full-reload a /inicio compila la ruta en dev la
       // primera vez (~15s+ observado) y /inicio es una página pesada.

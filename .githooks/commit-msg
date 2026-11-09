@@ -1,0 +1,16 @@
+#!/bin/sh
+# Regla del repo (AGENTS.md > Ramas y entrega): los commits llevan solo
+# el mensaje descriptivo del autor real. Se rechaza cualquier
+# atribución a agentes/herramientas en el mensaje.
+
+msg_file="$1"
+
+if grep -inE 'devin|cognition|generated[[:space:]]+with|co-authored-by' "$msg_file" >/dev/null 2>&1; then
+  echo "commit-msg: mensaje rechazado." >&2
+  echo "  Contiene atribución a agente/herramienta (patrones bloqueados:" >&2
+  echo "  devin, cognition, 'generated with', 'co-authored-by')." >&2
+  echo "  Regla del repo: commits firmados solo por el autor real." >&2
+  exit 1
+fi
+
+exit 0

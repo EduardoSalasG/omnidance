@@ -754,6 +754,45 @@ stateDiagram-v2
 - **Cancelación `at_period_end`**: `POST /subscriptions/:id/cancel` llama `subscription/cancel` con `at_period_end=1` → `CANCEL_PENDING`; el usuario conserva el acceso hasta el fin del período ya pagado y el próximo reconcile cierra a `CANCELED` cuando Flow reporta `status=4`.
 - **Reminder el día previo**: cuando `nextInvoiceAt` queda a <24 h y la sub sigue `ACTIVE`, el reconcile notifica `membership.renewal_reminder` una sola vez por fecha (`reminderSentFor` la dedup - si Flow mueve la fecha, se vuelve a avisar).
 
+## Ciclo de vida del trial de plataforma (platform-trials)
+
+```mermaid
+sequenceDiagram
+    actor A as Actor (owner / productor)
+    participant API as API
+    participant TLS as TrialLifecycleService
+    participant GW as Flow
+    participant DB as Postgres
+
+    alt academia
+        A->>API: POST /academies
+        API->>DB: Academy.trialEndsAt = +academy_billing.trial_days (15d)<br/>+ ActivityEvent trial.started
+    else productor
+        A->>API: registro por landing → PersonRole(PRODUCER) PENDING
+        API->>DB: aprobación (cola o grant admin) →<br/>Person.proTrialEndsAt = +producer_pro.trial_days (15d)<br/>+ role.approved + trial.started
+    end
+    API->>A: correo bienvenida (features por tier,<br/>fecha fin, contacto CX)
+    API->>DB: ficha completa → cx.notify_email
+
+    participant CRON as subscriptions.reconcile (cron 09:00)
+    CRON->>TLS: sweepTrialLastDay (ventana 24h,<br/>dedup *trialEndNotifiedAt)
+    TLS->>DB: PlatformPromo trial-conv-&lt;YYYYMMDD&gt;<br/>(50% 1er mes, whitelist, solo ese día)
+    TLS->>A: correo último día + oferta
+    CRON->>TLS: sweepTrialEnded
+    TLS->>DB: ActivityEvent trial.ended / access.ended
+
+    alt vencido sin suscripción
+        Note over A,DB: academia → features vacías (consola solo<br/>Inicio/Suscripción/Perfil, fuera de explorar,<br/>sin reservas ni compras) · productor → isProActive cae a FREE
+    else suscribe (checkout normal o promo del último día)
+        A->>GW: subscribe → PlatformSubscription ACTIVE
+        GW-->>API: settle → Academy.tier / Person.proTier<br/>proyectado → acceso restaurado
+    end
+```
+
+- **Corte unificado de churn**: una `PlatformSubscription` que queda `CANCELED` al fin del período pagado (sin cambio de plan pendiente) limpia `Academy.tier`/`billingCycle` y `Person.proTier` - el actor cae a la misma postura de trial vencido hasta suscribirse de nuevo.
+- **Ajuste admin**: `PATCH /admin/academies/:id/trial` y `PATCH /admin/users/:id/pro-trial` fijan la fecha fin (audit + `trial.adjusted`); extender reabre el acceso, acortar al pasado corta de inmediato.
+- **Observabilidad**: `ActivityEvent` append-only alimenta `GET /admin/users/:id/timeline` (línea de vida en la ficha admin) y los KPIs de trials del inicio admin (`GET /admin/trials`); la historia previa se siembra con `apps/api/scripts/backfill-activity-events.cjs` (dry-run por default, `--apply`, idempotente).
+
 ## Ledger de pago - evidencia hash-chain (BIAN)
 
 ```mermaid

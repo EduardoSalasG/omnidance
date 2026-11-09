@@ -125,6 +125,18 @@ export function isProActive(
   );
 }
 
+// Estados "vivos" de PlatformSubscription (spec subscription lifecycle):
+// la sub compromete al actor aunque aún no haya cobrado (PENDING_CARD/
+// ACTIVATING/PENDING_PAYMENT) o esté bajando a fin de período
+// (CANCEL_PENDING). Fuente única - el service la consumía inline.
+export const PLATFORM_SUB_LIVE_STATUSES = [
+  "ACTIVE",
+  "CANCEL_PENDING",
+  "PENDING_CARD",
+  "ACTIVATING",
+  "PENDING_PAYMENT",
+] as const;
+
 /** planId del plan espejo Flow - compartido por todas las subs del tier. */
 export function platformPlanId(
   kind: "ACADEMY" | "PRODUCER",

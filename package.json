@@ -1,6 +1,6 @@
 {
   "name": "omnidance",
-  "version": "1.15.6",
+  "version": "1.16.0",
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "pnpm": {
@@ -22,6 +22,7 @@
     }
   },
   "scripts": {
+    "postinstall": "node scripts/setup-git-hooks.cjs",
     "dev": "pnpm -r --parallel run dev",
     "dev:web": "pnpm --filter @omnidance/web dev",
     "dev:api": "pnpm --filter @omnidance/api dev",
@@ -37,6 +38,7 @@
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test",
     "test:e2e": "playwright test",
     "test:e2e:which": "node scripts/e2e-which.mjs"
   },

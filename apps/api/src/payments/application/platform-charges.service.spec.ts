@@ -48,6 +48,7 @@ function matchWhere(row: Row, where: Row): boolean {
 function mkPrisma() {
   const payments = new Map<string, Row>();
   const events: Row[] = [];
+  const activities: Row[] = [];
   const persons = new Map<string, Row>();
   const personRoles: Row[] = [];
   let seq = 0;
@@ -156,6 +157,17 @@ function mkPrisma() {
           return { count: before - events.length };
         },
       ),
+    },
+    // ActivityEvent (spec platform-trials): el emit de ciclo de vida
+    // usa findFirst (dedup) + create dentro de la tx.
+    activityEvent: {
+      findFirst: vi.fn(async ({ where }: { where: Row }) =>
+        activities.find((a) => matchWhere(a, where)) ?? null),
+      create: vi.fn(async ({ data }: { data: Row }) => {
+        const stored = JSON.parse(JSON.stringify(data)) as Row;
+        activities.push(stored);
+        return stored;
+      }),
     },
     event: {
       findUnique: vi.fn(async () => null),

@@ -22,6 +22,8 @@ import { PrismaService } from "../../prisma.service";
 import { ParamsService } from "../../params/params.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { emitPaymentEvent } from "../domain/payment-ledger";
+import { emitActivity, emitActivityOnce } from "../../common/activity-log";
+import { emitTrialEnded } from "../../common/platform-trials";
 import {
   decodeSeriesPassRef,
   encodePlatformSubRef,
@@ -33,6 +35,7 @@ import {
   CYCLE_MONTHS,
   cycleChargeClp,
   isProActive,
+  PLATFORM_SUB_LIVE_STATUSES,
   platformPlanId,
   PRODUCER_PRO_TIERS,
   PRODUCER_TIER_RANK,
@@ -70,13 +73,9 @@ import {
 // MembershipSubscription (PENDING_CARD → ACTIVATING → ACTIVE →
 // CANCEL_PENDING → CANCELED; PENDING_PAYMENT = alta manual por
 // transferencia esperando comprobante - spec subscription-manual-transfer).
-const LIVE_STATUSES = [
-  "ACTIVE",
-  "CANCEL_PENDING",
-  "PENDING_CARD",
-  "ACTIVATING",
-  "PENDING_PAYMENT",
-] as const;
+// La fuente única vive en domain/platform-tiers (también la lee el
+// otorgamiento del trial del productor).
+const LIVE_STATUSES = PLATFORM_SUB_LIVE_STATUSES;
 
 // Precio mensual-equivalente por defecto si el param no existe (mismos
 // valores que el seed - getNumber recibe fallback, nunca hardcode en la
@@ -1729,6 +1728,19 @@ export class PlatformSubscriptionsService {
     }
     if (updated.status === "ACTIVE") {
       await this.applyEntitlement(updated);
+      await emitActivity(this.prisma, {
+        type: "sub.plan_changed",
+        personId: sub.personId,
+        academyId: sub.academyId ?? undefined,
+        refType: "PlatformSubscription",
+        refId: sub.id,
+        data: {
+          kind: sub.kind,
+          from: { tier: sub.tierCode, cycle: sub.billingCycle },
+          to: { tier: targetTier, cycle: targetCycle },
+          via: "swap.now",
+        },
+      });
       await this.notifications.notifySafe(sub.personId, {
         category: "TRANSACTIONAL",
         type:
@@ -1872,6 +1884,17 @@ export class PlatformSubscriptionsService {
         },
         data: { status: "FAILED" },
       });
+      await emitActivityOnce(this.prisma, {
+        type: "sub.canceled",
+        personId: sub.personId,
+        academyId: sub.academyId ?? undefined,
+        refType: "PlatformSubscription",
+        refId: sub.id,
+        data: { kind: sub.kind, to: "CANCELED" },
+      });
+      // Cancel manual es CANCELED inmediato (no hay remoto que confirme
+      // el fin de período en reconcile) - el corte corre acá.
+      await this.applyChurnCut({ ...sub, status: "CANCELED" }, "person");
       return { ok: true, status: "CANCELED", subscriptionId: sub.id };
     }
     const { provider } = await this.provider(sub.currency);
@@ -1881,6 +1904,14 @@ export class PlatformSubscriptionsService {
     await this.prisma.platformSubscription.update({
       where: { id: sub.id },
       data: { status: "CANCEL_PENDING", canceledAt: new Date(), ...clearPending },
+    });
+    await emitActivityOnce(this.prisma, {
+      type: "sub.canceled",
+      personId: sub.personId,
+      academyId: sub.academyId ?? undefined,
+      refType: "PlatformSubscription",
+      refId: sub.id,
+      data: { kind: sub.kind, to: "CANCEL_PENDING" },
     });
 
     // Evidencia en el ledger del último pago de la suscripción (mismo
@@ -2658,6 +2689,7 @@ export class PlatformSubscriptionsService {
       status = "CANCEL_PENDING";
       canceledAt ??= new Date();
     }
+    const becameCanceled = status === "CANCELED" && sub.status !== "CANCELED";
     if (
       status !== sub.status ||
       (nextInvoiceAt?.getTime() ?? null) !==
@@ -2668,6 +2700,24 @@ export class PlatformSubscriptionsService {
         data: { status, nextInvoiceAt, canceledAt },
       });
       sub.status = status;
+    }
+    // Corte unificado de churn (spec platform-trials): la sub que queda
+    // CANCELED de verdad limpia la proyección del entitlement si el
+    // actor no tiene otra sub viva (con swap/reprice se retornó antes -
+    // acá solo llega la cancelación real).
+    if (becameCanceled) {
+      // La cancel remota también puede venir de fuera (cargo fallido,
+      // cancel en el panel del proveedor): sub.canceled se emite una
+      // sola vez por sub - si el actor ya la pidió vía cancelSub, dedup.
+      await emitActivityOnce(this.prisma, {
+        type: "sub.canceled",
+        personId: sub.personId,
+        academyId: sub.academyId ?? undefined,
+        refType: "PlatformSubscription",
+        refId: sub.id,
+        data: { kind: sub.kind, to: "CANCELED", via: actor },
+      });
+      await this.applyChurnCut(sub, actor);
     }
 
     const now = Date.now();
@@ -2773,6 +2823,77 @@ export class PlatformSubscriptionsService {
       }
     }
     return settled;
+  }
+
+  /**
+   * Corte unificado de churn (spec platform-trials): una sub que queda
+   * CANCELED de verdad (fin de período remoto o cancel manual, sin swap
+   * ni reprice) limpia la proyección del entitlement - Academy.tier/
+   * billingCycle → null, Person.proTier → FREE - solo si el actor no
+   * tiene otra sub viva. Emite ActivityEvent access.ended + aviso al
+   * pagador. Bug histórico: el tier nunca se limpiaba y el churned
+   * conservaba acceso (el backfill one-shot cubre los ya cancelados).
+   */
+  private async applyChurnCut(
+    sub: PlatformSubscription,
+    actor: string,
+  ): Promise<void> {
+    const otherLive = await this.prisma.platformSubscription.findFirst({
+      where: {
+        id: { not: sub.id },
+        status: { in: [...LIVE_STATUSES] },
+        ...(sub.kind === "ACADEMY"
+          ? { kind: "ACADEMY" as const, academyId: sub.academyId }
+          : { kind: "PRODUCER" as const, producerId: sub.producerId }),
+      },
+      select: { id: true },
+    });
+    if (otherLive) return;
+    await this.prisma.$transaction(async (tx) => {
+      if (sub.kind === "ACADEMY" && sub.academyId) {
+        await tx.academy.update({
+          where: { id: sub.academyId },
+          data: { tier: null, billingCycle: null },
+        });
+      } else if (sub.kind === "PRODUCER" && sub.producerId) {
+        await tx.person.update({
+          where: { id: sub.producerId },
+          data: { proTier: "FREE" },
+        });
+      }
+      await emitActivity(tx, {
+        type: "access.ended",
+        personId: sub.personId,
+        academyId: sub.academyId ?? undefined,
+        refType: "PlatformSubscription",
+        refId: sub.id,
+        data: { kind: sub.kind, tierCode: sub.tierCode, via: actor },
+      });
+    });
+    await this.notifications.notifySafe(sub.personId, {
+      category: "TRANSACTIONAL",
+      type:
+        sub.kind === "ACADEMY"
+          ? "academy.access_ended"
+          : "producer.pro_access_ended",
+      title:
+        sub.kind === "ACADEMY"
+          ? "La suscripción de tu academia terminó"
+          : "Tu Producer Pro terminó",
+      body:
+        sub.kind === "ACADEMY"
+          ? "Suscríbete para volver a operar la consola y aparecer en la cartelera"
+          : "Renueva para recuperar las herramientas Pro",
+      data: {
+        subscriptionId: sub.id,
+        academyId: sub.academyId,
+        producerId: sub.producerId,
+        path:
+          sub.kind === "ACADEMY"
+            ? "/academia/configuracion/suscripcion"
+            : "/productor/suscripcion",
+      },
+    });
   }
 
   /**
@@ -3024,6 +3145,19 @@ export class PlatformSubscriptionsService {
     }
     if (updated.status === "ACTIVE") {
       await this.applyEntitlement(updated);
+      await emitActivity(this.prisma, {
+        type: "sub.plan_changed",
+        personId: sub.personId,
+        academyId: sub.academyId ?? undefined,
+        refType: "PlatformSubscription",
+        refId: sub.id,
+        data: {
+          kind: sub.kind,
+          from: { tier: sub.tierCode, cycle: sub.billingCycle },
+          to: { tier, cycle },
+          via: "swap.pending",
+        },
+      });
       await this.notifications.notifySafe(sub.personId, {
         category: "TRANSACTIONAL",
         type:
@@ -3386,13 +3520,29 @@ export class PlatformSubscriptionsService {
     });
     let blocked = 0;
     for (const academy of expired) {
-      const marked = await this.prisma.academy.updateMany({
-        where: {
-          id: academy.id,
-          billingGraceUntil: { lt: now },
-          billingBlockedAt: null,
-        },
-        data: { billingBlockedAt: now },
+      const marked = await this.prisma.$transaction(async (tx) => {
+        const m = await tx.academy.updateMany({
+          where: {
+            id: academy.id,
+            billingGraceUntil: { lt: now },
+            billingBlockedAt: null,
+          },
+          data: { billingBlockedAt: now },
+        });
+        if (m.count > 0) {
+          // Línea de vida del actor (spec platform-trials): el episodio
+          // de mora queda en su timeline admin.
+          await emitActivity(tx, {
+            type: "billing.blocked",
+            personId: academy.ownerId,
+            academyId: academy.id,
+            refType: "Academy",
+            refId: academy.id,
+            at: now,
+            data: { blockedAt: now.toISOString() },
+          });
+        }
+        return m;
       });
       if (marked.count === 0) continue; // regularizó entre el read y el write
       blocked += marked.count;
@@ -3426,6 +3576,12 @@ export class PlatformSubscriptionsService {
       sub.academyId &&
       ACADEMY_TIERS.has(sub.tierCode)
     ) {
+      // Previo a proyectar: si venía de trial, este alta lo termina
+      // (conversión) - emitTrialEnded dedup por endsAt.
+      const prev = await this.prisma.academy.findUnique({
+        where: { id: sub.academyId },
+        select: { tier: true, trialEndsAt: true },
+      });
       await this.prisma.academy.update({
         where: { id: sub.academyId },
         data: {
@@ -3433,16 +3589,37 @@ export class PlatformSubscriptionsService {
           billingCycle: sub.billingCycle,
         },
       });
+      if (prev && prev.tier == null && prev.trialEndsAt) {
+        await emitTrialEnded(this.prisma, {
+          kind: "ACADEMY",
+          personId: sub.personId,
+          academyId: sub.academyId,
+          endsAt: prev.trialEndsAt,
+          via: "subscribe",
+        });
+      }
     }
     if (
       sub.kind === "PRODUCER" &&
       sub.producerId &&
       PRODUCER_PRO_TIERS.has(sub.tierCode)
     ) {
+      const prev = await this.prisma.person.findUnique({
+        where: { id: sub.producerId },
+        select: { proTier: true, proTrialEndsAt: true },
+      });
       await this.prisma.person.update({
         where: { id: sub.producerId },
         data: { proTier: sub.tierCode as ProducerProTier },
       });
+      if (prev && prev.proTier === "FREE" && prev.proTrialEndsAt) {
+        await emitTrialEnded(this.prisma, {
+          kind: "PRODUCER",
+          personId: sub.producerId,
+          endsAt: prev.proTrialEndsAt,
+          via: "subscribe",
+        });
+      }
     }
   }
 
@@ -3450,6 +3627,21 @@ export class PlatformSubscriptionsService {
     sub: PlatformSubscription,
     scopeName: string,
   ): Promise<void> {
+    // sub.started se emite una sola vez por sub (dedup refType+refId):
+    // la misma activación puede pasar por runSubscribeFlow y
+    // customerReturn, y la primera liquidación TRANSFER también lo emite.
+    await emitActivityOnce(this.prisma, {
+      type: "sub.started",
+      personId: sub.personId,
+      academyId: sub.academyId ?? undefined,
+      refType: "PlatformSubscription",
+      refId: sub.id,
+      data: {
+        kind: sub.kind,
+        tierCode: sub.tierCode,
+        cycle: sub.billingCycle,
+      },
+    });
     await this.notifications.notifySafe(sub.personId, {
       category: "TRANSACTIONAL",
       type:
