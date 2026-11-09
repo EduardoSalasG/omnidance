@@ -31,6 +31,8 @@ import { AuthService } from "../../auth/domain/auth.service";
 import { MAILER, type Mailer } from "../../auth/domain/ports";
 import { inviteEmailHtml } from "../../auth/infrastructure/emails";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
+import { ParamsService } from "../../params/params.service";
+import { grantProducerTrialIfDue } from "../../common/pro-trial";
 import { PrismaService } from "../../prisma.service";
 import {
   invalidateRoleCatalog,
@@ -169,6 +171,7 @@ export class AdminController {
     private readonly auth: AuthService,
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly notifications: NotificationsService,
+    private readonly params: ParamsService,
   ) {}
 
   // ── Usuarios ──────────────────────────────────────────────────────────
@@ -294,10 +297,23 @@ export class AdminController {
     const prev = await this.prisma.personRole.findUnique({
       where: { personId_role: { personId, role: dto.role } },
     });
-    const row = await this.prisma.personRole.upsert({
-      where: { personId_role: { personId, role: dto.role } },
-      update: { status: dto.status },
-      create: { personId, role: dto.role, status: dto.status },
+    const row = await this.prisma.$transaction(async (tx) => {
+      const r = await tx.personRole.upsert({
+        where: { personId_role: { personId, role: dto.role } },
+        update: { status: dto.status },
+        create: { personId, role: dto.role, status: dto.status },
+      });
+      // Trial Producer Pro al entrar a APPROVED (spec platform-trials) -
+      // grant directo admin; la cola de validación hace lo mismo en
+      // approveQueueItem. Solo en transición real a APPROVED.
+      if (
+        dto.role === "PRODUCER" &&
+        dto.status === "APPROVED" &&
+        prev?.status !== "APPROVED"
+      ) {
+        await grantProducerTrialIfDue(tx, this.params, personId, "role.grant");
+      }
+      return r;
     });
     await this.audit(req, "ROLE_SET", "PersonRole", row.id, {
       personId,
@@ -456,9 +472,22 @@ export class AdminController {
         "perfil incompleto - faltan datos antes de aprobar",
       );
     }
-    await this.prisma.personRole.update({
-      where: { id },
-      data: { status: "APPROVED" },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.personRole.update({
+        where: { id },
+        data: { status: "APPROVED" },
+      });
+      // Trial Producer Pro al aprobar el rol (spec platform-trials):
+      // proTrialEndsAt = now + producer_pro.trial_days, sin reiniciar
+      // trial vigente ni pisar suscripción Pro viva.
+      if (row.role === "PRODUCER") {
+        await grantProducerTrialIfDue(
+          tx,
+          this.params,
+          row.person.id,
+          "role.approved",
+        );
+      }
     });
     // Aviso al actor: su rol quedó aprobado (spec rbac) - la card de
     // pendiente desaparece y el rol pasa a visible al público.

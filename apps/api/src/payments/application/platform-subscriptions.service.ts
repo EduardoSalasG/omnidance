@@ -33,6 +33,7 @@ import {
   CYCLE_MONTHS,
   cycleChargeClp,
   isProActive,
+  PLATFORM_SUB_LIVE_STATUSES,
   platformPlanId,
   PRODUCER_PRO_TIERS,
   PRODUCER_TIER_RANK,
@@ -70,13 +71,9 @@ import {
 // MembershipSubscription (PENDING_CARD → ACTIVATING → ACTIVE →
 // CANCEL_PENDING → CANCELED; PENDING_PAYMENT = alta manual por
 // transferencia esperando comprobante - spec subscription-manual-transfer).
-const LIVE_STATUSES = [
-  "ACTIVE",
-  "CANCEL_PENDING",
-  "PENDING_CARD",
-  "ACTIVATING",
-  "PENDING_PAYMENT",
-] as const;
+// La fuente única vive en domain/platform-tiers (también la lee el
+// otorgamiento del trial del productor).
+const LIVE_STATUSES = PLATFORM_SUB_LIVE_STATUSES;
 
 // Precio mensual-equivalente por defecto si el param no existe (mismos
 // valores que el seed - getNumber recibe fallback, nunca hardcode en la

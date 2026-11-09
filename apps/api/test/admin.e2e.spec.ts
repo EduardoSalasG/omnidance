@@ -359,4 +359,130 @@ describe("admin role assignment e2e", () => {
       expect(notif).not.toBeNull();
     });
   });
+
+  describe("trial del productor al aprobar el rol (spec platform-trials)", () => {
+    const mkProducerPending = async (tag: string, over = {}) => {
+      const suffix = `${tag}${Date.now()}`;
+      const person = await prisma.person.create({
+        data: {
+          name: `Prod Trial ${tag}`,
+          email: `trial-${suffix}@omnidance.dev`,
+          phone: `+5699${suffix.slice(-7)}`,
+          verifiedAt: new Date(),
+          roles: { create: [{ role: "PRODUCER", status: "PENDING" }] },
+          ...over,
+        },
+      });
+      createdPersonIds.push(person.id);
+      // actorData del checklist: el productor necesita un evento.
+      const event = await prisma.event.create({
+        data: {
+          name: `Evento Trial ${tag}`,
+          producerId: person.id,
+          startsAt: new Date(Date.now() + 86400e3),
+          endsAt: new Date(Date.now() + 86400e3 + 7200e3),
+        },
+      });
+      return { person, event };
+    };
+    const cleanup = async (personId: string, eventId: string) => {
+      await prisma.activityEvent.deleteMany({ where: { personId } });
+      await prisma.notification.deleteMany({ where: { personId } });
+      await prisma.platformSubscription.deleteMany({
+        where: { producerId: personId },
+      });
+      await prisma.event.delete({ where: { id: eventId } });
+    };
+
+    it("approve → proTrialEndsAt ≈ +15d y ActivityEvent trial.started", async () => {
+      const { person, event } = await mkProducerPending("qa");
+      const role = await prisma.personRole.findFirstOrThrow({
+        where: { personId: person.id, role: "PRODUCER" },
+      });
+      const res = await post(
+        `/api/admin/validation-queue/${role.id}/approve`,
+        {},
+        adminSession,
+      );
+      expect(res.status).toBe(200);
+      const after = await prisma.person.findUniqueOrThrow({
+        where: { id: person.id },
+      });
+      expect(after.proTrialEndsAt).not.toBeNull();
+      const ms = after.proTrialEndsAt!.getTime() - Date.now();
+      expect(ms).toBeGreaterThan(13 * 86400e3);
+      expect(ms).toBeLessThan(17 * 86400e3);
+      const act = await prisma.activityEvent.findFirst({
+        where: { personId: person.id, type: "trial.started" },
+      });
+      expect(act).not.toBeNull();
+      await cleanup(person.id, event.id);
+    });
+
+    it("approve con trial vigente no lo reinicia", async () => {
+      const future = new Date(Date.now() + 30 * 86400e3);
+      const { person, event } = await mkProducerPending("qb", {
+        proTrialEndsAt: future,
+      });
+      const role = await prisma.personRole.findFirstOrThrow({
+        where: { personId: person.id, role: "PRODUCER" },
+      });
+      const res = await post(
+        `/api/admin/validation-queue/${role.id}/approve`,
+        {},
+        adminSession,
+      );
+      expect(res.status).toBe(200);
+      const after = await prisma.person.findUniqueOrThrow({
+        where: { id: person.id },
+      });
+      expect(after.proTrialEndsAt?.getTime()).toBe(future.getTime());
+      await cleanup(person.id, event.id);
+    });
+
+    it("approve con suscripción Pro viva no otorga trial", async () => {
+      const { person, event } = await mkProducerPending("qc");
+      await prisma.platformSubscription.create({
+        data: {
+          kind: "PRODUCER",
+          producerId: person.id,
+          personId: person.id,
+          tierCode: "PRO_STARTER",
+          billingCycle: "MONTHLY",
+          status: "ACTIVE",
+        },
+      });
+      const role = await prisma.personRole.findFirstOrThrow({
+        where: { personId: person.id, role: "PRODUCER" },
+      });
+      const res = await post(
+        `/api/admin/validation-queue/${role.id}/approve`,
+        {},
+        adminSession,
+      );
+      expect(res.status).toBe(200);
+      const after = await prisma.person.findUniqueOrThrow({
+        where: { id: person.id },
+      });
+      expect(after.proTrialEndsAt).toBeNull();
+      await cleanup(person.id, event.id);
+    });
+
+    it("grant directo (POST users/:id/roles) también otorga el trial", async () => {
+      const { person, event } = await mkProducerPending("qd");
+      const res = await post(
+        `/api/admin/users/${person.id}/roles`,
+        { role: "PRODUCER", status: "APPROVED" },
+        adminSession,
+      );
+      expect(res.status).toBe(200);
+      const after = await prisma.person.findUniqueOrThrow({
+        where: { id: person.id },
+      });
+      expect(after.proTrialEndsAt).not.toBeNull();
+      const ms = after.proTrialEndsAt!.getTime() - Date.now();
+      expect(ms).toBeGreaterThan(13 * 86400e3);
+      await cleanup(person.id, event.id);
+    });
+  });
 });

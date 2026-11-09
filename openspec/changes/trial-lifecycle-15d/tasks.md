@@ -2,21 +2,21 @@
 
 ## 1. Datos y params
 
-- [ ] Migración: `ActivityEvent` (personId?, academyId?, type, refType?, refId?, data, createdAt + índices), `Academy.trialEndNotifiedAt`, `Person.proTrialEndNotifiedAt` (`pnpm db:migrate`)
-- [ ] Helper `emitActivity` tx-safe (patrón `emitPaymentEvent`)
-- [ ] Seed: `academy_billing.trial_days` → 15, `producer_pro.trial_days` → 15, `cx.contact.name|email|phone` (Eduardo Salas, eduardo@omnidance.tech, +56982439041), `cx.notify_email`
+- [x] Migración: `ActivityEvent` (personId?, academyId?, type, refType?, refId?, data, createdAt + índices), `Academy.trialEndNotifiedAt`, `Person.proTrialEndNotifiedAt` (`pnpm db:migrate`)
+- [x] Helper `emitActivity` tx-safe (patrón `emitPaymentEvent`)
+- [x] Seed: `academy_billing.trial_days` → 15, `producer_pro.trial_days` → 15, `cx.contact.name|email|phone` (Eduardo Salas, eduardo@omnidance.tech, +56982439041), `cx.notify_email`
 
 ## 2. Otorgamiento
 
-- [ ] `producer_pro.trial_days` → `proTrialEndsAt` al aprobar `PersonRole(PRODUCER)` en `approveQueueItem` y grant directo (solo sin sub Pro viva ni trial vigente)
-- [ ] Spec del behavior + tests
+- [x] `producer_pro.trial_days` → `proTrialEndsAt` al aprobar `PersonRole(PRODUCER)` en `approveQueueItem` y grant directo (solo sin sub Pro viva ni trial vigente)
+- [x] Spec del behavior + tests
 
 ## 3. Corte al vencer (academia)
 
-- [ ] `academy-tiers.ts`: `academyInTrial`, `academyTrialExpired`, `featuresForAcademy`; `assertAcademyFeature` consume academy completa
-- [ ] Delisting dancer: explore, directorio, listado de clases excluyen academias con trial vencido; booking y checkout rechazan con copy "no disponible"
-- [ ] Suscripción/billing siguen abiertos (exit path)
-- [ ] Tests: módulo gated 403, delisted, book/checkout rechazan, subscribe restaura
+- [x] `academy-tiers.ts`: `academyInTrial`, `academyTrialExpired`, `featuresForAcademy`; `assertAcademyFeature` consume academy completa
+- [x] Delisting dancer: explore, directorio, listado de clases excluyen academias con trial vencido; booking y checkout rechazan con copy "no disponible"
+- [x] Suscripción/billing siguen abiertos (exit path)
+- [x] Tests: módulo gated 403, delisted, book/checkout rechazan, subscribe restaura
 
 ## 3b. Corte unificado de churn
 
