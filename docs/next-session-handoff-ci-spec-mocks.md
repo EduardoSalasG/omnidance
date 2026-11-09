@@ -76,6 +76,24 @@ trial) según la intención del test.
   con la forma de retorno que el handler agrega a `meta` (ver
   `trial-lifecycle.service.ts` y el assert del spec).
 
+## Estado al cierre (2026-11-09 noche)
+
+- Deploy prod run 42670685409: **SUCCESS** (7m33s) - el push a `main`
+  del force-push desplegó sin problemas.
+- Commits de fix ya en dev: `37729961` (3 specs) + `6ae37e1c`
+  (settlement + scheduler). Verificados local: platform-subscriptions
+  101/101, subscriptions 75/75, checkout 132/132, payment-settlement
+  31/31, subscriptions.scheduler 3/3.
+- **`commit-guard` falla con "workflow file issue"** (run 42672048368,
+  push `abc22b70`): el YAML parsea OK localmente y el workflow figura
+  `active` en GH - no es un reject de la regla sino un problema del
+  archivo (posibles: `${{ github.event.pull_request.* }}` en evento
+  push, o detalle de sintaxis). Revisar con `gh run view --job` o
+  simplificar el run a un script de un archivo en `scripts/`. El gate
+  local (.githooks) sí funciona - la red CI es el gap.
+- Quedan ~60 tests fallando en ~11 specs (lista abajo por archivo);
+  mismas dos causas, mismos fixes mecánicos.
+
 ## Verificación pendiente tras los fixes
 
 `npx vitest run` completo en apps/api (última corrida: 84 fail / 2441
