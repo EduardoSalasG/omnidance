@@ -21,9 +21,12 @@
 - [ ] `/bienvenida` continúa a `?next=` al finalizar onboarding
 - [ ] i18n es-CL
 
-## 4. Gates y docs
+## 4. Gates y docs (actualización completa de documentación relacionada)
 
-- [ ] `openspec validate --changes` verde
-- [ ] `docs/qa-flows-inventory.md`: flujo invitación academia
-- [ ] Export API docs (endpoints nuevos)
+- [ ] `openspec validate --changes` verde; archivar change sin `--skip-specs`
+- [ ] `omni-dance.md`: invitación de academia (modelo AcademyInvite, flujo)
+- [ ] `docs/qa-flows-inventory.md`: flujo invitación academia (envío, push, consumo, lista)
+- [ ] `docs/architecture.md`: modelo `AcademyInvite`, endpoints, `AuthOtp.next`
+- [ ] `docs/flows.md`: secuencia invitación (enviar→verify→consumo+Referral)
+- [ ] `docs/openapi.json` + postman (`export-api-docs.cjs`) por endpoints nuevos
 - [ ] `pnpm typecheck`, `pnpm lint`, tests afectados

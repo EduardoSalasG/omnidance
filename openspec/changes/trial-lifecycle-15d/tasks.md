@@ -62,10 +62,13 @@
 - [ ] Consola academia con features vacías: nav/hub solo Inicio/Suscripción/Perfil; aviso en Inicio con CTA a Suscripción
 - [ ] i18n es-CL de todos los strings nuevos
 
-## 8. Gates y docs
+## 8. Gates y docs (actualización completa de documentación relacionada)
 
-- [ ] `openspec validate --changes` verde
-- [ ] `omni-dance.md`: Trial 30d → 15d
-- [ ] `docs/qa-flows-inventory.md`: flujos nuevos (bienvenida, último día, corte, card CX, panel admin)
-- [ ] Export API docs (`export-api-docs.cjs`) por `GET /admin/trials`
+- [ ] `openspec validate --changes` verde; archivar change sin `--skip-specs`
+- [ ] `omni-dance.md`: Trial 30d→15d, corte unificado trial/churn, ActivityEvent en el modelo, card CX, panel admin de trials
+- [ ] `docs/qa-flows-inventory.md`: flujos nuevos (bienvenida, último día+promo, corte trial/churn, card CX, panel trials, PATCH trial, línea de vida)
+- [ ] `docs/architecture.md`: modelo nuevo (`ActivityEvent`), endpoints admin nuevos, job del barrido
+- [ ] `docs/flows.md`: diagrama del ciclo de vida del trial (otorgar→bienvenida→último día→corte/churn)
+- [ ] `docs/openapi.json` + postman (`export-api-docs.cjs`) por endpoints nuevos
+- [ ] `AGENTS.md` si cambian comandos/flujos; README si cambia setup
 - [ ] `pnpm typecheck`, `pnpm lint`, tests afectados
