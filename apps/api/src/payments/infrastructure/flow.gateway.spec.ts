@@ -882,7 +882,7 @@ describe("sanitizeGatewayPayload", () => {
   });
 });
 
-describe("resolveGateway (sandbox-only)", () => {
+describe("resolveGateway (ambiente Flow)", () => {
   const creds = {
     PAYMENT_GATEWAY: "flow",
     FLOW_API_KEY: "k",
@@ -894,10 +894,18 @@ describe("resolveGateway (sandbox-only)", () => {
     expect(gw).toBeInstanceOf(FlowGateway);
   });
 
-  it("FLOW_BASE_URL distinto de sandbox → fail-fast", () => {
+  it("FLOW_BASE_URL producción → FlowGateway", () => {
+    const gw = resolveGateway({
+      ...creds,
+      FLOW_BASE_URL: "https://www.flow.cl/api",
+    });
+    expect(gw).toBeInstanceOf(FlowGateway);
+  });
+
+  it("FLOW_BASE_URL desconocida → fail-fast", () => {
     expect(() =>
-      resolveGateway({ ...creds, FLOW_BASE_URL: "https://www.flow.cl/api" }),
-    ).toThrow("sandbox");
+      resolveGateway({ ...creds, FLOW_BASE_URL: "https://flow.evil.cl/api" }),
+    ).toThrow("endpoints oficiales");
   });
 
   it("flow sin credenciales → fail-fast", () => {
