@@ -84,32 +84,37 @@ trial) según la intención del test.
   (settlement + scheduler). Verificados local: platform-subscriptions
   101/101, subscriptions 75/75, checkout 132/132, payment-settlement
   31/31, subscriptions.scheduler 3/3.
-- **`commit-guard` falla con "workflow file issue"** (run 42672048368,
-  push `abc22b70`): el YAML parsea OK localmente y el workflow figura
-  `active` en GH - no es un reject de la regla sino un problema del
-  archivo (posibles: `${{ github.event.pull_request.* }}` en evento
-  push, o detalle de sintaxis). Revisar con `gh run view --job` o
-  simplificar el run a un script de un archivo en `scripts/`. El gate
-  local (.githooks) sí funciona - la red CI es el gap.
 - Quedan ~60 tests fallando en ~11 specs (lista abajo por archivo);
   mismas dos causas, mismos fixes mecánicos.
 
-## Verificación pendiente tras los fixes
+## Resolución (2026-11-09 tarde, sesión siguiente)
 
-`npx vitest run` completo en apps/api (última corrida: 84 fail / 2441
-pass), push, y revisar run QA en GH (`gh run list`).
-
-## Deploy prod
-
-- Run 42670685409 `Deploy omnidance API` (push a `main` del
-  force-push): quedó `in_progress` al momento del handoff; revisar
-  `gh run view 42670685409` + health `GET
-  https://api.omnidance.eduardosalasg.dev/api/health`.
+- **Los "workflow file issue" eran errores internos de GitHub**, no del
+  YAML: la annotation del run dice `Internal server error. Correlation
+  ID: ...` y los runs nunca agendaron jobs (0 check-runs). Post
+  incidente de Actions del 8-nov. Tras rerun, `commit-guard` y `QA`
+  agendaron y pasaron.
+- **`e2d9c2c4` test(api): suite verde** - los 11 specs restantes:
+  activityEvent en platform-charges/academy-import/producer/leads/
+  academy-staff; `tier:"STUDIO"` o `trialEndsAt` vigente en classes/
+  private-lessons/academy-sales/academy-tier-gate/import e2e;
+  leads demo devuelve `roles` del include (emit role.approved);
+  survey-analytics e2e importa `ParamsModule` (nueva dep de
+  PeopleController). Suite local 2531/2531, typecheck limpio.
+- QA run 42674351021 en dev: **SUCCESS** tras rerun. commit-guard
+  42674351263: **SUCCESS**.
+- **Divergencia dev/main detectada**: `main` = `1a03506b`
+  (release 1.15.6), 31 commits atrás de dev y 13 commits propios -
+  no es "contenido idéntico" como decía el handoff anterior; el trial
+  lifecycle todavía NO está en prod. Próxima promoción dev→main lleva
+  todo junto; el deploy corre `pnpm --filter @omnidance/api test`
+  antes de build (red de seguridad: con la suite roja habría fallado
+  ahí, no en prod).
 
 ## Otros pendientes de producto
 
 - `academy-invites` (change OpenSpec completo sin empezar) y
-  `multipais-foundation` - eran el siguiente slice del backlog; la suite
-  roja tiene prioridad.
-- El push a `main` del force-push disparó el deploy (contenido
-  idéntico; migraciones/seed idempotentes).
+  `multipais-foundation` - eran el siguiente slice del backlog.
+- Propuesta de gates pre-push/promoción pendiente de decisión del
+  usuario (análisis en conversación): pre-push hook con suite de API,
+  `pnpm verify`, protección de `main`.
