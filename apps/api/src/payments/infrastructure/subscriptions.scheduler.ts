@@ -47,7 +47,10 @@ export class SubscriptionsScheduler implements OnModuleInit {
         // Barrido del último día de trial (spec platform-trials): correo
         // con oferta del día + promo diaria whitelisteada + dedup.
         const trials = await this.trialLifecycle.sweepTrialLastDay();
-        return { memberships, manualMemberships, platform, manualPlatform, blocks, trials };
+        // Barrido de trials vencidos: materializa trial.ended en la
+        // línea de vida admin (el corte de features es lazy).
+        const trialsEnded = await this.trialLifecycle.sweepTrialEnded();
+        return { memberships, manualMemberships, platform, manualPlatform, blocks, trials, trialsEnded };
       },
     });
   }

@@ -9,8 +9,10 @@
 // exige además "sin suscripción viva" del actor: una PENDING_CARD a
 // medio checkout o una CANCEL_PENDING aún en período pagado no están
 // cortadas, están convirtiendo/saliendo.
+import type { Prisma } from "@prisma/client";
 import type { PrismaService } from "../prisma.service";
 import { PLATFORM_SUB_LIVE_STATUSES } from "../payments/domain/platform-tiers";
+import { emitActivity } from "./activity-log";
 
 type TrialsPrisma = Pick<
   PrismaService,
@@ -145,4 +147,55 @@ export async function listPlatformTrials(
     (a, b) => a.trialEndsAt.getTime() - b.trialEndsAt.getTime(),
   );
   return rows;
+}
+
+/**
+ * `trial.ended` idempotente por episodio de trial (spec platform-trials
+ * §5b): el fin de trial no tiene transición física - el corte es lazy -
+ * así que lo emiten los dos hechos observables: la conversión (sub
+ * activada con trial vigente o ya vencido) y el barrido de vencidos.
+ * Dedup por `data.endsAt` (no por actor): si el admin re-extiende el
+ * trial y vuelve a vencer, el nuevo endsAt produce un segundo evento.
+ */
+export async function emitTrialEnded(
+  tx: Pick<Prisma.TransactionClient, "activityEvent">,
+  e: {
+    kind: "ACADEMY" | "PRODUCER";
+    /** Owner de la academia para ACADEMY; el propio productor para PRODUCER. */
+    personId: string;
+    academyId?: string;
+    endsAt: Date;
+    /** Quién lo registró: "subscribe" | "transfer.settle" | "sweep". */
+    via: string;
+    now?: Date;
+  },
+): Promise<{ id: string; created: boolean }> {
+  const iso = e.endsAt.toISOString();
+  const scope =
+    e.kind === "ACADEMY" ? { academyId: e.academyId } : { personId: e.personId };
+  const existing = await tx.activityEvent.findFirst({
+    where: {
+      type: "trial.ended",
+      ...scope,
+      data: { path: ["endsAt"], equals: iso },
+    },
+    select: { id: true },
+  });
+  if (existing) return { id: existing.id, created: false };
+  const expired = e.endsAt <= (e.now ?? new Date());
+  const ev = await emitActivity(tx, {
+    type: "trial.ended",
+    personId: e.personId,
+    academyId: e.academyId,
+    // Si ya venció, el hecho ocurrió en endsAt; si convierte antes del
+    // vencimiento, el trial termina ahora.
+    at: expired ? e.endsAt : undefined,
+    data: {
+      kind: e.kind,
+      endsAt: iso,
+      outcome: expired ? "expired" : "converted",
+      via: e.via,
+    },
+  });
+  return { id: ev.id, created: true };
 }

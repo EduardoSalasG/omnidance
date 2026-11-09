@@ -4,6 +4,7 @@ import { ParamsService } from "../../params/params.service";
 import { MAILER, type Mailer } from "../../auth/domain/ports";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { emitActivity } from "../../common/activity-log";
+import { emitTrialEnded } from "../../common/platform-trials";
 import {
   academyTrialWelcomeEmailHtml,
   cxFichaEmailHtml,
@@ -321,6 +322,70 @@ export class TrialLifecycleService {
         producersDone++;
       } catch (e) {
         this.logger.error(`trial last-day productor ${p.id}: ${e}`);
+      }
+    }
+    return { academies: academiesDone, producers: producersDone };
+  }
+
+  /**
+   * Barrido de trials vencidos (spec platform-trials §5b): el corte de
+   * features es lazy (featuresForAcademy) y no hay transición física al
+   * vencer - este pase materializa `trial.ended` (outcome expired) en la
+   * línea de vida admin, con el timestamp real del vencimiento. Solo
+   * actores AÚN sin conversión (tier null / proTier FREE): un convertido
+   * ya emitió su trial.ended en la activación de la sub. Dedup por
+   * data.endsAt dentro de emitTrialEnded: un trial re-extendido por el
+   * admin que vuelve a vencer produce un evento nuevo.
+   */
+  async sweepTrialEnded(now: Date = new Date()): Promise<{
+    academies: number;
+    producers: number;
+  }> {
+    const [academies, persons] = await Promise.all([
+      this.prisma.academy.findMany({
+        where: { tier: null, trialEndsAt: { lte: now } },
+        select: { id: true, ownerId: true, trialEndsAt: true },
+      }),
+      this.prisma.person.findMany({
+        where: { proTier: "FREE", proTrialEndsAt: { lte: now } },
+        select: { id: true, proTrialEndsAt: true },
+      }),
+    ]);
+    let academiesDone = 0;
+    let producersDone = 0;
+    for (const a of academies) {
+      if (!a.trialEndsAt) continue;
+      try {
+        const r = await this.prisma.$transaction((tx) =>
+          emitTrialEnded(tx, {
+            kind: "ACADEMY",
+            personId: a.ownerId,
+            academyId: a.id,
+            endsAt: a.trialEndsAt!,
+            via: "sweep",
+            now,
+          }),
+        );
+        if (r.created) academiesDone++;
+      } catch (e) {
+        this.logger.error(`trial ended academia ${a.id}: ${e}`);
+      }
+    }
+    for (const p of persons) {
+      if (!p.proTrialEndsAt) continue;
+      try {
+        const r = await this.prisma.$transaction((tx) =>
+          emitTrialEnded(tx, {
+            kind: "PRODUCER",
+            personId: p.id,
+            endsAt: p.proTrialEndsAt!,
+            via: "sweep",
+            now,
+          }),
+        );
+        if (r.created) producersDone++;
+      } catch (e) {
+        this.logger.error(`trial ended productor ${p.id}: ${e}`);
       }
     }
     return { academies: academiesDone, producers: producersDone };

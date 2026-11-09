@@ -13,11 +13,36 @@ export interface ActivityInput {
   refType?: string;
   refId?: string;
   data?: Prisma.InputJsonValue;
+  /** Timestamp del hecho; default now(). El barrido de trials vencidos
+      y el backfill lo fijan al instante real del evento, no al de la
+      corrida que lo registra. */
+  at?: Date;
 }
 
 export function emitActivity(
   tx: Pick<Prisma.TransactionClient, "activityEvent">,
-  event: ActivityInput,
+  { at, ...event }: ActivityInput,
 ) {
-  return tx.activityEvent.create({ data: event });
+  return tx.activityEvent.create({
+    data: { ...event, ...(at ? { createdAt: at } : {}) },
+  });
+}
+
+/**
+ * Emit con dedup por (refType, refId, type) - la misma llave que usa el
+ * backfill para no duplicar la historia. Sirve cuando dos caminos
+ * convergen al mismo hecho (sub.started vía notifyStarted o vía el
+ * primer settle TRANSFER) o cuando un barrido re-encuentra un evento
+ * ya registrado.
+ */
+export async function emitActivityOnce(
+  tx: Pick<Prisma.TransactionClient, "activityEvent">,
+  event: ActivityInput & { refType: string; refId: string },
+) {
+  const existing = await tx.activityEvent.findFirst({
+    where: { type: event.type, refType: event.refType, refId: event.refId },
+    select: { id: true },
+  });
+  if (existing) return existing;
+  return emitActivity(tx, event);
 }

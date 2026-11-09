@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
-import type { Person } from "@prisma/client";
+import { Prisma, type Person } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
+import { emitActivity } from "../../common/activity-log";
 import type { AuthRepo } from "../domain/ports";
 
 @Injectable()
@@ -27,14 +28,53 @@ export class PrismaAuthRepo implements AuthRepo {
         },
       });
     }
-    return this.prisma.person.create({
+    return this.registerPerson({
+      email,
+      name: email.split("@")[0],
+      via: "auth.magic-link",
+    });
+  }
+
+  // Alta de cuenta + hitos de la línea de vida admin (spec
+  // platform-trials §5b): person.registered y role.approved por cada
+  // rol auto-aprobado en el create (DANCER por defecto).
+  private async registerPerson(data: {
+    email?: string;
+    name: string;
+    passwordHash?: string;
+    phone?: string;
+    phoneCountryCode?: string | null;
+    verifiedAt?: Date;
+    isLightAccount?: boolean;
+    jurisdiction?: string;
+    via: string;
+  }): Promise<Person> {
+    const { via, ...fields } = data;
+    const person = await this.prisma.person.create({
       data: {
-        email,
-        name: email.split("@")[0],
-        verifiedAt: new Date(),
+        ...fields,
+        verifiedAt: fields.verifiedAt ?? new Date(),
         roles: { create: { role: "DANCER", status: "APPROVED" } },
       },
+      include: { roles: { select: { id: true, role: true } } },
     });
+    await emitActivity(this.prisma, {
+      type: "person.registered",
+      personId: person.id,
+      refType: "Person",
+      refId: person.id,
+      data: { via },
+    });
+    for (const r of person.roles) {
+      await emitActivity(this.prisma, {
+        type: "role.approved",
+        personId: person.id,
+        refType: "PersonRole",
+        refId: r.id,
+        data: { role: r.role, via },
+      });
+    }
+    return person;
   }
 
   findByEmail(email: string) {
@@ -47,14 +87,12 @@ export class PrismaAuthRepo implements AuthRepo {
     passwordHash: string,
     jurisdiction?: string,
   ) {
-    return this.prisma.person.create({
-      data: {
-        email,
-        name,
-        passwordHash,
-        ...(jurisdiction ? { jurisdiction } : {}),
-        roles: { create: { role: "DANCER", status: "APPROVED" } },
-      },
+    return this.registerPerson({
+      email,
+      name,
+      passwordHash,
+      ...(jurisdiction ? { jurisdiction } : {}),
+      via: "auth.register",
     });
   }
 
@@ -103,14 +141,36 @@ export class PrismaAuthRepo implements AuthRepo {
 
   // Registro por landing: crea el PersonRole PENDING si no existe -
   // upsert vacío en update para no pisar un estado ya resuelto por admin.
-  ensurePendingRole(personId: string, role: string) {
-    return this.prisma.personRole
-      .upsert({
-        where: { personId_role: { personId, role } },
-        update: {},
-        create: { personId, role, status: "PENDING" },
-      })
-      .then(() => {});
+  async ensurePendingRole(personId: string, role: string) {
+    // Línea de vida (spec platform-trials §5b): solo el alta real del
+    // PENDING emite role.requested - un re-login no re-solicita el rol.
+    const existing = await this.prisma.personRole.findUnique({
+      where: { personId_role: { personId, role } },
+      select: { id: true },
+    });
+    if (existing) return;
+    try {
+      const row = await this.prisma.personRole.create({
+        data: { personId, role, status: "PENDING" },
+      });
+      await emitActivity(this.prisma, {
+        type: "role.requested",
+        personId,
+        refType: "PersonRole",
+        refId: row.id,
+        data: { role },
+      });
+    } catch (e) {
+      // Carrera doble-submit: la unique ya la ganó otro request.
+      if (
+        !(
+          e instanceof Prisma.PrismaClientKnownRequestError &&
+          e.code === "P2002"
+        )
+      ) {
+        throw e;
+      }
+    }
   }
 
   consumeActives(email: string) {

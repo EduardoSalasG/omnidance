@@ -314,6 +314,25 @@ export class AdminController {
         update: { status: dto.status },
         create: { personId, role: dto.role, status: dto.status },
       });
+      // Línea de vida (spec platform-trials §5b): request nuevo PENDING
+      // o transición real a APPROVED.
+      if (prev == null && dto.status === "PENDING") {
+        await emitActivity(tx, {
+          type: "role.requested",
+          personId,
+          refType: "PersonRole",
+          refId: r.id,
+          data: { role: dto.role, via: "admin.setRole" },
+        });
+      } else if (dto.status === "APPROVED" && prev?.status !== "APPROVED") {
+        await emitActivity(tx, {
+          type: "role.approved",
+          personId,
+          refType: "PersonRole",
+          refId: r.id,
+          data: { role: dto.role, via: "admin.setRole" },
+        });
+      }
       // Trial Producer Pro al entrar a APPROVED (spec platform-trials) -
       // grant directo admin; la cola de validación hace lo mismo en
       // approveQueueItem. Solo en transición real a APPROVED.
@@ -505,6 +524,14 @@ export class AdminController {
       await tx.personRole.update({
         where: { id },
         data: { status: "APPROVED" },
+      });
+      // Línea de vida del actor (spec platform-trials §5b).
+      await emitActivity(tx, {
+        type: "role.approved",
+        personId: row.person.id,
+        refType: "PersonRole",
+        refId: id,
+        data: { role: row.role, via: "validation-queue" },
       });
       // Trial Producer Pro al aprobar el rol (spec platform-trials):
       // proTrialEndsAt = now + producer_pro.trial_days, sin reiniciar

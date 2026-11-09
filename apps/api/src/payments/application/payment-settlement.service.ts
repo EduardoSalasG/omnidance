@@ -26,6 +26,11 @@ import {
   PRODUCER_PRO_TIERS,
 } from "../domain/platform-tiers";
 import { emitPaymentEvent } from "../domain/payment-ledger";
+import {
+  emitActivity,
+  emitActivityOnce,
+} from "../../common/activity-log";
+import { emitTrialEnded } from "../../common/platform-trials";
 import { sanitizeGatewayPayload } from "../infrastructure/gateway-transactions.service";
 import { ParamsService } from "../../params/params.service";
 import { effectiveCapacity } from "../../academies/domain/academy.service";
@@ -309,6 +314,20 @@ export class PaymentSettlementService {
       meta.actor,
       { orderType: payment.orderType, amount: payment.amount, ...detail },
     );
+    // Línea de vida del actor (spec platform-trials §5b): todo cobro
+    // confirmado aparece en su timeline admin - la auditoría monetaria
+    // sigue siendo PaymentEvent (hash-chain), esto es solo el hito.
+    await emitActivity(tx, {
+      type: "payment.paid",
+      personId: payment.personId,
+      refType: "Payment",
+      refId: payment.id,
+      data: {
+        orderType: payment.orderType,
+        amount: payment.amount,
+        currency: payment.currency,
+      },
+    });
     return mismatch;
   }
 
@@ -871,7 +890,7 @@ export class PaymentSettlementService {
         // La prueba comprada nunca toca la inscripción vigente: se crea
         // una fila TRIAL aparte y la ACTIVE/ONLINE del alumno queda
         // intacta. La re-compra acumula otra fila TRIAL (sin @@unique).
-        await tx.enrollment.create({
+        const trialEnr = await tx.enrollment.create({
           data: {
             academyId: plan.academyId,
             personId: payment.personId,
@@ -880,6 +899,14 @@ export class PaymentSettlementService {
             startedAt: now,
             endsAt: membershipEndsAt(plan, now),
           },
+        });
+        await emitActivity(tx, {
+          type: "enrollment.started",
+          personId: payment.personId,
+          academyId: plan.academyId,
+          refType: "Enrollment",
+          refId: trialEnr.id,
+          data: { planId: plan.id, via: "membership.settle" },
         });
         return;
       }
@@ -917,7 +944,7 @@ export class PaymentSettlementService {
           },
         });
       } else {
-        await tx.enrollment.create({
+        const enr = await tx.enrollment.create({
           data: {
             academyId: plan.academyId,
             personId: payment.personId,
@@ -926,6 +953,14 @@ export class PaymentSettlementService {
             startedAt: now,
             endsAt,
           },
+        });
+        await emitActivity(tx, {
+          type: "enrollment.started",
+          personId: payment.personId,
+          academyId: plan.academyId,
+          refType: "Enrollment",
+          refId: enr.id,
+          data: { planId: plan.id, via: "membership.settle" },
         });
       }
 
@@ -1281,6 +1316,8 @@ export class PaymentSettlementService {
             name: true,
             billingGraceUntil: true,
             billingBlockedAt: true,
+            tier: true,
+            trialEndsAt: true,
           },
         },
       },
@@ -1316,6 +1353,45 @@ export class PaymentSettlementService {
         producerId: sub.producerId,
         invoiceId: order.invoiceId,
       });
+
+      // Línea de vida (spec platform-trials §5b): el primer cobro PAID
+      // de la sub es su alta (dedup con notifyStarted vía refId=sub.id);
+      // los siguientes son renovaciones.
+      const priorPaid = await tx.payment.count({
+        where: {
+          orderType: "PLATFORM_SUB",
+          refId: { startsWith: `platsub_${sub.id}_` },
+          status: "PAID",
+          id: { not: payment.id },
+        },
+      });
+      if (priorPaid === 0) {
+        await emitActivityOnce(tx, {
+          type: "sub.started",
+          personId: sub.personId,
+          academyId: sub.academyId ?? undefined,
+          refType: "PlatformSubscription",
+          refId: sub.id,
+          data: {
+            kind: sub.kind,
+            tierCode: sub.tierCode,
+            cycle: sub.billingCycle,
+          },
+        });
+      } else {
+        await emitActivity(tx, {
+          type: "sub.renewed",
+          personId: sub.personId,
+          academyId: sub.academyId ?? undefined,
+          refType: "Payment",
+          refId: payment.id,
+          data: {
+            kind: sub.kind,
+            tierCode: sub.tierCode,
+            invoiceId: order.invoiceId,
+          },
+        });
+      }
 
       if (sub.kind === "ACADEMY" && sub.academyId) {
         // Desbloqueo por pago recuperado + sync del plan contratado.
@@ -1377,6 +1453,37 @@ export class PaymentSettlementService {
             nextInvoiceAt: periodEnd,
           },
         });
+        // Alta por transferencia (PENDING_PAYMENT→ACTIVE): si el actor
+        // venía de trial esta conversión lo termina - dedup por endsAt
+        // (spec platform-trials §5b, línea de vida).
+        if (sub.status === "PENDING_PAYMENT") {
+          if (
+            sub.kind === "ACADEMY" &&
+            sub.academy?.trialEndsAt != null &&
+            sub.academy.tier == null
+          ) {
+            await emitTrialEnded(tx, {
+              kind: "ACADEMY",
+              personId: sub.personId,
+              academyId: sub.academy.id,
+              endsAt: sub.academy.trialEndsAt,
+              via: "transfer.settle",
+            });
+          } else if (sub.kind === "PRODUCER" && sub.producerId) {
+            const prod = await tx.person.findUnique({
+              where: { id: sub.producerId },
+              select: { proTier: true, proTrialEndsAt: true },
+            });
+            if (prod?.proTier === "FREE" && prod.proTrialEndsAt) {
+              await emitTrialEnded(tx, {
+                kind: "PRODUCER",
+                personId: sub.producerId,
+                endsAt: prod.proTrialEndsAt,
+                via: "transfer.settle",
+              });
+            }
+          }
+        }
       }
     });
 
