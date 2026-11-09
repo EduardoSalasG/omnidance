@@ -693,6 +693,36 @@ export default function PerfilPage() {
         </Link>
       )}
 
+      {/* Contacto Customer Experience (spec platform-trials): solo
+          actores con consola - llega en /me.cx, ausente para bailarín. */}
+      {me.cx && (
+        <Card>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+            {t("cx.title")}
+          </h2>
+          <p className="mt-2 text-sm font-medium">{me.cx.name}</p>
+          <p className="text-xs text-ink/50">{t("cx.desc")}</p>
+          <div className="mt-3 flex flex-col gap-1">
+            <a
+              href={`mailto:${me.cx.email}`}
+              className="flex min-h-11 items-center text-sm font-semibold text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              {me.cx.email}
+            </a>
+            {me.cx.phone && (
+              <a
+                href={`https://wa.me/${me.cx.phone.replace(/[^0-9]/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex min-h-11 items-center text-sm font-semibold text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              >
+                {me.cx.phone}
+              </a>
+            )}
+          </div>
+        </Card>
+      )}
+
       <Button variant="secondary" onClick={logout} className="w-full">
         {t("logout")}
       </Button>

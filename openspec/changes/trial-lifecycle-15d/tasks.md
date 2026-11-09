@@ -55,7 +55,7 @@
 
 ## 6. Card CX en perfil
 
-- [ ] Card "Customer Experience" en `/perfil` para ACADEMY_OWNER y PRODUCER (nombre, mailto, teléfono/WhatsApp desde params)
+- [x] Card "Customer Experience" en `/perfil` para ACADEMY_OWNER y PRODUCER (nombre, mailto, teléfono/WhatsApp desde params)
 
 ## 7. Frontend corte
 

@@ -46,6 +46,7 @@ import { PENDING_USABLE_ROLES } from "../common/rbac/roles.guard";
 import { roleProfileChecks } from "../common/role-checks";
 import { AuthService } from "../auth/domain/auth.service";
 import { NotificationsService } from "../notifications/domain/notifications.service";
+import { ParamsService } from "../params/params.service";
 import { PrismaService } from "../prisma.service";
 import {
   mimeForKey,
@@ -274,6 +275,7 @@ export class PeopleController {
     private readonly notifications: NotificationsService,
     @Inject(STORAGE) private readonly storage: FileStorage,
     private readonly consentService: ConsentService,
+    private readonly params: ParamsService,
   ) {}
 
   /**
@@ -384,6 +386,27 @@ export class PeopleController {
     const isProducer = person.roles.some(
       (r) => r.role === "PRODUCER" && r.status === "APPROVED",
     );
+    // Contacto CX (spec platform-trials): solo actores con consola
+    // (owner/productor) ven la card en /perfil - bailarín no. Datos
+    // personales de CX solo tras sesión, nunca en /params/public.
+    const isActor = person.roles.some(
+      (r) =>
+        (r.role === "ACADEMY_OWNER" || r.role === "PRODUCER") &&
+        (r.status === "APPROVED" || r.status === "PENDING"),
+    );
+    const cx = isActor
+      ? {
+          name: String(
+            (await this.params.get("cx.contact.name")) ??
+              "Equipo Omnidance",
+          ),
+          email: String(
+            (await this.params.get("cx.contact.email")) ??
+              "soporte@omnidance.tech",
+          ),
+          phone: String((await this.params.get("cx.contact.phone")) ?? ""),
+        }
+      : null;
     return {
       id: person.id,
       name: person.name,
@@ -436,6 +459,7 @@ export class PeopleController {
       // Tours de onboarding ya vistos: {tourKey: ISO} - el front corre
       // el tour de una superficie solo si su clave falta.
       onboarding: (person.onboarding as Record<string, string> | null) ?? {},
+      cx,
     };
   }
 

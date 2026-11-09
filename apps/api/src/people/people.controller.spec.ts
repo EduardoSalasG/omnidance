@@ -317,6 +317,9 @@ describe("PeopleController", () => {
       // ConsentService real sobre el mismo FakePrisma - ejerce
       // LegalText + ConsentRecord de verdad.
       new ConsentService(prisma as unknown as PrismaService),
+      // ParamsService stub - la card CX lee cx.contact.* (bailarín no
+      // pasa el gate isActor y nunca lo consulta).
+      { get: async () => null } as never,
     );
     prisma.people.set("me", mkPerson("me"));
   });

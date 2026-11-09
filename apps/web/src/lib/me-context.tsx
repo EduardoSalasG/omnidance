@@ -68,6 +68,9 @@ export type MeContextData = {
   // Idioma preferido persistido (spec i18n-multi-locale) - si difiere
   // del locale activo el provider navega al path localizado.
   language?: string;
+  // Contacto CX (spec platform-trials): solo actores con consola
+  // (ACADEMY_OWNER/PRODUCER) - card de contacto en /perfil.
+  cx?: { name: string; email: string; phone: string } | null;
 };
 
 type MeContextValue = {
