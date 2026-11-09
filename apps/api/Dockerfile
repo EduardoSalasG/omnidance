@@ -16,6 +16,9 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
+# El postinstall de la raíz (setup-git-hooks) corre en este install:
+# el script debe existir en la imagen aunque aquí sea no-op (sin .git).
+COPY scripts/setup-git-hooks.cjs ./scripts/setup-git-hooks.cjs
 
 RUN pnpm install --frozen-lockfile
 
