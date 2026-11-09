@@ -104,7 +104,7 @@ API_URL="https://api.omnidance.eduardosalasg.dev"   # callbacks de Flow
 PAYMENT_GATEWAY="flow"
 FLOW_API_KEY="…"
 FLOW_SECRET_KEY="…"
-FLOW_BASE_URL="https://sandbox.flow.cl/api"          # sandbox
+FLOW_BASE_URL="https://www.flow.cl/api"              # producción; sandbox: https://sandbox.flow.cl/api
 
 # MercadoPago - opcional: el adaptador se registra en el
 # GatewayRegistry si existe el token (convive con Flow; el proveedor
@@ -207,8 +207,9 @@ contenedor - el host expone **3002**), `LOG_LEVEL`, `SERVICE_FEE_CLP`,
 - **`PAYMENT_GATEWAY=flow con FLOW_API_KEY/FLOW_SECRET es requerido`**
   (crash-loop del contenedor): fail-close intencional - el StubGateway
   acepta webhooks sin firma y está deshabilitado en producción. Falta
-  `FLOW_API_KEY`/`FLOW_SECRET_KEY` (sandbox.flow.cl → Mis datos →
-  Integraciones) en el `.env`.
+  `FLOW_API_KEY`/`FLOW_SECRET_KEY` (sandbox.flow.cl o www.flow.cl → Mis
+  datos → Integraciones, según el ambiente de `FLOW_BASE_URL`) en el
+  `.env`.
 - **Email del admin con comillas en la DB** (incidente 2026-10-05): el
   workflow extrae `SEED_ADMIN_EMAIL` del `.env` con `grep|cut`, que
   devuelve el valor crudo - si la línea traía `"mail"` quedaba con

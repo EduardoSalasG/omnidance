@@ -140,14 +140,17 @@ import { SocialPassController } from "./infrastructure/social-pass.controller";
 export class PaymentsModule {}
 
 const SANDBOX_BASE_URL = "https://sandbox.flow.cl/api";
+const PROD_BASE_URL = "https://www.flow.cl/api";
+const FLOW_BASE_URLS = new Set([SANDBOX_BASE_URL, PROD_BASE_URL]);
 
 /**
  * Selección del gateway por env. PAYMENT_GATEWAY=flow + credenciales
  * (FLOW_API_KEY / FLOW_SECRET_KEY - el alias FLOW_SECRET queda por
  * compatibilidad) instancia FlowGateway; cualquier otro caso usa el
- * StubGateway de desarrollo. Solo sandbox por ahora: FLOW_BASE_URL debe
- * ser https://sandbox.flow.cl/api - producción se habilita tras validar
- * el flujo end-to-end contra el sandbox.
+ * StubGateway de desarrollo. FLOW_BASE_URL acepta solo los endpoints
+ * oficiales de Flow (sandbox o producción): una URL distinta aborta el
+ * boot - una URL de pagos mal configurada no puede derivar órdenes ni
+ * webhooks a un destino arbitrario.
  */
 export function resolveGateway(
   env: NodeJS.ProcessEnv,
@@ -162,9 +165,9 @@ export function resolveGateway(
       );
     }
     const baseUrl = env.FLOW_BASE_URL ?? SANDBOX_BASE_URL;
-    if (baseUrl !== SANDBOX_BASE_URL) {
+    if (!FLOW_BASE_URLS.has(baseUrl)) {
       throw new Error(
-        `FLOW_BASE_URL debe ser ${SANDBOX_BASE_URL} (integración en sandbox-only); recibido: ${baseUrl}`,
+        `FLOW_BASE_URL debe ser uno de los endpoints oficiales de Flow (${SANDBOX_BASE_URL} sandbox · ${PROD_BASE_URL} producción); recibido: ${baseUrl}`,
       );
     }
     const apiUrl = env.API_URL ?? "http://localhost:4000";
