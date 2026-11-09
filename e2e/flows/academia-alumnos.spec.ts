@@ -54,7 +54,16 @@ test.describe("@academia @alumnos lista y ficha", () => {
 
     await page.goto("/academia/alumnos/nuevo");
     await dismissTours(page);
-    await page.getByLabel(/id de persona/i).fill(s.person.id);
+    // La persona se elige por buscador (/students/candidates, no
+    // excluye enrolados): el email es único y evita ambigüedad.
+    const term = s.person.email ?? s.person.name!;
+    await page.getByRole("textbox", { name: /alumno/i }).fill(term);
+    await page
+      .getByRole("listbox")
+      .getByRole("button")
+      .filter({ hasText: term })
+      .first()
+      .click();
     await page.getByLabel(/planes/i).selectOption(s.plan!.id);
     await page.getByRole("button", { name: "Crear", exact: true }).click();
     // 409 DUPLICATE_ENROLLMENT: el notice de acción muestra el message
