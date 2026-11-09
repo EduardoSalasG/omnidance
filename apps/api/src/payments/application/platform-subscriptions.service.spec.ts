@@ -171,6 +171,7 @@ function mkPrisma() {
   const producerStaffRows: Row[] = [];
   const gatewayTxs: Row[] = [];
   const sentNotifs: Row[] = [];
+  const activities: Row[] = [];
   const tierPrices: Row[] = [];
   const countries = new Map<string, Row>([["CL", { code: "CL", currency: "CLP" }]]);
   let seq = 0;
@@ -443,6 +444,13 @@ function mkPrisma() {
       }),
     },
     personRole: { findMany: vi.fn(async () => [] as Row[]) },
+    activityEvent: {
+      create: vi.fn(async ({ data }: { data: Row }) => {
+        const stored = JSON.parse(JSON.stringify(data)) as Row;
+        activities.push(stored);
+        return stored;
+      }),
+    },
     gatewayTransaction: {
       create: vi.fn(async ({ data }: { data: Row }) => {
         gatewayTxs.push(data);
@@ -470,6 +478,7 @@ function mkPrisma() {
     producerStaffRows,
     gatewayTxs,
     sentNotifs,
+    activities,
     tierPrices,
     countries,
   };
@@ -1131,6 +1140,24 @@ describe("PlatformSubscriptionsService", () => {
       expect(flow.cancelSubscription).not.toHaveBeenCalled();
     });
 
+    it("sub manual ACTIVE cancelada → CANCELED + churn corta el tier (spec platform-trials)", async () => {
+      fx.academies.get("ac1")!.tier = "COBROS";
+      fx.academies.get("ac1")!.billingCycle = "MONTHLY";
+      const sub = mkPlatSub({
+        status: "ACTIVE",
+        flowSubscriptionId: null,
+        paymentMethod: "TRANSFER",
+      });
+      fx.platSubs.push(sub);
+      const r = await svc.cancelAcademySubscription("ac1");
+      expect(r.status).toBe("CANCELED");
+      expect(fx.academies.get("ac1")!.tier).toBeNull();
+      expect(fx.academies.get("ac1")!.billingCycle).toBeNull();
+      expect(
+        fx.sentNotifs.some((n) => n.type === "academy.access_ended"),
+      ).toBe(true);
+    });
+
     it("sin suscripción → 404", async () => {
       await expect(svc.cancelAcademySubscription("ac1")).rejects.toThrow(
         NotFoundException,
@@ -1582,6 +1609,100 @@ describe("PlatformSubscriptionsService", () => {
       );
       expect(sub.status).toBe("CANCELED");
       expect(flow.createSubscription).not.toHaveBeenCalled();
+    });
+
+    it("churn academia: CANCELED definitivo limpia tier/ciclo + avisa (spec platform-trials)", async () => {
+      fx.academies.get("ac1")!.tier = "STUDIO";
+      fx.academies.get("ac1")!.billingCycle = "MONTHLY";
+      const sub = mkPlatSub({
+        status: "CANCEL_PENDING",
+        flowSubscriptionId: "fsub-old",
+        tierCode: "STUDIO",
+      });
+      fx.platSubs.push(sub);
+      await svc.reconcileSubscription(
+        sub,
+        mkFlowSub({ subscriptionId: "fsub-old", status: "CANCELED" }),
+      );
+      expect(sub.status).toBe("CANCELED");
+      expect(fx.academies.get("ac1")!.tier).toBeNull();
+      expect(fx.academies.get("ac1")!.billingCycle).toBeNull();
+      expect(
+        fx.sentNotifs.some((n) => n.type === "academy.access_ended"),
+      ).toBe(true);
+      expect(
+        fx.activities.some(
+          (a) => a.type === "access.ended" && a.academyId === "ac1",
+        ),
+      ).toBe(true);
+    });
+
+    it("churn academia: otra sub viva del actor conserva el entitlement", async () => {
+      fx.academies.get("ac1")!.tier = "STUDIO";
+      fx.academies.get("ac1")!.billingCycle = "MONTHLY";
+      const churned = mkPlatSub({
+        status: "CANCEL_PENDING",
+        flowSubscriptionId: "fsub-old",
+        tierCode: "STUDIO",
+      });
+      fx.platSubs.push(churned);
+      fx.platSubs.push(
+        mkPlatSub({ status: "ACTIVE", flowSubscriptionId: "fsub-new" }),
+      );
+      await svc.reconcileSubscription(
+        churned,
+        mkFlowSub({ subscriptionId: "fsub-old", status: "CANCELED" }),
+      );
+      expect(churned.status).toBe("CANCELED");
+      expect(fx.academies.get("ac1")!.tier).toBe("STUDIO");
+      expect(
+        fx.sentNotifs.some((n) => n.type === "academy.access_ended"),
+      ).toBe(false);
+    });
+
+    it("churn productor: CANCELED definitivo → proTier FREE + pro_access_ended", async () => {
+      fx.persons.get("p1")!.proTier = "PRO_GROWTH";
+      const sub = mkPlatSub({
+        kind: "PRODUCER",
+        academyId: null,
+        producerId: "p1",
+        tierCode: "PRO_GROWTH",
+        status: "CANCEL_PENDING",
+        flowSubscriptionId: "fsub-old",
+      });
+      fx.platSubs.push(sub);
+      await svc.reconcileSubscription(
+        sub,
+        mkFlowSub({ subscriptionId: "fsub-old", status: "CANCELED" }),
+      );
+      expect(sub.status).toBe("CANCELED");
+      expect(fx.persons.get("p1")!.proTier).toBe("FREE");
+      expect(
+        fx.sentNotifs.some((n) => n.type === "producer.pro_access_ended"),
+      ).toBe(true);
+    });
+
+    it("swap de plan (remota CANCELED con pendiente) NO corta el acceso", async () => {
+      fx.academies.get("ac1")!.tier = "STUDIO";
+      const sub = mkPlatSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "fsub-old",
+        tierCode: "STUDIO",
+        pendingTierCode: "COBROS",
+        pendingBillingCycle: "MONTHLY",
+      });
+      fx.platSubs.push(sub);
+      fx.persons.get("p1")!.flowCustomerId = "cus_p1";
+      await svc.reconcileSubscription(
+        sub,
+        mkFlowSub({ subscriptionId: "fsub-old", status: "CANCELED" }),
+      );
+      expect(
+        fx.sentNotifs.some((n) => n.type === "academy.access_ended"),
+      ).toBe(false);
+      expect(
+        fx.activities.some((a) => a.type === "access.ended"),
+      ).toBe(false);
     });
 
     it("cancelAtPeriodEnd remoto → CANCEL_PENDING", async () => {

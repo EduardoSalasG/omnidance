@@ -20,10 +20,10 @@
 
 ## 3b. Corte unificado de churn
 
-- [ ] `reconcileSubscription`: en CANCELED definitivo (sin swap/reprice) limpiar `Academy.tier`/`billingCycle` y `Person.proTier` si no hay otra sub viva
-- [ ] Notificación `academy.access_ended` / `producer.pro_access_ended` al actor
-- [ ] Backfill one-shot: limpiar entitlements de actores sin sub viva (lista de afectados en salida)
-- [ ] Tests: churn corta, swap no corta, productor vuelve a FREE
+- [x] `reconcileSubscription`: en CANCELED definitivo (sin swap/reprice) limpiar `Academy.tier`/`billingCycle` y `Person.proTier` si no hay otra sub viva
+- [x] Notificación `academy.access_ended` / `producer.pro_access_ended` al actor
+- [x] Backfill one-shot: limpiar entitlements de actores sin sub viva (lista de afectados en salida)
+- [x] Tests: churn corta, swap no corta, productor vuelve a FREE
 
 ## 4. Correos
 

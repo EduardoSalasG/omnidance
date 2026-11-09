@@ -22,6 +22,7 @@ import { PrismaService } from "../../prisma.service";
 import { ParamsService } from "../../params/params.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { emitPaymentEvent } from "../domain/payment-ledger";
+import { emitActivity } from "../../common/activity-log";
 import {
   decodeSeriesPassRef,
   encodePlatformSubRef,
@@ -1869,6 +1870,9 @@ export class PlatformSubscriptionsService {
         },
         data: { status: "FAILED" },
       });
+      // Cancel manual es CANCELED inmediato (no hay remoto que confirme
+      // el fin de período en reconcile) - el corte corre acá.
+      await this.applyChurnCut({ ...sub, status: "CANCELED" }, "person");
       return { ok: true, status: "CANCELED", subscriptionId: sub.id };
     }
     const { provider } = await this.provider(sub.currency);
@@ -2655,6 +2659,7 @@ export class PlatformSubscriptionsService {
       status = "CANCEL_PENDING";
       canceledAt ??= new Date();
     }
+    const becameCanceled = status === "CANCELED" && sub.status !== "CANCELED";
     if (
       status !== sub.status ||
       (nextInvoiceAt?.getTime() ?? null) !==
@@ -2665,6 +2670,13 @@ export class PlatformSubscriptionsService {
         data: { status, nextInvoiceAt, canceledAt },
       });
       sub.status = status;
+    }
+    // Corte unificado de churn (spec platform-trials): la sub que queda
+    // CANCELED de verdad limpia la proyección del entitlement si el
+    // actor no tiene otra sub viva (con swap/reprice se retornó antes -
+    // acá solo llega la cancelación real).
+    if (becameCanceled) {
+      await this.applyChurnCut(sub, actor);
     }
 
     const now = Date.now();
@@ -2770,6 +2782,77 @@ export class PlatformSubscriptionsService {
       }
     }
     return settled;
+  }
+
+  /**
+   * Corte unificado de churn (spec platform-trials): una sub que queda
+   * CANCELED de verdad (fin de período remoto o cancel manual, sin swap
+   * ni reprice) limpia la proyección del entitlement - Academy.tier/
+   * billingCycle → null, Person.proTier → FREE - solo si el actor no
+   * tiene otra sub viva. Emite ActivityEvent access.ended + aviso al
+   * pagador. Bug histórico: el tier nunca se limpiaba y el churned
+   * conservaba acceso (el backfill one-shot cubre los ya cancelados).
+   */
+  private async applyChurnCut(
+    sub: PlatformSubscription,
+    actor: string,
+  ): Promise<void> {
+    const otherLive = await this.prisma.platformSubscription.findFirst({
+      where: {
+        id: { not: sub.id },
+        status: { in: [...LIVE_STATUSES] },
+        ...(sub.kind === "ACADEMY"
+          ? { kind: "ACADEMY" as const, academyId: sub.academyId }
+          : { kind: "PRODUCER" as const, producerId: sub.producerId }),
+      },
+      select: { id: true },
+    });
+    if (otherLive) return;
+    await this.prisma.$transaction(async (tx) => {
+      if (sub.kind === "ACADEMY" && sub.academyId) {
+        await tx.academy.update({
+          where: { id: sub.academyId },
+          data: { tier: null, billingCycle: null },
+        });
+      } else if (sub.kind === "PRODUCER" && sub.producerId) {
+        await tx.person.update({
+          where: { id: sub.producerId },
+          data: { proTier: "FREE" },
+        });
+      }
+      await emitActivity(tx, {
+        type: "access.ended",
+        personId: sub.personId,
+        academyId: sub.academyId ?? undefined,
+        refType: "PlatformSubscription",
+        refId: sub.id,
+        data: { kind: sub.kind, tierCode: sub.tierCode, via: actor },
+      });
+    });
+    await this.notifications.notifySafe(sub.personId, {
+      category: "TRANSACTIONAL",
+      type:
+        sub.kind === "ACADEMY"
+          ? "academy.access_ended"
+          : "producer.pro_access_ended",
+      title:
+        sub.kind === "ACADEMY"
+          ? "La suscripción de tu academia terminó"
+          : "Tu Producer Pro terminó",
+      body:
+        sub.kind === "ACADEMY"
+          ? "Suscríbete para volver a operar la consola y aparecer en la cartelera"
+          : "Renueva para recuperar las herramientas Pro",
+      data: {
+        subscriptionId: sub.id,
+        academyId: sub.academyId,
+        producerId: sub.producerId,
+        path:
+          sub.kind === "ACADEMY"
+            ? "/academia/configuracion/suscripcion"
+            : "/productor/suscripcion",
+      },
+    });
   }
 
   /**
