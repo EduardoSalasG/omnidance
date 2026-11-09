@@ -809,7 +809,7 @@ export class AcademiesController {
         type: "trial.started",
         personId: req.person!.id,
         academyId: created.id,
-        data: { actor: "ACADEMY", via: "academy.create", days: trialDays, endsAt: trialEndsAt },
+        data: { kind: "ACADEMY", via: "academy.create", days: trialDays, endsAt: trialEndsAt },
       });
       return created;
     });

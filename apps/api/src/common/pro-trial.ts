@@ -51,7 +51,7 @@ export async function grantProducerTrialIfDue(
   await emitActivity(tx, {
     type: "trial.started",
     personId,
-    data: { actor: "PRODUCER", via, days, endsAt },
+    data: { kind: "PRODUCER", via, days, endsAt },
   });
   return endsAt;
 }
