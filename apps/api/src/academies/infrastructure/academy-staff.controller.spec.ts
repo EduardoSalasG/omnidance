@@ -67,6 +67,11 @@ function mkPrisma() {
       upsert: vi.fn(async () => ({})),
       deleteMany: vi.fn(async () => ({ count: 1 })),
     },
+    // ActivityEvent (spec platform-trials): emit person.registered.
+    activityEvent: {
+      findFirst: vi.fn(async () => null),
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => data),
+    },
   };
 }
 

@@ -23,6 +23,10 @@ interface FakeAcademy {
   name: string;
   active: boolean;
   billingBlockedAt?: Date | null;
+  // Gate de suscripción (spec platform-trials): tier null + trial
+  // vencido corta las acciones de staff (403 tier.required).
+  tier?: string | null;
+  trialEndsAt?: Date | null;
   privateLessonPrice?: number | null;
 }
 
@@ -308,7 +312,7 @@ describe("comisión del instructor en clases particulares", () => {
       {} as never,
     {} as never,
     );
-    prisma.academies.push({ id: "ac-1", ownerId: "owner", name: "Academia Uno", active: true });
+    prisma.academies.push({ id: "ac-1", ownerId: "owner", name: "Academia Uno", active: true, tier: "STUDIO" });
     prisma.instructors.push({
       academyId: "ac-1",
       personId: "inst",
@@ -509,7 +513,7 @@ describe("private-lesson-product", () => {
       {} as never,
     {} as never,
     );
-    prisma.academies.push({ id: "ac-1", ownerId: "owner", name: "Academia Uno", active: true });
+    prisma.academies.push({ id: "ac-1", ownerId: "owner", name: "Academia Uno", active: true, tier: "STUDIO" });
     prisma.instructors.push(
       { academyId: "ac-1", personId: "inst", commissionPct: 25 },
       { academyId: "ac-2", personId: "ajeno", commissionPct: 10 },
@@ -717,7 +721,7 @@ describe("pay-commission - liquidación de la comisión", () => {
       access,
       notifications as unknown as NotificationsService,
     );
-    prisma.academies.push({ id: "ac-1", ownerId: "owner", name: "Academia Uno", active: true });
+    prisma.academies.push({ id: "ac-1", ownerId: "owner", name: "Academia Uno", active: true, tier: "STUDIO" });
     prisma.instructors.push({
       academyId: "ac-1",
       personId: "inst",
@@ -815,6 +819,7 @@ describe("GET /private-lessons/:id - ficha de la particular", () => {
       ownerId: "owner",
       name: "Academia Uno",
       active: true,
+      tier: "STUDIO",
     });
     prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
     prisma.lessons.push({
@@ -899,6 +904,7 @@ describe("list staff - filtros del contrato compartido", () => {
       ownerId: "owner",
       name: "Academia Uno",
       active: true,
+      tier: "STUDIO",
     });
     prisma.instructors.push({
       academyId: "ac-1",

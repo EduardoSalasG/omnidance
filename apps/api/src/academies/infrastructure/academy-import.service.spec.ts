@@ -58,6 +58,12 @@ class FakePrisma {
     },
     update: async () => ({}),
   };
+
+  // ActivityEvent (spec platform-trials): emit enrollment.started.
+  activityEvent = {
+    findFirst: async () => null,
+    create: async ({ data }: { data: Record<string, unknown> }) => data,
+  };
 }
 
 const academy = (over: Partial<Academy> = {}): Academy =>

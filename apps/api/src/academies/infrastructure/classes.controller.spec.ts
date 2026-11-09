@@ -65,6 +65,10 @@ interface FakeClass {
       name: string;
       defaultQuorum: number | null;
       billingBlockedAt: Date | null;
+      // Gate de suscripción (spec platform-trials): el select trae
+      // tier + trialEndsAt y trial vencido corta como mora.
+      tier: string | null;
+      trialEndsAt: Date | null;
       // Visibilidad pública (browse: active + reviewStatus).
       active: boolean;
       reviewStatus: string;
@@ -155,6 +159,8 @@ class FakePrisma {
           name: "Academia X",
           defaultQuorum: null,
           billingBlockedAt: null,
+          tier: "STUDIO",
+          trialEndsAt: null,
           active: true,
           reviewStatus: "APPROVED",
           address: "Av. Siempre Viva 123",
@@ -562,6 +568,8 @@ class FakePrisma {
         id,
         name: `Academia ${id}`,
         billingBlockedAt: null,
+        tier: "STUDIO",
+        trialEndsAt: null,
       })),
   };
 

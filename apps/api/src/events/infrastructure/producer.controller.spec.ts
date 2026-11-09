@@ -137,6 +137,11 @@ function mk(over: {
       upsert: vi.fn(async () => ({ id: "ps-1" })),
       deleteMany: vi.fn(async () => ({})),
     },
+    // ActivityEvent (spec platform-trials): emit person.registered.
+    activityEvent: {
+      findFirst: vi.fn(async () => null),
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => data),
+    },
     $transaction: vi.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
   } as unknown as PrismaService;
   const params = {

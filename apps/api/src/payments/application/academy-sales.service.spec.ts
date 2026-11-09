@@ -299,6 +299,10 @@ describe("AcademySalesService", () => {
       name: "Academia X",
       active: true,
       ownerId: "own-1",
+      // Academia con suscripción (spec platform-trials): sin tier ni
+      // trialEndsAt el gate resuelve trial vencido → tier.required.
+      tier: "STUDIO",
+      trialEndsAt: null,
     });
     svc = new AcademySalesService(
       fx.prisma as unknown as PrismaService,

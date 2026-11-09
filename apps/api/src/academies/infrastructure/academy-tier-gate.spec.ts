@@ -126,7 +126,16 @@ describe("gate de tier (academy-tier-cobros)", () => {
   });
 
   it("sin suscripción (trial) → nivel STUDIO", async () => {
-    const a = access(mkPrisma(mkAcademy({ tier: null })));
+    // platform-trials: tier null + trial vigente = STUDIO; sin
+    // trialEndsAt el fake resuelve trial vencido → features vacías.
+    const a = access(
+      mkPrisma(
+        mkAcademy({
+          tier: null,
+          trialEndsAt: new Date(Date.now() + 15 * 86_400_000),
+        }),
+      ),
+    );
     await expect(
       a.requireCapabilityWrite("ac-1", owner, "schedule", "classes"),
     ).resolves.toBeTruthy();

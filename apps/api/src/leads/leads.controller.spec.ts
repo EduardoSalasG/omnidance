@@ -56,7 +56,18 @@ class FakePrisma {
         phoneCountryCode: (data.phoneCountryCode as string) ?? null,
       };
       this.people.push(p);
-      return { id: p.id };
+      // El caller pide include: { roles } e itera person.roles para
+      // emitir role.approved por cada rol creado.
+      const roleCreates =
+        (data.roles as { create?: { role: string }[] } | undefined)?.create ??
+        [];
+      return {
+        id: p.id,
+        roles: roleCreates.map((r, i) => ({
+          id: `prole-${p.id}-${i}`,
+          role: r.role,
+        })),
+      };
     },
   };
 
@@ -105,6 +116,12 @@ class FakePrisma {
   role = {
     findMany: async ({ where }: { where: { key: { in: string[] } } }) =>
       where.key.in.map((key) => ({ key })),
+  };
+
+  // ActivityEvent (spec platform-trials): emit person.registered.
+  activityEvent = {
+    findFirst: async () => null,
+    create: async ({ data }: { data: Record<string, unknown> }) => data,
   };
 }
 
