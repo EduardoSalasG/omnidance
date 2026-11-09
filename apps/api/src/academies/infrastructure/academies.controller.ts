@@ -1868,6 +1868,13 @@ export class AcademiesController {
         person = await this.prisma.person.create({
           data: { email, name: dto.name?.trim() || email.split("@")[0] },
         });
+        await emitActivity(this.prisma, {
+          type: "person.registered",
+          personId: person.id,
+          refType: "Person",
+          refId: person.id,
+          data: { via: "academy.student-invite" },
+        });
         invited = true;
       }
     } else {
@@ -1929,6 +1936,15 @@ export class AcademiesController {
             }
           : {}),
       },
+    });
+    // Línea de vida admin (spec platform-trials §5b).
+    await emitActivity(this.prisma, {
+      type: "enrollment.started",
+      personId: person.id,
+      academyId: id,
+      refType: "Enrollment",
+      refId: enrollment.id,
+      data: { planId: plan.id, via: "academy.staff-add" },
     });
 
     // Registro parcial (spec academy-student-invite): al stub recién

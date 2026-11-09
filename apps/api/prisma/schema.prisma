@@ -1959,9 +1959,9 @@ model ActivityEvent {
   academyId String?
   // trial.started | trial.ending | trial.ended | trial.adjusted |
   // access.ended | sub.started | sub.renewed | sub.canceled |
-  // role.requested | role.approved | person.registered |
-  // billing.blocked | enrollment.started | payment.paid |
-  // invite.sent | invite.registered
+  // sub.plan_changed | role.requested | role.approved |
+  // person.registered | billing.blocked | enrollment.started |
+  // payment.paid | invite.sent | invite.registered
   type      String
   refType   String? // "PlatformSubscription" | "Payment" | "Academy" | "PersonRole"
   refId     String?

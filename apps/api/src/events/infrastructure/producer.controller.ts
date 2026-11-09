@@ -27,6 +27,7 @@ import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
+import { emitActivity } from "../../common/activity-log";
 import { ParamsService } from "../../params/params.service";
 import { PRESALE_CUTOFF_MAX_MINUTES } from "../../common/presale-cutoff";
 import { AuthService } from "../../auth/domain/auth.service";
@@ -419,6 +420,15 @@ export class ProducerController {
           name: dto.name?.trim() || email.split("@")[0],
         },
         select: { id: true, name: true, email: true, photoUrl: true },
+      });
+      // Línea de vida admin (spec platform-trials §5b): stub invitado
+      // como colaborador de evento.
+      await emitActivity(this.prisma, {
+        type: "person.registered",
+        personId: person.id,
+        refType: "Person",
+        refId: person.id,
+        data: { via: "producer.staff-invite" },
       });
       invited = true;
     }

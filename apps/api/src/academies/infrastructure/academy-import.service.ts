@@ -5,6 +5,7 @@ import { PrismaService } from "../../prisma.service";
 import { AuthService } from "../../auth/domain/auth.service";
 import { MAILER, type Mailer } from "../../auth/domain/ports";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
+import { emitActivity } from "../../common/activity-log";
 import { studentInviteEmailHtml } from "./invite-emails";
 import {
   AcademyMaterializeService,
@@ -149,6 +150,15 @@ export class AcademyImportService {
               select: { id: true, name: true },
             });
           }
+          // Línea de vida admin (spec platform-trials §5b): alta por
+          // importación masiva de alumnos.
+          await emitActivity(this.prisma, {
+            type: "person.registered",
+            personId: person.id,
+            refType: "Person",
+            refId: person.id,
+            data: { via: "academy.import" },
+          });
         }
 
         const existing = await this.prisma.enrollment.findFirst({
@@ -165,7 +175,7 @@ export class AcademyImportService {
             data: { planId: plan.id, endsAt: nextEnds },
           });
         } else {
-          await this.prisma.enrollment.create({
+          const enr = await this.prisma.enrollment.create({
             data: {
               academyId: academy.id,
               personId: person.id,
@@ -173,6 +183,14 @@ export class AcademyImportService {
               status: "ACTIVE",
               endsAt,
             },
+          });
+          await emitActivity(this.prisma, {
+            type: "enrollment.started",
+            personId: person.id,
+            academyId: academy.id,
+            refType: "Enrollment",
+            refId: enr.id,
+            data: { planId: plan.id, via: "academy.import" },
           });
         }
 

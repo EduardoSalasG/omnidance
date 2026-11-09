@@ -31,6 +31,7 @@ import { AuthService } from "../../auth/domain/auth.service";
 import { PrismaService } from "../../prisma.service";
 import { MAILER, type Mailer } from "../../auth/domain/ports";
 import { AcademyAccess } from "./academy-access.service";
+import { emitActivity } from "../../common/activity-log";
 import { pageParams } from "./list-filters";
 import { agreementWrite, PAY_TYPES } from "./instructor-agreement";
 import {
@@ -654,6 +655,15 @@ OR: [
     if (existing) return { person: existing, invited: false, email };
     const person = await this.prisma.person.create({
       data: { email, name: name?.trim() || email.split("@")[0] },
+    });
+    // Línea de vida admin (spec platform-trials §5b): stub invitado
+    // por staff/instructor.
+    await emitActivity(this.prisma, {
+      type: "person.registered",
+      personId: person.id,
+      refType: "Person",
+      refId: person.id,
+      data: { via: "academy.staff-invite" },
     });
     return { person, invited: true, email };
   }

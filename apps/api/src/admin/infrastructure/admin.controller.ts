@@ -1055,7 +1055,7 @@ export class AdminController {
           throw new ConflictException("phone_exists");
         }
       }
-      person = await this.prisma.person.create({
+      const created = await this.prisma.person.create({
         data: {
           name: lead.name,
           email: lead.email,
@@ -1069,7 +1069,26 @@ export class AdminController {
             create: known.map((r) => ({ role: r.key, status: "APPROVED" })),
           },
         },
+        include: { roles: { select: { id: true, role: true } } },
       });
+      // Línea de vida admin (spec platform-trials §5b).
+      await emitActivity(this.prisma, {
+        type: "person.registered",
+        personId: created.id,
+        refType: "Person",
+        refId: created.id,
+        data: { via: "admin.lead-convert" },
+      });
+      for (const r of created.roles) {
+        await emitActivity(this.prisma, {
+          type: "role.approved",
+          personId: created.id,
+          refType: "PersonRole",
+          refId: r.id,
+          data: { role: r.role, via: "admin.lead-convert" },
+        });
+      }
+      person = created;
     } else {
       person = await this.prisma.person.update({
         where: { id: person.id },
