@@ -106,11 +106,9 @@ test.describe("@dancer @membresia suscripción por transferencia", () => {
         .getByRole("button", { name: "Aprobar" })
         .click();
       await ap.waitForURL(/\/academia\/cobros$/, { timeout: 15_000 });
-      await expect(
-        ap
-          .getByRole("status")
-          .filter({ hasText: /suscripción quedó activa/i }),
-      ).toBeVisible({ timeout: 15_000 });
+      // El notice "suscripción quedó activa" auto-cierra ~3s y puede
+      // expirar antes del assert en corridas lentas - el resultado se
+      // verifica abajo (claim fuera de la cola) y por API (sub ACTIVE).
       // Sale de la cola accionable (queda solo en historial, que no
       // renderiza el note).
       await expect(

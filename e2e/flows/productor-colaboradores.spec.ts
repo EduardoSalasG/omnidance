@@ -16,8 +16,18 @@ test.describe("@productor @colaboradores nómina", () => {
     page,
   }) => {
     const api = await apiAs("producer");
+    const admin = await apiAs("admin");
     const added: string[] = [];
+    // platform-trials: carlos nace con trial Producer Pro vigente, que
+    // habilita multiStaff y nunca hay 403 - el spec del cupo FREE
+    // necesita el trial vencido; se expira vía admin y se restaura.
+    const meRes = await api.get("/api/me");
+    const me = (await meRes.json()) as { id: string };
     try {
+      const past = new Date(Date.now() - 86_400_000).toISOString();
+      await admin.patch(`/api/admin/users/${me.id}/pro-trial`, {
+        data: { endsAt: past },
+      });
       const rosterRes = await api.get("/api/producer/staff");
       const roster = (await rosterRes.json().catch(() => [])) as {
         person: { id: string; name: string | null };
@@ -32,7 +42,11 @@ test.describe("@productor @colaboradores nómina", () => {
         name: string;
       }[];
       const pool = djs.filter((p) => !taken.has(p.id));
-      expect(pool.length).toBeGreaterThanOrEqual(3);
+      // Candidatos mínimos: 1 por UI + (QUOTA-count-1) por API + 1
+      // víctima del 403. Con la nómina ya llena basta 1 (el seed deja
+      // 2 DJs permanentes en roster, quedan 2 libres).
+      const needed = Math.max(1, QUOTA - count + 1);
+      expect(pool.length).toBeGreaterThanOrEqual(needed);
 
       // Si la nómina no está llena, el primer alta va por UI (cubre el
       // happy path: búsqueda → click → alta → visible en la lista).
@@ -95,7 +109,15 @@ test.describe("@productor @colaboradores nómina", () => {
       for (const id of added) {
         await api.delete(`/api/producer/staff/${id}`).catch(() => {});
       }
+      // Restaurar el trial del producer al estado seed (vigente).
+      const future = new Date(Date.now() + 90 * 86_400_000).toISOString();
+      await admin
+        .patch(`/api/admin/users/${me.id}/pro-trial`, {
+          data: { endsAt: future },
+        })
+        .catch(() => {});
       await api.dispose();
+      await admin.dispose();
     }
   });
 });
