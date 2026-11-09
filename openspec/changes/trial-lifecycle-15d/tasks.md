@@ -47,11 +47,11 @@
 
 ## 5b. Línea de vida en ficha admin
 
-- [ ] Emisiones `emitActivity` en los hooks del change: trial.started (academia/productor), trial.ending (barrido), trial.ended/access.ended (corte), sub.started/renewed/canceled, role.approved, person.registered, billing.blocked, enrollment.started, payment.paid
-- [ ] Script de backfill one-shot: siembra eventos históricos derivados con dedup por (refType,refId,type)
-- [ ] `GET /admin/users/:id/timeline`: lee ActivityEvent, `{at, type, label, ref?}` orden desc
-- [ ] Web: sección línea de vida en `/admin/usuarios/[id]` (icono/label por tipo)
-- [ ] Tests: owner ciclo completo, dancer sin platsub, backfill dedup
+- [x] Emisiones `emitActivity` en los hooks del change: trial.started (academia/productor), trial.ending (barrido), trial.ended/access.ended (corte), sub.started/renewed/canceled, role.approved, person.registered, billing.blocked, enrollment.started, payment.paid
+- [x] Script de backfill one-shot: siembra eventos históricos derivados con dedup por (refType,refId,type)
+- [x] `GET /admin/users/:id/timeline`: lee ActivityEvent, `{at, type, label, ref?}` orden desc
+- [x] Web: sección línea de vida en `/admin/usuarios/[id]` (icono/label por tipo)
+- [x] Tests: owner ciclo completo, dancer sin platsub, backfill dedup
 
 ## 6. Card CX en perfil
 
@@ -59,8 +59,8 @@
 
 ## 7. Frontend corte
 
-- [ ] Consola academia con features vacías: nav/hub solo Inicio/Suscripción/Perfil; aviso en Inicio con CTA a Suscripción
-- [ ] i18n es-CL de todos los strings nuevos
+- [x] Consola academia con features vacías: nav/hub solo Inicio/Suscripción/Perfil; aviso en Inicio con CTA a Suscripción
+- [x] i18n es-CL de todos los strings nuevos
 
 ## 8. Gates y docs (actualización completa de documentación relacionada)
 

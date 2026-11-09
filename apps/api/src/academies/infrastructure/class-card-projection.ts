@@ -1,4 +1,5 @@
 import { effectiveCapacity } from "../domain/academy.service";
+import { academyTrialExpired } from "../domain/academy-tiers";
 
 // Proyección completa del card de clase - la consumen browse, mine
 // (reservadas), el historial, el perfil público de academia y el home
@@ -27,9 +28,12 @@ export const CLASS_CARD_SELECT = {
           name: true,
           defaultQuorum: true,
           reviewStatus: true,
-          // Mora SaaS (S3): el card viaja con el flag para que la UI
-          // marque "no disponible" en reservas/historial del alumno.
+          // Mora SaaS (S3) y trial vencido (platform-trials): el card
+          // viaja con el flag para que la UI marque "no disponible" en
+          // reservas/historial del alumno.
           billingBlockedAt: true,
+          tier: true,
+          trialEndsAt: true,
         },
       },
       series: {
@@ -132,7 +136,13 @@ export function lessonCardItem(
     scheduledAt: Date | null;
   },
   academy:
-    | { id: string; name: string; billingBlockedAt: Date | null }
+    | {
+        id: string;
+        name: string;
+        billingBlockedAt: Date | null;
+        tier: string | null;
+        trialEndsAt: Date | null;
+      }
     | undefined,
   enrolledIds: Set<string>,
   instructorName: Map<string, string | null>,
@@ -154,7 +164,9 @@ export function lessonCardItem(
       ? {
           id: academy.id,
           name: academy.name,
-          billingBlocked: academy.billingBlockedAt != null,
+          billingBlocked:
+            academy.billingBlockedAt != null ||
+            academyTrialExpired(academy),
         }
       : { id: l.academyId, name: null, billingBlocked: false },
     instructor: l.instructorId
@@ -186,6 +198,8 @@ export type ClassCardRow = {
       name: string;
       defaultQuorum: number | null;
       billingBlockedAt: Date | null;
+      tier: string | null;
+      trialEndsAt: Date | null;
     };
     series: {
       id: string;
@@ -230,7 +244,11 @@ export function classCardItem(
     enrolled: enrolledIds.has(c.slot.academy.id),
     academy: {
       ...c.slot.academy,
-      billingBlocked: c.slot.academy.billingBlockedAt != null,
+      // Mora o trial vencido (spec platform-trials): mismo "no
+      // disponible" en reservas/historial - el browse ya la deslista.
+      billingBlocked:
+        c.slot.academy.billingBlockedAt != null ||
+        academyTrialExpired(c.slot.academy),
     },
     instructor: c.instructorId
       ? {

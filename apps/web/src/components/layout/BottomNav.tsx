@@ -36,6 +36,13 @@ export const CHROME_HIDDEN_PREFIXES = ["/staff/"];
 // Re-emisión DOM del socket - ver RealtimeProvider (notification → CustomEvent).
 const NOTIFICATION_EVENT = "omnidance:notification";
 
+// Rutas que sobreviven al corte por trial vencido (spec platform-trials):
+// Suscripción es la salida del corte y Perfil es ficha pública propia.
+const ACADEMY_EXPIRED_ALLOWED = new Set([
+  "/academia/configuracion/suscripcion",
+  "/academia/configuracion/perfil",
+]);
+
 type Me = MeContextData;
 
 // key = clave nav.* del label; "create" es especial: su label viene del
@@ -1117,6 +1124,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // unified-actor-entitlements): filtra los módulos del owner por feature.
   const {
     has: academyHas,
+    features: academyFeatures,
     loading: entLoading,
     resolved: entResolved,
   } = useActorEntitlements("ACADEMY");
@@ -1397,6 +1405,18 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
                 entLoading ||
                 !entResolved ||
                 academyHas(spec.academyFeature),
+            )
+            // Trial vencido sin suscripción (spec platform-trials):
+            // features vacías → la consola solo navega a Inicio (ya
+            // fuera de estos grupos), Suscripción y Perfil.
+            .filter(
+              (spec) =>
+                activeRole !== "ACADEMY_OWNER" ||
+                entLoading ||
+                !entResolved ||
+                academyFeatures.length > 0 ||
+                !spec.href.startsWith("/academia") ||
+                ACADEMY_EXPIRED_ALLOWED.has(spec.href),
             )
             .map((spec) => {
               const active =

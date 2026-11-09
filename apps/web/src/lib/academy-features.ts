@@ -41,3 +41,41 @@ export function academyTierHas(
   const feats = tier == null ? STUDIO : (TIER_FEATURES[tier] ?? STUDIO);
   return feats.includes(feature);
 }
+
+// Corte unificado (spec platform-trials, espejo de
+// academies/domain/academy-tiers.ts del API): `tier == null` ya no es
+// "trial infinito" - depende del trial. Sin suscripción vigente:
+// trialEndsAt futuro → STUDIO; pasado o null → features vacías y la
+// consola queda en Inicio/Suscripción/Perfil.
+
+export type AcademyTrialShape = {
+  tier?: string | null;
+  trialEndsAt?: string | Date | null;
+};
+
+/** Trial vigente: sin tier y con fin de trial en el futuro. */
+export function academyInTrial(
+  academy: AcademyTrialShape,
+  now: Date = new Date(),
+): boolean {
+  if (academy.tier != null || academy.trialEndsAt == null) return false;
+  return new Date(academy.trialEndsAt).getTime() > now.getTime();
+}
+
+/** Sin acceso por falta de suscripción y trial (vencido o inexistente). */
+export function academyTrialExpired(
+  academy: AcademyTrialShape,
+  now: Date = new Date(),
+): boolean {
+  return academy.tier == null && !academyInTrial(academy, now);
+}
+
+/** ¿La academia tiene la feature? Tier contratado manda; sin tier el
+    trial vigente da STUDIO y el vencido da nada. */
+export function academyHasFeature(
+  academy: AcademyTrialShape,
+  feature: string,
+): boolean {
+  if (academyTrialExpired(academy)) return false;
+  return academyTierHas(academy.tier, feature);
+}

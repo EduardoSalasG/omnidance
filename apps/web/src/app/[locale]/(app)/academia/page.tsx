@@ -7,8 +7,10 @@ import { useMe } from "@/lib/me-context";
 import { useFeatures } from "@/lib/features-context";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
+import { AcademyTrialEnded } from "@/components/academy/academy-trial-ended";
 import { useAcademyAccessState } from "@/components/academy/use-academy-access";
 import { visibleHubModules } from "@/lib/academy-modules";
+import { academyTrialExpired } from "@/lib/academy-features";
 import { ModuleCard, ModuleGrid } from "@/components/console/module-grid";
 import { Button, RefreshIcon } from "@/components/ui";
 
@@ -103,13 +105,18 @@ function AcademyHub({
   const visible = access
     ? visibleHubModules({
         access,
-        tier: academy.tier,
+        academy,
         flags,
         viewerId: me?.id,
         viewerRoles: me?.roles,
         academyOwnerId: academy.ownerId,
       })
     : [];
+
+  // Trial vencido sin suscripción (spec platform-trials §corte): la
+  // consola queda en Inicio/Suscripción/Perfil y el inicio muestra el
+  // aviso con salida a Suscripción - nada de dashboard ni grilla.
+  if (academyTrialExpired(academy)) return <AcademyTrialEnded />;
 
   // Owner: navegación ya redirigida a /inicio - no se pinta el hub para
   // evitar el flash antes del replace.

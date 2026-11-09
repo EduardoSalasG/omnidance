@@ -73,7 +73,7 @@ export async function resolveAcademyEntitlements(
   const academies = await prisma.academy.findMany({
     where: { ownerId },
     orderBy: { createdAt: "asc" },
-    select: { id: true, tier: true },
+    select: { id: true, tier: true, trialEndsAt: true },
   });
   return academies.map((a) => ({ id: a.id, ...academyEntitlement(a) }));
 }

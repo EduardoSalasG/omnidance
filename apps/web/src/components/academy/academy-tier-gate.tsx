@@ -1,7 +1,7 @@
 "use client";
 
 import { TierPaywall } from "@/components/tier-paywall";
-import { academyTierHas } from "@/lib/academy-features";
+import { academyHasFeature } from "@/lib/academy-features";
 import type { Academy } from "./shared";
 
 /**
@@ -22,7 +22,7 @@ export function AcademyTierGate({
   feature: string;
   children: React.ReactNode;
 }) {
-  if (!academyTierHas(academy.tier, feature)) {
+  if (!academyHasFeature(academy, feature)) {
     return <TierPaywall actorType="ACADEMY" feature={feature} />;
   }
   return <>{children}</>;

@@ -40,7 +40,7 @@ const hrefs = (
 ) =>
   visibleHubModules({
     access,
-    tier,
+    academy: { tier },
     flags,
     academyOwnerId: "owner-1",
     viewerId: "staff-1",
@@ -81,9 +81,39 @@ describe("visibleHubModules - filtro por tier", () => {
     expect(result).toContain("/academia/series");
   });
 
-  it("trial (null) resuelve a nivel STUDIO", () => {
-    const result = hrefs(null, staff());
+  it("trial vigente (null + trialEndsAt futuro) resuelve a nivel STUDIO", () => {
+    const result = visibleHubModules({
+      access: staff(),
+      academy: {
+        tier: null,
+        trialEndsAt: new Date(Date.now() + 86400_000).toISOString(),
+      },
+      flags: FLAGS_ON,
+      academyOwnerId: "owner-1",
+      viewerId: "staff-1",
+      viewerRoles: [],
+    }).map((m) => m.href);
     expect(result).toContain("/academia/series");
+    expect(result).not.toContain("/academia/videos");
+  });
+
+  it("trial vencido (null + trialEndsAt pasado) corta los módulos gated", () => {
+    const result = visibleHubModules({
+      access: staff(),
+      academy: {
+        tier: null,
+        trialEndsAt: new Date(Date.now() - 86400_000).toISOString(),
+      },
+      flags: FLAGS_ON,
+      academyOwnerId: "owner-1",
+      viewerId: "staff-1",
+      viewerRoles: [],
+    }).map((m) => m.href);
+    // El piso (cobros/perfil/suscripción) sigue - no lleva feature gate.
+    expect(result).toContain("/academia/cobros");
+    expect(result).toContain("/academia/configuracion/suscripcion");
+    expect(result).not.toContain("/academia/series");
+    expect(result).not.toContain("/academia/equipo");
     expect(result).not.toContain("/academia/videos");
   });
 
@@ -107,7 +137,7 @@ describe("visibleHubModules - reglas previas intactas", () => {
   it("crm sí sale para el owner de una academia PRO", () => {
     const result = visibleHubModules({
       access: { ...staff(), isOwner: true },
-      tier: "PRO",
+      academy: { tier: "PRO" },
       flags: FLAGS_ON,
       academyOwnerId: "owner-1",
       viewerId: "owner-1",
@@ -125,7 +155,7 @@ describe("visibleHubModules - reglas previas intactas", () => {
         isStaff: false,
         caps: { ...ALL_CAPS, schedule: false },
       },
-      tier: "PRO",
+      academy: { tier: "PRO" },
       flags: FLAGS_ON,
       academyOwnerId: "owner-1",
       viewerId: "inst-1",

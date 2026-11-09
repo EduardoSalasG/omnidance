@@ -25,6 +25,8 @@ import { TrialDateEditor } from "@/components/admin/trial-date-editor";
 import { WeeklyQuotaCard } from "@/components/home/weekly-quota-card";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
+import { AcademyTrialEnded } from "@/components/academy/academy-trial-ended";
+import { academyTrialExpired } from "@/lib/academy-features";
 import { ProducerDashboard } from "@/components/producer/producer-dashboard";
 import { PendingRoleCard } from "@/components/people/pending-role-card";
 
@@ -762,14 +764,21 @@ export function HomeHub() {
         <AcademyGate selector>
           {({ academy }) => (
             <>
-              <AcademyDashboard
-                key={academy.id}
-                academy={academy}
-                // En el inicio las filas "por vencer" llevan a cobros
-                // (renovar/cobrar), no a la ficha del alumno.
-                expiringHref="/academia/cobros"
-                setupChecklist
-              />
+              {/* Trial vencido sin suscripción (spec platform-trials):
+                  el inicio muestra solo el aviso con salida a
+                  Suscripción - el dashboard ya respondería 403. */}
+              {academyTrialExpired(academy) ? (
+                <AcademyTrialEnded />
+              ) : (
+                <AcademyDashboard
+                  key={academy.id}
+                  academy={academy}
+                  // En el inicio las filas "por vencer" llevan a cobros
+                  // (renovar/cobrar), no a la ficha del alumno.
+                  expiringHref="/academia/cobros"
+                  setupChecklist
+                />
+              )}
               {/* Tour del owner: su consola ES el inicio. Clave propia
                   (academia-owner) - la clave "academia" queda para el
                   tour del hub de staff; un owner que también es staff
