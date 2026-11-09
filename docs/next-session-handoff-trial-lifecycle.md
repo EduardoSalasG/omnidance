@@ -1,8 +1,57 @@
-# Handoff: trial-lifecycle-15d + academy-invites (diseño aprobado, implementación pendiente)
+# Handoff: trial-lifecycle-15d + academy-invites
 
 Sesión de diseño completada 2026-11-09. Dos changes OpenSpec
 diseñados, validados (`openspec validate --changes` verde) y
-commiteados. **Nada de código implementado aún** - solo artefactos.
+commiteados. **Implementación en curso**: el slice de datos +
+corte dancer ya está commiteado (`f9616e7a`).
+
+## Implementado (commit f9616e7a)
+
+- Migración `20261109000000_trial_lifecycle_activity`: tabla
+  `ActivityEvent` + `Academy.trialEndNotifiedAt` +
+  `Person.proTrialEndNotifiedAt` (aplicada con migrate deploy).
+- `common/activity-log.ts` → `emitActivity` (firma tx).
+- Params seed: `academy_billing.trial_days` 30→15,
+  `producer_pro.trial_days` 15, `cx.contact.*`, `cx.notify_email`.
+- `academy-tiers.ts`: `academyInTrial`, `academyTrialExpired`,
+  `featuresForAcademy`; `assertAcademyFeature` ahora exige
+  `trialEndsAt` (callers: actor-entitlements ×2, private-lessons,
+  academy-sales). 15 tests verdes.
+- Delisting dancer: `directory`, `publicDirectory`, listado de
+  clases y sugerencia de home excluyen academias sin acceso
+  (`OR: tier not null | trialEndsAt > now`); booking y checkout de
+  membresía rechazan con `academy.unavailable`/`AcademyUnavailableError`.
+- `pnpm exec tsc --noEmit` en apps/api verde.
+
+## Pendiente (tasks del change, en orden)
+
+- Otorgamiento: `proTrialEndsAt` al aprobar PersonRole(PRODUCER)
+  (admin.controller `approveQueueItem` + grant directo ~L880) +
+  ActivityEvent + welcome.
+- Correos: bienvenida (todos los tiers, plan en prueba, contacto CX)
+  + ficha a `cx.notify_email`; barrido último día en
+  `subscriptions.reconcile` (ventana 24h, dedup columnas) + promo
+  `trial-conv-<YYYYMMDD>` 50%/maxCycles 1/whitelist/fin de día.
+- Churn: en `reconcileSubscription` CANCELED definitivo limpiar
+  `Academy.tier`/`billingCycle` y `Person.proTier` + notify
+  `*.access_ended` + ActivityEvent; backfill one-shot de entitlements.
+- Admin: KPIs en `/home/stats` lente ADMIN; `GET /admin/trials`;
+  `GET /admin/users/:id/timeline` (lee ActivityEvent); PATCH
+  `/admin/academies/:id/trial` y `/admin/users/:id/pro-trial`
+  (audit + `trial.adjusted`); sección en `/admin/usuarios/[id]`.
+- Card CX en `/perfil` (ACADEMY_OWNER/PRODUCER, params cx.contact.*).
+- Front corte: consola con features vacías (nav/hub solo
+  Inicio/Suscripción/Perfil + aviso en Inicio) - el backend ya corta;
+  falta que `GET /academies/mine` exponga el estado para que
+  AcademyTierGate/nav reflejen features vacías.
+- class-card-projection: flag `billingBlocked` hoy no incluye
+  trialExpired (los bookings propios siguen listándose - decidir si
+  el card muestra el mismo "no disponible").
+- academy-invites (change separado, todo pendiente; depende de
+  ActivityEvent).
+- Gates finales: archivar changes, docs (omni-dance.md,
+  qa-flows-inventory, architecture, flows, openapi/postman),
+  typecheck/lint/tests.
 
 ## Estado del repo
 
