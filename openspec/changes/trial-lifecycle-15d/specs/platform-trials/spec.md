@@ -123,6 +123,28 @@ todo vuelve sin intervención admin.
 - **THEN** su tier vuelve, reaparece en las superficies del dancer y
   sus clases vuelven a ser reservables
 
+### Requirement: Ajuste admin del fin de trial
+
+Un admin SHALL poder modificar `Academy.trialEndsAt` y
+`Person.proTrialEndsAt` desde la consola admin. Fijar una fecha
+futura SHALL extender o reabrir el trial (vuelven las features del
+nivel trial si el actor no tiene suscripción viva); fijar una fecha
+pasada SHALL cortar el acceso de inmediato. La acción SHALL quedar en
+`AuditLog` y emitir `ActivityEvent` (`trial.adjusted`).
+
+#### Scenario: extender reabre el acceso
+
+- **GIVEN** una academia con trial vencido (consola cortada)
+- **WHEN** admin fija `trialEndsAt` a +10d
+- **THEN** la academia recupera features de nivel trial y reaparece
+  en el dancer
+
+#### Scenario: acortar corta de inmediato
+
+- **WHEN** admin fija `trialEndsAt` a ayer en una academia sin
+  suscripción
+- **THEN** queda en postura sin-acceso en el mismo instante
+
 ### Requirement: Corte unificado al terminar la suscripción
 
 Cuando una `PlatformSubscription` queda `CANCELED` al fin del período

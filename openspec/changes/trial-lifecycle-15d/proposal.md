@@ -43,6 +43,11 @@ en un funnel de ventas.
   en ≤7 días, vencidos sin suscripción) y lista con nombre, rol,
   email, tier del trial, fecha fin y días restantes. "Vencidos sin
   suscripción" es la señal de no-renovación.
+- Ajuste admin del fin de trial: `PATCH` sobre `Academy.trialEndsAt`
+  y `Person.proTrialEndsAt` desde la consola admin (ficha de
+  suscripción y ficha de usuario). Extender reabre acceso si el
+  trial estaba vencido; acortar a fecha pasada corta de inmediato.
+  Auditado (`AuditLog`) y emitido como `ActivityEvent`.
 - Corte unificado al terminar la suscripción: cuando la
   PlatformSubscription queda CANCELED al fin del período pagado (sin
   swap de plan pendiente) se limpia `Academy.tier` y `Person.proTier`,

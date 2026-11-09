@@ -33,6 +33,12 @@
 - [ ] Promo diaria `trial-conv-<YYYYMMDD>`: percentOff 50, maxCycles 1, whitelist por actor, validUntil fin del día Santiago
 - [ ] Tests del barrido: ventana, dedup, promo, expiración
 
+## 4b. Ajuste admin de trial
+
+- [ ] `PATCH /admin/academies/:id/trial` y `PATCH /admin/users/:id/pro-trial` (admin.access): fija fecha fin, audit + `trial.adjusted`
+- [ ] UI: edición de fecha en ficha suscripción academia y ficha usuario (fila de la lista de trials también)
+- [ ] Tests: extender reabre, acortar corta, audit emitido
+
 ## 5. Panel admin
 
 - [ ] `/home/stats` lente ADMIN: `trialsActive`, `trialsExpiring` (≤7d), `trialsExpired`

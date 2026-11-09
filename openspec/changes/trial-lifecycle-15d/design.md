@@ -109,7 +109,16 @@ una query, sin agregación. Alternativa descartada: derivar en
 lectura (los eventos sin timestamp persistido no son recuperables a
 futuro).
 
-**9. Contacto CX y welcome por params.** `cx.contact.name|email|phone`
+**9. Ajuste de trial como palanca admin.** `PATCH
+/admin/academies/:id/trial {trialEndsAt}` y `PATCH
+/admin/users/:id/pro-trial {proTrialEndsAt}` en
+`user-intel.controller` (donde ya vive la ficha de suscripción).
+Sin guardarraíles de rango: extender reabre y acortar corta, ambos
+auditados en `AuditLog` + `ActivityEvent trial.adjusted`. La misma
+resolución en caliente de features hace el resto; no hay sweep
+adicional.
+
+**10. Contacto CX y welcome por params.** `cx.contact.name|email|phone`
 y `cx.notify_email` como `PlatformParam` (seed con datos de Eduardo);
 sin tabla de equipo. La card en `/perfil` los lee vía params públicos
 existentes o un campo en el payload de perfil; decisión menor en
