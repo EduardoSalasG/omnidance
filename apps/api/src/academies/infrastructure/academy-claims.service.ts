@@ -210,7 +210,6 @@ export class AcademyClaimsService {
       where: {
         academyId,
         personId,
-        status: { in: ["ACTIVE", "TRIAL", "ONLINE", "PAUSED", "FROZEN"] },
       },
       orderBy: { createdAt: "desc" },
       select: { id: true },
@@ -306,7 +305,6 @@ export class AcademyClaimsService {
       where: {
         academyId,
         personId,
-        status: { in: ["ACTIVE", "TRIAL", "ONLINE", "PAUSED", "FROZEN"] },
       },
       orderBy: { createdAt: "desc" },
       select: { id: true },
@@ -500,7 +498,6 @@ export class AcademyClaimsService {
       where: {
         academyId,
         personId,
-        status: { in: ["ACTIVE", "TRIAL", "ONLINE", "PAUSED", "FROZEN"] },
       },
       orderBy: { createdAt: "desc" },
       select: { id: true },

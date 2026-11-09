@@ -1373,11 +1373,11 @@ export class UserIntelController {
     const now = new Date();
     const [enrollments, attendances, classesUpcoming, paidAgg] =
       await Promise.all([
-        // "Activas" = membresías vigentes: ACTIVE + TRIAL + ONLINE.
+        // "Activas" = membresías vigentes: enrollment ACTIVE.
         this.prisma.enrollment.findMany({
           where: {
             personId,
-            status: { in: ["ACTIVE", "TRIAL", "ONLINE"] },
+            status: { in: ["ACTIVE"] },
           },
           select: {
             status: true,

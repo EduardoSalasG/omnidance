@@ -458,17 +458,17 @@ sequenceDiagram
 
     Note over U: entrada 1: ficha /academias/:id (card de plan → Comprar)<br/>entrada 2: /clases/:id sin inscripción → "Ver planes"
     U->>API: POST /checkout/membership {planId}
-    API->>DB: plan activo + academia activa (TRIAL solo con price>0;<br/>la gratis es asignación staff → 400)
+    API->>DB: plan activo + academia activa (price<=0 → 400:<br/>los planes gratis los asigna la academia)
     API->>DB: precio del plan (exacto - feeMode ACADEMY,<br/>sin comisión: modelo SaaS)
     API->>GW: createOrder (refId mem_<planId>_<uuid>)
     API-->>U: {paymentUrl, paymentId}
     GW->>WH: POST /payments/webhook PAID
-    WH->>DB: tx: paidNow + Enrollment findFirst→update/create<br/>(ACTIVE, planId, endsAt por tipo calendario)<br/>TRIAL → create fila TRIAL nueva, nunca toca la vigente
+    WH->>DB: tx: paidNow + Enrollment findFirst→update/create<br/>(ACTIVE, planId, endsAt rodante base+duración)
     WH->>DB: notifySafe payment.membership
-    Note over WH,DB: vigencia: MONTHLY fin de mes · QUARTERLY 3er mes ·<br/>SEMIANNUAL 6º · SINGLE día+1 · PERIOD +periodDays<br/>TRIAL +periodDays si configurado, si no sin fecha<br/>renovación: base = endsAt vigente + 1d
+    Note over WH,DB: vigencia rodante: MONTHLY +1m · QUARTERLY +3m ·<br/>SEMIANNUAL +6m · SINGLE +1d · PERIOD +periodDays<br/>CLASS_PACK sin fecha · renovación: base = endsAt vigente
 ```
 
-`Enrollment.endsAt` de compras online usa mediodía Chile (~15:00 UTC) del último día válido - misma convención que el alta staff por input date. Enrollment no tiene @@unique(academyId,personId) - el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow), salvo plan TRIAL que siempre crea una fila `status: TRIAL` nueva sin tocar la inscripción vigente (la re-compra acumula filas). Los pagos MEMBERSHIP devengan a la academia en payouts (refId → plan → academyId; sin comisión - solo pasarela al costo como `GATEWAY_FEE_PASSTHROUGH`).
+`Enrollment.endsAt` de compras online es rodante: base + duración del plan (renovar extiende desde el endsAt pagado). Enrollment no tiene @@unique(academyId,personId) - el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow). Los pagos MEMBERSHIP devengan a la academia en payouts (refId → plan → academyId; sin comisión - solo pasarela al costo como `GATEWAY_FEE_PASSTHROUGH`).
 
 ## Pago directo a la academia - comprobante → validación → vigencia (MANUAL)
 
@@ -522,7 +522,7 @@ sequenceDiagram
 
 - **Dos avisos por ciclo**: "por vencer" cuando `endsAt` cae dentro de `academy.renewal.first_notice_days` (default 5d); "en gracia" cuando `endsAt` ya venció pero dentro de `academy.renewal.grace_days` (default 5d) - el mail dice hasta qué fecha puede pagar y que después no podrá agendar clases del mes.
 - **Idempotente por ciclo**: `Enrollment.reminderExpiringFor`/`reminderExpiredFor` guardan el `endsAt` que gatilló cada aviso; un `endsAt` nuevo (renovación, extensión manual) re-arma los dos avisos. Un mail que falla loguea y no marca - reintenta el día siguiente.
-- **Elegibilidad**: solo `ACTIVE`/`ONLINE` con `endsAt` (TRIAL no recibe avisos de renovación pagada; `endsAt` null = packs/legado nunca expira). Alumno sin email igual recibe la notificación in-app y queda marcado.
+- **Elegibilidad**: solo `ACTIVE` con `endsAt` y plan por tiempo (MONTHLY/QUARTERLY/SEMIANNUAL/PERIOD; packs no reciben avisos de renovación). Alumno sin email igual recibe la notificación in-app y queda marcado.
 - **Vigencia efectiva en reservas**: `resolveQuota` exige `now <= endsAt + grace_days` para clases dentro de ese rango - una inscripción vencida habilita clases solo hasta `endsAt + grace` (mismo número del mail); pasada la gracia no resuelve cuota.
 - **Notificación al owner por pago**: `settleMembership` envía `payment.membership.received` a `academy.ownerId` dentro del bloque `paidNow` (compra online y renovaciones automáticas Flow - nunca en webhooks/reconcile duplicados). Los claims MANUAL ya notifican al owner al crearse (`payment_claim_new`); la aprobación la hace el mismo owner.
 

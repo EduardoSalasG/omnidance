@@ -47,7 +47,7 @@ export function ProfilePlansSection({
   plans: Plan[];
   /** Precio de la clase particular; null/0 = la academia no la vende. */
   privateLessonPrice: number | null;
-  /** Plan vigente del viewer (enrollment ACTIVE/ONLINE). */
+  /** Plan vigente del viewer (enrollment ACTIVE). */
   activePlanId: string | null;
   /** Plan con suscripción Flow viva - su CTA se oculta (la gestión vive
       en SubscriptionManage; un segundo "Comprar" cobraría dos veces). */
@@ -66,7 +66,7 @@ export function ProfilePlansSection({
     privateLessonDesc: string;
     /** Academia bloqueada - hint honesto junto a los CTA deshabilitados. */
     unavailable: string;
-    /** Plan TRIAL sin precio: no se compra - texto informativo. */
+    /** Plan sin precio (no vendible online): la academia lo asigna. */
     trialAssigned: string;
     /** Plural ICU "{count} clase(s)". */
     planClassCount: string;
@@ -100,9 +100,9 @@ export function ProfilePlansSection({
           const subscribedToPlan = p.id === subscribedPlanId;
           // SINGLE vende UNA clase - el CTA dice "Comprar clase", no plan.
           const cta = p.type === "SINGLE" ? labels.buyClass : isActivePlan ? labels.extendPlan : labels.buyPlan;
-          // TRIAL sin precio no se compra (el backend rechaza el
-          // checkout) - la academia lo asigna desde su consola.
-          const freeTrial = p.type === "TRIAL" && p.price <= 0;
+          // price <= 0 no se vende online para ningún tipo (el backend
+          // rechaza el checkout) - la academia lo asigna desde su consola.
+          const notSellable = p.price <= 0;
           return (
             <li key={p.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
               <div className="flex items-start justify-between gap-3">
@@ -150,7 +150,7 @@ export function ProfilePlansSection({
                   ))}
                 </ul>
               )}
-              {freeTrial ? (
+              {notSellable ? (
                 <p className="text-sm text-ink/50">{labels.trialAssigned}</p>
               ) : (
                 !subscribedToPlan &&

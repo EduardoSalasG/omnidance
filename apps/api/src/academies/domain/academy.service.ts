@@ -136,19 +136,16 @@ export function isAcademyStaff(
 
 /**
  * Matriz de transiciones válidas de EnrollmentStatus.
- * Schema: ACTIVE | PAUSED | TRIAL | FROZEN | ONLINE (sin CANCELLED - gap
- * reportado: la spec pedía CANCELLED; no existe en el enum actual).
- * La transición idempotente (mismo status) siempre se permite.
+ * Schema: ACTIVE | INACTIVE - el estado del alumno es binario (spec
+ * enrollment-plan-simplify): el toggle entre ambos siempre se permite
+ * y la transición idempotente (mismo status) también.
  */
 const ENROLLMENT_TRANSITIONS: Record<
   EnrollmentStatus,
   readonly EnrollmentStatus[]
 > = {
-  TRIAL: ["ACTIVE", "PAUSED"],
-  ACTIVE: ["PAUSED", "FROZEN", "ONLINE"],
-  PAUSED: ["ACTIVE", "FROZEN"],
-  FROZEN: ["ACTIVE"],
-  ONLINE: ["ACTIVE", "PAUSED", "FROZEN"],
+  ACTIVE: ["INACTIVE"],
+  INACTIVE: ["ACTIVE"],
 };
 
 export function assertEnrollmentTransition(
@@ -170,10 +167,7 @@ interface DashboardInput {
 interface AcademyDashboard {
   studentsByStatus: {
     active: number;
-    trial: number;
-    paused: number;
-    frozen: number;
-    online: number;
+    inactive: number;
   };
   totalStudents: number;
   plansCount: number;
@@ -187,27 +181,15 @@ interface AcademyDashboard {
 export function computeDashboard(input: DashboardInput): AcademyDashboard {
   const studentsByStatus = {
     active: 0,
-    trial: 0,
-    paused: 0,
-    frozen: 0,
-    online: 0,
+    inactive: 0,
   };
   for (const e of input.enrollments) {
     switch (e.status) {
       case "ACTIVE":
         studentsByStatus.active++;
         break;
-      case "TRIAL":
-        studentsByStatus.trial++;
-        break;
-      case "PAUSED":
-        studentsByStatus.paused++;
-        break;
-      case "FROZEN":
-        studentsByStatus.frozen++;
-        break;
-      case "ONLINE":
-        studentsByStatus.online++;
+      case "INACTIVE":
+        studentsByStatus.inactive++;
         break;
     }
   }

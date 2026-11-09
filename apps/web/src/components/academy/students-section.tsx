@@ -55,10 +55,7 @@ const STUDENTS_ENTITY = {
 
 const STATUS_VARIANT: Record<EnrollmentStatus, BadgeVariant> = {
   ACTIVE: "neon",
-  ONLINE: "neon",
-  TRIAL: "outline",
-  PAUSED: "muted",
-  FROZEN: "muted",
+  INACTIVE: "muted",
 };
 
 // Mismo mapeo que people-table del CRM (segmentos compartidos).

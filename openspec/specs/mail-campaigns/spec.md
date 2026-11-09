@@ -106,9 +106,9 @@ La campaña SHALL admitir audiencias parametrizadas que resuelven
 destinatarios según el ciclo de vida del pago, cada uno con su propio
 conjunto de variables:
 
-- `ENROLLMENTS_EXPIRING {days}`: inscripciones ACTIVE/ONLINE con
+- `ENROLLMENTS_EXPIRING {days}`: inscripciones ACTIVE con
   `endsAt ∈ [now, now+days)` → `{{academy}}`, `{{plan}}`, `{{endsAt}}`.
-- `ENROLLMENTS_EXPIRED {days}`: inscripciones ACTIVE/ONLINE con
+- `ENROLLMENTS_EXPIRED {days}`: inscripciones ACTIVE con
   `endsAt ∈ [now-days, now)` (gracia) → mismas variables.
 - `PLATFORM_SUB_EXPIRING {days}`: suscripciones de plataforma con
   `nextInvoiceAt ∈ [now, now+days)` → `{{plan}}` (tier),

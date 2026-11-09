@@ -24,7 +24,7 @@ export type MeStyleRole = {
 };
 
 export type MeEnrollment = {
-  status: "ACTIVE" | "PAUSED" | "TRIAL" | "FROZEN" | "ONLINE";
+  status: "ACTIVE" | "INACTIVE";
   startedAt: string;
   academy: { id: string; name: string };
   plan: { name: string } | null;

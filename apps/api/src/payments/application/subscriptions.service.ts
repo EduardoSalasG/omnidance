@@ -42,7 +42,7 @@ import {
 
 // PlanType recurrente → interval_count de Flow (interval=3 mensual fijo):
 // MONTHLY cobra cada mes, QUARTERLY cada 3, SEMIANNUAL cada 6.
-// SINGLE/CLASS_PACK/PERIOD/TRIAL no son suscribibles (pago único / staff).
+// SINGLE/CLASS_PACK/PERIOD no son suscribibles (pago único / staff).
 const INTERVAL_COUNT: Record<string, number> = {
   MONTHLY: 1,
   QUARTERLY: 3,

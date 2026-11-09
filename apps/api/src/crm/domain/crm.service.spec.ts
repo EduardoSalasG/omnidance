@@ -227,23 +227,23 @@ describe("CrmService - audiencias por grupo (ACADEMY)", () => {
       {
         id: "e2",
         academyId: ACADEMY,
-        personId: "p-trial",
+        personId: "p-pack",
         planId: "plan-1",
-        status: "TRIAL",
+        status: "ACTIVE",
       },
       {
         id: "e3",
         academyId: ACADEMY,
-        personId: "p-frozen",
+        personId: "p-inactive",
         planId: "plan-2",
-        status: "FROZEN",
+        status: "INACTIVE",
       },
       {
         id: "e4",
         academyId: OTHER_ACADEMY,
         personId: "p-other",
         planId: "plan-1",
-        status: "TRIAL",
+        status: "ACTIVE",
       },
     );
     prisma.plans.push(
@@ -283,9 +283,9 @@ describe("CrmService - audiencias por grupo (ACADEMY)", () => {
 
   it("enrollmentStatus → solo enrollments en esos estados", async () => {
     const res = await svc.previewCampaign("ACADEMY", ACADEMY, {
-      enrollmentStatus: ["TRIAL", "FROZEN"],
+      enrollmentStatus: ["INACTIVE"],
     });
-    expect(res.count).toBe(2);
+    expect(res.count).toBe(1);
   });
 
   it("planId → enrollments de ese plan en la academia", async () => {
@@ -321,10 +321,10 @@ describe("CrmService - audiencias por grupo (ACADEMY)", () => {
   });
 
   it("personIds se intersecta con el universo del actor", async () => {
-    // p-trial está inscrito → alcanzable por personIds aunque sin score/tag
+    // p-pack está inscrito → alcanzable por personIds aunque sin score/tag
     // p-stranger no pertenece a la academia en absoluto → fuera
     const res = await svc.previewCampaign("ACADEMY", ACADEMY, {
-      personIds: ["p-trial", "p-stranger"],
+      personIds: ["p-pack", "p-stranger"],
     });
     expect(res.count).toBe(1);
   });
@@ -351,7 +351,7 @@ describe("CrmService - audiencias por grupo (ACADEMY)", () => {
   it("criterios de academia con actor PRODUCER → BAD_REQUEST", async () => {
     for (const segment of [
       { allStudents: true },
-      { enrollmentStatus: ["TRIAL"] },
+      { enrollmentStatus: ["ACTIVE"] },
       { planId: "plan-1" },
       { seriesId: "series-1" },
     ]) {
@@ -391,7 +391,7 @@ describe("CrmService - audiencias por grupo (ACADEMY)", () => {
     expect((sent.result as { sent: number }).sent).toBe(3);
     expect(notifySafe).toHaveBeenCalledTimes(3);
     const notified = notifySafe.mock.calls.map((c) => c[0]).sort();
-    expect(notified).toEqual(["p-active", "p-frozen", "p-trial"]);
+    expect(notified).toEqual(["p-active", "p-inactive", "p-pack"]);
   });
 });
 
@@ -620,13 +620,16 @@ describe("CrmService - alcance de triggers por actor (crm-trigger-actor-scope)",
     );
   });
 
-  it("TRIAL_EXPIRING solo aplica a ACADEMY", async () => {
-    // createTrigger valida sincrónicamente (throw, no reject).
+  it("TRIAL_EXPIRING fue eliminado → createTrigger lo rechaza en ambos actores", async () => {
+    // El trigger murió con el modelo binario de enrollment (spec
+    // enrollment-plan-simplify): la key ya no está en CRM_TRIGGER_KEYS
+    // y createTrigger valida sincrónicamente (throw, no reject).
+    expect(() =>
+      svc.createTrigger("ACADEMY", ACADEMY, "TRIAL_EXPIRING"),
+    ).toThrowError(expect.objectContaining({ code: "BAD_REQUEST" }));
     expect(() =>
       svc.createTrigger("PRODUCER", PRODUCER, "TRIAL_EXPIRING"),
     ).toThrowError(expect.objectContaining({ code: "BAD_REQUEST" }));
-    const ok = await svc.createTrigger("ACADEMY", ACADEMY, "TRIAL_EXPIRING");
-    expect(ok.key).toBe("TRIAL_EXPIRING");
   });
 
   it("REGULAR_NO_PRESALE solo aplica a PRODUCER", async () => {

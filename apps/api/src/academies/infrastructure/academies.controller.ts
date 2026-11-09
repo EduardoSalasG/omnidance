@@ -48,6 +48,7 @@ import { studentInviteEmailHtml } from "./invite-emails";
 import { PrismaService } from "../../prisma.service";
 import { ParamsService } from "../../params/params.service";
 import { SubscriptionsService } from "../../payments/application/subscriptions.service";
+import { membershipEndsAt } from "../../payments/domain/membership-vigency";
 import { TrialLifecycleService } from "../../payments/application/trial-lifecycle.service";
 import { emitActivity } from "../../common/activity-log";
 import {
@@ -88,15 +89,8 @@ const PLAN_TYPES: PlanType[] = [
   "SINGLE",
   "CLASS_PACK",
   "PERIOD",
-  "TRIAL",
 ];
-const ENROLLMENT_STATUSES: EnrollmentStatus[] = [
-  "ACTIVE",
-  "PAUSED",
-  "TRIAL",
-  "FROZEN",
-  "ONLINE",
-];
+const ENROLLMENT_STATUSES: EnrollmentStatus[] = ["ACTIVE", "INACTIVE"];
 
 class CreateAcademyDto {
   @IsString()
@@ -1898,14 +1892,14 @@ export class AcademiesController {
     }
 
     const startedAt = dto.startsAt ? new Date(dto.startsAt) : new Date();
-    // "Pagado hasta": explícito, o derivado del plan PERIOD
-    // (startedAt + periodDays). MONTHLY/CLASS_PACK/TRIAL quedan sin
-    // fecha - el staff la marca al cobrar (PATCH /enrollments/:id).
+    // "Pagado hasta": explícito del staff, o autocomputado rodante
+    // según el tipo de plan (membershipEndsAt: MONTHLY +1 mes, PERIOD
+    // +periodDays, etc.). CLASS_PACK queda sin fecha - vence por
+    // consumo; el staff siempre puede editarla después
+    // (PATCH /enrollments/:id).
     const endsAt = dto.endsAt
       ? new Date(dto.endsAt)
-      : plan.type === "PERIOD" && plan.periodDays
-        ? new Date(startedAt.getTime() + plan.periodDays * 86_400_000)
-        : null;
+      : membershipEndsAt(plan, startedAt);
 
     // Nivel inicial por defecto (spec enrollment-level-kpi): el alumno
     // nuevo parte en el nivel más bajo del catálogo en cada tipo de
@@ -2939,7 +2933,7 @@ export class AcademiesController {
         this.prisma.enrollment.findMany({
           where: {
             academyId: id,
-            status: { in: ["ACTIVE", "TRIAL", "ONLINE"] },
+            status: { in: ["ACTIVE"] },
             OR: [{ endsAt: null }, { endsAt: { gte: todayUTC } }],
           },
           select: { personId: true },
@@ -2950,7 +2944,7 @@ export class AcademiesController {
         this.prisma.enrollment.findMany({
           where: {
             academyId: id,
-            status: { in: ["ACTIVE", "TRIAL", "ONLINE"] },
+            status: { in: ["ACTIVE"] },
             startedAt: { lte: prevMtdEnd },
             OR: [{ endsAt: null }, { endsAt: { gte: prevMonthStart } }],
           },
@@ -3167,7 +3161,7 @@ export class AcademiesController {
     const expiringRows = await this.prisma.enrollment.findMany({
       where: {
         academyId: id,
-        status: { in: ["ACTIVE", "TRIAL", "ONLINE"] },
+        status: { in: ["ACTIVE"] },
         endsAt: {
           gte: todayUTC,
           lte: new Date(todayUTC.getTime() + expiringDays * 86_400_000),
@@ -3488,8 +3482,6 @@ export class EnrollmentsController {
       where: { id },
       data: {
         status: dto.status,
-        // auditoría mínima disponible en schema (no hay cancelledAt)
-        pausedAt: dto.status === "PAUSED" ? new Date() : null,
         // endsAt=null limpia la vigencia; undefined no la toca.
         ...(dto.endsAt !== undefined
           ? { endsAt: dto.endsAt === null ? null : new Date(dto.endsAt) }

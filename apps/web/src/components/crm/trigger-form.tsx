@@ -34,8 +34,8 @@ function numOrUndef(v: string): number | undefined {
 
 /**
  * Form de trigger → POST /crm/triggers {key, config} o PATCH /:id {config}.
- * - Keys por fecha (WINBACK/TRIAL_EXPIRING/REGULAR_NO_PRESALE/
- *   ATTENDANCE_DROP): config {days?, cooldownDays?}.
+ * - Keys por fecha (WINBACK/REGULAR_NO_PRESALE/ATTENDANCE_DROP):
+ *   config {days?, cooldownDays?}.
  * - Keys por evento (SEGMENT_ENTER/EXIT, spec crm-dynamic-segments):
  *   config {segmentId, action:{type,title?,body?,tag?}}; corren en el
  *   recompute de scores cuando alguien entra/sale del segmento.

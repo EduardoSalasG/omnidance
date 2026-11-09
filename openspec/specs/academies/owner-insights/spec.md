@@ -23,9 +23,9 @@ instructores, métricas ni datos de alumnos.
 ### Requirement: Planes por vencer en el dashboard
 
 `GET /academies/:id/dashboard` SHALL incluir `expiringEnrollments`:
-inscripciones con status ACTIVE, TRIAL u ONLINE cuyo `endsAt` cae entre
-hoy y `academy.insights.expiring_days` (param, default 14) días
-adelante, ordenadas por `endsAt` ascendente. Cada ítem SHALL incluir
+inscripciones con status ACTIVE cuyo `endsAt` cae entre hoy y
+`academy.insights.expiring_days` (param, default 14) días adelante,
+ordenadas por `endsAt` ascendente. Cada ítem SHALL incluir
 `{personId, personName, planName, status, endsAt}`; `planName` es null
 si la inscripción no tiene plan.
 
@@ -38,7 +38,7 @@ si la inscripción no tiene plan.
 #### Scenario: filtros de la lista
 
 - **WHEN** una inscripción tiene `endsAt` null, ya vencido, más allá de
-  la ventana, o status PAUSED/FROZEN
+  la ventana, o status INACTIVE
 - **THEN** no aparece en `expiringEnrollments`
 
 ### Requirement: Cumpleaños próximos en el dashboard
@@ -135,13 +135,12 @@ comparables computadas sobre el tramo equivalente del mes anterior
 base; 0 clases dictadas o 0 pagos).
 
 `activeStudentsMonth` SHALL contar **personas únicas** (`personId`) con
-enrollment en estado que habilita asistir (ACTIVE, TRIAL, ONLINE) y
-vigencia no vencida (`endsAt` null o ≥ hoy). `activeStudentsMonthPrev`
-SHALL contar personas únicas con enrollment en ese set de estados cuya
-vigencia intersecta el tramo MTD del mes anterior (`startedAt` ≤ fin del
-tramo y `endsAt` null o ≥ inicio del mes anterior). Como no existe
-histórico de estados, la comparativa usa el estado actual del
-enrollment como aproximación.
+enrollment ACTIVE y vigencia no vencida (`endsAt` null o ≥ hoy).
+`activeStudentsMonthPrev` SHALL contar personas únicas con enrollment
+ACTIVE cuya vigencia intersecta el tramo MTD del mes anterior
+(`startedAt` ≤ fin del tramo y `endsAt` null o ≥ inicio del mes
+anterior). Como no existe histórico de estados, la comparativa usa el
+estado actual del enrollment como aproximación.
 
 Los KPIs sin histórico confiable (`purchasablePlans`, `weeklyClasses`)
 MUST NOT llevar comparativa.

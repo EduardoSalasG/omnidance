@@ -460,18 +460,11 @@
     "loginRequired": "Entra con tu correo para administrar tu academia",
     "stats": {
       "active": "Activos",
-      "trial": "En prueba",
-      "paused": "Pausados",
-      "frozen": "Congelados",
-      "online": "Online"
+      "inactive": "Inactivos"
     },
     "status": {
       "ACTIVE": "Activo",
-      "PAUSED": "Pausado",
-      "TRIAL": "Prueba",
-      "FROZEN": "Congelado",
-      "ONLINE": "Online",
-      "CANCELLED": "Cancelado"
+      "INACTIVE": "Inactivo"
     },
     "weekday": {
       "0": "Domingo",
@@ -502,8 +495,7 @@
     "planTypes": {
       "MONTHLY": "Mensual",
       "CLASS_PACK": "Pack de clases",
-      "PERIOD": "Período personalizado",
-      "TRIAL": "De prueba"
+      "PERIOD": "Período personalizado"
     },
     "studentStatus": "Estado de {name}",
     "planPeriodDays": "Días de vigencia",
@@ -923,13 +915,11 @@
       "empty": "Sin triggers",
       "keys": {
         "WINBACK": "Recuperación de inactivos",
-        "TRIAL_EXPIRING": "Trial por vencer",
         "REGULAR_NO_PRESALE": "Habitual sin preventa",
         "ATTENDANCE_DROP": "Caída de asistencia"
       },
       "desc": {
         "WINBACK": "Avisa a personas que dejaron de venir hace N días.",
-        "TRIAL_EXPIRING": "Avisa cuando una membresía de prueba está por vencer.",
         "REGULAR_NO_PRESALE": "Avisa a asistentes habituales que aún no compran preventa.",
         "ATTENDANCE_DROP": "Detecta bajas de asistencia vs. su ritmo habitual."
       },

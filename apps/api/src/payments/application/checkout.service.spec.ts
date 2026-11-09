@@ -1648,31 +1648,39 @@ describe("CheckoutService.membershipQuote", () => {
     );
   });
 
-  it("TRIAL activo con price > 0 → cotiza como compra única (recurring false)", async () => {
+  it("clase de prueba vendible (CLASS_PACK con price > 0) → cotiza por el flujo normal", async () => {
+    // La prueba pagada es un CLASS_PACK con classCount: fluye por el
+    // path normal (lookup de enrollment + suscripción), no por rama
+    // propia. recurring false - no es suscribible.
     fx.prisma.membershipPlan.findUnique.mockResolvedValue(
-      mkPlan({ type: "TRIAL", price: 5000 }),
+      mkPlan({ type: "CLASS_PACK", price: 5000, classCount: 1 }),
     );
     const q = await svc.membershipQuote("p1", "plan-1");
-    expect(q.plan.type).toBe("TRIAL");
+    expect(q.plan.type).toBe("CLASS_PACK");
     expect(q.recurring).toBe(false);
     expect(q.totalClp).toBe(5000); // total = precio exacto del plan
-    // sin periodDays configurado → la prueba queda sin fecha
+    expect(fx.prisma.enrollment.findFirst).toHaveBeenCalled();
+    // CLASS_PACK vence por consumo → sin vigencia proyectada.
     expect(q.vigenciaEndsAt).toBeNull();
   });
 
-  it("TRIAL con price 0 → PlanNotPurchasableError (la gratis es asignación staff)", async () => {
-    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
-      mkPlan({ type: "TRIAL", price: 0 }),
-    );
-    await expect(svc.membershipQuote("p1", "plan-1")).rejects.toBeInstanceOf(
-      PlanNotPurchasableError,
-    );
-    await expect(svc.membershipQuote("p1", "plan-1")).rejects.toThrow(
-      "la clase de prueba gratis la asigna la academia",
-    );
+  it("plan gratis (price <= 0, cualquier tipo) → PlanNotPurchasableError", async () => {
+    // Generaliza la regla ex-TRIAL: ningún plan gratis se vende online,
+    // los planes gratis los asigna la academia.
+    for (const type of ["CLASS_PACK", "MONTHLY"]) {
+      fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+        mkPlan({ type, price: 0 }),
+      );
+      await expect(svc.membershipQuote("p1", "plan-1")).rejects.toBeInstanceOf(
+        PlanNotPurchasableError,
+      );
+      await expect(svc.membershipQuote("p1", "plan-1")).rejects.toThrow(
+        "los planes gratis los asigna la academia",
+      );
+    }
   });
 
-  it("MONTHLY: recurring, total = price exacto, vigencia = fin de mes", async () => {
+  it("MONTHLY: recurring, total = price exacto, vigencia rodante +1 mes", async () => {
     fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
     const q = await svc.membershipQuote("p1", "plan-1");
     expect(q.recurring).toBe(true);
@@ -1704,7 +1712,7 @@ describe("CheckoutService.membershipQuote", () => {
     fx.prisma.enrollment.findFirst.mockResolvedValue({ endsAt });
     const q = await svc.membershipQuote("p1", "plan-1");
     expect(q.currentEndsAt).toBe(endsAt.toISOString());
-    // MONTHLY extiende al fin del mes de (endsAt + 1d) → debe ser
+    // Vigencia rodante: MONTHLY extiende endsAt + 1 mes → debe ser
     // estrictamente posterior al endsAt vigente.
     expect(new Date(q.vigenciaEndsAt!).getTime()).toBeGreaterThan(
       endsAt.getTime(),
@@ -1732,7 +1740,7 @@ describe("CheckoutService.membershipQuote", () => {
 describe("CheckoutService.purchaseMembership", () => {
   // Orden MEMBERSHIP one-off: valida plan+academia y crea el Payment
   // PENDING delegando el cobro. El Enrollment lo emite el webhook.
-  // TRIAL se vende online solo con price > 0 (la gratis es staff).
+  // Ningún plan gratis (price <= 0) se vende online: los asigna staff.
   let fx: ReturnType<typeof mkPrisma>;
   let pf: ReturnType<typeof mkParams>;
   let gw: ReturnType<typeof mkGateway>;
@@ -1809,9 +1817,9 @@ describe("CheckoutService.purchaseMembership", () => {
     expect(gw.createOrder).toHaveBeenCalledOnce();
   });
 
-  it("TRIAL con price > 0 vende a persona sin inscripción (compra única)", async () => {
+  it("clase de prueba vendible (CLASS_PACK price > 0) vende a persona sin inscripción", async () => {
     fx.prisma.membershipPlan.findUnique.mockResolvedValue(
-      mkPlan({ type: "TRIAL", price: 5000 }),
+      mkPlan({ type: "CLASS_PACK", price: 5000 }),
     );
     const res = await buy();
     const p = fx.payments[0]!;
@@ -1821,12 +1829,12 @@ describe("CheckoutService.purchaseMembership", () => {
     expect(res.paymentUrl).toContain("pay.example");
   });
 
-  it("TRIAL con price > 0 también vende a alumna con enrollment ACTIVE previo", async () => {
+  it("CLASS_PACK con price > 0 también vende a alumna con enrollment ACTIVE previo", async () => {
     fx.prisma.membershipPlan.findUnique.mockResolvedValue(
-      mkPlan({ type: "TRIAL", price: 5000 }),
+      mkPlan({ type: "CLASS_PACK", price: 5000 }),
     );
     // la compra no valida enrollment - la alumna inscrita también puede
-    // comprar la prueba (el settle crea una fila TRIAL aparte).
+    // comprar la prueba (el settle actualiza la fila vigente al planId).
     fx.prisma.enrollment.findFirst.mockResolvedValue({
       endsAt: new Date(Date.now() + 30 * 86_400_000),
     });
@@ -1835,21 +1843,25 @@ describe("CheckoutService.purchaseMembership", () => {
     expect(fx.payments).toHaveLength(1);
   });
 
-  it("TRIAL con price 0 → PlanNotPurchasableError (la gratis es asignación staff)", async () => {
-    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
-      mkPlan({ type: "TRIAL", price: 0 }),
-    );
-    await expect(buy()).rejects.toBeInstanceOf(PlanNotPurchasableError);
-    await expect(buy()).rejects.toThrow(
-      "la clase de prueba gratis la asigna la academia",
-    );
-    expect(fx.payments).toHaveLength(0);
-    expect(gw.createOrder).not.toHaveBeenCalled();
+  it("plan gratis (price <= 0, cualquier tipo) → PlanNotPurchasableError", async () => {
+    // La regla ex-TRIAL se generalizó: ningún plan gratis se vende
+    // online - los planes gratis los asigna la academia.
+    for (const type of ["CLASS_PACK", "MONTHLY"]) {
+      fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+        mkPlan({ type, price: 0 }),
+      );
+      await expect(buy()).rejects.toBeInstanceOf(PlanNotPurchasableError);
+      await expect(buy()).rejects.toThrow(
+        "los planes gratis los asigna la academia",
+      );
+      expect(fx.payments).toHaveLength(0);
+      expect(gw.createOrder).not.toHaveBeenCalled();
+    }
   });
 
-  it("TRIAL inactivo → PlanNotPurchasableError", async () => {
+  it("CLASS_PACK inactivo → PlanNotPurchasableError", async () => {
     fx.prisma.membershipPlan.findUnique.mockResolvedValue(
-      mkPlan({ type: "TRIAL", price: 5000, active: false }),
+      mkPlan({ type: "CLASS_PACK", price: 5000, active: false }),
     );
     await expect(buy()).rejects.toBeInstanceOf(PlanNotPurchasableError);
     expect(fx.payments).toHaveLength(0);

@@ -8,10 +8,11 @@ TBD - created by archiving change academy-renewal-reminders. Update Purpose afte
 ### Requirement: Recordatorio de plan por vencer
 
 El sistema SHALL enviar un email al alumno cuando su inscripción
-ACTIVE u ONLINE tenga `endsAt` dentro de `academy.renewal.first_notice_days`
-días (default 5), una vez por ciclo de vigencia. El email incluye el
-nombre de la academia, el plan, la fecha de vencimiento y un CTA a la
-ficha de la academia.
+ACTIVE con plan por tiempo (MONTHLY, QUARTERLY, SEMIANNUAL o PERIOD)
+tenga `endsAt` dentro de `academy.renewal.first_notice_days` días
+(default 5), una vez por ciclo de vigencia. El email incluye el nombre
+de la academia, el plan, la fecha de vencimiento y un CTA a la ficha de
+la academia.
 
 #### Scenario: Alumno a 5 días del vencimiento
 
@@ -35,8 +36,9 @@ ficha de la academia.
 
 #### Scenario: Excluidos del aviso
 
-- **WHEN** el enrollment es TRIAL, PAUSED, FROZEN o tiene `endsAt` null
-- **THEN** no se envía ningún recordatorio
+- **WHEN** el enrollment es INACTIVE, tiene `endsAt` null o su plan no
+  es por tiempo (CLASS_PACK, SINGLE)
+- **THEN** no se envía ningún recordatorio (un pack no "renueva")
 
 ### Requirement: Aviso de gracia tras vencimiento
 

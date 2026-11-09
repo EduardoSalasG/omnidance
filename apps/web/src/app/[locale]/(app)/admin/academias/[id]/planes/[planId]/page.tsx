@@ -48,10 +48,7 @@ type PlanDetail = {
 
 const ENROLL_VARIANT: Record<string, BadgeVariant> = {
   ACTIVE: "neon",
-  TRIAL: "outline",
-  PAUSED: "muted",
-  FROZEN: "muted",
-  ONLINE: "neon",
+  INACTIVE: "muted",
 };
 
 export default function AdminPlanDetailPage({

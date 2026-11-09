@@ -459,18 +459,11 @@
     "loginRequired": "Sign in with your email to manage your academy",
     "stats": {
       "active": "Active",
-      "trial": "On trial",
-      "paused": "Paused",
-      "frozen": "Frozen",
-      "online": "Online"
+      "inactive": "Inactive"
     },
     "status": {
       "ACTIVE": "Active",
-      "PAUSED": "Paused",
-      "TRIAL": "Trial",
-      "FROZEN": "Frozen",
-      "ONLINE": "Online",
-      "CANCELLED": "Cancelled"
+      "INACTIVE": "Inactive"
     },
     "weekday": {
       "0": "Sunday",
@@ -501,8 +494,7 @@
     "planTypes": {
       "MONTHLY": "Monthly",
       "CLASS_PACK": "Class pack",
-      "PERIOD": "Custom period",
-      "TRIAL": "Trial"
+      "PERIOD": "Custom period"
     },
     "studentStatus": "{name}'s status",
     "planPeriodDays": "Validity days",
@@ -923,13 +915,11 @@
       "empty": "No triggers",
       "keys": {
         "WINBACK": "Winback of inactive people",
-        "TRIAL_EXPIRING": "Trial expiring",
         "REGULAR_NO_PRESALE": "Regular without presale",
         "ATTENDANCE_DROP": "Attendance drop"
       },
       "desc": {
         "WINBACK": "Notifies people who stopped coming N days ago.",
-        "TRIAL_EXPIRING": "Notifies when a trial membership is about to expire.",
         "REGULAR_NO_PRESALE": "Notifies regular attendees who haven't bought presale yet.",
         "ATTENDANCE_DROP": "Detects attendance drops vs their usual pace."
       },

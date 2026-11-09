@@ -496,8 +496,7 @@ export async function seedDev(prisma: PrismaClient) {
       | "SEMIANNUAL"
       | "SINGLE"
       | "CLASS_PACK"
-      | "PERIOD"
-      | "TRIAL",
+      | "PERIOD",
     price: number,
     extra: {
       classCount?: number;
@@ -568,7 +567,7 @@ export async function seedDev(prisma: PrismaClient) {
     {
       description: [
         "Todas las clases, sin límite",
-        "Válido hasta fin del mes calendario",
+        "Válido por 1 mes desde la compra",
         "Se renueva antes de que venza",
       ],
     },
@@ -582,7 +581,7 @@ export async function seedDev(prisma: PrismaClient) {
     {
       description: [
         "Todas las clases, sin límite",
-        "Válido hasta fin del 3er mes calendario",
+        "Válido por 3 meses desde la compra",
         "Ahorras $15.000 vs. el mensual",
       ],
     },
@@ -596,7 +595,7 @@ export async function seedDev(prisma: PrismaClient) {
     {
       description: [
         "Todas las clases, sin límite",
-        "Válido hasta fin del 6º mes calendario",
+        "Válido por 6 meses desde la compra",
         "El mejor valor por mes",
       ],
     },
@@ -626,14 +625,16 @@ export async function seedDev(prisma: PrismaClient) {
     },
     ["Pack 8 clases"],
   );
-  const muvetTrial = await plan(muvet.id, "Clase de prueba", "TRIAL", 0);
+  const muvetTrial = await plan(muvet.id, "Clase de prueba", "CLASS_PACK", 0, {
+    classCount: 1,
+  });
   // Plan con cuota semanal - la ficha muestra "hasta N clases/semana" y
   // las reservas del alumno quedan limitadas por plan.
   const muvetBasico = await plan(muvet.id, "Básico", "MONTHLY", 30000, {
     weeklyClasses: 2,
     description: [
       "Hasta 2 clases por semana",
-      "Válido hasta fin del mes calendario",
+      "Válido por 1 mes desde la compra",
     ],
   });
   const tumbaoMensual = await plan(
@@ -644,7 +645,7 @@ export async function seedDev(prisma: PrismaClient) {
     {
       description: [
         "Todas las clases, sin límite",
-        "Válido hasta fin del mes calendario",
+        "Válido por 1 mes desde la compra",
       ],
     },
     ["Mensual Tumbao"],
@@ -657,7 +658,9 @@ export async function seedDev(prisma: PrismaClient) {
     { description: ["Una clase del día"] },
     ["Clase única"],
   );
-  await plan(tumbao.id, "Clase de prueba", "TRIAL", 0);
+  await plan(tumbao.id, "Clase de prueba", "CLASS_PACK", 0, {
+    classCount: 1,
+  });
 
   // ─── Enrollments - mezcla de planes y estados para el listado ───
   step("enrollments…");
@@ -665,10 +668,10 @@ export async function seedDev(prisma: PrismaClient) {
     academyId: string,
     personId: string,
     planId: string,
-    status: "ACTIVE" | "PAUSED" | "TRIAL" | "FROZEN" | "ONLINE",
+    status: "ACTIVE" | "INACTIVE",
     startedDaysAgo = 45,
     // "Pagado hasta" en ±días desde hoy; null = sin fecha de término
-    // (packs de clases y trials no tienen vencimiento natural).
+    // (los packs de clases no tienen vencimiento natural).
     endsInDays: number | null = null,
   ) => {
     const endsAt =
@@ -686,8 +689,6 @@ export async function seedDev(prisma: PrismaClient) {
             status,
             startedAt: new Date(Date.now() - startedDaysAgo * 86_400_000),
             endsAt,
-            pausedAt:
-              status === "PAUSED" || status === "FROZEN" ? new Date() : null,
           },
         }),
       (e) =>
@@ -702,10 +703,10 @@ export async function seedDev(prisma: PrismaClient) {
   await enroll(muvet.id, josefa.id, muvetPack.id, "ACTIVE", 30);
   // Diego vencido hace 6 días - demo del estado "Plan vencido" en rojo.
   await enroll(muvet.id, diego.id, muvetMensual.id, "ACTIVE", 120, -6);
-  await enroll(muvet.id, francisca.id, muvetTrial.id, "TRIAL", 5);
-  await enroll(muvet.id, sebastian.id, muvetMensual.id, "PAUSED", 75, 5);
+  await enroll(muvet.id, francisca.id, muvetTrial.id, "ACTIVE", 5);
+  await enroll(muvet.id, sebastian.id, muvetMensual.id, "INACTIVE", 75, 5);
   await enroll(muvet.id, antonia.id, muvetMensual.id, "ACTIVE", 20, 10);
-  await enroll(muvet.id, felipe.id, muvetPack.id, "FROZEN", 150);
+  await enroll(muvet.id, felipe.id, muvetPack.id, "INACTIVE", 150);
   await enroll(muvet.id, daniela.id, muvetPack.id, "ACTIVE", 12);
   await enroll(muvet.id, dancer.id, muvetMensual.id, "ACTIVE", 60, 25);
   // Vencimientos repartidos para "Planes por vencer": hoy, esta semana
@@ -714,13 +715,13 @@ export async function seedDev(prisma: PrismaClient) {
   await enroll(muvet.id, benjamin.id, muvetMensual.id, "ACTIVE", 45, 2);
   await enroll(muvet.id, cata.id, muvetBasico.id, "ACTIVE", 35, 4);
   await enroll(muvet.id, tomas.id, muvetMensual.id, "ACTIVE", 55, 6);
-  await enroll(muvet.id, matiasb.id, muvetMensual.id, "ONLINE", 22, 9);
-  await enroll(muvet.id, fernanda.id, muvetMensual.id, "ONLINE", 30, 12);
+  await enroll(muvet.id, matiasb.id, muvetMensual.id, "ACTIVE", 22, 9);
+  await enroll(muvet.id, fernanda.id, muvetMensual.id, "ACTIVE", 30, 12);
   // Packs sin vencimiento natural - "activos" sin fecha de término.
   await enroll(muvet.id, javiera.id, muvetPack.id, "ACTIVE", 60);
-  await enroll(muvet.id, vicente.id, muvetPack.id, "TRIAL", 6);
+  await enroll(muvet.id, vicente.id, muvetPack.id, "ACTIVE", 6);
   await enroll(tumbao.id, camila.id, tumbaoMensual.id, "ACTIVE", 40, 21);
-  await enroll(tumbao.id, antonia.id, tumbaoMensual.id, "TRIAL", 8, 2);
+  await enroll(tumbao.id, antonia.id, tumbaoMensual.id, "ACTIVE", 8, 2);
   // La alumna logueable del demo: membresía activa y al día.
   await enroll(tumbao.id, martina.id, tumbaoMensual.id, "ACTIVE", 30, 20);
 
@@ -1220,7 +1221,7 @@ export async function seedDev(prisma: PrismaClient) {
         25000,
         {
           weeklyClasses: 1,
-          description: ["Válido hasta fin del mes calendario"],
+          description: ["Válido por 1 mes desde la compra"],
         },
         ["Mensual - 1 clase semanal"],
       );
@@ -1231,14 +1232,16 @@ export async function seedDev(prisma: PrismaClient) {
         40000,
         {
           weeklyClasses: 2,
-          description: ["Válido hasta fin del mes calendario"],
+          description: ["Válido por 1 mes desde la compra"],
         },
         ["Mensual - 2 clases semanales"],
       );
       await plan(academy.id, "Clase suelta", "SINGLE", 8000, {
         description: ["Una clase del día"],
       });
-      await plan(academy.id, "Clase de prueba", "TRIAL", 0);
+      await plan(academy.id, "Clase de prueba", "CLASS_PACK", 0, {
+        classCount: 1,
+      });
     }
   }
 
@@ -1536,7 +1539,7 @@ export async function seedDev(prisma: PrismaClient) {
       weeklyClasses: 1,
       description: [
         "Salsa o bachata - un ritmo, una clase por semana",
-        "Válido hasta fin del mes calendario",
+        "Válido por 1 mes desde la compra",
       ],
     },
     ["Básico"],
@@ -1550,7 +1553,7 @@ export async function seedDev(prisma: PrismaClient) {
       description: [
         "Todas las clases de todos los ritmos y niveles",
         "Práctica social del mes",
-        "Válido hasta fin del mes calendario",
+        "Válido por 1 mes desde la compra",
       ],
     },
     ["Premium"],
@@ -1559,7 +1562,7 @@ export async function seedDev(prisma: PrismaClient) {
     description: [
       "Todo lo del plan Ilimitado",
       "1 clase privada 1 a 1 al mes",
-      "Válido hasta fin del mes calendario",
+      "Válido por 1 mes desde la compra",
     ],
   });
   await prisma.membershipPlan.updateMany({
@@ -1569,7 +1572,9 @@ export async function seedDev(prisma: PrismaClient) {
   await plan(mambo.id, "Clase suelta", "SINGLE", 10000, {
     description: ["Una clase del día", "Ideal para probar antes del plan"],
   });
-  await plan(mambo.id, "Clase de prueba", "TRIAL", 0);
+  await plan(mambo.id, "Clase de prueba", "CLASS_PACK", 0, {
+    classCount: 1,
+  });
 
   // Transferencia con datos reales de contacto (el rut/cuenta quedan
   // placeholder - el seed no tiene datos bancarios reales).
@@ -1823,7 +1828,7 @@ export async function seedDev(prisma: PrismaClient) {
     weeklyClasses: 1,
     description: [
       "1 clase de mambo por semana",
-      "Válido hasta fin del mes calendario",
+      "Válido por 1 mes desde la compra",
     ],
   });
   // El plan más caro de la casa - es el de Mónica.
@@ -1831,13 +1836,15 @@ export async function seedDev(prisma: PrismaClient) {
     description: [
       "Todas las clases de la academia",
       "Feedback individual en cada clase",
-      "Válido hasta fin del mes calendario",
+      "Válido por 1 mes desde la compra",
     ],
   });
   await plan(adrianLeo.id, "Clase suelta", "SINGLE", 10000, {
     description: ["Una clase del día"],
   });
-  await plan(adrianLeo.id, "Clase de prueba", "TRIAL", 0);
+  await plan(adrianLeo.id, "Clase de prueba", "CLASS_PACK", 0, {
+    classCount: 1,
+  });
   // Mónica: plan más caro vigente; sus asistencias/reservas van en la
   // sección de reservas (los helpers book/attend se definen ahí).
   await enroll(adrianLeo.id, monica.id, alIntensivo.id, "ACTIVE", 40, 18);

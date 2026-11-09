@@ -47,10 +47,7 @@
       },
       "enrollmentStatus": {
         "ACTIVE": "Ativa",
-        "TRIAL": "Teste",
-        "ONLINE": "Online",
-        "PAUSED": "Em pausa",
-        "FROZEN": "Congelada"
+        "INACTIVE": "Inativa"
       },
       "plan": "Plano {name}",
       "since": "Desde {date}",

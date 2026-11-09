@@ -1387,12 +1387,12 @@ export class CheckoutService {
 
   /**
    * Checkout de plan de academia: valida plan+academia activos y crea la
-   * orden PENDING (orderType MEMBERSHIP) delegando el cobro. TRIAL se
-   * vende online solo con price > 0 - la prueba gratis sigue siendo
-   * asignación staff (la pasarela no cobra CLP 0). El Enrollment lo
+   * orden PENDING (orderType MEMBERSHIP) delegando el cobro. Ningún
+   * plan gratis se vende online (price <= 0) - la pasarela no cobra
+   * CLP 0 y el producto sin precio lo asigna el staff. El Enrollment lo
    * emite el webhook al PAID - renovación incluida (extiende la
-   * vigencia vigente); en TRIAL crea una fila nueva sin tocar la vigente.
-   * Lanza errores de dominio - el controller los mapea a HTTP.
+   * vigencia vigente). Lanza errores de dominio - el controller los
+   * mapea a HTTP.
    */
   async purchaseMembership(
     personId: string,
@@ -1425,11 +1425,11 @@ export class CheckoutService {
       throw new AcademyUnavailableError();
     }
     if (!plan.active) throw new PlanNotPurchasableError();
-    // La prueba gratis no pasa por la pasarela (no cobra CLP 0):
-    // sigue siendo asignación staff. Solo el TRIAL con precio se vende.
-    if (plan.type === "TRIAL" && plan.price <= 0) {
+    // Ningún plan gratis pasa por la pasarela (no cobra CLP 0): los
+    // planes gratis los asigna la academia, no se venden online.
+    if (plan.price <= 0) {
       throw new PlanNotPurchasableError(
-        "la clase de prueba gratis la asigna la academia, no se vende online",
+        "los planes gratis los asigna la academia, no se venden online",
       );
     }
 
@@ -1512,7 +1512,7 @@ export class CheckoutService {
    * Revisión de orden del checkout de membresía - todo lo que la página
    * muestra ANTES de cobrar: precio, cargo de servicio, total real que
    * la pasarela debita, vigencia resultante (misma derivación que el
-   * settle: extiende desde endsAt+1d si hay vigencia futura) y la
+   * settle: extiende desde el endsAt pagado si hay vigencia futura) y la
    * suscripción viva del viewer a este plan (la UI no ofrece suscribirse
    * dos veces). Mismas reglas de dominio que purchaseMembership.
    */
@@ -1539,11 +1539,11 @@ export class CheckoutService {
       throw new AcademyUnavailableError();
     }
     if (!plan.active) throw new PlanNotPurchasableError();
-    // Misma regla que purchaseMembership: TRIAL solo se vende con
-    // price > 0 (la gratis es asignación staff).
-    if (plan.type === "TRIAL" && plan.price <= 0) {
+    // Misma regla que purchaseMembership: ningún plan gratis se vende
+    // online - los planes gratis los asigna la academia.
+    if (plan.price <= 0) {
       throw new PlanNotPurchasableError(
-        "la clase de prueba gratis la asigna la academia, no se vende online",
+        "los planes gratis los asigna la academia, no se venden online",
       );
     }
 
@@ -1558,39 +1558,12 @@ export class CheckoutService {
       plan.currency ?? "CLP",
     );
 
-    // TRIAL nunca extiende la vigencia vigente - se materializa como
-    // enrollment independiente desde now; sin lookups de vigencia/suscripción.
-    if (plan.type === "TRIAL") {
-      return {
-        plan: {
-          id: plan.id,
-          name: plan.name,
-          type: plan.type,
-          price: plan.price,
-          classCount: plan.classCount,
-          periodDays: plan.periodDays,
-          description: plan.description,
-        },
-        academy: { id: plan.academy.id, name: plan.academy.name },
-        totalClp: promo?.finalClp ?? plan.price,
-        currency: plan.currency ?? "CLP",
-        promo,
-        recurring: false,
-        vigenciaEndsAt:
-          membershipEndsAt(plan, new Date())?.toISOString() ?? null,
-        currentEndsAt: null,
-        subscription: null,
-        gateway: (await this.resolveGateway(plan.currency ?? "CLP")).name,
-        supportsSubscription: false,
-      };
-    }
-
     const [enrollment, subscription] = await Promise.all([
       this.prisma.enrollment.findFirst({
         where: {
           personId,
           academyId: plan.academy.id,
-          status: { in: ["ACTIVE", "ONLINE"] },
+          status: { in: ["ACTIVE"] },
           endsAt: { gt: new Date() },
         },
         orderBy: { endsAt: "desc" },

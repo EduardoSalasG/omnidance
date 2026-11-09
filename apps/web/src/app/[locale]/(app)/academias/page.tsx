@@ -67,7 +67,7 @@ type Enrollment = {
         disponible" - no se oculta al alumno. */
     billingBlocked?: boolean;
   };
-  status: "ACTIVE" | "PAUSED" | "TRIAL" | "FROZEN" | "ONLINE";
+  status: "ACTIVE" | "INACTIVE";
   plan: { name: string; type: string } | null;
   startedAt: string;
   /** "Pagado hasta" - null = sin fecha de término registrada. */
@@ -162,10 +162,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
       .catch(() => setVideos([]));
   }, [enrollment.academy.id]);
 
-  const statusVariant =
-    enrollment.status === "ACTIVE" || enrollment.status === "ONLINE"
-      ? "neon"
-      : "muted";
+  const statusVariant = enrollment.status === "ACTIVE" ? "neon" : "muted";
 
   return (
     <Card className="relative flex flex-col gap-3 p-4 transition-all hover:border-neon/40 has-[a:active]:scale-[0.99]">

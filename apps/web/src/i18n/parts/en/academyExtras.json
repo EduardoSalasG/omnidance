@@ -28,7 +28,6 @@
       "MONTHLY": "Monthly",
       "CLASS_PACK": "Class pack",
       "PERIOD": "Custom period",
-      "TRIAL": "Trial",
       "QUARTERLY": "Quarterly",
       "SEMIANNUAL": "Semi-annual",
       "SINGLE": "Single class"
@@ -39,8 +38,7 @@
       "SEMIANNUAL": "Billed every 6 calendar months.",
       "SINGLE": "One single class, valid until the day after purchase.",
       "CLASS_PACK": "A fixed number of classes the student uses whenever they want, with no expiry date.",
-      "PERIOD": "Membership for the number of days you define.",
-      "TRIAL": "Trial period; set the days or leave it open-ended."
+      "PERIOD": "Membership for the number of days you define."
     },
     "planPackClasses": "Classes in the pack (empty = unlimited)",
     "studentStatus": "{name}'s status",
@@ -158,10 +156,7 @@
       "planExpired": "Plan expired {end}",
       "status": {
         "ACTIVE": "Active",
-        "ONLINE": "Online",
-        "TRIAL": "Trial",
-        "PAUSED": "Paused",
-        "FROZEN": "Frozen"
+        "INACTIVE": "Inactive"
       }
     },
     "viewExplore": "Explore",

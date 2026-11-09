@@ -367,10 +367,7 @@
         "noEnrollments": "Sem alunos inscritos.",
         "statuses": {
           "ACTIVE": "Ativo",
-          "PAUSED": "Pausado",
-          "TRIAL": "Trial",
-          "FROZEN": "Congelado",
-          "ONLINE": "Online"
+          "INACTIVE": "Inativo"
         }
       },
       "class": {

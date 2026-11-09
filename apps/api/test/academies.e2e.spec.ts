@@ -413,19 +413,18 @@ describe("academies e2e", () => {
       expect(res.status).toBe(404);
     });
 
-    it("PATCH /api/enrollments/:id ACTIVE → PAUSED → 200", async () => {
+    it("PATCH /api/enrollments/:id ACTIVE → INACTIVE → 200", async () => {
       const res = await patch(
         `/api/enrollments/${ids.enrollmentId}`,
-        { status: "PAUSED" },
+        { status: "INACTIVE" },
         ownerSession,
       );
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.status).toBe("PAUSED");
-      expect(body.pausedAt).toBeTruthy();
+      expect(body.status).toBe("INACTIVE");
     });
 
-    it("PATCH transición inválida PAUSED → TRIAL → 400", async () => {
+    it("PATCH con status fuera del enum (TRIAL ya no existe) → 400", async () => {
       const res = await patch(
         `/api/enrollments/${ids.enrollmentId}`,
         { status: "TRIAL" },
@@ -1130,7 +1129,7 @@ describe("academies e2e", () => {
       it("PATCH /enrollments/:id → 403 billing.blocked", async () => {
         const res = await patch(
           `/api/enrollments/${ids.enrollmentId}`,
-          { status: "PAUSED" },
+          { status: "INACTIVE" },
           ownerSession,
         );
         expect(res.status).toBe(403);
@@ -1419,11 +1418,13 @@ describe("academies e2e", () => {
       const enrollment = await prisma.enrollment.findFirstOrThrow({
         where: { academyId: ids.academyId, personId: ids.studentId },
       });
-      // PERIOD 30d: endsAt = hoy + 30 días (±1 día por el corte horario)
+      // Vigencia rodante: el alta staff autocomputó endsAt ≈ +1 mes
+      // (plan MONTHLY) y el claim PERIOD 30d extiende desde ese endsAt
+      // pagado → ~60 días desde hoy (±1 día por el corte horario).
       const diffDays =
         (enrollment.endsAt!.getTime() - Date.now()) / 86_400_000;
-      expect(diffDays).toBeGreaterThan(28);
-      expect(diffDays).toBeLessThan(32);
+      expect(diffDays).toBeGreaterThan(58);
+      expect(diffDays).toBeLessThan(62);
 
       const claim = await prisma.paymentClaim.findUniqueOrThrow({
         where: { id: claimId },
@@ -1614,6 +1615,7 @@ describe("academies e2e", () => {
           academyId: ids.academyId,
           personId: ids.studentId,
           status: "ACTIVE",
+          planId: ids.planId, // plan por tiempo: el aviso solo aplica a estos
           endsAt,
         },
       });
@@ -1650,6 +1652,7 @@ describe("academies e2e", () => {
           academyId: ids.academyId,
           personId: ids.studentId,
           status: "ACTIVE",
+          planId: ids.planId,
           endsAt,
         },
       });
@@ -1665,27 +1668,53 @@ describe("academies e2e", () => {
       expect(notif).toBe(1);
     });
 
-    it("TRIAL no recibe avisos aunque esté en ventana", async () => {
+    it("INACTIVE y planes pack no reciben avisos aunque estén en ventana", async () => {
       const { AcademyRemindersService } = await import(
         "../src/academies/infrastructure/academy-reminders.service"
       );
       const reminders = app.get(AcademyRemindersService);
       const endsAt = new Date(Date.now() + 2 * 86_400_000);
-      const enr = await prisma.enrollment.create({
+      // Estado INACTIVE (ex-TRIAL/PAUSED/FROZEN): no "renueva", sin aviso.
+      const inactive = await prisma.enrollment.create({
         data: {
           academyId: ids.academyId,
           personId: ids.outsiderId,
-          status: "TRIAL",
+          status: "INACTIVE",
+          planId: ids.planId,
+          endsAt,
+        },
+      });
+      // Plan pack (la clase de prueba es CLASS_PACK): no "renueva".
+      const pack = await prisma.membershipPlan.create({
+        data: {
+          academyId: ids.academyId,
+          name: "Clase de prueba",
+          type: "CLASS_PACK",
+          classCount: 1,
+          price: 0,
+        },
+      });
+      const packEnr = await prisma.enrollment.create({
+        data: {
+          academyId: ids.academyId,
+          personId: "per-pack-e2e",
+          status: "ACTIVE",
+          planId: pack.id,
           endsAt,
         },
       });
       await reminders.runDaily();
-      const after = await prisma.enrollment.findUniqueOrThrow({
-        where: { id: enr.id },
-      });
-      expect(after.reminderExpiringFor).toBeNull();
+      for (const enr of [inactive, packEnr]) {
+        const after = await prisma.enrollment.findUniqueOrThrow({
+          where: { id: enr.id },
+        });
+        expect(after.reminderExpiringFor).toBeNull();
+      }
       const notif = await prisma.notification.count({
-        where: { personId: ids.outsiderId, type: "academy.plan_expiring" },
+        where: {
+          personId: { in: [ids.outsiderId, "per-pack-e2e"] },
+          type: "academy.plan_expiring",
+        },
       });
       expect(notif).toBe(0);
     });

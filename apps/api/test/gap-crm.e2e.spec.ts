@@ -800,7 +800,7 @@ describe("gap-closure: CRM transversal e2e", () => {
         {
           actorType: "ACADEMY",
           actorId: ids.academyId,
-          segment: { enrollmentStatus: ["TRIAL"] },
+          segment: { enrollmentStatus: ["INACTIVE"] },
         },
         sessionAcademyOwner,
       );

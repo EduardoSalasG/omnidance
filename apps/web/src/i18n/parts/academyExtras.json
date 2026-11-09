@@ -102,7 +102,6 @@
       "MONTHLY": "Mensual",
       "CLASS_PACK": "Pack de clases",
       "PERIOD": "Período personalizado",
-      "TRIAL": "De prueba",
       "QUARTERLY": "Trimestral",
       "SEMIANNUAL": "Semestral",
       "SINGLE": "Clase única"
@@ -113,8 +112,7 @@
       "SEMIANNUAL": "Cobro cada 6 meses calendario.",
       "SINGLE": "Una sola clase, vigente hasta el día siguiente a la compra.",
       "CLASS_PACK": "Una cantidad fija de clases que el alumno consume cuando quiera, sin fecha de vencimiento.",
-      "PERIOD": "Membresía por la cantidad de días que definas.",
-      "TRIAL": "Período de prueba; define los días o déjalo sin fecha."
+      "PERIOD": "Membresía por la cantidad de días que definas."
     },
     "planPackClasses": "Clases del pack (vacío = ilimitado)",
     "studentStatus": "Estado de {name}",
@@ -237,10 +235,7 @@
       "planExpired": "Plan vencido el {end}",
       "status": {
         "ACTIVE": "Activa",
-        "ONLINE": "Online",
-        "TRIAL": "De prueba",
-        "PAUSED": "Pausada",
-        "FROZEN": "Congelada"
+        "INACTIVE": "Inactiva"
       }
     },
     "viewExplore": "Explorar",

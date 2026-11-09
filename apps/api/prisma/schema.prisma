@@ -1044,13 +1044,12 @@ model AcademyStaff {
 }
 
 enum PlanType {
-  MONTHLY    // fin del mes calendario
-  QUARTERLY  // fin del 3er mes calendario desde la compra
-  SEMIANNUAL // fin del 6º mes calendario
-  SINGLE     // clase única - fin del día de compra
-  CLASS_PACK // pack N clases - sin fecha (consumo no auditado en v1)
+  MONTHLY    // +1 mes desde la base (vigencia rodante)
+  QUARTERLY  // +3 meses desde la base
+  SEMIANNUAL // +6 meses desde la base
+  SINGLE     // clase única - +1 día desde la compra
+  CLASS_PACK // pack N clases - sin fecha (vence por consumo)
   PERIOD     // periodDays corridos desde startedAt
-  TRIAL      // prueba - se vende con price > 0; la gratis la asigna staff
 }
 
 model MembershipPlan {
@@ -1091,10 +1090,7 @@ model MembershipPlan {
 
 enum EnrollmentStatus {
   ACTIVE
-  PAUSED
-  TRIAL
-  FROZEN
-  ONLINE
+  INACTIVE
 }
 
 model Enrollment {
@@ -1106,11 +1102,10 @@ model Enrollment {
   planId    String?
   status    EnrollmentStatus @default(ACTIVE)
   startedAt DateTime         @default(now())
-  // "Pagado hasta" - vigencia del plan. Opcional: PERIOD se deriva
-  // (startedAt + periodDays); MONTHLY/CLASS_PACK lo marca el staff al
-  // cobrar; null = sin fecha de término registrada.
+  // "Pagado hasta" - vigencia del plan (rodante: base + duración del
+  // tipo). Opcional: el alta staff la autocomputa; null = sin fecha de
+  // término registrada (CLASS_PACK vence por consumo).
   endsAt    DateTime?
-  pausedAt  DateTime?
   // Dedup de recordatorios de renovación (spec academy-renewal-reminders):
   // guardan el endsAt del ciclo ya avisado - al renovar, el endsAt nuevo
   // difiere del marcador y el aviso se rearma solo.

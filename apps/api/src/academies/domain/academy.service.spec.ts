@@ -82,32 +82,23 @@ describe("assertEnrollmentTransition", () => {
   });
 
   it.each([
-    ["TRIAL", "ACTIVE"],
-    ["TRIAL", "PAUSED"],
-    ["ACTIVE", "PAUSED"],
-    ["ACTIVE", "FROZEN"],
-    ["ACTIVE", "ONLINE"],
-    ["PAUSED", "ACTIVE"],
-    ["PAUSED", "FROZEN"],
-    ["FROZEN", "ACTIVE"],
-    ["ONLINE", "ACTIVE"],
-    ["ONLINE", "PAUSED"],
-    ["ONLINE", "FROZEN"],
+    ["ACTIVE", "INACTIVE"],
+    ["INACTIVE", "ACTIVE"],
   ] as const)("permite %s → %s", (from, to) => {
     expect(() => assertEnrollmentTransition(from, to)).not.toThrow();
   });
 
-  it.each([
-    ["FROZEN", "TRIAL"],
-    ["PAUSED", "TRIAL"],
-    ["ACTIVE", "TRIAL"],
-    ["ONLINE", "TRIAL"],
-    ["TRIAL", "FROZEN"],
-    ["FROZEN", "ONLINE"],
-  ] as const)("rechaza %s → %s", (from, to) => {
-    expect(() => assertEnrollmentTransition(from, to)).toThrow(
-      InvalidEnrollmentTransitionError,
-    );
+  it("toggle libre: no hay transición rechazada entre los dos estados", () => {
+    // El modelo binario no tiene combinación inválida - cualquier
+    // par (from, to) del enum pasa (idempotente o toggle).
+    for (const from of ["ACTIVE", "INACTIVE"] as const) {
+      for (const to of ["ACTIVE", "INACTIVE"] as const) {
+        expect(() => assertEnrollmentTransition(from, to)).not.toThrow();
+      }
+    }
+    // El error dedicado queda para estados que aparezcan fuera del
+    // enum actual (defensa ante un enum extendido a futuro).
+    expect(InvalidEnrollmentTransitionError).toBeDefined();
   });
 });
 
@@ -117,10 +108,7 @@ describe("computeDashboard", () => {
       enrollments: [
         { status: "ACTIVE" },
         { status: "ACTIVE" },
-        { status: "TRIAL" },
-        { status: "PAUSED" },
-        { status: "FROZEN" },
-        { status: "ONLINE" },
+        { status: "INACTIVE" },
       ],
       plansCount: 3,
       attendanceLast30d: 42,
@@ -128,12 +116,9 @@ describe("computeDashboard", () => {
     expect(result).toEqual({
       studentsByStatus: {
         active: 2,
-        trial: 1,
-        paused: 1,
-        frozen: 1,
-        online: 1,
+        inactive: 1,
       },
-      totalStudents: 6,
+      totalStudents: 3,
       plansCount: 3,
       attendanceLast30d: 42,
     });
@@ -147,7 +132,7 @@ describe("computeDashboard", () => {
         attendanceLast30d: 0,
       }),
     ).toEqual({
-      studentsByStatus: { active: 0, trial: 0, paused: 0, frozen: 0, online: 0 },
+      studentsByStatus: { active: 0, inactive: 0 },
       totalStudents: 0,
       plansCount: 0,
       attendanceLast30d: 0,

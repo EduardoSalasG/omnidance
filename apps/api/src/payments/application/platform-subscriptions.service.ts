@@ -257,7 +257,7 @@ export class PlatformSubscriptionsService {
     return this.prisma.enrollment.count({
       where: {
         academyId,
-        status: { in: ["ACTIVE", "TRIAL", "ONLINE"] },
+        status: { in: ["ACTIVE"] },
       },
     });
   }

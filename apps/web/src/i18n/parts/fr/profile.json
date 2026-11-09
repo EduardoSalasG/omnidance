@@ -47,10 +47,7 @@
       },
       "enrollmentStatus": {
         "ACTIVE": "Active",
-        "TRIAL": "Essai",
-        "ONLINE": "En ligne",
-        "PAUSED": "En pause",
-        "FROZEN": "Gelée"
+        "INACTIVE": "Inactive"
       },
       "plan": "Abonnement {name}",
       "since": "Depuis le {date}",

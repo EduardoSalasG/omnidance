@@ -35,9 +35,9 @@ de fila, no crash. Límite: 500 filas de datos → 400 si excede.
   link largo (fila → `invited`). Si existe → `linked`/`updated`.
 - Plan: match por nombre contra `MembershipPlan` activos de la academia
   (case/accent-insensitive); sin match → error de fila `plan_not_found`.
-- Enrollment: si existe ACTIVE/TRIAL/ONLINE para la academia SHALL
-  actualizar `planId` al importado y `endsAt` = max(existente, importada);
-  si no SHALL crear `ACTIVE{startedAt:now, planId, endsAt}`.
+- Enrollment: si existe ACTIVE para la academia SHALL actualizar
+  `planId` al importado y `endsAt` = max(existente, importada); si no
+  SHALL crear `ACTIVE{startedAt:now, planId, endsAt}`.
 - `pagado_hasta` SHALL interpretarse como fin del día Chile (mediodía
   UTC aprox., misma convención que alta staff); vacío → `endsAt` null.
 - Respuesta: `{total, imported, updated, invited, errors:[{row,message}]}`.
