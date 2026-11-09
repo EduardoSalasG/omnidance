@@ -11,6 +11,10 @@ import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { FilterBar } from "@/components/query/FilterBar";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 import { SeriesInsights } from "@/components/academy/series-insights";
 import {
   filterQuery,
@@ -61,9 +65,11 @@ export default function AcademiaSeriesPage() {
         backHref="/academia"
         backLabel={t("title")}
         actions={
-          <Button href="/academia/series/nueva" size="sm">
-            + {ts("new")}
-          </Button>
+          <span data-tour="academy-series-new" className="inline-block">
+            <Button href="/academia/series/nueva" size="sm">
+              + {ts("new")}
+            </Button>
+          </span>
         }
       />
       <AcademyGate>
@@ -86,6 +92,7 @@ function SeriesModule({
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
   const tq = useTranslations("query");
+  const tts = useTranslations("tours.academia-series");
 
   const [series, setSeries] = useState<Series[] | null>(null);
   const [total, setTotal] = useState(0);
@@ -212,19 +219,21 @@ function SeriesModule({
           orden que el inicio). */}
       <SeriesInsights academyId={academyId} tier={tier} />
 
-      <FilterBar
-        entity={SERIES_ENTITY}
-        filters={filters}
-        onChange={(f) => {
-          setFilters(f);
-          setPage(1);
-        }}
-        options={{
-          styles: styleOptions,
-          levels: levelOptions,
-          classTypes: typeOptions,
-        }}
-      />
+      <div data-tour="academy-series-filters">
+        <FilterBar
+          entity={SERIES_ENTITY}
+          filters={filters}
+          onChange={(f) => {
+            setFilters(f);
+            setPage(1);
+          }}
+          options={{
+            styles: styleOptions,
+            levels: levelOptions,
+            classTypes: typeOptions,
+          }}
+        />
+      </div>
 
       {series.length === 0 ? (
         // Filtros en el default ({status:"active"}) = academia sin
@@ -241,7 +250,10 @@ function SeriesModule({
           <p className="text-sm text-ink/50">{tq("empty")}</p>
         )
       ) : (
-        <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
+        <ul
+          data-tour="academy-series-list"
+          className="flex flex-col gap-3 lg:grid lg:grid-cols-2"
+        >
           {series.map((s) => (
             <li key={s.id}>
               {/* Card navegable - sin acciones visibles: editar,
@@ -346,6 +358,34 @@ function SeriesModule({
           onPage={setPage}
         />
       )}
+
+      {/* Tour de primera visita del listado (spec class-series): la
+          lista se omite sola si está vacía. */}
+      <OnboardingRunner
+        tour="academia-series"
+        steps={
+          [
+            {
+              element: "[data-tour='academy-series-filters']",
+              title: tts("s1.title"),
+              description: tts("s1.desc"),
+              side: "bottom",
+            },
+            {
+              element: "[data-tour='academy-series-list']",
+              title: tts("s2.title"),
+              description: tts("s2.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='academy-series-new']",
+              title: tts("s3.title"),
+              description: tts("s3.desc"),
+              side: "bottom",
+            },
+          ] satisfies TourStep[]
+        }
+      />
     </div>
   );
 }

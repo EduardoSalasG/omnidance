@@ -396,6 +396,7 @@ export function HomeHub() {
   const ttao = useTranslations("tours.academiaOwner");
   const ttp = useTranslations("tours.productor");
   const tti = useTranslations("tours.instructor");
+  const tadm = useTranslations("tours.admin");
   const ts = useTranslations("survey");
   const tcs = useTranslations("courseSurvey");
   const ta = useTranslations("admin.trials");
@@ -851,6 +852,7 @@ export function HomeHub() {
                     title: ttao("s7.title"),
                     description: ttao("s7.desc"),
                     side: "bottom",
+                    align: "end",
                   },
                 ] satisfies TourStep[]}
               />
@@ -914,6 +916,7 @@ export function HomeHub() {
                 title: ttp("s6.title"),
                 description: ttp("s6.desc"),
                 side: "bottom",
+                align: "end",
               },
             ] satisfies TourStep[]}
           />
@@ -933,7 +936,7 @@ export function HomeHub() {
         <>
           {stats && stats.kpis.length > 0 && (
             activeRole === "ADMIN" ? (
-              <>
+              <div data-tour="admin-kpis" className="flex flex-col gap-6">
                 {/* KPIs del admin agrupados por categoría (skill
                     ui-ux-principles §1 - proximidad Gestalt) */}
                 {[
@@ -954,7 +957,7 @@ export function HomeHub() {
                     />
                   ) : null;
                 })}
-              </>
+              </div>
             ) : (
               <KpiGrid kpis={stats.kpis} label={kpiLabel} />
             )
@@ -1180,6 +1183,47 @@ export function HomeHub() {
         </>
       )}
 
+      {/* Tour del admin: los módulos viven en el drawer (<lg) y la
+          sidebar (≥lg); el copy cubre KPIs, leads y ambos chromes. */}
+      {activeRole === "ADMIN" && (
+        <OnboardingRunner
+          tour="admin"
+          steps={[
+            {
+              element: "[data-tour='admin-kpis']",
+              title: tadm("s1.title"),
+              description: tadm("s1.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='admin-leads']",
+              title: tadm("s2.title"),
+              description: tadm("s2.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='appbar-menu']",
+              title: tadm("s3.title"),
+              description: tadm("s3.desc"),
+              side: "bottom",
+            },
+            {
+              element: "[data-tour='app-sidebar']",
+              title: tadm("s3.title"),
+              description: tadm("s3.desc"),
+              side: "right",
+            },
+            {
+              element: "[data-tour='appbar-bell']",
+              title: tadm("s4.title"),
+              description: tadm("s4.desc"),
+              side: "bottom",
+              align: "end",
+            },
+          ]}
+        />
+      )}
+
       {/* Tour del owner: montado dentro de AcademyGate (arriba) - los
           anchors del dashboard solo existen tras resolver la academia. */}
 
@@ -1211,6 +1255,7 @@ export function HomeHub() {
               title: tt("s4.title"),
               description: tt("s4.desc"),
               side: "bottom",
+              align: "end",
             },
             {
               element: "[data-tour='nav-events']",
@@ -1229,6 +1274,7 @@ export function HomeHub() {
               title: tt("s7.title"),
               description: tt("s7.desc"),
               side: "top",
+              align: "end",
             },
           ] satisfies TourStep[]}
         />
@@ -1261,6 +1307,7 @@ export function HomeHub() {
               title: tt("academy.s4.title"),
               description: tt("academy.s4.desc"),
               side: "bottom",
+              align: "end",
             },
             {
               element: "[data-tour='nav-classes']",
@@ -1320,12 +1367,14 @@ export function HomeHub() {
               title: tti("s5.title"),
               description: tti("s5.desc"),
               side: "bottom",
+              align: "end",
             },
             {
               element: "[data-tour='nav-profile']",
               title: tti("s6.title"),
               description: tti("s6.desc"),
               side: "top",
+              align: "end",
             },
           ] satisfies TourStep[]}
         />

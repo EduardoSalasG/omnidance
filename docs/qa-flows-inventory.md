@@ -28,10 +28,16 @@
   `*@omnidance.dev` (POST /checkout/ticket 500). Correr el API con
   `PAYMENT_GATEWAY=stub` (la env del proceso gana sobre `.env`) +
   `THROTTLE_AUTH_LIMIT=120` para el setup de logins.
-- **Tours OnboardingRunner:** `auth.setup.ts` marca los 26 tour keys por
+- **Tours OnboardingRunner:** `auth.setup.ts` marca los 29 tour keys por
   `POST /api/me/onboarding` (el runner puede dispararlos hasta ~8s tras
   el paint y el `.driver-overlay` intercepta clicks). `dismissTours`
   queda como red de seguridad (skip/ESC + espera de detach del overlay).
+  Regla de copy (spec responsive-app-shell, change onboarding-tours-pass):
+  el tour nombra lo que la pantalla muestra - vocabulario de los labels
+  visibles, sin anglicismos internos (nada de "roster/card/chip/nav/POS/
+  RBAC" si la UI no los usa) ni ` - ` como separador. El anchor califica
+  solo si intersecta el viewport (`isAnchorVisible`), así el popover no
+  ancla a elementos fuera de pantalla (appbar autohidden).
 - **Locators por atributo volátil:** un locator
   `button[aria-pressed="false"]` re-resuelve a OTRO elemento tras el
   toggle - fijar chips/toggles por índice (`nth`) o texto antes de

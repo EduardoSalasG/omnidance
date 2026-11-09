@@ -153,12 +153,6 @@ function AlumnosTour() {
             description: tt("s5.desc"),
             side: "bottom",
           },
-          {
-            element: "[data-tour='academy-alumnos-import']",
-            title: tt("s6.title"),
-            description: tt("s6.desc"),
-            side: "top",
-          },
         ] satisfies TourStep[]
       }
     />

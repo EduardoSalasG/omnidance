@@ -216,6 +216,7 @@ export default function StaffPage() {
             title: tt("s3.title"),
             description: tt("s3.desc"),
             side: "bottom",
+            align: "end",
           },
         ] satisfies TourStep[]}
       />

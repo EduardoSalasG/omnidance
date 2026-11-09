@@ -6,7 +6,7 @@
     "home": {
       "s1": {
         "title": "Your pulse in the scene",
-        "desc": "Consecutive weeks out and recent dances, your real activity, no rankings. The full detail lives in your Profile."
+        "desc": "Consecutive weeks out and recent dances: your real activity, no rankings. The full detail lives in your Profile."
       },
       "s2": {
         "title": "Going out tonight?",
@@ -26,7 +26,7 @@
       },
       "s6": {
         "title": "The + button",
-        "desc": "Your QR, your ticket at the door and how you log dances on the floor, plus your Dances history and the community's Practices."
+        "desc": "Your QR (your ticket at the door and how you log dances on the floor), your Dances history and the community's Practices."
       },
       "s7": {
         "title": "Your profile",
@@ -100,7 +100,7 @@
       },
       "s4": {
         "title": "Filter your way",
-        "desc": "Style, level and academy, and inside My classes you can switch between All and just your Booked ones."
+        "desc": "Style, level and academy. Inside My classes you can switch between All and just your Booked ones."
       },
       "s5": {
         "title": "Book in one tap",
@@ -117,7 +117,7 @@
         "desc": "Switch to Scan to log a dance with your partner's QR. It lands in your Dances history."
       },
       "s3": {
-        "title": "Save it to your wallet",
+        "title": "Save it to Google Wallet",
         "desc": "Add the pass to Google Wallet and open your QR straight at the door, no hunting for the app."
       }
     },
@@ -132,11 +132,11 @@
       },
       "s3": {
         "title": "Requests",
-        "desc": "Requests that reach you are accepted here; the ones you sent show further down."
+        "desc": "Requests that reach you are accepted or left to pass here; the ones you sent show further down."
       },
       "s4": {
         "title": "Your list",
-        "desc": "Open a friend's profile to see their styles and which events they're going to. In checkout you can gift them tickets."
+        "desc": "Open a friend's profile to see their styles and which events they're going to. In checkout you can gift them one."
       }
     },
     "bailes": {
@@ -216,7 +216,7 @@
       },
       "s5": {
         "title": "All the modules",
-        "desc": "Receipts, discount codes, door collaborators, CRM and analytics; plus your settings - defaults, payment methods, payouts, Pro subscription and appearance - all from the menu."
+        "desc": "Receipts, discount codes, door collaborators, CRM and analytics; also your settings: defaults, payment methods, payouts, Pro subscription and appearance. All from the menu."
       },
       "s6": {
         "title": "The bell",
@@ -282,7 +282,7 @@
     "academiaOwner": {
       "s1": {
         "title": "Your month at a glance",
-        "desc": "Active students, sellable plans, weekly classes, attendance and billed, with the comparison against last month."
+        "desc": "Active students, this week's classes, average attendance and today's bookings, with the comparison against last month."
       },
       "s2": {
         "title": "Getting started",
@@ -294,7 +294,7 @@
       },
       "s4": {
         "title": "The urgent",
-        "desc": "Receipts to validate and private lessons to confirm: the queue worth bringing to zero each day."
+        "desc": "Receipts to validate, private lessons to confirm, plans expiring and students with no level: the queue worth bringing to zero each day."
       },
       "s5": {
         "title": "What's coming",
@@ -307,6 +307,14 @@
       "s7": {
         "title": "The bell",
         "desc": "Notices land here: new receipts, requests and news from your academy."
+      },
+      "s8": {
+        "title": "This month's billing",
+        "desc": "How much you've billed and the ticket per student: the quick read on how the business is doing. Tap it to open payments."
+      },
+      "s9": {
+        "title": "Levels and spots",
+        "desc": "Each schedule with its recent attendance, average and open spots per level: to see where there's overcrowding or a class to reinforce."
       }
     },
     "staff": {
@@ -369,6 +377,20 @@
         "desc": "These people are the candidates when staffing each event's door. Here you only remove from the list."
       }
     },
+    "productorEventos": {
+      "s1": {
+        "title": "Find the event",
+        "desc": "Narrow the list by date or status to catch any night fast."
+      },
+      "s2": {
+        "title": "Your lineup",
+        "desc": "Each event opens its page: tickets sold, tables, door staff, presales and analytics."
+      },
+      "s3": {
+        "title": "New event",
+        "desc": "Create the night here: prices, lineup, tables and lists. It goes live on the lineup when you decide."
+      }
+    },
     "academia-alumnos": {
       "s1": {
         "title": "Your base in numbers",
@@ -389,10 +411,6 @@
       "s5": {
         "title": "New enrollment",
         "desc": "Enroll a student with their plan and validity from here."
-      },
-      "s6": {
-        "title": "Bulk import",
-        "desc": "Bringing your list from another system? Upload it as CSV with the downloadable template."
       }
     },
     "academia-cobros": {
@@ -409,8 +427,8 @@
         "desc": "Receipts your students submitted: tap one to review it and approve or reject it in its detail."
       },
       "s4": {
-        "title": "History",
-        "desc": "Every validation and gateway payment in order: the full trail of each charge."
+        "title": "Enrollments to validate",
+        "desc": "New sign-ups and renewals paid by transfer: each receipt is approved or rejected in its profile."
       }
     },
     "academia-clases": {
@@ -441,6 +459,20 @@
         "desc": "In arrival order: if a spot frees up, the first one on the list gets in."
       }
     },
+    "academia-series": {
+      "s1": {
+        "title": "Find the series",
+        "desc": "Narrow the list by style or instructor to get straight to the one you're after."
+      },
+      "s2": {
+        "title": "Your series",
+        "desc": "Each series opens its page: schedules, level, instructor and the classes it generates."
+      },
+      "s3": {
+        "title": "New series",
+        "desc": "Create a series with its schedules: the classes generate themselves through next month."
+      }
+    },
     "academias": {
       "s1": {
         "title": "Yours or to discover",
@@ -455,36 +487,32 @@
         "desc": "Salsa, bachata, whatever you're after: the style filter applies to list and map; in Explore you can also search by name."
       },
       "s4": {
-        "title": "Each card opens its page",
+        "title": "Each academy opens its page",
         "desc": "Styles, address and instructors; the page shows their classes, plans and videos."
       }
     },
     "crm": {
       "s1": {
         "title": "Your audience, with a score",
-        "desc": "Each person gets a relationship score built from real activity - attendance, purchases, check-ins. It's private: only you see it. Tap a card to open their profile."
+        "desc": "Each person has a relationship score computed from their real activity: attendance, purchases and check-ins. It's private, only you see it. Tap a row to open their profile."
       },
       "s2": {
         "title": "Segments that move on their own",
-        "desc": "New, At risk, Brings people, Core: membership is recalculated automatically on every score recompute. Here you see how many you have in each."
+        "desc": "New, At risk, Brings people and Core: each person enters and leaves on their own every time scores recompute. Here you see how many you have in each segment."
       },
       "s3": {
         "title": "Search and filter",
-        "desc": "By name or tag, by segment - including the ones you save - and sort by score or by name."
+        "desc": "By name or tag, by segment (including the ones you save) and sort by score or by name."
       },
       "s4": {
         "title": "Bulk actions",
-        "desc": "Select the whole page or a few people to add or remove a tag, or send them a campaign together."
+        "desc": "Select the whole page or several people to add or remove a tag, or send them a campaign together."
       },
       "s5": {
-        "title": "More than one actor?",
-        "desc": "If you produce and also own an academy, each has its own audience: scores, segments and campaigns are computed separately. Switch here."
+        "title": "Campaigns and triggers",
+        "desc": "From the menu: campaigns with a notification or a discount code (schedulable, and you see who came back and who redeemed) plus triggers that fire on their own by behavior."
       },
       "s6": {
-        "title": "Campaigns and triggers",
-        "desc": "From the menu: campaigns with a notification or a discount code - schedulable, with attribution of who came back and who redeemed - plus triggers that fire on their own by behavior."
-      },
-      "s7": {
         "title": "The bell",
         "desc": "Your trigger digests and campaign send notices land here."
       }
@@ -517,28 +545,20 @@
     },
     "admin": {
       "s1": {
-        "title": "People and roles",
-        "desc": "Look up any user by name, email, phone or role. In their profile you approve pending roles, change their status or revoke them."
+        "title": "The platform in numbers",
+        "desc": "Requests, revenue, subscriptions, trials and activity, grouped by topic. The pulse of the operation at a glance."
       },
       "s2": {
-        "title": "The RBAC catalog",
-        "desc": "What each role can do: the permission catalog and which roles people can request."
+        "title": "Leads to review",
+        "desc": "The interested people who came through the landing, oldest first. Each one opens its review."
       },
       "s3": {
-        "title": "Platform parameters",
-        "desc": "Commissions, cooldowns and global limits: changes apply within seconds."
+        "title": "All the modules",
+        "desc": "People, permissions, parameters, jobs, catalogs, finance and academy health: all from the menu."
       },
       "s4": {
-        "title": "Scheduled jobs",
-        "desc": "The platform's scheduled tasks - score recompute, digests, billing - with their schedule, runs and pause. You can run them manually."
-      },
-      "s5": {
-        "title": "Catalogs",
-        "desc": "Dance styles, levels and class types: the building blocks behind classes and events across the app."
-      },
-      "s6": {
-        "title": "The rest of the panel",
-        "desc": "Operations data, audit, finance, billing, mail campaigns and academy health - plus CRM and per-user analytics from the menu."
+        "title": "The bell",
+        "desc": "Platform notices land here."
       }
     },
     "locales": {
