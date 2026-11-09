@@ -1,9 +1,93 @@
 # Handoff: trial-lifecycle-15d - continuación 3 (task 5b)
 
 Sesión 2026-11-09 (noche). Continuación de
-`next-session-handoff-trial-lifecycle-2.md`. Commit en `dev`:
+`next-session-handoff-trial-lifecycle-2.md`. Commits en `dev`:
 
 - `81a0e08a` emisiones `ActivityEvent` del ciclo de vida (5b parcial).
+- `fd25d1ef` este handoff.
+- `596735ec` `person.registered` + `enrollment.started` en altas
+  no-auth (academias, claims, import, staff, checkins, producer,
+  leads, admin lead-convert) + comentario de tipos en schema.prisma
+  (`sub.plan_changed`).
+- `fb315469` `GET /admin/users/:personId/timeline` en
+  `user-intel.controller.ts` - una query `personId`, desc, take 100,
+  items `{id, at, type, label, ref?}` con label server-side es-CL
+  (helper `timelineLabel` al pie del archivo).
+- `769b51e8` sección línea de vida en
+  `admin/usuarios/[personId]/page.tsx`: fetch independiente del
+  detail, lista desc con preview de 5 + `SeeAllRow`, `SkeletonList`
+  de carga, estado vacío, chip con el tipo. i18n
+  `admin.users.detail.timeline.{title,empty}` en los 4 locales.
+
+Emisiones ya completas (todas las de la lista tasks.md 5b +
+`sub.plan_changed`): trial.started/ending/ended/adjusted,
+access.ended, sub.started/renewed/canceled/plan_changed,
+role.requested/approved, person.registered, billing.blocked,
+enrollment.started, payment.paid. `trial.ended` quedó resuelto así:
+emite `emitTrialEnded` (common/platform-trials.ts) en la conversión
+(`applyEntitlement` CARD + alta TRANSFER en `settlePlatformSub`) y en
+`sweepTrialEnded` (job diario, outcome expired, `at`=trialEndsAt);
+dedup por `data.endsAt` para que un trial re-extendido emita de nuevo.
+
+## Falta para cerrar 5b
+
+- Backfill one-shot `apps/api/scripts/backfill-activity-events.cjs`
+  (patrón `backfill-churn-entitlements.cjs`: dry-run default +
+  `--apply`, idempotente). Derivación sugerida:
+  person.registered ← Person.createdAt; role.requested ←
+  PersonRole.createdAt; role.approved ← AuditLog ROLE_APPROVE/ROLE_SET
+  (o PersonRole.createdAt si APPROVED sin audit); trial.started ←
+  Academy.createdAt / proTrialEndsAt - producer_pro.trial_days;
+  trial.ending ← trialEndNotifiedAt/proTrialEndNotifiedAt;
+  trial.ended ← trialEndsAt vencida (dedup `data.endsAt` como
+  `emitTrialEnded`); trial.adjusted ← AuditLog TRIAL_SET;
+  sub.started/canceled ← createdAt/canceledAt; sub.renewed ← PAID
+  PLATFORM_SUB posteriores al primero; billing.blocked ←
+  billingBlockedAt; enrollment.started ← Enrollment.startedAt;
+  payment.paid ← Payment PAID (gatewayPaidAt ?? createdAt). Dedup
+  `(type,refType,refId)` antes de insertar.
+- Tests pedidos en tasks.md: owner ciclo completo (orden del
+  timeline), dancer sin platsub, dedup del backfill. Patrón
+  fake-prisma en `platform-trials.spec.ts` /
+  `trial-lifecycle.service.spec.ts` (matchWhere reducido:
+  equality/null/in/gt/lte/OR; `$transaction` = `fn(prisma)`).
+- `openspec validate --changes` al final junto a task 8.
+
+## Resto del change (después de 5b)
+
+- Task 7 frontend corte: `GET /academies/mine` ya corta en backend;
+  AcademyTierGate/nav con features vacías → solo
+  Inicio/Suscripción/Perfil + aviso en Inicio con CTA a Suscripción +
+  i18n.
+- class-card-projection: `billingBlocked` no incluye trialExpired -
+  decidir si el card muestra el mismo "no disponible" (design.md lo
+  recomienda).
+- Task 8 gates/docs: `openspec validate --changes`, archivar SIN
+  `--skip-specs`, omni-dance.md, qa-flows-inventory, architecture.md,
+  flows.md, export-api-docs.cjs, typecheck/lint/tests.
+- academy-invites (change separado, todo pendiente).
+- Hallazgos de importación masiva de alumnos (handoff anterior,
+  fuera del change).
+
+## Verificación de la sesión
+
+- `npx tsc --noEmit` apps/api: 0 errores tras cada lote.
+- `npx tsc --noEmit` apps/web: 0 errores tras la sección timeline.
+- `npx impeccable detect --json` sobre la ficha: `[]`.
+- Sin specs nuevos aún: las emisiones no tienen cobertura de test -
+  los specs de la lista de arriba son el gate.
+
+## Notas operativas
+
+- Git no está en PATH del shell MSYS: `export
+  PATH="/c/Program Files/Git/cmd:$PATH"`.
+- Prisma JSON filter usado para dedup: `data: { path: ["endsAt"],
+  equals: iso }` compila OK.
+- `emitActivityOnce` (common/activity-log.ts) dedup por
+  (type,refType,refId); `emitTrialEnded` devuelve `{id, created}`
+  para conteo del barrido.
+- Labels del timeline son server-side es-CL (mismo criterio que
+  títulos de Notification); el chip de tipo muestra `ev.type` crudo.
 
 ## Hecho en `81a0e08a` (tsc api verde)
 
