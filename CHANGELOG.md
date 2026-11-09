@@ -3,6 +3,53 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.16.0] - 2026-11-09
+
+### Added
+
+- **Trial de 15 días con ciclo de vida completo** (change
+  `trial-lifecycle-15d`): la academia pasa de 30 a 15 días
+  (`academy_billing.trial_days`) y el productor nuevo recibe trial
+  PRO_STARTER al aprobarse `PersonRole(PRODUCER)`
+  (`producer_pro.trial_days`). Correo de bienvenida al iniciar con
+  features por tier y copia de ficha a `cx.notify_email`; barrido
+  diario en `subscriptions.reconcile` envía correo de último día con
+  oferta del 50% del primer mes (`PlatformPromo` del sistema,
+  whitelist por actor, vigente solo ese día).
+- **Corte real al vencer el trial**: academia con `trialEndsAt`
+  vencido y sin suscripción viva queda con features vacías (consola
+  reducida a Inicio/Suscripción/Perfil, deslistada de superficies
+  dancer, clases no reservables, checkout rechazado) y vuelve solo al
+  suscribirse; el corte se aplica igual al terminar una
+  PlatformSubscription sin swap (se limpia `Academy.tier` y
+  `Person.proTier` - el churned conservaba acceso para siempre).
+- **Ajuste admin del fin de trial**: `PATCH` sobre
+  `Academy.trialEndsAt` y `Person.proTrialEndsAt` desde la consola
+  admin (ficha de suscripción y ficha de usuario), auditado en
+  AuditLog y emitido como ActivityEvent.
+- **Panel de trials en `/admin`**: KPIs (activos, por vencer ≤7 días,
+  vencidos sin suscripción) y lista con tier, fecha fin y días
+  restantes.
+- **Línea de vida del usuario**: schema ActivityEvent + emisiones del
+  ciclo de vida (registro, roles, trial, suscripción, pagos, corte,
+  reactivación) con backfill; `GET /admin/users/:id/timeline` y
+  sección cronológica en la ficha admin.
+- **Card Customer Experience en `/perfil`** (ACADEMY_OWNER y
+  PRODUCER): contacto desde params `cx.contact.*`, editable sin
+  deploy.
+
+### Changed
+
+- **Gates de flujo de release**: hooks versionados, protección de
+  `main` (push directo bloqueado) y gate CI contra atribución a
+  agentes en mensajes de commit; el bump de versión va en dev antes
+  del PR.
+- **Suite e2e saneada**: drift de trial-lifecycle corregido (specs que
+  probaban comportamiento removido o fixtures envejecidos), service
+  worker bloqueado en Playwright (en WebKit los intercepts pasan por
+  el SW y `page.route` no los veía) y fills de login robustecidos
+  contra la carrera con la hidratación.
+
 ## [1.12.1] - 2026-10-28
 
 ### Changed
