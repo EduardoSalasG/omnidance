@@ -65,6 +65,7 @@ function mkCtrl(prisma: FakePrisma) {
     {} as never,
     {} as never,
     {} as never,
+  {} as never,
   );
 }
 

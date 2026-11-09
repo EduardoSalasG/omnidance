@@ -1,115 +1,97 @@
 # Handoff: trial-lifecycle-15d + academy-invites
 
-Sesión de diseño completada 2026-11-09. Dos changes OpenSpec
-diseñados, validados (`openspec validate --changes` verde) y
-commiteados. **Implementación en curso**: el slice de datos +
-corte dancer ya está commiteado (`f9616e7a`).
+Sesión 2026-11-09 (continuación). Dos changes OpenSpec diseñados y
+validados. **Implementación avanzada** - commits en `dev`:
 
-## Implementado (commit f9616e7a)
+- `f9616e7a` schema ActivityEvent + corte por trial vencido (datos+corte
+  dancer, sesión anterior).
+- `7893bf7b` trial Producer Pro al aprobar `PersonRole(PRODUCER)`:
+  `common/pro-trial.ts` `grantProducerTrialIfDue` (param
+  `producer_pro.trial_days`, no reinicia trial vigente ni pisa sub viva),
+  cableado en `approveQueueItem` y `setRole` (grant directo) +
+  ActivityEvent `trial.started`. `PLATFORM_SUB_LIVE_STATUSES` ahora vive
+  en `payments/domain/platform-tiers.ts`.
+- `b18f60e3` corte unificado de churn: `applyChurnCut` en
+  `platform-subscriptions.service` - sub CANCELED definitiva (reconcile
+  remoto o cancel manual, sin swap/reprice) limpia `Academy.tier`/
+  `billingCycle` y `Person.proTier`→FREE si no hay otra sub viva del
+  actor; ActivityEvent `access.ended` + notifs
+  `academy.access_ended`/`producer.pro_access_ended`. Backfill one-shot
+  `scripts/backfill-churn-entitlements.cjs` (dry-run por defecto,
+  `--apply` tras revisar lista - en dev lista 6 personas seed
+  `CRM Producer*` con proTier sin sub: demo data, revisar antes).
+- **PENDIENTE DE COMMIT** (working tree): correos del trial. Revisar
+  `git status` al abrir; si está sin commitear, verificar tests y
+  commitear.
 
-- Migración `20261109000000_trial_lifecycle_activity`: tabla
-  `ActivityEvent` + `Academy.trialEndNotifiedAt` +
-  `Person.proTrialEndNotifiedAt` (aplicada con migrate deploy).
-- `common/activity-log.ts` → `emitActivity` (firma tx).
-- Params seed: `academy_billing.trial_days` 30→15,
-  `producer_pro.trial_days` 15, `cx.contact.*`, `cx.notify_email`.
-- `academy-tiers.ts`: `academyInTrial`, `academyTrialExpired`,
-  `featuresForAcademy`; `assertAcademyFeature` ahora exige
-  `trialEndsAt` (callers: actor-entitlements ×2, private-lessons,
-  academy-sales). 15 tests verdes.
-- Delisting dancer: `directory`, `publicDirectory`, listado de
-  clases y sugerencia de home excluyen academias sin acceso
-  (`OR: tier not null | trialEndsAt > now`); booking y checkout de
-  membresía rechazan con `academy.unavailable`/`AcademyUnavailableError`.
-- `pnpm exec tsc --noEmit` en apps/api verde.
+## Implementado en el slice sin commitear (task 4)
+
+- `payments/infrastructure/trial-emails.ts`: welcome academia/productor
+  (todos los tiers con el en prueba marcado + contacto CX), último día
+  con oferta 50%, ficha interna CX.
+- `payments/application/trial-lifecycle.service.ts`:
+  `sendAcademyTrialWelcome`/`sendProducerTrialWelcome` (+ ficha a
+  `cx.notify_email`), `sweepTrialLastDay` (ventana 24h, dedup en
+  `trialEndNotifiedAt`/`proTrialEndNotifiedAt`, solo `tier==null`/
+  `proTier==FREE` - un convertido no recibe el aviso), promo diaria
+  `trial-conv-<YYYYMMDD>` (PERCENT 50, maxCycles 1, validUntil fin del
+  día CL ≈ UTC+4h) con whitelist por actor, ActivityEvent `trial.ending`.
+- Wiring: `SubscriptionsScheduler` agrega `trials` al meta del job;
+  creación de academia emite `trial.started` + welcome; approve/grant
+  PRODUCER emiten welcome cuando el grant corre.
+- Registrado en PaymentsModule providers+exports; specs arreglados
+  (arg nuevo en AcademiesController/SubscriptionsScheduler).
+- Verificado: `npx tsc --noEmit` verde; admin.e2e 24/24; scheduler spec
+  3/3; platform-subscriptions spec 101/101; churn tests nuevos.
 
 ## Pendiente (tasks del change, en orden)
 
-- Otorgamiento: `proTrialEndsAt` al aprobar PersonRole(PRODUCER)
-  (admin.controller `approveQueueItem` + grant directo ~L880) +
-  ActivityEvent + welcome.
-- Correos: bienvenida (todos los tiers, plan en prueba, contacto CX)
-  + ficha a `cx.notify_email`; barrido último día en
-  `subscriptions.reconcile` (ventana 24h, dedup columnas) + promo
-  `trial-conv-<YYYYMMDD>` 50%/maxCycles 1/whitelist/fin de día.
-- Churn: en `reconcileSubscription` CANCELED definitivo limpiar
-  `Academy.tier`/`billingCycle` y `Person.proTier` + notify
-  `*.access_ended` + ActivityEvent; backfill one-shot de entitlements.
-- Admin: KPIs en `/home/stats` lente ADMIN; `GET /admin/trials`;
-  `GET /admin/users/:id/timeline` (lee ActivityEvent); PATCH
-  `/admin/academies/:id/trial` y `/admin/users/:id/pro-trial`
-  (audit + `trial.adjusted`); sección en `/admin/usuarios/[id]`.
-- Card CX en `/perfil` (ACADEMY_OWNER/PRODUCER, params cx.contact.*).
-- Front corte: consola con features vacías (nav/hub solo
-  Inicio/Suscripción/Perfil + aviso en Inicio) - el backend ya corta;
-  falta que `GET /academies/mine` exponga el estado para que
-  AcademyTierGate/nav reflejen features vacías.
-- class-card-projection: flag `billingBlocked` hoy no incluye
-  trialExpired (los bookings propios siguen listándose - decidir si
-  el card muestra el mismo "no disponible").
+- Tests del barrido (`trial-lifecycle.service.spec.ts`): ventana 24h,
+  dedup, promo reutilizada por día, convertido excluido, expiración.
+  Task 4 lo pide y no está escrito.
+- 4b. Ajuste admin de trial: `PATCH /admin/academies/:id/trial` y
+  `/admin/users/:id/pro-trial` (audit + `trial.adjusted`) + UI en fichas.
+- 5. Panel admin: KPIs en `/home/stats` lente ADMIN + `GET /admin/trials`
+  + card/sección en inicio admin.
+- 5b. Línea de vida: emisiones `emitActivity` restantes
+  (role.approved, person.registered, billing.blocked,
+  enrollment.started, payment.paid, sub.started/renewed/canceled),
+  backfill derivado one-shot, `GET /admin/users/:id/timeline`, sección
+  en `/admin/usuarios/[id]`.
+- 6. Card CX en `/perfil` (ACADEMY_OWNER/PRODUCER, params cx.contact.*).
+- 7. Front corte: `GET /academies/mine` debe exponer estado trial para
+  que AcademyTierGate/nav reflejen features vacías (backend ya corta);
+  nav/hub solo Inicio/Suscripción/Perfil + aviso.
+- class-card-projection: flag `billingBlocked` no incluye trialExpired
+  (decidir si el card muestra el mismo "no disponible").
 - academy-invites (change separado, todo pendiente; depende de
-  ActivityEvent).
-- Gates finales: archivar changes, docs (omni-dance.md,
-  qa-flows-inventory, architecture, flows, openapi/postman),
+  ActivityEvent - la tabla ya existe).
+- Gates: archivar changes (sin --skip-specs), omni-dance.md,
+  qa-flows-inventory, architecture, flows, openapi/postman,
   typecheck/lint/tests.
-
-## Estado del repo
-
-- `openspec/changes/trial-lifecycle-15d/`: proposal, specs
-  (platform-trials nuevo + deltas academy-billing, admin,
-  admin/home-insights), design, tasks. Commits `cabe` y `fda0d430`.
-- `openspec/changes/academy-invites/`: proposal, specs
-  (academies/student-invites nuevo + delta auth/email-otp), design,
-  tasks. Mismo commit inicial.
-- Working tree limpio tras los commits de openspec.
 
 ## Decisiones clave ya tomadas (no re-discutir)
 
-- Trial 15d ambos actores: academia por param
-  `academy_billing.trial_days` (era 30, seed cambia a 15) al crear la
-  academia; productor `proTrialEndsAt` al aprobar `PersonRole(PRODUCER)`
-  con param `producer_pro.trial_days` = 15, nivel PRO_STARTER.
-- Corte unificado: `tier==null && trialEndsAt<=now` → features vacías
-  (consola solo Inicio/Suscripción/Perfil, deslistada del dancer,
-  bookings/checkout rechazan). Suscripción/billing nunca se gatean.
-- Churn: en CANCELED definitivo (sin swap/reprice) limpiar
-  `Academy.tier`/`billingCycle` y `Person.proTier` si no hay otra sub
-  viva + notificación `*.access_ended`. Bug hallado: tier nunca se
-  limpiaba → churned conservaba acceso. Backfill one-shot en el
-  migration plan (de una vía, revisar lista de afectados antes).
-- Correos: bienvenida (todos los tiers, plan en prueba marcado,
-  contacto CX) + ficha a `cx.notify_email`; último día en barrido del
-  job `subscriptions.reconcile` (ventana 24h, dedup en columnas
-  `trialEndNotifiedAt`/`proTrialEndNotifiedAt`) + promo diaria
-  `trial-conv-<YYYYMMDD>` percentOff 50 maxCycles 1 whitelist actor,
-  válida solo ese día ("suscríbete hoy").
-- Admin: KPIs trials en `/home/stats` lente ADMIN + `GET /admin/trials`;
-  `GET /admin/users/:id/timeline` leyendo `ActivityEvent` nueva tabla
-  append-only + backfill derivado; PATCH trialEndsAt/proTrialEndsAt
-  (audit + `trial.adjusted`).
-- CX: card en `/perfil` para ACADEMY_OWNER/PRODUCER desde params
-  `cx.contact.*` (Eduardo Salas, eduardo@omnidance.tech, +56982439041).
-- Invites academia: `AcademyInvite` sin enrollment, `AuthOtp.next`
-  (path interno validado), push a cuentas existentes, Referral +
-  ActivityEvent al consumir. UI: acción "Invitar" en /academia/alumnos.
-- Descartado: descuento automático a los 30 min del trial (decisión
-  del usuario: solo en correo de último día).
+- Trial 15d ambos actores por params (`academy_billing.trial_days`,
+  `producer_pro.trial_days`); productor nivel PRO_STARTER.
+- Corte unificado: `tier==null && trialEndsAt<=now` → features vacías.
+  Suscripción/billing nunca se gatean. Churn limpia proyección y la
+  misma regla cubre ambos cortes.
+- Correos: bienvenida (todos los tiers marcados) + ficha CX al
+  `cx.notify_email`; último día en el barrido de
+  `subscriptions.reconcile` con promo diaria 50%/maxCycles 1.
+- El trial de productor NO se otorga en lead-convert (demo accounts) -
+  el design nombra solo approveQueueItem + grant directo.
+- Invites academia (otro change): `AcademyInvite` sin enrollment,
+  `AuthOtp.next`, push a existentes, Referral + ActivityEvent.
 
-## Próximos pasos
+## Foco pendiente del usuario (fuera del change)
 
-1. Ejecutar tasks.md de `trial-lifecycle-15d` (bloques 1-8). Orden
-   sugerido: migración+params → corte/features → correos+barrido →
-   churn → admin panel+timeline+PATCH → card CX → front corte → docs.
-2. `academy-invites` depende de `ActivityEvent` (emitir solo si la
-   tabla existe).
-3. Gates al terminar: `openspec validate`, archivar changes sin
-   `--skip-specs`, `qa-flows-inventory.md`, `omni-dance.md` (Trial
-   30d→15d, churn, invites), export-api-docs, typecheck/lint/tests.
-
-## Gaps conocidos / pendientes fuera de scope
-
-- Mora de productor no degrada `proTier` (comentario explícito en
-  código; decisión de producto pendiente).
-- Trial-expired conserva cobranza por endpoints no gated (aceptado en
-  design: billing/suscripción son la salida).
-- Organigrama de equipo real: hoy CX = params apuntando a Eduardo.
+- Revisar/mejorar importación masiva de alumnos (ya auditada en la
+  sesión anterior): hallazgos en el chat - `enrollment.findFirst` sin
+  status/orderBy puede actualizar el enrollment equivocado;
+  `pagado_hasta` usa mediodía UTC vs convención mediodía CL;
+  "reintentar" invitación no reenvía; spec bulk-import desactualizada
+  (respuesta `{results}` vs `{total,...}`); sin resumen ni dry-run;
+  sin EnrollmentLevel; telefono solo en personas nuevas; overlap con
+  academy-invites; latencia por mailer inline.

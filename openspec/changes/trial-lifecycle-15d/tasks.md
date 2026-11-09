@@ -27,10 +27,10 @@
 
 ## 4. Correos
 
-- [ ] Plantilla bienvenida: nombre + rol, features de todos los tiers con plan en prueba marcado, fecha fin, contacto CX
-- [ ] Envío en creación de academia y aprobación de rol productor + ficha a `cx.notify_email`
-- [ ] Plantilla último día + barrido en `subscriptions.reconcile` (ventana 24h, dedup en columnas nuevas)
-- [ ] Promo diaria `trial-conv-<YYYYMMDD>`: percentOff 50, maxCycles 1, whitelist por actor, validUntil fin del día Santiago
+- [x] Plantilla bienvenida: nombre + rol, features de todos los tiers con plan en prueba marcado, fecha fin, contacto CX
+- [x] Envío en creación de academia y aprobación de rol productor + ficha a `cx.notify_email`
+- [x] Plantilla último día + barrido en `subscriptions.reconcile` (ventana 24h, dedup en columnas nuevas)
+- [x] Promo diaria `trial-conv-<YYYYMMDD>`: percentOff 50, maxCycles 1, whitelist por actor, validUntil fin del día Santiago
 - [ ] Tests del barrido: ventana, dedup, promo, expiración
 
 ## 4b. Ajuste admin de trial

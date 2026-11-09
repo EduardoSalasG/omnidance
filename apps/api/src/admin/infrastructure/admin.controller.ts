@@ -32,6 +32,7 @@ import { MAILER, type Mailer } from "../../auth/domain/ports";
 import { inviteEmailHtml } from "../../auth/infrastructure/emails";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { ParamsService } from "../../params/params.service";
+import { TrialLifecycleService } from "../../payments/application/trial-lifecycle.service";
 import { grantProducerTrialIfDue } from "../../common/pro-trial";
 import { PrismaService } from "../../prisma.service";
 import {
@@ -172,6 +173,7 @@ export class AdminController {
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly notifications: NotificationsService,
     private readonly params: ParamsService,
+    private readonly trialLifecycle: TrialLifecycleService,
   ) {}
 
   // ── Usuarios ──────────────────────────────────────────────────────────
@@ -297,6 +299,7 @@ export class AdminController {
     const prev = await this.prisma.personRole.findUnique({
       where: { personId_role: { personId, role: dto.role } },
     });
+    let trialEndsAt: Date | null = null;
     const row = await this.prisma.$transaction(async (tx) => {
       const r = await tx.personRole.upsert({
         where: { personId_role: { personId, role: dto.role } },
@@ -311,10 +314,27 @@ export class AdminController {
         dto.status === "APPROVED" &&
         prev?.status !== "APPROVED"
       ) {
-        await grantProducerTrialIfDue(tx, this.params, personId, "role.grant");
+        trialEndsAt = await grantProducerTrialIfDue(
+          tx,
+          this.params,
+          personId,
+          "role.grant",
+        );
       }
       return r;
     });
+    // Bienvenida del trial + ficha CX - best effort, nunca bota el grant.
+    if (trialEndsAt) {
+      const p = await this.prisma.person.findUnique({
+        where: { id: personId },
+        select: { id: true, name: true, email: true, phone: true },
+      });
+      if (p) {
+        await this.trialLifecycle
+          .sendProducerTrialWelcome(p, trialEndsAt)
+          .catch(() => {});
+      }
+    }
     await this.audit(req, "ROLE_SET", "PersonRole", row.id, {
       personId,
       role: dto.role,
@@ -472,6 +492,7 @@ export class AdminController {
         "perfil incompleto - faltan datos antes de aprobar",
       );
     }
+    let trialEndsAt: Date | null = null;
     await this.prisma.$transaction(async (tx) => {
       await tx.personRole.update({
         where: { id },
@@ -481,7 +502,7 @@ export class AdminController {
       // proTrialEndsAt = now + producer_pro.trial_days, sin reiniciar
       // trial vigente ni pisar suscripción Pro viva.
       if (row.role === "PRODUCER") {
-        await grantProducerTrialIfDue(
+        trialEndsAt = await grantProducerTrialIfDue(
           tx,
           this.params,
           row.person.id,
@@ -489,6 +510,20 @@ export class AdminController {
         );
       }
     });
+    // Bienvenida del trial + ficha CX - best effort, nunca bota la aprobación.
+    if (trialEndsAt) {
+      await this.trialLifecycle
+        .sendProducerTrialWelcome(
+          {
+            id: row.person.id,
+            name: row.person.name,
+            email: row.person.email,
+            phone: row.person.phone,
+          },
+          trialEndsAt,
+        )
+        .catch(() => {});
+    }
     // Aviso al actor: su rol quedó aprobado (spec rbac) - la card de
     // pendiente desaparece y el rol pasa a visible al público.
     await this.notifications.notifySafe(row.person.id, {

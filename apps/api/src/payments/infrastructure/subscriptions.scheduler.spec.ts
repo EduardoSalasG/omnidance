@@ -30,6 +30,7 @@ describe("SubscriptionsScheduler", () => {
     new SubscriptionsScheduler(
       mkSubs() as never,
       mkPlatSubs() as never,
+      {} as never,
       registry,
     ).onModuleInit();
     const reg = registry.get("subscriptions.reconcile");
@@ -45,6 +46,9 @@ describe("SubscriptionsScheduler", () => {
     new SubscriptionsScheduler(
       subs as never,
       platSubs as never,
+      {
+        sweepTrialLastDay: async () => ({ academies: 0, producers: 0 }),
+      } as never,
       registry,
     ).onModuleInit();
     const meta = await registry.get("subscriptions.reconcile")!.handler();
@@ -59,6 +63,7 @@ describe("SubscriptionsScheduler", () => {
       platform: { checked: 2, settled: 0 },
       manualPlatform: { checked: 1, issued: 0 },
       blocks: { blocked: 3 },
+      trials: { academies: 0, producers: 0 },
     });
   });
 
@@ -72,6 +77,7 @@ describe("SubscriptionsScheduler", () => {
     new SubscriptionsScheduler(
       subs as never,
       mkPlatSubs() as never,
+      {} as never,
       registry,
     ).onModuleInit();
     await expect(

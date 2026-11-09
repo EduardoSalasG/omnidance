@@ -48,6 +48,8 @@ import { studentInviteEmailHtml } from "./invite-emails";
 import { PrismaService } from "../../prisma.service";
 import { ParamsService } from "../../params/params.service";
 import { SubscriptionsService } from "../../payments/application/subscriptions.service";
+import { TrialLifecycleService } from "../../payments/application/trial-lifecycle.service";
+import { emitActivity } from "../../common/activity-log";
 import {
   assertEnrollmentTransition,
   computeActiveStudentsKpis,
@@ -444,6 +446,7 @@ export class AcademiesController {
     private readonly auth: AuthService,
     @Inject(STORAGE) private readonly storage: FileStorage,
     @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly trialLifecycle: TrialLifecycleService,
   ) {}
 
   /**
@@ -788,16 +791,43 @@ export class AcademiesController {
       });
       if (!city) throw new BadRequestException("ciudad no encontrada");
     }
-    return this.prisma.academy.create({
-      data: {
-        name: dto.name,
-        ownerId: req.person!.id,
-        ...(dto.cityId !== undefined
-          ? { city: { connect: { id: dto.cityId } } }
-          : {}),
-        trialEndsAt: new Date(Date.now() + trialDays * 24 * 60 * 60_000),
-      },
+    const trialEndsAt = new Date(
+      Date.now() + trialDays * 24 * 60 * 60_000,
+    );
+    const academy = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.academy.create({
+        data: {
+          name: dto.name,
+          ownerId: req.person!.id,
+          ...(dto.cityId !== undefined
+            ? { city: { connect: { id: dto.cityId } } }
+            : {}),
+          trialEndsAt,
+        },
+      });
+      await emitActivity(tx, {
+        type: "trial.started",
+        personId: req.person!.id,
+        academyId: created.id,
+        data: { actor: "ACADEMY", via: "academy.create", days: trialDays, endsAt: trialEndsAt },
+      });
+      return created;
     });
+    // Bienvenida del trial + ficha CX (spec platform-trials) - best
+    // effort: un fallo del mailer nunca bota el alta de la academia.
+    const owner = await this.prisma.person.findUnique({
+      where: { id: req.person!.id },
+      select: { name: true, email: true, phone: true },
+    });
+    if (owner) {
+      await this.trialLifecycle
+        .sendAcademyTrialWelcome(
+          { id: academy.id, name: academy.name, trialEndsAt },
+          owner,
+        )
+        .catch(() => {});
+    }
+    return academy;
   }
 
   @Get(":id")

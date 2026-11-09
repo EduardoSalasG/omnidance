@@ -2,6 +2,7 @@ import { Inject, Injectable, type OnModuleInit } from "@nestjs/common";
 import { JOB_REGISTRY, type JobRegistry } from "../../jobs/registry";
 import { SubscriptionsService } from "../application/subscriptions.service";
 import { PlatformSubscriptionsService } from "../application/platform-subscriptions.service";
+import { TrialLifecycleService } from "../application/trial-lifecycle.service";
 
 /**
  * Job diario de suscripciones (spec admin-jobs-mail-campaigns): el
@@ -24,6 +25,7 @@ export class SubscriptionsScheduler implements OnModuleInit {
   constructor(
     private readonly subs: SubscriptionsService,
     private readonly platformSubs: PlatformSubscriptionsService,
+    private readonly trialLifecycle: TrialLifecycleService,
     @Inject(JOB_REGISTRY) private readonly registry: JobRegistry,
   ) {}
 
@@ -42,7 +44,10 @@ export class SubscriptionsScheduler implements OnModuleInit {
         const manualPlatform =
           await this.platformSubs.reconcileManualRenewals("cron");
         const blocks = await this.platformSubs.enforceAcademyBlocks();
-        return { memberships, manualMemberships, platform, manualPlatform, blocks };
+        // Barrido del último día de trial (spec platform-trials): correo
+        // con oferta del día + promo diaria whitelisteada + dedup.
+        const trials = await this.trialLifecycle.sweepTrialLastDay();
+        return { memberships, manualMemberships, platform, manualPlatform, blocks, trials };
       },
     });
   }
