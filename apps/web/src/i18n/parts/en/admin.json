@@ -25,7 +25,11 @@
         "grantedAt": "Granted on {date}",
         "roleData": "Activity by role",
         "notFound": "User not found",
-        "proTrial": "Producer Pro trial"
+        "proTrial": "Producer Pro trial",
+        "timeline": {
+          "title": "Lifeline",
+          "empty": "No events on the timeline yet."
+        }
       },
       "scores": {
         "title": "Scores per actor",

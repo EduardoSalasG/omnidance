@@ -25,7 +25,11 @@
         "grantedAt": "Atribuído a {date}",
         "roleData": "Atividade por papel",
         "notFound": "Utilizador não encontrado",
-        "proTrial": "Trial Producer Pro"
+        "proTrial": "Trial Producer Pro",
+        "timeline": {
+          "title": "Linha de vida",
+          "empty": "Ainda não há eventos."
+        }
       },
       "scores": {
         "title": "Scores por ator",

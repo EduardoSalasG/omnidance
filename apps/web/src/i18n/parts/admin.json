@@ -27,7 +27,11 @@
         "grantedAt": "Asignado el {date}",
         "roleData": "Actividad por rol",
         "notFound": "Usuario no encontrado",
-        "proTrial": "Trial Producer Pro"
+        "proTrial": "Trial Producer Pro",
+        "timeline": {
+          "title": "Línea de vida",
+          "empty": "Aún no hay eventos en la línea de vida."
+        }
       },
       "scores": {
         "title": "Scores",

@@ -25,7 +25,11 @@
         "grantedAt": "Attribué le {date}",
         "roleData": "Activité par rôle",
         "notFound": "Utilisateur introuvable",
-        "proTrial": "Essai Producer Pro"
+        "proTrial": "Essai Producer Pro",
+        "timeline": {
+          "title": "Chronologie",
+          "empty": "Aucun événement pour l'instant."
+        }
       },
       "scores": {
         "title": "Scores par acteur",

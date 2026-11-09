@@ -200,6 +200,7 @@ export class UserIntelController {
       orderBy: { createdAt: "desc" },
       take: 100,
       select: {
+        id: true,
         type: true,
         refType: true,
         refId: true,
@@ -209,6 +210,7 @@ export class UserIntelController {
     });
     return {
       items: rows.map((r) => ({
+        id: r.id,
         at: r.createdAt,
         type: r.type,
         label: timelineLabel(r.type, r.data as TimelineData),
