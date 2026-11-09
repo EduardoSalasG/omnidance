@@ -880,29 +880,6 @@
       ]
     },
     {
-      "name": "Qr",
-      "item": [
-        {
-          "name": "GET /api/qr/mine",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/qr/mine",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "qr",
-                "mine"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
       "name": "PublicParams",
       "item": [
         {
@@ -969,6 +946,29 @@
                 }
               ],
               "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Qr",
+      "item": [
+        {
+          "name": "GET /api/qr/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/qr/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "qr",
+                "mine"
+              ]
             }
           }
         }
@@ -10759,6 +10759,106 @@
           }
         },
         {
+          "name": "GET /api/admin/trials",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/trials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "trials"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/admin/academies/{id}/trial",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/academies/{id}/trial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "academies",
+                "{id}",
+                "trial"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/admin/users/{personId}/pro-trial",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{personId}/pro-trial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{personId}",
+                "pro-trial"
+              ],
+              "variable": [
+                {
+                  "key": "personId",
+                  "value": ":personId"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "GET /api/admin/roles",
           "request": {
             "method": "GET",
@@ -11952,6 +12052,33 @@
                 "users",
                 "{personId}",
                 "detail"
+              ],
+              "variable": [
+                {
+                  "key": "personId",
+                  "value": ":personId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/users/{personId}/timeline",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{personId}/timeline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{personId}",
+                "timeline"
               ],
               "variable": [
                 {

@@ -64,11 +64,11 @@
 
 ## 8. Gates y docs (actualización completa de documentación relacionada)
 
-- [ ] `openspec validate --changes` verde; archivar change sin `--skip-specs`
-- [ ] `omni-dance.md`: Trial 30d→15d, corte unificado trial/churn, ActivityEvent en el modelo, card CX, panel admin de trials
-- [ ] `docs/qa-flows-inventory.md`: flujos nuevos (bienvenida, último día+promo, corte trial/churn, card CX, panel trials, PATCH trial, línea de vida)
-- [ ] `docs/architecture.md`: modelo nuevo (`ActivityEvent`), endpoints admin nuevos, job del barrido
-- [ ] `docs/flows.md`: diagrama del ciclo de vida del trial (otorgar→bienvenida→último día→corte/churn)
-- [ ] `docs/openapi.json` + postman (`export-api-docs.cjs`) por endpoints nuevos
-- [ ] `AGENTS.md` si cambian comandos/flujos; README si cambia setup
-- [ ] `pnpm typecheck`, `pnpm lint`, tests afectados
+- [x] `openspec validate --changes` verde; archivar change sin `--skip-specs`
+- [x] `omni-dance.md`: Trial 30d→15d, corte unificado trial/churn, ActivityEvent en el modelo, card CX, panel admin de trials
+- [x] `docs/qa-flows-inventory.md`: flujos nuevos (bienvenida, último día+promo, corte trial/churn, card CX, panel trials, PATCH trial, línea de vida)
+- [x] `docs/architecture.md`: modelo nuevo (`ActivityEvent`), endpoints admin nuevos, job del barrido
+- [x] `docs/flows.md`: diagrama del ciclo de vida del trial (otorgar→bienvenida→último día→corte/churn)
+- [x] `docs/openapi.json` + postman (`export-api-docs.cjs`) por endpoints nuevos
+- [x] `AGENTS.md` si cambian comandos/flujos; README si cambia setup
+- [x] `pnpm typecheck`, `pnpm lint`, tests afectados

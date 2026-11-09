@@ -28,6 +28,7 @@ interface FakeAcademy {
   id: string;
   ownerId: string;
   tier: string | null;
+  trialEndsAt?: Date | null;
 }
 
 class FakePrisma {
@@ -299,21 +300,34 @@ describe("resolveProducerEntitlement / resolveAcademyEntitlements", () => {
     ).toBeNull();
   });
 
-  it("academias del owner → {id, tier, features} reusa la matriz", async () => {
+  it("academias del owner → {id, tier, features} reusa la matriz + corte de trial", async () => {
     prisma.academies.push(
       { id: "ac-1", ownerId: "o-1", tier: "COBROS" },
-      { id: "ac-2", ownerId: "o-1", tier: null },
+      {
+        id: "ac-2",
+        ownerId: "o-1",
+        tier: null,
+        trialEndsAt: new Date(Date.now() + 10 * 24 * 3600 * 1000),
+      },
+      {
+        id: "ac-3",
+        ownerId: "o-1",
+        tier: null,
+        trialEndsAt: new Date(Date.now() - 24 * 3600 * 1000),
+      },
     );
     const list = await resolveAcademyEntitlements(
       prisma as unknown as PrismaService,
       "o-1",
     );
-    expect(list).toHaveLength(2);
+    expect(list).toHaveLength(3);
     expect(list[0].id).toBe("ac-1");
     expect(list[0].features).toEqual(["billing", "students"]);
-    // null → nivel STUDIO (trial = gestión completa)
+    // tier null + trial vigente → nivel STUDIO (trial = gestión completa)
     expect(list[1].features).toContain("classes");
     expect(list[1].features).not.toContain("crm");
+    // tier null + trial vencido → features vacías (spec platform-trials)
+    expect(list[2].features).toEqual([]);
   });
 });
 
