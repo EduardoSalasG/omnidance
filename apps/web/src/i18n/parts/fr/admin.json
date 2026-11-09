@@ -24,7 +24,8 @@
         "roleHistory": "Gestion des rôles",
         "grantedAt": "Attribué le {date}",
         "roleData": "Activité par rôle",
-        "notFound": "Utilisateur introuvable"
+        "notFound": "Utilisateur introuvable",
+        "proTrial": "Essai Producer Pro"
       },
       "scores": {
         "title": "Scores par acteur",
@@ -114,6 +115,22 @@
         "copied": "Lien copié",
         "invalid": "Saisis un montant valide et un motif"
       }
+    },
+    "trials": {
+      "title": "Essais de la plateforme",
+      "adjust": "Ajuster",
+      "set": "Fixer la date",
+      "dateLabel": "Fin de l'essai",
+      "saved": "Essai mis à jour",
+      "state": {
+        "ACTIVE": "Actif",
+        "EXPIRING": "Expire bientôt",
+        "EXPIRED": "Expiré"
+      },
+      "daysLeft": "{count, plural, =0 {expire aujourd'hui} one {reste # jour} other {reste # jours}}",
+      "daysOver": "{count, plural, one {expiré depuis # jour} other {expiré depuis # jours}}",
+      "roleAcademy": "Académie",
+      "roleProducer": "Producteur"
     },
     "status": {
       "REJECTED": "Refusé"

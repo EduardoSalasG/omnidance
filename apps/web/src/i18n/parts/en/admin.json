@@ -24,7 +24,8 @@
         "roleHistory": "Role management",
         "grantedAt": "Granted on {date}",
         "roleData": "Activity by role",
-        "notFound": "User not found"
+        "notFound": "User not found",
+        "proTrial": "Producer Pro trial"
       },
       "scores": {
         "title": "Scores per actor",
@@ -114,6 +115,22 @@
         "copied": "Link copied",
         "invalid": "Enter a valid amount and a concept"
       }
+    },
+    "trials": {
+      "title": "Platform trials",
+      "adjust": "Adjust",
+      "set": "Set date",
+      "dateLabel": "Trial end",
+      "saved": "Trial updated",
+      "state": {
+        "ACTIVE": "Active",
+        "EXPIRING": "Expiring",
+        "EXPIRED": "Expired"
+      },
+      "daysLeft": "{count, plural, =0 {ends today} one {# day left} other {# days left}}",
+      "daysOver": "{count, plural, one {expired # day ago} other {expired # days ago}}",
+      "roleAcademy": "Academy",
+      "roleProducer": "Producer"
     },
     "status": {
       "REJECTED": "Rejected"

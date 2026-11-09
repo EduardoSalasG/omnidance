@@ -3,6 +3,10 @@ import { PrismaService } from "../prisma.service";
 import { clMonthStart } from "../common/cl-time";
 import { tierMeets } from "../academies/domain/academy-tiers";
 import {
+  listPlatformTrials,
+  type PlatformTrialRow,
+} from "../common/platform-trials";
+import {
   CLASS_CARD_SELECT,
   classCardItem,
   type ClassCardRow,
@@ -103,6 +107,8 @@ type HomeStats = {
       createdAt: Date;
     }[];
   };
+  /** Preview del panel de trials (spec admin/home-insights) - lente ADMIN. */
+  trials?: { count: number; items: PlatformTrialRow[] };
 };
 
 const DAY = 86_400_000;
@@ -531,7 +537,7 @@ export class HomeService {
 
   private async adminStats(): Promise<HomeStats> {
     const monthStart = clMonthStart(new Date());
-    const [pendingRoles, users, activeEvents, pendingPayouts, leadsNew, pendingLeadItems, monthPayments, subsByKind] =
+    const [pendingRoles, users, activeEvents, pendingPayouts, leadsNew, pendingLeadItems, monthPayments, subsByKind, trialRows] =
       await Promise.all([
         this.prisma.personRole.count({ where: { status: "PENDING" } }),
         this.prisma.person.count(),
@@ -573,6 +579,9 @@ export class HomeService {
           where: { status: { in: ["ACTIVE", "CANCEL_PENDING"] } },
           _count: true,
         }),
+        // Panel de trials (spec admin/home-insights): misma lista que
+        // GET /admin/trials - KPIs y preview salen de una sola fuente.
+        listPlatformTrials(this.prisma),
       ]);
     // Misma semántica que /admin/finance/summary: ingreso plataforma =
     // fee neto + IVA de transacciones; el cobro PLATFORM_SUB es ingreso
@@ -603,11 +612,26 @@ export class HomeService {
           value:
             subsByKind.find((g) => g.kind === "PRODUCER")?._count ?? 0,
         },
+        // Trials (spec admin/home-insights): activos = vigentes
+        // (ACTIVE+EXPIRING), por vencer ≤7d, vencidos sin sub viva.
+        {
+          key: "trialsActive",
+          value: trialRows.filter((r) => r.state !== "EXPIRED").length,
+        },
+        {
+          key: "trialsExpiring",
+          value: trialRows.filter((r) => r.state === "EXPIRING").length,
+        },
+        {
+          key: "trialsExpired",
+          value: trialRows.filter((r) => r.state === "EXPIRED").length,
+        },
         { key: "users", value: users },
         { key: "activeEvents", value: activeEvents },
         { key: "pendingPayouts", value: pendingPayouts },
       ],
       pendingLeads: { count: leadsNew, items: pendingLeadItems },
+      trials: { count: trialRows.length, items: trialRows.slice(0, 8) },
     };
   }
 

@@ -26,7 +26,8 @@
         "roleHistory": "Gestión de roles",
         "grantedAt": "Asignado el {date}",
         "roleData": "Actividad por rol",
-        "notFound": "Usuario no encontrado"
+        "notFound": "Usuario no encontrado",
+        "proTrial": "Trial Producer Pro"
       },
       "scores": {
         "title": "Scores",
@@ -114,6 +115,22 @@
         "copied": "Link copiado",
         "invalid": "Ingresa un monto válido y un concepto"
       }
+    },
+    "trials": {
+      "title": "Trials de plataforma",
+      "adjust": "Ajustar",
+      "set": "Fijar fecha",
+      "dateLabel": "Fin del trial",
+      "saved": "Trial actualizado",
+      "state": {
+        "ACTIVE": "Activo",
+        "EXPIRING": "Por vencer",
+        "EXPIRED": "Vencido"
+      },
+      "daysLeft": "{count, plural, =0 {vence hoy} one {queda # día} other {quedan # días}}",
+      "daysOver": "{count, plural, one {venció hace # día} other {venció hace # días}}",
+      "roleAcademy": "Academia",
+      "roleProducer": "Productor"
     },
     "status": {
       "REJECTED": "Rechazado"

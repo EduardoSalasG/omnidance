@@ -13,7 +13,12 @@ import {
   SkeletonList,
   type BadgeVariant,
 } from "@/components/ui";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
 import { AdminGate } from "@/components/admin/admin-gate";
+import { TrialDateEditor } from "@/components/admin/trial-date-editor";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { getDateFmt, useNumFmt } from "@/lib/intl";
 
@@ -86,6 +91,7 @@ function Panel({ academyId }: { academyId: string }) {
 
   const [d, setD] = useState<SubDetail | null>(null);
   const [error, setError] = useState(false);
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
 
   const load = useCallback(async () => {
     setError(false);
@@ -215,10 +221,24 @@ function Panel({ academyId }: { academyId: string }) {
                 ? [a.tier, a.billingCycle].filter(Boolean).join(" · ")
                 : t("academies.detail.noSubscription"),
             )}
-            {infoRow(
-              t("academies.detail.trial"),
-              a.trialEndsAt ? fmtDate(a.trialEndsAt, locale) : null,
-            )}
+            {/* Fin de trial ajustable (spec platform-trials): extender
+                reabre la consola, acortar al pasado la corta ya. */}
+            <div className="flex items-baseline justify-between gap-3 py-1">
+              <dt className="text-xs text-ink/50">
+                {t("academies.detail.trial")}
+              </dt>
+              <dd className="text-sm">
+                <TrialDateEditor
+                  endpoint={`/admin/academies/${academyId}/trial`}
+                  value={a.trialEndsAt}
+                  onSaved={async () => {
+                    setNotice({ text: t("trials.saved") });
+                    await load();
+                  }}
+                  onError={(msg) => setNotice({ text: msg, error: true })}
+                />
+              </dd>
+            </div>
             {infoRow(
               t("academies.detail.grace"),
               a.billingGraceUntil ? fmtDate(a.billingGraceUntil, locale) : null,
@@ -284,6 +304,7 @@ function Panel({ academyId }: { academyId: string }) {
           </Card>
         )}
       </section>
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </main>
   );
 }

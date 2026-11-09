@@ -8,6 +8,7 @@ import {
   HttpCode,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -43,6 +44,8 @@ import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { pageParams } from "../../academies/infrastructure/list-filters";
 import { evaluateAcademyChecks } from "../../academies/infrastructure/academy-review";
 import { roleProfileChecks } from "../../common/role-checks";
+import { emitActivity } from "../../common/activity-log";
+import { listPlatformTrials } from "../../common/platform-trials";
 import { dateRange } from "../../query/entities/helpers";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 
@@ -89,6 +92,11 @@ class GrantPermissionDto {
 
   @IsBoolean()
   grant!: boolean;
+}
+
+class SetTrialDto {
+  @IsISO8601()
+  endsAt!: string;
 }
 
 class UsersQueryDto {
@@ -762,6 +770,96 @@ export class AdminController {
       name: person.name,
     });
     return { ok: true };
+  }
+
+  // ── Trials (spec platform-trials §Ajuste admin) ──────────────────────
+
+  /**
+   * Lista operativa de trials (spec admin/home-insights): todos los
+   * actores en trial o con trial vencido sin suscripción viva, con
+   * nombre, rol, email, tier del trial, fecha fin, días restantes y
+   * estado. Orden por urgencia (vencen antes primero). El preview del
+   * home sale de los mismos datos.
+   */
+  @Get("trials")
+  async trials() {
+    return { items: await listPlatformTrials(this.prisma) };
+  }
+
+  /**
+   * Fija `Academy.trialEndsAt`. Extender reabre el acceso y acortar al
+   * pasado corta de inmediato - ambos se resuelven en caliente por
+   * featuresForAcademy, sin sweep adicional. Resetea
+   * trialEndNotifiedAt: la fecha nueva merece su propio correo de
+   * último día. AuditLog + ActivityEvent trial.adjusted en la misma tx
+   * que el cambio de estado.
+   */
+  @Patch("academies/:id/trial")
+  async setAcademyTrial(
+    @Param("id") id: string,
+    @Body() dto: SetTrialDto,
+    @Req() req: Request,
+  ) {
+    const academy = await this.prisma.academy.findUnique({
+      where: { id },
+      select: { id: true, ownerId: true, trialEndsAt: true },
+    });
+    if (!academy) throw new NotFoundException("academia no encontrada");
+    const endsAt = new Date(dto.endsAt);
+    const prev = academy.trialEndsAt?.toISOString() ?? null;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.academy.update({
+        where: { id },
+        data: { trialEndsAt: endsAt, trialEndNotifiedAt: null },
+      });
+      await emitActivity(tx, {
+        type: "trial.adjusted",
+        personId: academy.ownerId,
+        academyId: id,
+        refType: "Academy",
+        refId: id,
+        data: { prev, next: endsAt.toISOString(), by: req.person!.id },
+      });
+    });
+    await this.audit(req, "TRIAL_SET", "Academy", id, {
+      prev,
+      next: endsAt.toISOString(),
+    });
+    return { ok: true, trialEndsAt: endsAt };
+  }
+
+  /** Idem para el trial Producer Pro (`Person.proTrialEndsAt`). */
+  @Patch("users/:personId/pro-trial")
+  async setProTrial(
+    @Param("personId") personId: string,
+    @Body() dto: SetTrialDto,
+    @Req() req: Request,
+  ) {
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { id: true, proTrialEndsAt: true },
+    });
+    if (!person) throw new NotFoundException("usuario no encontrado");
+    const endsAt = new Date(dto.endsAt);
+    const prev = person.proTrialEndsAt?.toISOString() ?? null;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.person.update({
+        where: { id: personId },
+        data: { proTrialEndsAt: endsAt, proTrialEndNotifiedAt: null },
+      });
+      await emitActivity(tx, {
+        type: "trial.adjusted",
+        personId,
+        refType: "Person",
+        refId: personId,
+        data: { prev, next: endsAt.toISOString(), by: req.person!.id },
+      });
+    });
+    await this.audit(req, "TRIAL_SET", "Person", personId, {
+      prev,
+      next: endsAt.toISOString(),
+    });
+    return { ok: true, proTrialEndsAt: endsAt };
   }
 
   // ── Catálogo RBAC (roles, permisos, grants) ───────────────────────────

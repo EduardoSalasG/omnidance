@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/action-notice";
 import { readError } from "@/components/academy/shared";
 import { AdminGate } from "@/components/admin/admin-gate";
+import { TrialDateEditor } from "@/components/admin/trial-date-editor";
 import type { RoleRow } from "@/components/admin/types";
 import { useRouter } from "@/i18n/navigation";
 import { getDateFmt, useNumFmt } from "@/lib/intl";
@@ -102,6 +103,8 @@ type PersonDetail = {
     verifiedAt: string | null;
     createdAt: string;
     deletedAt: string | null;
+    proTier: string | null;
+    proTrialEndsAt: string | null;
   };
   roles: { id: string; role: string; status: string; createdAt: string }[];
   roleData: RoleData;
@@ -516,6 +519,26 @@ function UserDetailPanel({ personId }: { personId: string }) {
               </dt>
               <dd>{fmtDate(person.createdAt, locale)}</dd>
             </div>
+            {/* Trial Producer Pro (spec platform-trials): ajuste admin
+                del fin; extender reabre features Pro, acortar las corta. */}
+            {(person.proTrialEndsAt != null || heldRoles.has("PRODUCER")) && (
+              <div className="flex items-baseline justify-between gap-2">
+                <dt className="shrink-0 text-ink/50">
+                  {t("users.detail.proTrial")}
+                </dt>
+                <dd className="text-sm">
+                  <TrialDateEditor
+                    endpoint={`/admin/users/${personId}/pro-trial`}
+                    value={person.proTrialEndsAt}
+                    onSaved={async () => {
+                      setNotice({ text: t("trials.saved") });
+                      await load();
+                    }}
+                    onError={(msg) => setNotice({ text: msg, error: true })}
+                  />
+                </dd>
+              </div>
+            )}
           </dl>
         </Card>
       </section>

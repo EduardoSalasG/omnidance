@@ -17,6 +17,11 @@ import {
   type ClassCardData,
 } from "@/components/classes/class-card";
 import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
+import {
+  ActionNotice,
+  type ActionNoticeData,
+} from "@/components/ui/action-notice";
+import { TrialDateEditor } from "@/components/admin/trial-date-editor";
 import { WeeklyQuotaCard } from "@/components/home/weekly-quota-card";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
@@ -74,6 +79,20 @@ type TonightEvent = {
   presaleLeft: number | null;
 };
 
+// Fila del panel de trials (GET /admin/trials vía preview de
+// /home/stats - spec admin/home-insights).
+type PlatformTrialRow = {
+  kind: "ACADEMY" | "PRODUCER";
+  id: string;
+  name: string;
+  email: string | null;
+  role: "ACADEMY_OWNER" | "PRODUCER";
+  tier: string;
+  trialEndsAt: string;
+  daysLeft: number;
+  state: "ACTIVE" | "EXPIRING" | "EXPIRED";
+};
+
 type HomeStats = {
   kpis: Kpi[];
   scene?: {
@@ -98,6 +117,8 @@ type HomeStats = {
       createdAt: string;
     }[];
   };
+  /** Preview del panel de trials - solo lente ADMIN. */
+  trials?: { count: number; items: PlatformTrialRow[] };
 };
 
 ;
@@ -375,6 +396,7 @@ export function HomeHub() {
   const tti = useTranslations("tours.instructor");
   const ts = useTranslations("survey");
   const tcs = useTranslations("courseSurvey");
+  const ta = useTranslations("admin.trials");
 
   // /me compartido (MeProvider del layout) - el hub ya no fetchea la
   // sesión: las encuestas y los stats se disparan en paralelo con /me
@@ -416,6 +438,8 @@ export function HomeHub() {
   } | null>(null);
   // Contador de reintento: el efecto de stats lo escucha para refetchear.
   const [statsRetry, setStatsRetry] = useState(0);
+  // Aviso post-acción del panel de trials (ajuste admin de fecha fin).
+  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   const activeRole = useActiveRole(me?.roles);
   const { flags } = useFeatures();
   const rawViewMode = useViewMode();
@@ -907,6 +931,7 @@ export function HomeHub() {
                   ["ops", ["pendingRoles", "leadsNew", "pendingPayouts"]],
                   ["billing", ["txRevenueMonth", "subRevenueMonth"]],
                   ["subs", ["subsAcademy", "subsProducer"]],
+                  ["trials", ["trialsActive", "trialsExpiring", "trialsExpired"]],
                   ["platform", ["users", "activeEvents"]],
                 ].map(([cat, keys]) => {
                   const items = (keys as string[])
@@ -977,6 +1002,92 @@ export function HomeHub() {
                       </Link>
                     </li>
                   )}
+                </ul>
+              </Card>
+            </section>
+          )}
+
+          {/* Panel de trials (spec admin/home-insights): filas por
+              urgencia con estado + ajuste de fecha fin inline; navega a
+              la ficha del actor. Solo si hay activos o por vencer. */}
+          {activeRole === "ADMIN" &&
+            (stats?.trials?.items.some((r) => r.state !== "EXPIRED") ??
+              false) && (
+            <section aria-label={t("trialsTitle")}>
+              <div className="mb-3 flex items-baseline justify-between gap-3">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+                  {t("trialsTitle")}
+                </h3>
+                <p className="text-xs tabular-nums text-ink/50">
+                  {t("trialsSummary", { count: stats!.trials!.count })}
+                </p>
+              </div>
+              <Card padded={false}>
+                <ul className="flex flex-col divide-y divide-line">
+                  {stats!.trials!.items.map((r) => (
+                    <li
+                      key={`${r.kind}:${r.id}`}
+                      className="flex flex-wrap items-center"
+                    >
+                      <Link
+                        href={
+                          r.kind === "ACADEMY"
+                            ? `/admin/academias/${r.id}`
+                            : `/admin/usuarios/${r.id}`
+                        }
+                        className="flex min-h-11 min-w-0 flex-1 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">
+                            {r.name}
+                          </span>
+                          <span className="block truncate text-xs text-ink/50">
+                            {ta(
+                              r.kind === "ACADEMY"
+                                ? "roleAcademy"
+                                : "roleProducer",
+                            )}
+                            {" · "}
+                            {r.tier}
+                            {r.email ? ` · ${r.email}` : ""}
+                          </span>
+                        </span>
+                        <span
+                          className={`shrink-0 text-right text-xs tabular-nums ${
+                            r.state === "EXPIRED"
+                              ? "font-medium text-red-400"
+                              : "text-ink/50"
+                          }`}
+                        >
+                          {r.state === "EXPIRED"
+                            ? ta("daysOver", {
+                                count: Math.max(1, -r.daysLeft),
+                              })
+                            : ta("daysLeft", {
+                                count: Math.max(0, r.daysLeft),
+                              })}
+                        </span>
+                        <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                      </Link>
+                      <span className="flex shrink-0 items-center px-3 py-1 text-xs">
+                        <TrialDateEditor
+                          endpoint={
+                            r.kind === "ACADEMY"
+                              ? `/admin/academies/${r.id}/trial`
+                              : `/admin/users/${r.id}/pro-trial`
+                          }
+                          value={r.trialEndsAt}
+                          onSaved={async () => {
+                            setNotice({ text: ta("saved") });
+                            setStatsRetry((x) => x + 1);
+                          }}
+                          onError={(msg) =>
+                            setNotice({ text: msg, error: true })
+                          }
+                        />
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               </Card>
             </section>
@@ -1210,6 +1321,7 @@ export function HomeHub() {
           ] satisfies TourStep[]}
         />
       )}
+      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </main>
   );
 }

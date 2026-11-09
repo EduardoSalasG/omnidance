@@ -75,6 +75,10 @@ export class UserIntelController {
         verifiedAt: true,
         createdAt: true,
         deletedAt: true,
+        // Trial Producer Pro (spec platform-trials): la ficha lo muestra
+        // y el admin lo ajusta con PATCH /admin/users/:id/pro-trial.
+        proTier: true,
+        proTrialEndsAt: true,
         roles: {
           select: { id: true, role: true, status: true, createdAt: true },
           orderBy: { createdAt: "asc" },

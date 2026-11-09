@@ -63,7 +63,10 @@
       "txRevenueMonth": "Transaction revenue (month)",
       "subRevenueMonth": "Subscription revenue (month)",
       "subsAcademy": "Academies",
-      "subsProducer": "Producers"
+      "subsProducer": "Producers",
+      "trialsActive": "Active trials",
+      "trialsExpiring": "Expiring ≤7d",
+      "trialsExpired": "Expired"
     },
     "hasTicketTonight": "You have a ticket. Show your QR at the door",
     "buyPresale": "Buy presale",
@@ -101,8 +104,11 @@
       "ops": "Operations",
       "billing": "Billing",
       "subs": "Active subscriptions",
-      "platform": "Platform"
-    }
+      "platform": "Platform",
+      "trials": "Trials"
+    },
+    "trialsTitle": "Platform trials",
+    "trialsSummary": "{count, plural, one {# trial} other {# trials}}"
   },
   "nav": {
     "main": "Main navigation",

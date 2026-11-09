@@ -35,15 +35,15 @@
 
 ## 4b. Ajuste admin de trial
 
-- [ ] `PATCH /admin/academies/:id/trial` y `PATCH /admin/users/:id/pro-trial` (admin.access): fija fecha fin, audit + `trial.adjusted`
-- [ ] UI: edición de fecha en ficha suscripción academia y ficha usuario (fila de la lista de trials también)
-- [ ] Tests: extender reabre, acortar corta, audit emitido
+- [x] `PATCH /admin/academies/:id/trial` y `PATCH /admin/users/:id/pro-trial` (admin.access): fija fecha fin, audit + `trial.adjusted`
+- [x] UI: edición de fecha en ficha suscripción academia y ficha usuario (fila de la lista de trials también)
+- [x] Tests: extender reabre, acortar corta, audit emitido
 
 ## 5. Panel admin
 
-- [ ] `/home/stats` lente ADMIN: `trialsActive`, `trialsExpiring` (≤7d), `trialsExpired`
-- [ ] `GET /admin/trials`: filas con nombre, rol, email, tier, fecha fin, días restantes
-- [ ] Web: card KPI + sección lista en inicio admin, navega a ficha
+- [x] `/home/stats` lente ADMIN: `trialsActive`, `trialsExpiring` (≤7d), `trialsExpired`
+- [x] `GET /admin/trials`: filas con nombre, rol, email, tier, fecha fin, días restantes
+- [x] Web: card KPI + sección lista en inicio admin, navega a ficha
 
 ## 5b. Línea de vida en ficha admin
 
