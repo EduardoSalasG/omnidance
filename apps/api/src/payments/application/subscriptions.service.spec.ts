@@ -118,6 +118,7 @@ function mkPrisma() {
   // (beforeEach) y notification.findFirst las consulta: así el dedup de
   // membership.renewal_failed se ejerce end-to-end en el spec.
   const sentNotifs: Row[] = [];
+  const activities: Row[] = [];
   let seq = 0;
   const nid = () => `id-${++seq}`;
 
@@ -377,6 +378,18 @@ function mkPrisma() {
       ),
     },
     personRole: { findMany: vi.fn(async () => [] as Row[]) },
+    // ActivityEvent (spec platform-trials): findFirst para el dedup de
+    // emitActivityOnce; create apila para inspección del spec.
+    activityEvent: {
+      findFirst: vi.fn(async ({ where }: { where: Row }) => {
+        return activities.find((a) => matchWhere(a, where)) ?? null;
+      }),
+      create: vi.fn(async ({ data }: { data: Row }) => {
+        const stored = JSON.parse(JSON.stringify(data)) as Row;
+        activities.push(stored);
+        return stored;
+      }),
+    },
     // PlatformSubscription (saas-billing): el orphan sweep de subs cubre
     // ambas tablas - sin filas acá, siempre vacío.
     platformSubscription: {
@@ -430,6 +443,7 @@ function mkPrisma() {
     promos,
     gatewayTxs,
     sentNotifs,
+    activities,
   };
 }
 

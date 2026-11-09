@@ -445,6 +445,9 @@ function mkPrisma() {
     },
     personRole: { findMany: vi.fn(async () => [] as Row[]) },
     activityEvent: {
+      findFirst: vi.fn(async ({ where }: { where: Row }) => {
+        return activities.find((a) => matchWhere(a, where)) ?? null;
+      }),
       create: vi.fn(async ({ data }: { data: Row }) => {
         const stored = JSON.parse(JSON.stringify(data)) as Row;
         activities.push(stored);
