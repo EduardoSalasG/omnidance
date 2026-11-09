@@ -30,17 +30,18 @@ que `trial-lifecycle-15d` aterrizara en dev.
   notice `status` "suscripción quedó activa" era frágil (auto-cierra
   ~3s); el estado real ya se verifica por cola vacía + API ACTIVE.
   Assert eliminado.
-- **`productor-colaboradores` parcial**: se agregó expirar el trial de
-  carlos vía `PATCH /api/admin/users/:id/pro-trial` ({endsAt}) como
-  admin + restaurarlo a +90d en finally (funciona: el test avanzó del
-  assert "sube de tier" a llenar el cupo). También se relajó el assert
-  del pool de DJs a `QUOTA - count + 1` (seed deja 2 DJs en roster).
-  **Sigue rojo en el assert del alert "sube de tier"**: con el trial
-  vencido el alta siguiente no produjo el aviso - verificar qué devuelve
-  el POST /producer/staff (¿403 `staff_quota` vs `tier.required` vs
-  2xx?) - el trace está en test-results/. Puede que el 403 sea
-  `staff_quota` con copy distinto, o que el entitlement cachee el
-  trial.
+- **`productor-colaboradores` REQUIERE REESCRITURA, no fix**: causa
+  raíz real encontrada - `4730aceb fix(tier-gates-audit): staff sin
+  cupo` ELIMINÓ el cupo del roster: `POST /producer/staff` ya no
+  devuelve 403 jamás (no hay `staff_quota`/`free_staff_max` en el
+  endpoint; `assertProducerOrAdmin` solo verifica rol). El spec
+  completo prueba comportamiento removido a propósito (el cupo free
+  ahora aplica a staff POR EVENTO, no a la nómina). Reescribir como
+  happy-path del alta por búsqueda + borrado, o cubrir el cupo en
+  event-staff si existe superficie. Los fixes parciales ya commiteados
+  (expirar/restaurar trial vía PATCH /api/admin/users/:id/pro-trial +
+  pool de DJs relajado) quedan como utilidad pero el assert del 403
+  debe irse.
 - **Sin tocar**: academia-alumnos, dancer-checkout, dancer-qr,
   academia-cobros, academia-videos, dancer-eventos.
 
