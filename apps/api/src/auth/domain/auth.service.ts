@@ -54,17 +54,20 @@ export class AuthService {
   // `role` opcional (spec role-registration-pipeline): landings de
   // actores mandan ?role=ACADEMY_OWNER|PRODUCER - viaja en el token y
   // verify() crea el PersonRole PENDING al entrar.
+  // `next` opcional (spec academies/student-invites): destino interno
+  // post-onboarding - verify() lo valida y lo preserva en el redirect.
   createMagicToken(
     email: string,
     consent = false,
     ttl: string | number = "15m",
-    role?: string,
+    opts?: { role?: string; next?: string },
   ): Promise<string> {
     return new SignJWT({
       purpose: "magic",
       email,
       ...(consent ? { consent: true } : {}),
-      ...(role ? { role } : {}),
+      ...(opts?.role ? { role: opts.role } : {}),
+      ...(opts?.next ? { next: opts.next } : {}),
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
@@ -74,7 +77,7 @@ export class AuthService {
 
   async verifyMagicToken(
     token: string,
-  ): Promise<{ email: string; consent: boolean; role?: string }> {
+  ): Promise<{ email: string; consent: boolean; role?: string; next?: string }> {
     const { payload } = await jwtVerify(token, this.key);
     if (payload.purpose !== "magic" || typeof payload.email !== "string") {
       throw new Error("invalid magic token");
@@ -83,6 +86,7 @@ export class AuthService {
       email: payload.email,
       consent: payload.consent === true,
       role: typeof payload.role === "string" ? payload.role : undefined,
+      next: typeof payload.next === "string" ? payload.next : undefined,
     };
   }
 
@@ -140,7 +144,7 @@ export class AuthService {
   async createOtp(
     email: string,
     consent = false,
-    role?: string,
+    opts?: { role?: string; next?: string },
   ): Promise<string> {
     const repo = this.otpRepo();
     await repo.consumeActives(email);
@@ -149,7 +153,8 @@ export class AuthService {
       email,
       codeHash: this.hashOtpCode(code).toString("hex"),
       consent,
-      role,
+      role: opts?.role,
+      next: opts?.next,
       expiresAt: new Date(Date.now() + OTP_TTL_MS),
     });
     return code;
@@ -163,7 +168,7 @@ export class AuthService {
   async verifyOtp(
     email: string,
     code: string,
-  ): Promise<{ email: string; consent: boolean; role?: string }> {
+  ): Promise<{ email: string; consent: boolean; role?: string; next?: string }> {
     const repo = this.otpRepo();
     const otp = await repo.findActiveOtp(email);
     const invalid = () => new Error("invalid otp");
@@ -190,7 +195,12 @@ export class AuthService {
       throw new Error("account deactivated");
     }
     await repo.consumeOtp(otp.id);
-    return { email: otp.email, consent: otp.consent, role: otp.role ?? undefined };
+    return {
+      email: otp.email,
+      consent: otp.consent,
+      role: otp.role ?? undefined,
+      next: otp.next ?? undefined,
+    };
   }
 }
 

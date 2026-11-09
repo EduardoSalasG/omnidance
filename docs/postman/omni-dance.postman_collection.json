@@ -9111,6 +9111,77 @@
       ]
     },
     {
+      "name": "AcademyInvites",
+      "item": [
+        {
+          "name": "POST /api/academies/{id}/invites",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "invites"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/invites",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "invites"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Enrollments",
       "item": [
         {

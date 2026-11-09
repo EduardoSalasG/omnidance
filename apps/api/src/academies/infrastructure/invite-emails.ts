@@ -56,6 +56,31 @@ export function instructorInviteEmailHtml(input: InviteEmailInput): string {
   );
 }
 
+/**
+ * Invitación de registro de la academia (spec academies/student-invites):
+ * la invitada NO tiene enrollment - se registra y aterriza en la ficha
+ * pública de la academia para inscribirse sola.
+ */
+export function academyInviteEmailHtml(input: InviteEmailInput): string {
+  const first = input.personName
+    ? `, ${escapeHtml(input.personName.split(" ")[0] || input.personName)}`
+    : "";
+  return emailShell(
+    `${input.academyName} te invitó a Omnidance.`,
+    `
+    <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;line-height:1.25;letter-spacing:-0.02em;text-align:center;">
+      Te invitaron a Omnidance${first}
+    </h1>
+    <p style="margin:16px 0 24px 0;color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;text-align:center;">
+      <strong style="color:#ffffff;">${escapeHtml(input.academyName)}</strong>
+      ya está en Omnidance y quiere que te sumes. Con este link creas tu
+      cuenta y entras directo a su perfil; no necesitas contraseña.
+    </p>
+    ${ctaButton(input.link, "Crear mi cuenta")}
+    ${fallbackLink(input.link)}`,
+  );
+}
+
 export function studentInviteEmailHtml(input: InviteEmailInput): string {
   const first = input.personName
     ? `, ${escapeHtml(input.personName.split(" ")[0] || input.personName)}`

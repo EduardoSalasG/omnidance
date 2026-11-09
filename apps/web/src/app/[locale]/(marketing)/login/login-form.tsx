@@ -270,8 +270,15 @@ export default function LoginForm({
       });
       setLoading(false);
       if (res.ok) {
-        const data = (await res.json()) as { ok: boolean; isNew?: boolean };
-        const safeNext = safeInternalPath(next);
+        const data = (await res.json()) as {
+          ok: boolean;
+          isNew?: boolean;
+          next?: string;
+        };
+        // `next` del OTP (spec academies/student-invites: invitación de
+        // academia) tiene prioridad sobre el ?next= de la página.
+        const safeNext =
+          safeInternalPath(data.next) ?? safeInternalPath(next);
         if (data.isNew) {
           go(
             safeNext

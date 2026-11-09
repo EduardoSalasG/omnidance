@@ -14,6 +14,9 @@ export interface AuthOtpRecord {
   codeHash: string;
   consent: boolean;
   role: string | null;
+  // Destino interno post-onboarding (spec academies/student-invites) -
+  // viaja como `role`/`consent`: de la fila al verify.
+  next: string | null;
   expiresAt: Date;
   attempts: number;
   consumedAt: Date | null;
@@ -49,6 +52,7 @@ export interface AuthRepo {
     codeHash: string;
     consent: boolean;
     role?: string;
+    next?: string;
     expiresAt: Date;
   }): Promise<void>;
   // Registro por landing (spec role-registration-pipeline): garantiza

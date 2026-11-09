@@ -555,6 +555,34 @@ sequenceDiagram
 - **Auditoría de comprobantes**: cada aprobación/rechazo de `PaymentClaim` guarda `reviewedById`+`reviewedAt`; el historial de `/academia/cobros` muestra quién validó cada pago - clave cuando varios colaboradores procesan comprobantes.
 - **Mora aplica igual**: toda mutación staff pasa por `requireCapabilityWrite` → academia bloqueada por suscripción impaga = read-only también para el equipo (la lectura sigue abierta).
 
+## Invitación de registro de academia - envío → verify → consumo (academies/student-invites)
+
+```mermaid
+sequenceDiagram
+    actor Ow as Owner/staff academia
+    actor I as Invitada
+    participant API as AcademyInvitesController
+    participant AUTH as AuthController
+    participant DB as Postgres
+    participant MAIL as Resend (MAILER)
+
+    Ow->>API: POST /academies/:id/invites (cap students)<br/>{email, name, lastName?}
+    API->>DB: AcademyInvite pendiente<br/>(dedup: re-envío reenvía correo sin duplicar)
+    API->>DB: ActivityEvent invite.sent
+    API->>MAIL: invitación con magic link 7d<br/>(next=/academias/:id)
+    opt cuenta existente
+        API->>I: push academy.invite (notifySafe)
+    end
+    I->>AUTH: GET /api/auth/verify?token<br/>(o POST /auth/otp/verify con next en la fila)
+    AUTH->>AUTH: next = path interno válido (else se ignora)
+    AUTH->>DB: upsertByEmail + sesión
+    AUTH->>DB: pending invite (academyId del next) →<br/>consumedAt+personId + Referral INVITE<br/>+ ActivityEvent invite.registered
+    AUTH-->>I: nueva → /bienvenida?next= | existente → next directo
+    I->>I: termina en la ficha pública de la academia<br/>y se inscribe sola
+```
+
+- `GET /academies/:id/invites` (cap students) alimenta la sección "Invitados" de `/academia/alumnos` - pendientes primero, estado por `consumedAt`.
+
 ## Migración desde otra plataforma - import CSV → alumnos y horario (academy-bulk-import)
 
 ```mermaid

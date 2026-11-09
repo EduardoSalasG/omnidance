@@ -285,6 +285,25 @@
       "avgTitle": "Présence moyenne",
       "nextTitle": "Réservations du prochain cours"
     },
+    "invites": {
+      "cta": "Inviter",
+      "title": "Inviter à l'académie",
+      "hint": "La personne reçoit un courriel pour créer son compte et arrive sur votre profil : elle s'inscrit d'elle-même, sans plan.",
+      "emailLabel": "Courriel",
+      "nameLabel": "Prénom",
+      "lastNameLabel": "Nom",
+      "submit": "Envoyer l'invitation",
+      "sent": "Invitation envoyée.",
+      "resent": "Déjà invitée : le courriel a été renvoyé.",
+      "forbidden": "Vous n'avez pas accès à cette action.",
+      "listTitle": "Invitations",
+      "empty": "Aucune invitation envoyée.",
+      "sentAt": "Envoyée le {date}",
+      "status": {
+        "pending": "En attente",
+        "registered": "Inscrite"
+      }
+    },
     "personSearch": {
       "label": "Élève",
       "placeholder": "Nom ou email",

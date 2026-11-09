@@ -7484,6 +7484,60 @@
         ]
       }
     },
+    "/api/academies/{id}/invites": {
+      "post": {
+        "operationId": "AcademyInvitesController_invite",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInviteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyInvites"
+        ]
+      },
+      "get": {
+        "operationId": "AcademyInvitesController_list",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyInvites"
+        ]
+      }
+    },
     "/api/academies/{id}/access": {
       "get": {
         "operationId": "AcademyStaffController_myAccess",
@@ -12812,6 +12866,10 @@
         "properties": {}
       },
       "PatchAcademyPromoDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateInviteDto": {
         "type": "object",
         "properties": {}
       },

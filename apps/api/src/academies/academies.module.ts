@@ -13,6 +13,7 @@ import { AcademyClaimsService } from "./infrastructure/academy-claims.service";
 import { AcademyPromosController } from "./infrastructure/academy-promos.controller";
 import { AcademyImportController } from "./infrastructure/academy-import.controller";
 import { AcademyImportService } from "./infrastructure/academy-import.service";
+import { AcademyInvitesController } from "./infrastructure/academy-invites.controller";
 import { AcademyRemindersService } from "./infrastructure/academy-reminders.service";
 import { AcademyStaffController } from "./infrastructure/academy-staff.controller";
 import { AcademiesScheduler } from "./infrastructure/academies.scheduler";
@@ -47,6 +48,7 @@ import { VideosController } from "./infrastructure/videos.controller";
     AcademyClaimsController,
     AcademyPromosController,
     AcademyImportController,
+    AcademyInvitesController,
     AcademyStaffController,
     EnrollmentsController,
     AttendanceController,

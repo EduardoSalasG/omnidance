@@ -30,6 +30,10 @@ type Props = {
   tier?: string | null;
   /** Instructor: ve la lista y fichas, pero no crea enrollments ni cambia status. */
   readOnly?: boolean;
+  /** Cap `students` sin ser owner/ADMIN (staff): puede invitar aunque
+     el alta de enrollments siga restringida (spec
+     academies/student-invites). */
+  canInvite?: boolean;
 };
 
 // Entidad `students` del catálogo sin el scope (la página ya fija la
@@ -75,6 +79,7 @@ export function StudentsSection({
   academyId,
   tier,
   readOnly = false,
+  canInvite = false,
 }: Props) {
   const locale = useLocale();
   const t = useTranslations("academy");
@@ -170,11 +175,18 @@ export function StudentsSection({
 
   return (
     <div className="flex flex-col gap-4">
-      {!readOnly && (
-        <div data-tour="academy-alumnos-new" className="flex justify-end">
-          <Button href="/academia/alumnos/nuevo" size="sm">
-            + {t("newEnrollment")}
-          </Button>
+      {(!readOnly || canInvite) && (
+        <div data-tour="academy-alumnos-new" className="flex justify-end gap-2">
+          {canInvite && (
+            <Button href="/academia/alumnos/invitar" size="sm" variant="secondary">
+              {t("invites.cta")}
+            </Button>
+          )}
+          {!readOnly && (
+            <Button href="/academia/alumnos/nuevo" size="sm">
+              + {t("newEnrollment")}
+            </Button>
+          )}
         </div>
       )}
 

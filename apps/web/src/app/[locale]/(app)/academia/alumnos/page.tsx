@@ -8,6 +8,7 @@ import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyKpiStrip } from "@/components/academy/academy-kpi-strip";
 import { StudentsInsights } from "@/components/academy/students-insights";
 import { StudentsSection } from "@/components/academy/students-section";
+import { AcademyInvitesSection } from "@/components/academy/academy-invites-section";
 import { useAcademyAccess } from "@/components/academy/use-academy-access";
 import { academyTierHas } from "@/lib/academy-features";
 import {
@@ -101,7 +102,11 @@ function StudentsModule({
         academyId={academyId}
         tier={tier}
         readOnly={canAdminister !== true}
+        canInvite={manages}
       />
+      {/* Invitaciones de registro (spec academies/student-invites):
+          seguimiento pendiente/registrado - misma cap que el alta. */}
+      {manages && <AcademyInvitesSection academyId={academyId} />}
       {/* Tour de primera visita del módulo: los anchors de gestión
           (KPIs, insights, alta, importación) solo existen para quien
           administra - el runner filtra los ausentes y el instructor

@@ -285,6 +285,25 @@
       "avgTitle": "Presenças em média",
       "nextTitle": "Reservas da próxima aula"
     },
+    "invites": {
+      "cta": "Convidar",
+      "title": "Convidar para a academia",
+      "hint": "A pessoa recebe um email para criar a sua conta e aterra no seu perfil: inscreve-se sozinha, sem plano.",
+      "emailLabel": "Email",
+      "nameLabel": "Nome",
+      "lastNameLabel": "Apelido",
+      "submit": "Enviar convite",
+      "sent": "Convite enviado.",
+      "resent": "Já estava convidada: reenviámos o email.",
+      "forbidden": "Não tens acesso a esta ação.",
+      "listTitle": "Convites",
+      "empty": "Ainda não convidaste ninguém.",
+      "sentAt": "Enviado em {date}",
+      "status": {
+        "pending": "Pendente",
+        "registered": "Registado"
+      }
+    },
     "personSearch": {
       "label": "Aluno",
       "placeholder": "Nome ou email",

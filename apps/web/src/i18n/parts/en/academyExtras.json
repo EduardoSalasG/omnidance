@@ -285,6 +285,25 @@
       "avgTitle": "Average attendance",
       "nextTitle": "Next class bookings"
     },
+    "invites": {
+      "cta": "Invite",
+      "title": "Invite to the academy",
+      "hint": "The person gets an email to create their account and lands on your profile: they sign up on their own, no plan needed.",
+      "emailLabel": "Email",
+      "nameLabel": "First name",
+      "lastNameLabel": "Last name",
+      "submit": "Send invite",
+      "sent": "Invite sent.",
+      "resent": "Already invited: we resent the email.",
+      "forbidden": "You don't have access to this action.",
+      "listTitle": "Invites",
+      "empty": "No invites sent yet.",
+      "sentAt": "Sent on {date}",
+      "status": {
+        "pending": "Pending",
+        "registered": "Registered"
+      }
+    },
     "personSearch": {
       "label": "Student",
       "placeholder": "Name or email",

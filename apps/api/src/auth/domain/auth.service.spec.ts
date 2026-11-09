@@ -81,12 +81,14 @@ class FakeOtpRepo {
     codeHash: string;
     consent: boolean;
     role?: string;
+    next?: string;
     expiresAt: Date;
   }) {
     this.otps.push({
       id: `otp-${++this.seq}`,
       ...data,
       role: data.role ?? null,
+      next: data.next ?? null,
       attempts: 0,
       consumedAt: null,
       createdAt: new Date(),

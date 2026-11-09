@@ -189,6 +189,7 @@ model AuthOtp {
   codeHash   String
   consent    Boolean   @default(false) // checkbox del form, viaja con el OTP como en el magic token
   role       String?   // ?role= de landing (spec role-registration-pipeline) - crea PersonRole PENDING al verificar
+  next       String?   // destino interno post-onboarding (spec academies/student-invites) - viaja igual que role/consent
   expiresAt  DateTime
   attempts   Int       @default(0)
   consumedAt DateTime?
@@ -992,6 +993,7 @@ model Academy {
   saleAgreements AcademySaleAgreement[]
   segmentSnapshots AcademySegmentSnapshot[]
   activityEvents    ActivityEvent[]
+  invites           AcademyInvite[]
 
   @@index([cityId])
   classLevels ClassLevel[]
@@ -1134,6 +1136,29 @@ model EnrollmentLevel {
   levelId      String
 
   @@id([enrollmentId, classTypeId, levelId])
+}
+
+// Invitación de registro de la academia (spec academies/student-invites):
+// a diferencia del alta de alumno (stub Person + enrollment), acá no se
+// crea Person hasta que la invitada se registra - el estado pendiente
+// vive en la invitación. `next` del magic link apunta a la ficha
+// pública de la academia: al verificar, el verify marca consumedAt +
+// personId, crea el Referral (INVITE, referrer=invitedById) y emite
+// invite.registered. A lo más una pendiente por (academyId, email) -
+// guard aplicativo (re-invite reenvía correo sin duplicar fila).
+model AcademyInvite {
+  id          String    @id @default(cuid())
+  academy     Academy   @relation(fields: [academyId], references: [id])
+  academyId   String
+  email       String
+  name        String    // nombre + apellido declarados por el staff
+  invitedById String    // staff/owner que envió - referrer del Referral
+  personId    String?   // se rellena al consumir (mismo criterio que
+                        // AcademyStaff: sin relación FK a Person)
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([academyId, email])
 }
 
 // Medios de pago propios de la academia (spec academy-payment-claims):

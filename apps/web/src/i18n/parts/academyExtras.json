@@ -359,6 +359,25 @@
     "city": "Ciudad",
     "noCity": "Sin ciudad",
     "created": "Academia creada",
+    "invites": {
+      "cta": "Invitar",
+      "title": "Invitar a la academia",
+      "hint": "La persona recibe un correo para crearse su cuenta y aterriza en tu perfil: se inscribe sola, sin que le crees un plan.",
+      "emailLabel": "Correo",
+      "nameLabel": "Nombre",
+      "lastNameLabel": "Apellido",
+      "submit": "Enviar invitación",
+      "sent": "Invitación enviada.",
+      "resent": "Ya estaba invitada: le reenviamos el correo.",
+      "forbidden": "No tienes acceso a esta acción.",
+      "listTitle": "Invitados",
+      "empty": "Aún no has invitado a nadie.",
+      "sentAt": "Enviada el {date}",
+      "status": {
+        "pending": "Pendiente",
+        "registered": "Registrada"
+      }
+    },
     "personSearch": {
       "label": "Alumno",
       "placeholder": "Nombre o email",
