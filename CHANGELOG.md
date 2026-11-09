@@ -50,6 +50,18 @@ Todos los cambios notables del proyecto se documentan aquí, siguiendo
   el SW y `page.route` no los veía) y fills de login robustecidos
   contra la carrera con la hidratación.
 
+## [1.15.6] - 2026-11-08
+
+### Added
+
+- **Flow en producción**: `FLOW_BASE_URL` acepta los dos endpoints
+  oficiales de Flow (`https://sandbox.flow.cl/api` y
+  `https://www.flow.cl/api`); el guard de `resolveGateway` pasó de
+  solo-sandbox a whitelist con fail-close ante URLs desconocidas.
+  Habilita cobros reales tras la validación E2E en sandbox (change
+  `flow-production-enable`; requirement "Selección de ambiente Flow"
+  en la spec `payments/gateways`).
+
 ## [1.12.1] - 2026-10-28
 
 ### Changed
