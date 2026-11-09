@@ -22,6 +22,7 @@
     }
   },
   "scripts": {
+    "postinstall": "node scripts/setup-git-hooks.cjs",
     "dev": "pnpm -r --parallel run dev",
     "dev:web": "pnpm --filter @omnidance/web dev",
     "dev:api": "pnpm --filter @omnidance/api dev",

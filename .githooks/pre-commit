@@ -1,0 +1,22 @@
+#!/bin/sh
+# Regla del repo (AGENTS.md > Ramas y entrega): el autor/committer del
+# commit es siempre la identidad real del dueño del repo, nunca la de
+# un agente o bot.
+
+name="$(git config user.name 2>/dev/null)"
+email="$(git config user.email 2>/dev/null)"
+
+if [ -z "$name" ] || [ -z "$email" ]; then
+  echo "pre-commit: user.name/user.email no configurados." >&2
+  echo "  Configura tu identidad real antes de commitear." >&2
+  exit 1
+fi
+
+if printf '%s %s' "$name" "$email" | grep -iE 'devin|cognition|\[bot\]' >/dev/null 2>&1; then
+  echo "pre-commit: identidad rechazada ($name <$email>)." >&2
+  echo "  El autor del commit no puede ser un agente/bot." >&2
+  echo "  Configura user.name y user.email con tu identidad real." >&2
+  exit 1
+fi
+
+exit 0

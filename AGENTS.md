@@ -149,7 +149,7 @@ Roles de colaboración dentro del pipeline: Diseño (orquestador + usuario) → 
 - Promueve `dev → main` solo tras revisión + QA + release gate.
 - Hotfix en `main` → regulariza `dev` inmediatamente. **Nunca quedarse parado en `main`.**
 - No mezcles cambios no relacionados ni cambios locales ajenos en la misma entrega.
-- **Sin co-autoría ni firma de agente en los commits** - solo el mensaje descriptivo.
+- **Sin co-autoría ni firma de agente en los commits** - solo el mensaje descriptivo. Prohibido en autor, committer y mensaje: referencias a agentes/herramientas (`devin`, `cognition`), trailers `Generated with …` y `Co-Authored-By:` (cualquiera - no hay coautores humanos registrados). Autor/committer = la identidad configurada del dueño del repo; si `user.name`/`user.email` no están configurados o apuntan a un bot, NO se commitea - se pide la identidad al usuario. **Enforcement mecánico**: hooks versionados `.githooks/commit-msg` + `.githooks/pre-commit` (activados por `core.hooksPath` vía `postinstall`/`scripts/setup-git-hooks.cjs`) y gate CI `.github/workflows/commit-guard.yml` en push/PR. No intentar saltarlos (`--no-verify` queda prohibido salvo autorización explícita del usuario).
 - **CI/CD**: push a `main` despliega el API (GH Actions → GHCR → SSH a la VM → migrate+seed → health gate); el front va a Netlify vía `netlify.toml` (Next.js runtime). Secrets/vars y setup de la VM en `docs/ci-cd.md`.
 
 ### Versionamiento
