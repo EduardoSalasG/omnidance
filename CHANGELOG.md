@@ -3,6 +3,16 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.16.1] - 2026-11-09
+
+### Fixed
+
+- **Build del deploy**: el postinstall raíz (`setup-git-hooks`,
+  agregado en 1.16.0) rompía `pnpm install --frozen-lockfile` en la
+  etapa builder del Dockerfile, donde `scripts/` aún no se copia. El
+  script se copia antes del install (no-op sin `.git`; los scripts no
+  se pueden ignorar porque `@prisma/client` los necesita).
+
 ## [1.16.0] - 2026-11-09
 
 ### Added
