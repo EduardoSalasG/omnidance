@@ -7736,6 +7736,60 @@
         ]
       }
     },
+    "/api/academies/{id}/import/runs": {
+      "get": {
+        "operationId": "AcademyImportController_importRuns",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyImport"
+        ]
+      }
+    },
+    "/api/academies/{id}/import/runs/{runId}": {
+      "get": {
+        "operationId": "AcademyImportController_importRun",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyImport"
+        ]
+      }
+    },
     "/api/academies/{id}/invites": {
       "post": {
         "operationId": "AcademyInvitesController_invite",

@@ -583,7 +583,7 @@ sequenceDiagram
 
 - `GET /academies/:id/invites` (cap students) alimenta la sección "Invitados" de `/academia/alumnos` - pendientes primero, estado por `consumedAt`.
 
-## Migración desde otra plataforma - import CSV → alumnos y horario (academy-bulk-import)
+## Migración desde otra plataforma - import CSV → alumnos y horario (academy-bulk-import + academy-import-invites)
 
 ```mermaid
 sequenceDiagram
@@ -592,25 +592,34 @@ sequenceDiagram
     participant DB as Postgres
     participant MAIL as Resend (MAILER)
 
-    Note over Ow: /academia/importar - descarga plantilla<br/>GET /academies/:id/import/template/students|schedule
-    Ow->>API: POST /academies/:id/import/students (cap students)<br/>multipart .csv/.xls/.xlsx: email,nombre +<br/>rut|dni|documento?,fecha_nacimiento?,sexo?,telefono?,plan?,pagado_hasta?
+    Note over Ow: /academia/configuracion/importar - descarga plantilla<br/>GET /academies/:id/import/template/students|schedule
+    Ow->>API: POST /academies/:id/import/students?dryRun=1 (cap students)<br/>misma tubería sin escrituras ni envíos
+    API-->>Ow: vista previa {total, invited, resent, skipped,<br/>errors[], results[], runId:null}
+    Ow->>API: POST /academies/:id/import/students (cap students)<br/>multipart .csv/.xls/.xlsx: email,nombre +<br/>rut|dni|documento?,fecha_nacimiento?,sexo?,telefono?<br/>(plan/pagado_hasta legacy se ignoran)
     loop por fila (reporte por fila - un error no aborta)
-        alt Person existe
-            API->>DB: enrollment findFirst → update (endsAt=max, planId)<br/>o create ACTIVE si no tenía
+        alt Enrollment ACTIVE en la academia
+            API->>DB: update Person (solo campos presentes) → skipped
         else correo nuevo
-            API->>DB: Person stub + Enrollment ACTIVE con endsAt importado
-            API->>MAIL: invitación magic link 7d (studentInviteEmailHtml)
+            API->>DB: Person stub + AcademyInvite pendiente
+            API->>MAIL: invitación magic link 7d next=/academias/:id<br/>(academyInviteEmailHtml)
+        else cuenta existente sin enrollment
+            API->>DB: AcademyInvite pendiente + mail + push academy.invite
+        else invite pendiente ya existe
+            API->>MAIL: reenvío sin nueva fila → resent
         end
     end
-    API-->>Ow: results[] {row,email,status: imported|updated|invited|error,detail}
+    API->>DB: AcademyImportRun (kind, fileName, counts, results)
+    API-->>Ow: {total, invited, resent, skipped, errors[], results[], runId}<br/>→ card Historial + ficha /importar/[runId]
 
-    Ow->>API: POST /academies/:id/import/schedule (cap schedule)<br/>CSV: serie,estilo?,nivel?,dia_semana,hora_inicio,hora_fin,...
-    API->>API: agrupa por serie+mes → upsert ClassSeries<br/>slot dedup por weekday+start+end → Class del mes materializadas
-    API-->>Ow: results[] {row,serie,status: ok|warn|error,detail}
+    Ow->>API: POST /academies/:id/import/schedule (cap schedule + classes)<br/>CSV: serie,estilo?,nivel?,dia_semana,hora_inicio,hora_fin,...
+    API->>API: agrupa por serie → upsert ClassSeries<br/>slot dedup por weekday+start+end → Class de la ventana materializadas
+    API-->>Ow: results[] {row,serie,status: ok|warn|error,detail} + runId
 ```
 
-- **Alumnos** (spec academy-import-slim-fields): requeridas solo `email,nombre`; el plan es opcional (fila sin plan → Enrollment `planId:null`). Opcionales: `rut|dni|documento` → `Person.nationalId`, `fecha_nacimiento` (DD/MM/YYYY o YYYY-MM-DD) → `birthDate`, `sexo` (m/f/otro + alias) → `gender`, `telefono`, `plan`, `pagado_hasta`. El plan se resuelve por nombre contra los planes activos de la academia (match case/acento-insensible); `pagado_hasta` (YYYY-MM-DD) → `endsAt` al mediodía UTC (el día completo cubierto en Chile). Re-importar es seguro: `endsAt = max(existente, importado)` y el update por email solo sobreescribe los campos presentes en la fila.
-- **Horario**: `dia_semana` acepta 0-6 o nombre en español; `estilo`/`nivel` se validan contra catálogo (no se auto-crean); `instructor_email` debe ser instructor de la academia - si no existe, el slot queda sin instructor con `warn`. Los Class del mes se materializan igual que `POST /series`.
+- **Alumnos** (change academy-import-invites): el import es **canal de invitación** - nunca escribe `Enrollment` (la inscripción nace de la compra del plan o de la liquidación del staff). Requeridas solo `email,nombre`; opcionales `rut|dni|documento` → `Person.nationalId`, `fecha_nacimiento` (DD/MM/YYYY o YYYY-MM-DD) → `birthDate`, `sexo` (m/f/otro + alias) → `gender`, `telefono` → E.164 con país de la academia. Columnas legacy `plan`/`pagado_hasta` se ignoran si vienen. Status por fila: `invited` (invite nuevo o cuenta existente sin enrollment: mail + push), `resent` (invite pendiente reenviado), `skipped` (Enrollment ACTIVE vigente - Person igual se actualiza - o email duplicado en la planilla), `error` (fila inválida).
+- **`?dryRun=1`**: misma tubería sin escrituras, envíos ni materialización - la vista previa que el front exige antes de habilitar "Importar"; `runId:null` y no deja `AcademyImportRun`.
+- **Historial**: cada corrida real persiste `AcademyImportRun`; `GET /academies/:id/import/runs` (cap students) lista para la card "Historial" de `/academia/configuracion/importar` y `GET .../runs/:runId` alimenta la ficha fila a fila.
+- **Horario**: `dia_semana` acepta 0-6 o nombre en español; `estilo`/`nivel` se validan contra catálogo (no se auto-crean); `instructor_email` debe ser instructor de la academia - si no existe, el slot queda sin instructor con `warn`. Los Class de la ventana rodante se materializan igual que `POST /series`; `capacidad` alimenta el quórum de la serie.
 - **Límites**: archivo ≤2MB y ≤500 filas; columnas requeridas ausentes → 400. Formatos `.csv` (parser propio en `src/common/csv.ts`: comillas, `""`, \r\n, BOM) y `.xls`/`.xlsx` (primera hoja vía SheetJS `xlsx` raw:false; formato por extensión y/o MIME).
 
 ## Clase suelta / taller - compra → asiento pagado (WORKSHOP)
