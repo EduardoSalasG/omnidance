@@ -137,6 +137,20 @@
         },
         "active": "Activo",
         "inactive": "Inactivo"
+      },
+      "sessions": {
+        "title": "Sesiones",
+        "active": "Activa",
+        "revoked": "Revocada",
+        "lastSeen": "Última actividad {date}",
+        "revoke": "Cerrar",
+        "revokeAll": "Cerrar todas las sesiones",
+        "revokeAllConfirm": "¿Cerrar todas las sesiones de esta persona? Quedará fuera de todos sus dispositivos.",
+        "revokeAllCta": "Cerrar todas",
+        "revokedOne": "Sesión cerrada",
+        "revokedAll": "{count} sesiones cerradas",
+        "empty": "Sin sesiones registradas",
+        "error": "No se pudieron cargar las sesiones"
       }
     },
     "trials": {

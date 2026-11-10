@@ -26,6 +26,7 @@ import { AdminCityGuidesService } from "./application/city-guides.service";
 import { AdminPlatformPromosController } from "./infrastructure/platform-promos.controller";
 import { AdminTierPricesController } from "./infrastructure/tier-prices.controller";
 import { AdminPlatformChargesController } from "./infrastructure/platform-charges.controller";
+import { AdminUserSessionsController } from "./infrastructure/user-sessions.controller";
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { AdminPlatformChargesController } from "./infrastructure/platform-charge
     AdminPlatformPromosController,
     AdminTierPricesController,
     AdminPlatformChargesController,
+    AdminUserSessionsController,
   ],
   providers: [AdminBillingService, AdminCityGuidesService],
 })

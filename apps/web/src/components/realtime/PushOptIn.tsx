@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { clientPlatform } from "@/lib/device";
 import { useMe } from "@/lib/me-context";
 import { useLegalConsent } from "@/lib/legal-consent";
 import { CHROME_HIDDEN_PREFIXES } from "@/components/layout/BottomNav";
@@ -153,6 +154,9 @@ export function PushOptIn() {
           token: subscription.endpoint,
           platform: "WEB",
           keys,
+          // Telemetría del dispositivo (spec auth-sessions): OS
+          // platform - el userAgent lo toma el API del header.
+          devicePlatform: clientPlatform(),
         }),
       });
       if (!res.ok) throw new Error(`push-tokens ${res.status}`);

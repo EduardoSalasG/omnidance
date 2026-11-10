@@ -89,11 +89,18 @@ class FakeNotificationsRepo implements NotificationsRepo {
     return count;
   }
 
-  async upsertPushToken(personId: string, token: string, payload: unknown) {
+  async upsertPushToken(
+    personId: string,
+    token: string,
+    payload: unknown,
+    device?: { userAgent?: string; platform?: string },
+  ) {
     const existing = this.pushTokens.find((t) => t.token === token);
     if (existing) {
       existing.personId = personId;
       existing.payload = payload as PushToken["payload"];
+      existing.userAgent = device?.userAgent ?? null;
+      existing.platform = device?.platform ?? null;
       return existing;
     }
     const t: PushToken = {
@@ -101,6 +108,8 @@ class FakeNotificationsRepo implements NotificationsRepo {
       personId,
       token,
       payload: payload as PushToken["payload"],
+      userAgent: device?.userAgent ?? null,
+      platform: device?.platform ?? null,
       createdAt: new Date(),
     };
     this.pushTokens.push(t);
@@ -397,6 +406,18 @@ describe("NotificationsService push tokens", () => {
     expect(repo.pushTokens).toHaveLength(1);
     expect(second.id).toBe(first.id);
     expect(second.payload).toEqual({ platform: "ANDROID" });
+  });
+
+  it("registerPushToken con device → columnas userAgent/platform (spec auth-sessions)", async () => {
+    const t = await svc.registerPushToken(
+      "per-1",
+      "tok-dev",
+      "WEB",
+      undefined,
+      { userAgent: "Mozilla/5.0 (Android 14)", platform: "Android" },
+    );
+    expect(t.userAgent).toBe("Mozilla/5.0 (Android 14)");
+    expect(t.platform).toBe("Android");
   });
 
   it("plataforma inválida → NotificationDomainError INVALID_PLATFORM", async () => {

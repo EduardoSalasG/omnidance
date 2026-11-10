@@ -53,7 +53,8 @@
       "commission": "Commission",
       "levelId": "Niveau",
       "typeId": "Modalité",
-      "kind": "Type de canal"
+      "kind": "Type de canal",
+      "platform": "Plateforme"
     },
     "optionLabels": {
       "SCAN": "Scan",
@@ -135,7 +136,16 @@
       "gift_ticket": "Ticket cadeau",
       "link": "Lien",
       "none": "Sans donnée",
-      "sin_dato": "Sans donnée"
+      "sin_dato": "Sans donnée",
+      "standalone": "Installée",
+      "browser": "Navigateur",
+      "android": "Android",
+      "ios": "iOS",
+      "windows": "Windows",
+      "macos": "macOS",
+      "linux": "Linux",
+      "chromeos": "Chrome OS",
+      "other": "Autre"
     },
     "entities": {
       "sales": "Ventes",
@@ -163,7 +173,8 @@
       "gateway-transactions": "Transactions passerelle",
       "membership-subscriptions": "Abonnements",
       "payouts": "Règlements",
-      "acquisition": "Inscriptions par canal"
+      "acquisition": "Inscriptions par canal",
+      "dispositivos": "Appareils"
     },
     "system": {
       "sales": "Ventes",
@@ -373,6 +384,12 @@
       "acquisition": {
         "canal": "Canal",
         "altas": "Inscriptions",
+        "pct": "%"
+      },
+      "dispositivos": {
+        "modo": "Mode",
+        "plataforma": "Plateforme",
+        "altas": "Lancements",
         "pct": "%"
       }
     }

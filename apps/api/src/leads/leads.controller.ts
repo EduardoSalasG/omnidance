@@ -21,7 +21,10 @@ import type { Request, Response } from "express";
 import { PrismaService } from "../prisma.service";
 import { NotificationsService } from "../notifications/domain/notifications.service";
 import { AuthService } from "../auth/domain/auth.service";
-import { setSessionCookie } from "../auth/infrastructure/auth.controller";
+import {
+  sessionMeta,
+  setSessionCookie,
+} from "../auth/infrastructure/auth.controller";
 import { emitActivity } from "../common/activity-log";
 
 // Roles que un lead puede declarar en el formulario de /pro - whitelist
@@ -287,7 +290,10 @@ export class LeadsController {
       });
     }
 
-    const session = await this.auth.issueSession(personId);
+    const session = await this.auth.issueSession(
+      personId,
+      sessionMeta(req),
+    );
     setSessionCookie(res, session);
     return { ok: true };
   }

@@ -87,11 +87,19 @@ export class PrismaNotificationsRepo implements NotificationsRepo {
     personId: string,
     token: string,
     payload: Prisma.InputJsonValue,
+    device?: { userAgent?: string; platform?: string },
   ) {
+    // Telemetría del dispositivo (spec auth-sessions): el upsert la
+    // refresca en cada registro - el dispositivo detrás del endpoint
+    // puede actualizar OS/browser manteniendo la suscripción.
+    const deviceData = {
+      userAgent: device?.userAgent ?? null,
+      platform: device?.platform ?? null,
+    };
     return this.prisma.pushToken.upsert({
       where: { token },
-      create: { personId, token, payload },
-      update: { personId, payload },
+      create: { personId, token, payload, ...deviceData },
+      update: { personId, payload, ...deviceData },
     });
   }
 

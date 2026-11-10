@@ -234,4 +234,90 @@ export class PrismaAuthRepo implements AuthRepo {
       .update({ where: { id }, data: { consumedAt: new Date() } })
       .then(() => {});
   }
+
+  // Magic token consumible (spec api-hardening/auth): el insert con
+  // @@unique(tokenHash) ES el claim atómico - dos verifies concurrentes
+  // del mismo link serializan en la constraint y el perdedor recibe
+  // P2002 → false (ya consumido). El service decide el grace por sesión.
+  async consumeMagicToken(data: { tokenHash: string; email: string }) {
+    try {
+      await this.prisma.magicTokenUse.create({ data });
+      return true;
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        return false;
+      }
+      throw e;
+    }
+  }
+
+  // ─── Sesiones persistidas (spec auth-sessions) ───
+
+  async createAuthSession(data: {
+    jti: string;
+    personId: string;
+    userAgent?: string;
+    ip?: string;
+  }) {
+    await this.prisma.authSession.create({ data });
+  }
+
+  findAuthSessionByJti(jti: string) {
+    return this.prisma.authSession.findUnique({
+      where: { jti },
+      select: { id: true, revokedAt: true, lastSeenAt: true },
+    });
+  }
+
+  async touchAuthSession(jti: string) {
+    // updateMany tolera fila inexistente (la sesión pudo ser revocada y
+    // borrada entre el check del guard y este write - no es error).
+    await this.prisma.authSession.updateMany({
+      where: { jti, revokedAt: null },
+      data: { lastSeenAt: new Date() },
+    });
+  }
+
+  listAuthSessions(personId: string) {
+    return this.prisma.authSession.findMany({
+      where: { personId },
+      orderBy: { lastSeenAt: "desc" },
+      take: 100,
+    });
+  }
+
+  async revokeAuthSession(id: string, personId?: string) {
+    const res = await this.prisma.authSession.updateMany({
+      where: {
+        id,
+        revokedAt: null,
+        ...(personId ? { personId } : {}),
+      },
+      data: { revokedAt: new Date() },
+    });
+    return res.count;
+  }
+
+  async revokeOtherAuthSessions(personId: string, exceptJti?: string) {
+    const res = await this.prisma.authSession.updateMany({
+      where: {
+        personId,
+        revokedAt: null,
+        ...(exceptJti ? { jti: { not: exceptJti } } : {}),
+      },
+      data: { revokedAt: new Date() },
+    });
+    return res.count;
+  }
+
+  async revokeAllAuthSessions(personId: string) {
+    const res = await this.prisma.authSession.updateMany({
+      where: { personId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return res.count;
+  }
 }

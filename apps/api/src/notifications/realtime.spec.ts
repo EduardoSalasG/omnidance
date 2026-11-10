@@ -61,6 +61,8 @@ function fakePushToken(personId: string, id = "pt-1"): PushToken {
     personId,
     token: "https://push.example.com/sub/abc",
     payload: { platform: "WEB", p256dh: "P256DH", auth: "AUTH" },
+    userAgent: null,
+    platform: null,
     createdAt: new Date(),
   };
 }

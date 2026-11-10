@@ -91,6 +91,7 @@ const ENTITY_TITLES: Record<QueryRole, Record<string, string>> = {
     people: "Personas",
     leads: "Leads",
     acquisition: "Altas por canal",
+    dispositivos: "Dispositivos",
     "payment-events": "Eventos de pago",
     "gateway-transactions": "Transacciones de pasarela",
     "membership-subscriptions": "Suscripciones",

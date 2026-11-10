@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { ClarityScript } from "@/components/clarity";
 import { GtmNoScript, GtmScript } from "@/components/gtm";
 import { PageLoadingHost } from "@/components/ui/page-loading-host";
+import { AppLaunchTracker } from "@/components/app-launch-tracker";
 import { commonMessages } from "@/i18n/messages";
 import { routing, type Locale } from "@/i18n/routing";
 import { SITE_URL } from "@/lib/site-url";
@@ -125,6 +126,9 @@ export default async function RootLayout({
           {/* Host del beacon de carga: spinner único para navegación
               (NavPendingOverlay) y cargas de página (PageLoading). */}
           <PageLoadingHost />
+          {/* Telemetría app.launch (spec auth-sessions): una vez por
+              arranque, también anónima en las superficies públicas. */}
+          <AppLaunchTracker />
         </NextIntlClientProvider>
       </body>
     </html>

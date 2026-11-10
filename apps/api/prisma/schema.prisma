@@ -123,6 +123,7 @@ model Person {
   socialPass           SocialPass?
   socialPassLedger     SocialPassLedger[]
   activityEvents       ActivityEvent[]
+  authSessions         AuthSession[]
 
   @@index([deletedAt])
 }
@@ -203,6 +204,41 @@ model AuthOtp {
   createdAt  DateTime  @default(now())
 
   @@index([email])
+}
+
+// Magic link consumido (spec api-hardening/auth): el magic token es JWT
+// stateless - esta marca persistida lo vuelve single-use real (misma
+// razón que AuthOtp existe fuera del JWT). tokenHash = sha256(token +
+// pepper) - nunca el JWT en claro. El unique es el claim atómico del
+// primer verify; el reuso solo pasa con sesión válida de la misma
+// Person (grace de prefetchers - lo decide AuthService).
+model MagicTokenUse {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  email      String
+  consumedAt DateTime @default(now())
+
+  @@index([email])
+}
+
+// Sesión persistida (spec auth-sessions): una fila por JWT de sesión
+// emitido - el claim `jti` del token apunta a esta fila. Permite ver
+// "mis dispositivos", revocar sesiones propias y matar sesiones desde
+// admin. SessionGuard rechaza tokens cuyo revokedAt no sea null
+// (tokens pre-change sin jti quedan fuera de revocación y expiran).
+// lastSeenAt se actualiza con muestreo (máx 1 write/min por sesión).
+model AuthSession {
+  id         String    @id @default(cuid())
+  jti        String    @unique
+  person     Person    @relation(fields: [personId], references: [id])
+  personId   String
+  userAgent  String?
+  ip         String?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([personId, revokedAt])
 }
 
 // ═══════════════════ ESTILOS / BAILE ═══════════════════
@@ -2044,7 +2080,13 @@ model PushToken {
   person    Person   @relation(fields: [personId], references: [id])
   personId  String
   token     String   @unique // Web Push subscription endpoint
-  payload   Json // keys p256dh/auth
+  payload   Json // keys p256dh/auth (+ canal push WEB|IOS|ANDROID en platform del JSON)
+  // Telemetría del dispositivo (spec auth-sessions): userAgent del
+  // header al suscribirse + plataforma OS declarada por el front
+  // (navigator.userAgentData?.platform o derivada del UA). Distinto de
+  // payload.platform, que es el canal de push.
+  userAgent String?
+  platform  String?
   createdAt DateTime @default(now())
 }
 

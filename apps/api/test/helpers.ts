@@ -18,6 +18,8 @@ export async function deletePeople(
     where: { personId: { in: ids } },
   });
   await prisma.personRole.deleteMany({ where: { personId: { in: ids } } });
+  // auth-sessions: las sesiones persistidas referencian Person.
+  await prisma.authSession.deleteMany({ where: { personId: { in: ids } } });
   for (let i = 0; i < 4; i++) {
     try {
       await prisma.person.deleteMany({ where: { id: { in: ids } } });

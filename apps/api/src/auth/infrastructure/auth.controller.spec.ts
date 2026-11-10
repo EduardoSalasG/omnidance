@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ThrottlerException } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "../domain/auth.service";
@@ -158,6 +159,99 @@ class FakeRepo {
   async consumeOtp(id: string) {
     const o = this.otps.find((x) => x.id === id);
     if (o) o.consumedAt = new Date();
+  }
+
+  // MagicTokenUse (spec api-hardening/auth): el set de hashes consumidos
+  // replica la unique de la tabla - true = consumido por este llamado.
+  consumedMagicTokens = new Set<string>();
+
+  async consumeMagicToken(data: { tokenHash: string; email: string }) {
+    if (this.consumedMagicTokens.has(data.tokenHash)) return false;
+    this.consumedMagicTokens.add(data.tokenHash);
+    return true;
+  }
+
+  // AuthSession (spec auth-sessions): una fila por JWT emitido.
+  sessions: {
+    id: string;
+    jti: string;
+    personId: string;
+    userAgent: string | null;
+    ip: string | null;
+    createdAt: Date;
+    lastSeenAt: Date;
+    revokedAt: Date | null;
+  }[] = [];
+
+  async createAuthSession(data: {
+    jti: string;
+    personId: string;
+    userAgent?: string;
+    ip?: string;
+  }) {
+    this.sessions.push({
+      id: `as-${this.sessions.length + 1}`,
+      jti: data.jti,
+      personId: data.personId,
+      userAgent: data.userAgent ?? null,
+      ip: data.ip ?? null,
+      createdAt: new Date(),
+      lastSeenAt: new Date(),
+      revokedAt: null,
+    });
+  }
+
+  async findAuthSessionByJti(jti: string) {
+    const s = this.sessions.find((x) => x.jti === jti);
+    return s
+      ? { id: s.id, revokedAt: s.revokedAt, lastSeenAt: s.lastSeenAt }
+      : null;
+  }
+
+  async touchAuthSession(jti: string) {
+    const s = this.sessions.find((x) => x.jti === jti && !x.revokedAt);
+    if (s) s.lastSeenAt = new Date();
+  }
+
+  async listAuthSessions(personId: string) {
+    return this.sessions.filter((s) => s.personId === personId);
+  }
+
+  async revokeAuthSession(id: string, personId?: string) {
+    let n = 0;
+    for (const s of this.sessions) {
+      if (
+        s.id === id &&
+        !s.revokedAt &&
+        (!personId || s.personId === personId)
+      ) {
+        s.revokedAt = new Date();
+        n++;
+      }
+    }
+    return n;
+  }
+
+  async revokeOtherAuthSessions(personId: string, exceptJti?: string) {
+    let n = 0;
+    for (const s of this.sessions) {
+      if (s.personId === personId && !s.revokedAt && s.jti !== exceptJti) {
+        s.revokedAt = new Date();
+        n++;
+      }
+    }
+    return n;
+  }
+
+  async revokeAllAuthSessions(personId: string) {
+    let n = 0;
+    for (const s of this.sessions) {
+      if (s.personId === personId && !s.revokedAt) {
+        s.revokedAt = new Date();
+        n++;
+      }
+    }
+    return n;
   }
 }
 
@@ -365,7 +459,7 @@ describe("AuthController - consentimiento legal", () => {
     const html: string = mailer.send.mock.calls[0][2];
     const token = /token=([^"'\s]+)/.exec(html)![1];
     const res = mkRes();
-    await ctrl.verify(token, res);
+    await ctrl.verify(token, mkReq(), res);
     expect(res.redirect).toHaveBeenCalledWith(expect.stringContaining("/inicio"));
     expect(repo.people.size).toBe(1);
   });
@@ -395,7 +489,7 @@ describe("AuthController - consentimiento legal", () => {
     await ctrl.magicLink({ email: "link@omnidance.dev", consent: true });
     const html: string = mailer.send.mock.calls[0][2];
     const token = /token=([^"'\s]+)/.exec(html)![1];
-    await ctrl.verify(token, mkRes());
+    await ctrl.verify(token, mkReq(), mkRes());
     const person = repo.people.get("link@omnidance.dev")!;
     expect(stampedIds()).toEqual([person.id]);
     expect(person.consentVersion).toBe("cl-v1.0");
@@ -408,7 +502,7 @@ describe("AuthController - consentimiento legal", () => {
     await ctrl.magicLink({ email: "plain@omnidance.dev" });
     const html: string = mailer.send.mock.calls[0][2];
     const token = /token=([^"'\s]+)/.exec(html)![1];
-    await ctrl.verify(token, mkRes());
+    await ctrl.verify(token, mkReq(), mkRes());
     expect(stampedIds()).toEqual([]);
   });
 
@@ -426,7 +520,7 @@ describe("AuthController - consentimiento legal", () => {
     await ctrl.magicLink({ email: "nuevo@omnidance.dev", consent: true });
     const html: string = mailer.send.mock.calls[0][2];
     const token = /token=([^"'\s]+)/.exec(html)![1];
-    await ctrl.verify(token, mkRes());
+    await ctrl.verify(token, mkReq(), mkRes());
     const person = repo.people.get("nuevo@omnidance.dev")!;
     expect(stampedIds()).toEqual([person.id]);
   });
@@ -548,7 +642,7 @@ describe("AuthController - verificación de correo", () => {
     // El link del correo de acceso verifica el correo al clickearlo.
     const html: string = mailer.send.mock.calls[1][2];
     const token = /token=([^"'\s]+)/.exec(html)![1];
-    await ctrl.verify(token, mkRes());
+    await ctrl.verify(token, mkReq(), mkRes());
     expect(person.verifiedAt).toBeInstanceOf(Date);
   });
 
@@ -687,7 +781,7 @@ describe("AuthController - lente academy al consumir invite", () => {
       next: "/academias/acad-1",
     });
     const res = mkRes();
-    await ctrl2.verify(token, res);
+    await ctrl2.verify(token, mkReq(), res);
     expect(res.cookie).toHaveBeenCalledWith(
       "omnidance_lens",
       "academy",
@@ -705,7 +799,7 @@ describe("AuthController - lente academy al consumir invite", () => {
     const token = await auth.createMagicToken("invitado@omnidance.dev", false, "15m", {
       next: "/academias/acad-1",
     });
-    await ctrl2.verify(token, mkRes());
+    await ctrl2.verify(token, mkReq(), mkRes());
     expect(prisma.activityEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -723,7 +817,7 @@ describe("AuthController - lente academy al consumir invite", () => {
       next: "/academias/acad-1",
     });
     const res = mkRes();
-    await ctrl2.verify(token, res);
+    await ctrl2.verify(token, mkReq(), res);
     const lensCalls = (res.cookie as ReturnType<typeof vi.fn>).mock.calls.filter(
       (c) => c[0] === "omnidance_lens",
     );
@@ -840,7 +934,7 @@ describe("AuthController - fuente de adquisición orgánica", () => {
     });
     const html: string = mailer.send.mock.calls[0][2];
     const token = /token=([^"'\s]+)/.exec(html)![1];
-    await ctrl.verify(token, mkRes());
+    await ctrl.verify(token, mkReq(), mkRes());
     const person = repo.people.get("ml@omnidance.dev")!;
     expect(person.acquisitionSource).toBe("utm:tiktok");
   });
@@ -880,9 +974,238 @@ describe("AuthController - fuente de adquisición orgánica", () => {
     // calls: welcome + verify del register + el magic link (último).
     const html: string = mailer.send.mock.calls.at(-1)![2];
     const token = /token=([^"'\s]+)/.exec(html)![1];
-    await ctrl.verify(token, mkRes());
+    await ctrl.verify(token, mkReq(), mkRes());
     expect(repo.people.get("vieja@omnidance.dev")!.acquisitionSource).toBe(
       "utm:instagram",
     );
+  });
+});
+
+// spec api-hardening/auth: el magic link es single-use persistido
+// (MagicTokenUse); el reuso solo pasa con sesión válida de la misma
+// Person (grace de relogin/prefetch), si no → 401 uniforme.
+describe("AuthController - magic token single-use", () => {
+  let auth: AuthService;
+  let repo: FakeRepo;
+  let consent: FakeConsent;
+  let mailer: { send: ReturnType<typeof vi.fn> };
+  let ctrl: AuthController;
+
+  beforeEach(() => {
+    repo = new FakeRepo();
+    auth = new AuthService(SECRET, repo as unknown as AuthRepo);
+    consent = new FakeConsent(repo);
+    mailer = { send: vi.fn(async () => {}) };
+    ctrl = new AuthController(
+      auth,
+      mailer as unknown as Mailer,
+      repo as unknown as AuthRepo,
+      consent as unknown as ConsentService,
+    );
+  });
+
+  const reqWithSession = async (personId: string) => {
+    const session = await auth.issueSession(personId);
+    return {
+      ip: "127.0.0.1",
+      headers: { cookie: `omnidance_session=${session}` },
+    } as unknown as Request;
+  };
+
+  it("reuso sin sesión → 401 y no emite cookie", async () => {
+    const token = await auth.createMagicToken("uno@omnidance.dev");
+    const res1 = mkRes();
+    await ctrl.verify(token, mkReq(), res1);
+    expect(res1.redirect).toHaveBeenCalled();
+    expect(repo.consumedMagicTokens.size).toBe(1);
+    // Tercero con el mismo link, sin sesión → rechazado.
+    await expect(
+      ctrl.verify(token, mkReq(), mkRes()),
+    ).rejects.toThrow("Link inválido o expirado");
+  });
+
+  it("reuso con sesión de OTRA Person → 401", async () => {
+    const token = await auth.createMagicToken("dos@omnidance.dev");
+    await ctrl.verify(token, mkReq(), mkRes());
+    const otra = await repo.upsertByEmail("tercero@omnidance.dev");
+    await expect(
+      ctrl.verify(token, await reqWithSession(otra.id), mkRes()),
+    ).rejects.toThrow("Link inválido o expirado");
+  });
+
+  it("reuso con sesión válida de la misma Person → grace (redirect, sin nueva cookie)", async () => {
+    const token = await auth.createMagicToken(
+      "tres@omnidance.dev",
+      false,
+      "15m",
+      { next: "/academias/ac-9" },
+    );
+    await ctrl.verify(token, mkReq(), mkRes());
+    const person = repo.people.get("tres@omnidance.dev")!;
+    const res = mkRes();
+    await ctrl.verify(token, await reqWithSession(person.id), res);
+    expect(res.redirect).toHaveBeenCalledWith(
+      expect.stringContaining("/academias/ac-9"),
+    );
+    // El grace no re-emite la sesión - la request ya la traía.
+    expect(res.cookie).not.toHaveBeenCalled();
+  });
+
+  it("next con %5c encoded se ignora → fallback /inicio", async () => {
+    const token = await auth.createMagicToken(
+      "cuatro@omnidance.dev",
+      false,
+      "15m",
+      { next: "/%5cevil.com" },
+    );
+    await repo.upsertByEmail("cuatro@omnidance.dev");
+    const res = mkRes();
+    await ctrl.verify(token, mkReq(), res);
+    expect(res.redirect).toHaveBeenCalledWith(
+      expect.stringContaining("/inicio"),
+    );
+    expect(res.redirect).not.toHaveBeenCalledWith(
+      expect.stringContaining("evil.com"),
+    );
+  });
+});
+
+// spec api-hardening: cap por email destino (5/hora) además del por-IP -
+// superado, 429 uniforme (ThrottlerException) y no sale el correo.
+describe("AuthController - cap por email en envíos", () => {
+  let auth: AuthService;
+  let repo: FakeRepo;
+  let mailer: { send: ReturnType<typeof vi.fn> };
+  let ctrl: AuthController;
+
+  beforeEach(() => {
+    repo = new FakeRepo();
+    auth = new AuthService(SECRET, repo as unknown as AuthRepo);
+    mailer = { send: vi.fn(async () => {}) };
+    ctrl = new AuthController(
+      auth,
+      mailer as unknown as Mailer,
+      repo as unknown as AuthRepo,
+      new FakeConsent(repo) as unknown as ConsentService,
+    );
+  });
+
+  it("magic-link: el 6º envío a la misma víctima → 429 y no envía", async () => {
+    for (let i = 0; i < 5; i++) {
+      await ctrl.magicLink({ email: "cap@omnidance.dev", consent: true });
+    }
+    expect(mailer.send).toHaveBeenCalledTimes(5);
+    await expect(
+      ctrl.magicLink({ email: "cap@omnidance.dev", consent: true }),
+    ).rejects.toBeInstanceOf(ThrottlerException);
+    expect(mailer.send).toHaveBeenCalledTimes(5);
+  });
+
+  it("el cap es por email: otro destinatario no se afecta", async () => {
+    for (let i = 0; i < 5; i++) {
+      await ctrl.magicLink({ email: "lleno@omnidance.dev", consent: true });
+    }
+    await ctrl.magicLink({ email: "otro@omnidance.dev", consent: true });
+    expect(mailer.send).toHaveBeenCalledTimes(6);
+  });
+});
+
+// spec auth-sessions: toda emisión de sesión crea la fila AuthSession
+// con el jti del JWT + userAgent/ip de la request.
+describe("AuthController - AuthSession en emisión", () => {
+  let auth: AuthService;
+  let repo: FakeRepo;
+  let mailer: { send: ReturnType<typeof vi.fn> };
+  let ctrl: AuthController;
+
+  beforeEach(() => {
+    repo = new FakeRepo();
+    auth = new AuthService(SECRET, repo as unknown as AuthRepo);
+    mailer = { send: vi.fn(async () => {}) };
+    ctrl = new AuthController(
+      auth,
+      mailer as unknown as Mailer,
+      repo as unknown as AuthRepo,
+      new FakeConsent(repo) as unknown as ConsentService,
+    );
+  });
+
+  const UA =
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) Safari/604.1";
+  const mkUaReq = () =>
+    ({ ip: "9.9.9.9", headers: { "user-agent": UA } }) as unknown as Request;
+
+  // El token emitido viaja en la cookie: lo verifica el service y el
+  // jti resultante debe ser el de la fila AuthSession creada.
+  const cookieToken = (res: Response) =>
+    (res.cookie as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1] as
+      string;
+
+  it("login crea AuthSession con el jti del token + UA/ip de la request", async () => {
+    const person = await repo.createWithPassword(
+      "sess@omnidance.dev",
+      "Sess",
+      await auth.hashPassword("clave-secreta-123"),
+    );
+    const res = mkRes();
+    await ctrl.login(
+      { email: "sess@omnidance.dev", password: "clave-secreta-123" },
+      mkUaReq(),
+      res,
+    );
+    expect(repo.sessions).toHaveLength(1);
+    const row = repo.sessions[0];
+    const { personId, jti } = await auth.verifySession(cookieToken(res));
+    expect(personId).toBe(person.id);
+    expect(row.jti).toBe(jti);
+    expect(row.personId).toBe(person.id);
+    expect(row.userAgent).toBe(UA);
+    expect(row.ip).toBe("9.9.9.9");
+    expect(row.revokedAt).toBeNull();
+  });
+
+  it("verify (magic link) crea AuthSession", async () => {
+    await ctrl.magicLink({ email: "magic@omnidance.dev", consent: true });
+    const html: string = mailer.send.mock.calls[0][2];
+    const token = /token=([^"'\s]+)/.exec(html)![1];
+    const res = mkRes();
+    await ctrl.verify(token, mkUaReq(), res);
+    expect(repo.sessions).toHaveLength(1);
+    // El verify responde redirect, no cookie legible por el spec:
+    // la fila queda ligada a la Person creada.
+    const person = repo.people.get("magic@omnidance.dev")!;
+    expect(repo.sessions[0].personId).toBe(person.id);
+    expect(repo.sessions[0].userAgent).toBe(UA);
+  });
+
+  it("otp/verify crea AuthSession", async () => {
+    await ctrl.magicLink({ email: "otp2@omnidance.dev", consent: true });
+    const html: string = mailer.send.mock.calls[0][2];
+    const code = /letter-spacing:0\.4em;[^<]*>(\d{6})</.exec(html)![1];
+    const res = mkRes();
+    await ctrl.otpVerify(
+      { email: "otp2@omnidance.dev", code },
+      res,
+      mkUaReq(),
+    );
+    expect(repo.sessions).toHaveLength(1);
+    const { jti } = await auth.verifySession(cookieToken(res));
+    expect(repo.sessions[0].jti).toBe(jti);
+  });
+
+  it("register crea AuthSession", async () => {
+    const res = mkRes();
+    await ctrl.register(
+      {
+        email: "reg@omnidance.dev",
+        name: "Reg",
+        password: "clave-secreta-123",
+      },
+      res,
+      mkUaReq(),
+    );
+    expect(repo.sessions).toHaveLength(1);
+    const person = repo.people.get("reg@omnidance.dev")!;
+    expect(repo.sessions[0].personId).toBe(person.id);
   });
 });

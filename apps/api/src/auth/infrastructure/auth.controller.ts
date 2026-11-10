@@ -18,7 +18,7 @@ import {
 import type { Person } from "@prisma/client";
 import { IsBoolean, IsEmail, IsOptional, IsString, Matches, MinLength, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
-import { Throttle } from "@nestjs/throttler";
+import { Throttle, ThrottlerException } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import {
   throttleAuthLimit,
@@ -197,6 +197,37 @@ function recordFailure(key: string) {
   recentFailures(key).push(Date.now());
 }
 
+// Cap por email destino (spec api-hardening): complemento del throttle
+// por IP - un atacante con IPs rotadas no puede mandar más de ~5 correos
+// de acceso a una misma víctima por hora. In-memory como loginAttempts:
+// suficiente a escala monolito; en multi-instancia se reemplaza por Redis.
+const EMAIL_WINDOW_MS = 60 * 60 * 1000;
+const EMAIL_MAX_SENDS = 5;
+const emailSendAttempts = new Map<string, number[]>();
+
+function recentEmailSends(email: string): number[] {
+  const now = Date.now();
+  const hits = (emailSendAttempts.get(email) ?? []).filter(
+    (t) => now - t < EMAIL_WINDOW_MS,
+  );
+  emailSendAttempts.set(email, hits);
+  return hits;
+}
+
+// Se cuenta el envío REAL (dentro de sendMagicLink): cada correo de
+// acceso/verificación descuenta un crédito del destinatario.
+function recordEmailSend(email: string) {
+  recentEmailSends(email).push(Date.now());
+}
+
+// 429 uniforme - la misma excepción que lanza el ThrottlerGuard al
+// superar el límite por IP; el cliente no distingue el origen del cap.
+function assertEmailSendCap(email: string) {
+  if (recentEmailSends(email).length >= EMAIL_MAX_SENDS) {
+    throw new ThrottlerException();
+  }
+}
+
 // Límite estricto anti spam/fuerza bruta (spec api-hardening): pocos
 // intentos por IP en magic-link/login/register. Se resuelve por request
 // → respeta THROTTLE_AUTH_LIMIT/THROTTLE_TTL_MS de env en runtime.
@@ -207,16 +238,33 @@ const AUTH_THROTTLE = {
   },
 };
 
+// Contexto de la request que emite la sesión (spec auth-sessions):
+// userAgent + ip se persisten en la fila AuthSession para "mis
+// dispositivos" y la ficha admin. Exportado: leads (acceso demo) emite
+// sesión por el mismo camino.
+export function sessionMeta(req?: Request): {
+  userAgent?: string;
+  ip?: string;
+} {
+  const ua = req?.headers?.["user-agent"];
+  return {
+    userAgent: typeof ua === "string" ? ua : undefined,
+    ip: req?.ip,
+  };
+}
+
 // `next` del magic token/OTP (spec academies/student-invites): solo
-// path interno - `/…` sin `//` ni `/\\` iniciales (open redirect via
-// protocol-relative o backslash normalizado). Misma regla que
+// path interno - `/…` sin `//`, `/\\` ni `/%` iniciales (open redirect via
+// protocol-relative, backslash o percent-encoded - `/%5cevil.com` puede
+// normalizarse a `/\evil.com` en el browser). Misma regla que
 // safeInternalPath del web.
 function internalNext(next: string | undefined): string | null {
   if (!next) return null;
   if (
     next.startsWith("/") &&
     !next.startsWith("//") &&
-    !next.startsWith("/\\")
+    !next.startsWith("/\\") &&
+    !next.startsWith("/%")
   ) {
     return next;
   }
@@ -346,6 +394,10 @@ export class AuthController {
     // Consentimiento y rol pedido viajan como claims del token y en la
     // fila del OTP: ambos caminos los estampan al crear la sesión.
     const resolved = resolveAcquisition(acquisition);
+    // Cap por email destino (spec api-hardening): el envío real cuenta
+    // contra la cuota horaria del correo - el check del cap va en los
+    // handlers (429 uniforme antes de cualquier trabajo).
+    recordEmailSend(email);
     const token = await this.auth.createMagicToken(email, consent, "15m", {
       role,
       acquisition: resolved?.detail,
@@ -379,6 +431,7 @@ export class AuthController {
   @Throttle(AUTH_THROTTLE)
   async magicLink(@Body() dto: MagicLinkDto) {
     const email = dto.email.toLowerCase();
+    assertEmailSendCap(email);
     // Consent solo se exige cuando la acción crea la Person (spec
     // login-consent-on-create): una cuenta existente no repite el
     // check en cada login - el front muestra el checkbox tras este 400.
@@ -436,7 +489,10 @@ export class AuthController {
     // rol pedido (PENDING si aún no existía).
     const role = landingRole(dto.role);
     if (role) await this.repo.ensurePendingRole(person.id, role);
-    const session = await this.auth.issueSession(person.id);
+    const session = await this.auth.issueSession(
+      person.id,
+      sessionMeta(req),
+    );
     this.setSessionCookie(res, session);
     return { ok: true };
   }
@@ -447,8 +503,13 @@ export class AuthController {
   async register(
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
+    // Al final para no romper los specs que invocan (dto, res) - Nest
+    // resuelve por decorador, no por posición (spec auth-sessions:
+    // userAgent/ip de la fila AuthSession).
+    @Req() req?: Request,
   ) {
     const email = dto.email.toLowerCase();
+    assertEmailSendCap(email);
     const existing = await this.repo.findByEmail(email);
     if (existing) {
       // Cuenta pre-sembrada (piloto: personas reales con data ya
@@ -475,7 +536,10 @@ export class AuthController {
             dto.scopes,
           );
         }
-        const session = await this.auth.issueSession(existing.id);
+        const session = await this.auth.issueSession(
+          existing.id,
+          sessionMeta(req),
+        );
         this.setSessionCookie(res, session);
         return { ok: true };
       }
@@ -534,7 +598,10 @@ export class AuthController {
         `verification link a ${email} falló: ${(err as Error).message}`,
       );
     }
-    const session = await this.auth.issueSession(person.id);
+    const session = await this.auth.issueSession(
+      person.id,
+      sessionMeta(req),
+    );
     this.setSessionCookie(res, session);
     return { ok: true };
   }
@@ -554,6 +621,7 @@ export class AuthController {
     if (!person?.email) {
       throw new BadRequestException("la cuenta no tiene email");
     }
+    assertEmailSendCap(person.email);
     await this.sendMagicLink(person.email, false, undefined, "verify");
     return { ok: true };
   }
@@ -586,15 +654,51 @@ export class AuthController {
     return { ok: true };
   }
 
+  /**
+   * Sesión vigente de la request (si la hay) para el grace de reuso del
+   * magic token (spec api-hardening/auth): un link ya consumido solo
+   * pasa si quien lo re-abre ya está logueado como la MISMA Person
+   * (relogin/prefetch en el mismo navegador). Mismo parse de cookie
+   * que SessionGuard.extractToken.
+   */
+  private async sessionPersonId(req?: Request): Promise<string | undefined> {
+    const raw = req?.headers?.cookie
+      ?.split(";")
+      .map((c) => c.trim())
+      .find((c) => c.startsWith(`${SESSION_COOKIE}=`))
+      ?.split("=")[1];
+    if (!raw) return undefined;
+    try {
+      const { personId } = await this.auth.verifySession(raw);
+      return personId;
+    } catch {
+      return undefined;
+    }
+  }
+
   @Get("verify")
   @Throttle(AUTH_THROTTLE)
-  async verify(@Query("token") token: string, @Res() res: Response) {
+  async verify(
+    @Query("token") token: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
-      const { email, consent, role, next, acquisition } =
-        await this.auth.verifyMagicToken(token);
+      const { email, consent, role, next, acquisition, reused } =
+        await this.auth.verifyMagicToken(token, {
+          reuseForPersonId: await this.sessionPersonId(req),
+        });
       // Un `next` que no es path interno se ignora (spec
       // academies/student-invites): nunca open redirect.
       const safeNext = internalNext(next);
+      const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+      if (reused) {
+        // Grace (spec api-hardening/auth): el primer verify ya corrió
+        // los efectos (alta/consent/rol/invites) y emitió la sesión que
+        // esta request trae - solo queda el redirect al destino.
+        res.redirect(`${webUrl}${safeNext ?? "/inicio"}`);
+        return;
+      }
       // Si el correo no existía, el upsert crea la cuenta → bienvenida.
       const existed = await this.repo.findByEmail(email);
       const person = await this.repo.upsertByEmail(
@@ -615,8 +719,10 @@ export class AuthController {
         await this.sendWelcome(email, person.name);
         await this.notifyAdminsNewUser(person, role);
       }
-      const session = await this.auth.issueSession(person.id);
-      const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+      const session = await this.auth.issueSession(
+        person.id,
+        sessionMeta(req),
+      );
       this.setSessionCookie(res, session);
       if (invited) this.setArrivalLensCookie(res);
       // Cuenta recién creada por el verify → paso de perfil
@@ -644,6 +750,8 @@ export class AuthController {
   async otpVerify(
     @Body() dto: OtpVerifyDto,
     @Res({ passthrough: true }) res: Response,
+    // Al final como en register - specs llaman (dto, res).
+    @Req() req?: Request,
   ) {
     try {
       const email = dto.email.toLowerCase();
@@ -668,7 +776,10 @@ export class AuthController {
         await this.sendWelcome(email, person.name);
         await this.notifyAdminsNewUser(person, role);
       }
-      const session = await this.auth.issueSession(person.id);
+      const session = await this.auth.issueSession(
+        person.id,
+        sessionMeta(req),
+      );
       this.setSessionCookie(res, session);
       if (invited) this.setArrivalLensCookie(res);
       // `next` viaja al front para continuar el onboarding estándar
