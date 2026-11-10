@@ -132,9 +132,13 @@ importan al bailarín (tickets chicos) pero SÍ a academia/productor
    academias ya está instrumentado (`Referral` INVITE: el alta cuenta
    el consume por magic link y, desde 2026-11-10, también el tap del
    push `academy.invite` en centro o toast → la conversión
-   invite→registrada es medible por academia). Falta fuente para
-   altas orgánicas (registro directo sin invite): registrarla en el
-   alta.
+   invite→registrada es medible por academia). Las altas orgánicas
+   también quedaron instrumentadas (spec auth/acquisition-source):
+   `Person.acquisitionSource` (`utm:<source>` | `ref:<host>` |
+   `landing:<path>` | `direct`) + `acquisitionDetail` crudo se
+   escriben en el alta (register/magic-link/OTP) desde la captura
+   first-touch de la landing - null = invite/untracked. Falta la
+   consulta de reporte CAC por canal.
 
 ## 8. Debilidades del modelo → plan de ataque
 

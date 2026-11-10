@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { readAcquisition } from "@/lib/acquisition";
 import { safeInternalPath } from "@/lib/safe-next";
 import { Button } from "@/components/ui/Button";
 import { Link } from "@/i18n/navigation";
@@ -177,6 +178,10 @@ export default function LoginForm({
     }
 
     setLoading(true);
+    // Fuente de adquisición orgánica (spec auth/acquisition-source):
+    // va solo en los endpoints que pueden crear la Person - el
+    // servidor la normaliza y la aplica solo en el alta.
+    const acquisition = mode === "password" ? null : readAcquisition();
     const body =
       mode === "register"
         ? {
@@ -189,10 +194,16 @@ export default function LoginForm({
             ...(country ? { country } : {}),
             ...(granular ? { scopes: optIns } : {}),
             ...(role ? { role } : {}),
+            ...(acquisition ? { acquisition } : {}),
           }
         : mode === "password"
           ? { email, password, ...(role ? { role } : {}) }
-          : { email, consent, ...(role ? { role } : {}) };
+          : {
+              email,
+              consent,
+              ...(role ? { role } : {}),
+              ...(acquisition ? { acquisition } : {}),
+            };
     const endpoint =
       mode === "register"
         ? "/auth/register"

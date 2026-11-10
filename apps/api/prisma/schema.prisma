@@ -76,6 +76,11 @@ model Person {
   // País del teléfono (spec multipais-foundation): ISO-3166 alpha-2,
   // hoy cuentas ligeras de puerta asumen +56.
   phoneCountryCode String?
+  // Fuente de adquisición orgánica (spec auth/acquisition-source): canal
+  // normalizado (utm:<source> | ref:<host> | landing:<path> | direct) +
+  // capture crudo. Se escribe solo en el alta; null = invite/untracked.
+  acquisitionSource String?
+  acquisitionDetail Json?
   // Soft delete (spec admin-user-soft-delete): baja lógica - la fila y
   // todo su grafo quedan intactos; auth bloqueada y fuera de
   // superficies públicas. Admin puede reactivar.
@@ -191,6 +196,7 @@ model AuthOtp {
   consent    Boolean   @default(false) // checkbox del form, viaja con el OTP como en el magic token
   role       String?   // ?role= de landing (spec role-registration-pipeline) - crea PersonRole PENDING al verificar
   next       String?   // destino interno post-onboarding (spec academies/student-invites) - viaja igual que role/consent
+  acquisition Json?    // capture de adquisición orgánica (spec auth/acquisition-source) - viaja igual que role/next
   expiresAt  DateTime
   attempts   Int       @default(0)
   consumedAt DateTime?
