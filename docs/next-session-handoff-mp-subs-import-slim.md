@@ -62,7 +62,14 @@ importar` actualiza template+copy. NO tocar import de horario.
 Al terminar: revisar diff, verificar migración aplicada a dev, suite
 + typecheck verdes, archivar change, commitear.
 
-## Track 3 — gateway-in-methods-form (subagent `c50f9711`)
+## Track 3 — gateway-in-methods-form CERRADO
+
+Implementado y verificado: componente compartido
+components/payments/gateway-account.tsx, /nuevo elige manual vs
+pasarela, cuenta como card en la misma lista (badge+mask+webhookUrl),
+ficha /pasarela con zona roja, espejo productor (su form inline
+movido a /nuevo). 46 tests web verdes, paridad i18n 4800 keys 0
+drift, ARCHIVADO.
 
 Change creado y validado (4/4 verde). UX pedida por el owner: la alta
 de pasarela BYO va DENTRO del flujo "Agregar método" de métodos de

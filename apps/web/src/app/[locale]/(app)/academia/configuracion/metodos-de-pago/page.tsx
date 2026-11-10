@@ -2,17 +2,17 @@
 
 import { useTranslations } from "next-intl";
 import { AcademyGate } from "@/components/academy/academy-gate";
-import { AcademyGatewaySection } from "@/components/academy/gateway-account-section";
 import { PaymentMethodsAdmin } from "@/components/academy/payment-methods-admin";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
  * /academia/configuracion/metodos-de-pago - cómo cobra la academia:
+ * lista unificada de métodos (change gateway-in-methods-form): la
  * pasarela propia (spec academy-byo-collections: sus ventas van directo
- * a su cuenta y el take se factura mes vencido; sin cuenta la venta
- * online queda solo por comprobante) + medios de cobro directos
- * (transferencia/efectivo que el alumno elige al pagar). Misma
- * composición que /productor/medios-pago.
+ * a su cuenta y el take se factura mes vencido) se agrega desde
+ * "Agregar método" y aparece como un método más (ficha /pasarela);
+ * los medios de cobro directos (transferencia/efectivo) siguen con
+ * su ficha [methodId]. Misma composición que /productor/medios-pago.
  */
 export default function ConfigPagosPage() {
   const t = useTranslations("academy");
@@ -22,13 +22,7 @@ export default function ConfigPagosPage() {
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
-          <>
-            <AcademyGatewaySection
-              key={`gw-${academy.id}`}
-              academyId={academy.id}
-            />
-            <PaymentMethodsAdmin key={academy.id} academyId={academy.id} />
-          </>
+          <PaymentMethodsAdmin key={academy.id} academyId={academy.id} />
         )}
       </AcademyGate>
     </main>

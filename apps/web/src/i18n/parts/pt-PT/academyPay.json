@@ -48,6 +48,8 @@
     "methodsAdminTitle": "Métodos de pagamento",
     "methodsAdminDesc": "Publica como te pagam os alunos: transferência, link de pagamento ou numerário.",
     "addMethod": "Adicionar método",
+    "kindLabel": "O que queres adicionar?",
+    "kindManual": "Método manual",
     "typeTransfer": "Transferência",
     "typeLink": "Link de pagamento",
     "typeCash": "Numerário",

@@ -48,6 +48,8 @@
     "methodsAdminTitle": "Payment methods",
     "methodsAdminDesc": "Publish how your students pay you: transfer, payment link or cash.",
     "addMethod": "Add method",
+    "kindLabel": "What do you want to add?",
+    "kindManual": "Manual method",
     "typeTransfer": "Transfer",
     "typeLink": "Payment link",
     "typeCash": "Cash",

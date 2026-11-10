@@ -4,13 +4,14 @@ import { useTranslations } from "next-intl";
 import { useMe } from "@/lib/me-context";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
-import { GatewayAccountSection } from "@/components/producer/gateway-account-section";
 import { ProducerPaymentMethodsSection } from "@/components/producer/payment-methods-section";
 
 /**
- * /productor/medios-pago - cómo cobra el productor: pasarela propia
- * (cuenta Flow/MP cifrada que cobra sus ventas; sin cuenta, la
- * plataforma cobra por el default MANAGED) + medios de cobro directos
+ * /productor/medios-pago - cómo cobra el productor: lista unificada
+ * (change gateway-in-methods-form): la pasarela propia (cuenta Flow/MP
+ * cifrada que cobra sus ventas; sin cuenta, la plataforma cobra por el
+ * default MANAGED) se agrega desde "Agregar método" y aparece como un
+ * medio más (ficha /medios-pago/pasarela) + medios de cobro directos
  * (transferencia/link/efectivo elegibles en el checkout; los
  * comprobantes se validan en /productor/comprobantes).
  */
@@ -25,10 +26,7 @@ export default function ProducerMediosPagoPage() {
       <ConsoleHeader backHref="/inicio" backLabel={tn("home")} />
       <ProducerGate>
         {isProducer ? (
-          <>
-            <GatewayAccountSection />
-            <ProducerPaymentMethodsSection />
-          </>
+          <ProducerPaymentMethodsSection />
         ) : (
           <p className="text-sm text-ink/60">
             {tp("configPages.producerOnly")}

@@ -355,6 +355,7 @@
       "saved": "Gateway connected. Configure the confirmation URL in its panel.",
       "disable": "Deactivate",
       "disabled": "Gateway deactivated: charging went back to the platform.",
+      "confirmOffTitle": "Deactivate gateway",
       "confirmOff": "Deactivate your gateway? New sales go back to Omnidance.",
       "confirmYes": "Yes, deactivate",
       "hint": "With your own gateway the money from your sales lands straight in your account; the Omnidance fee is deducted in your settlement."

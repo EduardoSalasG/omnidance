@@ -355,6 +355,7 @@
       "saved": "Passerelle connectée. Configure l'URL de confirmation dans son panneau.",
       "disable": "Désactiver",
       "disabled": "Passerelle désactivée : l'encaissement est revenu à la plateforme.",
+      "confirmOffTitle": "Désactiver la passerelle",
       "confirmOff": "Désactiver ta passerelle ? Les nouvelles ventes repassent par Omnidance.",
       "confirmYes": "Oui, désactiver",
       "hint": "Avec ta propre passerelle l'argent de tes ventes arrive directement sur ton compte ; la commission Omnidance est déduite de ton règlement."

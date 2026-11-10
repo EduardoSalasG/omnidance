@@ -3,11 +3,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, ConfirmSheet, SkeletonList, Spinner } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ChevronRightIcon,
+  ConfirmSheet,
+  SkeletonList,
+} from "@/components/ui";
 import {
   ActionNotice,
   type ActionNoticeData,
 } from "@/components/ui/action-notice";
+import { Link } from "@/i18n/navigation";
+import type { GatewayAccountView } from "@/components/payments/gateway-account";
 
 type Method = {
   id: string;
@@ -24,88 +33,49 @@ const TYPE_KEYS = {
   CASH: "typeCash",
 } as const;
 
-// Tipo de cuenta bancaria chilena: select cerrado en el form de
-// transferencia (mismo set que payment-methods-admin).
-const ACCOUNT_TYPE_OPTIONS = ["Vista", "Corriente", "Ahorro"] as const;
-
-const TRANSFER_DETAIL_KEYS = [
-  ["bank", "fBank"],
-  ["accountType", "fAccountType"],
-  ["accountNumber", "fAccountNumber"],
-  ["holder", "fHolder"],
-  ["rut", "fRut"],
-  ["email", "fEmail"],
-] as const;
-
 /**
  * "Medios de cobro" del productor (spec producer-own-methods):
  * transferencia/link/efectivo que se ofrecen en el checkout de sus
  * eventos como alternativa a la pasarela. CRUD propio bajo
  * /producer/payment-methods (gate de productor APPROVED en el API).
+ * Lista unificada (change gateway-in-methods-form): la cuenta de
+ * pasarela propia entra como primera fila (badge + mask + webhookUrl)
+ * y navega a la ficha /medios-pago/pasarela; el alta de ambos tipos
+ * vive en /medios-pago/nuevo detrás del CTA (console-patterns §1 -
+ * nunca form inline en el listado).
  */
 export function ProducerPaymentMethodsSection() {
   const t = useTranslations("academyPay");
   const tp = useTranslations("producer.ownMethods");
 
   const [methods, setMethods] = useState<Method[] | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [type, setType] = useState<Method["type"]>("TRANSFER");
-  const [label, setLabel] = useState("");
-  const [details, setDetails] = useState<Record<string, string>>({});
-  const [order, setOrder] = useState("0");
+  const [gateway, setGateway] = useState<GatewayAccountView | null>(null);
   const [busy, setBusy] = useState(false);
-  // Feedback de la sección (éxito y error): vive fuera del form para
-  // que siga visible cuando el form se cierra tras crear.
+  // Feedback de la sección (éxito y error): vive fuera de la lista para
+  // que siga visible tras mutaciones.
   const [notice, setNotice] = useState<ActionNoticeData | null>(null);
   // Confirmación destructiva compartida (reemplaza window.confirm).
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const res = await apiFetch("/producer/payment-methods").catch(() => null);
-    setMethods(res?.ok ? await res.json() : []);
+    // El fetch de la pasarela va en paralelo y no bloquea el listado:
+    // si falla el card no se pinta y el retry re-dispara ambos.
+    const [methodsRes, gatewayRes] = await Promise.all([
+      apiFetch("/producer/payment-methods").catch(() => null),
+      apiFetch("/producer/gateway-account").catch(() => null),
+    ]);
+    setMethods(methodsRes?.ok ? await methodsRes.json() : []);
+    if (gatewayRes?.ok) {
+      const body = (await gatewayRes.json()) as {
+        account: GatewayAccountView | null;
+      };
+      setGateway(body.account);
+    }
   }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
-
-  function setDetail(k: string, v: string) {
-    setDetails((d) => ({ ...d, [k]: v }));
-  }
-
-  async function create() {
-    if (!label.trim() || busy) return;
-    setBusy(true);
-    setNotice(null);
-    try {
-      const res = await apiFetch("/producer/payment-methods", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          type,
-          label: label.trim(),
-          details: Object.fromEntries(
-            Object.entries(details).filter(([, v]) => v.trim()),
-          ),
-          order: Number(order) || 0,
-        }),
-      });
-      if (!res.ok) {
-        setNotice({ text: t("error"), error: true });
-        return;
-      }
-      setShowForm(false);
-      setLabel("");
-      setDetails({});
-      setOrder("0");
-      setNotice({ text: tp("created") });
-      await load();
-    } catch {
-      setNotice({ text: t("error"), error: true });
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function patch(id: string, data: Record<string, unknown>) {
     if (busy) return;
@@ -152,9 +122,6 @@ export function ProducerPaymentMethodsSection() {
     }
   }
 
-  const inputCls =
-    "min-h-11 rounded-xl border border-line bg-surface px-3 text-sm";
-
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
@@ -167,131 +134,59 @@ export function ProducerPaymentMethodsSection() {
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => setShowForm((v) => !v)}
+          href="/productor/medios-pago/nuevo"
         >
           {t("addMethod")}
         </Button>
       </div>
 
-      {showForm && (
-        <div className="flex flex-col gap-3 rounded-xl border border-line bg-elevated p-4">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/60">{t("fType")}</span>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value as Method["type"])}
-              className={inputCls}
-            >
-              {(Object.keys(TYPE_KEYS) as (keyof typeof TYPE_KEYS)[]).map(
-                (k) => (
-                  <option key={k} value={k}>
-                    {t(TYPE_KEYS[k])}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/60">{t("fLabel")}</span>
-            <input
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder={t("fLabelPh")}
-              maxLength={60}
-              className={inputCls}
-            />
-          </label>
-          {type === "TRANSFER" &&
-            TRANSFER_DETAIL_KEYS.map(([key, i18n]) => (
-              <label key={key} className="flex flex-col gap-1 text-sm">
-                <span className="text-ink/60">{t(i18n)}</span>
-                {key === "accountType" ? (
-                  <select
-                    value={details[key] ?? ""}
-                    onChange={(e) => setDetail(key, e.target.value)}
-                    className={inputCls}
-                  >
-                    <option value=""></option>
-                    {ACCOUNT_TYPE_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                    {details[key] &&
-                      !(ACCOUNT_TYPE_OPTIONS as readonly string[]).includes(
-                        details[key],
-                      ) && (
-                        <option value={details[key]}>{details[key]}</option>
-                      )}
-                  </select>
-                ) : (
-                  <input
-                    value={details[key] ?? ""}
-                    onChange={(e) => setDetail(key, e.target.value)}
-                    className={inputCls}
-                  />
-                )}
-              </label>
-            ))}
-          {type === "PAYMENT_LINK" && (
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-ink/60">{t("fUrl")}</span>
-              <input
-                type="url"
-                value={details.url ?? ""}
-                onChange={(e) => setDetail("url", e.target.value)}
-                placeholder="https://mpago.la/…"
-                className={inputCls}
-              />
-            </label>
-          )}
-          {type === "CASH" && (
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-ink/60">{t("fInstructions")}</span>
-              <input
-                value={details.instructions ?? ""}
-                onChange={(e) => setDetail("instructions", e.target.value)}
-                placeholder={t("fInstructionsPh")}
-                className={inputCls}
-              />
-            </label>
-          )}
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/60">{t("fOrder")}</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              value={order}
-              onChange={(e) => setOrder(e.target.value)}
-              className={`${inputCls} w-24`}
-            />
-          </label>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={() => void create()}
-              disabled={!label.trim() || busy}
-            >
-              {busy ? <Spinner size="sm" /> : null}
-              {t("save")}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowForm(false)}
-            >
-              {t("cancel")}
-            </Button>
-          </div>
-        </div>
-      )}
-
       {methods === null ? (
         <SkeletonList items={2} />
-      ) : methods.length === 0 ? (
-        <p className="text-sm text-ink/50">{t("methodsEmpty")}</p>
+      ) : methods.length === 0 && !gateway ? (
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-sm text-ink/50">{t("methodsEmpty")}</p>
+          <Button
+            variant="secondary"
+            size="sm"
+            href="/productor/medios-pago/nuevo"
+          >
+            + {t("addMethod")}
+          </Button>
+        </div>
       ) : (
         <ul className="flex flex-col gap-2">
+          {gateway && (
+            <li>
+              {/* Cuenta de pasarela en la misma colección (spec
+                  payments/gateways): badge de tipo, mask, status y la
+                  webhookUrl a pegar en el panel del provider. */}
+              <Link
+                href="/productor/medios-pago/pasarela"
+                className="flex min-h-11 flex-col gap-1 rounded-lg border border-line px-3 py-2 text-sm transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              >
+                <span className="flex min-h-6 flex-wrap items-center gap-2">
+                  <span className="font-medium">{gateway.provider}</span>
+                  <Badge variant="outline">{t("fieldGateway")}</Badge>
+                  <Badge
+                    variant={
+                      gateway.status === "ACTIVE" ? "neon" : "muted"
+                    }
+                  >
+                    {gateway.status === "ACTIVE"
+                      ? t("gateway.active")
+                      : t("gateway.inactive")}
+                  </Badge>
+                  <ChevronRightIcon className="ml-auto h-4 w-4 shrink-0 text-ink/40" />
+                </span>
+                <span className="text-xs tabular-nums text-ink/50">
+                  {gateway.keyMask}
+                </span>
+                <code className="break-all text-xs text-ink/40">
+                  {gateway.webhookUrl}
+                </code>
+              </Link>
+            </li>
+          )}
           {methods.map((m) => (
             <li
               key={m.id}

@@ -48,6 +48,8 @@
     "methodsAdminTitle": "Moyens de paiement",
     "methodsAdminDesc": "Publie comment tes élèves te paient : virement, lien de paiement ou espèces.",
     "addMethod": "Ajouter un moyen",
+    "kindLabel": "Que voulez-vous ajouter ?",
+    "kindManual": "Méthode manuelle",
     "typeTransfer": "Virement",
     "typeLink": "Lien de paiement",
     "typeCash": "Espèces",
