@@ -3660,6 +3660,38 @@
           }
         },
         {
+          "name": "GET /api/payments/mp/subscription-return",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/mp/subscription-return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "mp",
+                "subscription-return"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "account",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "sub",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "POST /api/payments/flow/platform-customer-return",
           "request": {
             "method": "POST",

@@ -2988,6 +2988,37 @@
         ]
       }
     },
+    "/api/payments/mp/subscription-return": {
+      "get": {
+        "operationId": "PaymentsController_mpSubscriptionReturn",
+        "parameters": [
+          {
+            "name": "account",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sub",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
     "/api/payments/flow/platform-customer-return": {
       "post": {
         "operationId": "PaymentsController_platformCustomerReturn",

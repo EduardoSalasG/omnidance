@@ -497,7 +497,11 @@ function mkFlow() {
     ),
     registerCustomerCard: vi.fn(
       async (
-        _p: { customerId: string; returnUrl: string },
+        _p: {
+          customerId: string;
+          returnUrl: string;
+          metadata?: Record<string, string>;
+        },
         _opts?: Opts,
       ) => ({
         registerUrl: "https://flow.example/register?token=rt1",
@@ -2816,6 +2820,233 @@ describe("SubscriptionsService", () => {
         "fsub-orphan-byo",
         expect.anything(),
       );
+    });
+  });
+
+  // ─── mercadopago-subscriptions ──────────────────────────────────
+  describe("mercadopago-subscriptions", () => {
+    // Gateway MP fake: contrato without-plan pending - la remota ya
+    // existe cuando vuelve el pagador (getRegisterStatus por
+    // external_reference) y el reprice es in-place. Sin syncPlan ni
+    // collect (capability por presencia).
+    function mkMp() {
+      return {
+        name: "MERCADOPAGO",
+        createOrder: vi.fn(),
+        verifyWebhook: vi.fn(),
+        ensurePlan: vi.fn(async () => undefined),
+        createCustomer: vi.fn(async () => ({ customerId: "mp-cus-1" })),
+        getCustomer: vi.fn(async () => ({ hasCard: false })),
+        registerCustomerCard: vi.fn(async () => ({
+          registerUrl: "https://mp.test/preapproval/pre-1",
+        })),
+        getRegisterStatus: vi.fn(
+          async (_token: string) =>
+            ({
+              registered: true,
+              customerId: "mp-cus-1",
+              subscriptionId: "pre-1",
+            }) as {
+              registered: boolean;
+              customerId?: string;
+              subscriptionId?: string;
+            },
+        ),
+        createSubscription: vi.fn(),
+        getSubscription: vi.fn(
+          async (id: string): Promise<RemoteSubscription> => ({
+            subscriptionId: id,
+            planId: "sub-1",
+            status: "ACTIVE",
+            morose: false,
+            cancelAtPeriodEnd: false,
+            nextInvoiceDate: "2026-11-15",
+            invoices: [],
+          }),
+        ),
+        cancelSubscription: vi.fn(async () => undefined),
+        repriceSubscription: vi.fn(async () => undefined),
+      };
+    }
+
+    it("subscribe pasa metadata extendida a registerCustomerCard (subId/amount/intervalCount/reason para MP)", async () => {
+      await svc.subscribe("p1", "plan1", true);
+      const reg = flow.registerCustomerCard.mock.calls[0]![0]!;
+      expect(reg.metadata).toMatchObject({
+        personId: "p1",
+        subId: fx.subs[0]!.id,
+        amount: "10000",
+        intervalCount: "1",
+        reason: "Academia X - Mensual",
+      });
+    });
+
+    describe("mpSubscriptionReturn", () => {
+      let mp: ReturnType<typeof mkMp>;
+      beforeEach(() => {
+        mp = mkMp();
+        accounts.adapterFor.mockImplementation(async (id: string) => ({
+          account: { ...ACCT, id, provider: "MERCADOPAGO" },
+          gateway: mp as unknown as PaymentGateway,
+        }));
+      });
+
+      it("preapproval authorized → ACTIVATING→ACTIVE con remoteId adoptado + INBOUND auditado", async () => {
+        const pending = mkSub({
+          status: "PENDING_CARD",
+          gatewayAccountId: "acct-1",
+        });
+        fx.subs.push(pending);
+        const r = await svc.mpSubscriptionReturn(pending.id, "acct-1");
+
+        expect(r).toEqual({ ok: true, academyId: "ac1" });
+        const row = fx.subs.find((s) => s.id === pending.id)!;
+        expect(row.status).toBe("ACTIVE");
+        expect(row.flowSubscriptionId).toBe("pre-1");
+        expect(mp.getRegisterStatus).toHaveBeenCalledWith(
+          pending.id,
+          expect.anything(),
+        );
+        expect(fx.gatewayTxs[0]).toMatchObject({
+          provider: "MERCADOPAGO",
+          direction: "INBOUND_WEBHOOK",
+          endpoint: "mp/subscription-return",
+          gatewayAccountId: "acct-1",
+        });
+        expect(notifications.notifySafe).toHaveBeenCalledWith(
+          "p1",
+          expect.objectContaining({
+            type: "membership.subscription_started",
+          }),
+        );
+      });
+
+      it("preapproval pending → ok:false y la sub queda PENDING_CARD (nunca activa a ciegas)", async () => {
+        mp.getRegisterStatus.mockResolvedValue({ registered: false });
+        const pending = mkSub({
+          status: "PENDING_CARD",
+          gatewayAccountId: "acct-1",
+        });
+        fx.subs.push(pending);
+        const r = await svc.mpSubscriptionReturn(pending.id, "acct-1");
+
+        expect(r.ok).toBe(false);
+        expect(
+          fx.subs.find((s) => s.id === pending.id)!.status,
+        ).toBe("PENDING_CARD");
+        expect(mp.getSubscription).not.toHaveBeenCalled();
+      });
+
+      it("cuenta del retorno ≠ cuenta de la sub → ok:false (cross-account)", async () => {
+        const pending = mkSub({
+          status: "PENDING_CARD",
+          gatewayAccountId: "acct-1",
+        });
+        fx.subs.push(pending);
+        const r = await svc.mpSubscriptionReturn(pending.id, "acct-2");
+        expect(r.ok).toBe(false);
+        expect(mp.getRegisterStatus).not.toHaveBeenCalled();
+      });
+
+      it("sub ya ACTIVE → ok:true idempotente sin tocar la remota", async () => {
+        const active = mkSub({
+          status: "ACTIVE",
+          gatewayAccountId: "acct-1",
+          flowSubscriptionId: "pre-1",
+        });
+        fx.subs.push(active);
+        const r = await svc.mpSubscriptionReturn(active.id, "acct-1");
+        expect(r).toEqual({ ok: true, academyId: "ac1" });
+        expect(mp.getRegisterStatus).not.toHaveBeenCalled();
+      });
+    });
+
+    it("drift de precio con repriceSubscription → PUT in-place, sin cancel+recreate", async () => {
+      const mp = mkMp();
+      accounts.adapterFor.mockImplementation(async (id: string) => ({
+        account: { ...ACCT, id, provider: "MERCADOPAGO" },
+        gateway: mp as unknown as PaymentGateway,
+      }));
+      const sub = mkSub({
+        status: "ACTIVE",
+        gatewayAccountId: "acct-1",
+        flowSubscriptionId: "pre-1",
+        planChargeClp: 9000, // el plan vale 10000 → drift
+      });
+      fx.subs.push(sub);
+      await svc.reconcileSubscription(sub, {
+        subscriptionId: "pre-1",
+        planId: "sub-1",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        invoices: [],
+      });
+      expect(mp.repriceSubscription).toHaveBeenCalledWith(
+        "pre-1",
+        { amount: 10000, currency: "CLP" },
+        expect.anything(),
+      );
+      expect(mp.cancelSubscription).not.toHaveBeenCalled();
+      const row = fx.subs.find((s) => s.id === sub.id)!;
+      expect(row.planChargeClp).toBe(10000);
+      expect(row.pendingReprice).not.toBe(true);
+    });
+
+    describe("sweep de huérfanas (cobertura MP por external_reference)", () => {
+      let mp: ReturnType<typeof mkMp>;
+      beforeEach(() => {
+        mp = mkMp();
+        accounts.adapterFor.mockImplementation(async (id: string) => ({
+          account: { ...ACCT, id, provider: "MERCADOPAGO" },
+          gateway: mp as unknown as PaymentGateway,
+        }));
+      });
+
+      const auditCreate = (subId: string, remoteId = "pre-1") => ({
+        provider: "MERCADOPAGO",
+        gatewayAccountId: "acct-1",
+        direction: "OUTBOUND",
+        endpoint: "subscription/create",
+        ok: true,
+        requestBody: { external_reference: subId },
+        responseBody: { id: remoteId },
+        createdAt: new Date(Date.now() - 10 * 60_000),
+      });
+
+      it("PENDING_CARD fresca linkeada por external_reference → la remota NO se cancela", async () => {
+        fx.subs.push(
+          mkSub({
+            status: "PENDING_CARD",
+            gatewayAccountId: "acct-1",
+          }),
+        );
+        const subId = fx.subs[0]!.id as string;
+        fx.gatewayTxs.push(auditCreate(subId));
+        await svc.reconcileAll();
+        expect(mp.cancelSubscription).not.toHaveBeenCalled();
+      });
+
+      it("PENDING_CARD expirada → el preapproval remoto se cancela como huérfano", async () => {
+        fx.subs.push(
+          mkSub({
+            status: "PENDING_CARD",
+            gatewayAccountId: "acct-1",
+            createdAt: new Date(Date.now() - 20 * 60_000),
+          }),
+        );
+        const subId = fx.subs[0]!.id as string;
+        fx.gatewayTxs.push(auditCreate(subId));
+        await svc.reconcileAll();
+        expect(mp.getSubscription).toHaveBeenCalledWith(
+          "pre-1",
+          expect.anything(),
+        );
+        expect(mp.cancelSubscription).toHaveBeenCalledWith("pre-1", {
+          correlationId: expect.any(String),
+          immediate: true,
+        });
+      });
     });
   });
 });

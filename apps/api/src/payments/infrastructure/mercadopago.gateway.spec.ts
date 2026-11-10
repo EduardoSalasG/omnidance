@@ -312,7 +312,7 @@ describe("MercadoPagoGateway", () => {
     });
 
     it("syncPlan NO existe: sin espejo remoto el service lo salta por capability (si fuera no-op falsearía planChargeClp)", () => {
-      const gw = makeGateway() as Record<string, unknown>;
+      const gw = makeGateway() as unknown as Record<string, unknown>;
       expect(typeof gw.syncPlan).not.toBe("function");
     });
 
@@ -388,6 +388,7 @@ describe("MercadoPagoGateway", () => {
       const prePending = {
         id: "pre-1",
         status: "pending",
+        external_reference: "sub-1",
         init_point: "https://mp.test/preapproval/pre-1",
       };
 

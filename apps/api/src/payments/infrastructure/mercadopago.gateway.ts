@@ -401,7 +401,16 @@ export class MercadoPagoGateway implements PaymentGateway {
   // lookup inequívoco customer→sub.
 
   /** Sin plan remoto (contrato without-plan): el espejo no existe. */
-  async ensurePlan(): Promise<void> {}
+  async ensurePlan(
+    _p: {
+      planId: string;
+      name: string;
+      amount: number;
+      intervalCount: number;
+      currency?: string;
+    },
+    _opts?: SubscriptionCallOpts,
+  ): Promise<void> {}
 
   /** /v1/customers/search?email → si no existe, POST /v1/customers. */
   async createCustomer(
@@ -470,10 +479,7 @@ export class MercadoPagoGateway implements PaymentGateway {
       );
     }
     const backUrl = this.subscriptionBackUrl(subId);
-    const existing = await this.searchPreapprovals(
-      `external_reference=${encodeURIComponent(subId)}`,
-      opts,
-    );
+    const existing = await this.searchPreapprovalByRef(subId, opts);
     const authorized = existing.find((x) => x.status === "authorized");
     if (authorized) return { registerUrl: backUrl };
     const pending = existing.find((x) => x.status === "pending");
@@ -509,8 +515,9 @@ export class MercadoPagoGateway implements PaymentGateway {
           frequency_type: "months",
           transaction_amount: amount,
           currency_id: currency,
-          start_date: new Date().toISOString(),
-          // Sin end_date: sub indefinida - la corta el cancel local.
+          // Sin start_date (MP la autocompleta al crear - mandarla
+          // "ahora" la rechaza como past date) ni end_date: sub
+          // indefinida, la corta el cancel local.
         },
         back_url: backUrl,
         status: "pending",
@@ -544,10 +551,7 @@ export class MercadoPagoGateway implements PaymentGateway {
     customerId?: string;
     subscriptionId?: string;
   }> {
-    const list = await this.searchPreapprovals(
-      `external_reference=${encodeURIComponent(token)}`,
-      opts,
-    );
+    const list = await this.searchPreapprovalByRef(token, opts);
     const hit =
       list.find((x) => x.status === "authorized") ?? list[0];
     if (!hit) return { registered: false };
@@ -576,10 +580,7 @@ export class MercadoPagoGateway implements PaymentGateway {
   ): Promise<RemoteSubscription> {
     let list: MpPreapproval[] = [];
     if (p.externalRef) {
-      list = await this.searchPreapprovals(
-        `external_reference=${encodeURIComponent(p.externalRef)}`,
-        opts,
-      );
+      list = await this.searchPreapprovalByRef(p.externalRef, opts);
     }
     if (!list.length) {
       const email = await this.customerEmail(p.customerId, opts);
@@ -711,6 +712,23 @@ export class MercadoPagoGateway implements PaymentGateway {
       { method: "GET", correlationId: opts?.correlationId },
     );
     return c.email ?? null;
+  }
+
+  /**
+   * Búsqueda por external_reference: MP acepta el param en
+   * /preapproval/search pero NO filtra por él (devuelve los
+   * preapprovals de la cuenta igual) - hay que filtrar del lado
+   * cliente o la dedup agarraría la remota de OTRA sub.
+   */
+  private async searchPreapprovalByRef(
+    ref: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<MpPreapproval[]> {
+    const list = await this.searchPreapprovals(
+      `external_reference=${encodeURIComponent(ref)}`,
+      opts,
+    );
+    return list.filter((x) => x.external_reference === ref);
   }
 
   private async searchPreapprovals(
