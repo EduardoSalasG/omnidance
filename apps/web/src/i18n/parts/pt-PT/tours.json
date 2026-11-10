@@ -409,8 +409,8 @@
         "desc": "Cada cartão abre a ficha: plano, vigência, assiduidade e o score de relação, privado da tua academia."
       },
       "s5": {
-        "title": "Nova inscrição",
-        "desc": "Matricula um aluno com o seu plano e vigência a partir daqui."
+        "title": "Adicionar alunos",
+        "desc": "Convida por email para se inscreverem sozinhos; a inscrição manual fica para liquidar quem já pagou presencialmente."
       }
     },
     "academia-cobros": {

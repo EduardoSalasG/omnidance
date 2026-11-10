@@ -1060,6 +1060,79 @@ async function main() {
   }
   say(`Eventos nuevos de noviembre: +${newEvents}`);
 
+  // ═══════════ 8. Corridas de import + invitaciones pendientes ═══════════
+  console.log("\n═══ 8. Corridas de import + invitaciones pendientes ═══");
+  // Historial de /academia/configuracion/importar y sección "Invitados"
+  // de /academia/alumnos poblados en demo (spec academy-demo-seed):
+  // 1 corrida students por academia (+1 schedule donde el tier tiene
+  // clases) y 2 invites pendientes. Idempotente por clave natural:
+  // run (academyId, kind, fileName), invite (academyId, email) pendiente.
+  const studentsRunResults = [
+    { row: 2, email: "josefa.maldonado@omnidance.dev", status: "invited", detail: "invitación enviada (cuenta nueva)" },
+    { row: 3, email: "rodrigo.painemal@omnidance.dev", status: "invited", detail: "invitación enviada (cuenta nueva)" },
+    { row: 4, email: "antonia.rivas@omnidance.dev", status: "invited", detail: "invitación enviada (cuenta existente: mail + push)" },
+    { row: 5, email: "matias.contreras@omnidance.dev", status: "invited", detail: "invitación enviada (cuenta nueva)" },
+    { row: 6, email: "fernanda.leiva@omnidance.dev", status: "resent", detail: "invitación reenviada" },
+    { row: 7, email: "cristian.saldias@omnidance.dev", status: "invited", detail: "invitación enviada (cuenta nueva)" },
+    { row: 8, email: "paula.verdugo@omnidance.dev", status: "skipped", detail: "ya tiene inscripción vigente" },
+    { row: 9, email: "josefa.maldonado@omnidance.dev", status: "skipped", detail: "email duplicado en la planilla" },
+    { row: 10, email: "nicolas.fuenzalida@omnidance.dev", status: "invited", detail: "invitación enviada (cuenta existente: mail + push)" },
+    { row: 11, email: "sin-arroba", status: "error", detail: "email inválido" },
+    { row: 12, email: "karla.becerra@omnidance.dev", status: "invited", detail: "invitación enviada (cuenta nueva)" },
+  ];
+  const scheduleRunResults = [
+    { row: 2, serie: "Salsa Principiantes", status: "ok", detail: 'slot lunes 19:00-20:00 en "Salsa Principiantes"' },
+    { row: 3, serie: "Salsa Principiantes", status: "ok", detail: 'slot miércoles 19:00-20:00 en "Salsa Principiantes"' },
+    { row: 4, serie: "Bachata Intermedio", status: "ok", detail: 'slot martes 20:00-21:00 en "Bachata Intermedio"' },
+    { row: 5, serie: "Bachata Intermedio", status: "warn", detail: "instructor profe.ausente@omnidance.dev no encontrado - slot sin instructor" },
+    { row: 6, serie: "Timba Avanzada", status: "ok", detail: 'slot jueves 21:00-22:00 en "Timba Avanzada"' },
+    { row: 7, serie: "Rueda Casino", status: "error", detail: 'dia_semana "8" inválido (0-6 o nombre en español)' },
+  ];
+  const inviteFixtures = [
+    { name: "Camila Fuentes", local: "camila.fuentes" },
+    { name: "Diego Sanhueza", local: "diego.sanhueza" },
+  ];
+  let importRuns = 0, invitesNew = 0;
+  for (const a of academies) {
+    if (!a.ownerId) continue;
+    const slug = a.id.slice(0, 6);
+    const runKinds = [["students", "alumnos-import.csv", studentsRunResults]];
+    // COBROS no tiene clases: su historial solo muestra la corrida de
+    // alumnos (el endpoint de schedule la rechazaría por tier).
+    if (!cobrosEffective.has(a.id)) runKinds.push(["schedule", "horario-import.csv", scheduleRunResults]);
+    for (const [kind, fileName, results] of runKinds) {
+      const exists = await prisma.academyImportRun.findFirst({
+        where: { academyId: a.id, kind, fileName }, select: { id: true },
+      });
+      if (exists) continue;
+      const counts = {};
+      for (const r of results) counts[r.status] = (counts[r.status] ?? 0) + 1;
+      await prisma.academyImportRun.create({
+        data: {
+          academyId: a.id, kind, fileName, createdById: a.ownerId,
+          total: results.length, counts, results,
+          createdAt: new Date(Date.now() - (kind === "students" ? 6 : 5) * 86_400_000),
+        },
+      });
+      importRuns++;
+    }
+    for (const inv of inviteFixtures) {
+      const email = `${inv.local}+${slug}@omnidance.dev`;
+      const exists = await prisma.academyInvite.findFirst({
+        where: { academyId: a.id, email, consumedAt: null }, select: { id: true },
+      });
+      if (exists) continue;
+      await prisma.academyInvite.create({
+        data: {
+          academyId: a.id, email, name: inv.name, invitedById: a.ownerId,
+          createdAt: new Date(Date.now() - (2 + h(email) % 3) * 86_400_000),
+        },
+      });
+      invitesNew++;
+    }
+  }
+  say(`AcademyImportRun nuevas: +${importRuns} · AcademyInvite pendientes: +${invitesNew}`);
+
   // ═══════════ Resumen ═══════════
   console.log("\n═══ RESUMEN ═══");
   for (const line of report) console.log(" ", line);

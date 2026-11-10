@@ -4,10 +4,54 @@
     "desc": "Carga em massa para migrar de outra plataforma: a tua base de alunos e o horário semanal em CSV ou Excel.",
     "studentsTitle": "Alunos",
     "studentsDesc": "Uma linha por aluno. Só email e nome são obrigatórios; quem não tiver conta recebe um convite por e-mail. Torna-se aluno quando compra o seu plano.",
-    "studentsCols": "Colunas: email, nombre + opcionais: rut, fecha_nacimiento (DD/MM/AAAA ou AAAA-MM-DD), telefono, sexo",
+    "studentsCols": "Colunas: email, nombre + opcionais: rut, fecha_nacimiento, telefono, sexo",
     "scheduleTitle": "Horário semanal",
     "scheduleDesc": "Uma linha por bloco semanal. Linhas com o mesmo nome de série agrupam-se numa só série do mês.",
     "scheduleCols": "Colunas: serie, dia_semana, hora_inicio, hora_fin + opcionais: estilo, nivel, capacidad, instructor_email, mes",
+    "studentsValues": [
+      {
+        "col": "sexo",
+        "values": "m · f · other"
+      },
+      {
+        "col": "fecha_nacimiento",
+        "values": "DD/MM/AAAA (AAAA-MM-DD também funciona)"
+      },
+      {
+        "col": "telefono",
+        "values": "+56 9 1234 5678 · normalizado para o país da tua academia"
+      },
+      {
+        "col": "rut",
+        "values": "12.345.678-9 · dni ou documento também funcionam"
+      }
+    ],
+    "scheduleValues": [
+      {
+        "col": "dia_semana",
+        "values": "lunes a domingo (em espanhol) ou 0-6 (domingo = 0)"
+      },
+      {
+        "col": "hora_inicio / hora_fin",
+        "values": "HH:MM · 19:30"
+      },
+      {
+        "col": "capacidad",
+        "values": "número inteiro · 20"
+      },
+      {
+        "col": "estilo / nivel",
+        "values": "tal como estão escritos na tua consola (ignora maiúsculas e acentos)"
+      },
+      {
+        "col": "instructor_email",
+        "values": "email de um instrutor da tua academia"
+      },
+      {
+        "col": "mes",
+        "values": "AAAA-MM · 2026-11 (opcional)"
+      }
+    ],
     "downloadTemplate": "Descarregar modelo",
     "chooseFile": "Escolher ficheiro…",
     "noFile": "Nenhum ficheiro escolhido",

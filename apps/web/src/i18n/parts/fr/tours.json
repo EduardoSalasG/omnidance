@@ -409,8 +409,8 @@
         "desc": "Chaque carte ouvre la fiche : plan, validité, assiduité et score de relation, privé à votre académie."
       },
       "s5": {
-        "title": "Nouvelle inscription",
-        "desc": "Inscrivez un élève avec son plan et sa validité depuis ici."
+        "title": "Ajouter des élèves",
+        "desc": "Invite par email pour qu'ils s'inscrivent seuls ; l'inscription manuelle reste pour solder celui qui a déjà payé en personne."
       }
     },
     "academia-cobros": {

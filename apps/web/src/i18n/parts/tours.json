@@ -409,8 +409,8 @@
         "desc": "Cada alumno abre su ficha: plan, vigencia, asistencias y el score de relación, privado de tu academia."
       },
       "s5": {
-        "title": "Agregar alumno",
-        "desc": "Registra a un alumno con su plan y su vigencia desde acá."
+        "title": "Sumar alumnos",
+        "desc": "Invita por correo para que se inscriban solos; la inscripción manual queda para liquidar a quien ya pagó presencial."
       }
     },
     "academia-cobros": {

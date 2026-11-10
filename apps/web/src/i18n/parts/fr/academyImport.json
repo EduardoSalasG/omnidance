@@ -4,10 +4,54 @@
     "desc": "Upload en masse pour migrer depuis une autre plateforme : ta liste d'élèves et ton planning hebdomadaire en CSV ou Excel.",
     "studentsTitle": "Élèves",
     "studentsDesc": "Une ligne par élève. Seuls e-mail et nom sont obligatoires ; toute personne sans compte reçoit une invitation par e-mail. Elle devient élève quand elle achète son plan.",
-    "studentsCols": "Colonnes : email, nombre + optionnels : rut, fecha_nacimiento (JJ/MM/AAAA ou AAAA-MM-JJ), telefono, sexo",
+    "studentsCols": "Colonnes : email, nombre + optionnels : rut, fecha_nacimiento, telefono, sexo",
     "scheduleTitle": "Planning hebdomadaire",
     "scheduleDesc": "Une ligne par bloc hebdomadaire. Les lignes avec le même nom de série se regroupent en une seule série du mois.",
     "scheduleCols": "Colonnes : serie, dia_semana, hora_inicio, hora_fin + optionnels : estilo, nivel, capacidad, instructor_email, mes",
+    "studentsValues": [
+      {
+        "col": "sexo",
+        "values": "m · f · other"
+      },
+      {
+        "col": "fecha_nacimiento",
+        "values": "JJ/MM/AAAA (AAAA-MM-JJ marche aussi)"
+      },
+      {
+        "col": "telefono",
+        "values": "+56 9 1234 5678 · normalisé au pays de ton académie"
+      },
+      {
+        "col": "rut",
+        "values": "12.345.678-9 · dni ou documento marchent aussi"
+      }
+    ],
+    "scheduleValues": [
+      {
+        "col": "dia_semana",
+        "values": "lunes à domingo (en espagnol) ou 0-6 (domingo = 0)"
+      },
+      {
+        "col": "hora_inicio / hora_fin",
+        "values": "HH:MM · 19:30"
+      },
+      {
+        "col": "capacidad",
+        "values": "nombre entier · 20"
+      },
+      {
+        "col": "estilo / nivel",
+        "values": "tels qu'écrits dans ta console (ignore casse et accents)"
+      },
+      {
+        "col": "instructor_email",
+        "values": "email d'un instructeur de ton académie"
+      },
+      {
+        "col": "mes",
+        "values": "AAAA-MM · 2026-11 (optionnel)"
+      }
+    ],
     "downloadTemplate": "Télécharger le modèle",
     "chooseFile": "Choisir un fichier…",
     "noFile": "Aucun fichier choisi",

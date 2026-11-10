@@ -173,14 +173,18 @@ export function StudentsSection({
   return (
     <div className="flex flex-col gap-4">
       {(!readOnly || canInvite) && (
+        // Invitar es el camino principal (embudo de venta: la persona
+        // se registra y compra su plan); la inscripción manual queda
+        // como fallback para liquidar a quien ya pagó presencial
+        // (spec academies/student-invites).
         <div data-tour="academy-alumnos-new" className="flex justify-end gap-2">
           {canInvite && (
-            <Button href="/academia/alumnos/invitar" size="sm" variant="secondary">
+            <Button href="/academia/alumnos/invitar" size="sm">
               {t("invites.cta")}
             </Button>
           )}
           {!readOnly && (
-            <Button href="/academia/alumnos/nuevo" size="sm">
+            <Button href="/academia/alumnos/nuevo" size="sm" variant="secondary">
               + {t("newEnrollment")}
             </Button>
           )}

@@ -203,6 +203,19 @@ export function ImportCard({
         </h2>
         <p className="mt-1 text-xs text-ink/50">{t(`${kind}Desc`)}</p>
         <p className="mt-1 text-xs text-ink/40">{t(`${kind}Cols`)}</p>
+        {/* Muestra de valores aceptados por columna (spec
+            academies/bulk-import): solo las columnas con formato
+            restringido, antes de "Descargar plantilla". */}
+        <dl className="mt-2 flex flex-col gap-1">
+          {(t.raw(`${kind}Values`) as { col: string; values: string }[]).map(
+            (v) => (
+              <div key={v.col} className="flex gap-2 text-xs">
+                <dt className="shrink-0 font-mono text-ink/50">{v.col}</dt>
+                <dd className="min-w-0 text-ink/40">{v.values}</dd>
+              </div>
+            ),
+          )}
+        </dl>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <a

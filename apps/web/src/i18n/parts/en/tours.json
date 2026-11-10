@@ -409,8 +409,8 @@
         "desc": "Each card opens the profile: plan, validity, attendance and the relationship score, private to your academy."
       },
       "s5": {
-        "title": "New enrollment",
-        "desc": "Enroll a student with their plan and validity from here."
+        "title": "Add students",
+        "desc": "Invite by email so they sign up on their own; manual enrollment stays for settling whoever already paid in person."
       }
     },
     "academia-cobros": {
