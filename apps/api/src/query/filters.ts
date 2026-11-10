@@ -26,7 +26,15 @@ export function validateEntityFilters(
     if (!fd) continue; // filtro desconocido → ignorado
     if (typeof value !== "string" || value === "") continue;
     if (fd.type === "enum") {
-      whitelist(value, fd.options ?? [], key); // 400 si inválido
+      if (fd.multi) {
+        // Selección múltiple: el valor viaja CSV - cada parte por
+        // whitelist, igual que un enum simple.
+        for (const part of value.split(",")) {
+          whitelist(part, fd.options ?? [], key);
+        }
+      } else {
+        whitelist(value, fd.options ?? [], key); // 400 si inválido
+      }
     }
     if (fd.type === "date") {
       dateOr400(value, key); // 400 si no parsea
@@ -79,7 +87,15 @@ export function validateSavedParams(
       throw new BadRequestException(`filtro "${key}" debe ser string`);
     }
     if (value === "") continue;
-    if (fd.type === "enum") whitelist(value, fd.options ?? [], key);
+    if (fd.type === "enum") {
+      if (fd.multi) {
+        for (const part of value.split(",")) {
+          whitelist(part, fd.options ?? [], key);
+        }
+      } else {
+        whitelist(value, fd.options ?? [], key);
+      }
+    }
     if (fd.type === "date") dateOr400(value, key);
     clean[key] = value;
   }

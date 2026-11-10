@@ -52,7 +52,8 @@
       "actorType": "Type d'acteur",
       "commission": "Commission",
       "levelId": "Niveau",
-      "typeId": "Modalité"
+      "typeId": "Modalité",
+      "kind": "Type de canal"
     },
     "optionLabels": {
       "SCAN": "Scan",
@@ -125,7 +126,16 @@
       "VOID": "Annulée",
       "AWAITING": "Sans justificatif",
       "active": "Actif",
-      "inactive": "Inactif"
+      "inactive": "Inactif",
+      "utm": "utm",
+      "ref": "Référent",
+      "landing": "Landing",
+      "direct": "Direct",
+      "invite": "Invitation",
+      "gift_ticket": "Ticket cadeau",
+      "link": "Lien",
+      "none": "Sans donnée",
+      "sin_dato": "Sans donnée"
     },
     "entities": {
       "sales": "Ventes",
@@ -152,7 +162,8 @@
       "payment-events": "Événements de paiement",
       "gateway-transactions": "Transactions passerelle",
       "membership-subscriptions": "Abonnements",
-      "payouts": "Règlements"
+      "payouts": "Règlements",
+      "acquisition": "Inscriptions par canal"
     },
     "system": {
       "sales": "Ventes",
@@ -358,6 +369,11 @@
         "neto": "Net",
         "estado": "Statut",
         "pagada": "Payé"
+      },
+      "acquisition": {
+        "canal": "Canal",
+        "altas": "Inscriptions",
+        "pct": "%"
       }
     }
   }
