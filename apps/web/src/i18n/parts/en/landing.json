@@ -166,22 +166,36 @@
     "costTable": {
       "title": "Your academy collects on its own",
       "lead": "The difference is not the fee: it's who chases the receipts.",
-      "colMethod": "Collection method",
-      "colCost": "Per $10,000",
-      "colGain": "Who does the work",
+      "steps": [
+        {
+          "title": "Your student pays",
+          "desc": "By receipt or automatic charge through your own gateway."
+        },
+        {
+          "title": "The platform keeps order",
+          "desc": "Reminds due dates, marks who is up to date and pauses overdue students."
+        },
+        {
+          "title": "The money reaches you",
+          "desc": "Straight to your account, without chasing anyone."
+        }
+      ],
       "rows": [
         {
           "method": "Receipt (transfer or cash)",
-          "cost": "$0 fee",
+          "cost": "$0",
+          "costNote": "fee",
           "gain": "You still review and approve each payment; the app reminds due dates and marks who's up to date"
         },
         {
           "method": "Your gateway (Flow or MercadoPago)",
-          "cost": "$119 + your gateway",
+          "cost": "$119",
+          "costNote": "+ your gateway",
           "gain": "The app charges, reconciles and pauses overdue students on its own; the money lands straight in your account"
         }
       ],
-      "note": "1% + VAT on what your gateway collects, billed the following month. Memberships with automatic charges run on your same account."
+      "note": "1% + VAT on what your gateway collects, billed the following month. Memberships with automatic charges run on your same account.",
+      "perLabel": "Per $10,000"
     },
     "faq": {
       "title": "Frequently asked questions",
@@ -297,9 +311,6 @@
     "costTable": {
       "title": "Your box office works while you produce",
       "lead": "Every sales channel has its cost. Chasing transfers costs too: it costs your time.",
-      "colMethod": "Sales channel",
-      "colCost": "Per $10,000",
-      "colGain": "Who does the work",
       "rows": [
         {
           "method": "Managed sales (our gateway)",
@@ -317,7 +328,25 @@
           "gain": "Your staff logs the sale and the entry QR validates the same"
         }
       ],
-      "note": "A plan lowers the fee: Standard ~$736 managed and ~$417 on your own methods; Pro ~$617 and ~$298. Attendees always pay the listed price."
+      "planFees": {
+        "label": "A plan lowers the fee",
+        "managedLabel": "managed sales",
+        "ownLabel": "own methods",
+        "tiers": [
+          {
+            "name": "Standard",
+            "managed": "~$736",
+            "own": "~$417"
+          },
+          {
+            "name": "Pro",
+            "managed": "~$617",
+            "own": "~$298"
+          }
+        ]
+      },
+      "note": "Attendees always pay the listed price.",
+      "perLabel": "Per $10,000"
     },
     "faq": {
       "title": "Frequently asked questions",

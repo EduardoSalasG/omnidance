@@ -166,22 +166,36 @@
     "costTable": {
       "title": "Ton académie encaisse toute seule",
       "lead": "La différence n'est pas le fee : c'est qui court après les justificatifs.",
-      "colMethod": "Moyen d'encaissement",
-      "colCost": "Pour 10 000 $",
-      "colGain": "Qui fait le travail",
+      "steps": [
+        {
+          "title": "Ton élève paie",
+          "desc": "Par justificatif ou prélèvement automatique sur ta propre passerelle."
+        },
+        {
+          "title": "La plateforme met de l'ordre",
+          "desc": "Rappelle les échéances, marque qui est à jour et bloque les mauvais payeurs."
+        },
+        {
+          "title": "L'argent arrive chez toi",
+          "desc": "Directement sur ton compte, sans courir après personne."
+        }
+      ],
       "rows": [
         {
           "method": "Justificatif (virement ou espèces)",
-          "cost": "0 $ de fee",
+          "cost": "0 $",
+          "costNote": "de fee",
           "gain": "Tu vérifies et approuves encore chaque paiement ; l'app rappelle les échéances et marque qui est à jour"
         },
         {
           "method": "Ta passerelle (Flow ou MercadoPago)",
-          "cost": "119 $ + ta passerelle",
+          "cost": "119 $",
+          "costNote": "+ ta passerelle",
           "gain": "L'app encaisse, rapproche et bloque les mauvais payeurs toute seule ; l'argent arrive directement sur ton compte"
         }
       ],
-      "note": "1 % + TVA sur ce que ta passerelle encaisse, facturé le mois suivant. Les mensualités à prélèvement automatique courent sur ton même compte."
+      "note": "1 % + TVA sur ce que ta passerelle encaisse, facturé le mois suivant. Les mensualités à prélèvement automatique courent sur ton même compte.",
+      "perLabel": "Pour 10 000 $"
     },
     "faq": {
       "title": "Questions fréquentes",
@@ -297,9 +311,6 @@
     "costTable": {
       "title": "Ta billetterie travaille pendant que tu produis",
       "lead": "Chaque canal de vente a son coût. Courir après les virements coûte aussi : ça coûte ton temps.",
-      "colMethod": "Canal de vente",
-      "colCost": "Pour 10 000 $",
-      "colGain": "Qui fait le travail",
       "rows": [
         {
           "method": "Vente gérée (notre passerelle)",
@@ -317,7 +328,25 @@
           "gain": "Ton staff enregistre la vente et le QR d'entrée se valide pareil"
         }
       ],
-      "note": "Avec un abonnement le fee baisse : Standard ~736 $ géré et ~417 $ par moyens propres ; Pro ~617 $ et ~298 $. L'assistant paie toujours le prix affiché."
+      "planFees": {
+        "label": "Avec un abonnement le fee baisse",
+        "managedLabel": "vente gérée",
+        "ownLabel": "moyens propres",
+        "tiers": [
+          {
+            "name": "Standard",
+            "managed": "~736 $",
+            "own": "~417 $"
+          },
+          {
+            "name": "Pro",
+            "managed": "~617 $",
+            "own": "~298 $"
+          }
+        ]
+      },
+      "note": "L'assistant paie toujours le prix affiché.",
+      "perLabel": "Pour 10 000 $"
     },
     "faq": {
       "title": "Questions fréquentes",

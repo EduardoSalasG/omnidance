@@ -166,22 +166,36 @@
     "costTable": {
       "title": "Tu academia cobra sola",
       "lead": "La diferencia no es el fee: es quién persigue los comprobantes.",
-      "colMethod": "Medio de cobro",
-      "colCost": "Por cada $10.000",
-      "colGain": "Quién hace el trabajo",
+      "steps": [
+        {
+          "title": "Tu alumno paga",
+          "desc": "Por comprobante o con cargo automático en tu propia pasarela."
+        },
+        {
+          "title": "La plataforma ordena",
+          "desc": "Recuerda vencimientos, marca quién va al día y pausa morosos."
+        },
+        {
+          "title": "La plata entra a ti",
+          "desc": "Directo a tu cuenta, sin que persigas a nadie."
+        }
+      ],
       "rows": [
         {
           "method": "Comprobante (transferencia o efectivo)",
-          "cost": "$0 de fee",
+          "cost": "$0",
+          "costNote": "de fee",
           "gain": "Aún revisas y apruebas cada pago; la app recuerda vencimientos y marca quién va al día"
         },
         {
           "method": "Tu pasarela (Flow o MercadoPago)",
-          "cost": "$119 + tu pasarela",
+          "cost": "$119",
+          "costNote": "+ tu pasarela",
           "gain": "La app cobra, concilia y pausa morosos sola; la plata entra directo a tu cuenta"
         }
       ],
-      "note": "1% + IVA sobre lo cobrado por tu pasarela, facturado mes vencido. Las mensualidades con cargo automático corren por tu misma cuenta."
+      "note": "1% + IVA sobre lo cobrado por tu pasarela, facturado mes vencido. Las mensualidades con cargo automático corren por tu misma cuenta.",
+      "perLabel": "Por cada $10.000"
     },
     "faq": {
       "title": "Preguntas frecuentes",
@@ -297,9 +311,6 @@
     "costTable": {
       "title": "Tu taquilla trabaja mientras produces",
       "lead": "Cada medio de venta tiene su costo. Perseguir transferencias también cuesta: cuesta tu tiempo.",
-      "colMethod": "Medio de venta",
-      "colCost": "Por cada $10.000",
-      "colGain": "Quién hace el trabajo",
       "rows": [
         {
           "method": "Venta gestionada (nuestra pasarela)",
@@ -317,7 +328,25 @@
           "gain": "Tu staff registra la venta y el QR de entrada se valida igual"
         }
       ],
-      "note": "Con plan el fee baja: Standard ~$736 gestionado y ~$417 por métodos propios; Pro ~$617 y ~$298. El asistente siempre paga el precio publicado."
+      "planFees": {
+        "label": "Con plan el fee baja",
+        "managedLabel": "venta gestionada",
+        "ownLabel": "métodos propios",
+        "tiers": [
+          {
+            "name": "Standard",
+            "managed": "~$736",
+            "own": "~$417"
+          },
+          {
+            "name": "Pro",
+            "managed": "~$617",
+            "own": "~$298"
+          }
+        ]
+      },
+      "note": "El asistente siempre paga el precio publicado.",
+      "perLabel": "Por cada $10.000"
     },
     "faq": {
       "title": "Preguntas frecuentes",

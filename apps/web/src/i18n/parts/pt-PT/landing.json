@@ -166,22 +166,36 @@
     "costTable": {
       "title": "A tua academia cobra sozinha",
       "lead": "A diferença não é a taxa: é quem persegue os comprovativos.",
-      "colMethod": "Meio de cobrança",
-      "colCost": "Por cada $10.000",
-      "colGain": "Quem faz o trabalho",
+      "steps": [
+        {
+          "title": "O teu aluno paga",
+          "desc": "Por comprovativo ou débito automático na tua própria gateway."
+        },
+        {
+          "title": "A plataforma ordena",
+          "desc": "Lembra vencimentos, marca quem está em dia e pausa devedores."
+        },
+        {
+          "title": "O dinheiro chega até ti",
+          "desc": "Direto na tua conta, sem perseguir ninguém."
+        }
+      ],
       "rows": [
         {
           "method": "Comprovativo (transferência ou dinheiro)",
-          "cost": "$0 de taxa",
+          "cost": "$0",
+          "costNote": "de taxa",
           "gain": "Ainda revês e aprovas cada pagamento; a app lembra vencimentos e marca quem está em dia"
         },
         {
           "method": "A tua gateway (Flow ou MercadoPago)",
-          "cost": "$119 + a tua gateway",
+          "cost": "$119",
+          "costNote": "+ a tua gateway",
           "gain": "A app cobra, reconcilia e pausa devedores sozinha; o dinheiro entra direto na tua conta"
         }
       ],
-      "note": "1% + IVA sobre o que a tua gateway cobra, faturado no mês seguinte. As mensalidades com débito automático correm pela tua mesma conta."
+      "note": "1% + IVA sobre o que a tua gateway cobra, faturado no mês seguinte. As mensalidades com débito automático correm pela tua mesma conta.",
+      "perLabel": "Por cada $10.000"
     },
     "faq": {
       "title": "Perguntas frequentes",
@@ -297,9 +311,6 @@
     "costTable": {
       "title": "A tua bilheteira trabalha enquanto produzes",
       "lead": "Cada canal de venda tem o seu custo. Perseguir transferências também custa: custa o teu tempo.",
-      "colMethod": "Canal de venda",
-      "colCost": "Por cada $10.000",
-      "colGain": "Quem faz o trabalho",
       "rows": [
         {
           "method": "Venda gerida (a nossa gateway)",
@@ -317,7 +328,25 @@
           "gain": "O teu staff regista a venda e o QR de entrada valida-se na mesma"
         }
       ],
-      "note": "Com plano a taxa baixa: Standard ~$736 gerida e ~$417 por meios próprios; Pro ~$617 e ~$298. O assistente paga sempre o preço publicado."
+      "planFees": {
+        "label": "Com plano a taxa baixa",
+        "managedLabel": "venda gerida",
+        "ownLabel": "meios próprios",
+        "tiers": [
+          {
+            "name": "Standard",
+            "managed": "~$736",
+            "own": "~$417"
+          },
+          {
+            "name": "Pro",
+            "managed": "~$617",
+            "own": "~$298"
+          }
+        ]
+      },
+      "note": "O assistente paga sempre o preço publicado.",
+      "perLabel": "Por cada $10.000"
     },
     "faq": {
       "title": "Perguntas frequentes",
