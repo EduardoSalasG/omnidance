@@ -1,6 +1,25 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getLocale, getMessages } from "next-intl/server";
+import { type Locale } from "@/i18n/routing";
+import { localeAlternates } from "@/lib/seo";
 import { serverApiUrl } from "@/lib/server-api";
 import { PaseClient } from "./pase-client";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const m = (await getMessages()) as { pase: Record<string, string> };
+  const locale = (await getLocale()) as Locale;
+  return {
+    title: m.pase.title,
+    description: m.pase.subtitle,
+    alternates: localeAlternates(locale, "/pase"),
+    openGraph: {
+      title: `${m.pase.title} | Omnidance`,
+      description: m.pase.subtitle,
+      url: "/pase",
+    },
+  };
+}
 
 // Pase Social (spec pase-social): pitch público + panel del miembro.
 // Vive en (marketing) como /pro: el pitch se ve anónimo y el flag
