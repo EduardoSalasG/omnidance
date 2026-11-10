@@ -195,8 +195,8 @@
           "a": "Sim. Registas na tua consola e o aluno fica em dia na mesma; a app é o teu controlo de pagamentos, não apenas a gateway."
         },
         {
-          "q": "Posso trazer os meus alunos de um Excel?",
-          "a": "Sim. O importador só pede email e nome por linha; o plano, o documento, a data de nascimento e o telefone são opcionais. Aceita .csv, .xls e .xlsx."
+          "q": "Já tenho um sistema, posso trazer a minha informação?",
+          "a": "Sim. Subes a tua lista de alunos e o teu horário num Excel ou CSV e cada aluno recebe o convite para entrar. Mudas sem carregar nada à mão: é coisa de uma tarde, não de semanas."
         },
         {
           "q": "E se eu exceder o limite de alunos do meu plano?",

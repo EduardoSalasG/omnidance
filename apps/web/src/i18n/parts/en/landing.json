@@ -195,8 +195,8 @@
           "a": "Yes. You log it in your console and the student is marked up to date; the app is your payment control, not only the gateway."
         },
         {
-          "q": "Can I bring my students from Excel?",
-          "a": "Yes. The importer only needs email and name per row; plan, document, birth date and phone are optional. It accepts .csv, .xls and .xlsx."
+          "q": "I already have a system, can I bring my data?",
+          "a": "Yes. Upload your student roster and schedule in Excel or CSV and each student gets an invite to join. You switch without typing anything by hand: it's an afternoon's work, not weeks."
         },
         {
           "q": "What if I exceed my plan's student cap?",

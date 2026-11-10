@@ -195,8 +195,8 @@
           "a": "Sí. Lo registras desde tu consola y el alumno queda al día igual; la app es tu control de pagos, no solo la pasarela."
         },
         {
-          "q": "¿Puedo traer a mis alumnos desde Excel?",
-          "a": "Sí. El importador pide solo email y nombre por fila; el plan, el documento, la fecha de nacimiento y el teléfono son opcionales. Acepta .csv, .xls y .xlsx."
+          "q": "¿Ya tengo un sistema, puedo traer mi información?",
+          "a": "Sí. Subes tu nómina de alumnos y tu horario en un Excel o CSV y cada alumno recibe su invitación para entrar. Te cambias sin cargar nada a mano: es cosa de una tarde, no de semanas."
         },
         {
           "q": "¿Qué pasa si supero los alumnos de mi plan?",

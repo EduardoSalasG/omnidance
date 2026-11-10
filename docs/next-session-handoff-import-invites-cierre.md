@@ -97,6 +97,50 @@ historial, i18n, docs y cierre del change OpenSpec.
   repo). Verificado: 45/45 OK en docs + detecta `;` en archivo
   ad-hoc. Candidato natural a paso de CI.
 
+## Trabajo NUEVO encargado (sesión siguiente)
+
+### Landings para-academias + pro (diseño/copy - pedido del owner)
+
+1. **`/para-*` academia, sección "Tu academia cobra sola"**: hacerla
+   más visual - hoy es un cuadro de texto; evaluar flujo en pasos o
+   cards (alumno paga → plataforma valida → academia recibe).
+   Contenido en `apps/web/src/content/*.json` + componente de sección
+   de la landing. Skill `impeccable` + `ui-ux-principles` aplican.
+2. **FAQ migración**: YA APLICADO en `landing.json` (4 locales):
+   "¿Ya tengo un sistema, puedo traer mi información?" → respuesta
+   benefit-led "te cambias sin cargar nada a mano: es cosa de una
+   tarde, no de semanas" (el owner pidió NO mencionar validación/dry-run
+   ni features - solo la realidad de que el cambio es cómodo).
+   `i18n-audit` → ALL_KEYS_OK tras el cambio.
+3. **`/pro` productor, "Tu taquilla trabaja mientras produces"**:
+   más visual + subir la letra chica a contenido principal
+   ("Con el plan fee baja: Standard…" - la baja del fee es el argumento
+   fuerte y hoy está escondida).
+4. **`/academia/configuracion/importar`**: antes de "Descargar
+   plantilla", mostrar muestra de valores posibles por columna
+   (sexo: m/f/otro; dia_semana: nombres o 0-6; fecha_nacimiento:
+   DD/MM/YYYY; mes: YYYY-MM). Hoy solo dice nombres de columnas.
+
+### CTA alumnos: Invitar principal, alta directa a fallback (decisión owner)
+
+- En `/academia/alumnos` hoy conviven "Invitar" y "Nueva inscripción"
+  (alta directa en `/alumnos/nuevo`). Decisión: **Invitar = CTA
+  principal**; el alta directa queda como fallback renombrado
+  "Inscripción manual" / "Inscribir manualmente" (no CTA principal).
+  Razón: el alta directa se salta el flujo propio de la app (registro
+  → compra de plan); su uso legítimo es liquidar a mano al alumno que
+  YA pagó presencial (efectivo/transferencia/cortesía). Ambos caminos
+  coexisten: invitar = embudo de venta, inscripción manual = liquidación
+  administrativa.
+
+### Seed fixtures para el flujo nuevo (opcional, barato)
+
+- `AcademyImportRun` no tiene fixture → card "Historial" siempre vacía
+  en demo. Agregar 1-2 corridas al seed/enrich con counts+results
+  representativos, y un par de `AcademyInvite` pendientes para que la
+  sección "Invitados" se vea poblada. Verificado en dev: 891
+  enrollments ACTIVE, 0 con planId:null (la migración dejó 2 INACTIVE).
+
 ## Pendientes generales (sin cambio)
 
 - multipais-foundation tasks 10/11/13 (slices grandes sin abrir).

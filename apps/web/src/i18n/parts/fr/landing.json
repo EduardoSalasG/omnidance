@@ -195,8 +195,8 @@
           "a": "Oui. Tu l'enregistres depuis ta console et l'élève est à jour pareil ; l'app est ton contrôle des paiements, pas seulement la passerelle."
         },
         {
-          "q": "Puis-je importer mes élèves depuis Excel ?",
-          "a": "Oui. L'import n'exige que l'email et le nom par ligne ; le forfait, le document, la date de naissance et le téléphone sont optionnels. Il accepte .csv, .xls et .xlsx."
+          "q": "J'ai déjà un système, je peux apporter mes données ?",
+          "a": "Oui. Tu montes ta liste d'élèves et ton planning dans un Excel ou CSV et chaque élève reçoit son invitation pour entrer. Tu changes sans rien retaper à la main : c'est l'affaire d'un après-midi, pas de semaines."
         },
         {
           "q": "Que se passe-t-il si je dépasse le plafond d'élèves ?",
