@@ -684,6 +684,24 @@ describe("AuthController - lente academy al consumir invite", () => {
     );
   });
 
+  it("verify emite invite.registered con channel magic_link", async () => {
+    const prisma = mkPrisma([{ id: "inv-1", invitedById: "p-owner" }]);
+    const ctrl2 = ctrlWithPrisma(prisma);
+    await repo.upsertByEmail("invitado@omnidance.dev");
+    const token = await auth.createMagicToken("invitado@omnidance.dev", false, "15m", {
+      next: "/academias/acad-1",
+    });
+    await ctrl2.verify(token, mkRes());
+    expect(prisma.activityEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: "invite.registered",
+          data: { channel: "magic_link" },
+        }),
+      }),
+    );
+  });
+
   it("verify sin invite consumido no setea la cookie de lente", async () => {
     const ctrl2 = ctrlWithPrisma(mkPrisma([]));
     await repo.upsertByEmail("normal@omnidance.dev");

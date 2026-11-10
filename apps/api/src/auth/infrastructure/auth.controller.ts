@@ -240,7 +240,7 @@ export class AuthController {
     if (!academyId || !this.prisma) return false;
     return consumeAcademyInvites(
       this.prisma,
-      { email, personId, academyId },
+      { email, personId, academyId, channel: "magic_link" },
       this.logger,
     );
   }

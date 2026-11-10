@@ -3,6 +3,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { apiFetch } from "@/lib/api";
 import type { RealtimeNotification } from "@/lib/realtime";
 import { useRealtime } from "./RealtimeProvider";
 import { useRouter } from "@/i18n/navigation";
@@ -147,6 +148,11 @@ export function NotificationToast() {
           type="button"
           onClick={() => {
             dismiss();
+            // Marcar leída (fire-and-forget): sin esto la notificación
+            // seguía como pendiente al volver al centro.
+            apiFetch(`/notifications/${shown.id}/read`, {
+              method: "POST",
+            }).catch(() => {});
             notificationTapEffects(shown);
             router.push(notificationHref(shown) ?? "/notificaciones");
           }}

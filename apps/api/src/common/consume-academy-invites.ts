@@ -18,7 +18,16 @@ export async function consumeAcademyInvites(
     email,
     personId,
     academyId,
-  }: { email: string; personId: string; academyId: string },
+    channel,
+  }: {
+    email: string;
+    personId: string;
+    academyId: string;
+    /** Camino de llegada: magic_link (verify), push (tap in-app) o
+        device (push de dispositivo → bridge /i/:inviteId). Va en
+        `data.channel` del invite.registered (métrica por canal). */
+    channel?: string;
+  },
   logger?: Logger,
 ): Promise<boolean> {
   let consumed = false;
@@ -56,6 +65,7 @@ export async function consumeAcademyInvites(
         academyId,
         refType: "AcademyInvite",
         refId: invite.id,
+        ...(channel ? { data: { channel } } : {}),
       });
       consumed = true;
     }

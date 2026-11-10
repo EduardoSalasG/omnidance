@@ -76,6 +76,31 @@ describe("NotificationToast - deep link por tipo", () => {
     expect(state.push).toHaveBeenCalledWith("/notificaciones");
   });
 
+  it("el tap del cuerpo marca la notificación leída antes de navegar", async () => {
+    state.notif = notif({
+      type: "ticket.claimed",
+      title: "Ticket reclamado",
+      data: { eventId: "ev-1" },
+    });
+    renderToast();
+    fireEvent.click(await screen.findByText("Ticket reclamado"));
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalledWith(
+        "/notifications/n-1/read",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+    expect(state.push).toHaveBeenCalledWith("/eventos/ev-1");
+  });
+
+  it("la X descarta sin marcar leída ni navegar", async () => {
+    state.notif = notif({ type: "account.notice", title: "Aviso" });
+    renderToast();
+    fireEvent.click(await screen.findByLabelText("Descartar"));
+    expect(apiFetchMock).not.toHaveBeenCalled();
+    expect(state.push).not.toHaveBeenCalled();
+  });
+
   it("academy.invite: consume, lente academy y ficha", async () => {
     state.notif = notif({
       type: "academy.invite",

@@ -164,7 +164,7 @@ describe("AcademyInvitesController.consume", () => {
 
     const res = await ctrl.consume("inv-1", reqAs(DANCER));
 
-    expect(res.consumed).toBe(true);
+    expect(res).toEqual({ consumed: true, academyId: "acad-1" });
     expect(prisma.academyInvite.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "inv-1" },
@@ -178,7 +178,33 @@ describe("AcademyInvitesController.consume", () => {
         source: "INVITE",
       },
     });
-    expect(prisma.activityEvent.create).toHaveBeenCalled();
+    // Canal default del endpoint: tap in-app (centro/toast) = "push".
+    expect(prisma.activityEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: "invite.registered",
+          data: { channel: "push" },
+        }),
+      }),
+    );
+  });
+
+  it("channel device del bridge se propaga al evento invite.registered", async () => {
+    const { ctrl, prisma } = makeDeps();
+    prisma.academyInvite.findUnique.mockResolvedValue(PENDING);
+    prisma.person.findUnique.mockResolvedValue({ email: "inv@x.cl" });
+    prisma.academyInvite.findMany.mockResolvedValue([PENDING]);
+
+    await ctrl.consume("inv-1", reqAs(DANCER), { channel: "device" });
+
+    expect(prisma.activityEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: "invite.registered",
+          data: { channel: "device" },
+        }),
+      }),
+    );
   });
 
   it("ya consumida → consumed:false sin re-escribir ni duplicar referral", async () => {
@@ -192,7 +218,9 @@ describe("AcademyInvitesController.consume", () => {
 
     const res = await ctrl.consume("inv-1", reqAs(DANCER));
 
-    expect(res.consumed).toBe(false);
+    // academyId también en el early-return: la bridge lo necesita
+    // para navegar aunque la invite ya estaba consumida.
+    expect(res).toEqual({ consumed: false, academyId: "acad-1" });
     expect(prisma.academyInvite.update).not.toHaveBeenCalled();
     expect(prisma.referral.create).not.toHaveBeenCalled();
   });

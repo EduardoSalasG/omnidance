@@ -132,14 +132,20 @@ export class AcademyInvitesService {
     }
 
     // Cuenta existente: además del correo, push "la academia te invitó"
-    // (cuentas nuevas no tienen tokens de push aún).
+    // (cuentas nuevas no tienen tokens de push aún). `url` es la ruta
+    // bridge que consume la invite desde el push de dispositivo - la
+    // ficha directa saltaría el consumo (spec academies/student-invites).
     if (personExists) {
       await this.notifications?.notifySafe(person.id, {
         category: "TRANSACTIONAL",
         type: "academy.invite",
         title: `${academy.name} te invitó a Omnidance`,
         body: "Revisa tu correo para entrar y encontrarla.",
-        data: { academyId: academy.id, inviteId: invite.id },
+        data: {
+          academyId: academy.id,
+          inviteId: invite.id,
+          url: `/i/${invite.id}`,
+        },
       });
     }
 
