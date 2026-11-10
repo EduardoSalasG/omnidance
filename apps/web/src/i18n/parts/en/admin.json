@@ -118,6 +118,25 @@
         "copyLink": "Copy link",
         "copied": "Link copied",
         "invalid": "Enter a valid amount and a concept"
+      },
+      "payMethods": {
+        "title": "Payment methods",
+        "gateway": "Gateway",
+        "manual": "Manual methods",
+        "empty": "No payment methods configured in this academy.",
+        "verifiedAt": "Verified {date}",
+        "unverified": "Not verified",
+        "gatewayStatus": {
+          "ACTIVE": "Active",
+          "DISABLED": "Disabled"
+        },
+        "methodType": {
+          "TRANSFER": "Bank transfer",
+          "PAYMENT_LINK": "Payment link",
+          "CASH": "Cash"
+        },
+        "active": "Active",
+        "inactive": "Inactive"
       }
     },
     "trials": {

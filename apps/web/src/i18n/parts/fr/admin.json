@@ -118,6 +118,25 @@
         "copyLink": "Copier le lien",
         "copied": "Lien copié",
         "invalid": "Saisis un montant valide et un motif"
+      },
+      "payMethods": {
+        "title": "Moyens de paiement",
+        "gateway": "Passerelle",
+        "manual": "Moyens manuels",
+        "empty": "Aucun moyen de paiement configuré dans cette académie.",
+        "verifiedAt": "Vérifiée le {date}",
+        "unverified": "Non vérifiée",
+        "gatewayStatus": {
+          "ACTIVE": "Active",
+          "DISABLED": "Désactivée"
+        },
+        "methodType": {
+          "TRANSFER": "Virement",
+          "PAYMENT_LINK": "Lien de paiement",
+          "CASH": "Espèces"
+        },
+        "active": "Actif",
+        "inactive": "Inactif"
       }
     },
     "trials": {

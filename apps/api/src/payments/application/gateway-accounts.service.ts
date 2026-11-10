@@ -88,7 +88,7 @@ function scopeWhere(scope: AccountScope) {
     : { academyId: scope.academyId };
 }
 
-function webhookUrlFor(provider: string, accountId: string): string {
+export function webhookUrlFor(provider: string, accountId: string): string {
   const apiUrl = process.env.API_URL ?? "http://localhost:4000";
   return `${apiUrl}/api/payments/webhook/${provider}?account=${accountId}`;
 }

@@ -120,6 +120,35 @@ type PersonDetail = {
   }[];
 };
 
+// Shape de GET /admin/users/:personId/payment-methods
+// (user-intel.controller): por cada academia que la persona posee,
+// sus cuentas de pasarela BYO (mask público, jamás credenciales) y
+// sus métodos manuales.
+type GatewayAccountRow = {
+  id: string;
+  provider: string;
+  keyMask: string;
+  status: string;
+  lastError: string | null;
+  verifiedAt: string | null;
+  webhookUrl: string;
+};
+
+type ManualMethodRow = {
+  id: string;
+  type: string;
+  label: string;
+  details: Record<string, unknown> | null;
+  active: boolean;
+};
+
+type AcademyPayMethods = {
+  id: string;
+  name: string;
+  gatewayAccounts: GatewayAccountRow[];
+  manualMethods: ManualMethodRow[];
+};
+
 // Shape de GET /admin/users/:personId/timeline (user-intel.controller,
 // spec platform-trials §5b): label ya resuelto server-side.
 type TimelineItem = {
@@ -187,6 +216,9 @@ function UserDetailPanel({ personId }: { personId: string }) {
 
   const [detail, setDetail] = useState<PersonDetail | null>(null);
   const [timeline, setTimeline] = useState<TimelineItem[] | null>(null);
+  const [payMethods, setPayMethods] = useState<AcademyPayMethods[] | null>(
+    null,
+  );
   const [timelineExpanded, setTimelineExpanded] = useState(false);
   const [catalog, setCatalog] = useState<RoleRow[]>([]);
   const [state, setState] = useState<LoadState>("loading");
@@ -264,6 +296,21 @@ function UserDetailPanel({ personId }: { personId: string }) {
         setTimeline(body.items);
       })
       .catch(() => setTimeline([]));
+  }, [personId]);
+
+  // Métodos de cobro de las academias del actor (change
+  // admin-user-payment-methods): fetch independiente del detail: un
+  // fallo no tumba la ficha.
+  useEffect(() => {
+    apiFetch(`/admin/users/${personId}/payment-methods`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("fetch failed");
+        const body = (await res.json()) as {
+          academies: AcademyPayMethods[];
+        };
+        setPayMethods(body.academies);
+      })
+      .catch(() => setPayMethods([]));
   }, [personId]);
 
   // Catálogo de roles para el selector "Agregar rol" (y fallback de label
@@ -671,6 +718,35 @@ function UserDetailPanel({ personId }: { personId: string }) {
           ))
         )}
       </section>
+
+      {/* Métodos de pago de las academias del actor (change
+          admin-user-payment-methods): pasarela BYO (solo el mask, las
+          credenciales cifradas nunca salen por API) + métodos
+          manuales. Mientras carga solo se muestra el skeleton si el
+          actor tiene el rol ACADEMY_OWNER; un bailarín sin academias
+          no ve la sección (ni el flash del header). */}
+      {(payMethods === null
+        ? heldRoles.has("ACADEMY_OWNER")
+        : payMethods.length > 0) && (
+        <section
+          className="flex flex-col gap-3"
+          aria-labelledby="paymethods-h"
+        >
+          <h2
+            id="paymethods-h"
+            className="text-sm font-semibold uppercase tracking-wide text-ink/50"
+          >
+            {t("users.payMethods.title")}
+          </h2>
+          {payMethods === null ? (
+            <SkeletonList />
+          ) : (
+            payMethods.map((a) => (
+              <AcademyPayMethodsCard key={a.id} academy={a} />
+            ))
+          )}
+        </section>
+      )}
 
       {/* Scores de relación por actor (spec academy-score-refine):
           CRM privado por actor - el admin los ve transversal. */}
@@ -1137,6 +1213,119 @@ function DataList({
         </>
       )}
     </div>
+  );
+}
+
+// ── Métodos de pago por academia ─────────────────────────────────────
+
+// Resumen público del método manual (los datos de una TRANSFER ya se le
+// muestran al alumno en checkout: no hay secreto que proteger).
+function manualMethodSub(m: ManualMethodRow): string | null {
+  const d = m.details ?? {};
+  const s = (k: string) => {
+    const v = d[k];
+    return typeof v === "string" && v.trim() ? v.trim() : null;
+  };
+  if (m.type === "TRANSFER") {
+    return (
+      [s("holder"), s("bank"), s("accountNumber")]
+        .filter((x): x is string => !!x)
+        .join(" · ") || null
+    );
+  }
+  if (m.type === "PAYMENT_LINK") return s("url");
+  if (m.type === "CASH") return s("instructions");
+  return null;
+}
+
+function AcademyPayMethodsCard({ academy }: { academy: AcademyPayMethods }) {
+  const t = useTranslations("admin");
+  const locale = useLocale();
+  const gatewayStatus = (s: string) => {
+    const key = `users.payMethods.gatewayStatus.${s}`;
+    return t.has(key) ? t(key) : s;
+  };
+  const methodType = (type: string) => {
+    const key = `users.payMethods.methodType.${type}`;
+    return t.has(key) ? t(key) : type;
+  };
+  return (
+    <Card className="flex flex-col gap-3 p-4">
+      <h3 className="text-sm font-semibold">{academy.name}</h3>
+      {academy.gatewayAccounts.length === 0 &&
+      academy.manualMethods.length === 0 ? (
+        <p className="text-sm text-ink/50">{t("users.payMethods.empty")}</p>
+      ) : (
+        <>
+          {academy.gatewayAccounts.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <SubTitle>{t("users.payMethods.gateway")}</SubTitle>
+              <ul className="flex flex-col divide-y divide-ink/5">
+                {academy.gatewayAccounts.map((g) => (
+                  <li
+                    key={g.id}
+                    className="flex flex-col justify-center gap-0.5 py-1.5"
+                  >
+                    <span className="flex items-center justify-between gap-3">
+                      <span className="min-w-0 truncate text-sm font-medium">
+                        {g.provider}{" "}
+                        <span className="font-mono text-xs text-ink/50">
+                          {g.keyMask}
+                        </span>
+                      </span>
+                      <Badge
+                        variant={g.status === "ACTIVE" ? "neon" : "muted"}
+                      >
+                        {gatewayStatus(g.status)}
+                      </Badge>
+                    </span>
+                    <span className="text-xs text-ink/50">
+                      {g.verifiedAt
+                        ? t("users.payMethods.verifiedAt", {
+                            date: fmtDate(g.verifiedAt, locale),
+                          })
+                        : t("users.payMethods.unverified")}
+                    </span>
+                    <span className="break-all font-mono text-[11px] text-ink/40">
+                      {g.webhookUrl}
+                    </span>
+                    {g.lastError && (
+                      <span className="text-[11px] text-red-400/80">
+                        {g.lastError}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {academy.manualMethods.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <SubTitle>{t("users.payMethods.manual")}</SubTitle>
+              <ul className="flex flex-col divide-y divide-ink/5">
+                {academy.manualMethods.map((m) => (
+                  <DataRow
+                    key={m.id}
+                    name={m.label}
+                    sub={manualMethodSub(m) ?? undefined}
+                    badge={
+                      <>
+                        <Badge variant="outline">{methodType(m.type)}</Badge>
+                        <Badge variant={m.active ? "neon" : "muted"}>
+                          {m.active
+                            ? t("users.payMethods.active")
+                            : t("users.payMethods.inactive")}
+                        </Badge>
+                      </>
+                    }
+                  />
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      )}
+    </Card>
   );
 }
 

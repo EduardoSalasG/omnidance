@@ -118,6 +118,25 @@
         "copyLink": "Copiar link",
         "copied": "Link copiado",
         "invalid": "Indica um montante válido e um conceito"
+      },
+      "payMethods": {
+        "title": "Métodos de pagamento",
+        "gateway": "Gateway",
+        "manual": "Métodos manuais",
+        "empty": "Sem métodos de pagamento configurados nesta academia.",
+        "verifiedAt": "Verificada em {date}",
+        "unverified": "Por verificar",
+        "gatewayStatus": {
+          "ACTIVE": "Ativa",
+          "DISABLED": "Desativada"
+        },
+        "methodType": {
+          "TRANSFER": "Transferência",
+          "PAYMENT_LINK": "Link de pagamento",
+          "CASH": "Dinheiro"
+        },
+        "active": "Ativo",
+        "inactive": "Inativo"
       }
     },
     "trials": {
