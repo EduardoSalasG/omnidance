@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { Test } from "@nestjs/testing";
 import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { AuthModule } from "../src/auth/auth.module";
@@ -381,16 +381,11 @@ describe("academy bulk import e2e (spec academy-bulk-import)", () => {
   });
 
   it("import de alumnos vía .xlsx procesa las mismas filas que el CSV", async () => {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([
-      ["email", "nombre", "sexo"],
-      ["import-new-xls@omnidance.dev", "Desde Excel", "f"],
-    ]);
-    XLSX.utils.book_append_sheet(wb, ws, "Alumnos");
-    const buffer = XLSX.write(wb, {
-      type: "buffer",
-      bookType: "xlsx",
-    }) as Buffer;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Alumnos");
+    ws.addRow(["email", "nombre", "sexo"]);
+    ws.addRow(["import-new-xls@omnidance.dev", "Desde Excel", "f"]);
+    const buffer = Buffer.from(await wb.xlsx.writeBuffer());
     const res = await postFile(
       `/api/academies/${academyId.v}/import/students`,
       new Uint8Array(buffer),

@@ -16,9 +16,11 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { IsOptional, IsString } from "class-validator";
+import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import { Prisma, type Payment } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
+import { WEBHOOK_THROTTLE } from "../../common/throttle.config";
 import { AcademyAccess } from "../../academies/infrastructure/academy-access.service";
 import { pageParams } from "../../academies/infrastructure/list-filters";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
@@ -110,7 +112,11 @@ export class PaymentsController {
   // Legacy: la ruta sin provider usa el adaptador default (PAYMENT_GATEWAY
   // = default del registry) - el urlConfirmation de Flow configurado en
   // prod sigue funcionando.
+  // @Throttle dedicado (spec api-hardening): verifyWebhook puede disparar
+  // llamadas salientes firmadas a la pasarela - el límite propio frena la
+  // amplificación antes que el global.
   @Post("webhook")
+  @Throttle(WEBHOOK_THROTTLE)
   @HttpCode(200)
   async webhook(@Body() body: WebhookDto, @Req() req: Request) {
     return this.confirm(this.gateway, body, undefined, ctxOf(req));
@@ -130,6 +136,7 @@ export class PaymentsController {
    * que no calza → 404/400; un Payment de otra cuenta → 400.
    */
   @Post("webhook/:provider")
+  @Throttle(WEBHOOK_THROTTLE)
   @ApiQuery({ name: "account", required: false })
   @HttpCode(200)
   async webhookByProvider(
@@ -368,6 +375,7 @@ export class PaymentsController {
    * service).
    */
   @Post("subscription-webhook")
+  @Throttle(WEBHOOK_THROTTLE)
   @ApiQuery({ name: "account", required: false })
   @HttpCode(200)
   async subscriptionWebhook(

@@ -27,8 +27,10 @@ import {
   MaxLength,
   ValidateIf,
 } from "class-validator";
+import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import type { ClaimStatus } from "@prisma/client";
+import { EXPORT_THROTTLE } from "../../common/throttle.config";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { AcademyAccess } from "./academy-access.service";
 import {
@@ -442,6 +444,7 @@ export class AcademyClaimsController {
    * filename y contenido localizados por `lang` (es default).
    */
   @Get(":id/billing-report.csv")
+  @Throttle(EXPORT_THROTTLE)
   @ApiQuery({ name: "lang", required: false })
   async billingReportCsv(
     @Param("id") id: string,
@@ -463,6 +466,7 @@ export class AcademyClaimsController {
   }
 
   @Get(":id/billing-report.pdf")
+  @Throttle(EXPORT_THROTTLE)
   @ApiQuery({ name: "lang", required: false })
   async billingReportPdf(
     @Param("id") id: string,

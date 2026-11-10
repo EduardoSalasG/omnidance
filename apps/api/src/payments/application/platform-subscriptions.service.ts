@@ -2173,6 +2173,37 @@ export class PlatformSubscriptionsService {
   // ─── Webhook + reconcile ──────────────────────────────────────────
 
   /**
+   * Lock en vuelo + cooldown del barrido disparado por webhook (spec
+   * api-hardening) - mismo patrón que SubscriptionsService: in-memory,
+   * un sweep en vuelo impide solapamiento y ~60s sin re-disparo.
+   */
+  private reconcileInFlight = false;
+  private reconcileLastFiredAt = 0;
+  private static readonly RECONCILE_COOLDOWN_MS = 60_000;
+
+  private fireReconcileSweep(): void {
+    const now = Date.now();
+    if (
+      this.reconcileInFlight ||
+      now - this.reconcileLastFiredAt <
+        PlatformSubscriptionsService.RECONCILE_COOLDOWN_MS
+    ) {
+      return;
+    }
+    this.reconcileInFlight = true;
+    this.reconcileLastFiredAt = now;
+    void this.reconcileAll()
+      .catch((e) =>
+        this.logger.error(
+          `reconcileAll platsub post-webhook falló: ${e instanceof Error ? e.message : e}`,
+        ),
+      )
+      .finally(() => {
+        this.reconcileInFlight = false;
+      });
+  }
+
+  /**
    * Segundo consumidor del `subscription/callback` de Flow: el INBOUND ya
    * quedó auditado por `SubscriptionsService.subscriptionWebhook` (mismo
    * endpoint comparte urlCallback entre todos los Flow-plans); acá solo
@@ -2180,11 +2211,7 @@ export class PlatformSubscriptionsService {
    */
   async subscriptionWebhook(token: string | null): Promise<void> {
     if (typeof token !== "string" || token.trim() === "") return;
-    void this.reconcileAll().catch((e) =>
-      this.logger.error(
-        `reconcileAll platsub post-webhook falló: ${e instanceof Error ? e.message : e}`,
-      ),
-    );
+    this.fireReconcileSweep();
   }
 
   /**

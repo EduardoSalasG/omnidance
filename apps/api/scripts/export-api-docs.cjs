@@ -7,7 +7,10 @@
  * Uso:  node scripts/export-api-docs.cjs [baseUrl]
  * Default baseUrl: http://localhost:4000
  *
- * Requiere el API arriba (pnpm --filter @omnidance/api dev).
+ * Requiere el API arriba (pnpm --filter @omnidance/api dev) con la doc
+ * montada: en producción `/api/docs*` queda cerrado salvo
+ * `API_DOCS_ENABLED=true` (spec api-hardening) - para exportar contra
+ * prod hay que levantar/reiniciar el API con ese flag.
  */
 const { writeFileSync, mkdirSync } = require("fs");
 const { join } = require("path");
@@ -127,7 +130,12 @@ function toPostman(openapi) {
 async function main() {
   const res = await fetch(`${BASE}/api/docs-json`);
   if (!res.ok) {
-    console.error(`GET ${BASE}/api/docs-json → ${res.status} - ¿está el API arriba?`);
+    console.error(
+      `GET ${BASE}/api/docs-json → ${res.status} - ¿está el API arriba con la doc montada?` +
+        (res.status === 404
+          ? " En producción hace falta API_DOCS_ENABLED=true (o NODE_ENV≠production)."
+          : ""),
+    );
     process.exit(1);
   }
   const openapi = await res.json();

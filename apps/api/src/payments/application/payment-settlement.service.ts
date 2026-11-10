@@ -82,6 +82,24 @@ interface AmountMismatch {
 }
 
 /**
+ * Cobro confirmado pero DISCREPANCIOSO a la baja (spec api-hardening):
+ * la pasarela reporta menos de lo cobrado o una moneda distinta → no se
+ * liquida automáticamente (queda para revisión admin). Un reporte
+ * `>= expected` con la moneda correcta liquida normal.
+ */
+function isUnderpaid(payment: Payment, gw: GatewayFields | null): boolean {
+  if (!gw) return false;
+  const amountShort =
+    gw.gatewayReportedAmount != null &&
+    gw.gatewayReportedAmount < payment.amount;
+  const currencyDiff =
+    gw.gatewayCurrency != null &&
+    payment.currency != null &&
+    gw.gatewayCurrency !== payment.currency.toUpperCase();
+  return amountShort || currencyDiff;
+}
+
+/**
  * paymentData de Flow es un objeto plano; cualquier campo ausente o con
  * tipo inesperado queda en null - nunca se inventa un valor. Si
  * gatewayData no es objeto (p.ej. StubGateway no lo envía) devuelve null
@@ -361,6 +379,65 @@ export class PaymentSettlementService {
   }
 
   /**
+   * PAID confirmado con monto menor al de la orden o moneda distinta
+   * (spec api-hardening): NO se emite el efecto (ticket/pase/enrollment)
+   * - el pago queda PENDING marcado para revisión admin. La marca ES el
+   * evento AMOUNT_MISMATCH del ledger (un AMOUNT_MISMATCH en pago no
+   * PAID solo nace acá): STATUS_CONFIRMED + AMOUNT_MISMATCH + aviso
+   * admin ya existente. Los campos gateway* igual se persisten como
+   * evidencia, sin tocar el status.
+   *
+   * Dedup: el advisory lock del ledger serializa emisores concurrentes
+   * sobre el payment - una re-notificación con la misma discrepancia
+   * encuentra el AMOUNT_MISMATCH y es no-op (sin eventos ni avisos).
+   * Una notificación posterior `reported >= expected` liquida normal.
+   */
+  private async flagUnderpaid(
+    payment: Payment,
+    meta: SettleMeta,
+    gw: GatewayFields | null,
+  ): Promise<SettleResult> {
+    const mismatch: AmountMismatch = {
+      expected: payment.amount,
+      reported: gw?.gatewayReportedAmount ?? payment.amount,
+      expectedCurrency: payment.currency,
+      reportedCurrency: gw?.gatewayCurrency ?? null,
+    };
+    let flagged = false;
+    await this.prisma.$transaction(async (tx) => {
+      // Mismo lock xact-scoped que emitPaymentEvent (re-entrante): el
+      // check de dedup y los emits corren serializados por payment.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${payment.id}))`;
+      // Claim status≠PAID: cubre la carrera con un settle ganador.
+      const claimed = await tx.payment.updateMany({
+        where: { id: payment.id, status: { not: "PAID" } },
+        data: { ...(gw ?? {}) },
+      });
+      if (claimed.count === 0) return;
+      const already = await tx.paymentEvent.findFirst({
+        where: { paymentId: payment.id, type: "AMOUNT_MISMATCH" },
+        select: { id: true },
+      });
+      if (already) return;
+      flagged = true;
+      await emitPaymentEvent(tx, payment.id, "STATUS_CONFIRMED", meta.actor, {
+        remoteStatus: "PAID",
+        gatewayRef: payment.gatewayRef ?? null,
+      });
+      await emitPaymentEvent(tx, payment.id, "AMOUNT_MISMATCH", meta.actor, {
+        expected: mismatch.expected,
+        reported: mismatch.reported,
+        expectedCurrency: mismatch.expectedCurrency,
+        reportedCurrency: mismatch.reportedCurrency,
+      });
+    });
+    if (flagged) {
+      await this.notifyAdminsAmountMismatch(payment, mismatch);
+    }
+    return { ok: true, status: "PENDING_REVIEW" };
+  }
+
+  /**
    * Resguardo post-commit de un →PAID real (spec payment-notifications):
    * Notification OPERATIONAL payment.confirmed a cada ADMIN aprobado +
    * mail de resguardo al pagador con los datos de la orden. Solo se
@@ -474,6 +551,12 @@ export class PaymentSettlementService {
     // Verdad monetaria de la pasarela (Flow paymentData) - se persiste
     // junto al PAID dentro de la tx.
     const gw = extractGatewayFields(meta.gatewayData);
+
+    // Monto/moneda reportado a la baja (spec api-hardening): no liquidar
+    // - el pago queda para revisión admin, sin efecto ni PAID.
+    if (isUnderpaid(payment, gw)) {
+      return this.flagUnderpaid(payment, meta, gw);
+    }
 
     // la notificación solo sale si esta llamada fue la que marcó PAID
     // (no en re-notificaciones ni carreras perdidas dentro de la tx)
@@ -758,6 +841,12 @@ export class PaymentSettlementService {
 
     const gw = extractGatewayFields(meta.gatewayData);
 
+    // Monto/moneda reportado a la baja (spec api-hardening): no liquidar
+    // - el pago queda para revisión admin, sin efecto ni PAID.
+    if (isUnderpaid(payment, gw)) {
+      return this.flagUnderpaid(payment, meta, gw);
+    }
+
     let paidNow = false;
     let mismatch: AmountMismatch | null = null;
     await this.prisma.$transaction(async (tx) => {
@@ -864,6 +953,12 @@ export class PaymentSettlementService {
     }
 
     const gw = extractGatewayFields(meta.gatewayData);
+
+    // Monto/moneda reportado a la baja (spec api-hardening): no liquidar
+    // - el pago queda para revisión admin, sin efecto ni PAID.
+    if (isUnderpaid(payment, gw)) {
+      return this.flagUnderpaid(payment, meta, gw);
+    }
     const now = new Date();
     let paidNow = false;
     let mismatch: AmountMismatch | null = null;
@@ -1060,6 +1155,12 @@ export class PaymentSettlementService {
     });
 
     const gw = extractGatewayFields(meta.gatewayData);
+
+    // Monto/moneda reportado a la baja (spec api-hardening): no liquidar
+    // - el pago queda para revisión admin, sin efecto ni PAID.
+    if (isUnderpaid(payment, gw)) {
+      return this.flagUnderpaid(payment, meta, gw);
+    }
     let paidNow = false;
     let mismatch: AmountMismatch | null = null;
     let bookingStatus: "BOOKED" | "WAITLIST" = "BOOKED";
@@ -1180,6 +1281,12 @@ export class PaymentSettlementService {
     }
 
     const gw = extractGatewayFields(meta.gatewayData);
+
+    // Monto/moneda reportado a la baja (spec api-hardening): no liquidar
+    // - el pago queda para revisión admin, sin efecto ni PAID.
+    if (isUnderpaid(payment, gw)) {
+      return this.flagUnderpaid(payment, meta, gw);
+    }
     let paidNow = false;
     let mismatch: AmountMismatch | null = null;
     let lessonId: string | null = null;
@@ -1304,6 +1411,12 @@ export class PaymentSettlementService {
     }
 
     const gw = extractGatewayFields(meta.gatewayData);
+
+    // Monto/moneda reportado a la baja (spec api-hardening): no liquidar
+    // - el pago queda para revisión admin, sin efecto ni PAID.
+    if (isUnderpaid(payment, gw)) {
+      return this.flagUnderpaid(payment, meta, gw);
+    }
     const now = new Date();
     const wasDelinquent =
       sub.academy != null &&
@@ -1557,6 +1670,12 @@ export class PaymentSettlementService {
         : "Cobro OmniDance";
 
     const gw = extractGatewayFields(meta.gatewayData);
+
+    // Monto/moneda reportado a la baja (spec api-hardening): no liquidar
+    // - el pago queda para revisión admin, sin efecto ni PAID.
+    if (isUnderpaid(payment, gw)) {
+      return this.flagUnderpaid(payment, meta, gw);
+    }
     let paidNow = false;
     let mismatch: AmountMismatch | null = null;
     await this.prisma.$transaction(async (tx) => {

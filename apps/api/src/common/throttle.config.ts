@@ -12,6 +12,10 @@ import type { ExecutionContext } from "@nestjs/common";
  *   por encima del uso normal incluido el polling del checkout ~30/min)
  * - THROTTLE_AUTH_LIMIT   requests/ventana en magic-link/login/register
  *   (default 8 - anti spam de correos y fuerza bruta)
+ * - THROTTLE_WEBHOOK_LIMIT requests/ventana en webhooks de pago
+ *   (default 30 - cada hit puede disparar llamadas salientes firmadas)
+ * - THROTTLE_EXPORT_LIMIT requests/ventana en exports csv/pdf
+ *   (default 10 - reportes pesados)
  *
  * En NODE_ENV=test el throttling se salta completo (skipIf): los e2e
  * levantan AppModule y disparan cientos de requests + logins - un límite
@@ -35,6 +39,33 @@ export function throttleGlobalLimit(): number {
 export function throttleAuthLimit(): number {
   return intEnv("THROTTLE_AUTH_LIMIT", 8);
 }
+
+export function throttleWebhookLimit(): number {
+  return intEnv("THROTTLE_WEBHOOK_LIMIT", 30);
+}
+
+export function throttleExportLimit(): number {
+  return intEnv("THROTTLE_EXPORT_LIMIT", 10);
+}
+
+/**
+ * Objetos @Throttle compartidos (spec api-hardening). Los resolvers se
+ * evalúan por request → respetan las env THROTTLE_* en runtime sin
+ * rebuild, igual que AUTH_THROTTLE en auth.controller.
+ */
+export const WEBHOOK_THROTTLE = {
+  default: {
+    limit: () => throttleWebhookLimit(),
+    ttl: () => throttleTtlMs(),
+  },
+};
+
+export const EXPORT_THROTTLE = {
+  default: {
+    limit: () => throttleExportLimit(),
+    ttl: () => throttleTtlMs(),
+  },
+};
 
 /**
  * Condición global de skip del throttler:
