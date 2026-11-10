@@ -31,7 +31,7 @@ import type { Mailer, AuthRepo } from "../domain/ports";
 import { MAILER, AUTH_REPO } from "../domain/ports";
 import { SessionGuard } from "./session.guard";
 import { PrismaService } from "../../prisma.service";
-import { emitActivity } from "../../common/activity-log";
+import { consumeAcademyInvites } from "../../common/consume-academy-invites";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import {
   magicLinkEmailHtml,
@@ -238,50 +238,11 @@ export class AuthController {
   ): Promise<boolean> {
     const academyId = next?.match(/^\/academias\/([^/?#]+)/)?.[1];
     if (!academyId || !this.prisma) return false;
-    let consumed = false;
-    try {
-      const pending = await this.prisma.academyInvite.findMany({
-        where: { academyId, email, consumedAt: null },
-      });
-      for (const invite of pending) {
-        await this.prisma.academyInvite.update({
-          where: { id: invite.id },
-          data: { consumedAt: new Date(), personId },
-        });
-        // Referral INVITE (CRM): dedup por referrer+referred+source -
-        // la tabla no tiene @@unique (mismo patrón que GIFT_TICKET).
-        const dup = await this.prisma.referral.findFirst({
-          where: {
-            referrerId: invite.invitedById,
-            referredId: personId,
-            source: "INVITE",
-          },
-          select: { id: true },
-        });
-        if (!dup) {
-          await this.prisma.referral.create({
-            data: {
-              referrerId: invite.invitedById,
-              referredId: personId,
-              source: "INVITE",
-            },
-          });
-        }
-        await emitActivity(this.prisma, {
-          type: "invite.registered",
-          personId,
-          academyId,
-          refType: "AcademyInvite",
-          refId: invite.id,
-        });
-        consumed = true;
-      }
-    } catch (err) {
-      this.logger.warn(
-        `consumo de invitación de ${email} falló: ${(err as Error).message}`,
-      );
-    }
-    return consumed;
+    return consumeAcademyInvites(
+      this.prisma,
+      { email, personId, academyId },
+      this.logger,
+    );
   }
 
   /**

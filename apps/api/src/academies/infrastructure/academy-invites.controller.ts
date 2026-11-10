@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Post,
   Req,
@@ -10,6 +11,7 @@ import {
 import { IsEmail, IsOptional, IsString, MaxLength } from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { consumeAcademyInvites } from "../../common/consume-academy-invites";
 import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
 import { AcademyInvitesService } from "./academy-invites.service";
@@ -62,6 +64,39 @@ export class AcademyInvitesController {
       invitedById: req.person!.id,
     });
     return { invite, resent };
+  }
+
+  /**
+   * POST /academies/invites/:inviteId/consume (sesión): camino push
+   * `academy.invite` de la cuenta existente - consume la invitación
+   * pendiente del propio usuario sin pasar por el magic link. Mismo
+   * efecto que el verify (Referral INVITE + invite.registered) vía el
+   * helper compartido. 404 si la invite no existe o es de otro email
+   * (no filtra invitaciones ajenas); idempotente sobre consumida.
+   */
+  @Post("invites/:inviteId/consume")
+  async consume(@Param("inviteId") inviteId: string, @Req() req: Request) {
+    const [invite, person] = await Promise.all([
+      this.prisma.academyInvite.findUnique({ where: { id: inviteId } }),
+      this.prisma.person.findUnique({
+        where: { id: req.person!.id },
+        select: { email: true },
+      }),
+    ]);
+    if (
+      !invite ||
+      !person?.email ||
+      invite.email !== person.email.toLowerCase()
+    ) {
+      throw new NotFoundException();
+    }
+    if (invite.consumedAt) return { consumed: false };
+    const consumed = await consumeAcademyInvites(this.prisma, {
+      email: invite.email,
+      personId: req.person!.id,
+      academyId: invite.academyId,
+    });
+    return { consumed };
   }
 
   /**

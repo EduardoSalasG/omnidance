@@ -9513,6 +9513,33 @@
               "query": []
             }
           }
+        },
+        {
+          "name": "POST /api/academies/invites/{inviteId}/consume",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/invites/{inviteId}/consume",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "invites",
+                "{inviteId}",
+                "consume"
+              ],
+              "variable": [
+                {
+                  "key": "inviteId",
+                  "value": ":inviteId"
+                }
+              ],
+              "query": []
+            }
+          }
         }
       ]
     },

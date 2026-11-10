@@ -578,8 +578,13 @@ sequenceDiagram
     AUTH->>AUTH: next = path interno válido (else se ignora)
     AUTH->>DB: upsertByEmail + sesión
     AUTH->>DB: pending invite (academyId del next) →<br/>consumedAt+personId + Referral INVITE<br/>+ ActivityEvent invite.registered
-    AUTH-->>I: nueva → /bienvenida?next= | existente → next directo
+    AUTH-->>I: nueva → /bienvenida?next= | existente → next directo<br/>(cookie one-shot omnidance_lens=academy si consumió)
     I->>I: termina en la ficha pública de la academia<br/>y se inscribe sola
+    opt cuenta existente - camino push (sin verify)
+        I->>API: tap en academy.invite →<br/>POST /academies/invites/:inviteId/consume (sesión)
+        API->>DB: mismo consumo por helper compartido<br/>(idempotente · 404 si el email no calza)
+        API-->>I: {consumed} → setViewMode a academy<br/>+ navega a /academias/:id
+    end
 ```
 
 - `GET /academies/:id/invites` (cap students) alimenta la sección "Invitados" de `/academia/alumnos` - pendientes primero, estado por `consumedAt`.

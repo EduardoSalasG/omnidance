@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
-import { useViewMode } from "@/lib/view-mode";
+import { setViewMode, useViewMode } from "@/lib/view-mode";
 import { notificationLens } from "@/lib/notification-lens";
 import { safeInternalPath } from "@/lib/safe-next";
 import { Badge, Button, Card, ChevronRightIcon } from "@/components/ui";
@@ -83,6 +83,13 @@ function hrefFor(n: NotificationItem): string | null {
       return classId ? `/clases/${classId}` : "/clases";
     case "class.series.resumed":
       return "/clases";
+    // Push "te invitó" de la cuenta existente (spec academies/
+    // student-invites): mismo destino que el `next` del magic link.
+    case "academy.invite": {
+      const academyId =
+        typeof n.data?.academyId === "string" ? n.data.academyId : null;
+      return academyId ? `/academias/${academyId}` : null;
+    }
     default: {
       // Fallback genérico: la API puede mandar el destino resuelto en
       // data.path (p.ej. account.complete_profile → /perfil/completar).
@@ -189,6 +196,21 @@ export default function NotificacionesPage() {
       } catch {
         // Si falla, el próximo load() restaura el estado real
       }
+    }
+    // Camino push de la cuenta existente (change
+    // academy-invite-push-consume): consume la invitación pendiente
+    // (best-effort - el retry natural es el magic link del correo) y
+    // entra con lente academy, equivalente a la cookie omnidance_lens
+    // del verify.
+    if (n.type === "academy.invite") {
+      const inviteId =
+        typeof n.data?.inviteId === "string" ? n.data.inviteId : null;
+      if (inviteId) {
+        void apiFetch(`/academies/invites/${inviteId}/consume`, {
+          method: "POST",
+        }).catch(() => {});
+      }
+      setViewMode("academy");
     }
     const href = hrefFor(n);
     if (href) router.push(href);
