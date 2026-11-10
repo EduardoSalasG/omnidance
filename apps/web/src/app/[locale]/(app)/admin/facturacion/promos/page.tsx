@@ -92,9 +92,9 @@ function PromosPanel() {
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">{t("title")}</h2>
-          <Link href="/admin/facturacion/promos/nueva">
-            <Button size="sm">＋ {t("new")}</Button>
-          </Link>
+          <Button size="sm" href="/admin/facturacion/promos/nueva">
+            ＋ {t("new")}
+          </Button>
         </div>
         <p className="text-sm text-ink/60">{t("desc")}</p>
       </section>
