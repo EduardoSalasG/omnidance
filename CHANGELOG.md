@@ -3,6 +3,90 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.17.0] - 2026-11-10
+
+### Added
+
+- **Cobranza BYO de academias** (change `academy-byo-collections`):
+  la academia cobra mensualidades, talleres y clases privadas por su
+  propia pasarela (`ActorGatewayAccount` FLOW / MERCADOPAGO /
+  FINTOC). Cada orden BYO congela `Payment.gatewayAccountId` +
+  `academyTakeClp` (take `academy_fee.net_pct`, default 1,0% neto);
+  job diario emite `AcademyCollectionsStatement` del mes cerrado
+  (take + IVA 19%) y lo cobra como PLATFORM_CHARGE al owner o por
+  link. Impago pasada la gracia (`academy_billing.grace_days`) →
+  `collectionsBlockedAt` y el checkout online se pausa (sigue el
+  comprobante manual). Consola: `/academia/cobros/liquidaciones`
+  (en curso + emitidos + detalle con export csv/pdf) y tab
+  "Cobranza academias" en `/admin/finanzas`.
+- **Suscripciones CARD por pasarela propia** (changes
+  `academy-card-subs-byo` + `mercadopago-subscriptions`): el alta de
+  sub corre por la cuenta BYO de la academia - Flow
+  `customer/register` o MercadoPago `preapproval` pending +
+  `init_point` hosted → `GET /payments/mp/subscription-return`
+  activa solo si `authorized`. Webhook app-level por cuenta
+  (`webhookUrl` con `?account=`) y `reconcileAll` scoped por
+  adaptador. Sin motor de suscripciones la sub queda solo TRANSFER.
+- **Migración de subs legacy our-Flow → BYO** (change
+  `legacy-subs-byo-migration`): `POST /admin/subscriptions/migrate-legacy`
+  (`{academyId?, dryRun?}`, dryRun por defecto) cancela cada remota
+  `at_period_end` en la cuenta Flow de plataforma, deja la local
+  `CANCEL_PENDING`, notifica al alumno (CTA re-suscripción) y al
+  owner (resumen por academia). Idempotente, auditado, fallo por
+  ítem sin abortar el lote.
+- **Invitación de alumnos** (change `academy-invites`):
+  `AcademyInvite` + `AuthOtp.next` - la academia invita por email,
+  el registro del invitado consume la invitación (`Referral.INVITE`
+  + evento `invite.registered`). `POST/GET /academies/:id/invites`
+  (cap `students`), UI "Invitar" + listado en `/academia/alumnos` y
+  es ahora el CTA principal; el alta directa queda como
+  "Inscripción manual" (liquidación de quien ya pagó presencial).
+- **Import masivo de alumnos como invitación bulk** (changes
+  `academy-import-slim-fields` + `academy-import-invites`): corrida
+  `?dryRun=1` con vista previa (conteos por status + tabla, sin
+  persistir), `AcademyImportRun` con historial y ficha por corrida,
+  y muestra de valores por columna en la consola
+  (`/academia/configuracion/importar`). La migración sanea
+  `Enrollment` ACTIVE sin `planId` → INACTIVE.
+- **Métodos de pago en ficha admin de usuario** (change
+  `admin-user-payment-methods`): `GET /admin/users/:id/payment-methods`
+  devuelve por academia del owner sus cuentas BYO (provider,
+  keyMask, status, webhookUrl) y métodos manuales, read-only.
+- **Alta de pasarela dentro de "Agregar método"** (change
+  `gateway-in-methods-form`): el form de métodos de pago ofrece
+  método manual o pasarela (FLOW/MERCADOPAGO/FINTOC) con su ficha
+  `/pasarela` (rotación y desactivar en zona roja), espejo en
+  consola academia y productor.
+- **Modelo binario de inscripción + vigencia rodante** (change
+  `enrollment-plan-simplify`): enrollment ACTIVE/INACTIVE con
+  `endsAt` rodante por plan; `planId` null ya no equivale a cuota
+  ilimitada.
+- **Clase de prueba como pack agotable** (change
+  `trial-class-quota`): la prueba es un pack de 1 clase, no un tipo
+  de plan aparte.
+- **Landings pro**: sección de costos como cards visuales - pasos
+  del dinero en `/para-academias` (alumno paga → plataforma ordena
+  → plata entra a ti) y fee por plan en dos cards por tier en
+  `/para-productores` con "por cada $10.000" destacado; FAQ de
+  migración benefit-led en `/para-academias`.
+- **Pase de copy y viewport en tours de onboarding** + cobertura de
+  tours admin/productor-eventos/academia-series.
+
+### Fixed
+
+- **Scripts de smoke BYO end-to-end**: `smoke-mp-subscription.cjs`
+  (setup/verify/cleanup/auto, `--person <email>`) y
+  `smoke-flow-byo-subscription.cjs` nuevo para el alta CARD Flow por
+  cuenta propia con retorno real.
+- Copy desfasado del tour academy-owner (checklist ya no pide medio
+  de pago), canonical de `/pase`, sitemap solo con flags activos,
+  aire entre label y chips en el editor de niveles (legend fuera
+  del flex gap), take en runs de jobs, fixtures CRM por mes civil y
+  flake `dancer-eventos`.
+- Docs: 15 diagramas mermaid rotos en `flows.md` (`;` literal como
+  entidad, `end` faltante, comillas en label) + skill
+  `mermaid-diagrams` con checker de parse.
+
 ## [1.16.1] - 2026-11-09
 
 ### Fixed
