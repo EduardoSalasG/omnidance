@@ -248,7 +248,8 @@
 
 ### Notificaciones `/notificaciones`
 - Lens social|academy → `GET /notifications?lens=&limit=50`; auto `POST /notifications/read-all` si hay no leídas; "Marcar todas" optimista.
-- Click item → `POST /notifications/:id/read` + navegación por tipo (payment.paid→/eventos?view=mios; event.survey→evaluar; session.*→/bailes; friend.request→/amigos; class.waitlist→/clases/{id}; etc.; default data.path vía safeInternalPath).
+- Click item → `POST /notifications/:id/read` + navegación por tipo (payment.paid→/eventos?view=mios; event.survey→evaluar; session.*→/bailes; friend.request→/amigos; class.waitlist→/clases/{id}; academy.invite→/academias/{academyId}; etc.; default data.path vía safeInternalPath). El mapa tipo→destino + efectos de tap (academy.invite consume + lente) es fuente única `lib/notification-nav` compartida con el toast.
+- Toast en tiempo real (`NotificationToast`, spec notifications/deep-links): tap del cuerpo navega al mismo deep link del tipo que la card (no a /notificaciones); tipos sin destino caen a /notificaciones; `academy.invite` corre consume + `setViewMode` igual que la card. La X solo descarta.
 
 ---
 

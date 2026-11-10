@@ -13,17 +13,19 @@ import { messages } from "@/i18n/messages";
 const state = vi.hoisted(() => ({
   notifications: [] as Record<string, unknown>[],
   push: vi.fn(),
+  apiFetchMock: vi.fn(async (path: string) => {
+    const json = (body: unknown) =>
+      ({ ok: true, status: 200, json: async () => body }) as Response;
+    if (path.startsWith("/notifications?"))
+      return json(state.notifications);
+    return json({});
+  }),
 }));
 
-const apiFetchMock = vi.fn(async (path: string) => {
-  const json = (body: unknown) =>
-    ({ ok: true, status: 200, json: async () => body }) as Response;
-  if (path.startsWith("/notifications?")) return json(state.notifications);
-  return json({});
-});
+const apiFetchMock = state.apiFetchMock;
 
 vi.mock("@/lib/api", () => ({
-  apiFetch: (path: string, init?: RequestInit) => apiFetchMock(path, init),
+  apiFetch: state.apiFetchMock,
 }));
 vi.mock("@/lib/me-context", () => ({
   useMe: () => ({ me: { roles: ["DANCER"] }, loading: false }),

@@ -97,12 +97,17 @@ cartelera la alimenta sola.
 
 - *"Ya tengo un sistema / Excel / app de agendas"* → Traemos tu
   nómina: subes el Excel/CSV y cada alumno recibe su invitación solo.
-  Es cosa de una tarde, no de semanas. El costo real no es el sistema
-  que tienes: es el tiempo que le metes todas las semanas.
+  Al que ya baila con Omnidance le llega como notificación dentro de
+  la app: un toque y aterriza en tu página con el lente de academia;
+  al que no, lo lleva el correo igual. Por cualquiera de los dos
+  caminos tu consola lo marca "registrada" apenas entra. Es cosa de
+  una tarde, no de semanas. El costo real no es el sistema que
+  tienes: es el tiempo que le metes todas las semanas.
 - *"Mis alumnos no van a bajar una app"* → No bajan app: es web. Se
   inscriben, pagan y reservan desde el navegador; el QR les llega al
   correo. Los que ya usan Omnidance para salir a bailar entran con su
-  misma cuenta.
+  misma cuenta: tu invitación les aparece adentro como notificación y
+  un toque los deja en tu ficha.
 - *"Es caro para lo que facturo"* → $79.700 es menos que la
   mensualidad de 3 alumnos. Si con el orden dejas de perder 2
   alumnos al mes por cobranza desordenada, el plan se paga solo.
