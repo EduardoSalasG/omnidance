@@ -14,6 +14,7 @@ import {
   type PointReason,
 } from "../src/gamification/domain/rules";
 import { ensurePerson, seedCommon } from "./seed-common";
+import { encryptSecret, maskSecret } from "../src/common/secrets";
 
 const DEV_DOMAIN = "omnidance.dev";
 
@@ -479,6 +480,51 @@ export async function seedDev(prisma: PrismaClient) {
     });
     if (!existing) {
       await prisma.academyPaymentMethod.create({ data: m });
+    }
+  }
+
+  // Pasarela BYO de Tumbao con credenciales TEST de MercadoPago
+  // (MP_SMOKE_ACCESS_TOKEN del .env - spec legacy-subs-byo-migration):
+  // las suscripciones CARD de esta academia se crean en el sandbox real
+  // de MP (preapproval con init_point hosted). Sin token no siembra
+  // nada (dev offline sigue con STUB/manual); keyMask distinto = cred
+  // rotada: la vieja queda DISABLED como hace upsertAccount.
+  const mpToken = process.env.MP_SMOKE_ACCESS_TOKEN?.trim();
+  if (mpToken) {
+    const mpMask = maskSecret(mpToken);
+    const activeMp = await prisma.actorGatewayAccount.findFirst({
+      where: {
+        academyId: tumbao.id,
+        provider: "MERCADOPAGO",
+        status: "ACTIVE",
+      },
+    });
+    if (!activeMp) {
+      await prisma.actorGatewayAccount.create({
+        data: {
+          academyId: tumbao.id,
+          provider: "MERCADOPAGO",
+          credentialsEnc: encryptSecret(
+            JSON.stringify({ accessToken: mpToken }),
+          ),
+          keyMask: mpMask,
+        },
+      });
+    } else if (activeMp.keyMask !== mpMask) {
+      await prisma.actorGatewayAccount.update({
+        where: { id: activeMp.id },
+        data: { status: "DISABLED" },
+      });
+      await prisma.actorGatewayAccount.create({
+        data: {
+          academyId: tumbao.id,
+          provider: "MERCADOPAGO",
+          credentialsEnc: encryptSecret(
+            JSON.stringify({ accessToken: mpToken }),
+          ),
+          keyMask: mpMask,
+        },
+      });
     }
   }
 

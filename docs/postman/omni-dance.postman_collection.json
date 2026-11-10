@@ -11409,6 +11409,39 @@
               ]
             }
           }
+        },
+        {
+          "name": "POST /api/admin/subscriptions/migrate-legacy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscriptions/migrate-legacy",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "subscriptions",
+                "migrate-legacy"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"academyId\": \"string\",\n  \"dryRun\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -12458,6 +12491,33 @@
                 "users",
                 "{personId}",
                 "timeline"
+              ],
+              "variable": [
+                {
+                  "key": "personId",
+                  "value": ":personId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/users/{personId}/payment-methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{personId}/payment-methods",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{personId}",
+                "payment-methods"
               ],
               "variable": [
                 {

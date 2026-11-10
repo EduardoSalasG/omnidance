@@ -1905,6 +1905,164 @@ export class SubscriptionsService {
   }
 
   /**
+   * Migración de subs legacy our-Flow → BYO (spec
+   * legacy-subs-byo-migration): la cuenta Flow de plataforma deja de
+   * llevar cobranza alumno → academia. Como la autorización de tarjeta
+   * no se porta entre proveedores, migrar = cancel remoto a fin de
+   * período (misma semántica que `cancel`) + CANCEL_PENDING local; el
+   * alumno conserva el período pagado y se re-suscribe por la vía
+   * vigente (BYO de la academia o TRANSFER). El cierre efectivo lo
+   * materializa el reconcile al vencer.
+   *
+   * dryRun (default) reporta candidatas sin tocar remoto ni local.
+   * Idempotente: el selector excluye CANCEL_PENDING/CANCELED; una
+   * cancelación remota fallida deja la sub ACTIVE y se reporta en
+   * `failed` sin abortar el lote.
+   */
+  async migrateLegacySubs(opts: { academyId?: string; dryRun?: boolean } = {}) {
+    const dryRun = opts.dryRun !== false;
+    const candidates = await this.prisma.membershipSubscription.findMany({
+      where: {
+        status: { in: ["ACTIVE", "FAILED_CARD"] },
+        paymentMethod: "CARD",
+        gatewayAccountId: null,
+        flowSubscriptionId: { not: null },
+        ...(opts.academyId ? { academyId: opts.academyId } : {}),
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    const items: {
+      subscriptionId: string;
+      academyId: string;
+      outcome: "candidate" | "migrated" | "failed";
+      error?: string;
+    }[] = [];
+    let migrated = 0;
+    let failed = 0;
+    const ownerSummary = new Map<
+      string,
+      { ownerId: string | null; academyName: string; count: number }
+    >();
+
+    for (const sub of candidates) {
+      if (dryRun) {
+        items.push({
+          subscriptionId: sub.id,
+          academyId: sub.academyId,
+          outcome: "candidate",
+        });
+        continue;
+      }
+      try {
+        // gatewayAccountId null ⇒ providerFor resuelve el provider de
+        // plataforma por moneda (donde vive la remota legacy).
+        const { provider } = await this.providerFor(sub);
+        await provider.cancelSubscription(sub.flowSubscriptionId!, {
+          correlationId: randomUUID(),
+        });
+        await this.prisma.membershipSubscription.update({
+          where: { id: sub.id },
+          data: { status: "CANCEL_PENDING", canceledAt: new Date() },
+        });
+        // Auditoría en el ledger del último pago (misma heurística de
+        // `cancel`: refId mem_<planId>_*), actor system + razón.
+        const lastPayment = await this.prisma.payment.findFirst({
+          where: {
+            personId: sub.personId,
+            orderType: "MEMBERSHIP",
+            refId: { startsWith: `mem_${sub.planId}_` },
+          },
+          orderBy: { createdAt: "desc" },
+          select: { id: true },
+        });
+        if (lastPayment) {
+          await this.prisma.$transaction((tx) =>
+            emitPaymentEvent(
+              tx,
+              lastPayment.id,
+              "SUBSCRIPTION_CANCELED",
+              "system",
+              {
+                reason: "legacy_byo_migration",
+                subscriptionId: sub.id,
+                flowSubscriptionId: sub.flowSubscriptionId,
+                planId: sub.planId,
+              },
+            ),
+          );
+        }
+        const plan = await this.prisma.membershipPlan.findUnique({
+          where: { id: sub.planId },
+          select: {
+            name: true,
+            academy: { select: { name: true, ownerId: true } },
+          },
+        });
+        await this.notifications.notifySafe(sub.personId, {
+          category: "TRANSACTIONAL",
+          type: "membership.subscription_migration",
+          title: "Tu suscripción cambia de pasarela",
+          body: plan
+            ? `${plan.name} · ${plan.academy.name}. Termina al fin del período pagado; suscríbete de nuevo para seguir inscrito`
+            : "Termina al fin del período pagado; suscríbete de nuevo para seguir inscrito",
+          data: {
+            subscriptionId: sub.id,
+            planId: sub.planId,
+            academyId: sub.academyId,
+            nextInvoiceAt: sub.nextInvoiceAt?.toISOString() ?? null,
+          },
+        });
+        if (plan?.academy) {
+          const s = ownerSummary.get(sub.academyId) ?? {
+            ownerId: plan.academy.ownerId,
+            academyName: plan.academy.name,
+            count: 0,
+          };
+          s.count++;
+          ownerSummary.set(sub.academyId, s);
+        }
+        migrated++;
+        items.push({
+          subscriptionId: sub.id,
+          academyId: sub.academyId,
+          outcome: "migrated",
+        });
+      } catch (e) {
+        failed++;
+        this.logger.warn(
+          `migrateLegacySubs ${sub.id}: ${(e as Error).message}`,
+        );
+        items.push({
+          subscriptionId: sub.id,
+          academyId: sub.academyId,
+          outcome: "failed",
+          error: (e as Error).message?.slice(0, 300),
+        });
+      }
+    }
+
+    if (!dryRun) {
+      for (const [academyId, s] of ownerSummary) {
+        if (!s.ownerId) continue;
+        const hasByo = !!(await this.accounts
+          .activeForAcademy(academyId)
+          .catch(() => null));
+        await this.notifications.notifySafe(s.ownerId, {
+          category: "TRANSACTIONAL",
+          type: "academy.legacy_subs_migrated",
+          title: "Suscripciones migradas",
+          body: hasByo
+            ? `${s.academyName}: ${s.count} suscripción(es) migraron; tus alumnos se re-suscribirán por tu pasarela`
+            : `${s.academyName}: ${s.count} suscripción(es) migraron; configura tu pasarela para recuperar el cobro automático`,
+          data: { academyId, count: s.count },
+        });
+      }
+    }
+
+    return { dryRun, scanned: candidates.length, migrated, failed, items };
+  }
+
+  /**
    * Barrido de todas las suscripciones vivas (webhook fast-path + cron
    * T7). Cada sub se reconcilia con su propio correlationId; una que
    * falle no aborta el resto - queda loggeada y la reintenta el próximo

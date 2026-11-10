@@ -9851,6 +9851,30 @@
         ]
       }
     },
+    "/api/admin/subscriptions/migrate-legacy": {
+      "post": {
+        "operationId": "AdminController_migrateLegacySubs",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MigrateLegacySubsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
     "/api/admin/billing/generate": {
       "post": {
         "operationId": "AdminBillingController_generate",
@@ -10743,6 +10767,29 @@
     "/api/admin/users/{personId}/timeline": {
       "get": {
         "operationId": "UserIntelController_timeline",
+        "parameters": [
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserIntel"
+        ]
+      }
+    },
+    "/api/admin/users/{personId}/payment-methods": {
+      "get": {
+        "operationId": "UserIntelController_paymentMethods",
         "parameters": [
           {
             "name": "personId",
@@ -13223,6 +13270,17 @@
       "GrantPermissionDto": {
         "type": "object",
         "properties": {}
+      },
+      "MigrateLegacySubsDto": {
+        "type": "object",
+        "properties": {
+          "academyId": {
+            "type": "string"
+          },
+          "dryRun": {
+            "type": "boolean"
+          }
+        }
       },
       "GenerateDto": {
         "type": "object",

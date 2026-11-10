@@ -1190,6 +1190,156 @@ describe("SubscriptionsService", () => {
     });
   });
 
+  describe("migrateLegacySubs", () => {
+    const legacy = (over: Partial<Row> = {}) =>
+      mkSub({
+        status: "ACTIVE",
+        paymentMethod: "CARD",
+        currency: "CLP",
+        flowSubscriptionId: "fsub-leg-1",
+        gatewayAccountId: null,
+        ...over,
+      });
+
+    it("dryRun default reporta candidatas sin tocar remoto ni local", async () => {
+      fx.subs.push(legacy({ id: "s1" }));
+      const r = await svc.migrateLegacySubs({});
+      expect(r.dryRun).toBe(true);
+      expect(r.scanned).toBe(1);
+      expect(r.migrated).toBe(0);
+      expect(r.items[0]).toMatchObject({
+        subscriptionId: "s1",
+        outcome: "candidate",
+      });
+      expect(flow.cancelSubscription).not.toHaveBeenCalled();
+      expect(fx.subs[0].status).toBe("ACTIVE");
+      expect(notifications.notifySafe).not.toHaveBeenCalled();
+    });
+
+    it("migra sub legacy: cancel remoto + CANCEL_PENDING + evento system + notifs", async () => {
+      fx.subs.push(legacy({ id: "s1" }));
+      fx.payments.set("pay1", {
+        id: "pay1",
+        personId: "p1",
+        orderType: "MEMBERSHIP",
+        refId: "mem_plan1_inv1",
+        status: "PAID",
+        createdAt: new Date(),
+      });
+      const r = await svc.migrateLegacySubs({ dryRun: false });
+      expect(r.migrated).toBe(1);
+      // Cancel remoto a fin de período (sin immediate - semántica de
+      // cancel del usuario, nunca compensación).
+      expect(flow.cancelSubscription).toHaveBeenCalledWith(
+        "fsub-leg-1",
+        expect.objectContaining({ correlationId: expect.any(String) }),
+      );
+      expect(flow.cancelSubscription.mock.calls[0][1]).not.toHaveProperty("immediate");
+      const row = fx.subs.find((s) => s.id === "s1")!;
+      expect(row.status).toBe("CANCEL_PENDING");
+      expect(row.canceledAt).toBeInstanceOf(Date);
+      // Auditoría con actor system + razón de migración.
+      expect(
+        fx.events.some(
+          (e) =>
+            e.type === "SUBSCRIPTION_CANCELED" &&
+            e.actor === "system" &&
+            (e.payload as Row)?.reason === "legacy_byo_migration",
+        ),
+      ).toBe(true);
+      // Alumno avisado con el tipo de migración; owner con resumen.
+      expect(
+        fx.sentNotifs.some(
+          (n) =>
+            n.personId === "p1" &&
+            n.type === "membership.subscription_migration",
+        ),
+      ).toBe(true);
+      expect(
+        fx.sentNotifs.some(
+          (n) =>
+            n.personId === "owner1" &&
+            n.type === "academy.legacy_subs_migrated",
+        ),
+      ).toBe(true);
+    });
+
+    it("omite no elegibles: BYO, TRANSFER, CANCEL_PENDING, PENDING_CARD", async () => {
+      fx.subs.push(
+        legacy({ id: "s-byo", gatewayAccountId: "acct-1" }),
+        legacy({ id: "s-tr", paymentMethod: "TRANSFER", flowSubscriptionId: null }),
+        legacy({ id: "s-cp", status: "CANCEL_PENDING" }),
+        mkSub({ id: "s-pc", status: "PENDING_CARD", paymentMethod: "CARD" }),
+      );
+      const r = await svc.migrateLegacySubs({ dryRun: false });
+      expect(r.scanned).toBe(0);
+      expect(flow.cancelSubscription).not.toHaveBeenCalled();
+      expect(fx.subs.every((s) => s.status !== "CANCEL_PENDING" || s.id === "s-cp")).toBe(true);
+    });
+
+    it("FAILED_CARD legacy también entra al barrido", async () => {
+      fx.subs.push(legacy({ id: "s1", status: "FAILED_CARD" }));
+      const r = await svc.migrateLegacySubs({ dryRun: false });
+      expect(r.migrated).toBe(1);
+      expect(fx.subs[0].status).toBe("CANCEL_PENDING");
+    });
+
+    it("fallo remoto no aborta: la sub queda ACTIVE y entra en failed", async () => {
+      fx.subs.push(
+        legacy({ id: "s1", flowSubscriptionId: "fsub-bad" }),
+        legacy({ id: "s2", flowSubscriptionId: "fsub-ok" }),
+      );
+      flow.cancelSubscription.mockImplementation(async (id: string) => {
+        if (id === "fsub-bad") throw new Error("flow caído");
+      });
+      const r = await svc.migrateLegacySubs({ dryRun: false });
+      expect(r.migrated).toBe(1);
+      expect(r.failed).toBe(1);
+      expect(
+        r.items.find((i: Row) => i.subscriptionId === "s1")?.outcome,
+      ).toBe("failed");
+      expect(fx.subs.find((s) => s.id === "s1")!.status).toBe("ACTIVE");
+      expect(fx.subs.find((s) => s.id === "s2")!.status).toBe(
+        "CANCEL_PENDING",
+      );
+    });
+
+    it("academyId acota el barrido a esa academia", async () => {
+      fx.plans.set("plan2", {
+        ...PLAN_MONTHLY,
+        id: "plan2",
+        academyId: "ac2",
+        academy: { ...ACADEMY, id: "ac2", ownerId: "owner2" },
+      });
+      fx.subs.push(
+        legacy({ id: "s1", academyId: "ac1", planId: "plan1" }),
+        legacy({ id: "s2", academyId: "ac2", planId: "plan2" }),
+      );
+      const r = await svc.migrateLegacySubs({
+        academyId: "ac2",
+        dryRun: false,
+      });
+      expect(r.scanned).toBe(1);
+      expect(fx.subs.find((s) => s.id === "s1")!.status).toBe("ACTIVE");
+      expect(fx.subs.find((s) => s.id === "s2")!.status).toBe(
+        "CANCEL_PENDING",
+      );
+    });
+
+    it("re-corrida es idempotente: no re-cancela ni re-notifica", async () => {
+      fx.subs.push(legacy({ id: "s1" }));
+      await svc.migrateLegacySubs({ dryRun: false });
+      const r = await svc.migrateLegacySubs({ dryRun: false });
+      expect(r.scanned).toBe(0);
+      expect(flow.cancelSubscription).toHaveBeenCalledTimes(1);
+      expect(
+        fx.sentNotifs.filter(
+          (n) => n.type === "membership.subscription_migration",
+        ),
+      ).toHaveLength(1);
+    });
+  });
+
   describe("reconcileSubscription", () => {
     it("invoice pagado → Payment mem_<plan>_<inv> + settle (enrollment) + lastInvoiceId", async () => {
       const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
