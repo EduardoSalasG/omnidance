@@ -3,6 +3,67 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.18.0] - 2026-11-10
+
+### Added
+
+- **Canal invite cerrado con push de dispositivo** (changes
+  `invite-device-push-bridge` + `invite-academy-lens` +
+  `notification-toast-deeplink`): `POST
+  /academies/invites/:inviteId/consume` valida el email de la sesión
+  y comparte el helper de consumo con verify (Referral INVITE +
+  `invite.registered`, idempotente). El tap del push de dispositivo
+  abre el bridge `/i/:inviteId?channel=device`, consume la
+  invitación y entra con lente academy (cookie one-shot
+  `omnidance:lens` que el chrome persiste como viewMode); el tap del
+  toast marca la notificación como leída y el canal queda atribuido
+  en `invite.registered`.
+- **Toast de notificación deep-linkea al destino** (change
+  `notification-toast-deeplink`): `notification-nav` como fuente
+  única compartida entre toast y centro; `academy.invite` consume +
+  lente desde el toast.
+- **Cobertura completa de deep links** (change
+  `notification-deeplink-coverage`): `payment.paid` polimórfico,
+  familias academy/producer/membership/crm navegan a su consola,
+  fallback `data.path`/`data.url` unificado in-app y push, path por
+  rama en claims y `sale_deal.responded`.
+- **Ficha de campaña** (change `admin-campaign-detail`):
+  `/admin/campanas/[id]` con historial de corridas; la card del
+  listado navega a la ficha y la operación (test/run/cancel) se
+  concentra ahí. Crear/editar campaña quedó en página dedicada.
+- **Fuente de adquisición orgánica en el alta** (change
+  `organic-acquisition-source`): capture first-touch de
+  UTM/referrer/landing en la landing; `acquisition` viaja en
+  register/magic-link (claim + AuthOtp);
+  `Person.acquisitionSource`/`acquisitionDetail` solo en el alta
+  (spec `auth/acquisition-source`).
+- **Reporte de altas por canal** (change `admin-acquisition-report`):
+  entidad `acquisition` en la consola de consultas `/analitica`,
+  lente ADMIN; filtros `from`/`to` y `kind` enum multi (primer
+  filtro multi del catálogo); canal = referral como referida >
+  `acquisitionSource` > `sin_dato`.
+- **Script de smoke de push de dispositivo**:
+  `apps/api/scripts/send-test-push.cjs <email> [path] [título]` crea
+  la Notification `test.push` + entrega web push a todos los
+  PushToken con limpieza de endpoints 404/410. Verificado E2E en
+  laptop (FCM): banner del sistema → tap → navega por `data.path`.
+
+### Fixed
+
+- **Verify de invites 401** (change `fix-invite-lens-cookie-name`):
+  cookie `omnidance:lens` con nombre ilegal en cookie@0.7.
+- **`POST /admin/mail-campaigns` 500** (change
+  `fix-mail-campaigns-audience-dto`): audience recortada por el pipe
+  whitelist.
+- **CTAs de crear por tier y dedup** (changes
+  `producer-console-cta-dedup` + `admin-console-crud-align`): CTAs
+  de crear ocultos cuando el tier no cubre la feature, selector de
+  academia solo con >1 o `multiAcademy`, un solo CTA de crear por
+  superficie; empty states de preventa academias y medios de pago
+  quedan solo con mensaje.
+- **Filtros enum multi del catálogo**: validan cada parte del CSV
+  por whitelist (run + saved); antes un CSV entero caía en 400.
+
 ## [1.17.0] - 2026-11-10
 
 ### Added
