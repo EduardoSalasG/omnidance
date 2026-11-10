@@ -87,5 +87,63 @@ AcademyInvite consumida, Referral) verificados.
   instrumentar (estrategia §7 item 5 actualizado).
 - Data QA en dev DB: personas `qa-live-verify-*@omnidance.dev`,
   invites consumidas de prueba (inofensivas).
-- El tap del toast no marca leída en el servidor (la card sí) -
-  diseño anotado en el change archivado.
+
+## Próximo slice aprobado por el owner (5 ítems, diseño listo)
+
+Pedido y aprobado en esta sesión; no alcanzó por margen de contexto.
+
+### A. Push de dispositivo cierra el canal (change `invite-device-push-bridge`)
+
+El SW (`apps/web/public/sw.js`) abre `data.url ?? "/notificaciones"`;
+la push `academy.invite` lleva `{academyId, inviteId}` sin `url` →
+caen al centro. Diseño acordado: ruta bridge en vez de `url` directa
+a la ficha (url=/academias/:id saltaría el consume).
+
+- API: `sendInvite` push `data` += `url: /i/<inviteId>` (el SW ya la
+  consume tal cual). Opción: también sirve para `crm.campaign` u otros
+  que quieran deep link propio.
+- API: `POST /academies/invites/:inviteId/consume` devuelve además
+  `academyId` → `{consumed, academyId}` (el bridge lo necesita; la
+  página no ve el `data` de la notificación).
+- Web: página cliente `apps/web/src/app/[locale]/(app)/i/[inviteId]/page.tsx`
+  mínima: POST consume best-effort → `setViewMode("academy")` →
+  `router.replace(/academias/<academyId>)`; si 404/401 →
+  `replace("/notificaciones")`. PageLoading mientras resuelve.
+- Spec delta: `academies/student-invites` (MODIFIED, cubre los tres
+  caminos: mail, centro/toast, push de dispositivo).
+
+### B. Marcar leída en el tap del toast (parte del mismo change o uno
+   aparte según alcance)
+
+Una línea: `apiFetch(POST /notifications/:id/read)` en el onClick del
+cuerpo del toast antes de navegar + aserción en el spec del toast.
+Spec `notifications/deep-links` MODIFIED.
+
+### C. Auditoría de deep links restantes (change propio
+   `notification-deeplink-coverage`)
+
+`notificationHref` cubre ~14 tipos; el API emite ~40. Tipos detectados
+sin destino que merecen mapa (revisar emisor por emisor):
+`academy.sale_deal.invited` → /academia/preventas (o la ficha del
+acuerdo), `academy.private_lesson.sold` → consola de particulares,
+`academy.billing_*` → /academia/suscripcion, `academy.courseSurvey` →
+encuesta del curso, `class.reminder`/`class.instructor_assigned` →
+/clases o roster, `membership.*`, `academy.collections_*` → cobros.
+Las `OPERATIONAL`/`account.*` quedan en el centro por diseño.
+Decidir destino por tipo mirando `data` del emisor (qué ids lleva).
+
+### D. Atribución de canal en el consume
+
+Sin schema: `emitActivity` ya acepta `data` →
+`consumeAcademyInvites(prisma, args, logger, channel?)` emite
+`invite.registered` con `data: {channel: "magic_link"|"push"|"device"}`;
+verify pasa `magic_link`, el consume endpoint `push`/`device`.
+Retrocompat: eventos viejos sin channel = mail (era el único camino).
+Alimenta la métrica invite→registrada por canal (estrategia §7.5).
+
+### E. Spec e2e del camino push
+
+Playwright: crear invite para persona QA existente, sesión, abrir
+/notificaciones → tap → assert navegación a /academias/:id +
+viewMode academy (data-mode o localStorage). Contra build de
+producción (receta del handoff anterior, no `next dev`).
