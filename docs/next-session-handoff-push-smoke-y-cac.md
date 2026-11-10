@@ -45,9 +45,13 @@ push de dispositivo (con script nuevo) y el reporte CAC por canal
 - **iOS/teléfono NO automatizable ni viable hoy**: la PWA corre en
   `http://192.168.100.5:3000` (no-HTTPS) y iOS exige contexto seguro
   para SW/push. El token Apple viejo (sept) era de un origen muerto.
-  Para probar push real en el teléfono: tunnel HTTPS a :3000
-  (cloudflared/ngrok), reinstalar la PWA desde esa URL y repetir el
-  opt-in.
+  Owner descartó probar push en el teléfono por ahora: el tunnel
+  HTTPS (devtunnels/cloudflared) choca con las redirects del API que
+  usan `WEB_URL=http://localhost:3000` (verify magic link, invites,
+  retornos de pago) - habría que parametrizar WEB_URL al tunnel o
+  hacerlo configurable por request para que el flujo completo sirva.
+  `CORS_ORIGINS` ya trae un devtunnels viejo
+  (`https://hvr4lkk3-3000.brs.devtunnels.ms`) de un intento previo.
 
 ## Verificación corrida
 
@@ -80,8 +84,9 @@ push de dispositivo (con script nuevo) y el reporte CAC por canal
 
 ## Pendientes
 
-- **Push iOS real**: requiere tunnel HTTPS + reinstalar PWA + opt-in
-  (decisión del owner si vale la pena para dev).
+- **Push iOS real**: descartado por el owner de momento (ver nota del
+  tunnel/WEB_URL en "Trabajo completado"). Queda cubierto por el smoke
+  en laptop.
 - Flujo real de dominio como trigger de push (el script usa type
   `test.push`; las notificaciones reales con data.path ya están
   cubiertas por el contrato, pero un smoke de una real - ej. invite -
