@@ -4,16 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { readError } from "@/components/academy/shared";
-import { Badge, Button, Card, ConfirmSheet, SkeletonList } from "@/components/ui";
-import { Spinner } from "@/components/ui/spinner";
 import {
-  ActionNotice,
-  type ActionNoticeData,
-} from "@/components/ui/action-notice";
+  Badge,
+  Button,
+  Card,
+  ChevronRightIcon,
+  SkeletonList,
+} from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { FilterBar } from "@/components/query/FilterBar";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
+import { Link } from "@/i18n/navigation";
 import { useDateFmt } from "@/lib/intl";
 import { type Campaign } from "@/components/admin/campaign-form";
 
@@ -23,8 +25,10 @@ import { type Campaign } from "@/components/admin/campaign-form";
 // evento / ciclo de vida con ventana en días, con conteo en vivo) y
 // programa envío único o recurrente. Las audiencias de ciclo llevan
 // dedup por ciclo - un cron diario no re-envía el mismo recordatorio.
-// Crear/editar vive en /admin/campanas/nueva (+?edit=<id>) - patrón
-// crear = página dedicada (console-patterns §1).
+// Crear/editar vive en /admin/campanas/nueva (+?edit=<id>) y la
+// operación (probar/enviar/cancelar) + historial de corridas en la
+// ficha /admin/campanas/[id] (change admin-campaign-detail) - el
+// listado solo navega (console-patterns §2-3).
 
 const CAMPAIGN_STATUSES = [
   "DRAFT",
@@ -96,15 +100,6 @@ function CampaignsPanel() {
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
   const [filters, setFilters] = useState<QueryFilters>({});
   const [error, setError] = useState<string | null>(null);
-  // Feedback post-acción (éxito y error de mutación) por ActionNotice;
-  // `error` queda solo para el fallo de carga.
-  const [notice, setNotice] = useState<ActionNoticeData | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  // Confirmación destructiva compartida: correr/cancelar una campaña.
-  const [pending, setPending] = useState<{
-    id: string;
-    action: "run" | "cancel";
-  } | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -126,43 +121,6 @@ function CampaignsPanel() {
     void load();
   }, [load]);
 
-  async function act(id: string, action: "test" | "run" | "cancel") {
-    setBusy(`${id}:${action}`);
-    setError(null);
-    setNotice(null);
-    try {
-      const res = await apiFetch(`/admin/mail-campaigns/${id}/${action}`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        setNotice({
-          text: (await readError(res)) ?? tc("error"),
-          error: true,
-        });
-      } else {
-        setNotice({
-          text: t(
-            action === "test"
-              ? "campaigns.testSent"
-              : action === "run"
-                ? "campaigns.runStarted"
-                : "campaigns.cancelled",
-          ),
-        });
-        await load();
-      }
-    } catch {
-      setNotice({ text: tc("error"), error: true });
-    } finally {
-      setBusy(null);
-      setPending(null);
-    }
-  }
-
-  const editable = (c: Campaign) => c.status === "DRAFT" || c.status === "SCHEDULED";
-  const cancellable = (c: Campaign) =>
-    c.status === "DRAFT" || c.status === "SCHEDULED" || c.status === "SENDING";
-
   const visibleCampaigns =
     campaigns?.filter((c) => !filters.status || c.status === filters.status) ??
     null;
@@ -173,7 +131,7 @@ function CampaignsPanel() {
         <h1 className="text-lg font-semibold">{t("campaigns.title")}</h1>
         <p className="text-sm text-ink/60">{t("campaigns.desc")}</p>
         {error && (
-          <Card className="border-red-500/40 p-3 text-sm text-red-300">
+          <Card role="alert" className="border-red-500/40 p-3 text-sm text-red-300">
             {error}
           </Card>
         )}
@@ -202,95 +160,44 @@ function CampaignsPanel() {
       ) : (
         <ul className="flex flex-col gap-3">
           {(visibleCampaigns ?? []).map((c) => (
-            <Card key={c.id} className="flex flex-col gap-3 p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{c.name}</p>
-                  <p className="text-xs text-ink/50">{c.subject}</p>
-                </div>
-                {statusBadge(c.status, t)}
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
-                <div>
-                  <p className="text-ink/40">{t("campaigns.audience")}</p>
-                  <p className="text-ink/80">{audienceLabel(c.audience, t)}</p>
-                </div>
-                <div>
-                  <p className="text-ink/40">{t("campaigns.schedule")}</p>
-                  <p className="text-ink/80">{scheduleLabel(c, t, fmt)}</p>
-                </div>
-                <div>
-                  <p className="text-ink/40">{t("campaigns.counters")}</p>
-                  <p className="text-ink/80">
-                    {c.sentCount} ✓ / {c.failCount} ✗
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {editable(c) && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    href={`/admin/campanas/nueva?edit=${c.id}`}
-                  >
-                    {t("campaigns.edit")}
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={busy === `${c.id}:test`}
-                  onClick={() => act(c.id, "test")}
-                >
-                  {busy === `${c.id}:test` ? <Spinner size="sm" /> : t("campaigns.test")}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={
-                    busy === `${c.id}:run` ||
-                    c.status === "SENDING" ||
-                    c.status === "CANCELLED"
-                  }
-                  onClick={() => setPending({ id: c.id, action: "run" })}
-                >
-                  {busy === `${c.id}:run` ? <Spinner size="sm" /> : t("campaigns.runNow")}
-                </Button>
-                {cancellable(c) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={busy === `${c.id}:cancel`}
-                    onClick={() => setPending({ id: c.id, action: "cancel" })}
-                  >
-                    {t("campaigns.cancel")}
-                  </Button>
-                )}
-              </div>
-            </Card>
+            <li key={c.id}>
+              <Link
+                href={`/admin/campanas/${c.id}`}
+                className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              >
+                <Card className="flex flex-col gap-3 p-4 transition-colors hover:border-neon/60">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{c.name}</p>
+                      <p className="text-xs text-ink/50">{c.subject}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {statusBadge(c.status, t)}
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                    <div>
+                      <p className="text-ink/40">{t("campaigns.audience")}</p>
+                      <p className="text-ink/80">{audienceLabel(c.audience, t)}</p>
+                    </div>
+                    <div>
+                      <p className="text-ink/40">{t("campaigns.schedule")}</p>
+                      <p className="text-ink/80">{scheduleLabel(c, t, fmt)}</p>
+                    </div>
+                    <div>
+                      <p className="text-ink/40">{t("campaigns.counters")}</p>
+                      <p className="text-ink/80">
+                        {c.sentCount} ✓ / {c.failCount} ✗
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            </li>
           ))}
         </ul>
       )}
-
-      <ConfirmSheet
-        open={pending !== null}
-        title={
-          pending?.action === "run"
-            ? t("campaigns.runConfirm")
-            : t("campaigns.cancelConfirm")
-        }
-        confirmLabel={
-          pending?.action === "run"
-            ? t("campaigns.runNow")
-            : t("campaigns.cancel")
-        }
-        busy={pending !== null && busy === `${pending.id}:${pending.action}`}
-        onConfirm={() => pending && void act(pending.id, pending.action)}
-        onClose={() => setPending(null)}
-      />
-
-      <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }
-

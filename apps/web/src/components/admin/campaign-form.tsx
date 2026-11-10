@@ -33,6 +33,7 @@ export type Campaign = {
   lastRunAt: string | null;
   sentCount: number;
   failCount: number;
+  createdAt: string;
 };
 
 const AUDIENCE_KINDS = [

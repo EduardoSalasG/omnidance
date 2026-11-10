@@ -536,7 +536,29 @@
       "testSent": "Teste enviado, verifica o teu e-mail.",
       "saved": "Campanha guardada",
       "runStarted": "Envio iniciado",
-      "cancelled": "Campanha cancelada"
+      "cancelled": "Campanha cancelada",
+      "detail": {
+        "notFound": "Campanha não encontrada",
+        "backToList": "Voltar às campanhas",
+        "nextRun": "Próxima execução",
+        "lastRun": "Última execução",
+        "created": "Criada"
+      },
+      "runs": {
+        "title": "Execuções",
+        "empty": "Ainda sem execuções",
+        "recipients": "{n, plural, one {# destinatário} other {# destinatários}}",
+        "trigger": {
+          "CRON": "Cron",
+          "MANUAL": "Manual"
+        },
+        "status": {
+          "RUNNING": "Em curso",
+          "OK": "OK",
+          "ERROR": "Erro",
+          "CANCELLED": "Cancelada"
+        }
+      }
     },
     "billing": {
       "title": "Faturação",
