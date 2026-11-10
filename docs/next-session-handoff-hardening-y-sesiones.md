@@ -102,3 +102,26 @@ Fix sugerido: `jti` sin fila → permitir como token legacy (la
 revocación sigue activa cuando la fila existe), o helpers por
 `issueSession`. Aplicar fix → re-correr suite → commits por change
 → archive → regen openapi + push. NO commitear hasta suite verde.
+
+## RESUELTO (misma sesión, continuación)
+
+- **Regresión SessionGuard**: causa real = specs construyen
+  `new AuthService(secret)` SIN repo → `issueSession` firmaba con jti
+  pero sin fila → 401 masivo. Fix: `issueSession` solo incluye el claim
+  jti cuando el repo puede persistir la fila (sin repo = JWT legado sin
+  jti, guard salta el check; jti forjado sin fila sigue 401).
+  `auth.service.ts` ~l.55-72.
+- **FK en teardown**: `helpers.ts` `deletePeople` ahora borra
+  `authSession` antes de `person` (AuthSession_personId_fkey rompía
+  cleanups y dejaba personas stale → el flake de "Admin Leads Test" era
+  data residual, no race real).
+- **DB dev reseteada**: `prisma migrate reset --force` + seed (87
+  migraciones, pedido del usuario para limpiar registros test/QA).
+- **Suite final: 2733/2733 verde** (143 archivos) en el pre-push hook.
+- **5 commits en dev**: 9de8337b event-scope, 1da2c84b api-edge,
+  639facfc web-edge, 216d67fb auth-sessions, 94601fd1 docs.
+- **4 changes archivados** (2026-11-10-*) con specs canónicas
+  actualizadas; `multipais-foundation` sigue abierto.
+- **Pendiente**: regen `docs/openapi.json`+postman (requiere API viva
+  con `API_DOCS_ENABLED=true`); evaluar release 1.19.0; tareas del
+  owner en `docs/security-hardening-owner-tasks.md` sin cambios.
