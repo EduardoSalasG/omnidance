@@ -698,24 +698,28 @@ describe("PlatformSubscriptionsService", () => {
       expect(fx.platSubs).toHaveLength(0);
     });
 
-    it("TRIAL y ONLINE también cuentan como alumnos activos", async () => {
-      for (let i = 0; i < 30; i++) {
+    it("solo enrollment ACTIVE cuenta como alumno activo (INACTIVE no)", async () => {
+      // Modelo binario: los ex-TRIAL/ONLINE ya son ACTIVE; los inactivos
+      // (ex-PAUSED/FROZEN) no cuentan contra el tope del tier.
+      for (let i = 0; i < 15; i++) {
+        fx.enrollments.push({
+          id: `i${i}`,
+          academyId: "ac1",
+          status: "INACTIVE",
+        });
+      }
+      for (let i = 0; i < 31; i++) {
         fx.enrollments.push({
           id: `t${i}`,
           academyId: "ac1",
-          status: i % 2 ? "TRIAL" : "ONLINE",
+          status: "ACTIVE",
         });
       }
-      fx.enrollments.push({
-        id: "extra",
-        academyId: "ac1",
-        status: "ACTIVE",
-      });
       const err = await svc
         .subscribeAcademy("p1", ACADEMY_ROW as never, input)
         .catch((e: unknown) => e);
       expect(errBody(err).error).toBe("tier_limit");
-      // PAUSED no cuenta: 30 activos (15 TRIAL + 15 ONLINE) + 1 ACTIVE = 31
+      // 31 ACTIVE (los 15 INACTIVE no cuentan).
       expect(errBody(err).active).toBe(31);
     });
 
@@ -2102,7 +2106,7 @@ describe("PlatformSubscriptionsService", () => {
       fx.platSubs.push(sub);
       fx.enrollments.push(
         { id: "e1", academyId: "ac1", status: "ACTIVE" },
-        { id: "e2", academyId: "ac1", status: "ONLINE" },
+        { id: "e2", academyId: "ac1", status: "ACTIVE" },
       );
       fx.payments.set("pay-1", {
         id: "pay-1",

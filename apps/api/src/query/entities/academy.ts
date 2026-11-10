@@ -22,13 +22,7 @@ import {
 const acad = (scope: QueryScope): string | { in: string[] } =>
   scope.academyId ?? { in: [] };
 
-const ENROLLMENT_STATUS = [
-  "ACTIVE",
-  "PAUSED",
-  "TRIAL",
-  "FROZEN",
-  "ONLINE",
-] as const;
+const ENROLLMENT_STATUS = ["ACTIVE", "INACTIVE"] as const;
 const SUBSCRIPTION_STATUS = [
   "PENDING_CARD",
   "ACTIVATING",

@@ -2,7 +2,8 @@
  "events": {
   "metaTitle": "Eventos de salsa e bachata esta semana",
   "filterByStyle": "Filtrar por estilo",
-  "genresLabel": "Géneros"
+  "genresLabel": "Géneros",
+  "internalOnly": "Apenas alunos da academia"
  },
  "seriesEngagement": {
   "title": "A série em números",
@@ -18,5 +19,18 @@
   "commentsTitle": "Comentários da série",
   "noComments": "Ainda não há comentários escritos",
   "anonymousNote": "Os comentários chegam anónimos, o autor nunca é mostrado."
+ },
+ "eventLanding": {
+  "buyCta": "Comprar bilhete",
+  "buyHint": "Para comprar, entra com a tua conta ou cria uma grátis ao continuar.",
+  "unavailableTitle": "Este evento não está disponível",
+  "unavailableDesc": "O link pode ter expirado ou o evento foi retirado de venda.",
+  "cancelledNote": "Este evento foi cancelado pelo seu produtor.",
+  "pastNote": "Este evento já passou.",
+  "errorTitle": "Não conseguimos carregar o evento",
+  "errorDesc": "Verifica a tua ligação e tenta novamente.",
+  "exploreCta": "Explorar Omnidance",
+  "metaDescription": "{name} · {date} em {venue}. Compra o teu bilhete na Omnidance.",
+  "metaDescriptionNoVenue": "{name} · {date}. Compra o teu bilhete na Omnidance."
  }
 }

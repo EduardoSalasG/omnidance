@@ -18,7 +18,7 @@ type Props = {
 
 // Planes por tiempo (renovables) vs de una sola vez - spec PlanType:
 // MONTHLY/QUARTERLY/SEMIANNUAL/PERIOD otorgan acceso por ventana;
-// SINGLE/CLASS_PACK/TRIAL se consumen una vez.
+// SINGLE/CLASS_PACK se consumen una vez.
 const RECURRING_TYPES = new Set([
   "MONTHLY",
   "QUARTERLY",

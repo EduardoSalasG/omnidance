@@ -37,13 +37,23 @@ export type PublicCityDetail = {
 
 /** ¿Flag city_landing ON? Fail-closed: error/red → false → notFound(). */
 export async function cityLandingEnabled(): Promise<boolean> {
+  return publicFlagEnabled("city_landing");
+}
+
+/** ¿Flag social_pass ON? Pase Social es landing pública gated por flag. */
+export async function socialPassEnabled(): Promise<boolean> {
+  return publicFlagEnabled("social_pass");
+}
+
+/** Mapa público de GET /features → booleano. Fail-closed en error. */
+async function publicFlagEnabled(name: string): Promise<boolean> {
   try {
     const res = await fetch(`${await serverApiUrl()}/api/features`, {
       next: { revalidate: 30 },
     });
     if (!res.ok) return false;
     const flags = (await res.json()) as Record<string, boolean>;
-    return flags.city_landing === true;
+    return flags[name] === true;
   } catch {
     return false;
   }

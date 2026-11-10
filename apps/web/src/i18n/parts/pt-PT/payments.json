@@ -8,7 +8,8 @@
       "SERIES_PASS": "Passe de série",
       "MEMBERSHIP": "Plano de academia",
       "PRIVATE_LESSON": "Aula particular",
-      "WORKSHOP": "Workshop"
+      "WORKSHOP": "Workshop",
+      "PLATFORM_SUB": "Subscrição Omnidance"
     },
     "status": {
       "PENDING": "Pendente",
@@ -64,7 +65,8 @@
         "ACTIVE": "Ativa",
         "CANCEL_PENDING": "Cancela no fim do período",
         "CANCELED": "Cancelada",
-        "FAILED_CARD": "Cartão recusado"
+        "FAILED_CARD": "Cartão recusado",
+        "PENDING_PAYMENT": "Pagamento em revisão"
       }
     },
     "byEvent": {
@@ -74,6 +76,39 @@
       "desc": "Cobranças de assinaturas dos planos da academia (assinaturas e pagamentos únicos).",
       "empty": "Ainda não há cobranças de assinaturas.",
       "noAccess": "Só o dono da academia (ou um admin) pode ver as cobranças."
+    },
+    "media": {
+      "credit_card": "Cartão de crédito",
+      "debit_card": "Cartão de débito",
+      "prepaid_card": "Cartão pré-pago",
+      "card": "Cartão",
+      "bank_transfer": "Transferência bancária",
+      "account_money": "Saldo em conta",
+      "ticket": "Pagamento em numerário",
+      "atm": "Multibanco",
+      "link": "Link de pagamento",
+      "visa": "Visa",
+      "master": "Mastercard",
+      "amex": "American Express",
+      "diners": "Diners Club",
+      "cabal": "Cabal",
+      "naranja": "Naranja",
+      "magna": "Magna",
+      "webpay": "Webpay",
+      "mach": "MACH",
+      "khipu": "Khipu",
+      "redcompra": "Redcompra",
+      "servipag": "Servipag",
+      "multicaja": "Multicaja",
+      "STUB": "Gateway de teste"
+    },
+    "gateways": {
+      "FLOW": "Flow",
+      "STRIPE": "Stripe",
+      "MERCADOPAGO": "Mercado Pago",
+      "FINTOC": "Fintoc",
+      "STUB": "Gateway de teste",
+      "MANUAL": "Método próprio"
     }
   }
 }

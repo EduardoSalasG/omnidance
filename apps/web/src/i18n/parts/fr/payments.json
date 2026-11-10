@@ -8,7 +8,8 @@
       "SERIES_PASS": "Pass de série",
       "MEMBERSHIP": "Abonnement d'académie",
       "PRIVATE_LESSON": "Cours particulier",
-      "WORKSHOP": "Workshop"
+      "WORKSHOP": "Workshop",
+      "PLATFORM_SUB": "Abonnement Omnidance"
     },
     "status": {
       "PENDING": "En attente",
@@ -64,7 +65,8 @@
         "ACTIVE": "Active",
         "CANCEL_PENDING": "S'annule en fin de période",
         "CANCELED": "Annulée",
-        "FAILED_CARD": "Carte refusée"
+        "FAILED_CARD": "Carte refusée",
+        "PENDING_PAYMENT": "Paiement en cours d'examen"
       }
     },
     "byEvent": {
@@ -74,6 +76,39 @@
       "desc": "Encaissements des abonnements des plans de l'académie (abonnements et paiements uniques).",
       "empty": "Pas encore d'encaissements d'abonnements.",
       "noAccess": "Seul le propriétaire de l'académie (ou un admin) peut voir les encaissements."
+    },
+    "media": {
+      "credit_card": "Carte de crédit",
+      "debit_card": "Carte de débit",
+      "prepaid_card": "Carte prépayée",
+      "card": "Carte",
+      "bank_transfer": "Virement bancaire",
+      "account_money": "Solde du compte",
+      "ticket": "Paiement en espèces",
+      "atm": "Distributeur",
+      "link": "Lien de paiement",
+      "visa": "Visa",
+      "master": "Mastercard",
+      "amex": "American Express",
+      "diners": "Diners Club",
+      "cabal": "Cabal",
+      "naranja": "Naranja",
+      "magna": "Magna",
+      "webpay": "Webpay",
+      "mach": "MACH",
+      "khipu": "Khipu",
+      "redcompra": "Redcompra",
+      "servipag": "Servipag",
+      "multicaja": "Multicaja",
+      "STUB": "Passerelle de test"
+    },
+    "gateways": {
+      "FLOW": "Flow",
+      "STRIPE": "Stripe",
+      "MERCADOPAGO": "Mercado Pago",
+      "FINTOC": "Fintoc",
+      "STUB": "Passerelle de test",
+      "MANUAL": "Méthode propre"
     }
   }
 }

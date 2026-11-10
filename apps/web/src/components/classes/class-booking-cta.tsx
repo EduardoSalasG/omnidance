@@ -248,7 +248,22 @@ export function ClassBookingCta({
         body: JSON.stringify({ classId }),
       });
       if (!res.ok) {
-        setNotice({ text: (await readError(res)) ?? t("error"), error: true });
+        // BYO (spec academy-byo-collections): código estable en `error`
+        // - la academia sin pasarela propia o en bloqueo de cobranza no
+        // vende online; copy honesto, no un error genérico.
+        const body = (await res.clone().json().catch(() => null)) as {
+          error?: unknown;
+        } | null;
+        const code = typeof body?.error === "string" ? body.error : "";
+        setNotice({
+          text:
+            code === "academy.no_gateway"
+              ? tco("academyNoGateway")
+              : code === "academy.collections_blocked"
+                ? tco("academyCollectionsBlocked")
+                : ((await readError(res)) ?? t("error")),
+          error: true,
+        });
         return;
       }
       const order = (await res.json()) as {

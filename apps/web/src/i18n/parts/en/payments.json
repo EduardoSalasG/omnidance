@@ -8,7 +8,8 @@
       "SERIES_PASS": "Series pass",
       "MEMBERSHIP": "Academy plan",
       "PRIVATE_LESSON": "Private lesson",
-      "WORKSHOP": "Workshop"
+      "WORKSHOP": "Workshop",
+      "PLATFORM_SUB": "Omnidance subscription"
     },
     "status": {
       "PENDING": "Pending",
@@ -64,7 +65,8 @@
         "ACTIVE": "Active",
         "CANCEL_PENDING": "Cancels at end of period",
         "CANCELED": "Cancelled",
-        "FAILED_CARD": "Card declined"
+        "FAILED_CARD": "Card declined",
+        "PENDING_PAYMENT": "Payment under review"
       }
     },
     "byEvent": {
@@ -74,6 +76,39 @@
       "desc": "Membership charges for the academy’s plans (subscriptions and one-off payments).",
       "empty": "No membership charges yet.",
       "noAccess": "Only the academy owner (or an admin) can see the charges."
+    },
+    "media": {
+      "credit_card": "Credit card",
+      "debit_card": "Debit card",
+      "prepaid_card": "Prepaid card",
+      "card": "Card",
+      "bank_transfer": "Bank transfer",
+      "account_money": "Account balance",
+      "ticket": "Cash payment",
+      "atm": "ATM",
+      "link": "Payment link",
+      "visa": "Visa",
+      "master": "Mastercard",
+      "amex": "American Express",
+      "diners": "Diners Club",
+      "cabal": "Cabal",
+      "naranja": "Naranja",
+      "magna": "Magna",
+      "webpay": "Webpay",
+      "mach": "MACH",
+      "khipu": "Khipu",
+      "redcompra": "Redcompra",
+      "servipag": "Servipag",
+      "multicaja": "Multicaja",
+      "STUB": "Test gateway"
+    },
+    "gateways": {
+      "FLOW": "Flow",
+      "STRIPE": "Stripe",
+      "MERCADOPAGO": "Mercado Pago",
+      "FINTOC": "Fintoc",
+      "STUB": "Test gateway",
+      "MANUAL": "Own method"
     }
   }
 }

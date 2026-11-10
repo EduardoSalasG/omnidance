@@ -93,16 +93,10 @@ export const EVENT_RATING_DIMS = [
 ] as const;
 
 // ─── Academias ───────────────────────────────────────────
-export const ENROLLMENT_STATUSES = [
-  "ACTIVE",
-  "PAUSED",
-  "TRIAL",
-  "FROZEN",
-  "ONLINE",
-] as const;
+export const ENROLLMENT_STATUSES = ["ACTIVE", "INACTIVE"] as const;
 export type EnrollmentStatus = (typeof ENROLLMENT_STATUSES)[number];
 
-export const PLAN_TYPES = ["MONTHLY", "CLASS_PACK", "PERIOD", "TRIAL"] as const;
+export const PLAN_TYPES = ["MONTHLY", "CLASS_PACK", "PERIOD"] as const;
 export type PlanType = (typeof PLAN_TYPES)[number];
 
 // ─── Dinero ──────────────────────────────────────────────

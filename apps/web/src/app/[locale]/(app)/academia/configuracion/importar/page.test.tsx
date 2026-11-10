@@ -101,4 +101,18 @@ describe("/academia/configuracion/importar - gate por tier", () => {
     await screen.findByText(scheduleTitle);
     expect(screen.getByText(studentsTitle)).toBeTruthy();
   });
+
+  it("card de alumnos acepta csv/xls/xlsx y anuncia solo email+nombre obligatorios", async () => {
+    renderPage();
+    await screen.findByText(studentsTitle);
+    const cols = (messages.academyImport as Record<string, unknown>)
+      .studentsCols as string;
+    expect(screen.getByText(cols)).toBeTruthy();
+    const input = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    expect(input.accept).toContain(".csv");
+    expect(input.accept).toContain(".xls");
+    expect(input.accept).toContain(".xlsx");
+  });
 });

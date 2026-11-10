@@ -21,14 +21,12 @@ anual −15% sobre el mensual) SHALL resolverse por país del actor desde
 el price book `TierPrice(tierCode, ACADEMY, billingCycle, countryCode)`
 — cayendo a la fila `CL` y luego al param legacy
 `academy_tier.*_monthly_clp` para ajuste sin deploy. "Alumnos
-activos" SHALL ser `Enrollment` en `ACTIVE|TRIAL|ONLINE` de la
-academia.
+activos" SHALL ser `Enrollment` en `ACTIVE` de la academia.
 
 #### Scenario: Alumnos activos como medida
 
-- **GIVEN** una academia con 47 enrollments ACTIVE, 2 TRIAL y 10
-  EXPIRED
-- **THEN** su conteo de alumnos activos es 49.
+- **GIVEN** una academia con 47 enrollments ACTIVE y 10 INACTIVE
+- **THEN** su conteo de alumnos activos es 47.
 
 #### Scenario: Precio por país de la academia
 

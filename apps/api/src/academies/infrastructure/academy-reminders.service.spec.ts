@@ -129,11 +129,17 @@ describe("AcademyRemindersService.runDaily", () => {
     expect(mailer.send).toHaveBeenCalledOnce();
   });
 
-  it("consultas solo ACTIVE/ONLINE y con endsAt en ventana", async () => {
+  it("consultas solo ACTIVE de planes por tiempo y con endsAt en ventana", async () => {
     const { svc, findMany } = makeService([], []);
     await svc.runDaily(NOW);
     const [expArgs, graceArgs] = findMany.mock.calls;
-    expect(expArgs[0].where.status).toEqual({ in: ["ACTIVE", "ONLINE"] });
+    expect(expArgs[0].where.status).toEqual({ in: ["ACTIVE"] });
+    // Solo los planes por tiempo "renuevan" (packs y clase suelta no).
+    const typeFilter = {
+      is: { type: { in: ["MONTHLY", "QUARTERLY", "SEMIANNUAL", "PERIOD"] } },
+    };
+    expect(expArgs[0].where.plan).toEqual(typeFilter);
+    expect(graceArgs[0].where.plan).toEqual(typeFilter);
     expect(expArgs[0].where.endsAt.gte).toEqual(NOW);
     expect(expArgs[0].where.endsAt.lte).toEqual(
       new Date(NOW.getTime() + 5 * DAY),

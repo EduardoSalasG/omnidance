@@ -72,18 +72,12 @@ export const PLAN_TYPES = [
   "SINGLE",
   "CLASS_PACK",
   "PERIOD",
-  "TRIAL",
 ] as const;
 export type PlanType = (typeof PLAN_TYPES)[number];
 
-// Espejo de ENROLLMENT_STATUSES del controller (CANCELLED no existe en el enum).
-export const ENROLLMENT_STATUSES = [
-  "ACTIVE",
-  "PAUSED",
-  "TRIAL",
-  "FROZEN",
-  "ONLINE",
-] as const;
+// Espejo del enum EnrollmentStatus del schema (binario; la "clase de
+// prueba" es un CLASS_PACK con classCount, no un status).
+export const ENROLLMENT_STATUSES = ["ACTIVE", "INACTIVE"] as const;
 export type EnrollmentStatus = (typeof ENROLLMENT_STATUSES)[number];
 
 export type Academy = {
@@ -168,10 +162,7 @@ export type AcademyDashboard = {
   methodsCount: number;
   studentsByStatus: {
     active: number;
-    trial: number;
-    paused: number;
-    frozen: number;
-    online: number;
+    inactive: number;
   };
   totalStudents: number;
   plansCount: number;
@@ -616,30 +607,38 @@ const toInputValue = (d: Date) =>
 
 /**
  * "Pagado hasta" sugerido al elegir plan en el alta (spec
- * academies/console-lists): espejo de `membershipEndsAt` del dominio
- * (payments/domain/membership-vigency.ts) en fechas locales del input.
- * "" = sin sugerencia (CLASS_PACK, o PERIOD/TRIAL sin periodDays).
+ * academies/console-lists): espejo de la vigencia RODANTE de
+ * `membershipEndsAt` del dominio (payments/domain/membership-vigency.ts)
+ * en fechas locales del input - base + duración del plan, no fin de mes
+ * calendario. "" = sin sugerencia (CLASS_PACK, o PERIOD sin periodDays).
  */
 export function suggestedEndsAt(
   plan: Pick<MembershipPlan, "type" | "periodDays">,
   startsAt: string,
 ): string {
   const base = startsAt ? new Date(`${startsAt}T12:00:00`) : new Date();
-  // Último día del mes local (month 0-based; Date(y, m+1, 0) = fin de m).
-  const endOfMonth = (m0: number) =>
-    new Date(base.getFullYear(), m0 + 1, 0, 12);
-  const m = base.getMonth();
+  // +N meses conservando el día, con clamp al último día del mes
+  // destino (31 ene + 1 mes → último día de feb, no 3 mar).
+  const addMonths = (months: number) => {
+    const last = new Date(
+      base.getFullYear(),
+      base.getMonth() + months + 1,
+      0,
+      12,
+    );
+    last.setDate(Math.min(base.getDate(), last.getDate()));
+    return last;
+  };
   switch (plan.type) {
     case "MONTHLY":
-      return toInputValue(endOfMonth(m));
+      return toInputValue(addMonths(1));
     case "QUARTERLY":
-      return toInputValue(endOfMonth(m + 2));
+      return toInputValue(addMonths(3));
     case "SEMIANNUAL":
-      return toInputValue(endOfMonth(m + 5));
+      return toInputValue(addMonths(6));
     case "SINGLE":
       return toInputValue(new Date(base.getTime() + DAY_MS));
     case "PERIOD":
-    case "TRIAL":
       return plan.periodDays
         ? toInputValue(new Date(base.getTime() + plan.periodDays * DAY_MS))
         : "";

@@ -174,7 +174,7 @@ export class PaymentsController {
     // Checkout mode=subscription - sin Payment asociado, el dispatcher
     // lo rutea a UN consumidor por target y no al settle de órdenes.
     if (result.billing) {
-      await this.dispatchBilling(result.billing);
+      await this.dispatchBilling(result.billing, accountId);
       return { ok: true, billing: result.billing.type };
     }
 
@@ -220,12 +220,15 @@ export class PaymentsController {
    *    customer / personId); si tampoco calza es no-op y el webhook
    *    responde 200 ignorando el evento.
    */
-  private async dispatchBilling(ev: BillingWebhookEvent): Promise<void> {
+  private async dispatchBilling(
+    ev: BillingWebhookEvent,
+    accountId?: string,
+  ): Promise<void> {
     if (isSocialPassBillingEvent(ev)) {
       await this.socialPass.handleBillingEvent(ev);
       return;
     }
-    if (await this.subscriptions.handleBillingEvent(ev)) return;
+    if (await this.subscriptions.handleBillingEvent(ev, accountId)) return;
     if (await this.platformSubs.handleBillingEvent(ev)) return;
     await this.socialPass.handleBillingEvent(ev);
   }
@@ -239,12 +242,57 @@ export class PaymentsController {
    * error HTTP al browser - el redirect es la respuesta.
    */
   @Post("flow/customer-return")
-  async customerReturn(@Body() body: FlowTokenDto, @Res() res: Response) {
+  @ApiQuery({ name: "account", required: false })
+  async customerReturn(
+    @Body() body: FlowTokenDto,
+    @Res() res: Response,
+    @Query("account") accountId?: string,
+  ) {
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const errorTo = `${webUrl}/checkout/return?sub=error&src=member`;
     if (!body.token) return res.redirect(303, errorTo);
     try {
-      const r = await this.subscriptions.customerReturn(body.token);
+      const r = await this.subscriptions.customerReturn(
+        body.token,
+        accountId,
+      );
+      return res.redirect(
+        303,
+        r.ok
+          ? `${webUrl}/checkout/return?sub=ok&src=member`
+          : errorTo,
+      );
+    } catch {
+      return res.redirect(303, errorTo);
+    }
+  }
+
+  /**
+   * Retorno GET del pagador desde el init_point de MercadoPago (spec
+   * mercadopago-subscriptions, D2): el back_url del preapproval es
+   * redirect GET (a diferencia del form-POST de Flow) con
+   * `?account=<id>&sub=<subId>` horneados por el adaptador. El service
+   * re-verifica el status remoto real (authorized → activa; pending →
+   * queda PENDING_CARD) - nunca se confía en el redirect. Mismo
+   * contrato que customerReturn: nunca error HTTP, el redirect es la
+   * respuesta.
+   */
+  @Get("mp/subscription-return")
+  @ApiQuery({ name: "account", required: true })
+  @ApiQuery({ name: "sub", required: true })
+  async mpSubscriptionReturn(
+    @Res() res: Response,
+    @Query("account") accountId?: string,
+    @Query("sub") subId?: string,
+  ) {
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const errorTo = `${webUrl}/checkout/return?sub=error&src=member`;
+    if (!accountId || !subId) return res.redirect(303, errorTo);
+    try {
+      const r = await this.subscriptions.mpSubscriptionReturn(
+        subId,
+        accountId,
+      );
       return res.redirect(
         303,
         r.ok
@@ -320,10 +368,21 @@ export class PaymentsController {
    * service).
    */
   @Post("subscription-webhook")
+  @ApiQuery({ name: "account", required: false })
   @HttpCode(200)
-  async subscriptionWebhook(@Body() body: FlowTokenDto) {
-    await this.subscriptions.subscriptionWebhook(body.token ?? null);
-    await this.platformSubs.subscriptionWebhook(body.token ?? null);
+  async subscriptionWebhook(
+    @Body() body: FlowTokenDto,
+    @Query("account") accountId?: string,
+  ) {
+    await this.subscriptions.subscriptionWebhook(
+      body.token ?? null,
+      accountId,
+    );
+    // Las subs de plataforma son siempre scope plataforma - un callback
+    // de cuenta BYO jamás les corresponde.
+    if (!accountId) {
+      await this.platformSubs.subscriptionWebhook(body.token ?? null);
+    }
     return { ok: true };
   }
 

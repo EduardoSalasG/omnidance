@@ -6,10 +6,13 @@ import { PaymentMethodsAdmin } from "@/components/academy/payment-methods-admin"
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
- * /academia/configuracion/metodos-de-pago - medios de cobro propios de la
- * academia (transferencia/efectivo que el alumno elige al pagar su
- * plan). Destino directo del drawer: el ConsoleHeader declara el back
- * al hub.
+ * /academia/configuracion/metodos-de-pago - cómo cobra la academia:
+ * lista unificada de métodos (change gateway-in-methods-form): la
+ * pasarela propia (spec academy-byo-collections: sus ventas van directo
+ * a su cuenta y el take se factura mes vencido) se agrega desde
+ * "Agregar método" y aparece como un método más (ficha /pasarela);
+ * los medios de cobro directos (transferencia/efectivo) siguen con
+ * su ficha [methodId]. Misma composición que /productor/medios-pago.
  */
 export default function ConfigPagosPage() {
   const t = useTranslations("academy");

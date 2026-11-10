@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import "../../auth/infrastructure/auth.controller"; // rompe el ciclo session.guard ⇄ auth.controller
-import { AdminJobsController } from "./jobs.controller";
+import { AdminJobsController, RunsQueryDto } from "./jobs.controller";
 import type { JobsService } from "../../jobs/jobs.service";
+import { plainToInstance } from "class-transformer";
+import { validate } from "class-validator";
 
 // AdminJobsController (spec admin-jobs-mail-campaigns): wiring de rutas
 //; list/update/run/runs delegan al service con key + actor de sesión.
@@ -47,4 +49,37 @@ describe("AdminJobsController", () => {
     await ctrl.runs("tickets.day_of", {});
     expect(jobs.listRuns).toHaveBeenCalledWith("tickets.day_of", 50);
   });
+
+  it("runs pasa el take validado al service", async () => {
+    const jobs = mkJobs();
+    const ctrl = new AdminJobsController(jobs);
+    await ctrl.runs("tickets.day_of", { take: 25 });
+    expect(jobs.listRuns).toHaveBeenCalledWith("tickets.day_of", 25);
+  });
+});
+
+// RunsQueryDto: take llega como string en la query (?take=25); el
+// @Type(() => Number) del pipe global lo castea antes de validar.
+// Sin el transform IsInt rechazaba el string con 400.
+describe("RunsQueryDto (take por query)", () => {
+  it("castea '25' a número y valida", async () => {
+    const dto = plainToInstance(RunsQueryDto, { take: "25" });
+    expect(await validate(dto)).toEqual([]);
+    expect(dto.take).toBe(25);
+  });
+
+  it("sin take queda undefined (default 50 en el controller)", async () => {
+    const dto = plainToInstance(RunsQueryDto, {});
+    expect(await validate(dto)).toEqual([]);
+    expect(dto.take).toBeUndefined();
+  });
+
+  it.each(["0", "201", "abc", "1.5"])(
+    "take=%s fuera de rango o no entero → error de validación",
+    async (take) => {
+      const dto = plainToInstance(RunsQueryDto, { take });
+      const errors = await validate(dto);
+      expect(errors.some((e) => e.property === "take")).toBe(true);
+    },
+  );
 });

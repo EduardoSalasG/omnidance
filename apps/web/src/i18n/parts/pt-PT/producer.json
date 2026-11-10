@@ -103,7 +103,10 @@
       "tableSeatsTotal": "Pessoas sentadas nas mesas",
       "inheritsDefault": "Valor por omissão do produtor",
       "tablesHint": "A capacidade sentada é a capacidade real das mesas: diferente da lotação geral, normalmente menor. Vazio herda o teu valor por omissão de Definições.",
-      "currency": "Moeda"
+      "currency": "Moeda",
+      "internalOnly": "Apenas alunos da minha academia",
+      "internalAcademy": "Academia do social interno",
+      "internalOnlyHint": "Não aparece na programação pública: só os alunos ativos da academia escolhida o veem e podem comprá-lo."
     },
     "sections": {
       "staff": "Staff de porta",
@@ -271,7 +274,8 @@
         "trial": "Período de teste",
         "active": "Ativo",
         "cancelPending": "Vai cancelar",
-        "activating": "Ativação em curso"
+        "activating": "Ativação em curso",
+        "pendingPayment": "Pagamento em revisão"
       },
       "tiers": {
         "FREE": "Plano grátis",
@@ -321,7 +325,16 @@
       "staffLabel": "Colaboradores",
       "staffUsage": "{used} de {limit}",
       "staffUnlimited": "{used} · sem limite",
-      "featuresLabel": "Inclui"
+      "featuresLabel": "Inclui",
+      "payViaTitle": "Meio de cobrança",
+      "payViaCard": "Cartão (débito automático)",
+      "payViaTransfer": "Transferência",
+      "payViaTransferHint": "Pagas por transferência em cada ciclo e envias o comprovativo; a equipa Omnidance valida-o.",
+      "subscribeTransfer": "Subscrever por transferência · {amount}/{period}",
+      "transferLabel": "Transferência",
+      "pendingPaymentHint": "A tua subscrição está à espera do comprovativo aprovado. Envia o comprovativo ou muda o meio de cobrança.",
+      "pendingPaymentCta": "Enviar comprovativo",
+      "changePayVia": "Mudar de meio de cobrança"
     },
     "gateway": {
       "title": "A minha gateway de pagamento",
@@ -342,6 +355,7 @@
       "saved": "Gateway ligada. Configura a URL de confirmação no seu painel.",
       "disable": "Desativar",
       "disabled": "Gateway desativada: a cobrança voltou para a plataforma.",
+      "confirmOffTitle": "Desativar gateway",
       "confirmOff": "Desativar a tua gateway? As novas vendas voltam ao Omnidance.",
       "confirmYes": "Sim, desativar",
       "hint": "Com a tua própria gateway o dinheiro das vendas chega diretamente à tua conta; a comissão Omnidance é deduzida da tua liquidação."
@@ -459,6 +473,8 @@
       "removeDesc": "Deixará de aparecer como candidato a staff nos teus eventos.",
       "quotaFull": "O teu plano cobre até {limit} colaborador(es), sobe de tier para adicionar mais.",
       "removed": "Colaborador removido"
-    }
+    },
+    "copyPublicLink": "Copiar link público",
+    "publicLinkCopied": "Link público copiado."
   }
 }

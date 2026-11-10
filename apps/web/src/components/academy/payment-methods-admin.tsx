@@ -12,6 +12,7 @@ import {
   SkeletonList,
 } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
+import type { GatewayAccountView } from "@/components/payments/gateway-account";
 
 export type Method = {
   id: string;
@@ -49,24 +50,40 @@ type Props = { academyId: string };
  * cada card abre el detalle/edición en /configuracion/metodos-de-pago/[methodId];
  * el alta vive en /configuracion/metodos-de-pago/nuevo detrás del CTA. Los métodos
  * activos se muestran al alumno en la ficha de la academia.
+ * La lista es unificada (change gateway-in-methods-form): la cuenta de
+ * pasarela propia entra como primer card (badge pasarela + mask +
+ * webhookUrl) y navega a la ficha /pasarela - el fetch va en paralelo
+ * al de métodos y su fallo no rompe el listado.
  */
 export function PaymentMethodsAdmin({ academyId }: Props) {
   const t = useTranslations("academyPay");
   const tc = useTranslations("common");
 
   const [methods, setMethods] = useState<Method[] | null>(null);
+  const [gateway, setGateway] = useState<GatewayAccountView | null>(null);
   const [error, setError] = useState(false);
 
   const load = useCallback(async () => {
     setError(false);
-    const res = await apiFetch(
-      `/academies/${academyId}/payment-methods/admin`,
-    ).catch(() => null);
-    if (!res?.ok) {
+    const [methodsRes, gatewayRes] = await Promise.all([
+      apiFetch(`/academies/${academyId}/payment-methods/admin`).catch(
+        () => null,
+      ),
+      apiFetch(`/academies/${academyId}/gateway-account`).catch(() => null),
+    ]);
+    if (!methodsRes?.ok) {
       setError(true);
       return;
     }
-    setMethods((await res.json()) as Method[]);
+    setMethods((await methodsRes.json()) as Method[]);
+    if (gatewayRes?.ok) {
+      const body = (await gatewayRes.json()) as {
+        account: GatewayAccountView | null;
+      };
+      setGateway(body.account);
+    }
+    // Gateway no-bloqueante: si el GET falla el card no se pinta y el
+    // retry del listado re-dispara ambos fetches.
   }, [academyId]);
 
   useEffect(() => {
@@ -105,7 +122,7 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
         </div>
       ) : methods === null ? (
         <SkeletonList items={2} lines={1} />
-      ) : methods.length === 0 ? (
+      ) : methods.length === 0 && !gateway ? (
         <div className="flex flex-col items-start gap-3">
           <p className="text-sm text-ink/50">{t("methodsEmpty")}</p>
           <Button
@@ -118,6 +135,39 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {gateway && (
+            <li>
+              {/* Cuenta de pasarela en la misma colección (spec
+                  payments/gateways): badge de tipo, mask, status y la
+                  webhookUrl a pegar en el panel del provider. El detalle
+                  de la URL se repite en la ficha /pasarela. */}
+              <Link
+                href="/academia/configuracion/metodos-de-pago/pasarela"
+                className="flex min-h-11 flex-col gap-1 rounded-lg border border-line px-3 py-2 text-sm transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              >
+                <span className="flex min-h-6 flex-wrap items-center gap-2">
+                  <span className="font-medium">{gateway.provider}</span>
+                  <Badge variant="outline">{t("fieldGateway")}</Badge>
+                  <Badge
+                    variant={
+                      gateway.status === "ACTIVE" ? "neon" : "muted"
+                    }
+                  >
+                    {gateway.status === "ACTIVE"
+                      ? t("gateway.active")
+                      : t("gateway.inactive")}
+                  </Badge>
+                  <ChevronRightIcon className="ml-auto h-4 w-4 shrink-0 text-ink/40" />
+                </span>
+                <span className="text-xs tabular-nums text-ink/50">
+                  {gateway.keyMask}
+                </span>
+                <code className="break-all text-xs text-ink/40">
+                  {gateway.webhookUrl}
+                </code>
+              </Link>
+            </li>
+          )}
           {methods.map((m) => (
             <li key={m.id}>
               <Link

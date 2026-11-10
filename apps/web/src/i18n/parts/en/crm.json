@@ -111,10 +111,7 @@
       "whatsappNoPhone": "{count, plural, one {# person without phone} other {# people without phones}}",
       "enrollmentStatus": {
         "ACTIVE": "Active",
-        "TRIAL": "Trial",
-        "PAUSED": "Paused",
-        "ONLINE": "Online",
-        "FROZEN": "Frozen"
+        "INACTIVE": "Inactive"
       },
       "send": "Send",
       "sending": "Sending…",
@@ -156,7 +153,6 @@
       "empty": "No triggers configured. Create the first one.",
       "keys": {
         "WINBACK": "Winback inactive",
-        "TRIAL_EXPIRING": "Trial expiring",
         "REGULAR_NO_PRESALE": "Regular without presale",
         "ATTENDANCE_DROP": "Attendance drop",
         "SEGMENT_ENTER": "Enters a segment",
@@ -164,7 +160,6 @@
       },
       "desc": {
         "WINBACK": "Notifies people whose last activity exceeds the days threshold.",
-        "TRIAL_EXPIRING": "Notifies students on trial reaching the minimum days (academies only).",
         "REGULAR_NO_PRESALE": "Notifies frequent attendees without presale for the next event (producers only).",
         "ATTENDANCE_DROP": "Notifies people who just started falling inactive.",
         "SEGMENT_ENTER": "Fires the action when someone enters the chosen segment (evaluated on score recompute).",

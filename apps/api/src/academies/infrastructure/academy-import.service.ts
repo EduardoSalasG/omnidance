@@ -1,19 +1,14 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
-import type { Academy } from "@prisma/client";
+import { Injectable, Logger } from "@nestjs/common";
+import { Gender, type Academy, type Prisma } from "@prisma/client";
 import { InvalidPhoneError, normalizePhone } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
-import { AuthService } from "../../auth/domain/auth.service";
-import { MAILER, type Mailer } from "../../auth/domain/ports";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { emitActivity } from "../../common/activity-log";
-import { studentInviteEmailHtml } from "./invite-emails";
 import {
   AcademyMaterializeService,
   monthDates,
 } from "./class-series-materialize.service";
-
-/** Magic link largo - el alumno abre el correo días después. */
-const INVITE_TOKEN_TTL = "7d";
+import { AcademyInvitesService } from "./academy-invites.service";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -37,7 +32,7 @@ const WEEKDAYS: Record<string, number> = {
   sabado: 6,
 };
 
-type StudentRowStatus = "imported" | "updated" | "invited" | "error";
+type StudentRowStatus = "invited" | "resent" | "skipped" | "error";
 export interface StudentRowResult {
   row: number;
   email: string;
@@ -53,11 +48,40 @@ export interface ScheduleRowResult {
   detail: string;
 }
 
+export interface ImportRunOptions {
+  /** Vista previa: misma tubería sin escrituras ni envíos. */
+  dryRun?: boolean;
+  /** Staff/owner que corre el import (invite.invitedById + run.createdById). */
+  createdById: string;
+  fileName?: string;
+}
+
+export interface StudentsImportResult {
+  total: number;
+  invited: number;
+  resent: number;
+  skipped: number;
+  errors: { row: number; message: string }[];
+  results: StudentRowResult[];
+  runId: string | null;
+}
+
+export interface ScheduleImportResult {
+  total: number;
+  ok: number;
+  warn: number;
+  errors: { row: number; message: string }[];
+  results: ScheduleRowResult[];
+  runId: string | null;
+}
+
 /**
- * Carga masiva CSV para migración de academias (spec academy-bulk-import):
- * alumnos (nómina con vigencias pagadas afuera) y horario semanal
- * (series + slots + materialización sobre la ventana rodante). Reporte
- * por fila - un error no aborta el archivo.
+ * Carga masiva CSV (spec academies/bulk-import): alumnos = canal de
+ * invitación (AcademyInvite, nunca Enrollment - change
+ * academy-import-invites) y horario semanal (series + slots +
+ * materialización sobre la ventana rodante). Reporte por fila - un
+ * error no aborta el archivo; `dryRun` valida sin escribir; cada
+ * corrida real persiste AcademyImportRun para el historial.
  */
 @Injectable()
 export class AcademyImportService {
@@ -65,28 +89,27 @@ export class AcademyImportService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly auth: AuthService,
-    @Inject(MAILER) private readonly mailer: Mailer,
     private readonly materialize: AcademyMaterializeService,
     private readonly notifications: NotificationsService,
+    private readonly invites: AcademyInvitesService,
   ) {}
 
   /**
-   * Alumnos: `email,nombre,telefono?,plan,pagado_hasta?`.
-   * Person inexistente → stub + invitación magic link. Enrollment:
-   * si existe se actualiza (endsAt = max, planId = declarado); si no,
-   * se crea ACTIVE con la vigencia importada.
+   * Alumnos (change academy-import-invites): el import es canal de
+   * INVITACIÓN - por fila válida crea/actualiza la Person stub con los
+   * campos presentes y aplica el patrón AcademyInvite (spec
+   * academies/student-invites). NUNCA escribe Enrollment: la
+   * inscripción nace cuando la persona compra su plan o el staff la
+   * liquida. Skip: email con Enrollment ACTIVE en la academia (ya es
+   * alumno vigente; igual actualiza campos de Person) y email
+   * duplicado dentro de la planilla. Columnas legacy `plan`/
+   * `pagado_hasta` se ignoran.
    */
   async importStudents(
     academy: Academy,
     rows: Record<string, string>[],
-  ): Promise<StudentRowResult[]> {
-    const plans = await this.prisma.membershipPlan.findMany({
-      where: { academyId: academy.id, active: true },
-      select: { id: true, name: true },
-    });
-    const planByName = new Map(plans.map((p) => [normLabel(p.name), p]));
-
+    opts: ImportRunOptions,
+  ): Promise<StudentsImportResult> {
     // País de la academia (spec multipais-phone): defaultCountry para
     // normalizar la columna `telefono` a E.164. Sin ciudad → CL.
     const academyCountry = academy.cityId
@@ -98,47 +121,78 @@ export class AcademyImportService {
         )?.country.code ?? "CL")
       : "CL";
 
+    const seen = new Set<string>();
     const results: StudentRowResult[] = [];
     for (const [i, r] of rows.entries()) {
       const row = i + 2; // header es la fila 1 del CSV
       const email = r.email.trim().toLowerCase();
       const name = r.nombre?.trim() ?? "";
-      const planName = r.plan?.trim() ?? "";
       try {
         if (!EMAIL_RE.test(email)) throw new RowError("email inválido");
         if (!name) throw new RowError("nombre requerido");
-        const plan = planByName.get(normLabel(planName));
-        if (!plan) {
-          throw new RowError(`plan "${planName}" no existe en la academia`);
+        if (seen.has(email)) {
+          results.push({
+            row,
+            email,
+            status: "skipped",
+            detail: "email duplicado en la planilla",
+          });
+          continue;
         }
-        const endsAt = parsePaidThrough(r.pagado_hasta);
+        seen.add(email);
+        const nationalId = normNationalId(r.rut || r.dni || r.documento);
+        const birthDate = parseBirthDate(r.fecha_nacimiento);
+        const gender = parseGender(r.sexo);
+        // Spec multipais-phone: `telefono` se normaliza a E.164 con el
+        // país de la academia; fila inválida = error de fila.
+        const rawPhone = r.telefono?.trim() ?? "";
+        const phoneFields = rowPhone(rawPhone, academyCountry);
 
         let person = await this.prisma.person.findUnique({
           where: { email },
           select: { id: true, name: true },
         });
-        const isNewPerson = !person;
-        if (!person) {
-          // Spec multipais-phone: `telefono` se normaliza a E.164 con el
-          // país de la academia; fila inválida = error de fila.
-          let phone: string | null = null;
-          let phoneCountryCode: string | null = null;
-          const rawPhone = r.telefono?.trim() ?? "";
+        if (person && !opts.dryRun) {
+          // Update por email: solo se setean los campos presentes en la
+          // fila - celda vacía conserva el dato previo.
+          const data: Prisma.PersonUpdateInput = {};
           if (rawPhone) {
+            data.phone = phoneFields.phone;
+            data.phoneCountryCode = phoneFields.phoneCountryCode;
+          }
+          if (nationalId) data.nationalId = nationalId;
+          if (birthDate) data.birthDate = birthDate;
+          if (gender) data.gender = gender;
+          if (Object.keys(data).length) {
             try {
-              const normalized = normalizePhone(rawPhone, academyCountry);
-              phone = normalized?.e164 ?? null;
-              phoneCountryCode = normalized?.countryCode ?? null;
+              await this.prisma.person.update({
+                where: { id: person.id },
+                data,
+              });
             } catch (e) {
-              if (e instanceof InvalidPhoneError) {
-                throw new RowError("teléfono inválido");
+              if (!isUniqueViolation(e)) throw e;
+              delete data.phone;
+              delete data.phoneCountryCode;
+              if (Object.keys(data).length) {
+                await this.prisma.person.update({
+                  where: { id: person.id },
+                  data,
+                });
               }
-              throw e;
             }
           }
+        } else if (!person && !opts.dryRun) {
           try {
             person = await this.prisma.person.create({
-              data: { email, name, phone, phoneCountryCode },
+              data: {
+                email,
+                name,
+                phone: phoneFields.phone,
+                phoneCountryCode: phoneFields.phoneCountryCode,
+                nationalId,
+                birthDate,
+                gender,
+              },
               select: { id: true, name: true },
             });
           } catch (e) {
@@ -146,7 +200,7 @@ export class AcademyImportService {
             // cuenta se crea el stub igual, sin teléfono.
             if (!isUniqueViolation(e)) throw e;
             person = await this.prisma.person.create({
-              data: { email, name },
+              data: { email, name, nationalId, birthDate, gender },
               select: { id: true, name: true },
             });
           }
@@ -161,61 +215,57 @@ export class AcademyImportService {
           });
         }
 
-        const existing = await this.prisma.enrollment.findFirst({
-          where: { academyId: academy.id, personId: person.id },
-          select: { id: true, endsAt: true },
-        });
-        if (existing) {
-          const nextEnds =
-            endsAt && (!existing.endsAt || endsAt > existing.endsAt)
-              ? endsAt
-              : existing.endsAt;
-          await this.prisma.enrollment.update({
-            where: { id: existing.id },
-            data: { planId: plan.id, endsAt: nextEnds },
-          });
-        } else {
-          const enr = await this.prisma.enrollment.create({
-            data: {
+        // Ya es alumno vigente → skip del flujo de invitación (la
+        // actualización de Person de arriba igual aplica - el roster
+        // sigue sirviendo para sincronizar datos).
+        if (person) {
+          const active = await this.prisma.enrollment.findFirst({
+            where: {
               academyId: academy.id,
               personId: person.id,
-              planId: plan.id,
               status: "ACTIVE",
-              endsAt,
             },
+            select: { id: true },
           });
-          await emitActivity(this.prisma, {
-            type: "enrollment.started",
-            personId: person.id,
-            academyId: academy.id,
-            refType: "Enrollment",
-            refId: enr.id,
-            data: { planId: plan.id, via: "academy.import" },
-          });
+          if (active) {
+            results.push({
+              row,
+              email,
+              status: "skipped",
+              detail: "ya tiene inscripción vigente",
+            });
+            continue;
+          }
         }
 
-        if (isNewPerson) {
-          const sent = await this.sendStudentInvite(
+        const outcome = await this.invites.sendInvite(academy, {
+          email,
+          name,
+          invitedById: opts.createdById,
+          dryRun: opts.dryRun,
+        });
+        const who = outcome.personExists
+          ? " (cuenta existente: mail + push)"
+          : " (cuenta nueva)";
+        if (outcome.resent) {
+          results.push({
+            row,
             email,
-            name,
-            academy.name,
-          );
+            status: "resent",
+            detail: opts.dryRun
+              ? "se reenviará la invitación pendiente"
+              : "invitación reenviada",
+          });
+        } else {
           results.push({
             row,
             email,
             status: "invited",
-            detail: sent
-              ? `cuenta creada + invitación enviada (plan ${plan.name})`
-              : `cuenta creada; invitación NO enviada - reintentar`,
-          });
-        } else {
-          results.push({
-            row,
-            email,
-            status: existing ? "updated" : "imported",
-            detail: existing
-              ? `inscripción actualizada (plan ${plan.name})`
-              : `inscripción creada (plan ${plan.name})`,
+            detail: opts.dryRun
+              ? `se enviará invitación${who}`
+              : outcome.sent
+                ? `invitación enviada${who}`
+                : "invitación creada; mail NO enviado - reintentar",
           });
         }
       } catch (e) {
@@ -230,7 +280,56 @@ export class AcademyImportService {
         }
       }
     }
-    return results;
+
+    const counts = { invited: 0, resent: 0, skipped: 0, error: 0 };
+    for (const r of results) counts[r.status]++;
+    const runId = await this.persistRun(academy.id, "students", opts, {
+      total: rows.length,
+      counts,
+      results,
+    });
+    return {
+      total: rows.length,
+      invited: counts.invited,
+      resent: counts.resent,
+      skipped: counts.skipped,
+      errors: results
+        .filter((r) => r.status === "error")
+        .map((r) => ({ row: r.row, message: r.detail })),
+      results,
+      runId,
+    };
+  }
+
+  /**
+   * Historial de corridas (spec academies/bulk-import): la corrida real
+   * deja AcademyImportRun con conteos + resultados por fila; dryRun no
+   * deja rastro.
+   */
+  private async persistRun(
+    academyId: string,
+    kind: "students" | "schedule",
+    opts: ImportRunOptions,
+    payload: {
+      total: number;
+      counts: Record<string, number>;
+      results: unknown;
+    },
+  ): Promise<string | null> {
+    if (opts.dryRun) return null;
+    const run = await this.prisma.academyImportRun.create({
+      data: {
+        academyId,
+        kind,
+        fileName: opts.fileName ?? null,
+        total: payload.total,
+        counts: payload.counts as Prisma.InputJsonValue,
+        results: payload.results as Prisma.InputJsonValue,
+        createdById: opts.createdById,
+      },
+      select: { id: true },
+    });
+    return run.id;
   }
 
   /**
@@ -245,7 +344,8 @@ export class AcademyImportService {
   async importSchedule(
     academy: Academy,
     rows: Record<string, string>[],
-  ): Promise<ScheduleRowResult[]> {
+    opts: ImportRunOptions,
+  ): Promise<ScheduleImportResult> {
     const [styles, levels, instructors] = await Promise.all([
       this.prisma.style.findMany({ select: { id: true, name: true } }),
       this.prisma.classLevel.findMany({ select: { id: true, name: true } }),
@@ -377,7 +477,12 @@ export class AcademyImportService {
       // ya no son por slot) - toma la primera fila que lo declare.
       const quorum =
         parsedRows.find((r) => r.capacity !== null)?.capacity ?? null;
-      const series = await this.upsertSeries(academy.id, first, quorum);
+      const series = await this.upsertSeries(
+        academy.id,
+        first,
+        quorum,
+        opts.dryRun,
+      );
       const existingSlots = await this.prisma.classSlot.findMany({
         where: { seriesId: series.id },
         select: {
@@ -410,7 +515,16 @@ export class AcademyImportService {
       for (const p of parsedRows) {
         try {
           let slot = byKey.get(slotKey(p));
-          if (!slot) {
+          if (!slot && opts.dryRun) {
+            // Vista previa: el slot se crearía en la corrida real.
+            byKey.set(slotKey(p), {
+              id: "dry",
+              weekday: p.weekday,
+              startTime: p.startTime,
+              endTime: p.endTime,
+              classes: [],
+            });
+          } else if (!slot) {
             if (p.instructorId) assigned.add(p.instructorId);
             const created = await this.prisma.classSlot.create({
               data: {
@@ -452,7 +566,7 @@ export class AcademyImportService {
             status: p.warn ? "warn" : "ok",
             detail:
               p.warn ??
-              `slot ${dayName(p.weekday)} ${p.startTime}-${p.endTime} en "${series.name}"`,
+              `${opts.dryRun ? "se crearía " : ""}slot ${dayName(p.weekday)} ${p.startTime}-${p.endTime} en "${series.name}"`,
           });
         } catch (e) {
           results.push({
@@ -471,6 +585,7 @@ export class AcademyImportService {
       // serie sin aviso - su asignación es la serie completa).
       const firstRow = parsedRows[0];
       if (firstRow.instructorId) assigned.add(firstRow.instructorId);
+      if (opts.dryRun) continue;
       for (const personId of assigned) {
         await this.notifications.notifySafe(personId, {
           category: "SOCIAL",
@@ -482,7 +597,24 @@ export class AcademyImportService {
       }
     }
 
-    return results.sort((a, b) => a.row - b.row);
+    const sorted = results.sort((a, b) => a.row - b.row);
+    const counts = { ok: 0, warn: 0, error: 0 };
+    for (const r of sorted) counts[r.status]++;
+    const runId = await this.persistRun(academy.id, "schedule", opts, {
+      total: rows.length,
+      counts,
+      results: sorted,
+    });
+    return {
+      total: rows.length,
+      ok: counts.ok,
+      warn: counts.warn,
+      errors: sorted
+        .filter((r) => r.status === "error")
+        .map((r) => ({ row: r.row, message: r.detail })),
+      results: sorted,
+      runId,
+    };
   }
 
   private async upsertSeries(
@@ -495,12 +627,17 @@ export class AcademyImportService {
       instructorId: string | null;
     },
     quorum: number | null,
+    dryRun?: boolean,
   ) {
     const existing = await this.prisma.classSeries.findFirst({
       where: { academyId, name: p.serie },
       select: { id: true, name: true, month: true },
     });
     if (existing) return existing;
+    if (dryRun) {
+      // Vista previa: la serie se crearía - stub solo-lectura.
+      return { id: "dry", name: p.serie, month: p.month };
+    }
     return this.prisma.classSeries.create({
       data: {
         academyId,
@@ -513,35 +650,6 @@ export class AcademyImportService {
       },
       select: { id: true, name: true, month: true },
     });
-  }
-
-  private async sendStudentInvite(
-    email: string,
-    name: string,
-    academyName: string,
-  ): Promise<boolean> {
-    try {
-      const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-      const token = await this.auth.createMagicToken(
-        email,
-        false,
-        INVITE_TOKEN_TTL,
-      );
-      const link = `${webUrl}/api/auth/verify?token=${token}`;
-      await this.mailer.send(
-        email,
-        `${academyName} ya está en Omnidance - activa tu cuenta`,
-        studentInviteEmailHtml({ personName: name, academyName, link }),
-      );
-      return true;
-    } catch (e) {
-      this.logger.error(
-        `invitación alumno falló (${email}): ${
-          e instanceof Error ? e.message : e
-        }`,
-      );
-      return false;
-    }
   }
 }
 
@@ -556,17 +664,90 @@ function isUniqueViolation(e: unknown): boolean {
   );
 }
 
-/** "YYYY-MM-DD" → endsAt al mediodía UTC (mañana en Chile): el día completo queda cubierto. */
-function parsePaidThrough(raw: string | undefined): Date | null {
+/** `telefono` de la fila → E.164 + país; inválido = error de fila. */
+function rowPhone(
+  raw: string,
+  defaultCountry: string,
+): { phone: string | null; phoneCountryCode: string | null } {
+  if (!raw) return { phone: null, phoneCountryCode: null };
+  try {
+    const normalized = normalizePhone(raw, defaultCountry);
+    return {
+      phone: normalized?.e164 ?? null,
+      phoneCountryCode: normalized?.countryCode ?? null,
+    };
+  } catch (e) {
+    if (e instanceof InvalidPhoneError) {
+      throw new RowError("teléfono inválido");
+    }
+    throw e;
+  }
+}
+
+/**
+ * Documento del alumno → `Person.nationalId`: trim + uppercase siempre;
+ * si calza formato chileno (solo dígitos, puntos, guion, K final) se
+ * quitan los separadores. Sin validación de dígito verificador - es
+ * dato administrativo, no clave de dedup.
+ */
+function normNationalId(raw: string | undefined): string | null {
   const s = raw?.trim();
   if (!s) return null;
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (!m) throw new RowError(`pagado_hasta "${s}" inválido (YYYY-MM-DD)`);
-  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12));
-  if (Number.isNaN(d.getTime())) {
-    throw new RowError(`pagado_hasta "${s}" inválido`);
+  const upper = s.toUpperCase();
+  return /^[\d.-]+[\dK]$/.test(upper)
+    ? upper.replace(/[.-]/g, "")
+    : upper;
+}
+
+/** "dd/mm/yyyy" o "yyyy-mm-dd" → mediodía UTC (día estable en cualquier TZ). */
+function parseBirthDate(raw: string | undefined): Date | null {
+  const s = raw?.trim();
+  if (!s) return null;
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  const lat = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
+  let y: number, m: number, d: number;
+  if (iso) {
+    [y, m, d] = [+iso[1], +iso[2], +iso[3]];
+  } else if (lat) {
+    [d, m, y] = [+lat[1], +lat[2], +lat[3]];
+  } else {
+    throw new RowError(
+      `fecha_nacimiento "${s}" inválida (DD/MM/YYYY o YYYY-MM-DD)`,
+    );
   }
-  return d;
+  const date = new Date(Date.UTC(y, m - 1, d, 12));
+  if (
+    date.getUTCFullYear() !== y ||
+    date.getUTCMonth() !== m - 1 ||
+    date.getUTCDate() !== d
+  ) {
+    throw new RowError(`fecha_nacimiento "${s}" inválida`);
+  }
+  return date;
+}
+
+const GENDER_ALIASES: Record<string, Gender> = {
+  m: Gender.M,
+  masculino: Gender.M,
+  male: Gender.M,
+  hombre: Gender.M,
+  f: Gender.F,
+  femenino: Gender.F,
+  female: Gender.F,
+  mujer: Gender.F,
+  otro: Gender.OTHER,
+  other: Gender.OTHER,
+  x: Gender.OTHER,
+  nb: Gender.OTHER,
+  "no binario": Gender.OTHER,
+};
+
+function parseGender(raw: string | undefined): Gender | null {
+  const s = raw?.trim();
+  if (!s) return null;
+  const gender = GENDER_ALIASES[normLabel(s)];
+  if (!gender) throw new RowError(`sexo "${s}" inválido (m/f/otro)`);
+  return gender;
 }
 
 function parseWeekday(raw: string | undefined): number | null {

@@ -80,10 +80,19 @@ export function MembershipCheckoutClient({
   // El panel manual toma el control cuando el alumno elige un método
   // propio de la academia o tiene un intento AWAITING/PENDING vivo.
   const [manualActive, setManualActive] = useState(false);
+  // Subs CARD por la pasarela propia de la academia (spec
+  // academy-card-subs-byo): la vía tarjeta existe solo si la cuenta
+  // BYO está disponible (sin bloqueo) y tiene motor - sin ella la sub
+  // es solo TRANSFER/claim manual, igual que el pago único.
+  const cardSubAvailable =
+    quote.gatewayAvailable !== false && quote.supportsSubscription;
   // Vía de cobro de la suscripción (spec subscription-manual-transfer):
-  // tarjeta (Flow) o transferencia. Los métodos TRANSFER de la academia
-  // se traen solo en modo sub - sin ellos la vía manual no se ofrece.
-  const [payVia, setPayVia] = useState<PayVia>("CARD");
+  // tarjeta (pasarela de la academia) o transferencia. Los métodos
+  // TRANSFER de la academia se traen solo en modo sub - sin ellos la
+  // vía manual no se ofrece.
+  const [payVia, setPayVia] = useState<PayVia>(
+    cardSubAvailable ? "CARD" : "TRANSFER",
+  );
   const [transferMethods, setTransferMethods] = useState<OwnMethod[] | null>(
     null,
   );
@@ -98,6 +107,17 @@ export function MembershipCheckoutClient({
     phase.kind === "activating";
   const isStub =
     phase.kind === "awaiting" && phase.paymentUrl.startsWith("stub://");
+
+  // BYO (spec academy-byo-collections): el pago único por pasarela
+  // existe solo si la academia trajo su cuenta y no está en bloqueo de
+  // cobranza - sin él el checkout online es solo claim manual. Las
+  // subs CARD siguen la misma regla (cardSubAvailable arriba).
+  const gatewayAvailable = quote.gatewayAvailable !== false;
+  const hasTransfer = (transferMethods?.length ?? 0) > 0;
+  const canSubscribe = cardSubAvailable || hasTransfer;
+  const gatewayNote = quote.collectionsBlocked
+    ? tco("academyCollectionsBlocked")
+    : tco("academyNoGateway");
 
   const academyHref = `/academias/${quote.academy.id}`;
   const checkoutHref = `${academyHref}/checkout?plan=${quote.plan.id}`;
@@ -185,7 +205,22 @@ export function MembershipCheckoutClient({
         return;
       }
       if (res.status === 400 || res.status === 404) {
-        showActionNotice({ text: t("planUnavailable"), error: true });
+        // BYO: código estable en `error` (spec academy-byo-collections)
+        // - copy honesto según si es "sin pasarela" o "cobranza en
+        // pausa"; el resto de 400/404 sigue en planUnavailable.
+        const body = (await res.json().catch(() => null)) as {
+          error?: unknown;
+        } | null;
+        const code = typeof body?.error === "string" ? body.error : "";
+        showActionNotice({
+          text:
+            code === "academy.no_gateway"
+              ? tco("academyNoGateway")
+              : code === "academy.collections_blocked"
+                ? tco("academyCollectionsBlocked")
+                : t("planUnavailable"),
+          error: true,
+        });
         setPhase({ kind: "form" });
         return;
       }
@@ -245,15 +280,24 @@ export function MembershipCheckoutClient({
       }
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as {
+          error?: unknown;
           message?: unknown;
         } | null;
+        // BYO (spec academy-card-subs-byo): mismos códigos que el
+        // checkout one-off - sin pasarela o cobranza en pausa la alta
+        // CARD no existe y queda la vía TRANSFER.
+        const code = typeof body?.error === "string" ? body.error : "";
         const msg =
-          res.status < 500 &&
-          typeof body?.message === "string" &&
-          body.message.length > 0 &&
-          body.message.length <= 200
-            ? body.message
-            : null;
+          code === "academy.no_gateway"
+            ? tco("academyNoGateway")
+            : code === "academy.collections_blocked"
+              ? tco("academyCollectionsBlocked")
+              : res.status < 500 &&
+                  typeof body?.message === "string" &&
+                  body.message.length > 0 &&
+                  body.message.length <= 200
+                ? body.message
+                : null;
         showActionNotice({ text: msg ?? ts("error"), error: true });
         setPhase({ kind: "form" });
         return;
@@ -389,11 +433,11 @@ export function MembershipCheckoutClient({
         </div>
       </Card>
 
-      {/* Elección pago único vs suscripción - solo planes recurrentes
-          cuando el provider de la moneda del plan tiene motor de
-          suscripciones (spec multipais-currency: la quote lo resuelve
-          por currency, no por name). */}
-      {quote.recurring && quote.supportsSubscription && (
+      {/* Elección pago único vs suscripción - planes recurrentes. La
+          vía tarjeta dentro del modo sub se ofrece solo si la academia
+          tiene pasarela propia con motor (spec academy-card-subs-byo);
+          sin ella queda la suscripción por transferencia. */}
+      {quote.recurring && (
         <Card>
           <h2 className="text-base font-semibold">{t("modeTitle")}</h2>
           <div className="mt-3">
@@ -425,7 +469,7 @@ export function MembershipCheckoutClient({
           ofrece cuando la academia publica métodos TRANSFER. */}
       {isSub &&
         phase.kind !== "transfer" &&
-        (transferMethods?.length ?? 0) > 0 && (
+        (cardSubAvailable || hasTransfer) && (
           <Card>
             <h2 className="text-base font-semibold">{t("payViaTitle")}</h2>
             <div
@@ -433,23 +477,25 @@ export function MembershipCheckoutClient({
               aria-label={t("payViaTitle")}
               className="mt-3 flex flex-col gap-2"
             >
-              <label
-                className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
-                  payVia === "CARD"
-                    ? "border-neon/60 bg-neon/10"
-                    : "border-line bg-elevated"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="subPayVia"
-                  checked={payVia === "CARD"}
-                  disabled={busy}
-                  onChange={() => setPayVia("CARD")}
-                  className="h-4 w-4 accent-neon"
-                />
-                {t("payViaCard")}
-              </label>
+              {cardSubAvailable && (
+                <label
+                  className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
+                    payVia === "CARD"
+                      ? "border-neon/60 bg-neon/10"
+                      : "border-line bg-elevated"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="subPayVia"
+                    checked={payVia === "CARD"}
+                    disabled={busy}
+                    onChange={() => setPayVia("CARD")}
+                    className="h-4 w-4 accent-neon"
+                  />
+                  {t("payViaCard")}
+                </label>
+              )}
               <label
                 className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
                   payVia === "TRANSFER"
@@ -528,10 +574,21 @@ export function MembershipCheckoutClient({
         </dl>
       </Card>
 
+      {/* Sin vía de suscripción (sin pasarela propia y sin métodos
+          TRANSFER): solo queda el aviso - no hay CTA de alta. */}
+      {isSub &&
+        phase.kind === "form" &&
+        transferMethods !== null &&
+        !canSubscribe && (
+          <Card>
+            <p className="text-sm text-ink/70">{gatewayNote}</p>
+          </Card>
+        )}
+
       {/* Consentimiento: con tarjeta es el aviso de cargo automático
           recurrente; con transferencia es el compromiso de pagar cada
           ciclo y subir el comprobante (spec subscription-manual-transfer). */}
-      {isSub && phase.kind !== "transfer" && (
+      {isSub && phase.kind !== "transfer" && canSubscribe && (
         <Card>
           <p className="text-xs leading-relaxed text-ink/60">
             {payVia === "TRANSFER"
@@ -704,7 +761,8 @@ export function MembershipCheckoutClient({
           suscripción necesita la recurrencia de la pasarela. Va al
           FINAL del checkout: su CTA (continuar/enviar comprobante) es
           el botón de acción y debe quedar en la posición del pagar,
-          no a media página. */}
+          no a media página. Sin cuenta BYO la opción tarjeta no se
+          ofrece y el método propio es la única vía. */}
       {!isSub && (
         <ManualPayPanel
           academyId={quote.academy.id}
@@ -712,6 +770,8 @@ export function MembershipCheckoutClient({
           planPrice={quote.totalClp}
           onBlockingChange={setManualActive}
           returnHref={academyHref}
+          gatewayAvailable={gatewayAvailable}
+          gatewayNote={gatewayNote}
         />
       )}
 
@@ -725,7 +785,11 @@ export function MembershipCheckoutClient({
           {tc("retry")}
         </Button>
       ) : (phase.kind === "form" || phase.kind === "processing") &&
-        !manualActive ? (
+        !manualActive &&
+        // Sin pasarela BYO el pago único por tarjeta no existe (misma
+        // regla para la suscripción CARD): el CTA queda oculto y el
+        // panel manual es la única acción.
+        (isSub ? canSubscribe : gatewayAvailable) ? (
         <div className="flex flex-col gap-2">
           <Button
             type="button"

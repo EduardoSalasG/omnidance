@@ -829,11 +829,11 @@ export class PaymentSettlementService {
    * Liquidación del plan de academia al PAID: marca el Payment y
    * materializa/renueva el Enrollment de (academia, persona). Si el
    * enrollment vigente aún tiene fecha futura, la compra extiende desde
-   * el día siguiente a su vencimiento (membershipBase); si no, parte hoy
-   * y reinicia startedAt. Excepción: plan TRIAL siempre crea una fila
-   * TRIAL nueva - nunca toca ni degrada la inscripción vigente (una
-   * alumna ACTIVE que compra una prueba conserva su ACTIVE). Idempotente
-   * igual que el pase de serie.
+   * su endsAt pagado (membershipBase - vigencia rodante); si no, parte
+   * hoy y reinicia startedAt. Todo plan cae en este flujo normal:
+   * un CLASS_PACK (incluida la "clase de prueba" vendible) también
+   * actualiza/crea la inscripción ACTIVE con el planId comprado.
+   * Idempotente igual que el pase de serie.
    *
    * Público: el reconcile de suscripciones (T6/T7) lo invoca directo con
    * `meta = { actor: "cron", kind: "renewal", gatewayData }` - un cobro
@@ -886,30 +886,6 @@ export class PaymentSettlementService {
       // Enrollment no tiene @@unique(academyId,personId) - el histórico
       // se permite por diseño (el alta staff ya hace check manual de
       // duplicados). findFirst + update/create dentro de la tx.
-      if (plan.type === "TRIAL") {
-        // La prueba comprada nunca toca la inscripción vigente: se crea
-        // una fila TRIAL aparte y la ACTIVE/ONLINE del alumno queda
-        // intacta. La re-compra acumula otra fila TRIAL (sin @@unique).
-        const trialEnr = await tx.enrollment.create({
-          data: {
-            academyId: plan.academyId,
-            personId: payment.personId,
-            planId: plan.id,
-            status: "TRIAL",
-            startedAt: now,
-            endsAt: membershipEndsAt(plan, now),
-          },
-        });
-        await emitActivity(tx, {
-          type: "enrollment.started",
-          personId: payment.personId,
-          academyId: plan.academyId,
-          refType: "Enrollment",
-          refId: trialEnr.id,
-          data: { planId: plan.id, via: "membership.settle" },
-        });
-        return;
-      }
       const existing = await tx.enrollment.findFirst({
         where: {
           academyId: plan.academyId,
@@ -919,7 +895,7 @@ export class PaymentSettlementService {
         select: { id: true, status: true, startedAt: true, endsAt: true },
       });
       // Solo extiende si la inscripción sigue vigente (ACTIVE con fecha
-      // futura); una vencida/pausada reinicia el ciclo desde hoy.
+      // futura); una vencida o INACTIVE reinicia el ciclo desde hoy.
       const stillActive =
         existing?.status === "ACTIVE" &&
         existing.endsAt != null &&
@@ -936,10 +912,9 @@ export class PaymentSettlementService {
           data: {
             planId: plan.id,
             status: "ACTIVE",
-            pausedAt: null,
             endsAt,
             // Renovación conserva el alta original; vuelta desde
-            // pausa/vencimiento reinicia el ciclo.
+            // inactividad/vencimiento reinicia el ciclo.
             startedAt: stillActive ? existing.startedAt : now,
           },
         });
@@ -996,7 +971,7 @@ export class PaymentSettlementService {
       await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.membership",
-        title: plan.type === "TRIAL" ? "Clase de prueba comprada" : "Plan activo",
+        title: "Plan activo",
         body: `${plan.name} · ${plan.academy.name} · ${clp}`,
         data: {
           paymentId: payment.id,
@@ -1600,6 +1575,46 @@ export class PaymentSettlementService {
     });
 
     if (paidNow) {
+      // Take BYO de academia (spec academy-byo-collections): un
+      // PLATFORM_CHARGE PAID puede saldar una liquidación mensual -
+      // marca el statement PAID al vuelo y libera
+      // collectionsBlockedAt si no quedan vencidas impagas. Va dentro
+      // de la misma consulta directa (sin dependencia al servicio de
+      // statements - evita el ciclo con PlatformChargesService); el
+      // reconcile diario cubre lo que este camino no alcance.
+      try {
+        const st =
+          await this.prisma.academyCollectionsStatement.findFirst({
+            where: { paymentId: payment.id, status: "PENDING" },
+            select: { id: true, academyId: true },
+          });
+        if (st) {
+          await this.prisma.academyCollectionsStatement.update({
+            where: { id: st.id },
+            data: { status: "PAID", paidAt: new Date() },
+          });
+          const overdue = await this.prisma.academyCollectionsStatement.count(
+            {
+              where: {
+                academyId: st.academyId,
+                status: "PENDING",
+                dueAt: { lte: new Date() },
+              },
+            },
+          );
+          if (overdue === 0) {
+            await this.prisma.academy.updateMany({
+              where: {
+                id: st.academyId,
+                collectionsBlockedAt: { not: null },
+              },
+              data: { collectionsBlockedAt: null },
+            });
+          }
+        }
+      } catch {
+        /* best-effort - el reconcile diario lo resuelve */
+      }
       const clp = new Intl.NumberFormat("es-CL", {
         style: "currency",
         currency: payment.currency ?? "CLP",

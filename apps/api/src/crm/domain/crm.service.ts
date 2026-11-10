@@ -24,7 +24,6 @@ import {
 
 export const CRM_TRIGGER_KEYS = [
   "WINBACK",
-  "TRIAL_EXPIRING",
   "REGULAR_NO_PRESALE",
   "ATTENDANCE_DROP",
   "SEGMENT_ENTER",
@@ -33,12 +32,10 @@ export const CRM_TRIGGER_KEYS = [
 
 /**
  * Alcance por actor de cada trigger key (spec crm-trigger-actor-scope):
- * TRIAL_EXPIRING solo tiene sentido con enrollments de academia;
- * REGULAR_NO_PRESALE con preventa de eventos del productor.
- * Una key ausente del mapa aplica a todos los actores.
+ * REGULAR_NO_PRESALE solo tiene sentido con la preventa de eventos del
+ * productor. Una key ausente del mapa aplica a todos los actores.
  */
 const TRIGGER_ACTOR_TYPES: Readonly<Record<string, readonly string[]>> = {
-  TRIAL_EXPIRING: ["ACADEMY"],
   REGULAR_NO_PRESALE: ["PRODUCER"],
 };
 export type CrmTriggerKey = (typeof CRM_TRIGGER_KEYS)[number];
@@ -1082,7 +1079,6 @@ id: { in: filtered.map((r) => r.personId) },
         personId: true,
         startedAt: true,
         endsAt: true,
-        pausedAt: true,
         createdAt: true,
       },
     });
@@ -1225,7 +1221,7 @@ id: { in: filtered.map((r) => r.personId) },
       (monthsAttended.get(w.personId) ?? monthsAttended.set(w.personId, new Set()).get(w.personId)!).add(mk);
     }
 
-    // Meses con membresía vigente: enrollment [startedAt, endsAt|pausedAt|now]
+    // Meses con membresía vigente: enrollment [startedAt, endsAt|now]
     // + suscripción ACTIVE [createdAt, canceledAt|now].
     const monthsCovered = new Map<string, Set<number>>();
     const coverRange = (
@@ -1242,7 +1238,7 @@ id: { in: filtered.map((r) => r.personId) },
     };
     for (const e of enrollments) {
       const from = e.startedAt ?? e.createdAt;
-      const to = e.endsAt ?? e.pausedAt ?? now;
+      const to = e.endsAt ?? now;
       coverRange(e.personId, from, to, monthsCovered);
     }
     for (const s of memberships) {
@@ -2683,8 +2679,6 @@ id: { in: filtered.map((r) => r.personId) },
     switch (t.key as CrmTriggerKey) {
       case "WINBACK":
         return this.evalWinback(t);
-      case "TRIAL_EXPIRING":
-        return this.evalTrialExpiring(t);
       case "REGULAR_NO_PRESALE":
         return this.evalRegularNoPresale(t);
       case "ATTENDANCE_DROP":
@@ -2756,32 +2750,6 @@ id: { in: filtered.map((r) => r.personId) },
       this.cooldownDays(t),
     );
     return { evaluated: activity.size, notified };
-  }
-
-  /** TRIAL_EXPIRING (ACADEMY): enrollments TRIAL con ≥ config.days (def. 7) de antigüedad. */
-  private async evalTrialExpiring(t: CrmTrigger): Promise<TriggerEvalResult> {
-    if (t.actorType !== "ACADEMY") return { evaluated: 0, notified: 0 };
-    const c = this.cfg(t);
-    const minDays = Number.isFinite(Number(c.days)) ? Number(c.days) : 7;
-    const trials = await this.prisma.enrollment.findMany({
-      where: { academyId: t.actorId, status: "TRIAL" },
-      select: { personId: true, startedAt: true },
-    });
-    const cutoff = Date.now() - minDays * DAY_MS;
-    const expiring = trials
-      .filter((e) => e.startedAt.getTime() <= cutoff)
-      .map((e) => e.personId);
-    const notified = await this.notifyDeduped(
-      expiring,
-      "crm.trial_expiring",
-      {
-        title: "Tu periodo de prueba está por terminar",
-        body: "Regulariza tu membresía para seguir asistiendo a clases.",
-        data: { actorType: t.actorType, actorId: t.actorId },
-      },
-      this.cooldownDays(t),
-    );
-    return { evaluated: trials.length, notified };
   }
 
   /**

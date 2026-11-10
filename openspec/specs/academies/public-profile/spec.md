@@ -50,13 +50,10 @@ para viewers sin privilegios de gestión; ver academies/approval-gate.
 
 ### Requirement: Tipo de plan como tag y nombre como categoría
 
-En la sección Planes de la ficha pública `/academias/:id`, el tipo del plan
-(Mensual / Trimestral / Semestral / Clase única / Pack / De prueba / Por
-periodo) SHALL renderizarse como tag acentuado (`Badge variant="neon"`), no
-como texto secundario. El nombre del plan SHALL ser un nombre de categoría
-propio de la academia (p. ej. Básico, Plata, Oro, Premium, VIP, Diamante)
-que no repite el periodo ni el conteo de clases semanales - esos ya los
-comunican el tag y la línea de metadata del card (N clases · N/semana).
+En la sección Planes del perfil público, el nombre del plan SHALL
+mostrarse tal cual lo configuró la academia (sin el tipo embebido) y el
+tipo SHALL viajar como tag/badge separado. La metadata de cuota
+(`classCount`/`weeklyClasses`) SHALL mostrarse como línea secundaria.
 
 #### Scenario: plan por periodo
 
@@ -71,8 +68,8 @@ comunican el tag y la línea de metadata del card (N clases · N/semana).
 - **WHEN** corre el seed de desarrollo
 - **THEN** ningún `MembershipPlan` seedeado incluye "Mensual",
   "Trimestral", "Semestral" ni "clase(s) semanal(es)" en el nombre
-- **AND** toda academia seedeada ofrece al menos un plan `TRIAL`
-  ("Clase de prueba") y un plan `SINGLE` ("Clase suelta")
+- **AND** toda academia seedeada ofrece una "Clase de prueba" como
+  `CLASS_PACK` con `classCount: 1` y un plan `SINGLE` ("Clase suelta")
 
 #### Scenario: renombre idempotente
 

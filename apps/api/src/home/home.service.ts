@@ -381,7 +381,7 @@ export class HomeService {
 
   private async dancerAcademyStats(personId: string): Promise<HomeStats> {
     const enrollments = await this.prisma.enrollment.findMany({
-      where: { personId, status: { in: ["ACTIVE", "TRIAL", "ONLINE"] } },
+      where: { personId, status: { in: ["ACTIVE"] } },
       select: {
         academyId: true,
         academy: { select: { name: true, tier: true } },

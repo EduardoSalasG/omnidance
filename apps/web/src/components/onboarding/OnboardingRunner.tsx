@@ -6,6 +6,7 @@ import { driver, type DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import { isAnchorVisible } from "./anchor-visibility";
 
 export type TourStep = {
   /** Selector CSS - normalmente "[data-tour='x']". Si no existe en el
@@ -14,6 +15,11 @@ export type TourStep = {
   title: string;
   description: string;
   side?: "top" | "bottom" | "left" | "right";
+  /** Alineación del popover respecto del eje del lado - "end" para
+      anchors pegados al borde derecho (campana, contador de puerta,
+      último tab): la flecha queda apuntando al anchor real en vez de
+      clamar el popover a la izquierda del viewport. */
+  align?: "start" | "center" | "end";
 };
 
 /**
@@ -49,10 +55,12 @@ export function OnboardingRunner({
         .catch(() => {});
     };
 
-    // Solo steps cuyo target existe Y es visible - contenido variable
-    // no rompe el tour (p.ej. primera card vacía), y en desktop (≥lg)
-    // los targets del chrome móvil (tab bar, drawer) están con
-    // display:none: getClientRects()=0 los excluye sin JS de breakpoint.
+    // Solo steps cuyo target existe Y es visible EN el viewport -
+    // contenido variable no rompe el tour (p.ej. primera card vacía),
+    // en desktop (≥lg) los targets del chrome móvil (tab bar, drawer)
+    // están con display:none y la appbar oculta por translateY queda
+    // fuera de pantalla: isAnchorVisible los excluye a todos por
+    // rects + intersección, sin JS de breakpoint.
     // Varios anchors existen duplicados (tab bar móvil + sidebar
     // desktop): querySelector toma el primero del DOM, que puede ser el
     // oculto - se resuelve el primer match VISIBLE y se pasa el
@@ -61,19 +69,18 @@ export function OnboardingRunner({
       steps
         .map((s) => {
           const el = [...document.querySelectorAll(s.element)].find(
-            (e) => e instanceof HTMLElement && e.getClientRects().length > 0,
+            isAnchorVisible,
           );
           return el ? { s, el } : null;
         })
-        .filter((x): x is { s: (typeof steps)[number]; el: Element } =>
-          Boolean(x),
-        )
+        .filter((x): x is NonNullable<typeof x> => x !== null)
         .map(({ s, el }) => ({
           element: el,
           popover: {
             title: s.title,
             description: s.description,
             side: s.side,
+            align: s.align,
           },
         }));
 

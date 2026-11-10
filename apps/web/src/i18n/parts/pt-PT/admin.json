@@ -118,6 +118,25 @@
         "copyLink": "Copiar link",
         "copied": "Link copiado",
         "invalid": "Indica um montante válido e um conceito"
+      },
+      "payMethods": {
+        "title": "Métodos de pagamento",
+        "gateway": "Gateway",
+        "manual": "Métodos manuais",
+        "empty": "Sem métodos de pagamento configurados nesta academia.",
+        "verifiedAt": "Verificada em {date}",
+        "unverified": "Por verificar",
+        "gatewayStatus": {
+          "ACTIVE": "Ativa",
+          "DISABLED": "Desativada"
+        },
+        "methodType": {
+          "TRANSFER": "Transferência",
+          "PAYMENT_LINK": "Link de pagamento",
+          "CASH": "Dinheiro"
+        },
+        "active": "Ativo",
+        "inactive": "Inativo"
       }
     },
     "trials": {
@@ -259,7 +278,8 @@
       "cities": "Cidades",
       "citiesDesc": "Guia editorial por cidade (cena, noites, dicas)",
       "promos": "Promoções",
-      "prices": "Preços"
+      "prices": "Preços",
+      "claims": "Comprovativos"
     },
     "academies": {
       "desc": "Saúde da base de alunos por academia: distribuição de segmentos, score médio e alunos notáveis ou em risco.",
@@ -367,10 +387,7 @@
         "noEnrollments": "Sem alunos inscritos.",
         "statuses": {
           "ACTIVE": "Ativo",
-          "PAUSED": "Pausado",
-          "TRIAL": "Trial",
-          "FROZEN": "Congelado",
-          "ONLINE": "Online"
+          "INACTIVE": "Inativo"
         }
       },
       "class": {
@@ -415,7 +432,8 @@
           "PENDING_CARD": "Cartão pendente",
           "CANCEL_PENDING": "Cancelamento agendado",
           "CANCELED": "Cancelada",
-          "FAILED_CARD": "Cartão recusado"
+          "FAILED_CARD": "Cartão recusado",
+          "PENDING_PAYMENT": "Pagamento em revisão"
         },
         "revenue": "Receita da academia",
         "noRevenue": "Sem receita registada."
@@ -556,7 +574,8 @@
         "payouts": "Liquidações",
         "accrual": "Por liberar",
         "payments": "Pagamentos",
-        "saas": "SaaS"
+        "saas": "SaaS",
+        "statements": "Cobrança academias"
       },
       "kpiGmv": "GMV do período",
       "kpiGmvHint": "Social {social} · Academia {academy} · SaaS {saas}",
@@ -618,7 +637,15 @@
       },
       "approved": "Liquidação aprovada.",
       "paid": "Liquidação marcada como paga.",
-      "actionError": "Não foi possível concluir a ação."
+      "actionError": "Não foi possível concluir a ação.",
+      "statementStatusFilter": "Estado",
+      "statementStatusAll": "Todos",
+      "statementsEmpty": "Sem extratos de academias.",
+      "statementOrders": "{count} encomendas · bruto {gross}",
+      "statementSplit": "líquido {net} + IVA {vat}",
+      "statementDueAt": "vence {date}",
+      "statementPaidAt": "pago {date}",
+      "statementBlocked": "Cobrança bloqueada"
     },
     "roles": {
       "superuser": "Superutilizador",
@@ -697,7 +724,8 @@
         "PAST_DUE": "Em atraso",
         "CANCEL_PENDING": "Cancela no fim do ciclo",
         "CANCELED": "Cancelada",
-        "FAILED_CARD": "Cartão recusado"
+        "FAILED_CARD": "Cartão recusado",
+        "PENDING_PAYMENT": "Pagamento em revisão"
       }
     },
     "cities": {
@@ -814,6 +842,36 @@
       "cycleSemiannual": "Semestral",
       "cycleAnnual": "Anual",
       "retry": "Tentar novamente"
+    },
+    "claims": {
+      "title": "Comprovativos de subscrições",
+      "desc": "Comprovativos de subscrições da plataforma pagas por transferência (academias e Producer Pro).",
+      "queueTitle": "Por validar",
+      "queueDesc": "Aprova para ativar a subscrição; rejeita com um motivo que o pagador poderá ver.",
+      "queueEmpty": "Sem comprovativos pendentes.",
+      "queueEmptyDesc": "Quando uma academia ou produtor pagar a sua subscrição por transferência, aparecerá aqui.",
+      "historyTitle": "Histórico",
+      "orderPlatformSub": "Subscrição",
+      "reviewedByApproved": "Aprovado por {name}",
+      "reviewedByRejected": "Rejeitado por {name}",
+      "statusApproved": "Aprovado",
+      "statusRejected": "Rejeitado",
+      "detailTitle": "Comprovativo",
+      "fieldPayer": "Pagador",
+      "fieldOrder": "Encomenda",
+      "fieldAmount": "Montante",
+      "fieldMethod": "Meio",
+      "fieldOrderRef": "N.º de encomenda",
+      "fieldSentAt": "Enviado",
+      "fieldReviewedAt": "Revisado",
+      "fieldPaidAt": "Paga",
+      "fieldReviewNote": "Motivo",
+      "approveTitle": "Aprovar este comprovativo?",
+      "approveDesc": "Ao aprovar, a encomenda é liquidada e a subscrição fica ativa.",
+      "approvedMsg": "Pagamento aprovado: a subscrição ficou ativa.",
+      "rejectedMsg": "Comprovativo rejeitado.",
+      "rejectPrompt": "Motivo da rejeição (o pagador vai vê-lo)",
+      "notFound": "Não encontrámos este comprovativo."
     }
   }
 }

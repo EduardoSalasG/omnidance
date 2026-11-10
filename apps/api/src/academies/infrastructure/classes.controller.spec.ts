@@ -25,6 +25,7 @@ interface FakePlan {
   type: string;
   weeklyClasses: number | null;
   classCount: number | null;
+  periodDays?: number | null;
 }
 
 interface FakeClass {
@@ -702,15 +703,18 @@ describe("ClassesController.book", () => {
     expect(prisma.bookings).toHaveLength(0);
   });
 
-  it("inscripción PAUSED no habilita reserva → ForbiddenException", async () => {
-    prisma.addEnrollment("per-3", "acad-1", "PAUSED");
+  it("inscripción INACTIVE no habilita reserva → ForbiddenException", async () => {
+    // Modelo binario (spec enrollment-plan-simplify): solo ACTIVE
+    // es bookable - el resto de estados que antes reservaban (TRIAL/
+    // ONLINE) hoy se materializan como ACTIVE.
+    prisma.addEnrollment("per-3", "acad-1", "INACTIVE");
     await expect(ctrl.book("cls-1", reqAs("per-3"))).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });
 
-  it("inscripción TRIAL habilita reserva → BOOKED", async () => {
-    prisma.addEnrollment("per-3", "acad-1", "TRIAL");
+  it("inscripción ACTIVE habilita reserva → BOOKED", async () => {
+    prisma.addEnrollment("per-3", "acad-1", "ACTIVE");
     const res = await ctrl.book("cls-1", reqAs("per-3"));
     expect(res.status).toBe("BOOKED");
   });
@@ -1043,6 +1047,49 @@ describe("cuota de créditos (book)", () => {
     expect(
       prisma.bookings.find((b) => b.id === res.id)?.enrollmentId,
     ).toBe(packEnr);
+    await expect(ctrl.book("cls-2", reqAs("per-1"))).rejects.toThrow(
+      "Agotaste la clase de tu pack",
+    );
+  });
+
+  it("clase de prueba (CLASS_PACK classCount=1) se agota → 409 y myCredits PACK", async () => {
+    // "Clase de prueba" ya no es un tipo propio: es un CLASS_PACK con
+    // classCount (normalmente 1) - mismo flujo de cuota por conteo.
+    prisma.addEnrollment("per-1", "acad-1", "ACTIVE", {
+      type: "CLASS_PACK",
+      weeklyClasses: null,
+      classCount: 1,
+    });
+    const res = await ctrl.book("cls-1", reqAs("per-1"));
+    expect(res.status).toBe("BOOKED");
+    await expect(ctrl.book("cls-2", reqAs("per-1"))).rejects.toThrow(
+      "Agotaste la clase de tu pack",
+    );
+    const d = await ctrl.detail("cls-3", reqAs("per-1"));
+    expect(d.myCredits).toEqual({ kind: "PACK", used: 1, limit: 1 });
+  });
+
+  it("classCount en MONTHLY cuenta solo el ciclo pagado vigente (renovación no acumula histórico)", async () => {
+    // classCount aplica a cualquier tipo: un MONTHLY con classCount=1 es
+    // "1 clase por ciclo". La ventana parte en endsAt - duración del
+    // plan (inicio del ciclo recién pagado), no en el alta histórica.
+    prisma.addEnrollment(
+      "per-1",
+      "acad-1",
+      "ACTIVE",
+      { type: "MONTHLY", weeklyClasses: null, classCount: 1 },
+      new Date(Date.now() + 15 * 86_400_000), // ciclo actual hasta +15d
+    );
+    // Alta vieja: el enrollment ya consumió en un ciclo anterior.
+    prisma.enrollments[0].startedAt = new Date(Date.now() - 90 * 86_400_000);
+    // Reserva del ciclo anterior (clase de hace ~30 días): no descuenta.
+    prisma.addClass("cls-ciclo-previo", {
+      date: new Date(Date.now() - 30 * 86_400_000),
+    });
+    prisma.addBooking("cls-ciclo-previo", "per-1", "BOOKED");
+
+    const first = await ctrl.book("cls-1", reqAs("per-1"));
+    expect(first.status).toBe("BOOKED");
     await expect(ctrl.book("cls-2", reqAs("per-1"))).rejects.toThrow(
       "Agotaste la clase de tu pack",
     );
@@ -1941,7 +1988,7 @@ describe("GET /classes/my-quota", () => {
       weeklyClasses: null,
       classCount: null,
     });
-    prisma.addEnrollment("per-1", "acad-2", "TRIAL"); // plan null
+    prisma.addEnrollment("per-1", "acad-2", "ACTIVE"); // plan null
     const rows = await ctrl.myQuota(reqAs("per-1"));
     expect(rows).toEqual([
       {
@@ -1984,8 +2031,8 @@ describe("GET /classes/my-quota", () => {
     expect(rows.map((r) => r.academyId)).toEqual(["acad-1"]);
   });
 
-  it("inscripción PAUSED no es reservable → fuera del listado", async () => {
-    prisma.addEnrollment("per-1", "acad-1", "PAUSED", {
+  it("inscripción INACTIVE no es reservable → fuera del listado", async () => {
+    prisma.addEnrollment("per-1", "acad-1", "INACTIVE", {
       type: "MONTHLY",
       weeklyClasses: 2,
       classCount: null,

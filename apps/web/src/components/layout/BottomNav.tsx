@@ -689,6 +689,14 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.report",
           icon: ICONS.chart,
         },
+        // Liquidaciones del take BYO (spec academy-byo-collections):
+        // factura mes vencido del cobro por su pasarela propia.
+        {
+          href: "/academia/cobros/liquidaciones",
+          ns: "academy",
+          key: "modules.statements",
+          icon: ICONS.card,
+        },
         // Preventa por comisión (spec academy-presale-commission):
         // acuerdos con productores, link de venta y comisión devengada.
         {

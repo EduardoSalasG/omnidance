@@ -47,7 +47,14 @@ export type MembershipQuote = {
     nextInvoiceAt: string | null;
   } | null;
   gateway: string;
-  /** Hay motor de suscripciones para la moneda del plan (multipais-currency). */
+  /** BYO (spec academy-byo-collections): el pago online existe solo si
+      la academia tiene cuenta propia activa y sin bloqueo de cobranza;
+      sin él queda el claim manual por comprobante. */
+  gatewayAvailable: boolean;
+  /** Liquidación del take vencida impaga - pagos online en pausa. */
+  collectionsBlocked: boolean;
+  /** La cuenta BYO de la academia tiene motor de suscripciones
+      (spec academy-card-subs-byo) - sin ella la vía CARD no existe. */
   supportsSubscription: boolean;
 };
 

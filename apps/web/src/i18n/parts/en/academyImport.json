@@ -1,32 +1,90 @@
 {
   "academyImport": {
     "title": "Import data",
-    "desc": "Bulk upload to migrate from another platform: your student roster and weekly schedule as CSV.",
+    "desc": "Bulk upload to migrate from another platform: your student roster and weekly schedule as CSV or Excel.",
     "studentsTitle": "Students",
-    "studentsDesc": "One row per student: email, name, plan and until when they paid. If they don't have an account we send them an invite by email.",
-    "studentsCols": "Columns: email, name, phone (optional), plan, paid_until (optional, YYYY-MM-DD)",
+    "studentsDesc": "One row per student. Only email and name are required; anyone without an account gets an invite by email. They become a student once they buy a plan.",
+    "studentsCols": "Columns: email, nombre + optional: rut, fecha_nacimiento, telefono, sexo",
     "scheduleTitle": "Weekly schedule",
     "scheduleDesc": "One row per weekly block. Rows with the same series name group into a single series of the month.",
-    "scheduleCols": "Columns: series, weekday, start_time, end_time + optional: style, level, capacity, instructor_email, month",
+    "scheduleCols": "Columns: serie, dia_semana, hora_inicio, hora_fin + optional: estilo, nivel, capacidad, instructor_email, mes",
+    "studentsValues": [
+      {
+        "col": "sexo",
+        "values": "m · f · other"
+      },
+      {
+        "col": "fecha_nacimiento",
+        "values": "DD/MM/YYYY (YYYY-MM-DD also works)"
+      },
+      {
+        "col": "telefono",
+        "values": "+56 9 1234 5678 · normalized to your academy's country"
+      },
+      {
+        "col": "rut",
+        "values": "12.345.678-9 · dni or documento also work"
+      }
+    ],
+    "scheduleValues": [
+      {
+        "col": "dia_semana",
+        "values": "lunes to domingo (Spanish) or 0-6 (domingo = 0)"
+      },
+      {
+        "col": "hora_inicio / hora_fin",
+        "values": "HH:MM · 19:30"
+      },
+      {
+        "col": "capacidad",
+        "values": "whole number · 20"
+      },
+      {
+        "col": "estilo / nivel",
+        "values": "as written in your console (ignores case and accents)"
+      },
+      {
+        "col": "instructor_email",
+        "values": "email of an instructor of your academy"
+      },
+      {
+        "col": "mes",
+        "values": "YYYY-MM · 2026-11 (optional)"
+      }
+    ],
     "downloadTemplate": "Download template",
-    "chooseFile": "Choose CSV…",
+    "chooseFile": "Choose file…",
     "noFile": "No file chosen",
+    "validate": "Validate",
+    "validating": "Validating…",
+    "previewTitle": "Preview",
+    "previewHint": "Test run: nothing was saved or sent yet. Review the result row by row and confirm with Import.",
     "upload": "Import",
     "uploading": "Importing…",
+    "importDone": "Import completed.",
+    "importDoneErrors": "Import completed with {errors, plural, one {# row with errors} other {# rows with errors}}.",
     "resultsTitle": "Result per row",
     "colRow": "Row",
     "colItem": "Value",
     "colStatus": "Status",
     "colDetail": "Detail",
     "status": {
-      "imported": "Imported",
-      "updated": "Updated",
       "invited": "Invited",
+      "resent": "Resent",
+      "skipped": "Skipped",
       "error": "Error",
       "ok": "Done",
       "warn": "With warning"
     },
-    "error": "Couldn't import the file. Check it's a CSV with the template's columns.",
+    "historyTitle": "History",
+    "historyEmpty": "No runs yet.",
+    "fieldDate": "Date",
+    "fieldKind": "Type",
+    "fieldFile": "File",
+    "fieldRows": "Rows",
+    "rowsTotal": "{count, plural, one {# row} other {# rows}}",
+    "notFound": "We couldn't find this run in the academy.",
+    "error": "Couldn't import the file. Check it's a CSV or Excel (.xls, .xlsx) with the template's columns.",
     "forbidden": "You don't have access to this academy's import."
   }
 }

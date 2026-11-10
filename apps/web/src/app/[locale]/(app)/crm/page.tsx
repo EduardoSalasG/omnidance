@@ -65,30 +65,25 @@ export default function CrmPage() {
                         side: "bottom",
                       },
                       {
-                        element: "[data-tour='crm-actor']",
+                        // En ≥lg la hamburguesa no existe - el anchor
+                        // cae a la sidebar (mismo texto, dos anchors).
+                        element: "[data-tour='appbar-menu']",
                         title: tt("s5.title"),
                         description: tt("s5.desc"),
                         side: "bottom",
                       },
                       {
-                        // En ≥lg la hamburguesa no existe - el anchor
-                        // cae a la sidebar (mismo texto, dos anchors).
-                        element: "[data-tour='appbar-menu']",
-                        title: tt("s6.title"),
-                        description: tt("s6.desc"),
-                        side: "bottom",
-                      },
-                      {
                         element: "[data-tour='app-sidebar']",
-                        title: tt("s6.title"),
-                        description: tt("s6.desc"),
+                        title: tt("s5.title"),
+                        description: tt("s5.desc"),
                         side: "right",
                       },
                       {
                         element: "[data-tour='appbar-bell']",
-                        title: tt("s7.title"),
-                        description: tt("s7.desc"),
+                        title: tt("s6.title"),
+                        description: tt("s6.desc"),
                         side: "bottom",
+                        align: "end",
                       },
                     ] satisfies TourStep[]
                   }

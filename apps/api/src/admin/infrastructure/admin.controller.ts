@@ -33,6 +33,7 @@ import { MAILER, type Mailer } from "../../auth/domain/ports";
 import { inviteEmailHtml } from "../../auth/infrastructure/emails";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { ParamsService } from "../../params/params.service";
+import { SubscriptionsService } from "../../payments/application/subscriptions.service";
 import { TrialLifecycleService } from "../../payments/application/trial-lifecycle.service";
 import { grantProducerTrialIfDue } from "../../common/pro-trial";
 import { PrismaService } from "../../prisma.service";
@@ -166,6 +167,18 @@ class AuditQueryDto {
   to?: string;
 }
 
+class MigrateLegacySubsDto {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  academyId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiPropertyOptional()
+  dryRun?: boolean;
+}
+
 /**
  * Consola admin B2B - asignación directa de roles, gestión de usuarios,
  * catálogo RBAC (roles/permisos/grants) y auditoría. Todo se resuelve en
@@ -182,6 +195,7 @@ export class AdminController {
     private readonly notifications: NotificationsService,
     private readonly params: ParamsService,
     private readonly trialLifecycle: TrialLifecycleService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   // ── Usuarios ──────────────────────────────────────────────────────────
@@ -1164,6 +1178,34 @@ export class AdminController {
       orderBy: { createdAt: "desc" },
       take,
     });
+  }
+
+  /**
+   * POST /api/admin/subscriptions/migrate-legacy - barrido de subs
+   * legacy our-Flow → BYO (spec legacy-subs-byo-migration): cancela
+   * cada remota a fin de período en la cuenta de plataforma y deja la
+   * local CANCEL_PENDING; el alumno se re-suscribe por la vía vigente.
+   * `dryRun` (default true) reporta sin tocar nada; `academyId` acota
+   * a una academia. Idempotente y auditable (AuditLog por corrida).
+   */
+  @Post("subscriptions/migrate-legacy")
+  @HttpCode(200)
+  async migrateLegacySubs(
+    @Body() dto: MigrateLegacySubsDto,
+    @Req() req: Request,
+  ) {
+    const result = await this.subscriptions.migrateLegacySubs({
+      academyId: dto.academyId,
+      dryRun: dto.dryRun,
+    });
+    await this.audit(req, "LEGACY_SUBS_MIGRATE", "MembershipSubscription", dto.academyId ?? "*", {
+      academyId: dto.academyId ?? null,
+      dryRun: result.dryRun,
+      scanned: result.scanned,
+      migrated: result.migrated,
+      failed: result.failed,
+    });
+    return result;
   }
 
   private audit(

@@ -111,10 +111,7 @@
       "whatsappNoPhone": "{count, plural, one {# pessoa sem telefone} other {# pessoas sem telefone}}",
       "enrollmentStatus": {
         "ACTIVE": "Ativa",
-        "TRIAL": "Teste",
-        "PAUSED": "Em pausa",
-        "ONLINE": "Online",
-        "FROZEN": "Congelada"
+        "INACTIVE": "Inativa"
       },
       "send": "Enviar",
       "sending": "A enviar…",
@@ -156,7 +153,6 @@
       "empty": "Sem triggers configurados. Cria o primeiro.",
       "keys": {
         "WINBACK": "Recuperar inativos",
-        "TRIAL_EXPIRING": "Teste a terminar",
         "REGULAR_NO_PRESALE": "Habitual sem pré-venda",
         "ATTENDANCE_DROP": "Queda de assiduidade",
         "SEGMENT_ENTER": "Entra num segmento",
@@ -164,7 +160,6 @@
       },
       "desc": {
         "WINBACK": "Avisa pessoas cuja última atividade ultrapassa o limiar de dias.",
-        "TRIAL_EXPIRING": "Avisa alunos em teste que chegam ao mínimo de dias (só academias).",
         "REGULAR_NO_PRESALE": "Avisa participantes habituais sem pré-venda para o próximo evento (só produtores).",
         "ATTENDANCE_DROP": "Avisa pessoas que começam a ficar inativas.",
         "SEGMENT_ENTER": "Dispara a ação quando alguém entra no segmento escolhido (avaliado ao recalcular scores).",

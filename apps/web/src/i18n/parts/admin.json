@@ -118,6 +118,25 @@
         "copyLink": "Copiar link",
         "copied": "Link copiado",
         "invalid": "Ingresa un monto válido y un concepto"
+      },
+      "payMethods": {
+        "title": "Métodos de pago",
+        "gateway": "Pasarela",
+        "manual": "Métodos manuales",
+        "empty": "Sin métodos de pago configurados en esta academia.",
+        "verifiedAt": "Verificada {date}",
+        "unverified": "Sin verificar",
+        "gatewayStatus": {
+          "ACTIVE": "Activa",
+          "DISABLED": "Desactivada"
+        },
+        "methodType": {
+          "TRANSFER": "Transferencia",
+          "PAYMENT_LINK": "Link de pago",
+          "CASH": "Efectivo"
+        },
+        "active": "Activo",
+        "inactive": "Inactivo"
       }
     },
     "trials": {
@@ -368,10 +387,7 @@
         "noEnrollments": "Sin alumnos inscritos.",
         "statuses": {
           "ACTIVE": "Activo",
-          "PAUSED": "Pausado",
-          "TRIAL": "Prueba",
-          "FROZEN": "Congelado",
-          "ONLINE": "Online"
+          "INACTIVE": "Inactivo"
         }
       },
       "class": {
@@ -558,7 +574,8 @@
         "payouts": "Liquidaciones",
         "accrual": "Por liberar",
         "payments": "Pagos",
-        "saas": "SaaS"
+        "saas": "SaaS",
+        "statements": "Cobranza academias"
       },
       "kpiGmv": "GMV del período",
       "kpiGmvHint": "Social {social} · Academia {academy} · SaaS {saas}",
@@ -620,7 +637,15 @@
       },
       "approved": "Liquidación aprobada.",
       "paid": "Liquidación marcada como pagada.",
-      "actionError": "No se pudo completar la acción."
+      "actionError": "No se pudo completar la acción.",
+      "statementStatusFilter": "Estado",
+      "statementStatusAll": "Todos",
+      "statementsEmpty": "Sin liquidaciones de academias.",
+      "statementOrders": "{count} órdenes · bruto {gross}",
+      "statementSplit": "neto {net} + IVA {vat}",
+      "statementDueAt": "vence {date}",
+      "statementPaidAt": "pagada {date}",
+      "statementBlocked": "Cobranza bloqueada"
     },
     "roles": {
       "superuser": "Superusuario",

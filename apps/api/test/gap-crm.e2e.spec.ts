@@ -162,6 +162,31 @@ describe("gap-closure: CRM transversal e2e", () => {
     ids.venueId = venue.id;
 
     const now = Date.now();
+    // Día 15 de meses civiles relativos a hoy EN America/Santiago: el
+    // score cuenta monthsContinuous/tenure por mes calendario en esa TZ
+    // (monthIndex usa dtfSantiago), así que los checkins se fijan por
+    // mes civil y no por offset en días - un -40d cae en M-1 o M-2 según
+    // el día de corrida y hacía flakear scores y el orden esperado.
+    // Mediodía UTC del 15 cae siempre en la mañana del 15 en Santiago,
+    // lejos de los bordes de mes.
+    const [sy, sm] = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Santiago",
+      year: "numeric",
+      month: "2-digit",
+    })
+      .format(new Date(now))
+      .split("-")
+      .map(Number);
+    // 15 del mes civil (Santiago) n meses atrás.
+    const month15ago = (n: number) =>
+      new Date(Date.UTC(sy, sm - 1 - n, 15, 12));
+    // mPrev: 16-46d atrás - siempre dentro de la ventana de 8 semanas
+    // (attendanceRecent) pero en el mes anterior. mPrev2: 45-77d atrás -
+    // fuera de newDays/winback; bordea la ventana de 8 semanas solo en
+    // corridas de inicio de mes (varianza acotada que no altera ninguna
+    // aserción: rangos y orden se mantienen).
+    const mPrev = month15ago(1);
+    const mPrev2 = month15ago(2);
     const mkEvent = (name: string, startsAt: Date) =>
       prisma.event.create({
         data: {
@@ -189,18 +214,28 @@ describe("gap-closure: CRM transversal e2e", () => {
 
     // checkins (voided NO cuenta como asistencia)
     const checkins = [
-      // core: 3 asistencias (60d, 40d, 10d) + 1 anulado → score moderado
-      { eventId: ePast.id, personId: core.id, inAt: new Date(now - 60 * DAY_MS) },
-      { eventId: ePast.id, personId: core.id, inAt: new Date(now - 40 * DAY_MS) },
+      // core: 3 asistencias por mes civil (mPrev2 + mPrev + hace 10d) +
+      // compra de ahora → meses continuos exactos {M-2, M-1, M} = 3 y
+      // tenure 3 en cualquier fecha de corrida + 1 anulado → score
+      // moderado sin segmento.
+      { eventId: ePast.id, personId: core.id, inAt: mPrev2 },
+      { eventId: ePast.id, personId: core.id, inAt: mPrev },
       { eventId: eRecent.id, personId: core.id, inAt: new Date(now - 10 * DAY_MS) },
       { eventId: eRecent.id, personId: core.id, inAt: new Date(now - 10 * DAY_MS), voidedAt: new Date() },
-      // inactive: última actividad hace 50d → AT_RISK
-      { eventId: ePast.id, personId: inactive.id, inAt: new Date(now - 50 * DAY_MS) },
-      // newcomer: primera actividad hace 5d → NEW
+      // inactive: última actividad ~2 meses civiles atrás (> winback 21d
+      // y fuera de M y M-1 → monthsContinuous 0) → AT_RISK
+      { eventId: ePast.id, personId: inactive.id, inAt: mPrev2 },
+      // newcomer: primera actividad hace 5d (< new_days 30) → NEW. Su
+      // pago PAID se fija al mismo instante para que toda su actividad
+      // caiga en UN solo mes civil (monthsContinuous 1, tenure 1) sea
+      // cual sea el día de corrida.
       { eventId: eRecent.id, personId: newcomer.id, inAt: new Date(now - 5 * DAY_MS) },
-      // bringer: 40d + 10d + 2 referrals → BRINGS_PEOPLE
-      { eventId: ePast.id, personId: bringer.id, inAt: new Date(now - 40 * DAY_MS) },
-      { eventId: eRecent.id, personId: bringer.id, inAt: new Date(now - 10 * DAY_MS) },
+      // bringer: mPrev2 (firstAt > newDays → nunca NEW) + mPrev + hoy
+      // → 3 meses continuos {M-2, M-1, M} garantizados + 2 referrals
+      // → BRINGS_PEOPLE
+      { eventId: ePast.id, personId: bringer.id, inAt: mPrev2 },
+      { eventId: ePast.id, personId: bringer.id, inAt: mPrev },
+      { eventId: eRecent.id, personId: bringer.id, inAt: new Date(now) },
     ];
     for (const c of checkins) {
       await prisma.checkin.create({ data: c });
@@ -209,7 +244,12 @@ describe("gap-closure: CRM transversal e2e", () => {
     // payments PAID atribuibles al productor (PENDING no cuenta)
     const payments = [
       { personId: core.id, eventId: ePast.id, amount: 5000 },
-      { personId: newcomer.id, eventId: eRecent.id, amount: 2000 },
+      {
+        personId: newcomer.id,
+        eventId: eRecent.id,
+        amount: 2000,
+        createdAt: new Date(now - 5 * DAY_MS),
+      },
       { personId: inactive.id, eventId: ePast.id, amount: 999999, status: "PENDING" as const },
     ];
     for (const [i, p] of payments.entries()) {
@@ -223,6 +263,7 @@ describe("gap-closure: CRM transversal e2e", () => {
           fee: 0,
           net: p.amount,
           status: "status" in p ? p.status : "PAID",
+          ...("createdAt" in p ? { createdAt: p.createdAt } : {}),
         },
       });
     }
@@ -800,7 +841,7 @@ describe("gap-closure: CRM transversal e2e", () => {
         {
           actorType: "ACADEMY",
           actorId: ids.academyId,
-          segment: { enrollmentStatus: ["TRIAL"] },
+          segment: { enrollmentStatus: ["INACTIVE"] },
         },
         sessionAcademyOwner,
       );

@@ -535,6 +535,7 @@ export default function SoportePage() {
               title: tt("s4.title"),
               description: tt("s4.desc"),
               side: "bottom",
+              align: "end",
             },
           ] satisfies TourStep[]
         }

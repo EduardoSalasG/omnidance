@@ -334,7 +334,7 @@ export class MailCampaignsService implements OnApplicationBootstrap {
    */
   private async enrollmentsInWindow(lo: Date, hi: Date): Promise<ResolvedEntry[]> {
     const rows = await this.prisma.enrollment.findMany({
-      where: { status: { in: ["ACTIVE", "ONLINE"] }, endsAt: { gte: lo, lt: hi } },
+      where: { status: { in: ["ACTIVE"] }, endsAt: { gte: lo, lt: hi } },
       select: {
         id: true,
         personId: true,

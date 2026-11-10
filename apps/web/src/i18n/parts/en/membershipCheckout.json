@@ -27,7 +27,13 @@
     "promoOffFixed": "−{amount} off each charge",
     "promoUntil": "until {date}",
     "promoCyclesLeft": "{count, plural, one {# discounted charge} other {# discounted charges}} left",
-    "titleSingle": "Confirm class"
+    "titleSingle": "Confirm class",
+    "payViaTitle": "How do you want to pay for the subscription?",
+    "payViaCard": "Card (automatic charge)",
+    "payViaTransfer": "Transfer",
+    "payViaTransferHint": "You pay by transfer every {period} and upload the receipt; the academy validates it.",
+    "transferPickAccount": "Which account did you transfer to?",
+    "trustTransfer": "Payment validated by the academy"
   },
   "privateCheckout": {
     "title": "Confirm private lesson",

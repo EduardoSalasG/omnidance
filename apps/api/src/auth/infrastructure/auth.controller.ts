@@ -30,6 +30,8 @@ import { resolveJurisdiction } from "../../legal/jurisdiction";
 import type { Mailer, AuthRepo } from "../domain/ports";
 import { MAILER, AUTH_REPO } from "../domain/ports";
 import { SessionGuard } from "./session.guard";
+import { PrismaService } from "../../prisma.service";
+import { emitActivity } from "../../common/activity-log";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import {
   magicLinkEmailHtml,
@@ -182,6 +184,22 @@ const AUTH_THROTTLE = {
   },
 };
 
+// `next` del magic token/OTP (spec academies/student-invites): solo
+// path interno - `/…` sin `//` ni `/\\` iniciales (open redirect via
+// protocol-relative o backslash normalizado). Misma regla que
+// safeInternalPath del web.
+function internalNext(next: string | undefined): string | null {
+  if (!next) return null;
+  if (
+    next.startsWith("/") &&
+    !next.startsWith("//") &&
+    !next.startsWith("/\\")
+  ) {
+    return next;
+  }
+  return null;
+}
+
 @Controller("auth")
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
@@ -198,7 +216,70 @@ export class AuthController {
     // aviso - spec notifications/admin-alerts).
     @Optional()
     private readonly notifications?: NotificationsService,
+    // Opcional: consume invitaciones de academia en el verify (spec
+    // academies/student-invites). Sin prisma los specs manuales no lo
+    // inyectan y el consumo se salta - nunca bloquea la sesión.
+    @Optional()
+    private readonly prisma?: PrismaService,
   ) {}
+
+  /**
+   * Consumo de invitación de academia (spec academies/student-invites):
+   * si el `next` del token apunta a una ficha pública (/academias/:id)
+   * y hay invitación pendiente de esa academia al email, se marca
+   * consumida (personId + consumedAt), se crea el Referral INVITE
+   * (referrer = quien invitó, dedup por triple) y se emite
+   * invite.registered. Best-effort: nunca rompe el verify.
+   */
+  private async consumeAcademyInvites(
+    email: string,
+    personId: string,
+    next: string | null,
+  ) {
+    const academyId = next?.match(/^\/academias\/([^/?#]+)/)?.[1];
+    if (!academyId || !this.prisma) return;
+    try {
+      const pending = await this.prisma.academyInvite.findMany({
+        where: { academyId, email, consumedAt: null },
+      });
+      for (const invite of pending) {
+        await this.prisma.academyInvite.update({
+          where: { id: invite.id },
+          data: { consumedAt: new Date(), personId },
+        });
+        // Referral INVITE (CRM): dedup por referrer+referred+source -
+        // la tabla no tiene @@unique (mismo patrón que GIFT_TICKET).
+        const dup = await this.prisma.referral.findFirst({
+          where: {
+            referrerId: invite.invitedById,
+            referredId: personId,
+            source: "INVITE",
+          },
+          select: { id: true },
+        });
+        if (!dup) {
+          await this.prisma.referral.create({
+            data: {
+              referrerId: invite.invitedById,
+              referredId: personId,
+              source: "INVITE",
+            },
+          });
+        }
+        await emitActivity(this.prisma, {
+          type: "invite.registered",
+          personId,
+          academyId,
+          refType: "AcademyInvite",
+          refId: invite.id,
+        });
+      }
+    } catch (err) {
+      this.logger.warn(
+        `consumo de invitación de ${email} falló: ${(err as Error).message}`,
+      );
+    }
+  }
 
   /** Bienvenida best-effort: el alta nunca falla por el correo. */
   private async sendWelcome(email: string, name: string) {
@@ -258,8 +339,10 @@ export class AuthController {
   ) {
     // Consentimiento y rol pedido viajan como claims del token y en la
     // fila del OTP: ambos caminos los estampan al crear la sesión.
-    const token = await this.auth.createMagicToken(email, consent, "15m", role);
-    const code = await this.auth.createOtp(email, consent, role);
+    const token = await this.auth.createMagicToken(email, consent, "15m", {
+      role,
+    });
+    const code = await this.auth.createOtp(email, consent, { role });
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const link = `${webUrl}/api/auth/verify?token=${token}`;
     // "verify" es el correo post-registro con password: no es un acceso
@@ -485,8 +568,11 @@ export class AuthController {
   @Throttle(AUTH_THROTTLE)
   async verify(@Query("token") token: string, @Res() res: Response) {
     try {
-      const { email, consent, role } =
+      const { email, consent, role, next } =
         await this.auth.verifyMagicToken(token);
+      // Un `next` que no es path interno se ignora (spec
+      // academies/student-invites): nunca open redirect.
+      const safeNext = internalNext(next);
       // Si el correo no existía, el upsert crea la cuenta → bienvenida.
       const existed = await this.repo.findByEmail(email);
       const person = await this.repo.upsertByEmail(email);
@@ -494,6 +580,8 @@ export class AuthController {
       if (consent) await this.consentService.recordAcceptance(person.id);
       // Rol pedido desde la landing (?role= viaja en el token).
       if (role) await this.repo.ensurePendingRole(person.id, role);
+      // Invitación de academia pendiente → consumo + Referral (INVITE).
+      await this.consumeAcademyInvites(email, person.id, safeNext);
       if (!existed) {
         await this.sendWelcome(email, person.name);
         await this.notifyAdminsNewUser(person, role);
@@ -502,8 +590,16 @@ export class AuthController {
       const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
       this.setSessionCookie(res, session);
       // Cuenta recién creada por el verify → paso de perfil
-      // post-registro (/bienvenida); cuenta existente → home.
-      res.redirect(existed ? `${webUrl}/inicio` : `${webUrl}/bienvenida`);
+      // post-registro (/bienvenida) y al cerrar continúa a `next`.
+      // Cuenta existente: ya completó ese paso → aterriza directo en
+      // `next` (o /inicio si el link no traía destino).
+      res.redirect(
+        existed
+          ? `${webUrl}${safeNext ?? "/inicio"}`
+          : `${webUrl}/bienvenida${
+              safeNext ? `?next=${encodeURIComponent(safeNext)}` : ""
+            }`,
+      );
     } catch {
       throw new UnauthorizedException("Link inválido o expirado");
     }
@@ -521,18 +617,25 @@ export class AuthController {
   ) {
     try {
       const email = dto.email.toLowerCase();
-      const { consent, role } = await this.auth.verifyOtp(email, dto.code);
+      const { consent, role, next } = await this.auth.verifyOtp(
+        email,
+        dto.code,
+      );
+      const safeNext = internalNext(next);
       const existed = await this.repo.findByEmail(email);
       const person = await this.repo.upsertByEmail(email);
       if (consent) await this.consentService.recordAcceptance(person.id);
       if (role) await this.repo.ensurePendingRole(person.id, role);
+      await this.consumeAcademyInvites(email, person.id, safeNext);
       if (!existed) {
         await this.sendWelcome(email, person.name);
         await this.notifyAdminsNewUser(person, role);
       }
       const session = await this.auth.issueSession(person.id);
       this.setSessionCookie(res, session);
-      return { ok: true, isNew: !existed };
+      // `next` viaja al front para continuar el onboarding estándar
+      // hacia el destino (misma regla que GET /verify).
+      return { ok: true, isNew: !existed, next: safeNext ?? undefined };
     } catch (e) {
       // Uniforme: no revela si el email existe ni por qué falló el
       // código. Excepción: "account deactivated" solo se alcanza con

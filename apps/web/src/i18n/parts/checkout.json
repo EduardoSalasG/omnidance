@@ -37,6 +37,8 @@
     "claimNoteAcademy": "Nota para la academia (opcional)",
     "claimNotePlatform": "Nota (opcional)",
     "claimPendingAcademy": "Comprobante en revisión por la academia…",
-    "claimPendingPlatform": "Comprobante en revisión…"
+    "claimPendingPlatform": "Comprobante en revisión…",
+    "academyNoGateway": "Esta academia cobra solo por comprobante de pago.",
+    "academyCollectionsBlocked": "Los pagos online de esta academia están en pausa. Puedes pagar por comprobante."
   }
 }

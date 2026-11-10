@@ -312,6 +312,12 @@ details.venue-filter[open] > summary::before {
   border: 1px solid rgb(var(--ink) / 0.12);
   border-radius: 16px;
   box-shadow: 0 12px 40px rgb(0 0 0 / var(--shadow-strength));
+  /* Contención en viewport: driver fija max-width 300px sin tope en vw
+     (en <315px el clamp satura y el popover se sale por la derecha) y
+     no limita el alto (copy largo + landscape bajo se escapa abajo). */
+  max-width: min(300px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
 }
 .driver-popover.omnidance-tour .driver-popover-title {
   font-size: 15px;

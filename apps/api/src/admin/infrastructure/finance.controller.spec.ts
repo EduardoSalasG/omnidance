@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { PrismaService } from "../../prisma.service";
 import type { ParamsService } from "../../params/params.service";
 // Ciclo session.guard ⇄ auth.controller (ver payouts.controller.spec.ts).
@@ -60,7 +60,11 @@ function matchWhere(row: Row, where: Row): boolean {
         return false;
       continue;
     }
-    if (v !== cond) return false;
+    // null en el where = IS NULL de Prisma: el fake materializa campos
+    // ausentes como undefined (p.ej. gatewayAccountId no seteado en
+    // fixtures históricos our-Flow).
+    if (cond === null ? v !== null && v !== undefined : v !== cond)
+      return false;
   }
   return true;
 }
@@ -152,6 +156,8 @@ describe("AdminFinanceController", () => {
         prismaCast,
         pf.params as unknown as ParamsService,
       ),
+      // Statements BYO (academy-byo-collections): sin uso en este spec.
+      { listAdmin: vi.fn(async () => []) } as never,
     );
 
     prisma.events.push(

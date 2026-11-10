@@ -26,7 +26,7 @@
       },
       "s6": {
         "title": "O botão +",
-        "desc": "O teu QR, o teu bilhete à porta e como registas danças na pista, mais o teu histórico de Danças e as Práticas da comunidade."
+        "desc": "O teu QR (o teu bilhete à porta e como registas danças na pista), o teu histórico de Danças e as Práticas da comunidade."
       },
       "s7": {
         "title": "O teu perfil",
@@ -100,7 +100,7 @@
       },
       "s4": {
         "title": "Filtra à tua medida",
-        "desc": "Estilo, nível e academia, e dentro de As minhas aulas podes alternar entre Todas e só as tuas Reservadas."
+        "desc": "Estilo, nível e academia. Dentro de As minhas aulas podes alternar entre Todas e só as tuas Reservadas."
       },
       "s5": {
         "title": "Reserva com um toque",
@@ -117,7 +117,7 @@
         "desc": "Muda para Scan para registar uma dança com o QR do teu parceiro. Vai parar ao teu histórico de Danças."
       },
       "s3": {
-        "title": "Guarda-o na tua wallet",
+        "title": "Guarda-o no Google Wallet",
         "desc": "Adiciona o passe ao Google Wallet e abre o teu QR direto à porta, sem procurar a app."
       }
     },
@@ -132,11 +132,11 @@
       },
       "s3": {
         "title": "Pedidos",
-        "desc": "Os pedidos que te chegam aceitam-se aqui; os que enviaste aparecem mais abaixo."
+        "desc": "Os pedidos que te chegam aceitam-se ou deixam-se passar aqui; os que enviaste aparecem mais abaixo."
       },
       "s4": {
         "title": "A tua lista",
-        "desc": "Abre o perfil de um amigo para ver os seus estilos e a que eventos vai. No checkout podes oferecer-lhe bilhetes."
+        "desc": "Abre o perfil de um amigo para ver os seus estilos e a que eventos vai. No checkout podes oferecer-lhe um."
       }
     },
     "bailes": {
@@ -164,7 +164,7 @@
       },
       "s3": {
         "title": "Cria a tua",
-        "desc": "Juntarem-se a treinar, rever uma aula ou aquecer antes do social? Cria a tua prática com lugares e lugar."
+        "desc": "Juntarem-se a treinar, rever uma aula ou aquecer antes do social? Cria a tua prática com vagas e local."
       },
       "s4": {
         "title": "As práticas",
@@ -216,7 +216,7 @@
       },
       "s5": {
         "title": "Todos os módulos",
-        "desc": "Comprovativos, códigos de desconto, colaboradores de porta, CRM e analítica; e a tua configuração - valores por omissão, meios de pagamento, liquidações, subscrição Pro e aparência - tudo a partir do menu."
+        "desc": "Comprovativos, códigos de desconto, colaboradores de porta, CRM e analítica; também a tua configuração: valores por omissão, meios de pagamento, liquidações, subscrição Pro e aparência. Tudo a partir do menu."
       },
       "s6": {
         "title": "A campainha",
@@ -282,11 +282,11 @@
     "academiaOwner": {
       "s1": {
         "title": "O teu mês num relance",
-        "desc": "Alunos ativos, planos vendáveis, aulas semanais, assiduidade e faturado, com a comparação ao mês passado."
+        "desc": "Alunos ativos, aulas da semana, assiduidade média e reservas de hoje, com a comparação ao mês passado."
       },
       "s2": {
         "title": "Primeiros passos",
-        "desc": "A checklist de ativação: horário, plano, método de pagamento, equipa e primeiro aluno. Desaparece sozinha quando a academia estiver pronta."
+        "desc": "A checklist de ativação: horário, plano, equipa e primeiro aluno. Desaparece sozinha quando a academia estiver pronta."
       },
       "s3": {
         "title": "A operação de hoje",
@@ -294,7 +294,7 @@
       },
       "s4": {
         "title": "O urgente",
-        "desc": "Comprovativos para validar e aulas particulares para confirmar: a fila que vale pôr a zero todos os dias."
+        "desc": "Comprovativos para validar, aulas particulares para confirmar, planos a expirar e alunos sem nível: a fila que vale pôr a zero todos os dias."
       },
       "s5": {
         "title": "O que vem aí",
@@ -307,6 +307,14 @@
       "s7": {
         "title": "O sino",
         "desc": "Os avisos aterram aqui: novos comprovativos, pedidos e novidades da tua academia."
+      },
+      "s8": {
+        "title": "A faturação do mês",
+        "desc": "Quanto já faturaste e o ticket por aluno: o sinal rápido de como vai o negócio. Toca-lhe para entrares nas cobranças."
+      },
+      "s9": {
+        "title": "Níveis e vagas",
+        "desc": "Cada horário com a sua assiduidade recente, média e vagas livres por nível: para veres onde há sobrelotação ou aula a reforçar."
       }
     },
     "staff": {
@@ -369,6 +377,20 @@
         "desc": "Estas pessoas são as candidatas ao montar o staff de porta de cada evento. Aqui só se tira da lista."
       }
     },
+    "productorEventos": {
+      "s1": {
+        "title": "Encontra o evento",
+        "desc": "Filtra a lista por data ou estado para apanhares qualquer noite num instante."
+      },
+      "s2": {
+        "title": "O teu cartaz",
+        "desc": "Cada evento abre a sua ficha: bilhetes vendidos, mesas, staff de porta, pré-vendas e analítica."
+      },
+      "s3": {
+        "title": "Novo evento",
+        "desc": "Cria a noite aqui: preços, lineup, mesas e listas. Fica publicada no cartaz quando decidires."
+      }
+    },
     "academia-alumnos": {
       "s1": {
         "title": "A tua base em números",
@@ -387,12 +409,8 @@
         "desc": "Cada cartão abre a ficha: plano, vigência, assiduidade e o score de relação, privado da tua academia."
       },
       "s5": {
-        "title": "Nova inscrição",
-        "desc": "Matricula um aluno com o seu plano e vigência a partir daqui."
-      },
-      "s6": {
-        "title": "Importação em massa",
-        "desc": "Trazes a lista de outro sistema? Carrega-a em CSV com o modelo descarregável."
+        "title": "Adicionar alunos",
+        "desc": "Convida por email para se inscreverem sozinhos; a inscrição manual fica para liquidar quem já pagou presencialmente."
       }
     },
     "academia-cobros": {
@@ -409,8 +427,8 @@
         "desc": "Os comprovativos que os teus alunos declararam: toca num para o rever e aprovar ou rejeitar no detalhe."
       },
       "s4": {
-        "title": "O histórico",
-        "desc": "Todas as validações e pagamentos por gateway por ordem: o rasto completo de cada cobrança."
+        "title": "Inscrições por validar",
+        "desc": "Novas inscrições e renovações pagas por transferência: cada comprovativo aprova-se ou rejeita-se na ficha."
       }
     },
     "academia-clases": {
@@ -441,6 +459,20 @@
         "desc": "Por ordem de chegada: se uma vaga libertar, o primeiro da lista entra."
       }
     },
+    "academia-series": {
+      "s1": {
+        "title": "Encontra a série",
+        "desc": "Filtra a lista por estilo ou professor para ires direto à que procuras."
+      },
+      "s2": {
+        "title": "As tuas séries",
+        "desc": "Cada série abre a ficha: horários, nível, professor e as aulas que gera."
+      },
+      "s3": {
+        "title": "Nova série",
+        "desc": "Cria uma série com os seus horários: as aulas geram-se sozinhas até ao próximo mês."
+      }
+    },
     "academias": {
       "s1": {
         "title": "Tuas ou por descobrir",
@@ -455,36 +487,32 @@
         "desc": "Salsa, bachata, o que procurares: o filtro de estilo aplica-se à lista e ao mapa; em Explorar também por nome."
       },
       "s4": {
-        "title": "Cada cartão abre a ficha",
+        "title": "Cada academia abre a ficha",
         "desc": "Estilos, morada e professores; na ficha vês as aulas, planos e vídeos."
       }
     },
     "crm": {
       "s1": {
         "title": "O teu público, com score",
-        "desc": "Cada pessoa tem um score de relação calculado a partir da sua atividade real - presenças, compras, entradas. É privado: só tu o vês. Toca num cartão para abrir a ficha."
+        "desc": "Cada pessoa tem um score de relação calculado a partir da sua atividade real: presenças, compras e check-ins. É privado, só tu o vês. Toca numa linha para abrir a ficha."
       },
       "s2": {
         "title": "Segmentos que se mexem sozinhos",
-        "desc": "Novo, Em risco, Traz gente, Núcleo: a pertença é recalculada sozinha em cada recomputação de scores. Aqui vês quantos tens em cada um."
+        "desc": "Novo, Em risco, Traz gente e Núcleo: cada pessoa entra e sai sozinha sempre que os scores são recalculados. Aqui vês quantos tens em cada segmento."
       },
       "s3": {
         "title": "Procura e filtra",
-        "desc": "Por nome ou tag, por segmento - incluindo os que guardares - e ordena por score ou por nome."
+        "desc": "Por nome ou tag, por segmento (incluindo os que guardares) e ordena por score ou por nome."
       },
       "s4": {
         "title": "Ações em lote",
         "desc": "Seleciona a página inteira ou várias pessoas para lhes pôr ou tirar uma tag, ou enviar-lhes uma campanha em conjunto."
       },
       "s5": {
-        "title": "Mais do que um ator?",
-        "desc": "Se produzes e também tens uma academia, cada um tem o seu próprio público: scores, segmentos e campanhas são calculados em separado. Muda aqui."
+        "title": "Campanhas e triggers",
+        "desc": "No menu: campanhas com notificação ou código de desconto (programáveis, e vês quem voltou e quem redimiu) e triggers que avisam sozinhos por comportamento."
       },
       "s6": {
-        "title": "Campanhas e triggers",
-        "desc": "No menu: campanhas com notificação ou código de desconto - programáveis e com atribuição de quem voltou e quem redimiu - e triggers que avisam sozinhos por comportamento."
-      },
-      "s7": {
         "title": "O sino",
         "desc": "Os resumos dos teus triggers e os avisos de envio de campanhas chegam aqui."
       }
@@ -517,28 +545,20 @@
     },
     "admin": {
       "s1": {
-        "title": "Pessoas e roles",
-        "desc": "Procura qualquer utilizador por nome, email, telefone ou role. Na ficha aprovas roles pendentes, mudas o estado ou revogas."
+        "title": "A plataforma em números",
+        "desc": "Pedidos, receitas, subscrições, trials e atividade, agrupados por tema. O pulso da operação num relance."
       },
       "s2": {
-        "title": "O catálogo RBAC",
-        "desc": "O que cada role pode fazer: o catálogo de permissões e os roles que as pessoas podem pedir."
+        "title": "Leads por rever",
+        "desc": "Os interessados que chegaram pela landing, os mais antigos primeiro. Cada um abre a sua revisão."
       },
       "s3": {
-        "title": "Parâmetros da plataforma",
-        "desc": "Comissões, cooldowns e limites globais: as alterações aplicam-se em segundos."
+        "title": "Todos os módulos",
+        "desc": "Pessoas, permissões, parâmetros, jobs, catálogos, finanças e saúde das academias: tudo a partir do menu."
       },
       "s4": {
-        "title": "Jobs agendados",
-        "desc": "As tarefas agendadas - recomputação de scores, digests, cobranças - com horário, execuções e pausa. Podes corrê-las à mão."
-      },
-      "s5": {
-        "title": "Catálogos",
-        "desc": "Estilos de dança, níveis e tipos de aula: a matéria-prima das aulas e eventos de toda a app."
-      },
-      "s6": {
-        "title": "O resto do painel",
-        "desc": "Dados da operação, auditoria, finanças, faturação, campanhas de email e saúde das academias - mais o CRM e a analítica por utilizador no menu."
+        "title": "O sino",
+        "desc": "Os avisos da plataforma chegam aqui."
       }
     },
     "locales": {

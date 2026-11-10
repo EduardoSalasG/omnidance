@@ -206,12 +206,12 @@ describe("EventsController internal-academy-socials", () => {
     expect(res.id).toBe("ev-1");
   });
 
-  it("detalle interno a enrollment PAUSED → 404", async () => {
+  it("detalle interno a enrollment INACTIVE → 404", async () => {
     internal();
     prisma.enrollmentRows.push({
       personId: "p1",
       academyId: "acad-1",
-      status: "PAUSED",
+      status: "INACTIVE",
     });
     await expect(
       ctrl.detail("ev-1", reqAs("p1")),

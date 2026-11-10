@@ -45,12 +45,13 @@ import {
   academyTrialExpired,
   tierMeets,
 } from "../domain/academy-tiers";
+import { planCycleStart } from "../../payments/domain/membership-vigency";
 import { ApiQuery } from "@nestjs/swagger";
 
 // Inscripción vigente: la que habilita ver la academia como "mía" en
-// /clases y reservar cupo. PAUSED/FROZEN no cuentan (spec de producto:
-// reservar exige inscripción vigente).
-const BOOKABLE_ENROLLMENT: EnrollmentStatus[] = ["ACTIVE", "TRIAL", "ONLINE"];
+// /clases y reservar cupo. INACTIVE no cuenta (spec de producto:
+// reservar exige inscripción vigente - el estado es binario).
+const BOOKABLE_ENROLLMENT: EnrollmentStatus[] = ["ACTIVE"];
 
 // Ventana de marcación de asistencia: 30 minutos antes hasta 30
 // minutos después del inicio real de la clase (classStart) - spec
@@ -138,8 +139,9 @@ export class ClassesController {
 
   /**
    * Qué inscripción responde por la cuota de una reserva en `classDate`.
-   * Orden: plan semanal con saldo → pack con saldo → ilimitado. Una fila
-   * con plan null (inscripción legacy/administrativa) cuenta ilimitada.
+   * Orden: plan semanal con saldo → cuota por conteo con saldo →
+   * ilimitado. Una fila con plan null (inscripción
+   * legacy/administrativa) cuenta ilimitada.
    */
   private async resolveQuota(
     tx: Pick<PrismaService, "enrollment" | "classBooking">,
@@ -158,7 +160,12 @@ export class ClassesController {
         startedAt: true,
         endsAt: true,
         plan: {
-          select: { type: true, weeklyClasses: true, classCount: true },
+          select: {
+            type: true,
+            weeklyClasses: true,
+            classCount: true,
+            periodDays: true,
+          },
         },
       },
     });
@@ -211,8 +218,13 @@ export class ClassesController {
         };
         continue;
       }
-      if (plan?.type === "CLASS_PACK" && plan.classCount != null) {
-        const used = await countIn({ gte: e.startedAt });
+      // Cuota por conteo (classCount) aplica a CUALQUIER tipo de plan y
+      // cuenta solo las reservas del ciclo pagado vigente (planCycleStart
+      // = endsAt - duración del plan): al renovar el conteo vuelve a cero.
+      if (plan?.classCount != null) {
+        const used = await countIn({
+          gte: planCycleStart(plan, e.startedAt, e.endsAt),
+        });
         if (used < plan.classCount && !packFallback) {
           packFallback = {
             ok: true,
@@ -680,7 +692,8 @@ export class ClassesController {
   /**
    * Resumen de cuota del viewer por academia (spec home-weekly-quota):
    * una fila por inscripción reservable - WEEKLY cuenta la semana ISO
-   * actual, PACK desde startedAt, ilimitado/sin plan sin números. El
+   * actual, PACK el ciclo pagado vigente (planCycleStart), ilimitado/sin
+   * plan sin números. El
    * conteo es el mismo que rige la reserva (BOOKED + cancelaciones sin
    * refund, sin asientos pagados - countConsumedBookings).
    *
@@ -703,6 +716,7 @@ export class ClassesController {
             type: true,
             weeklyClasses: true,
             classCount: true,
+            periodDays: true,
           },
         },
       },
@@ -761,7 +775,9 @@ export class ClassesController {
         });
         continue;
       }
-      if (plan?.type === "CLASS_PACK" && plan.classCount != null) {
+      // classCount en cualquier tipo de plan: mismo conteo del ciclo
+      // pagado vigente que resolveQuota (planCycleStart).
+      if (plan?.classCount != null) {
         rows.push({
           ...base,
           kind: "PACK",
@@ -769,7 +785,7 @@ export class ClassesController {
             this.prisma,
             me,
             e.academy.id,
-            { gte: e.startedAt },
+            { gte: planCycleStart(plan, e.startedAt, e.endsAt) },
           ),
           limit: plan.classCount,
         });
@@ -1534,7 +1550,7 @@ export class ClassesController {
   /**
    * Reservar: cupo libre → BOOKED; lleno → WAITLIST (orden de llegada).
    * Re-reservar una reserva cancelada reactiva la misma fila. Exige
-   * inscripción vigente (ACTIVE/TRIAL/ONLINE) en la academia de la clase.
+   * inscripción vigente (ACTIVE) en la academia de la clase.
    */
   @Post(":id/book")
   async book(@Param("id") classId: string, @Req() req: Request) {

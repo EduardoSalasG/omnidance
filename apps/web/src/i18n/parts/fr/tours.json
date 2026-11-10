@@ -26,7 +26,7 @@
       },
       "s6": {
         "title": "Le bouton +",
-        "desc": "Ton QR, ton billet à la porte et ta façon de logger des danses sur la piste, plus ton historique de Danses et les Pratiques de la communauté."
+        "desc": "Ton QR (ton billet à la porte et ta façon de logger des danses sur la piste), ton historique de Danses et les Pratiques de la communauté."
       },
       "s7": {
         "title": "Ton profil",
@@ -100,7 +100,7 @@
       },
       "s4": {
         "title": "Filtre à ta mesure",
-        "desc": "Style, niveau et académie, et dans Mes cours tu peux basculer entre Tous et seulement tes Réservés."
+        "desc": "Style, niveau et académie. Dans Mes cours, tu peux basculer entre Tous et seulement tes Réservés."
       },
       "s5": {
         "title": "Réserve en un tap",
@@ -117,7 +117,7 @@
         "desc": "Passe à Scanner pour enregistrer une danse avec le QR de ton partenaire. Elle arrive dans ton historique de Danses."
       },
       "s3": {
-        "title": "Garde-le dans ton wallet",
+        "title": "Garde-le dans Google Wallet",
         "desc": "Ajoute le pass à Google Wallet et ouvre ton QR directement à la porte, sans chercher l'app."
       }
     },
@@ -132,11 +132,11 @@
       },
       "s3": {
         "title": "Demandes",
-        "desc": "Les demandes qui te parviennent s'acceptent ici ; celles que tu as envoyées s'affichent plus bas."
+        "desc": "Les demandes qui te parviennent s'acceptent ou se laissent passer ici ; celles que tu as envoyées s'affichent plus bas."
       },
       "s4": {
         "title": "Ta liste",
-        "desc": "Ouvre le profil d'un ami pour voir ses styles et les événements où il va. Au checkout tu peux lui offrir des billets."
+        "desc": "Ouvre le profil d'un ami pour voir ses styles et les événements où il va. Au checkout tu peux lui offrir un billet."
       }
     },
     "bailes": {
@@ -216,7 +216,7 @@
       },
       "s5": {
         "title": "Tous les modules",
-        "desc": "Reçus, codes promo, collaborateurs de porte, CRM et analytique ; plus vos réglages - valeurs par défaut, moyens de paiement, reversements, abonnement Pro et apparence - tout depuis le menu."
+        "desc": "Reçus, codes promo, collaborateurs de porte, CRM et analytique ; aussi vos réglages : valeurs par défaut, moyens de paiement, reversements, abonnement Pro et apparence. Tout depuis le menu."
       },
       "s6": {
         "title": "La cloche",
@@ -282,11 +282,11 @@
     "academiaOwner": {
       "s1": {
         "title": "Ton mois en un coup d'œil",
-        "desc": "Élèves actifs, plans vendables, cours hebdo, présence et encaissé, avec la comparaison au mois dernier."
+        "desc": "Élèves actifs, cours de la semaine, présence moyenne et réservations du jour, avec la comparaison au mois dernier."
       },
       "s2": {
         "title": "Premiers pas",
-        "desc": "La checklist d'activation : horaires, plan, moyen de paiement, équipe et premier élève. Elle disparaît toute seule quand l'académie est prête."
+        "desc": "La checklist d'activation : horaires, plan, équipe et premier élève. Elle disparaît toute seule quand l'académie est prête."
       },
       "s3": {
         "title": "L'opération du jour",
@@ -294,7 +294,7 @@
       },
       "s4": {
         "title": "L'urgent",
-        "desc": "Justificatifs à valider et cours particuliers à confirmer : la file à ramener à zéro chaque jour."
+        "desc": "Justificatifs à valider, cours particuliers à confirmer, plans qui expirent et élèves sans niveau : la file à ramener à zéro chaque jour."
       },
       "s5": {
         "title": "Ce qui arrive",
@@ -307,6 +307,14 @@
       "s7": {
         "title": "La cloche",
         "desc": "Les avis arrivent ici : nouveaux justificatifs, demandes et nouveautés de ton académie."
+      },
+      "s8": {
+        "title": "La facturation du mois",
+        "desc": "Combien tu as facturé et le ticket par élève : le signal rapide de la santé de ton business. Touche-le pour aller aux encaissements."
+      },
+      "s9": {
+        "title": "Niveaux et places",
+        "desc": "Chaque horaire avec sa présence récente, sa moyenne et les places libres par niveau : pour repérer où il y a surnombre ou un cours à renforcer."
       }
     },
     "staff": {
@@ -369,6 +377,20 @@
         "desc": "Ces personnes sont les candidates pour la porte de chaque événement. Ici, on ne fait que retirer de la liste."
       }
     },
+    "productorEventos": {
+      "s1": {
+        "title": "Retrouvez l'événement",
+        "desc": "Affinez la liste par date ou statut pour retrouver vite n'importe quelle soirée."
+      },
+      "s2": {
+        "title": "Votre programmation",
+        "desc": "Chaque événement ouvre sa fiche : billets vendus, tables, staff de porte, préventes et analytique."
+      },
+      "s3": {
+        "title": "Nouvel événement",
+        "desc": "Créez la soirée ici : tarifs, lineup, tables et listes. Elle se publie dans la programmation quand vous le décidez."
+      }
+    },
     "academia-alumnos": {
       "s1": {
         "title": "Votre base en chiffres",
@@ -387,12 +409,8 @@
         "desc": "Chaque carte ouvre la fiche : plan, validité, assiduité et score de relation, privé à votre académie."
       },
       "s5": {
-        "title": "Nouvelle inscription",
-        "desc": "Inscrivez un élève avec son plan et sa validité depuis ici."
-      },
-      "s6": {
-        "title": "Import en masse",
-        "desc": "Votre liste vient d'un autre outil ? Importez-la en CSV avec le modèle téléchargeable."
+        "title": "Ajouter des élèves",
+        "desc": "Invite par email pour qu'ils s'inscrivent seuls ; l'inscription manuelle reste pour solder celui qui a déjà payé en personne."
       }
     },
     "academia-cobros": {
@@ -409,8 +427,8 @@
         "desc": "Les reçus déclarés par vos élèves : touchez-en un pour le vérifier et l'approuver ou le rejeter dans son détail."
       },
       "s4": {
-        "title": "L'historique",
-        "desc": "Toutes les validations et paiements par plateforme dans l'ordre : la traçabilité complète de chaque encaissement."
+        "title": "Inscriptions à valider",
+        "desc": "Nouvelles inscriptions et renouvellements payés par virement : chaque reçu s'approuve ou se rejette dans sa fiche."
       }
     },
     "academia-clases": {
@@ -441,6 +459,20 @@
         "desc": "Par ordre d'arrivée : si une place se libère, le premier de la liste entre."
       }
     },
+    "academia-series": {
+      "s1": {
+        "title": "Retrouvez la série",
+        "desc": "Affinez la liste par style ou prof pour aller directement à celle que vous cherchez."
+      },
+      "s2": {
+        "title": "Vos séries",
+        "desc": "Chaque série ouvre sa fiche : horaires, niveau, prof et les cours qu'elle génère."
+      },
+      "s3": {
+        "title": "Nouvelle série",
+        "desc": "Créez une série avec ses horaires : les cours se génèrent tout seuls jusqu'au mois prochain."
+      }
+    },
     "academias": {
       "s1": {
         "title": "Les vôtres ou à découvrir",
@@ -455,36 +487,32 @@
         "desc": "Salsa, bachata, ce que vous cherchez : le filtre de style s'applique à la liste et à la carte ; dans Explorer, aussi par nom."
       },
       "s4": {
-        "title": "Chaque carte ouvre sa page",
+        "title": "Chaque académie ouvre sa fiche",
         "desc": "Styles, adresse et professeurs ; la page montre leurs cours, plans et vidéos."
       }
     },
     "crm": {
       "s1": {
         "title": "Ton public, avec un score",
-        "desc": "Chaque personne a un score de relation calculé sur son activité réelle - présences, achats, entrées. Il est privé : toi seul le vois. Touche une carte pour ouvrir sa fiche."
+        "desc": "Chaque personne a un score de relation calculé sur son activité réelle : présences, achats et arrivées. Il est privé, toi seul le vois. Touche une ligne pour ouvrir sa fiche."
       },
       "s2": {
         "title": "Des segments qui bougent tout seuls",
-        "desc": "Nouveau, À risque, Fait venir du monde, Noyau : l'appartenance est recalculée automatiquement à chaque recalcul des scores. Tu vois ici combien tu en as dans chacun."
+        "desc": "Nouveau, À risque, Fait venir du monde et Noyau : chaque personne entre et sort toute seule à chaque recalcul des scores. Tu vois ici combien tu en as dans chaque segment."
       },
       "s3": {
         "title": "Cherche et filtre",
-        "desc": "Par nom ou tag, par segment - y compris ceux que tu enregistres - et trie par score ou par nom."
+        "desc": "Par nom ou tag, par segment (y compris ceux que tu enregistres) et trie par score ou par nom."
       },
       "s4": {
         "title": "Actions en lot",
         "desc": "Sélectionne toute la page ou plusieurs personnes pour ajouter ou retirer un tag, ou leur envoyer une campagne ensemble."
       },
       "s5": {
-        "title": "Plus d'un acteur ?",
-        "desc": "Si tu produis et que tu as aussi une académie, chacun a son propre public : scores, segments et campagnes sont calculés séparément. Change-le ici."
+        "title": "Campagnes et triggers",
+        "desc": "Depuis le menu : campagnes avec notification ou code promo (programmables, et tu vois qui est revenu et qui a utilisé le code) et des triggers qui préviennent tout seuls selon le comportement."
       },
       "s6": {
-        "title": "Campagnes et triggers",
-        "desc": "Depuis le menu : campagnes avec notification ou code promo - programmables, avec attribution de qui est revenu et qui a utilisé le code - et des triggers qui préviennent tout seuls selon le comportement."
-      },
-      "s7": {
         "title": "La cloche",
         "desc": "Les résumés de tes triggers et les avis d'envoi de campagnes arrivent ici."
       }
@@ -517,28 +545,20 @@
     },
     "admin": {
       "s1": {
-        "title": "Personnes et rôles",
-        "desc": "Cherche n'importe quel utilisateur par nom, email, téléphone ou rôle. Dans sa fiche, tu approuves les rôles en attente, changes leur statut ou les révoques."
+        "title": "La plateforme en chiffres",
+        "desc": "Demandes, revenus, abonnements, trials et activité, groupés par thème. Le pouls de l'opération en un coup d'œil."
       },
       "s2": {
-        "title": "Le catalogue RBAC",
-        "desc": "Ce que chaque rôle peut faire : le catalogue de permissions et les rôles que les gens peuvent demander."
+        "title": "Leads à vérifier",
+        "desc": "Les intéressés arrivés par la landing, les plus anciens d'abord. Chacun ouvre sa revue."
       },
       "s3": {
-        "title": "Paramètres de la plateforme",
-        "desc": "Commissions, cooldowns et limites globales : les changements s'appliquent en quelques secondes."
+        "title": "Tous les modules",
+        "desc": "Personnes, permissions, paramètres, jobs, catalogues, finances et santé des académies : tout depuis le menu."
       },
       "s4": {
-        "title": "Jobs planifiés",
-        "desc": "Les tâches planifiées - recalcul des scores, digests, facturation - avec horaire, exécutions et pause. Tu peux les lancer à la main."
-      },
-      "s5": {
-        "title": "Catalogues",
-        "desc": "Styles de danse, niveaux et types de cours : la matière première des cours et événements de toute l'app."
-      },
-      "s6": {
-        "title": "Le reste du panneau",
-        "desc": "Données d'opération, audit, finances, facturation, campagnes mail et santé des académies - plus le CRM et l'analytique par utilisateur depuis le menu."
+        "title": "La cloche",
+        "desc": "Les avis de la plateforme arrivent ici."
       }
     },
     "locales": {

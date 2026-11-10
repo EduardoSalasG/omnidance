@@ -443,7 +443,7 @@
       "attendance30d": "Presenças 30d"
     },
     "newPlan": "Novo plano",
-    "newEnrollment": "Nova inscrição",
+    "newEnrollment": "Inscrição manual",
     "attendance": "Presenças",
     "markPresent": "Presente",
     "planName": "Nome do plano",
@@ -459,18 +459,11 @@
     "loginRequired": "Inicia sessão com o teu e-mail para gerir a tua academia",
     "stats": {
       "active": "Ativos",
-      "trial": "Em teste",
-      "paused": "Em pausa",
-      "frozen": "Congelados",
-      "online": "Online"
+      "inactive": "Inativos"
     },
     "status": {
       "ACTIVE": "Ativa",
-      "PAUSED": "Em pausa",
-      "TRIAL": "Teste",
-      "FROZEN": "Congelada",
-      "ONLINE": "Online",
-      "CANCELLED": "Cancelada"
+      "INACTIVE": "Inativa"
     },
     "weekday": {
       "0": "Domingo",
@@ -501,8 +494,7 @@
     "planTypes": {
       "MONTHLY": "Mensal",
       "CLASS_PACK": "Pacote de aulas",
-      "PERIOD": "Período personalizado",
-      "TRIAL": "Teste"
+      "PERIOD": "Período personalizado"
     },
     "studentStatus": "Estado de {name}",
     "planPeriodDays": "Dias de validade",
@@ -923,13 +915,11 @@
       "empty": "Sem triggers",
       "keys": {
         "WINBACK": "Reativar inativos",
-        "TRIAL_EXPIRING": "Teste a expirar",
         "REGULAR_NO_PRESALE": "Habitual sem pré-venda",
         "ATTENDANCE_DROP": "Queda de assiduidade"
       },
       "desc": {
         "WINBACK": "Avisa pessoas que deixaram de vir há N dias.",
-        "TRIAL_EXPIRING": "Avisa quando uma assinatura de teste está a expirar.",
         "REGULAR_NO_PRESALE": "Avisa habituais que ainda não compraram pré-venda.",
         "ATTENDANCE_DROP": "Deteta quedas de assiduidade face ao ritmo habitual."
       },

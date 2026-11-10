@@ -10,10 +10,17 @@ import {
 } from "./renewal-emails";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const BOOKABLE_PAID: EnrollmentStatus[] = [
-  EnrollmentStatus.ACTIVE,
-  EnrollmentStatus.ONLINE,
-];
+const BOOKABLE_PAID: EnrollmentStatus[] = [EnrollmentStatus.ACTIVE];
+
+// Solo los planes por tiempo "renuevan" y reciben aviso de vencimiento:
+// un pack (CLASS_PACK, incluida la clase de prueba) o una clase suelta
+// vencen por consumo/día, no por ciclo.
+const RENEWABLE_PLAN_TYPES = [
+  "MONTHLY",
+  "QUARTERLY",
+  "SEMIANNUAL",
+  "PERIOD",
+] as const;
 
 const DAY_MS_ADD = (d: Date, days: number) =>
   new Date(d.getTime() + days * DAY_MS);
@@ -36,8 +43,9 @@ const dateFmt = new Intl.DateTimeFormat("es-CL", {
  *
  * Dedup por ciclo: reminderExpiringFor/reminderExpiredFor guardan el
  * endsAt avisado; una renovación cambia endsAt y los avisos se rearman.
- * Solo planes pagados (ACTIVE/ONLINE): TRIAL/PAUSED/FROZEN y endsAt
- * null no reciben avisos. Un fallo puntual no detiene el barrido.
+ * Solo inscripciones ACTIVE de planes por tiempo (MONTHLY/QUARTERLY/
+ * SEMIANNUAL/PERIOD): packs, clases sueltas e INACTIVE no "renuevan",
+ * así que no reciben avisos. Un fallo puntual no detiene el barrido.
  */
 @Injectable()
 export class AcademyRemindersService {
@@ -69,6 +77,7 @@ export class AcademyRemindersService {
     const expiring = await this.prisma.enrollment.findMany({
       where: {
         status: { in: BOOKABLE_PAID },
+        plan: { is: { type: { in: [...RENEWABLE_PLAN_TYPES] } } },
         endsAt: { gte: now, lte: DAY_MS_ADD(now, firstDays) },
       },
       select: {
@@ -84,6 +93,7 @@ export class AcademyRemindersService {
     const inGrace = await this.prisma.enrollment.findMany({
       where: {
         status: { in: BOOKABLE_PAID },
+        plan: { is: { type: { in: [...RENEWABLE_PLAN_TYPES] } } },
         endsAt: { lt: now, gte: DAY_MS_ADD(now, -graceDays) },
       },
       select: {

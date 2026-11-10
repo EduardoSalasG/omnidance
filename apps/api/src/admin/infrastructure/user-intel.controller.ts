@@ -17,6 +17,7 @@ import {
   decodePlatformSubRef,
   decodePrivateRef,
 } from "../../payments/domain/order-ref";
+import { webhookUrlFor } from "../../payments/application/gateway-accounts.service";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { effectiveCapacity } from "../../academies/domain/academy.service";
@@ -217,6 +218,72 @@ export class UserIntelController {
         ...(r.refType && r.refId
           ? { ref: { type: r.refType, id: r.refId } }
           : {}),
+      })),
+    };
+  }
+
+  /**
+   * GET /api/admin/users/:personId/payment-methods - métodos de cobro
+   * configurados en las academias que la persona posee (ownerId):
+   * por cada academia, sus cuentas de pasarela BYO
+   * (ActorGatewayAccount scope academyId) y sus métodos manuales
+   * (AcademyPaymentMethod). Nunca devuelve credentialsEnc: solo el
+   * mask público. Fetch independiente del detail, mismo criterio que
+   * /timeline: una falla no tumba la ficha.
+   */
+  @Get("users/:personId/payment-methods")
+  async paymentMethods(@Param("personId") personId: string) {
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { id: true },
+    });
+    if (!person) throw new NotFoundException("usuario no encontrado");
+
+    const academies = await this.prisma.academy.findMany({
+      where: { ownerId: personId },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        gatewayAccounts: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            provider: true,
+            keyMask: true,
+            status: true,
+            lastError: true,
+            verifiedAt: true,
+            createdAt: true,
+          },
+        },
+        paymentMethods: {
+          orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+          select: {
+            id: true,
+            type: true,
+            label: true,
+            details: true,
+            active: true,
+          },
+        },
+      },
+    });
+
+    return {
+      academies: academies.map((a) => ({
+        id: a.id,
+        name: a.name,
+        gatewayAccounts: a.gatewayAccounts.map((g) => ({
+          id: g.id,
+          provider: g.provider,
+          keyMask: g.keyMask,
+          status: g.status,
+          lastError: g.lastError,
+          verifiedAt: g.verifiedAt,
+          webhookUrl: webhookUrlFor(g.provider, g.id),
+        })),
+        manualMethods: a.paymentMethods,
       })),
     };
   }
@@ -1373,11 +1440,11 @@ export class UserIntelController {
     const now = new Date();
     const [enrollments, attendances, classesUpcoming, paidAgg] =
       await Promise.all([
-        // "Activas" = membresías vigentes: ACTIVE + TRIAL + ONLINE.
+        // "Activas" = membresías vigentes: enrollment ACTIVE.
         this.prisma.enrollment.findMany({
           where: {
             personId,
-            status: { in: ["ACTIVE", "TRIAL", "ONLINE"] },
+            status: { in: ["ACTIVE"] },
           },
           select: {
             status: true,

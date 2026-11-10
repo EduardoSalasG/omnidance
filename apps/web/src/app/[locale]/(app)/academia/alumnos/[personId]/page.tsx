@@ -55,14 +55,7 @@ const HISTORY_VARIANT: Record<string, BadgeVariant> = {
 
 // Claves i18n conocidas - status llega como string libre del server; uno
 // desconocido se muestra crudo (el enum puede crecer sin romper la UI).
-const KNOWN_ENROLLMENT_STATUS = [
-  "ACTIVE",
-  "PAUSED",
-  "TRIAL",
-  "FROZEN",
-  "ONLINE",
-  "CANCELLED",
-];
+const KNOWN_ENROLLMENT_STATUS = ["ACTIVE", "INACTIVE"];
 const KNOWN_HISTORY_STATUS = ["attended", "booked", "cancelled"];
 
 /**

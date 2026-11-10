@@ -47,10 +47,7 @@
       },
       "enrollmentStatus": {
         "ACTIVE": "Active",
-        "TRIAL": "Trial",
-        "ONLINE": "Online",
-        "PAUSED": "Paused",
-        "FROZEN": "Frozen"
+        "INACTIVE": "Inactive"
       },
       "plan": "Plan {name}",
       "since": "Since {date}",

@@ -271,6 +271,12 @@ export class PayoutSettlementService {
         orderType: { in: ["TICKET", "MEMBERSHIP", "WORKSHOP", "PRIVATE"] },
         status: "PAID",
         createdAt: { gte: periodStart, lte: periodEnd },
+        // BYO (spec academy-byo-collections): las órdenes de academia
+        // cobradas por SU pasarela jamás liquidan por payout - su take
+        // se factura aparte (AcademyCollectionsStatement). Sin el filtro
+        // la orden pagaría doble. El payout viejo solo procesa
+        // históricos our-Flow (gatewayAccountId null).
+        ...(actorType === "ACADEMY" ? { gatewayAccountId: null } : {}),
         ...unliquidated,
         OR: [
           ...(events.length

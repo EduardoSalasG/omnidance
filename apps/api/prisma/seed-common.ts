@@ -147,7 +147,13 @@ const PARAM_DEFAULTS: Array<{
   // Take de cobranza del tier COBROS: el payout de academias COBROS
   // descuenta take_multiplier × el fee de pasarela sobre cobros de
   // membresías (línea ACADEMY_COBROS_TAKE tipada; 1,5× ≈ 4,8% all-in).
-  { key: "academy_cobros.take_multiplier", value: 1.5, description: "Multiplicador del fee de pasarela cobrado como take a academias tier COBROS (sobre membresías)" },
+  { key: "academy_cobros.take_multiplier", value: 1.5, description: "Multiplicador del fee de pasarela cobrado como take a academias tier COBROS (sobre membresías) - LEGACY: solo liquidaciones históricas pre-BYO" },
+  // Take de cobranza BYO (spec academy-byo-collections): % neto sobre
+  // cada orden de academia PAID por su pasarela propia, congelado por
+  // orden y facturado a la academia mes vencido (+ IVA). Reemplaza al
+  // modelo payout (GATEWAY_FEE_PASSTHROUGH + ACADEMY_COBROS_TAKE) que
+  // subsiste solo para liquidar históricos.
+  { key: "academy_fee.net_pct", value: 1.0, description: "% neto del take de cobranza BYO facturado mes vencido a academias (sobre órdenes PAID por su pasarela propia)" },
   // Ciclo de facturación de academia: trial de onboarding, grace de
   // lanzamiento para las existentes y gracia por mora antes del bloqueo.
   { key: "academy_billing.trial_days", value: 15, description: "Días de trial de onboarding para academias nuevas (sin tarjeta upfront)" },

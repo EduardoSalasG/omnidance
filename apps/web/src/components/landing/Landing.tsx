@@ -36,6 +36,24 @@ const secondaryCtaClass =
 
 type LandingVariant = "dancer" | "academy" | "producer";
 
+// Bloque `costTable` del catálogo: `steps` solo lo declara academy
+// (flujo del dinero) y `planFees` solo producer (fee por plan); las
+// filas pueden llevar `costNote` como sufijo secundario del monto.
+type CostTableMessages = {
+  title: string;
+  lead: string;
+  perLabel: string;
+  steps?: { title: string; desc: string }[];
+  rows: { method: string; cost: string; costNote?: string; gain: string }[];
+  planFees?: {
+    label: string;
+    managedLabel: string;
+    ownLabel: string;
+    tiers: { name: string; managed: string; own: string }[];
+  };
+  note: string;
+};
+
 // Copy por audiencia: `landing` es la base, `landingPro` aporta los
 // defaults pro (CTAs, strip semanal, form) y la variante sobrescribe.
 
@@ -147,6 +165,24 @@ export async function Landing({
       : variant === "producer"
         ? m.landingProducer.faq
         : null;
+  // Sección "por cada $10.000" por medio de pago: el framing vende la
+  // automatización del trabajo manual, no el descuento. Los montos del
+  // catálogo i18n derivan de PlatformParam (academia: academy_fee.net_pct
+  // 1,0% neto + IVA = 1,19% → $119; productor: fees.managed_allin_pct
+  // 9,14% → $914 gestionado, 9,14 − 3,19 card = 5,95% → $595 por métodos
+  // propios/pasarela propia; tiers Standard ~7,36%→$736 / ~4,17%→$417 y
+  // Pro ~6,17%→$617 / ~2,98%→$298). Fuente: apps/api/prisma/seed-common.ts
+  // y apps/api/src/common/fee-breakdown.ts (ownMethodRate).
+  // `steps` solo existe en el catálogo de academy (flujo del dinero) y
+  // `planFees` solo en el de producer (fee por plan): ambos opcionales.
+  const costTable: CostTableMessages | null =
+    variant === "academy"
+      ? m.landingAcademy.costTable
+      : variant === "producer"
+        ? m.landingProducer.costTable
+        : null;
+  // Binding local: el narrowing de TS no llega al map anidado del JSX.
+  const planFees = costTable?.planFees;
   // El secundario es exploración: cada audiencia mira el directorio que
   // le habla (academias para academias, cartelera para el resto). Anónimo
   // rebota a /login?next= - el mismo funnel del secundario dancer.
@@ -409,6 +445,129 @@ export async function Landing({
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: productLd }}
           />
+        )}
+
+        {/* ─── Solo pro: "por cada $10.000" por medio de pago, como
+            cards (costo primario + quién hace el trabajo). Compara el
+            costo de automatizar contra el trabajo manual que reemplaza
+            (no contra "cuánto te queda"). Academy abre con el flujo del
+            dinero en pasos; producer cierra con la banda de fee por
+            plan, que es su argumento fuerte. ─── */}
+        {costTable && (
+          <section
+            aria-labelledby="cost-table-title"
+            className="border-t border-ink/5 px-6 py-16 sm:py-20 lg:py-24"
+          >
+            <div className="mx-auto max-w-4xl">
+              <h2
+                id="cost-table-title"
+                className="text-center text-2xl font-bold tracking-tight sm:text-3xl"
+              >
+                {costTable.title}
+              </h2>
+              <p className="mx-auto mt-3 max-w-xl text-center text-sm text-ink/60">
+                {costTable.lead}
+              </p>
+              <p className="mt-3 text-center text-sm font-semibold uppercase tracking-[0.2em] text-neon">
+                {costTable.perLabel}
+              </p>
+              {costTable.steps && (
+                <ol className="mx-auto mt-10 grid max-w-3xl gap-5 sm:grid-cols-3 sm:gap-4">
+                  {costTable.steps.map((step, i) => (
+                    <li
+                      key={step.title}
+                      className="flex items-start gap-3 sm:flex-col sm:items-center sm:gap-0 sm:text-center"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-neon/40 text-sm font-bold tabular-nums text-neon"
+                      >
+                        {i + 1}
+                      </span>
+                      <div>
+                        <h3 className="text-sm font-semibold sm:mt-3">
+                          {step.title}
+                        </h3>
+                        <p className="mt-1 text-xs leading-relaxed text-ink/60">
+                          {step.desc}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              <ul
+                className={`mt-10 grid gap-4 ${
+                  costTable.rows.length >= 3
+                    ? "sm:grid-cols-3"
+                    : "mx-auto max-w-3xl sm:grid-cols-2"
+                }`}
+              >
+                {costTable.rows.map((row) => (
+                  <li
+                    key={row.method}
+                    className="flex flex-col rounded-2xl border border-ink/10 bg-surface/60 p-6"
+                  >
+                    <p className="text-sm font-semibold">{row.method}</p>
+                    <p className="mt-3 flex flex-wrap items-baseline gap-x-2">
+                      <span className="text-3xl font-extrabold tabular-nums text-neon">
+                        {row.cost}
+                      </span>
+                      {row.costNote && (
+                        <span className="text-xs text-ink/50">
+                          {row.costNote}
+                        </span>
+                      )}
+                    </p>
+                    <p className="mt-3 text-sm leading-relaxed text-ink/60">
+                      {row.gain}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              {planFees && (
+                <div className="mt-10">
+                  <p className="text-center text-sm font-semibold text-neon">
+                    {planFees.label}
+                  </p>
+                  <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+                    {planFees.tiers.map((tier) => (
+                      <li
+                        key={tier.name}
+                        className="rounded-2xl border border-neon/40 bg-neon/5 p-6"
+                      >
+                        <p className="text-sm font-semibold">{tier.name}</p>
+                        <dl className="mt-3 flex gap-8">
+                          <div>
+                            <dt className="text-[11px] uppercase tracking-wide text-ink/50">
+                              {planFees.managedLabel}
+                            </dt>
+                            <dd className="mt-0.5 text-2xl font-extrabold tabular-nums">
+                              {tier.managed}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-[11px] uppercase tracking-wide text-ink/50">
+                              {planFees.ownLabel}
+                            </dt>
+                            <dd className="mt-0.5 text-2xl font-extrabold tabular-nums">
+                              {tier.own}
+                            </dd>
+                          </div>
+                        </dl>
+                        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-neon">
+                          {costTable.perLabel}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="mt-4 text-center text-xs leading-relaxed text-ink/50">
+                {costTable.note}
+              </p>
+            </div>
+          </section>
         )}
 
         {/* ─── Solo pro: FAQ de objeciones de compra (academy/

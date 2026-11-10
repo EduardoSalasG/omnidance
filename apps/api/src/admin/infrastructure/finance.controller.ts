@@ -11,6 +11,7 @@ import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { ParamsService } from "../../params/params.service";
 import { PayoutSettlementService } from "../../payments/application/payout-settlement.service";
+import { AcademyCollectionsService } from "../../payments/application/academy-collections.service";
 import {
   decodeClassRef,
   decodeMembershipRef,
@@ -86,6 +87,7 @@ export class AdminFinanceController {
     private readonly prisma: PrismaService,
     private readonly params: ParamsService,
     private readonly settlement: PayoutSettlementService,
+    private readonly collections: AcademyCollectionsService,
   ) {}
 
   @Get("summary")
@@ -341,6 +343,24 @@ export class AdminFinanceController {
    * Tiers "a convenir" (ENTERPRISE / PRO_BIG) → customContracts, fuera
    * del MRR. Funnel de estados no-ACTIVE aparte.
    */
+  /**
+   * Liquidaciones mensuales del take BYO de academias (spec
+   * academy-byo-collections): statements emitidos (take neto + IVA
+   * cobrado por PLATFORM_CHARGE) cross-academy para /admin/finanzas.
+   * Filtros opcionales: academyId, status (PENDING|PAID|VOID).
+   */
+  @Get("academy-statements")
+  @ApiQuery({ name: "academyId", required: false })
+  @ApiQuery({ name: "status", required: false })
+  async academyStatements(
+    @Query("academyId") academyId?: string,
+    @Query("status") status?: string,
+  ) {
+    return {
+      statements: await this.collections.listAdmin({ academyId, status }),
+    };
+  }
+
   @Get("mrr")
   async mrr() {
     const subs = await this.prisma.platformSubscription.findMany({

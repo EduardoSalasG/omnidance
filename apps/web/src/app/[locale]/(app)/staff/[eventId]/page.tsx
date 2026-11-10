@@ -1109,6 +1109,7 @@ export default function DoorConsolePage(
             title: tt("s3.title"),
             description: tt("s3.desc"),
             side: "bottom",
+            align: "end",
           },
           {
             element: "[data-tour='staff-checkins']",

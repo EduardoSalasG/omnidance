@@ -6,7 +6,10 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, RefreshIcon, SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
-import { ImportCard } from "@/components/academy/import-section";
+import {
+  ImportCard,
+  ImportHistory,
+} from "@/components/academy/import-section";
 import { academyTierHas } from "@/lib/academy-features";
 import { ConsoleHeader } from "@/components/console/console-header";
 import type { AcademyCap } from "@/components/academy/use-academy-access";
@@ -54,6 +57,9 @@ function ImportSection({
   const tc = useTranslations("common");
   const [phase, setPhase] = useState<Phase>("loading");
   const [access, setAccess] = useState<AccessInfo | null>(null);
+  // Sube tras cada corrida real: el historial refetchea y la corrida
+  // nueva aparece sin recargar.
+  const [histKey, setHistKey] = useState(0);
 
   // GET /academies/:id/access directo (no useAcademyAccess): el hook
   // devuelve null tanto mientras carga como si la llamada falla; esta
@@ -123,8 +129,26 @@ function ImportSection({
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-ink/60">{t("desc")}</p>
-      {canStudents && <ImportCard academyId={academyId} kind="students" />}
-      {canSchedule && <ImportCard academyId={academyId} kind="schedule" />}
+      {canStudents && (
+        <ImportCard
+          academyId={academyId}
+          kind="students"
+          onImported={() => setHistKey((k) => k + 1)}
+        />
+      )}
+      {canSchedule && (
+        <ImportCard
+          academyId={academyId}
+          kind="schedule"
+          onImported={() => setHistKey((k) => k + 1)}
+        />
+      )}
+      {/* El endpoint de corridas gatea por cap students: solo se ofrece
+          el historial a quien puede verlo (staff con solo schedule no
+          tiene acceso al endpoint - 403 garantizado). */}
+      {canStudents && (
+        <ImportHistory academyId={academyId} refreshKey={histKey} />
+      )}
     </div>
   );
 }

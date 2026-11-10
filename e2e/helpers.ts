@@ -41,7 +41,9 @@ export const TOUR_KEYS = [
   "academia-clases",
   "academia-cobros",
   "academia-owner",
+  "academia-series",
   "academias",
+  "admin",
   "amigos",
   "analitica",
   "bailes",
@@ -57,6 +59,7 @@ export const TOUR_KEYS = [
   "productor",
   "productor-cobros",
   "productor-colaboradores",
+  "productor-eventos",
   "qr",
   "soporte",
   "staff",
@@ -86,6 +89,31 @@ export async function dismissTours(page: Page) {
     .first()
     .waitFor({ state: "detached", timeout: 2_000 })
     .catch(() => {});
+}
+
+// Navegación tolerante al dev server: `next dev` dispara un full reload
+// de Fast Refresh al recompilar (archivos cambiados en el working tree
+// o compile on-demand de otra ruta golpeada en paralelo por otro
+// worker) y cancela un page.goto en vuelo con "interrupted by another
+// navigation". Es un artefacto de dev, no comportamiento de la app:
+// reintentar la navegación es seguro - si el destino redirigiera de
+// verdad, las aserciones del test lo validan igual. En prod (next
+// start) no hay HMR y el retry nunca se ejerce.
+export async function gotoStable(
+  page: Page,
+  url: string,
+  options?: Parameters<Page["goto"]>[1],
+) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await page.goto(url, options);
+    } catch (e) {
+      const interrupted =
+        e instanceof Error &&
+        /interrupted by another navigation|ERR_ABORTED/i.test(e.message);
+      if (!interrupted || attempt >= 1) throw e;
+    }
+  }
 }
 
 // Segundo contexto dentro de un test multi-actor: el ConsentBanner

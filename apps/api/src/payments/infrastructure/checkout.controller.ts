@@ -27,6 +27,8 @@ import {
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import {
+  AcademyCollectionsBlockedError,
+  AcademyGatewayUnavailableError,
   AcademyNotFoundError,
   AcademyUnavailableError,
   CheckoutService,
@@ -203,6 +205,17 @@ export class CheckoutController {
     throw new BadRequestException({ error: e.code, message: e.message });
   }
 
+  /**
+   * Errores BYO de academia (spec academy-byo-collections): 400 con
+   * código estable - la UI distingue "solo claim manual" de un fallo
+   * genérico del checkout.
+   */
+  private static byo(
+    e: AcademyGatewayUnavailableError | AcademyCollectionsBlockedError,
+  ): never {
+    throw new BadRequestException({ error: e.code, message: e.message });
+  }
+
   @Post("ticket")
   @UseGuards(SessionGuard)
   async ticket(@Req() req: Request, @Body() dto: CheckoutTicketDto) {
@@ -316,6 +329,12 @@ export class CheckoutController {
       if (e instanceof AcademyUnavailableError) {
         CheckoutController.unavailable(e);
       }
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
+      }
       if (e instanceof PlanNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
@@ -325,8 +344,8 @@ export class CheckoutController {
 
   /**
    * Plan de academia: cobra el precio del plan en DB y el webhook emite/
-   * renueva el Enrollment al PAID. Planes inactivos no se venden; TRIAL
-   * se vende solo con price > 0 (la prueba gratis es asignación staff).
+   * renueva el Enrollment al PAID. Planes inactivos no se venden y los
+   * planes gratis tampoco (price <= 0): los asigna el staff.
    */
   @Post("membership")
   @UseGuards(SessionGuard)
@@ -339,6 +358,12 @@ export class CheckoutController {
       }
       if (e instanceof AcademyUnavailableError) {
         CheckoutController.unavailable(e);
+      }
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
       }
       if (e instanceof PlanNotPurchasableError) {
         throw new BadRequestException(e.message);
@@ -364,6 +389,12 @@ export class CheckoutController {
       }
       if (e instanceof AcademyUnavailableError) {
         CheckoutController.unavailable(e);
+      }
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
       }
       if (e instanceof ClassNotPurchasableError) {
         throw new BadRequestException(e.message);
@@ -395,6 +426,12 @@ export class CheckoutController {
       if (e instanceof AcademyUnavailableError) {
         CheckoutController.unavailable(e);
       }
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
+      }
       if (e instanceof ClassNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
@@ -421,6 +458,12 @@ export class CheckoutController {
       }
       if (e instanceof AcademyUnavailableError) {
         CheckoutController.unavailable(e);
+      }
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
       }
       if (e instanceof PrivateClassNotPurchasableError) {
         throw new BadRequestException(e.message);
@@ -449,6 +492,12 @@ export class CheckoutController {
       if (e instanceof AcademyUnavailableError) {
         CheckoutController.unavailable(e);
       }
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
+      }
       if (e instanceof PrivateClassNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
@@ -465,15 +514,28 @@ export class CheckoutController {
    */
   @Post("membership-subscription")
   @UseGuards(SessionGuard)
-  membershipSubscription(
+  async membershipSubscription(
     @Req() req: Request,
     @Body() dto: CheckoutMembershipSubscriptionDto,
   ) {
-    return this.subscriptions.subscribe(
-      req.person!.id,
-      dto.planId,
-      dto.acceptRecurring,
-      { paymentMethod: dto.paymentMethod, methodId: dto.methodId },
-    );
+    try {
+      return await this.subscriptions.subscribe(
+        req.person!.id,
+        dto.planId,
+        dto.acceptRecurring,
+        { paymentMethod: dto.paymentMethod, methodId: dto.methodId },
+      );
+    } catch (e) {
+      // BYO (spec academy-card-subs-byo): mismos códigos que el
+      // checkout one-off - sin pasarela propia o cobranza bloqueada la
+      // alta CARD no existe y el front ofrece TRANSFER.
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
+      }
+      throw e;
+    }
   }
 }

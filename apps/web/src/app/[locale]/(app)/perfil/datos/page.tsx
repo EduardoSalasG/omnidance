@@ -60,10 +60,7 @@ const LEVEL_ORDER: Record<string, number> = {
 
 const ENROLLMENT_VARIANT: Record<string, "neon" | "outline" | "muted"> = {
   ACTIVE: "neon",
-  TRIAL: "outline",
-  ONLINE: "outline",
-  PAUSED: "muted",
-  FROZEN: "muted",
+  INACTIVE: "muted",
 };
 
 // Fila label → valor dentro del card de datos personales.

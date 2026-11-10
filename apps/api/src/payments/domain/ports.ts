@@ -337,6 +337,16 @@ export interface SubscriptionProvider {
        * Flow (CLP-only) y Stub la ignoran.
        */
       currency?: string;
+      /**
+       * Referencia externa de la sub local (spec
+       * mercadopago-subscriptions): en el contrato pending de MP la
+       * suscripción remota (preapproval) ya existe - creada en
+       * registerCustomerCard con `external_reference` = id local - y
+       * este método es su lookup determinístico, jamás un segundo
+       * create. Providers con plan+create real (Flow/Stub/Stripe) lo
+       * ignoran.
+       */
+      externalRef?: string;
     },
     opts?: SubscriptionCallOpts,
   ): Promise<RemoteSubscription>;
@@ -345,6 +355,21 @@ export interface SubscriptionProvider {
     subscriptionId: string,
     opts?: SubscriptionCallOpts,
   ): Promise<RemoteSubscription>;
+
+  /**
+   * Reprice in-place del cargo recurrente (spec
+   * mercadopago-subscriptions): los motores sin plan remoto (MP
+   * preapproval) actualizan el monto de la sub viva en vez del swap
+   * cancel+recreate del drift-check - una remota cancelada en esos
+   * motores no se reactiva nunca. Opcional: los consumers verifican
+   * `typeof provider.repriceSubscription === "function"` y caen al
+   * swap cuando el método falta.
+   */
+  repriceSubscription?(
+    subscriptionId: string,
+    p: { amount: number; currency?: string },
+    opts?: SubscriptionCallOpts,
+  ): Promise<void>;
 
   /**
    * Cargo on-demand al customer (spec overdue-invoice-collect): cobra

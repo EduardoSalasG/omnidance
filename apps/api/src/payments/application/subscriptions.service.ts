@@ -34,6 +34,11 @@ import { PaymentSettlementService } from "./payment-settlement.service";
 import { GatewayTransactionsService } from "../infrastructure/gateway-transactions.service";
 import { ensureFlowCustomer } from "./flow-customer";
 import { AcademyPromosService } from "./academy-promos.service";
+import { GatewayAccountsService } from "./gateway-accounts.service";
+import {
+  AcademyCollectionsBlockedError,
+  AcademyGatewayUnavailableError,
+} from "./checkout.service";
 import {
   academyPromoPlanId,
   membershipBasePlanId,
@@ -42,7 +47,7 @@ import {
 
 // PlanType recurrente → interval_count de Flow (interval=3 mensual fijo):
 // MONTHLY cobra cada mes, QUARTERLY cada 3, SEMIANNUAL cada 6.
-// SINGLE/CLASS_PACK/PERIOD/TRIAL no son suscribibles (pago único / staff).
+// SINGLE/CLASS_PACK/PERIOD no son suscribibles (pago único / staff).
 const INTERVAL_COUNT: Record<string, number> = {
   MONTHLY: 1,
   QUARTERLY: 3,
@@ -138,12 +143,20 @@ function toPublicSub(s: SubRow) {
 
 /**
  * Suscripciones recurrentes de planes de academia sobre el motor nativo
- * de Flow (SubscriptionProvider). El primer cobro lo ejecuta Flow al
- * `subscription/create` (subscription_start = hoy); las renovaciones se
- * liquidan acá vía `reconcileSubscription` - cada invoice pagado genera
- * un Payment `mem_<planId>_<invoiceId>` que pasa por
- * `PaymentSettlementService.settleMembership` (misma fuente de verdad
- * que el checkout manual: extiende endsAt, emite eventos, notifica).
+ * de la pasarela (SubscriptionProvider). El primer cobro lo ejecuta el
+ * proveedor al `subscription/create` (subscription_start = hoy); las
+ * renovaciones se liquidan acá vía `reconcileSubscription` - cada
+ * invoice pagado genera un Payment `mem_<planId>_<invoiceId>` que pasa
+ * por `PaymentSettlementService.settleMembership` (misma fuente de
+ * verdad que el checkout manual: extiende endsAt, emite eventos,
+ * notifica).
+ *
+ * Scope del proveedor (spec academy-card-subs-byo): una sub con
+ * `gatewayAccountId` non-null opera SIEMPRE sobre el adaptador de esa
+ * cuenta BYO de la academia (customer/plan espejo/remoto en SU
+ * proveedor, take `academy_fee.net_pct` congelado por Payment); null =
+ * provider de plataforma por moneda (subs legacy pre-BYO). Nuevas subs
+ * CARD solo nacen con cuenta propia - sin ella queda el alta TRANSFER.
  *
  * Funciona con cualquier gateway que implemente SubscriptionProvider
  * (Flow en sandbox/prod; StubGateway en dev - simula el motor completo
@@ -163,6 +176,7 @@ export class SubscriptionsService {
     private readonly academyPromos: AcademyPromosService,
     @Inject(PAYMENT_GATEWAYS)
     private readonly gateways: GatewayRegistry,
+    private readonly accounts: GatewayAccountsService,
   ) {}
 
   /**
@@ -227,19 +241,92 @@ export class SubscriptionsService {
   }
 
   /**
+   * Provider de la SUB (spec academy-card-subs-byo, D1): única fuente
+   * de resolución de TODA llamada remota. `gatewayAccountId` non-null →
+   * adaptador de esa `ActorGatewayAccount` con capability
+   * SubscriptionProvider; null → provider de plataforma por moneda.
+   * Fail-closed: cuenta inexistente/DISABLED o sin motor produce error
+   * explícito, jamás cae en silencio a credenciales de plataforma.
+   */
+  private async providerFor(sub: {
+    gatewayAccountId: string | null;
+    currency?: string | null;
+  }): Promise<{
+    provider: SubscriptionProvider;
+    name: string;
+    accountId: string | null;
+  }> {
+    if (sub.gatewayAccountId) {
+      const { gateway } = await this.accounts.adapterFor(
+        sub.gatewayAccountId,
+      );
+      if (
+        typeof (gateway as Partial<SubscriptionProvider>)
+          .createSubscription !== "function"
+      ) {
+        throw new BadRequestException(
+          "la cuenta de la academia no tiene motor de suscripciones",
+        );
+      }
+      return {
+        provider: gateway as unknown as SubscriptionProvider,
+        name: gateway.name,
+        accountId: sub.gatewayAccountId,
+      };
+    }
+    const { provider, name } = await this.provider(sub.currency ?? "CLP");
+    return { provider, name, accountId: null };
+  }
+
+  /**
+   * Take de cobranza BYO congelado por Payment (spec
+   * academy-card-subs-byo, D6): `amount × academy_fee.net_pct` (default
+   * 1,0 = 1%) - misma regla que el checkout one-off. Solo payments de
+   * subs con cuenta propia; viaja en el statement del mes.
+   */
+  private async academyTake(
+    amount: number,
+  ): Promise<{ academyTakeRate: number; academyTakeClp: number }> {
+    const rate = await this.params.getNumber("academy_fee.net_pct", 1.0);
+    return {
+      academyTakeRate: rate,
+      academyTakeClp: Math.round((amount * rate) / 100),
+    };
+  }
+
+  /**
    * Clave del espejo remoto por gateway+moneda (spec multipais-currency):
    * `remoteRefs` guarda "<GATEWAY>:<CURRENCY>" → planId remoto para los
    * proveedores no-Flow; el espejo Flow/CLP sigue en `flowPlanId`.
+   * Con cuenta BYO la clave se namespacetea
+   * "<GATEWAY>:<accountId>:<CURRENCY>" - el espejo vive en el proveedor
+   * DE LA ACADEMIA y el mismo plan puede tener espejos en N cuentas.
    */
-  private remoteRefKey(gateway: string, currency: string): string {
-    return `${gateway.toUpperCase()}:${currency.toUpperCase()}`;
+  private remoteRefKey(
+    gateway: string,
+    currency: string,
+    accountId?: string | null,
+  ): string {
+    const base = `${gateway.toUpperCase()}:${currency.toUpperCase()}`;
+    return accountId
+      ? `${gateway.toUpperCase()}:${accountId}:${currency.toUpperCase()}`
+      : base;
   }
 
   private remotePlanId(
     plan: { flowPlanId: string | null; remoteRefs?: unknown },
     gateway: string,
     currency: string,
+    accountId?: string | null,
   ): string | null {
+    if (accountId) {
+      const refs = (plan.remoteRefs ?? null) as Record<
+        string,
+        unknown
+      > | null;
+      const id = refs?.[this.remoteRefKey(gateway, currency, accountId)];
+      return typeof id === "string" && id ? id : null;
+    }
     if (currency.toUpperCase() === "CLP") return plan.flowPlanId;
     const refs = (plan.remoteRefs ?? null) as Record<string, unknown> | null;
     const id = refs?.[this.remoteRefKey(gateway, currency)];
@@ -247,16 +334,18 @@ export class SubscriptionsService {
   }
 
   /**
-   * Persiste el id del espejo base materializado: CLP → flowPlanId
-   * (compat); otra moneda → remoteRefs["<GW>:<CUR>"] (merge del mapa).
+   * Persiste el id del espejo base materializado: CLP sin cuenta →
+   * flowPlanId (compat); cualquier otro scope → remoteRefs con la clave
+   * namespacetea que corresponda (merge del mapa).
    */
   private async markBaseMirror(
     planId: string,
     gateway: string,
     currency: string,
     remotePlanId: string,
+    accountId?: string | null,
   ): Promise<void> {
-    if (currency.toUpperCase() === "CLP") {
+    if (!accountId && currency.toUpperCase() === "CLP") {
       await this.prisma.membershipPlan
         .update({ where: { id: planId }, data: { flowPlanId: remotePlanId } })
         .catch(() => {});
@@ -267,46 +356,89 @@ export class SubscriptionsService {
       select: { remoteRefs: true },
     });
     const refs = { ...((cur?.remoteRefs as Record<string, string>) ?? {}) };
-    refs[this.remoteRefKey(gateway, currency)] = remotePlanId;
+    refs[this.remoteRefKey(gateway, currency, accountId)] = remotePlanId;
     await this.prisma.membershipPlan
       .update({ where: { id: planId }, data: { remoteRefs: refs } })
       .catch(() => {});
   }
 
   /**
-   * plans/edit - empuja nombre/precio al plan espejo de Flow cuando
+   * plans/edit - empuja nombre/precio al plan espejo remoto cuando
    * staff edita el plan local (PATCH /academies/:id/plans/:planId).
    * No-op si el plan aún no tiene espejo (el primer subscribe lo crea
    * con los valores vigentes) o el gateway no implementa
    * SubscriptionProvider - en ambos casos no hay nada que sincronizar.
+   *
+   * Alcance (spec academy-card-subs-byo): el espejo de plataforma
+   * (`flowPlanId`, provider por param) y cada espejo por cuenta
+   * (`remoteRefs["<GW>:<accountId>:<CUR>"]`, adaptador por
+   * `adapterFor`). Una cuenta apagada o sin motor se salta - su espejo
+   * queda inerte con la cuenta y no bloquea la edición local.
    *
    * El caller lo ejecuta ANTES del update local: si Flow rechaza, la
    * fila local queda intacta y ambos lados siguen consistentes (la
    * llamada queda auditada en GatewayTransaction igual).
    */
   async syncMirrorPlan(
-    plan: { id?: string; flowPlanId: string | null; academy: { name: string } },
+    plan: {
+      id?: string;
+      flowPlanId: string | null;
+      remoteRefs?: unknown;
+      academy: { name: string };
+    },
     next: { name: string; price: number },
   ): Promise<void> {
+    const remoteName = `${plan.academy.name} - ${next.name}`;
+    let platformSynced = false;
+    const syncedAccounts: string[] = [];
     const gw = await this.subscriptionGateway();
-    if (!plan.flowPlanId || !gw) return;
-    // Sin cargo de servicio en el monto espejo (modelo SaaS - spec
-    // academy-saas-billing): Flow cobra al alumno solo plan.price; el
-    // costo de pasarela se liquida en el payout de la academia.
-    await (gw as unknown as SubscriptionProvider).syncPlan(
-      {
-        planId: plan.flowPlanId,
-        name: `${plan.academy.name} - ${next.name}`,
-        amount: next.price,
-      },
-      { correlationId: randomUUID() },
-    );
+    if (plan.flowPlanId && gw) {
+      // Sin cargo de servicio en el monto espejo (modelo SaaS - spec
+      // academy-saas-billing): Flow cobra al alumno solo plan.price; el
+      // costo de pasarela se liquida en el payout de la academia.
+      await (gw as unknown as SubscriptionProvider).syncPlan(
+        { planId: plan.flowPlanId, name: remoteName, amount: next.price },
+        { correlationId: randomUUID() },
+      );
+      platformSynced = true;
+    }
+    // Espejos por cuenta (spec academy-card-subs-byo): clave de 3
+    // segmentos "<GW>:<accountId>:<CUR>" - las planas "<GW>:<CUR>" son
+    // de plataforma y no se sincronizan acá (mismo alcance previo).
+    const refs = (plan.remoteRefs ?? null) as Record<string, unknown> | null;
+    for (const [key, remoteId] of Object.entries(refs ?? {})) {
+      const parts = key.split(":");
+      if (
+        parts.length !== 3 ||
+        typeof remoteId !== "string" ||
+        remoteId === ""
+      ) {
+        continue;
+      }
+      const resolved = await this.accounts
+        .adapterFor(parts[1])
+        .catch(() => null);
+      const accountGw = resolved?.gateway;
+      if (
+        !accountGw ||
+        typeof (accountGw as Partial<SubscriptionProvider>).syncPlan !==
+          "function"
+      ) {
+        continue;
+      }
+      await (accountGw as unknown as SubscriptionProvider).syncPlan(
+        { planId: remoteId, name: remoteName, amount: next.price },
+        { correlationId: randomUUID() },
+      );
+      syncedAccounts.push(parts[1]);
+    }
     // El precio del espejo base ya cambió in-place (spec member-promos):
     // se actualiza planChargeClp en las subs que cobran por ese espejo
     // para que el drift-check no agenda un reprice redundante. Las subs
     // bajo espejo de promo quedan intactas - su reprice aplica al nuevo
-    // precio resuelto (promo sobre el plan editado).
-    if (plan.id) {
+    // precio resuelto (promo sobre el plan editado). Scope por cuenta:
+    // solo las subs cuyo espejo se sincronizó de verdad.
+    if (plan.id && (platformSynced || syncedAccounts.length)) {
       await this.prisma.membershipSubscription
         .updateMany({
           where: {
@@ -314,6 +446,12 @@ export class SubscriptionsService {
             academyPromoId: null,
             pendingReprice: false,
             status: { in: ["ACTIVE", "CANCEL_PENDING"] },
+            OR: [
+              ...(platformSynced ? [{ gatewayAccountId: null }] : []),
+              ...(syncedAccounts.length
+                ? [{ gatewayAccountId: { in: syncedAccounts } }]
+                : []),
+            ],
           },
           data: { planChargeClp: next.price },
         })
@@ -347,6 +485,9 @@ export class SubscriptionsService {
     /** Provider+moneda del cobro (spec multipais-currency). */
     providerName = "FLOW",
     currency = "CLP",
+    /** Cuenta BYO del cobro - namespacetea el espejo base (spec
+     *  academy-card-subs-byo). */
+    accountId: string | null = null,
   ): Promise<{
     planId: string;
     name: string;
@@ -367,7 +508,7 @@ export class SubscriptionsService {
     if (!promo) {
       return {
         planId:
-          this.remotePlanId(plan, providerName, currency) ??
+          this.remotePlanId(plan, providerName, currency, accountId) ??
           membershipBasePlanId(plan.id),
         name: label,
         amount: plan.price,
@@ -447,11 +588,28 @@ export class SubscriptionsService {
     if (opts?.paymentMethod === "TRANSFER") {
       return this.subscribeTransfer(personId, plan, opts.methodId);
     }
-    // Moneda del plan (spec multipais-currency): fija el provider del
-    // cobro y el snapshot de la sub. Capability check ANTES de la tx:
-    // sin motor para la moneda no se crea una PENDING_CARD muerta.
+    // Motor per-account (spec academy-card-subs-byo): la sub CARD cobra
+    // por la pasarela propia de la academia - sin cuenta BYO o sin
+    // motor de suscripciones solo queda el alta TRANSFER. El bloqueo de
+    // cobranza rechaza igual que el checkout one-off; el claim manual
+    // sigue disponible (vuelve al cliente a elegir TRANSFER).
     const planCurrency = plan.currency ?? "CLP";
-    const { provider, name: providerName } = await this.provider(planCurrency);
+    if (plan.academy.collectionsBlockedAt != null) {
+      throw new AcademyCollectionsBlockedError();
+    }
+    const own = await this.accounts.activeForAcademy(plan.academyId);
+    if (!own) throw new AcademyGatewayUnavailableError();
+    if (
+      typeof (own.gateway as Partial<SubscriptionProvider>)
+        .createSubscription !== "function"
+    ) {
+      throw new AcademyGatewayUnavailableError(
+        "esta academia no puede cobrar suscripciones con tarjeta",
+      );
+    }
+    const provider = own.gateway as unknown as SubscriptionProvider;
+    const providerName = own.gateway.name;
+    const gatewayAccountId = own.account.id;
 
     // Sección crítica (serializada por advisory lock): re-check de sub
     // viva + elección de la PENDING_CARD. Una PENDING_CARD FRESCA del
@@ -485,8 +643,17 @@ export class SubscriptionsService {
       const fresh =
         existing != null &&
         Date.now() - existing.createdAt.getTime() < PENDING_CARD_TTL_MS;
+      // La PENDING_CARD reutilizable es la de ESTA cuenta (spec
+      // academy-card-subs-byo): una fresca de otra cuenta (la academia
+      // ganó/rotó su BYO dentro del TTL) no puede reutilizarse - su
+      // registerUrl apunta al disclaimer de la cuenta vieja.
+      const accountMismatch =
+        existing != null &&
+        (existing.gatewayAccountId ?? null) !== gatewayAccountId;
       const reuse =
-        existing?.status === "PENDING_CARD" && fresh ? existing : null;
+        existing?.status === "PENDING_CARD" && fresh && !accountMismatch
+          ? existing
+          : null;
       if (existing && !reuse) {
         const replaceable =
           existing.status === "PENDING_CARD" ||
@@ -497,7 +664,9 @@ export class SubscriptionsService {
           existing.status === "PENDING_PAYMENT";
         if (
           !replaceable ||
-          (fresh && existing.status !== "PENDING_PAYMENT")
+          (fresh &&
+            existing.status !== "PENDING_PAYMENT" &&
+            !(existing.status === "PENDING_CARD" && accountMismatch))
         ) {
           throw new ConflictException(
             "ya tienes una suscripción a este plan",
@@ -572,6 +741,9 @@ export class SubscriptionsService {
           planId: plan.id,
           academyId: plan.academyId,
           currency: planCurrency,
+          // Scope del cobro sellado al nacer (spec academy-card-subs-byo):
+          // customer/espejo/sub remota y reconcile viven en ESTA cuenta.
+          gatewayAccountId,
         },
       });
     });
@@ -588,9 +760,15 @@ export class SubscriptionsService {
       personId,
       providerName,
       planCurrency,
+      gatewayAccountId,
     );
     const flowPlanId = charge.planId;
-    const baseMirrorId = this.remotePlanId(plan, providerName, planCurrency);
+    const baseMirrorId = this.remotePlanId(
+      plan,
+      providerName,
+      planCurrency,
+      gatewayAccountId,
+    );
     if (flowPlanId !== baseMirrorId) {
       // Sin cargo de servicio en el monto espejo (modelo SaaS - spec
       // academy-saas-billing): el proveedor cobra al alumno solo el
@@ -613,18 +791,21 @@ export class SubscriptionsService {
           providerName,
           planCurrency,
           flowPlanId,
+          gatewayAccountId,
         );
       }
     }
 
-    // Customer en Flow - lazy create (helper compartido con las subs de
-    // plataforma); sin email no se puede registrar.
+    // Customer en la cuenta del cobro - lazy create (helper compartido
+    // con las subs de plataforma, clave namespacetea por cuenta); sin
+    // email no se puede registrar.
     const { customerId } = await ensureFlowCustomer(
       this.prisma,
       provider,
       providerName,
       personId,
       { correlationId },
+      gatewayAccountId,
     );
 
     const customer = await provider.getCustomer(customerId, { correlationId });
@@ -632,12 +813,25 @@ export class SubscriptionsService {
       const { registerUrl } = await provider.registerCustomerCard(
         {
           customerId,
-          returnUrl: `${this.apiUrl}/api/payments/flow/customer-return`,
+          // El retorno de la tarjeta vuelve scoped a la cuenta (spec
+          // academy-card-subs-byo, D3): customer-return resuelve el
+          // adaptador por `?account=` y activa la sub de ESA cuenta.
+          returnUrl: `${this.apiUrl}/api/payments/flow/customer-return?account=${gatewayAccountId}`,
           // Stripe Checkout mode=subscription resuelve el Price por
           // (planId, currency) - Flow/Stub ignoran los campos extra.
           planId: flowPlanId,
           currency: planCurrency,
-          metadata: { personId },
+          // Bag genérico de metadata (spec mercadopago-subscriptions):
+          // MP necesita subId (external_reference del preapproval),
+          // amount+intervalCount (auto_recurring) y reason; los demás
+          // providers los ignoran.
+          metadata: {
+            personId,
+            subId: sub.id,
+            amount: String(charge.amount),
+            intervalCount: String(charge.intervalCount),
+            reason: charge.name,
+          },
         },
         { correlationId },
       );
@@ -677,6 +871,7 @@ export class SubscriptionsService {
       planChargeClp: charge.amount,
       currency: planCurrency,
       customerId,
+      accountId: gatewayAccountId,
       correlationId,
     });
 
@@ -922,10 +1117,16 @@ export class SubscriptionsService {
       /** Moneda del cobro - resuelve el provider (multipais-currency). */
       currency: string;
       customerId: string;
+      /** Cuenta BYO dueña de la sub (spec academy-card-subs-byo) - null
+       *  = provider de plataforma. */
+      accountId: string | null;
       correlationId: string;
     },
   ): Promise<{ active: MembershipSubscription; fs: RemoteSubscription }> {
-    const { provider } = await this.provider(p.currency);
+    const { provider } = await this.providerFor({
+      gatewayAccountId: p.accountId,
+      currency: p.currency,
+    });
     let fs: RemoteSubscription;
     try {
       fs = await provider.createSubscription(
@@ -934,6 +1135,10 @@ export class SubscriptionsService {
           customerId: p.customerId,
           subscriptionStart: new Date().toISOString().slice(0, 10),
           currency: p.currency,
+          // Lookup determinístico en providers donde la remota ya
+          // existe (spec mercadopago-subscriptions: el preapproval lo
+          // creó registerCustomerCard con external_reference=subId).
+          externalRef: subId,
         },
         { correlationId: p.correlationId },
       );
@@ -1024,10 +1229,15 @@ export class SubscriptionsService {
       academyPromoId: string | null;
       planChargeClp: number;
       currency: string;
+      /** Cuenta BYO dueña de la sub (spec academy-card-subs-byo). */
+      accountId: string | null;
       correlationId: string;
     },
   ): Promise<{ active: MembershipSubscription; fs: RemoteSubscription }> {
-    const { provider } = await this.provider(p.currency);
+    const { provider } = await this.providerFor({
+      gatewayAccountId: p.accountId,
+      currency: p.currency,
+    });
     const fs = await provider
       .getSubscription(p.remoteId, { correlationId: p.correlationId })
       .catch(() => null);
@@ -1071,88 +1281,133 @@ export class SubscriptionsService {
    * suscripción PENDING_CARD más reciente del customer → ACTIVE.
    * Nunca lanza por estados esperados - el controller traduce a redirect.
    */
-  async customerReturn(token: string): Promise<CustomerReturnResult> {
+  async customerReturn(
+    token: string,
+    accountId?: string,
+  ): Promise<CustomerReturnResult> {
     const correlationId = randomUUID();
+    // Con ?account= (spec academy-card-subs-byo, D3) el retorno
+    // pertenece a la cuenta BYO de una academia: el adaptador DE ESA
+    // cuenta verifica el token y la PENDING_CARD a activar es la del
+    // person en esa misma cuenta. Sin cuenta → comportamiento de
+    // plataforma (subs legacy y previas al change).
+    const scopedGateway = accountId
+      ? (await this.accounts.adapterFor(accountId)).gateway
+      : null;
     await this.gatewayTx.record({
       provider:
-        (await this.subscriptionGateway())?.name ?? "UNCONFIGURED",
+        scopedGateway?.name ??
+        (await this.subscriptionGateway())?.name ??
+        "UNCONFIGURED",
       direction: "INBOUND_WEBHOOK",
       endpoint: "customer/register-return",
       correlationId,
       requestBody: { token },
       ok: true,
+      ...(accountId ? { gatewayAccountId: accountId } : {}),
     });
-    // El token del retorno no trae moneda ni provider: se prueba el
-    // provider del param (CLP) primero y luego el resto de los
-    // adaptadores con motor de suscripciones (spec multipais-currency,
-    // mismo patrón que PlatformSubscriptionsService.customerReturn) -
-    // el que reconozca el registro gana. Un token cs_… de Stripe
-    // Checkout mode=subscription nunca lo entiende Flow.
-    const primary = await this.subscriptionGateway();
-    const candidates: PaymentGateway[] = [];
-    if (primary) candidates.push(primary);
-    for (const name of this.gateways.names()) {
-      const gw = this.gateways.get(name);
-      if (
-        gw &&
-        gw !== primary &&
-        typeof (gw as Partial<SubscriptionProvider>).createSubscription ===
-          "function"
-      ) {
-        candidates.push(gw);
-      }
-    }
-    if (candidates.length === 0) {
-      throw new BadRequestException(
-        "el proveedor de suscripciones configurado no tiene motor de suscripciones",
-      );
-    }
-    let provider = candidates[0] as unknown as SubscriptionProvider;
-    let providerName = candidates[0].name;
+    let provider: SubscriptionProvider;
+    let providerName: string;
     let reg: {
       registered: boolean;
       customerId?: string;
       subscriptionId?: string;
     } = { registered: false };
-    for (const gw of candidates) {
-      try {
-        const r = await (
-          gw as unknown as SubscriptionProvider
-        ).getRegisterStatus(token, { correlationId });
-        if (r.registered && r.customerId) {
-          provider = gw as unknown as SubscriptionProvider;
-          providerName = gw.name;
-          reg = r;
-          break;
+    if (scopedGateway) {
+      provider = scopedGateway as unknown as SubscriptionProvider;
+      providerName = scopedGateway.name;
+      if (typeof provider.getRegisterStatus === "function") {
+        try {
+          reg = await provider.getRegisterStatus(token, { correlationId });
+        } catch {
+          // Token que la cuenta no reconoce - cae al ok:false de abajo.
         }
-      } catch {
-        // El token no pertenece a este proveedor - probar el siguiente.
+      }
+    } else {
+      // El token del retorno no trae moneda ni provider: se prueba el
+      // provider del param (CLP) primero y luego el resto de los
+      // adaptadores con motor de suscripciones (spec multipais-currency,
+      // mismo patrón que PlatformSubscriptionsService.customerReturn) -
+      // el que reconozca el registro gana. Un token cs_… de Stripe
+      // Checkout mode=subscription nunca lo entiende Flow.
+      const primary = await this.subscriptionGateway();
+      const candidates: PaymentGateway[] = [];
+      if (primary) candidates.push(primary);
+      for (const name of this.gateways.names()) {
+        const gw = this.gateways.get(name);
+        if (
+          gw &&
+          gw !== primary &&
+          typeof (gw as Partial<SubscriptionProvider>)
+            .createSubscription === "function"
+        ) {
+          candidates.push(gw);
+        }
+      }
+      if (candidates.length === 0) {
+        throw new BadRequestException(
+          "el proveedor de suscripciones configurado no tiene motor de suscripciones",
+        );
+      }
+      provider = candidates[0] as unknown as SubscriptionProvider;
+      providerName = candidates[0].name;
+      for (const gw of candidates) {
+        try {
+          const r = await (
+            gw as unknown as SubscriptionProvider
+          ).getRegisterStatus(token, { correlationId });
+          if (r.registered && r.customerId) {
+            provider = gw as unknown as SubscriptionProvider;
+            providerName = gw.name;
+            reg = r;
+            break;
+          }
+        } catch {
+          // El token no pertenece a este proveedor - probar el siguiente.
+        }
       }
     }
     if (!reg.registered || !reg.customerId) {
       return { ok: false, academyId: null };
     }
-    // Customer → person: mapa por proveedor (gatewayCustomerIds) con
-    // fallback a la columna legacy flowCustomerId para FLOW.
+    // Customer → person: con cuenta la clave es namespacetea
+    // "<GW>:<accountId>"; sin cuenta el mapa por proveedor
+    // (gatewayCustomerIds) + fallback a la columna legacy
+    // flowCustomerId para FLOW.
     const person = await this.prisma.person.findFirst({
-      where: {
-        OR: [
-          {
+      where: accountId
+        ? {
             gatewayCustomerIds: {
-              path: [providerName.toUpperCase()],
+              path: [`${providerName.toUpperCase()}:${accountId}`],
               equals: reg.customerId,
             },
+          }
+        : {
+            OR: [
+              {
+                gatewayCustomerIds: {
+                  path: [providerName.toUpperCase()],
+                  equals: reg.customerId,
+                },
+              },
+              ...(providerName.toUpperCase() === "FLOW"
+                ? [{ flowCustomerId: reg.customerId }]
+                : []),
+            ],
           },
-          ...(providerName.toUpperCase() === "FLOW"
-            ? [{ flowCustomerId: reg.customerId }]
-            : []),
-        ],
-      },
       select: { id: true },
     });
     if (!person) return { ok: false, academyId: null };
     const sub = await this.prisma.membershipSubscription.findFirst({
-      where: { personId: person.id, status: "PENDING_CARD" },
+      where: {
+        personId: person.id,
+        status: "PENDING_CARD",
+        // La sub activable vive en el mismo scope del retorno (spec
+        // academy-card-subs-byo): una PENDING_CARD de otra cuenta jamás
+        // se activa con el disclaimer de esta - customer/token no son
+        // intercambiables entre cuentas.
+        gatewayAccountId: accountId ?? null,
+      },
       orderBy: { createdAt: "desc" },
       include: {
         plan: {
@@ -1202,6 +1457,7 @@ export class SubscriptionsService {
       person.id,
       providerName,
       subCurrency,
+      sub.gatewayAccountId,
     );
     await provider.ensurePlan(
       {
@@ -1215,13 +1471,19 @@ export class SubscriptionsService {
     );
     if (
       charge.promoId === null &&
-      !this.remotePlanId(sub.plan, providerName, subCurrency)
+      !this.remotePlanId(
+        sub.plan,
+        providerName,
+        subCurrency,
+        sub.gatewayAccountId,
+      )
     ) {
       await this.markBaseMirror(
         sub.planId,
         providerName,
         subCurrency,
         charge.planId,
+        sub.gatewayAccountId,
       );
     }
     // La sesión de Stripe (Checkout mode=subscription) ya creó la sub
@@ -1232,6 +1494,7 @@ export class SubscriptionsService {
           academyPromoId: charge.promoId,
           planChargeClp: charge.amount,
           currency: subCurrency,
+          accountId: sub.gatewayAccountId,
           correlationId,
         })
       : await this.createRemoteSubscription(sub.id, {
@@ -1240,6 +1503,7 @@ export class SubscriptionsService {
           planChargeClp: charge.amount,
           currency: subCurrency,
           customerId: reg.customerId,
+          accountId: sub.gatewayAccountId,
           correlationId,
         });
     try {
@@ -1262,6 +1526,138 @@ export class SubscriptionsService {
   }
 
   /**
+   * Retorno GET del pagador desde el init_point de MercadoPago (spec
+   * mercadopago-subscriptions, D2): el back_url del preapproval trae
+   * `?account=<id>&sub=<subId>` horneados. A diferencia del
+   * customer-return de Flow no hay token ni resolución por customer -
+   * el subId identifica la fila local y la cuenta la amarra el query.
+   *
+   * Verificación del estado remoto REAL antes de activar (nunca a
+   * ciegas): getRegisterStatus(subId) consulta el preapproval por
+   * external_reference - `registered` solo cuando MP lo dejó
+   * `authorized`. Pending/rechazado/ausente → la sub queda
+   * PENDING_CARD y la cierra el webhook de suscripción o el retry del
+   * usuario (re-register dedup por external_reference).
+   */
+  async mpSubscriptionReturn(
+    subId: string,
+    accountId: string,
+  ): Promise<CustomerReturnResult> {
+    const correlationId = randomUUID();
+    const { gateway } = await this.accounts.adapterFor(accountId);
+    const provider = gateway as unknown as SubscriptionProvider;
+    await this.gatewayTx.record({
+      provider: gateway.name,
+      direction: "INBOUND_WEBHOOK",
+      endpoint: "mp/subscription-return",
+      correlationId,
+      requestBody: { sub: subId },
+      ok: true,
+      gatewayAccountId: accountId,
+    });
+    if (typeof provider.getRegisterStatus !== "function") {
+      return { ok: false, academyId: null };
+    }
+    const sub = await this.prisma.membershipSubscription.findUnique({
+      where: { id: subId },
+      include: {
+        plan: {
+          select: {
+            flowPlanId: true,
+            remoteRefs: true,
+            currency: true,
+            name: true,
+            type: true,
+            price: true,
+            academy: { select: { name: true } },
+          },
+        },
+      },
+    });
+    // La cuenta del retorno debe ser la dueña de la sub (misma regla
+    // cross-account del webhook): un back_url de otra cuenta jamás
+    // activa esta fila.
+    if (!sub || (sub.gatewayAccountId ?? null) !== accountId) {
+      return { ok: false, academyId: null };
+    }
+    if (sub.status === "ACTIVE" || sub.status === "CANCEL_PENDING") {
+      return { ok: true, academyId: sub.academyId };
+    }
+    if (sub.status !== "PENDING_CARD" && sub.status !== "ACTIVATING") {
+      return { ok: false, academyId: sub.academyId };
+    }
+    const reg = await provider
+      .getRegisterStatus(subId, { correlationId })
+      .catch(() => null);
+    if (!reg?.registered || !reg.subscriptionId) {
+      // MP aún procesa la autorización (o falló): la fila queda
+      // PENDING_CARD - el retry del usuario o el sweep la resuelven.
+      return { ok: false, academyId: sub.academyId };
+    }
+    // Claim PENDING_CARD→ACTIVATING (mismo patrón que customerReturn):
+    // un segundo hit del browser o un subscribe concurrente no puede
+    // duplicar la adopción. Ya ACTIVATING (retry tras crash entre el
+    // claim y el adopt) sigue - el adopt es condicional por status.
+    const claimed = await this.prisma.membershipSubscription.updateMany({
+      where: { id: sub.id, status: "PENDING_CARD" },
+      data: { status: "ACTIVATING" },
+    });
+    if (claimed.count === 0 && sub.status !== "ACTIVATING") {
+      const cur = await this.prisma.membershipSubscription.findUnique({
+        where: { id: sub.id },
+        select: { status: true },
+      });
+      return cur?.status === "ACTIVE" || cur?.status === "ACTIVATING"
+        ? { ok: cur.status === "ACTIVE", academyId: sub.academyId }
+        : { ok: false, academyId: sub.academyId };
+    }
+    const subCurrency = sub.plan.currency ?? "CLP";
+    const charge = await this.memberChargeSpec(
+      { ...sub.plan, id: sub.planId },
+      sub.academyId,
+      sub.personId,
+      gateway.name,
+      subCurrency,
+      sub.gatewayAccountId,
+    );
+    await provider.ensurePlan(
+      {
+        planId: charge.planId,
+        name: charge.name,
+        amount: charge.amount,
+        intervalCount: charge.intervalCount,
+        currency: subCurrency,
+      },
+      { correlationId },
+    );
+    const { active, fs } = await this.adoptRemoteSubscription(sub.id, {
+      remoteId: reg.subscriptionId,
+      academyPromoId: charge.promoId,
+      planChargeClp: charge.amount,
+      currency: subCurrency,
+      accountId: sub.gatewayAccountId,
+      correlationId,
+    });
+    try {
+      await this.reconcileSubscription(active, fs, "system");
+    } catch (e) {
+      this.logger.error(
+        `reconcile post-mp-return sub ${sub.id}: ${e instanceof Error ? e.message : e}`,
+      );
+    }
+    if (active.status === "ACTIVE") {
+      await this.notifications.notifySafe(sub.personId, {
+        category: "TRANSACTIONAL",
+        type: "membership.subscription_started",
+        title: "Suscripción activa",
+        body: `${sub.plan.name} · ${sub.plan.academy.name}`,
+        data: { subscriptionId: sub.id, academyId: sub.academyId },
+      });
+    }
+    return { ok: active.status === "ACTIVE", academyId: sub.academyId };
+  }
+
+  /**
    * urlCallback de los Flow-plans (plans/create lo registró): Flow avisa
    * eventos de suscripción (cobro, mora, cancelación). Registramos el
    * inbound y disparamos reconcileAll fire-and-forget - el endpoint
@@ -1273,18 +1669,32 @@ export class SubscriptionsService {
    * a Flow; exigir el token evita amplificación por POST arbitrarios.
    * El registro INBOUND se mantiene igual (evidencia del intento).
    */
-  async subscriptionWebhook(token: string | null): Promise<void> {
+  async subscriptionWebhook(
+    token: string | null,
+    accountId?: string,
+  ): Promise<void> {
+    // Con ?account= (spec academy-card-subs-byo, D4) el callback es el
+    // urlCallback horneado en el plan espejo de ESA cuenta BYO: el
+    // barrido queda limitado a sus subs y la auditoría se estampa con
+    // la cuenta. Sin cuenta → barrido de plataforma (comportamiento
+    // previo).
+    const providerName = accountId
+      ? await this.accounts
+          .adapterFor(accountId)
+          .then((r) => r.gateway.name)
+          .catch(() => "UNCONFIGURED")
+      : ((await this.subscriptionGateway())?.name ?? "UNCONFIGURED");
     await this.gatewayTx.record({
-      provider:
-        (await this.subscriptionGateway())?.name ?? "UNCONFIGURED",
+      provider: providerName,
       direction: "INBOUND_WEBHOOK",
       endpoint: "subscription/callback",
       correlationId: randomUUID(),
       requestBody: { token },
       ok: true,
+      ...(accountId ? { gatewayAccountId: accountId } : {}),
     });
     if (typeof token !== "string" || token.trim() === "") return;
-    void this.reconcileAll().catch((e) =>
+    void this.reconcileAll("reconcile", accountId).catch((e) =>
       this.logger.error(
         `reconcileAll post-webhook falló: ${e instanceof Error ? e.message : e}`,
       ),
@@ -1309,12 +1719,24 @@ export class SubscriptionsService {
    * sub usa ese remoteId y el dispatcher prueba el siguiente
    * consumidor.
    */
-  async handleBillingEvent(ev: BillingWebhookEvent): Promise<boolean> {
+  async handleBillingEvent(
+    ev: BillingWebhookEvent,
+    accountId?: string,
+  ): Promise<boolean> {
     if (!ev.subscriptionId) return false;
     const sub = await this.prisma.membershipSubscription.findUnique({
       where: { flowSubscriptionId: ev.subscriptionId },
     });
     if (!sub) return false;
+    // Consistencia cuenta↔sub (spec academy-card-subs-byo, D4 - misma
+    // regla cross-account del confirm de órdenes): la cuenta que
+    // notifica tiene que ser la dueña de la suscripción. Un evento de
+    // otra cuenta o de plataforma para esta sub se rechaza.
+    if ((sub.gatewayAccountId ?? null) !== (accountId ?? null)) {
+      throw new BadRequestException(
+        "la notificación no corresponde a la cuenta de la suscripción",
+      );
+    }
     const fs = remoteFromBillingEvent(ev, {
       subscriptionId: sub.flowSubscriptionId!,
       planId: sub.planId,
@@ -1347,20 +1769,23 @@ export class SubscriptionsService {
     if (!sub || sub.personId !== personId) {
       throw new NotFoundException("suscripción no encontrada");
     }
-    if (
-      sub.flowSubscriptionId &&
-      (await this.subscriptionGateway(sub.currency))
-    ) {
-      try {
-        const { provider } = await this.provider(sub.currency);
-        const fs = await provider.getSubscription(sub.flowSubscriptionId, {
-          correlationId: randomUUID(),
-        });
-        await this.reconcileSubscription(sub, fs);
-      } catch (e) {
-        this.logger.error(
-          `refresh sub ${id}: ${e instanceof Error ? e.message : e}`,
-        );
+    if (sub.flowSubscriptionId) {
+      // providerFor = adaptador de la cuenta de la sub (spec
+      // academy-card-subs-byo) o plataforma para legacy. Cuenta apagada
+      // o sin motor → estado local, sin refresh (fail-closed).
+      const resolved = await this.providerFor(sub).catch(() => null);
+      if (resolved) {
+        try {
+          const fs = await resolved.provider.getSubscription(
+            sub.flowSubscriptionId,
+            { correlationId: randomUUID() },
+          );
+          await this.reconcileSubscription(sub, fs);
+        } catch (e) {
+          this.logger.error(
+            `refresh sub ${id}: ${e instanceof Error ? e.message : e}`,
+          );
+        }
       }
     }
     const fresh = await this.prisma.membershipSubscription.findUnique({
@@ -1409,10 +1834,24 @@ export class SubscriptionsService {
       return { ok: true, status: "CANCELED", subscriptionId: sub.id };
     }
 
-    const { provider } = await this.provider(sub.currency);
-    await provider.cancelSubscription(sub.flowSubscriptionId, {
-      correlationId: randomUUID(),
-    });
+    // Cancel remota por el adaptador de la cuenta de la sub (spec
+    // academy-card-subs-byo, D5): una cuenta apagada/borrada no bloquea
+    // al usuario - la cancelación local procede y la remota la barre el
+    // reconcile cuando la cuenta vuelva (o muere en su Flow).
+    let provider: SubscriptionProvider | null = null;
+    try {
+      provider = (await this.providerFor(sub)).provider;
+    } catch (e) {
+      if (!sub.gatewayAccountId) throw e;
+      this.logger.warn(
+        `cancel remoto sub ${sub.id}: cuenta ${sub.gatewayAccountId} no disponible - solo cancel local`,
+      );
+    }
+    if (provider) {
+      await provider.cancelSubscription(sub.flowSubscriptionId, {
+        correlationId: randomUUID(),
+      });
+    }
     await this.prisma.membershipSubscription.update({
       where: { id: sub.id },
       data: { status: "CANCEL_PENDING", canceledAt: new Date() },
@@ -1466,6 +1905,164 @@ export class SubscriptionsService {
   }
 
   /**
+   * Migración de subs legacy our-Flow → BYO (spec
+   * legacy-subs-byo-migration): la cuenta Flow de plataforma deja de
+   * llevar cobranza alumno → academia. Como la autorización de tarjeta
+   * no se porta entre proveedores, migrar = cancel remoto a fin de
+   * período (misma semántica que `cancel`) + CANCEL_PENDING local; el
+   * alumno conserva el período pagado y se re-suscribe por la vía
+   * vigente (BYO de la academia o TRANSFER). El cierre efectivo lo
+   * materializa el reconcile al vencer.
+   *
+   * dryRun (default) reporta candidatas sin tocar remoto ni local.
+   * Idempotente: el selector excluye CANCEL_PENDING/CANCELED; una
+   * cancelación remota fallida deja la sub ACTIVE y se reporta en
+   * `failed` sin abortar el lote.
+   */
+  async migrateLegacySubs(opts: { academyId?: string; dryRun?: boolean } = {}) {
+    const dryRun = opts.dryRun !== false;
+    const candidates = await this.prisma.membershipSubscription.findMany({
+      where: {
+        status: { in: ["ACTIVE", "FAILED_CARD"] },
+        paymentMethod: "CARD",
+        gatewayAccountId: null,
+        flowSubscriptionId: { not: null },
+        ...(opts.academyId ? { academyId: opts.academyId } : {}),
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    const items: {
+      subscriptionId: string;
+      academyId: string;
+      outcome: "candidate" | "migrated" | "failed";
+      error?: string;
+    }[] = [];
+    let migrated = 0;
+    let failed = 0;
+    const ownerSummary = new Map<
+      string,
+      { ownerId: string | null; academyName: string; count: number }
+    >();
+
+    for (const sub of candidates) {
+      if (dryRun) {
+        items.push({
+          subscriptionId: sub.id,
+          academyId: sub.academyId,
+          outcome: "candidate",
+        });
+        continue;
+      }
+      try {
+        // gatewayAccountId null ⇒ providerFor resuelve el provider de
+        // plataforma por moneda (donde vive la remota legacy).
+        const { provider } = await this.providerFor(sub);
+        await provider.cancelSubscription(sub.flowSubscriptionId!, {
+          correlationId: randomUUID(),
+        });
+        await this.prisma.membershipSubscription.update({
+          where: { id: sub.id },
+          data: { status: "CANCEL_PENDING", canceledAt: new Date() },
+        });
+        // Auditoría en el ledger del último pago (misma heurística de
+        // `cancel`: refId mem_<planId>_*), actor system + razón.
+        const lastPayment = await this.prisma.payment.findFirst({
+          where: {
+            personId: sub.personId,
+            orderType: "MEMBERSHIP",
+            refId: { startsWith: `mem_${sub.planId}_` },
+          },
+          orderBy: { createdAt: "desc" },
+          select: { id: true },
+        });
+        if (lastPayment) {
+          await this.prisma.$transaction((tx) =>
+            emitPaymentEvent(
+              tx,
+              lastPayment.id,
+              "SUBSCRIPTION_CANCELED",
+              "system",
+              {
+                reason: "legacy_byo_migration",
+                subscriptionId: sub.id,
+                flowSubscriptionId: sub.flowSubscriptionId,
+                planId: sub.planId,
+              },
+            ),
+          );
+        }
+        const plan = await this.prisma.membershipPlan.findUnique({
+          where: { id: sub.planId },
+          select: {
+            name: true,
+            academy: { select: { name: true, ownerId: true } },
+          },
+        });
+        await this.notifications.notifySafe(sub.personId, {
+          category: "TRANSACTIONAL",
+          type: "membership.subscription_migration",
+          title: "Tu suscripción cambia de pasarela",
+          body: plan
+            ? `${plan.name} · ${plan.academy.name}. Termina al fin del período pagado; suscríbete de nuevo para seguir inscrito`
+            : "Termina al fin del período pagado; suscríbete de nuevo para seguir inscrito",
+          data: {
+            subscriptionId: sub.id,
+            planId: sub.planId,
+            academyId: sub.academyId,
+            nextInvoiceAt: sub.nextInvoiceAt?.toISOString() ?? null,
+          },
+        });
+        if (plan?.academy) {
+          const s = ownerSummary.get(sub.academyId) ?? {
+            ownerId: plan.academy.ownerId,
+            academyName: plan.academy.name,
+            count: 0,
+          };
+          s.count++;
+          ownerSummary.set(sub.academyId, s);
+        }
+        migrated++;
+        items.push({
+          subscriptionId: sub.id,
+          academyId: sub.academyId,
+          outcome: "migrated",
+        });
+      } catch (e) {
+        failed++;
+        this.logger.warn(
+          `migrateLegacySubs ${sub.id}: ${(e as Error).message}`,
+        );
+        items.push({
+          subscriptionId: sub.id,
+          academyId: sub.academyId,
+          outcome: "failed",
+          error: (e as Error).message?.slice(0, 300),
+        });
+      }
+    }
+
+    if (!dryRun) {
+      for (const [academyId, s] of ownerSummary) {
+        if (!s.ownerId) continue;
+        const hasByo = !!(await this.accounts
+          .activeForAcademy(academyId)
+          .catch(() => null));
+        await this.notifications.notifySafe(s.ownerId, {
+          category: "TRANSACTIONAL",
+          type: "academy.legacy_subs_migrated",
+          title: "Suscripciones migradas",
+          body: hasByo
+            ? `${s.academyName}: ${s.count} suscripción(es) migraron; tus alumnos se re-suscribirán por tu pasarela`
+            : `${s.academyName}: ${s.count} suscripción(es) migraron; configura tu pasarela para recuperar el cobro automático`,
+          data: { academyId, count: s.count },
+        });
+      }
+    }
+
+    return { dryRun, scanned: candidates.length, migrated, failed, items };
+  }
+
+  /**
    * Barrido de todas las suscripciones vivas (webhook fast-path + cron
    * T7). Cada sub se reconcilia con su propio correlationId; una que
    * falle no aborta el resto - queda loggeada y la reintenta el próximo
@@ -1473,61 +2070,88 @@ export class SubscriptionsService {
    */
   async reconcileAll(
     actor = "reconcile",
+    scopeAccountId?: string,
   ): Promise<{ checked: number; settled: number }> {
     const subs = await this.prisma.membershipSubscription.findMany({
       where: {
         flowSubscriptionId: { not: null },
         status: { in: ["ACTIVE", "CANCEL_PENDING"] },
+        // Barrido scoped por cuenta (spec academy-card-subs-byo, D4):
+        // el webhook con ?account= solo reconcilia subs de esa cuenta.
+        ...(scopeAccountId
+          ? { gatewayAccountId: scopeAccountId }
+          : {}),
       },
     });
-    // Provider por moneda de cada sub (spec multipais-currency) - lazy
-    // por currency; una moneda sin proveedor solo salta sus subs.
-    const providers = new Map<string, SubscriptionProvider | null>();
-    const providerFor = async (currency: string) => {
-      const cur = currency.toUpperCase();
-      if (!providers.has(cur)) {
-        providers.set(
-          cur,
-          (await this.provider(cur).catch(() => null))?.provider ?? null,
-        );
+    // Provider por scope de la sub (spec academy-card-subs-byo): cada
+    // cuenta BYO resuelve su adaptador vía providerFor (cache por
+    // cuenta - adapterFor ya cachea por updatedAt); null = plataforma
+    // por moneda. Una cuenta apagada o moneda sin motor solo salta sus
+    // subs, nunca cae a otro scope.
+    const providers = new Map<
+      string,
+      {
+        provider: SubscriptionProvider;
+        name: string;
+        accountId: string | null;
+      } | null
+    >();
+    const providerForSub = async (sub: {
+      gatewayAccountId: string | null;
+      currency: string | null;
+    }) => {
+      const key = sub.gatewayAccountId
+        ? `acct:${sub.gatewayAccountId}`
+        : `plat:${(sub.currency ?? "CLP").toUpperCase()}`;
+      if (!providers.has(key)) {
+        providers.set(key, await this.providerFor(sub).catch(() => null));
       }
-      return providers.get(cur) ?? null;
+      return providers.get(key) ?? null;
     };
     let settled = 0;
     const orphanProviders = new Map<
       string,
-      { provider: SubscriptionProvider; name: string }
+      {
+        provider: SubscriptionProvider;
+        name: string;
+        accountId: string | null;
+      }
     >();
-    // El barrido de huérfanas corre siempre sobre el provider del param
-    // (CLP) además de los providers de otras monedas con subs vivas.
-    const primary = await this.provider("CLP").catch(() => null);
-    if (primary) {
-      orphanProviders.set(primary.name, {
-        provider: primary.provider,
-        name: primary.name,
-      });
+    const addOrphanScope = (
+      r: {
+        provider: SubscriptionProvider;
+        name: string;
+        accountId: string | null;
+      } | null,
+    ) => {
+      if (!r) return;
+      const key = r.accountId ?? `plat:${r.name}`;
+      if (!orphanProviders.has(key)) orphanProviders.set(key, r);
+    };
+    if (!scopeAccountId) {
+      // El barrido de huérfanas corre siempre sobre el provider del
+      // param (CLP) además de los scopes de las subs vivas.
+      const primary = await this.provider("CLP").catch(() => null);
+      addOrphanScope(primary ? { ...primary, accountId: null } : null);
     }
     for (const sub of subs) {
-      const provider = await providerFor(sub.currency ?? "CLP");
-      if (!provider) {
+      const resolved = await providerForSub(sub);
+      if (!resolved) {
         this.logger.warn(
-          `reconcile sub ${sub.id}: moneda ${sub.currency} sin proveedor de suscripciones`,
+          `reconcile sub ${sub.id}: ${
+            sub.gatewayAccountId
+              ? `cuenta ${sub.gatewayAccountId}`
+              : `moneda ${sub.currency}`
+          } sin proveedor de suscripciones`,
         );
         continue;
       }
-      const resolved = await this.provider(sub.currency ?? "CLP").catch(
-        () => null,
-      );
-      if (resolved && !orphanProviders.has(resolved.name)) {
-        orphanProviders.set(resolved.name, {
-          provider: resolved.provider,
-          name: resolved.name,
-        });
-      }
+      if (!scopeAccountId) addOrphanScope(resolved);
       try {
-        const fs = await provider.getSubscription(sub.flowSubscriptionId!, {
-          correlationId: randomUUID(),
-        });
+        const fs = await resolved.provider.getSubscription(
+          sub.flowSubscriptionId!,
+          { correlationId: randomUUID() },
+        );
         settled += await this.reconcileSubscription(sub, fs, actor);
       } catch (e) {
         this.logger.error(
@@ -1535,8 +2159,43 @@ export class SubscriptionsService {
         );
       }
     }
+    if (scopeAccountId) {
+      // El barrido scoped barre huérfanas solo de esa cuenta.
+      const scoped = await this.providerFor({
+        gatewayAccountId: scopeAccountId,
+        currency: null,
+      }).catch(() => null);
+      addOrphanScope(scoped);
+    } else {
+      // Cuentas BYO con creates auditados aunque no tengan subs vivas
+      // (spec academy-card-subs-byo, D5): la huérfana es un
+      // subscription/create remoto sin fila local - su auditoría lleva
+      // gatewayAccountId y define qué adaptador la barre.
+      const creates = await this.prisma.gatewayTransaction.findMany({
+        where: {
+          direction: "OUTBOUND",
+          endpoint: "subscription/create",
+          ok: true,
+          gatewayAccountId: { not: null },
+        },
+        select: { gatewayAccountId: true },
+      });
+      for (const accountId of new Set(
+        creates
+          .map((c) => c.gatewayAccountId)
+          .filter((id): id is string => typeof id === "string"),
+      )) {
+        if (providers.has(`acct:${accountId}`)) continue;
+        addOrphanScope(
+          await this.providerFor({
+            gatewayAccountId: accountId,
+            currency: null,
+          }).catch(() => null),
+        );
+      }
+    }
     for (const p of orphanProviders.values()) {
-      await this.sweepOrphanSubscriptions(p.provider, p.name);
+      await this.sweepOrphanSubscriptions(p.provider, p.name, p.accountId);
     }
     return { checked: subs.length, settled };
   }
@@ -1731,36 +2390,78 @@ export class SubscriptionsService {
   private async sweepOrphanSubscriptions(
     provider: SubscriptionProvider,
     providerName: string,
+    accountId: string | null = null,
   ): Promise<void> {
     const txs = await this.prisma.gatewayTransaction.findMany({
       where: {
         // Se filtra por el provider BARRIDO (spec multipais-currency):
         // el create auditado de otra pasarela no se cancela con este
-        // adaptador - los ids remotos no son intercambiables.
+        // adaptador - los ids remotos no son intercambiables. Scope por
+        // cuenta (spec academy-card-subs-byo): una cuenta BYO solo barre
+        // sus creates auditados (gatewayAccountId), plataforma los
+        // suyos (null).
         provider: providerName,
+        gatewayAccountId: accountId,
         direction: "OUTBOUND",
         endpoint: "subscription/create",
         ok: true,
         createdAt: { lte: new Date(Date.now() - ORPHAN_SWEEP_GRACE_MS) },
       },
-      select: { responseBody: true },
+      select: { responseBody: true, requestBody: true },
     });
     const remoteIds = new Set<string>();
+    // MP (spec mercadopago-subscriptions): el create remoto es el
+    // preapproval pending que registerCustomerCard hace con
+    // external_reference = id local - la respuesta trae `id` (no
+    // `subscriptionId`) y la fila PENDING_CARD/ACTIVATING aún no tiene
+    // flowSubscriptionId, así que la cobertura viva se resuelve por
+    // el external_reference del request.
+    const pendingLocalByRemote = new Map<string, string>();
     for (const t of txs) {
-      const id = (
-        t.responseBody as { subscriptionId?: unknown } | null
-      )?.subscriptionId;
-      if (typeof id === "string" && id) remoteIds.add(id);
+      const rb = t.responseBody as {
+        subscriptionId?: unknown;
+        id?: unknown;
+      } | null;
+      const id = rb?.subscriptionId ?? rb?.id;
+      if (id == null || id === "") continue;
+      const remoteId = String(id);
+      remoteIds.add(remoteId);
+      const extRef = (
+        t.requestBody as { external_reference?: unknown } | null
+      )?.external_reference;
+      if (typeof extRef === "string" && extRef) {
+        pendingLocalByRemote.set(remoteId, extRef);
+      }
     }
     if (!remoteIds.size) return;
-    const [linked, linkedPlatform] = await Promise.all([
+    const pendingRefs = [...pendingLocalByRemote.values()];
+    const [linked, linkedPlatform, pendingLocal] = await Promise.all([
       this.prisma.membershipSubscription.findMany({
         where: { flowSubscriptionId: { in: [...remoteIds] } },
       }),
       this.prisma.platformSubscription.findMany({
         where: { flowSubscriptionId: { in: [...remoteIds] } },
       }),
+      pendingRefs.length
+        ? this.prisma.membershipSubscription.findMany({
+            where: {
+              id: { in: pendingRefs },
+              status: { in: ["PENDING_CARD", "ACTIVATING"] },
+            },
+          })
+        : Promise.resolve([] as MembershipSubscription[]),
     ]);
+    // Una PENDING_CARD/ACTIVATING fresca cuya remota es el preapproval
+    // del intento sigue viva: no es huérfana aunque aún no tenga
+    // flowSubscriptionId (el adopt lo escribe al volver del back_url).
+    const liveLocalIds = new Set(
+      pendingLocal
+        .filter(
+          (s) =>
+            Date.now() - s.createdAt.getTime() < PENDING_CARD_TTL_MS,
+        )
+        .map((s) => s.id),
+    );
     const byRemote = new Map(
       linked.map((s) => [s.flowSubscriptionId!, s] as const),
     );
@@ -1768,6 +2469,10 @@ export class SubscriptionsService {
       linkedPlatform.map((s) => [s.flowSubscriptionId!, s] as const),
     );
     for (const remoteId of remoteIds) {
+      const pendingRef = pendingLocalByRemote.get(remoteId);
+      if (pendingRef && liveLocalIds.has(pendingRef)) {
+        continue; // intento en vuelo - el preapproval es su remota
+      }
       const local = byRemote.get(remoteId);
       const platformLocal = platformByRemote.get(remoteId);
       if (
@@ -1913,8 +2618,15 @@ export class SubscriptionsService {
             academyPromoId: sub.academyPromoId ?? null,
             currency: sub.currency ?? "CLP",
             gateway:
-              (await this.subscriptionGateway(sub.currency))?.name ??
+              (await this.providerFor(sub).catch(() => null))?.name ??
               "UNCONFIGURED",
+            // Cobro BYO (spec academy-card-subs-byo, D6): el Payment
+            // congela la cuenta + el take academy_fee.net_pct y entra
+            // al statement del período por el filtro gatewayAccountId.
+            gatewayAccountId: sub.gatewayAccountId ?? null,
+            ...(sub.gatewayAccountId
+              ? await this.academyTake(amount)
+              : {}),
             gatewayRef: inv.payment?.orderRef ?? null,
             ...academyFeeBreakdown(amount, cardPct),
           },
@@ -2164,19 +2876,42 @@ export class SubscriptionsService {
     });
     if (!plan) return;
     const cur = sub.currency ?? plan.currency ?? "CLP";
-    const { name: gwName } = await this.provider(cur);
+    const { name: gwName } = await this.providerFor(sub);
     const expected = await this.memberChargeSpec(
       plan,
       sub.academyId,
       sub.personId,
       gwName,
       cur,
+      sub.gatewayAccountId,
     );
     const drift =
       (sub.academyPromoId ?? null) !== (expected.promoId ?? null) ||
       (sub.planChargeClp != null && sub.planChargeClp !== expected.amount);
     if (!drift) return;
-    const { provider } = await this.provider(cur);
+    const { provider } = await this.providerFor(sub);
+    // Reprice in-place (spec mercadopago-subscriptions): los motores
+    // sin plan remoto actualizan el cargo de la sub viva - el swap
+    // cancel+recreate no existe ahí (una remota cancelada jamás se
+    // reactiva). Capability por presencia; sin él, política previa.
+    if (typeof provider.repriceSubscription === "function") {
+      await provider.repriceSubscription(
+        sub.flowSubscriptionId!,
+        { amount: expected.amount, currency: cur },
+        { correlationId: randomUUID() },
+      );
+      await this.prisma.membershipSubscription.update({
+        where: { id: sub.id },
+        data: {
+          academyPromoId: expected.promoId,
+          planChargeClp: expected.amount,
+        },
+      });
+      this.logger.log(
+        `reprice in-place sub ${sub.id} (${actor}): promo ${sub.academyPromoId ?? "-"}→${expected.promoId ?? "-"}, cargo ${sub.planChargeClp ?? "?"}→${expected.amount}`,
+      );
+      return;
+    }
     await provider.cancelSubscription(sub.flowSubscriptionId!, {
       correlationId: randomUUID(),
     });
@@ -2207,7 +2942,7 @@ export class SubscriptionsService {
     });
     if (!plan) return false;
     const cur = sub.currency ?? plan.currency ?? "CLP";
-    const { provider, name: providerName } = await this.provider(cur);
+    const { provider, name: providerName } = await this.providerFor(sub);
     const correlationId = randomUUID();
     const charge = await this.memberChargeSpec(
       plan,
@@ -2215,6 +2950,7 @@ export class SubscriptionsService {
       sub.personId,
       providerName,
       cur,
+      sub.gatewayAccountId,
     );
     await provider.ensurePlan(
       {
@@ -2228,9 +2964,15 @@ export class SubscriptionsService {
     );
     if (
       charge.promoId === null &&
-      !this.remotePlanId(plan, providerName, cur)
+      !this.remotePlanId(plan, providerName, cur, sub.gatewayAccountId)
     ) {
-      await this.markBaseMirror(plan.id, providerName, cur, charge.planId);
+      await this.markBaseMirror(
+        plan.id,
+        providerName,
+        cur,
+        charge.planId,
+        sub.gatewayAccountId,
+      );
     }
     const { customerId } = await ensureFlowCustomer(
       this.prisma,
@@ -2238,6 +2980,7 @@ export class SubscriptionsService {
       providerName,
       sub.personId,
       { correlationId },
+      sub.gatewayAccountId,
     );
     const fs = await provider.createSubscription(
       {
@@ -2245,6 +2988,7 @@ export class SubscriptionsService {
         customerId,
         subscriptionStart: new Date().toISOString().slice(0, 10),
         currency: cur,
+        externalRef: sub.id,
       },
       { correlationId },
     );
@@ -2325,9 +3069,7 @@ export class SubscriptionsService {
           (fs.morose && inv.nextAttemptDate == null)),
     );
     if (!eligible.length) return { settled: 0, paymentUrl: null, coveredIds };
-    const { provider, name: providerName } = await this.provider(
-      sub.currency ?? "CLP",
-    );
+    const { provider, name: providerName } = await this.providerFor(sub);
     if (typeof provider.collect !== "function") {
       return { settled: 0, paymentUrl: null, coveredIds };
     }
@@ -2350,6 +3092,7 @@ export class SubscriptionsService {
         providerName,
         sub.personId,
         { correlationId: randomUUID() },
+        sub.gatewayAccountId,
       );
       const plan = await this.prisma.membershipPlan.findUnique({
         where: { id: sub.planId },
@@ -2373,6 +3116,12 @@ export class SubscriptionsService {
             academyPromoId: sub.academyPromoId ?? null,
             currency: sub.currency ?? "CLP",
             gateway: providerName,
+            // Cobro BYO (spec academy-card-subs-byo, D6): congela la
+            // cuenta + el take como el Payment de renovación directa.
+            gatewayAccountId: sub.gatewayAccountId ?? null,
+            ...(sub.gatewayAccountId
+              ? await this.academyTake(amount)
+              : {}),
             ...academyFeeBreakdown(amount, cardPct),
           },
         });

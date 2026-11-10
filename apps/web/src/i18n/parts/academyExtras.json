@@ -102,7 +102,6 @@
       "MONTHLY": "Mensual",
       "CLASS_PACK": "Pack de clases",
       "PERIOD": "Período personalizado",
-      "TRIAL": "De prueba",
       "QUARTERLY": "Trimestral",
       "SEMIANNUAL": "Semestral",
       "SINGLE": "Clase única"
@@ -113,8 +112,7 @@
       "SEMIANNUAL": "Cobro cada 6 meses calendario.",
       "SINGLE": "Una sola clase, vigente hasta el día siguiente a la compra.",
       "CLASS_PACK": "Una cantidad fija de clases que el alumno consume cuando quiera, sin fecha de vencimiento.",
-      "PERIOD": "Membresía por la cantidad de días que definas.",
-      "TRIAL": "Período de prueba; define los días o déjalo sin fecha."
+      "PERIOD": "Membresía por la cantidad de días que definas."
     },
     "planPackClasses": "Clases del pack (vacío = ilimitado)",
     "studentStatus": "Estado de {name}",
@@ -135,7 +133,8 @@
       "config": "Configuración",
       "configDesc": "Quórum por defecto y perfil público",
       "promos": "Promos",
-      "promosDesc": "Becas y descuentos sobre tus planes"
+      "promosDesc": "Becas y descuentos sobre tus planes",
+      "statements": "Liquidaciones"
     },
     "today": {
       "title": "Clases de hoy",
@@ -237,10 +236,7 @@
       "planExpired": "Plan vencido el {end}",
       "status": {
         "ACTIVE": "Activa",
-        "ONLINE": "Online",
-        "TRIAL": "De prueba",
-        "PAUSED": "Pausada",
-        "FROZEN": "Congelada"
+        "INACTIVE": "Inactiva"
       }
     },
     "viewExplore": "Explorar",
@@ -359,6 +355,25 @@
     "city": "Ciudad",
     "noCity": "Sin ciudad",
     "created": "Academia creada",
+    "invites": {
+      "cta": "Invitar",
+      "title": "Invitar a la academia",
+      "hint": "La persona recibe un correo para crearse su cuenta y aterriza en tu perfil: se inscribe sola, sin que le crees un plan.",
+      "emailLabel": "Correo",
+      "nameLabel": "Nombre",
+      "lastNameLabel": "Apellido",
+      "submit": "Enviar invitación",
+      "sent": "Invitación enviada.",
+      "resent": "Ya estaba invitada: le reenviamos el correo.",
+      "forbidden": "No tienes acceso a esta acción.",
+      "listTitle": "Invitados",
+      "empty": "Aún no has invitado a nadie.",
+      "sentAt": "Enviada el {date}",
+      "status": {
+        "pending": "Pendiente",
+        "registered": "Registrada"
+      }
+    },
     "personSearch": {
       "label": "Alumno",
       "placeholder": "Nombre o email",

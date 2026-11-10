@@ -179,7 +179,6 @@ describe("CrmService.recomputeScores (ACADEMY)", () => {
       status: "ACTIVE",
       startedAt: daysAgo(startedDaysAgo),
       endsAt: null,
-      pausedAt: null,
       createdAt: daysAgo(startedDaysAgo),
     });
   }
@@ -873,7 +872,6 @@ describe("CrmService - internal-academy-socials", () => {
       status: "ACTIVE",
       startedAt: daysAgo(startedDaysAgo),
       endsAt: null,
-      pausedAt: null,
       createdAt: daysAgo(startedDaysAgo),
     });
   }

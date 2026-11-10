@@ -61,6 +61,8 @@ export function ManualPayPanel({
   planPrice,
   returnHref,
   onBlockingChange,
+  gatewayAvailable = true,
+  gatewayNote,
 }: {
   academyId: string;
   /** Checkout de plan: el intento va {planId, methodId} y el claim
@@ -78,6 +80,13 @@ export function ManualPayPanel({
   returnHref?: string;
   /** true cuando el panel tiene el control (método elegido o claim vivo). */
   onBlockingChange: (blocked: boolean) => void;
+  /** BYO (spec academy-byo-collections): false cuando la academia no
+      tiene pasarela propia o está en bloqueo de cobranza - la opción
+      "pasarela" no se ofrece y el método propio queda preseleccionado. */
+  gatewayAvailable?: boolean;
+  /** Copy honesto junto al selector cuando no hay pasarela (sin cuenta
+      BYO / cobranza en pausa). */
+  gatewayNote?: string;
 }) {
   const clp = useNumFmt({
   style: "currency",
@@ -124,6 +133,14 @@ export function ManualPayPanel({
       );
       setClaim(live ?? null);
       setRejectedNote(!live && lastRejected ? lastRejected.reviewNote : null);
+      // Sin pasarela BYO (spec academy-byo-collections) el método propio
+      // es la única vía: uno solo queda preseleccionado y el padre ya
+      // no muestra el CTA de la pasarela.
+      if (!gatewayAvailable && !live && methodRows.length === 1) {
+        setSelected(methodRows[0].id);
+        onBlockingChange(true);
+        return;
+      }
       onBlockingChange(!!live);
     } catch {
       // Fallo de red: el panel igual se muestra con la pasarela
@@ -132,7 +149,7 @@ export function ManualPayPanel({
       setMethods([]);
       setLoadError(true);
     }
-  }, [academyId, planId, privateClass, onBlockingChange]);
+  }, [academyId, planId, privateClass, gatewayAvailable, onBlockingChange]);
 
   useEffect(() => {
     void load();
@@ -374,7 +391,9 @@ export function ManualPayPanel({
         </div>
       )}
 
-      {/* Selector de medio: pasarela o método de la academia. */}
+      {/* Selector de medio: pasarela o método de la academia. Sin
+          pasarela BYO la opción tarjeta no se ofrece (spec
+          academy-byo-collections) - el método propio es la única vía. */}
       {!claim && (
         <div className="flex flex-col gap-2">
           {rejectedNote && (
@@ -382,11 +401,17 @@ export function ManualPayPanel({
               {t("rejectedBefore", { note: rejectedNote })}
             </p>
           )}
+          {!gatewayAvailable && gatewayNote && (
+            <p role="status" className="text-sm text-ink/60">
+              {gatewayNote}
+            </p>
+          )}
           <div
             role="radiogroup"
             aria-label={t("chooseMethod")}
             className="flex flex-col gap-2"
           >
+            {gatewayAvailable && (
             <label
               className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
                 selected === null
@@ -406,6 +431,7 @@ export function ManualPayPanel({
               />
               {t("methodGateway")}
             </label>
+            )}
             {methods.map((m) => (
               <label
                 key={m.id}

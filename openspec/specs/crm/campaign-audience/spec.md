@@ -20,9 +20,9 @@ Los criterios se unen (OR) con los existentes (segment/tags/personIds).
 
 #### Scenario: por estado de inscripción
 
-- **WHEN** el segmento lleva `enrollmentStatus: ["TRIAL"]`
-- **THEN** la audiencia son las personas con `Enrollment` TRIAL en la
-  academia
+- **WHEN** el segmento lleva `enrollmentStatus: ["INACTIVE"]`
+- **THEN** la audiencia son las personas con `Enrollment` INACTIVE en
+  la academia
 
 #### Scenario: por plan y por serie
 
@@ -43,7 +43,7 @@ Los criterios se unen (OR) con los existentes (segment/tags/personIds).
 
 #### Scenario: conteo sin envío
 
-- **WHEN** el owner postea `{segment: {enrollmentStatus: ["TRIAL"]}}`
+- **WHEN** el owner postea `{segment: {enrollmentStatus: ["INACTIVE"]}}`
 - **THEN** responde `{count: N}` y no se crea Campaign ni Notification
 
 #### Scenario: audiencia vacía

@@ -54,8 +54,8 @@ function mkPrisma() {
       academy: { name: "Clave" }, plan: { name: "Trimestral" }, // sin email
     },
     {
-      id: "e4", personId: "p1", status: "TRIAL", endsAt: inDays(3),
-      academy: { name: "Clave" }, plan: { name: "Trial" }, // TRIAL no aplica
+      id: "e4", personId: "p1", status: "INACTIVE", endsAt: inDays(3),
+      academy: { name: "Clave" }, plan: { name: "Trial" }, // INACTIVE no aplica
     },
     {
       id: "e5", personId: "p1", status: "ACTIVE", endsAt: inDays(-2),
@@ -313,7 +313,7 @@ describe("resolveAudience", () => {
     expect(ids(await svc.resolveAudience({ kind: "EVENT", eventId: "ev1" }))).toEqual(["p1"]);
   });
 
-  it("ENROLLMENTS_EXPIRING trae ctx + dedupKey; excluye TRIAL, sin email y sin endsAt", async () => {
+  it("ENROLLMENTS_EXPIRING trae ctx + dedupKey; excluye INACTIVE, sin email y sin endsAt", async () => {
     const { svc } = mkService();
     const entries = await svc.resolveAudience({ kind: "ENROLLMENTS_EXPIRING", days: 5 });
     expect(ids(entries)).toEqual(["p1", "p2"]);

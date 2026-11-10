@@ -1,7 +1,11 @@
 import type { MetadataRoute } from "next";
 // fetchPublicEvents quitado: las fichas de evento piden sesión y no
 // se indexan (el middleware las redirige a login).
-import { fetchPublicCities } from "@/lib/public-cities";
+import {
+  cityLandingEnabled,
+  fetchPublicCities,
+  socialPassEnabled,
+} from "@/lib/public-cities";
 import { SITE_URL as WEB_URL } from "@/lib/site-url";
 import { routing, type Locale } from "@/i18n/routing";
 
@@ -17,9 +21,15 @@ function languages(path: string): Record<Locale, string> {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
-  const cities = await fetchPublicCities();
+  const [cities, cityOn, paseOn] = await Promise.all([
+    fetchPublicCities(),
+    cityLandingEnabled(),
+    socialPassEnabled(),
+  ]);
 
   // Solo rutas públicas indexables - el resto son superficies de app.
+  // Las landings gated por flag (ciudades, pase) solo se anuncian con
+  // el flag ON: sitemap no debe prometer URLs que responden 404.
   const entries: MetadataRoute.Sitemap = [
     "/",
     "/pro",
@@ -27,8 +37,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/para-productores",
     // /eventos y /eventos/[id] piden sesión (middleware): fuera del
     // sitemap para no indexar redirects a login.
-    "/ciudades",
-    "/pase",
+    ...(cityOn ? ["/ciudades"] : []),
+    ...(paseOn ? ["/pase"] : []),
     "/login",
     "/terminos",
     "/privacidad",
@@ -39,12 +49,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // Landings por ciudad (spec city-discovery): públicas e indexables.
-  for (const c of cities ?? []) {
-    entries.push({
-      url: `${WEB_URL}/ciudades/${c.slug}`,
-      lastModified,
-      alternates: { languages: languages(`/ciudades/${c.slug}`) },
-    });
+  if (cityOn) {
+    for (const c of cities ?? []) {
+      entries.push({
+        url: `${WEB_URL}/ciudades/${c.slug}`,
+        lastModified,
+        alternates: { languages: languages(`/ciudades/${c.slug}`) },
+      });
+    }
   }
   return entries;
 }

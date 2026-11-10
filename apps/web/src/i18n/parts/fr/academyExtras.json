@@ -22,13 +22,24 @@
       "created": "Niveau ajouté.",
       "deleted": "Niveau supprimé.",
       "deleteConfirm": "Supprimer ce niveau ?",
-      "notFound": "Niveau introuvable."
+      "notFound": "Niveau introuvable.",
+      "globalHint": "Ton académie utilise la ligne globale de niveaux (celle qu'utilisent les sociaux).",
+      "customHint": "Ordre numéroté : les chips des filtres et de l'agenda affichent le numéro 1..N dans cet ordre.",
+      "personalize": "Personnaliser les niveaux",
+      "personalized": "Niveaux personnalisés pour ton académie",
+      "newPlaceholder": "Nouveau niveau…",
+      "add": "Ajouter",
+      "nameLabel": "Nom du niveau {index}",
+      "delete": "Supprimer le niveau",
+      "error": "Impossible d'enregistrer le niveau",
+      "backToGlobal": "Revenir à la ligne globale",
+      "backToGlobalBody": "Tes {count} niveaux propres sont supprimés et l'académie revient à la ligne globale (celle des sociaux). Les niveaux utilisés par des séries ou des élèves bloquent la remise à zéro.",
+      "backToGlobalDone": "Tu es revenu à la ligne globale"
     },
     "planTypes": {
       "MONTHLY": "Mensuel",
       "CLASS_PACK": "Pack de cours",
       "PERIOD": "Période personnalisée",
-      "TRIAL": "Essai",
       "QUARTERLY": "Trimestriel",
       "SEMIANNUAL": "Semestriel",
       "SINGLE": "Cours unique"
@@ -39,8 +50,7 @@
       "SEMIANNUAL": "Facturé tous les 6 mois calendaires.",
       "SINGLE": "Un seul cours, valable jusqu'au lendemain de l'achat.",
       "CLASS_PACK": "Un nombre fixe de cours que l'élève utilise quand il veut, sans date d'expiration.",
-      "PERIOD": "Abonnement pour le nombre de jours que tu définis.",
-      "TRIAL": "Période d'essai; définis les jours ou laisse sans date."
+      "PERIOD": "Abonnement pour le nombre de jours que tu définis."
     },
     "planPackClasses": "Cours du pack (vide = illimité)",
     "studentStatus": "Statut de {name}",
@@ -59,7 +69,10 @@
       "configDesc": "Jauge par défaut et profil public",
       "promos": "Promos",
       "promosDesc": "Bourses et remises sur vos plans",
-      "gridLabel": "Modules"
+      "gridLabel": "Modules",
+      "statements": "Relevés",
+      "levels": "Niveaux",
+      "report": "Rapport"
     },
     "today": {
       "title": "Cours d'aujourd'hui",
@@ -145,7 +158,10 @@
       "email": "Email",
       "phone": "Téléphone",
       "method": "Moyen",
-      "edit": "Modifier"
+      "edit": "Modifier",
+      "frequent": "Cours fréquents",
+      "emptyFrequent": "Pas encore de cours fréquents.",
+      "frequentCount": "{count, plural, one {# cours} other {# cours}}"
     },
     "learner": {
       "myAcademies": "Mes académies",
@@ -158,10 +174,7 @@
       "planExpired": "Plan expiré le {end}",
       "status": {
         "ACTIVE": "Active",
-        "ONLINE": "En ligne",
-        "TRIAL": "Essai",
-        "PAUSED": "En pause",
-        "FROZEN": "Gelée"
+        "INACTIVE": "Inactive"
       }
     },
     "viewExplore": "Explorer",
@@ -254,7 +267,8 @@
       "pctWomenHint": "% d'élèves actifs de genre féminin",
       "vsPrevMonth": "vs mois dernier",
       "pts": "pts",
-      "noData": "pas de données"
+      "noData": "pas de données",
+      "attendanceToday": "Réservations aujourd'hui"
     },
     "onboarding": {
       "title": "Premiers pas",
@@ -283,7 +297,66 @@
       "levelCountHint": "Élèves actifs à ce niveau",
       "lastTitle": "Présence au dernier cours",
       "avgTitle": "Présence moyenne",
-      "nextTitle": "Réservations du prochain cours"
+      "nextTitle": "Réservations du prochain cours",
+      "title": "Niveaux et places",
+      "styleFilterLabel": "Style",
+      "allStyles": "Tous",
+      "levelFilterLabel": "Niveau",
+      "allLevels": "Tous",
+      "typeFilterLabel": "Type",
+      "allTypes": "Tous",
+      "empty": "Pas encore d'horaires ni de niveaux chargés. Attribue le niveau de chaque élève depuis sa fiche.",
+      "assignedOf": "{assigned}/{capacity} élèves",
+      "avgOfCapacity": "moyenne de {avg} sur {capacity} places",
+      "avgShort": "Moy.",
+      "lastShort": "Dern.",
+      "nextShort": "Proch.",
+      "maleShort": "H",
+      "femaleShort": "F",
+      "gotoClasses": "Voir les cours",
+      "ofCapacity": "sur {count}",
+      "spotsLeft": "{count, plural, one {# place libre} other {# places libres}}",
+      "full": "Complet",
+      "overbooked": "+{count} en surnombre",
+      "noLevel": "Sans niveau",
+      "noSlots": "Aucun horaire chargé.",
+      "noSlotsForType": "Aucun horaire de ce type.",
+      "avgAttendance": "moy. {value}",
+      "lastAttendance": "dernière {count}",
+      "noAttendance": "pas de présence récente",
+      "unassignedTitle": "Sans niveau attribué",
+      "unassignedCount": "{count} dans {type}",
+      "typeTotal": "{count, plural, one {# élève} other {# élèves}}",
+      "allTotal": "{count, plural, one {# élève} other {# élèves}} au total · chaque élève compte une fois par type",
+      "unassignedCta": "Compléter",
+      "loadError": "Impossible de charger les niveaux.",
+      "editor": {
+        "title": "Niveau par type de cours",
+        "hint": "Coche tous les niveaux que suit l'élève. Il peut en choisir plusieurs par type.",
+        "save": "Enregistrer les niveaux",
+        "saved": "Niveaux mis à jour.",
+        "saveError": "Impossible d'enregistrer les niveaux",
+        "loadError": "Impossible de charger les niveaux."
+      }
+    },
+    "invites": {
+      "cta": "Inviter",
+      "title": "Inviter à l'académie",
+      "hint": "La personne reçoit un courriel pour créer son compte et arrive sur votre profil : elle s'inscrit d'elle-même, sans plan.",
+      "emailLabel": "Courriel",
+      "nameLabel": "Prénom",
+      "lastNameLabel": "Nom",
+      "submit": "Envoyer l'invitation",
+      "sent": "Invitation envoyée.",
+      "resent": "Déjà invitée : le courriel a été renvoyé.",
+      "forbidden": "Vous n'avez pas accès à cette action.",
+      "listTitle": "Invitations",
+      "empty": "Aucune invitation envoyée.",
+      "sentAt": "Envoyée le {date}",
+      "status": {
+        "pending": "En attente",
+        "registered": "Inscrite"
+      }
     },
     "personSearch": {
       "label": "Élève",
@@ -301,6 +374,22 @@
       "title": "Votre essai gratuit est terminé",
       "desc": "La console de votre académie est en pause. Abonnez-vous pour retrouver cours, élèves et paiements.",
       "cta": "Voir les plans et m’abonner"
+    },
+    "sections": {
+      "overview": "Aperçu",
+      "operation": "Opérations du jour",
+      "students": "Élèves"
+    },
+    "homeMode": {
+      "claimsHint": "pour un total de {amount}",
+      "claimsDone": "Rien à valider",
+      "expiringHint": "plans qui expirent aujourd'hui ou cette semaine",
+      "expiringDone": "Rien n'expire cette semaine",
+      "todayHint": "dans l'agenda du jour",
+      "todayDone": "Pas de cours aujourd'hui",
+      "lessonsHint": "demandes en attente de réponse",
+      "lessonsDone": "Rien à confirmer",
+      "unassignedDone": "Tous ont un niveau attribué"
     }
   },
   "academySeries": {

@@ -471,12 +471,12 @@ Micro-encuentros de baile **creados por cualquier bailarín** - no requieren aca
 
 ## 9. Módulo Aprendizaje del bailarín
 
-- Academias a las que pertenece; estado (presencial / online / pausado)
+- Academias a las que pertenece; estado (activa / inactiva)
 - Historial de clases y talleres
 - Videos (si la academia sube y el alumno paga): solo clases asistidas, sin descarga ni share
 - Score interno de academia visible en versión suave (etiquetas)
 - Progreso personal no competitivo
-- `/clases` prioriza las academias del alumno: lista y calendario muestran solo clases de academias con inscripción vigente (`activa`/`trial`/`online`); la vista **Explorar** muestra todas las academias
+- `/clases` prioriza las academias del alumno: lista y calendario muestran solo clases de academias con inscripción vigente (`activa`); la vista **Explorar** muestra todas las academias
 - **Reservar exige inscripción vigente** en la academia de la clase (sin ella el CTA es "requiere inscripción" y el API responde 403) - la academia inscribe al alumno, no hay auto-inscripción
 
 ---
@@ -553,8 +553,8 @@ Cada peso debe rastrear a su origen, con la misma disciplina que el ledger banca
 Flow, MercadoPago y Fintoc son **adaptadores detrás de un puerto normalizado**, no dependencias del dominio - preparado para más países (incl. Europa):
 
 - **Órdenes**: `PaymentGateway.createOrder/verifyWebhook/refreshStatus` → `GatewayConfirmation` normalizado (`status/amount/feeClp/media/paidAt/raw`) - el dominio nunca parsea campos de proveedor. Webhook por proveedor `/payments/webhook/:provider`.
-- **Suscripciones**: puerto `SubscriptionProvider` con tipos normalizados (los `Flow*` salen del contrato); Flow hoy, MP preapproval/Stripe como slots.
-- **Credenciales por actor**: `ProducerGatewayAccount` cifrado (AES-256-GCM, `PRODUCER_GATEWAY_KEY`); implementado (spec producer-gateway-accounts): el productor configura su cuenta Flow/MP desde `/productor/parametros`, el checkout cobra por su adaptador (`OWN_GATEWAY`), el webhook se enruta por `?account=<id>` y la comisión se netea en su payout.
+- **Suscripciones**: puerto `SubscriptionProvider` con tipos normalizados (los `Flow*` salen del contrato); Flow y MercadoPago hoy (MP por `preapproval` con `init_point` hosted, spec `mercadopago-subscriptions`), Stripe como slot.
+- **Credenciales por actor**: `ProducerGatewayAccount` cifrado (AES-256-GCM, `PRODUCER_GATEWAY_KEY`); implementado (specs producer-gateway-accounts + gateway-in-methods-form): el actor configura su cuenta Flow/MP/Fintoc dentro del flujo "Agregar método" de sus métodos de pago (`/productor/medios-pago/nuevo`, espejo en `/academia/configuracion/metodos-de-pago/nuevo`; la cuenta queda como primer card del listado con badge, mask y `webhookUrl`, ficha `/pasarela` con rotación y zona roja), el checkout cobra por su adaptador (`OWN_GATEWAY` del productor; BYO de academia), el webhook se enruta por `?account=<id>` y la comisión se netea en su payout (productor) o se factura mes vencido como take de cobranza (academia).
 - **Moneda**: `Payment.currency` + `Event.currency` (ISO 4217, default CLP).
 
 **Política: sin reembolsos.** Los tickets son **transferibles a otro usuario** (mismo mecanismo que gift ticket). Reembolso excepcional solo manual, a pedido del productor.
@@ -629,7 +629,7 @@ Omni-dance (empresa de software propia) recauda y liquida por **transferencia se
 | Perfil | Qué recauda omni por ellos | Liquidación |
 |---|---|---|
 | **Productor** | Precio de lista de tickets (preventa + puerta app), pases mensuales, inscripciones | `payout` por evento o semanal: **bruto − % todo incluido** (cadena: evento → `platformFeePct` del productor → fee del tier Pro vigente → `fees.managed_allin_pct` 9,14; líneas `PLATFORM_FEE_NET` + `PLATFORM_FEE_IVA` + `GATEWAY_FEE_PASSTHROUGH` al costo) − fee devengado por métodos propios neteado → transferencia + comprobante |
-| **Academia** | Mensualidades, packs, talleres, clases privadas, trial pagos | `payout` mensual/semanal consolidado: **bruto − tarifa Flow** (`GATEWAY_FEE_PASSTHROUGH`, ~3,19%); **sin comisión ni cargo al comprador** - la academia monetiza vía suscripción SaaS (ver abajo) |
+| **Academia** | Mensualidades, packs, talleres, clases privadas (pasarela propia BYO, spec `academy-byo-collections`: el cobro va directo a su cuenta, nunca por la nuestra) | **Sin payout nuevo**: omnidance le **factura mes vencido** el take `academy_fee.net_pct` (1,0% neto + IVA) congelado por orden (`Payment.academyTakeClp`) en `AcademyCollectionsStatement`, cobrado por PLATFORM_CHARGE; liquidación impaga → `collectionsBlockedAt` (sus alumnos quedan solo por comprobante). Academia sin pasarela → solo claim manual. Payout histórico our-Flow (`bruto − GATEWAY_FEE_PASSTHROUGH` ~3,19%, sin comisión) sigue liquidando períodos viejos con el motor anterior |
 | **Instructor** | Clases privadas (vía academia - liquida a través de la academia según el acuerdo económico `payType`/`payAmount`/`payClasses`) | Dentro del payout de la academia, desglosado |
 | **Venue** | Futuro: arriendos (`venue_rental`), cortesías cobradas | `payout` cuando aplique |
 | **omni-dance** | Comisiones todo incluido (neto+IVA de productor, fee propio de métodos), suscripciones SaaS, futuro premium bailarín | Es nuestra plata - no se liquida, se factura |
@@ -646,7 +646,7 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 
 | Tier | Precio mensual | Alumnos activos | Incluye |
 |---|---|---|---|
-| **COBROS** (señuelo) | $39.500 |  ≤60 | Cobro de membresías por nuestra pasarela + lista de alumnos al día/morosos + **reporte de cobranza** (facturación mensual, quién pagó, plan top, filtros). Sin clases, sin asistencia, sin staff, sin scores/clasificación CRM en superficies de alumnos. Take ~1,5× el fee real de pasarela (~4,8% all-in); compite con cobranza pura tipo Membrezia |
+| **COBROS** (señuelo) | $39.500 |  ≤60 | Cobro de membresías por **la pasarela propia de la academia** (Flow/MercadoPago BYO; el dinero va directo a su cuenta y omnidance factura el take `academy_fee.net_pct` = 1,0% neto + IVA mes vencido, spec `academy-byo-collections`) + lista de alumnos al día/morosos + **reporte de cobranza** (facturación mensual, quién pagó, plan top, filtros). Sin clases, sin asistencia, sin staff, sin scores/clasificación CRM en superficies de alumnos. El take viejo ~1,5× el fee de pasarela quedó solo para liquidaciones históricas; compite con cobranza pura tipo Membrezia |
 | **STUDIO** (objetivo) | $79.700 | ≤150 | + planes y membresías, clases/series, reservas, asistencia por profe, export mensual CSV, check-in, KPIs operacionales (ocupación, asistencia del día). Pasarela a costo real (sin take). Sin consultas rápidas ni analítica estratégica |
 | **PRO** (top) | $120.500 | ilimitado | + analítica completa (consultas rápidas, insights, audiencia), CRM (scores/segmentos/campañas), notificaciones de marketing segmentadas, videos, **cuenta multi-academia** |
 
@@ -765,10 +765,12 @@ Gestión integral - el benchmark es BoxMagic (reservas con aforo, membresías, c
 
 ### Planes y membresías
 
-- Tipos de plan: **mensualidad recurrente**, **por cantidad de clases** (pack de 8), **por periodo**, **plan de prueba** (clase gratis)
-- Estados del alumno: **activo / pausado / trial / congelado / online**
-- Prorrateo, pausas configurables, recordatorios automáticos de membresía impaga
-- Cobro recurrente: Khipu / Webpay Oneclick
+- Tipos de plan: **por tiempo** (mensual, trimestral, semestral, período en días), **por cantidad de clases** (pack), **clase única**. La **clase de prueba** no es tipo: es un pack de 1 clase (precio 0 la asigna staff, >0 se vende online). `price <= 0` nunca se vende online
+- Vigencia **rodante**: `pagado hasta` = base + duración del plan (1/3/6 meses, periodDays, +1 día la única; pack sin fecha). Nada de mes calendario; renovar extiende desde el vencimiento pagado sin comer días
+- Estados del alumno: **activo / inactivo** (binario; se pierde el motivo de la inactividad a propósito)
+- `classCount` = tope de clases **por ciclo pagado** en cualquier tipo (un mensual con 8 = "8 clases al mes"; al renovar el conteo parte del nuevo ciclo, no del alta)
+- Pausas como inactivación del alumno, recordatorios automáticos de membresía impaga
+- Cobro recurrente: suscripción CARD del alumno por la **pasarela propia de la academia** (Flow o MercadoPago `preapproval` con `init_point` hosted; specs `academy-card-subs-byo` y `mercadopago-subscriptions`); cada academia cobra directo a su cuenta y omnidance le factura el take mes vencido (`academy_fee.net_pct`, spec `academy-byo-collections`)
 - **Clase de prueba con link compartible** - herramienta de adquisición para redes sociales de la academia
 
 ### Clases y asistencia
@@ -810,7 +812,7 @@ Gestión integral - el benchmark es BoxMagic (reservas con aforo, membresías, c
 |---|---|---|
 | Alumnos núcleo | Score alto | **Upsell**: plan premium, bootcamp, clases privadas, talleres - "mandar oferta de bootcamp a los 20 con más score" |
 | En riesgo | Score/asistencia cayendo | **Churn**: actúa ANTES de que abandone (oferta, mensaje, clase de cortesía) |
-| Nuevos | Trial reciente | Onboarding: ¿está enganchando o no? |
+| Nuevos | Clase de prueba reciente | Onboarding: ¿está enganchando o no? |
 
 - El alumno **nunca ve el número** - del lado consumidor solo se expresa como "nivel de comunidad" genérico
 - Streak de clases lo alimenta directamente
@@ -838,10 +840,10 @@ Gestión integral - el benchmark es BoxMagic (reservas con aforo, membresías, c
 `point_ledger` (puntos de temporada, no gastables, resetean), `friend_challenge`, `prize_draw` (ruleta/sorteos/escaneo dorado), `community_level`,
 `song_suggestion` (event, person, canción - del checkout; top-N para DJ/productor, habilita "la más pedida suena a las X"),
 `season` (leaderboard por estilo+rol), `night_summary`, `happy_hour_window` (sesiones cuentan doble para contador),
-`academy`, `academy_instructor` (profe en N academias / dueño / independiente=academia de uno, con acuerdo económico), `enrollment` (activo/pausado/trial/congelado/online), `membership_plan` (mensual/pack clases/periodo/trial), `class_series` + `class_series_slot` (serie recurrente con slots semanales, borrado lógico), `class` (instancia con fecha: reserva+lista espera), `class_booking`, `attendance`, `private_lesson`, `academy_score`, `video`, `subscription`,
+`academy`, `academy_instructor` (profe en N academias / dueño / independiente=academia de uno, con acuerdo económico), `enrollment` (activo/inactivo), `membership_plan` (mensual/trimestral/semestral/pack clases/período/única; la prueba es un pack de 1), `class_series` + `class_series_slot` (serie recurrente con slots semanales, borrado lógico), `class` (instancia con fecha: reserva+lista espera), `class_booking`, `attendance`, `private_lesson`, `academy_score`, `video`, `subscription`,
 `practice` (event tipo práctica, creador=host bailarín, aforo chico, gratis, `chat_thread` o comentarios), ~~`availability_toggle`~~ (retirado), `user_verification`, `report`,
 `event_day` (congresos multi-día), ~~`practice_partner_request`~~ (retirado), `venue_rental` (local↔academia para galas/prácticas),
-**CRM transversal**: `relationship_score` (actor→person, privado por actor: academy/producer/venue/dj/instructor_score), `campaign` (actor, segmento, acción, resultado), `discount_code` (descuento/cortesía/comp), `actor_tag` (nota manual actor→person), `referral` (quién trajo a quién), `crm_trigger` (regla automática: win-back, trial expira, regular no compró),
+**CRM transversal**: `relationship_score` (actor→person, privado por actor: academy/producer/venue/dj/instructor_score), `campaign` (actor, segmento, acción, resultado), `discount_code` (descuento/cortesía/comp), `actor_tag` (nota manual actor→person), `referral` (quién trajo a quién), `crm_trigger` (regla automática: win-back, regular no compró, asistencia cayó, segmento entra/sale),
 **Transaccional**: `rsvp` ("voy" - mencionado en features pero faltaba como entidad), `payment` (orden/ticket, pasarela, fee, neto - la liquidación lo necesita), `payout` (liquidación a productor/academia: periodo, monto, estado), `notification` (push/in-app; preferencias por categoría: social / transaccional / marketing-CRM), ~~`user_block`~~ (retirado junto al ciclo de invitaciones), `analytics_event` (append-only de eventos de producto → materialized views para Pro/CRM), `activity_event` (append-only línea de vida del actor: registro, roles, trial, suscripción, pagos, bloqueos → timeline admin), `fiscal_profile` (RUT, razón social, empresa/persona, giro - requerido en todo rol que recibe liquidaciones o emite documentos)
 
 ---
@@ -933,6 +935,7 @@ Wireframe - Mi QR:
 | Asistentes | Lista por tipo de pase, guest lists consolidadas (incl. cumpleaños), reservas de mesa |
 | Post-evento | Evaluaciones agregadas por dimensión, resumen de la noche |
 | Liquidaciones | Qué cobró, cuándo se transfirió, desglose de comisiones |
+| Medios de pago | Lista unificada `/productor/medios-pago`: métodos propios (transferencia/link/efectivo) + la cuenta de pasarela BYO como primera fila con badge/mask/`webhookUrl`; el alta de pasarela va dentro de "Agregar método" (`/nuevo` elige manual vs FLOW/MERCADOPAGO/FINTOC) y su ficha `/pasarela` lleva rotación y zona roja (spec `gateway-in-methods-form`) |
 
 ### Productor Pro - catálogo de insights (el producto SaaS)
 
@@ -981,20 +984,20 @@ Wireframe - Mi QR:
 | Pantalla | Contenido clave |
 |---|---|
 | Selector de academia | En el hub (`/inicio` del owner, `/academia` para staff) y en la navegación del owner (drawer móvil + sidebar desktop): visible solo con >1 academia propia o tier con `multiAcademy`; persiste `localStorage["omnidance:academy-id"]` y propaga el cambio por evento sin recarga; incluye "Nueva academia" → `/academia/nueva` |
-| Dashboard | Alumnos activos/trial/en riesgo, asistencia de hoy, ingresos del mes, clases del día |
-| Alumnos | Lista con `academy_score` + segmento (núcleo/riesgo/nuevo), `actor_tag`; card completo clickeable → detalle con edición de estado/pagado-hasta (owner/staff con capacidad) e historial de membresías/pagos. Alta por búsqueda de persona; si no existe, "Registrar nueva persona" con email+nombre crea la ficha stub y envía invitación por magic link (7 días) |
-| Planes | CRUD de `membership_plan` seccionado recurrentes vs. pago único con chip activo/inactivo, estados de `enrollment`, prorrateo/pausas, morosos con recordatorio automático |
+| Dashboard | Alumnos activos/inactivos/en riesgo, asistencia de hoy, ingresos del mes, clases del día |
+| Alumnos | Lista con `academy_score` + segmento (núcleo/riesgo/nuevo), `actor_tag`; card completo clickeable → detalle con edición de estado/pagado-hasta (owner/staff con capacidad) e historial de membresías/pagos. Alta por búsqueda de persona; si no existe, "Registrar nueva persona" con email+nombre crea la ficha stub y envía invitación por magic link (7 días). **Invitación de registro** (sin enrollment): "Invitar" crea `academy_invite` por email+nombre - la invitada se registra sola, aterriza en la ficha pública de la academia (`next` del magic link) y queda Referral INVITE + seguimiento pendiente/registrado en la misma página. **Import masivo** (spec `academy-bulk-import` + change `academy-import-invites`): `.csv`/`.xls`/`.xlsx` ≤2MB desde `/academia/configuracion/importar` con flujo Validar (dry-run) → Importar e historial de corridas con ficha fila a fila; es canal de **invitación** (mismo patrón `academy_invite`: mail magic link 7d o push si ya tiene cuenta), nunca escribe `Enrollment` - la inscripción nace de la compra del plan; columnas requeridas solo `email,nombre`, opcionales `rut|dni|documento`→`nationalId`, `fecha_nacimiento`, `sexo`, `telefono` (`plan`/`pagado_hasta` legacy se ignoran); update por email solo sobreescribe campos presentes; `skipped` si ya tiene inscripción vigente |
+| Planes | CRUD de `membership_plan` seccionado recurrentes vs. pago único con chip activo/inactivo, estados de `enrollment` (activo/inactivo), morosos con recordatorio automático |
 | Cobros | KPIs (facturado mes, por cobrar, validaciones), cola "pagos por validar" (incluye intentos `AWAITING` sin comprobante), historial unificado en lista: comprobantes manuales resueltos + pagos de pasarela; detalle con n° de transacción, canal y fecha de orden. El reporte de cobranza se exporta a CSV/PDF con marca Omnidance y los mismos filtros de la vista |
 | Clases | `class_series` (borrado lógico) con filtros nivel/modalidad/estado/q; detalle de serie → instancias del día → roster donde **el instructor marca presente** |
 | Particulares | `private_lesson`: instructor, alumno, slot, precio - compra online como producto (`Academy.privateLessonPrice`, orden PRIVATE), el owner asigna instructor+fecha post-pago; **el instructor marca la clase como realizada** (owner 403) |
 | Equipo | Colaboradores (permisos por capacidad) e instructores con acuerdo económico editable; card clickeable → detalle/edición dedicada |
 | Talleres | Crear taller pago, ventas, asistencia |
 | Contenido | Links de videos por clase (YouTube/Vimeo privado), quién puede ver qué |
-| CRM | Segmentos → `campaign` (oferta de bootcamp a núcleo, win-back a riesgo), `crm_trigger` (trial expira, asistencia cayó); ficha de contacto con resumen de actividad (asistencias, enrollments) y tags editables |
+| CRM | Segmentos → `campaign` (oferta de bootcamp a núcleo, win-back a riesgo), `crm_trigger` (win-back, asistencia cayó); ficha de contacto con resumen de actividad (asistencias, enrollments) y tags editables |
 | Analítica | Misma superficie `/analitica` del contrato compartido (consultas rápidas expandibles, filtros por entidad, exportes) |
-| Configuración | Multi-página: Clases (valores por defecto), Equipo, Métodos de pago (card clickeable → edición de datos, p. ej. cuenta de transferencia), Facturación, Encuestas |
+| Configuración | Multi-página: Clases (valores por defecto), Equipo, Métodos de pago (lista unificada: métodos manuales + la cuenta de pasarela BYO como primer card con badge/mask/`webhookUrl`; el alta de pasarela va dentro de "Agregar método" en `/nuevo` (selector manual vs pasarela) y su ficha `/pasarela` lleva rotación y zona roja, spec `gateway-in-methods-form`), Facturación, Encuestas |
 
-**Pago del plan con medios propios** (spec academy-checkout-manual-pay): si la academia publica `AcademyPaymentMethod`, el checkout de membresía ofrece elegir entre la pasarela y sus medios (transferencia/link/efectivo). Al confirmar un método propio se registra el `payment_claim` en `AWAITING` (intento persistido - el alumno puede salir a transferir y volver); transferencia muestra los datos bancarios copiables (nombre, RUT, banco, tipo y número de cuenta, email) con copia en bloque para pegar en la app del banco. Subir el comprobante pasa el claim a `PENDING` en la cola del owner; aprobar extiende la vigencia como un pago de pasarela. La suscripción recurrente sigue solo por pasarela (el método manual no puede cobrar sola).
+**Pago del plan con medios propios** (spec academy-checkout-manual-pay): si la academia publica `AcademyPaymentMethod`, el checkout de membresía ofrece elegir entre la pasarela y sus medios (transferencia/link/efectivo). Al confirmar un método propio se registra el `payment_claim` en `AWAITING` (intento persistido - el alumno puede salir a transferir y volver); transferencia muestra los datos bancarios copiables (nombre, RUT, banco, tipo y número de cuenta, email) con copia en bloque para pegar en la app del banco. Subir el comprobante pasa el claim a `PENDING` en la cola del owner; aprobar extiende la vigencia como un pago de pasarela. La suscripción recurrente sigue solo por pasarela (el método manual no puede cobrar sola): la tarjeta del alumno queda cargando por la **cuenta propia de la academia** (Flow `customer/register` o MercadoPago `preapproval` con `init_point` hosted; specs `academy-card-subs-byo` + `mercadopago-subscriptions`), nunca por la de plataforma; una academia sin pasarela activa ofrece la sub solo por transferencia.
 
 ### Local / Local Pro
 
@@ -1032,7 +1035,7 @@ El `academy_score` generalizado: **cada actor B2B tiene un score privado de rela
 
 | Actor | Score sobre | Señales | Acciones que habilita |
 |---|---|---|---|
-| **Academia** | Alumno | Clases compradas, asistencia, eventos de la academia, antigüedad, pago | Upsell (bootcamp/plan/clase privada), anti-churn, seguimiento de trial |
+| **Academia** | Alumno | Clases compradas, asistencia, eventos de la academia, antigüedad, pago | Upsell (bootcamp/plan/clase privada), anti-churn, onboarding de alumnos nuevos |
 | **Productor** | Asistente | Asistencia a SUS eventos, compra preventa temprana vs puerta, trae amigos (referrals), ratings de sus eventos | Upsell `series_pass`/pases VIP, win-back a regulares ausentes, convertir nuevos en regulares |
 
 **Implementado** (spec `producer-score-refine`, mismo esquema de params `crm.score.*`): eventos asistidos últimas 8 semanas ×4, racha de eventos consecutivos del productor ×3 (cap 8), meses continuos con checkin/compra ×4 (cap 6), compras últimos 6 meses ×3 (cap 6; entradas y pases de serie), compras anticipadas (≥3 días antes del evento) ×2 (cap 3), antigüedad ×1/mes (cap 12), referrals ×5. La caída a AT_RISK se detecta a nivel evento: no asistir a los últimos 2 eventos tras haber ido a ≥2 de los 5 anteriores.
@@ -1054,13 +1057,13 @@ El score sin acción es decoración. Estas son las piezas del CRM que no estaban
 
 1. **`campaign`** - acción sobre segmento: "enviar oferta/push a los 20 con más score" / "a los en riesgo". Sin esto los scores son solo reportes
 2. **`discount_code`** - instrumento de precio: códigos de descuento, cortesías, comp codes. **No existía en el modelo** y sin códigos no hay upsell posible
-3. **Comunicación segmentada** - push/in-app a un segmento ("te extrañamos", "tu trial expira en 3 días"). No broadcast masivo: segmentado
+3. **Comunicación segmentada** - push/in-app a un segmento ("te extrañamos", "tu plan vence en 3 días"). No broadcast masivo: segmentado
 4. **Embudo de conversión** - landing view → RSVP → compra → check-in → repite. El chart de CRM por excelencia; para el productor: "de 500 que vieron el evento, 80 compraron, 72 llegaron, 30 repiten"
 5. **Cohort retention** - "de los 30 alumnos nuevos de septiembre, ¿cuántos siguen en diciembre?" - tabla de cohortes clásica
 6. **LTV** - cuánto ha gastado esta persona con este actor (CLP lifetime). Cambia decisiones: un alumno de $500k lifetime merece otra atención que uno de $15k
 7. **`actor_tag` / notas manuales** - el productor marca "VIP", "amigo del DJ", "cumpleañero frecuente". CRM clásico: la data que el sistema no infiere
 8. **`referral`** - quién trajo a quién (gift tickets + invites ya dan la data). El embajador medible
-9. **`crm_trigger` / automatizaciones** - reglas que disparan solas: "regular no compró preventa para el próximo evento" → alerta/oferta; "trial expira en 3 días" → push; "asistencia cayó 50%" → flag. Esto convierte el CRM de dashboard manual en sistema activo
+9. **`crm_trigger` / automatizaciones** - reglas que disparan solas: "regular no compró preventa para el próximo evento" → alerta/oferta; "asistencia cayó 50%" → flag. Esto convierte el CRM de dashboard manual en sistema activo
 
 ### Privacidad transversal
 
@@ -1174,7 +1177,7 @@ In-app (centro de notificaciones) + **Web Push (VAPID, gratis)**. Habilita todo 
 |---|---|
 | Social | "X llegó al evento", "Y registró un baile contigo", actividad de amigos |
 | Transaccional | "Te puntuaron" (anónimo), "Ganaste el Prime Time", "Badge desbloqueado", resumen de la noche + ratings pendientes |
-| CRM/marketing | Campañas segmentadas, win-back, "tu trial expira", "regular que no compró preventa" |
+| CRM/marketing | Campañas segmentadas, win-back, "regular que no compró preventa" |
 | Operacional | Staff: sync offline; productor: "se agotó la preventa" |
 
 Preferencias por categoría - el usuario apaga marketing sin perder transaccionales.
@@ -1195,7 +1198,7 @@ Preferencias por categoría - el usuario apaga marketing sin perder transacciona
 
 ### Integraciones externas
 
-Flow (pagos + webhooks + suscripciones recurrentes de mensualidades de academia) · Google Drive (fotos) · YouTube/Vimeo (videos/streaming embebido) · futuro: Webpay Oneclick/Khipu si el volumen justifica migrar de pasarela
+Flow y MercadoPago (pagos + webhooks; suscripciones de membresías por la cuenta BYO de cada academia - specs academy-card-subs-byo y mercadopago-subscriptions - y suscripciones de plataforma por our-Flow) · Google Drive (fotos) · YouTube/Vimeo (videos/streaming embebido) · futuro: Webpay Oneclick/Khipu si el volumen justifica migrar de pasarela
 
 ### Riesgos técnicos conocidos
 
@@ -1255,7 +1258,7 @@ Flow (pagos + webhooks + suscripciones recurrentes de mensualidades de academia)
 - Comisión **% todo incluido al productor** (reemplaza el cargo flat al comprador): 10% lista / 8% promo gestionada, derivada por modo de cobro; desglose pasarela al costo + fee neto + IVA; trazabilidad BIAN por pago y `PayoutLine` por liquidación
 - **Una app, dos superficies** (consumidora + gestión role-gated) sobre un backend - no dos apps
 - Instructor = rol de `person`: dueño de academia, profe en academias, o independiente (academia de uno); **clases privadas se venden vía gestión de academia** (`private_lesson`, la academia cobra comisión)
-- Academias modeladas con **estructura tipo BoxMagic**: planes/membresías (mensual, pack, periodo, trial), estados (activo/pausado/trial/congelado/online), horarios con cupos, check-in QR, reportes, clase de prueba con link
+- Academias modeladas con **estructura tipo BoxMagic**: planes/membresías (por tiempo, pack, período, única), estados (activo/inactivo), vigencia rodante, horarios con cupos, check-in QR, reportes, clase de prueba con link
 - Sugerir canción en checkout → `song_suggestion` agregada para DJ; "la más pedida suena a las X"
 - Reserva de mesa (nombre + cantidad), amigos ven quién tiene mesa, carta PDF del local
 - Nightlife benchmark: guest list self-service, capacidad+waitlist, fotos vía Drive link, cumpleaños con lista de precio especial $4.000, pase mensual de serie, lineup del evento. **NO entra**: paquetes de mesa/vaquita/pedidos (Orixas usa Fudo - no competir con el POS del local)

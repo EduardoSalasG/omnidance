@@ -9,10 +9,13 @@ import { StorageModule } from "../storage/storage.module";
 import { AcademyAccessModule } from "./academy-access.module";
 import { AcademyBillingController } from "./infrastructure/academy-billing.controller";
 import { AcademyClaimsController } from "./infrastructure/academy-claims.controller";
+import { AcademyGatewayController } from "./infrastructure/academy-gateway.controller";
 import { AcademyClaimsService } from "./infrastructure/academy-claims.service";
 import { AcademyPromosController } from "./infrastructure/academy-promos.controller";
 import { AcademyImportController } from "./infrastructure/academy-import.controller";
 import { AcademyImportService } from "./infrastructure/academy-import.service";
+import { AcademyInvitesController } from "./infrastructure/academy-invites.controller";
+import { AcademyInvitesService } from "./infrastructure/academy-invites.service";
 import { AcademyRemindersService } from "./infrastructure/academy-reminders.service";
 import { AcademyStaffController } from "./infrastructure/academy-staff.controller";
 import { AcademiesScheduler } from "./infrastructure/academies.scheduler";
@@ -45,8 +48,10 @@ import { VideosController } from "./infrastructure/videos.controller";
     AcademiesController,
     AcademyBillingController,
     AcademyClaimsController,
+    AcademyGatewayController,
     AcademyPromosController,
     AcademyImportController,
+    AcademyInvitesController,
     AcademyStaffController,
     EnrollmentsController,
     AttendanceController,
@@ -58,6 +63,7 @@ import { VideosController } from "./infrastructure/videos.controller";
   providers: [
     AcademyClaimsService,
     AcademyImportService,
+    AcademyInvitesService,
     AcademyMaterializeService,
     AcademyRemindersService,
     AcademiesScheduler,

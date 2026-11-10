@@ -443,7 +443,7 @@
       "attendance30d": "Présence 30j"
     },
     "newPlan": "Nouveau plan",
-    "newEnrollment": "Nouvelle inscription",
+    "newEnrollment": "Inscription manuelle",
     "attendance": "Présence",
     "markPresent": "Présent",
     "planName": "Nom du plan",
@@ -459,18 +459,11 @@
     "loginRequired": "Connecte-toi avec ton e-mail pour gérer ton académie",
     "stats": {
       "active": "Actifs",
-      "trial": "En essai",
-      "paused": "En pause",
-      "frozen": "Gelés",
-      "online": "En ligne"
+      "inactive": "Inactifs"
     },
     "status": {
       "ACTIVE": "Actif",
-      "PAUSED": "En pause",
-      "TRIAL": "Essai",
-      "FROZEN": "Gelé",
-      "ONLINE": "En ligne",
-      "CANCELLED": "Annulé"
+      "INACTIVE": "Inactif"
     },
     "weekday": {
       "0": "Dimanche",
@@ -501,8 +494,7 @@
     "planTypes": {
       "MONTHLY": "Mensuel",
       "CLASS_PACK": "Pack de cours",
-      "PERIOD": "Période personnalisée",
-      "TRIAL": "Essai"
+      "PERIOD": "Période personnalisée"
     },
     "studentStatus": "Statut de {name}",
     "planPeriodDays": "Jours de validité",
@@ -923,13 +915,11 @@
       "empty": "Pas de triggers",
       "keys": {
         "WINBACK": "Relance des inactifs",
-        "TRIAL_EXPIRING": "Essai bientôt terminé",
         "REGULAR_NO_PRESALE": "Habitué sans prévente",
         "ATTENDANCE_DROP": "Baisse de présence"
       },
       "desc": {
         "WINBACK": "Prévient les personnes qui ont cessé de venir depuis N jours.",
-        "TRIAL_EXPIRING": "Prévient quand un abonnement d'essai arrive à expiration.",
         "REGULAR_NO_PRESALE": "Prévient les habitués qui n'ont pas encore acheté de prévente.",
         "ATTENDANCE_DROP": "Détecte les baisses de présence par rapport au rythme habituel."
       },

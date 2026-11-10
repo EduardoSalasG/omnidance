@@ -26,7 +26,7 @@ export default function CrmTriggersPage() {
   }, []);
 
   // Keys creables para este actor: las de alcance restringido
-  // (TRIAL_EXPIRING academia, REGULAR_NO_PRESALE productor) no cuentan.
+  // (REGULAR_NO_PRESALE solo productor) no cuentan.
   const applicableKeys = CRM_TRIGGER_KEYS.filter(
     (k) =>
       !ctx.actor ||

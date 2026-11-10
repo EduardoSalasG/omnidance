@@ -16,6 +16,12 @@ import type { SubscriptionCallOpts, SubscriptionProvider } from "../domain/ports
  * escribiendo como espejo cuando el provider es FLOW - la columna
  * queda correcta para lectores legacy y el customer-return; los
  * providers nuevos viven solo en el mapa.
+ *
+ * Scope por cuenta (spec academy-card-subs-byo): con `accountId` la
+ * clave se namespacetea `"<GATEWAY>:<accountId>"` - el mismo alumno
+ * tiene un customer distinto en el Flow de plataforma y en el de cada
+ * academia BYO. La clave plana y el espejo `flowCustomerId` quedan
+ * reservados a la cuenta de plataforma (accountId null).
  */
 export async function ensureFlowCustomer(
   prisma: PrismaService,
@@ -23,11 +29,14 @@ export async function ensureFlowCustomer(
   providerName: string,
   personId: string,
   opts: SubscriptionCallOpts = {},
+  accountId: string | null = null,
 ): Promise<{ person: Person; customerId: string }> {
   const person = await prisma.person.findUniqueOrThrow({
     where: { id: personId },
   });
-  const key = providerName.toUpperCase();
+  const key = accountId
+    ? `${providerName.toUpperCase()}:${accountId}`
+    : providerName.toUpperCase();
   const map = (person.gatewayCustomerIds ?? null) as Record<
     string,
     unknown

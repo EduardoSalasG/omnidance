@@ -103,7 +103,10 @@
       "tableSeatsTotal": "Personnes assises aux tables",
       "inheritsDefault": "Valeur par défaut du producteur",
       "tablesHint": "La capacité assise est la capacité réelle des tables : différente de la jauge générale, en général plus petite. Vide hérite de ta valeur par défaut de Paramètres.",
-      "currency": "Devise"
+      "currency": "Devise",
+      "internalOnly": "Réservé aux élèves de mon académie",
+      "internalAcademy": "Académie du social interne",
+      "internalOnlyHint": "N'apparaît pas dans la programmation publique : seuls les élèves actifs de l'académie choisie peuvent le voir et l'acheter."
     },
     "sections": {
       "staff": "Staff de porte",
@@ -271,7 +274,8 @@
         "trial": "Période d'essai",
         "active": "Actif",
         "cancelPending": "S'annule",
-        "activating": "Activation en cours"
+        "activating": "Activation en cours",
+        "pendingPayment": "Paiement en cours d'examen"
       },
       "tiers": {
         "FREE": "Plan gratuit",
@@ -321,7 +325,16 @@
       "staffLabel": "Collaborateurs",
       "staffUsage": "{used} sur {limit}",
       "staffUnlimited": "{used} · illimité",
-      "featuresLabel": "Inclus"
+      "featuresLabel": "Inclus",
+      "payViaTitle": "Moyen de facturation",
+      "payViaCard": "Carte (débit automatique)",
+      "payViaTransfer": "Virement",
+      "payViaTransferHint": "Tu paies par virement à chaque cycle et tu envoies le justificatif ; l'équipe Omnidance le valide.",
+      "subscribeTransfer": "S'abonner par virement · {amount}/{period}",
+      "transferLabel": "Virement",
+      "pendingPaymentHint": "Ton abonnement attend le justificatif approuvé. Envoie le justificatif ou change de moyen de facturation.",
+      "pendingPaymentCta": "Envoyer le justificatif",
+      "changePayVia": "Changer de moyen de facturation"
     },
     "gateway": {
       "title": "Ma passerelle de paiement",
@@ -342,6 +355,7 @@
       "saved": "Passerelle connectée. Configure l'URL de confirmation dans son panneau.",
       "disable": "Désactiver",
       "disabled": "Passerelle désactivée : l'encaissement est revenu à la plateforme.",
+      "confirmOffTitle": "Désactiver la passerelle",
       "confirmOff": "Désactiver ta passerelle ? Les nouvelles ventes repassent par Omnidance.",
       "confirmYes": "Oui, désactiver",
       "hint": "Avec ta propre passerelle l'argent de tes ventes arrive directement sur ton compte ; la commission Omnidance est déduite de ton règlement."
@@ -459,6 +473,8 @@
       "removeDesc": "Il n'apparaîtra plus comme candidat staff pour tes événements.",
       "quotaFull": "Ton plan couvre jusqu'à {limit} collaborateur(s), passe au tier supérieur pour en ajouter.",
       "removed": "Collaborateur retiré"
-    }
+    },
+    "copyPublicLink": "Copier le lien public",
+    "publicLinkCopied": "Lien public copié."
   }
 }

@@ -1,32 +1,90 @@
 {
   "academyImport": {
     "title": "Importar datos",
-    "desc": "Carga masiva para migrar desde otra plataforma: tu nómina de alumnos y el horario semanal en CSV.",
+    "desc": "Carga masiva para migrar desde otra plataforma: tu nómina de alumnos y el horario semanal en CSV o Excel.",
     "studentsTitle": "Alumnos",
-    "studentsDesc": "Una fila por alumno: email, nombre, plan y hasta cuándo pagó. Si no tiene cuenta le enviamos una invitación por correo.",
-    "studentsCols": "Columnas: email, nombre, telefono (opcional), plan, pagado_hasta (opcional, YYYY-MM-DD)",
+    "studentsDesc": "Una fila por alumno. Solo email y nombre son obligatorios; a quien no tenga cuenta le enviamos una invitación por correo. El alta como alumno queda cuando compra su plan.",
+    "studentsCols": "Columnas: email, nombre + opcionales: rut, fecha_nacimiento, telefono, sexo",
     "scheduleTitle": "Horario semanal",
     "scheduleDesc": "Una fila por bloque semanal. Las filas con el mismo nombre de serie se agrupan en una sola serie del mes.",
     "scheduleCols": "Columnas: serie, dia_semana, hora_inicio, hora_fin + opcionales: estilo, nivel, capacidad, instructor_email, mes",
+    "studentsValues": [
+      {
+        "col": "sexo",
+        "values": "m · f · otro"
+      },
+      {
+        "col": "fecha_nacimiento",
+        "values": "DD/MM/YYYY (también YYYY-MM-DD)"
+      },
+      {
+        "col": "telefono",
+        "values": "+56 9 1234 5678 · lo normalizamos al país de tu academia"
+      },
+      {
+        "col": "rut",
+        "values": "12.345.678-9 · también acepta dni o documento"
+      }
+    ],
+    "scheduleValues": [
+      {
+        "col": "dia_semana",
+        "values": "lunes a domingo, o 0-6 (domingo = 0)"
+      },
+      {
+        "col": "hora_inicio / hora_fin",
+        "values": "HH:MM · 19:30"
+      },
+      {
+        "col": "capacidad",
+        "values": "número entero · 20"
+      },
+      {
+        "col": "estilo / nivel",
+        "values": "tal como están escritos en tu consola (ignora mayúsculas y acentos)"
+      },
+      {
+        "col": "instructor_email",
+        "values": "email de un instructor de tu academia"
+      },
+      {
+        "col": "mes",
+        "values": "YYYY-MM · 2026-11 (opcional)"
+      }
+    ],
     "downloadTemplate": "Descargar plantilla",
-    "chooseFile": "Elegir CSV…",
+    "chooseFile": "Elegir archivo…",
     "noFile": "Ningún archivo elegido",
+    "validate": "Validar",
+    "validating": "Validando…",
+    "previewTitle": "Vista previa",
+    "previewHint": "Corrida de prueba: nada se guardó ni se envió todavía. Revisa el resultado fila a fila y confirma con Importar.",
     "upload": "Importar",
     "uploading": "Importando…",
+    "importDone": "Importación completada.",
+    "importDoneErrors": "Importación completada con {errors, plural, one {# fila con error} other {# filas con error}}.",
     "resultsTitle": "Resultado por fila",
     "colRow": "Fila",
     "colItem": "Dato",
     "colStatus": "Estado",
     "colDetail": "Detalle",
     "status": {
-      "imported": "Importado",
-      "updated": "Actualizado",
-      "invited": "Invitado",
+      "invited": "Invitada",
+      "resent": "Reenviada",
+      "skipped": "Omitida",
       "error": "Error",
       "ok": "Listo",
       "warn": "Con aviso"
     },
-    "error": "No se pudo importar el archivo. Revisa que sea un CSV con las columnas de la plantilla.",
+    "historyTitle": "Historial",
+    "historyEmpty": "Sin corridas todavía.",
+    "fieldDate": "Fecha",
+    "fieldKind": "Tipo",
+    "fieldFile": "Archivo",
+    "fieldRows": "Filas",
+    "rowsTotal": "{count, plural, one {# fila} other {# filas}}",
+    "notFound": "No encontramos esta corrida en la academia.",
+    "error": "No se pudo importar el archivo. Revisa que sea un CSV o Excel (.xls, .xlsx) con las columnas de la plantilla.",
     "forbidden": "No tienes acceso a la importación de esta academia."
   }
 }

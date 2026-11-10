@@ -118,6 +118,25 @@
         "copyLink": "Copy link",
         "copied": "Link copied",
         "invalid": "Enter a valid amount and a concept"
+      },
+      "payMethods": {
+        "title": "Payment methods",
+        "gateway": "Gateway",
+        "manual": "Manual methods",
+        "empty": "No payment methods configured in this academy.",
+        "verifiedAt": "Verified {date}",
+        "unverified": "Not verified",
+        "gatewayStatus": {
+          "ACTIVE": "Active",
+          "DISABLED": "Disabled"
+        },
+        "methodType": {
+          "TRANSFER": "Bank transfer",
+          "PAYMENT_LINK": "Payment link",
+          "CASH": "Cash"
+        },
+        "active": "Active",
+        "inactive": "Inactive"
       }
     },
     "trials": {
@@ -259,7 +278,8 @@
       "cities": "Cities",
       "citiesDesc": "Editorial guide per city (scene, nights, tips)",
       "promos": "Promos",
-      "prices": "Pricing"
+      "prices": "Pricing",
+      "claims": "Receipts"
     },
     "academies": {
       "desc": "Student base health per academy: segment distribution, average score and standout or at-risk students.",
@@ -367,10 +387,7 @@
         "noEnrollments": "No students enrolled.",
         "statuses": {
           "ACTIVE": "Active",
-          "PAUSED": "Paused",
-          "TRIAL": "Trial",
-          "FROZEN": "Frozen",
-          "ONLINE": "Online"
+          "INACTIVE": "Inactive"
         }
       },
       "class": {
@@ -415,7 +432,8 @@
           "PENDING_CARD": "Pending card",
           "CANCEL_PENDING": "Scheduled cancellation",
           "CANCELED": "Cancelled",
-          "FAILED_CARD": "Card declined"
+          "FAILED_CARD": "Card declined",
+          "PENDING_PAYMENT": "Payment under review"
         },
         "revenue": "Academy revenue",
         "noRevenue": "No revenue recorded."
@@ -556,7 +574,8 @@
         "payouts": "Settlements",
         "accrual": "To release",
         "payments": "Payments",
-        "saas": "SaaS"
+        "saas": "SaaS",
+        "statements": "Academy collections"
       },
       "kpiGmv": "GMV of the period",
       "kpiGmvHint": "Social {social} · Academy {academy} · SaaS {saas}",
@@ -618,7 +637,15 @@
       },
       "approved": "Payout approved.",
       "paid": "Payout marked as paid.",
-      "actionError": "Could not complete the action."
+      "actionError": "Could not complete the action.",
+      "statementStatusFilter": "Status",
+      "statementStatusAll": "All",
+      "statementsEmpty": "No academy statements.",
+      "statementOrders": "{count} orders · gross {gross}",
+      "statementSplit": "net {net} + VAT {vat}",
+      "statementDueAt": "due {date}",
+      "statementPaidAt": "paid {date}",
+      "statementBlocked": "Collections blocked"
     },
     "roles": {
       "superuser": "Superuser",
@@ -697,7 +724,8 @@
         "PAST_DUE": "Past due",
         "CANCEL_PENDING": "Cancels at cycle end",
         "CANCELED": "Cancelled",
-        "FAILED_CARD": "Card failed"
+        "FAILED_CARD": "Card failed",
+        "PENDING_PAYMENT": "Payment under review"
       }
     },
     "cities": {
@@ -814,6 +842,36 @@
       "cycleSemiannual": "Semiannual",
       "cycleAnnual": "Annual",
       "retry": "Retry"
+    },
+    "claims": {
+      "title": "Subscription receipts",
+      "desc": "Receipts for platform subscriptions paid by transfer (academies and Producer Pro).",
+      "queueTitle": "To validate",
+      "queueDesc": "Approve to activate the subscription; reject with a reason the payer will see.",
+      "queueEmpty": "No pending receipts.",
+      "queueEmptyDesc": "When an academy or producer pays their subscription by transfer, it will appear here.",
+      "historyTitle": "History",
+      "orderPlatformSub": "Subscription",
+      "reviewedByApproved": "Approved by {name}",
+      "reviewedByRejected": "Rejected by {name}",
+      "statusApproved": "Approved",
+      "statusRejected": "Rejected",
+      "detailTitle": "Receipt",
+      "fieldPayer": "Payer",
+      "fieldOrder": "Order",
+      "fieldAmount": "Amount",
+      "fieldMethod": "Method",
+      "fieldOrderRef": "Order no.",
+      "fieldSentAt": "Sent",
+      "fieldReviewedAt": "Reviewed",
+      "fieldPaidAt": "Paid",
+      "fieldReviewNote": "Reason",
+      "approveTitle": "Approve this receipt?",
+      "approveDesc": "On approval, the order is settled and the subscription becomes active.",
+      "approvedMsg": "Payment approved: the subscription is now active.",
+      "rejectedMsg": "Receipt rejected.",
+      "rejectPrompt": "Reason for rejection (the payer will see it)",
+      "notFound": "We couldn't find this receipt."
     }
   }
 }

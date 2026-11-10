@@ -7,6 +7,7 @@ import type { AuthService } from "../../auth/domain/auth.service";
 import type { Mailer } from "../../auth/domain/ports";
 import type { NotificationsService } from "../../notifications/domain/notifications.service";
 import type { ParamsService } from "../../params/params.service";
+import type { SubscriptionsService } from "../../payments/application/subscriptions.service";
 import type { TrialLifecycleService } from "../../payments/application/trial-lifecycle.service";
 
 // PATCH /admin/academies/:id/trial y /admin/users/:id/pro-trial (spec
@@ -123,6 +124,7 @@ describe("AdminController - ajuste de trial", () => {
       {} as NotificationsService,
       {} as ParamsService,
       {} as TrialLifecycleService,
+      {} as SubscriptionsService,
     );
   });
 

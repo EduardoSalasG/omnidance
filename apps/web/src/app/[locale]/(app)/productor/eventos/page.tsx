@@ -25,6 +25,10 @@ import {
 } from "@/components/producer/shared";
 import { FilterBar } from "@/components/query/FilterBar";
 import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
+import {
   EVENT_STATUSES,
   EVENT_TYPES,
   type EntityDef,
@@ -72,6 +76,7 @@ function ProducerEvents() {
   const te = useTranslations("events");
   const tc = useTranslations("common");
   const tq = useTranslations("query");
+  const ttpe = useTranslations("tours.productorEventos");
   const router = useRouter();
 
   // /me compartido (MeProvider) - el gate se deriva del contexto y los
@@ -146,9 +151,11 @@ function ProducerEvents() {
           gate === "ready" ? (
             // primary = morado de la lente social - es la acción
             // principal del módulo (spec producer-console).
-            <Button size="sm" href="/productor/eventos/nuevo">
-              {`＋ ${t("createEvent")}`}
-            </Button>
+            <span data-tour="producer-events-new" className="inline-block">
+              <Button size="sm" href="/productor/eventos/nuevo">
+                {`＋ ${t("createEvent")}`}
+              </Button>
+            </span>
           ) : null
         }
       />
@@ -181,15 +188,17 @@ function ProducerEvents() {
 
       {gate === "ready" && (
         <>
-          <FilterBar
-            entity={EVENTS_ENTITY}
-            filters={filters}
-            onChange={(f) => {
-              setFilters(f);
-              setPage(1);
-            }}
-            options={{}}
-          />
+          <div data-tour="producer-events-filters">
+            <FilterBar
+              entity={EVENTS_ENTITY}
+              filters={filters}
+              onChange={(f) => {
+                setFilters(f);
+                setPage(1);
+              }}
+              options={{}}
+            />
+          </div>
           {eventsError && (
             <div className="flex items-center gap-3">
               <p role="alert" className="text-sm text-red-400">
@@ -229,7 +238,10 @@ function ProducerEvents() {
             ))}
 
           {mine.length > 0 && (
-            <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
+            <ul
+              data-tour="producer-events-list"
+              className="flex flex-col gap-3 lg:grid lg:grid-cols-2"
+            >
               {mine.map((ev) => (
                 <li key={ev.id}>
                   <Link href={`/productor/eventos/${ev.id}`} className="block">
@@ -288,6 +300,35 @@ function ProducerEvents() {
               onPage={setPage}
             />
           )}
+
+          {/* Tour de primera visita del listado (spec producer-console):
+              los anchors existen recién con el gate ready; la lista se
+              omite sola si está vacía. */}
+          <OnboardingRunner
+            tour="productor-eventos"
+            steps={
+              [
+                {
+                  element: "[data-tour='producer-events-filters']",
+                  title: ttpe("s1.title"),
+                  description: ttpe("s1.desc"),
+                  side: "bottom",
+                },
+                {
+                  element: "[data-tour='producer-events-list']",
+                  title: ttpe("s2.title"),
+                  description: ttpe("s2.desc"),
+                  side: "top",
+                },
+                {
+                  element: "[data-tour='producer-events-new']",
+                  title: ttpe("s3.title"),
+                  description: ttpe("s3.desc"),
+                  side: "bottom",
+                },
+              ] satisfies TourStep[]
+            }
+          />
         </>
       )}
     </main>

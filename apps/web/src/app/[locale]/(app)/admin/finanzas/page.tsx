@@ -105,6 +105,29 @@ type Mrr = {
   }[];
 };
 
+/** Liquidación mensual del take BYO (spec academy-byo-collections):
+ *  fila de GET /admin/finance/academy-statements. */
+type AcademyStatementRow = {
+  id: string;
+  academyId: string;
+  period: string;
+  orderCount: number;
+  grossClp: number;
+  takeNetClp: number;
+  takeVatClp: number;
+  totalClp: number;
+  currency: string;
+  status: "PENDING" | "PAID" | string;
+  dueAt: string;
+  paidAt: string | null;
+  academy: {
+    id: string;
+    name: string;
+    collectionsBlockedAt: string | null;
+  };
+  payment: { id: string; status: string } | null;
+};
+
 ;
 ;
 ;
@@ -116,9 +139,10 @@ const PAYOUT_VARIANT: Record<string, BadgeVariant> = {
   PAID: "outline",
 };
 
-type Tab = "payouts" | "accrual" | "payments" | "saas";
-const TABS: Tab[] = ["payouts", "accrual", "payments", "saas"];
+type Tab = "payouts" | "accrual" | "payments" | "saas" | "statements";
+const TABS: Tab[] = ["payouts", "accrual", "payments", "saas", "statements"];
 const ACTOR_TYPES = ["PRODUCER", "ACADEMY", "VENUE"] as const;
+const STATEMENT_STATUSES = ["PENDING", "PAID"] as const;
 
 // Filtros = EntityDef del catálogo compartido (spec analytics/query-console):
 // mismos params que /query/run. `payments` va a /admin/browse/payments
@@ -212,6 +236,9 @@ function FinancePanel() {
   const [accrual, setAccrual] = useState<AccrualRow[] | null>(null);
   const [payments, setPayments] = useState<PaymentRow[] | null>(null);
   const [mrr, setMrr] = useState<Mrr | null>(null);
+  const [statements, setStatements] = useState<AcademyStatementRow[] | null>(
+    null,
+  );
   const [tabError, setTabError] = useState(false);
 
   // Filtros de las dos listas consultables - auto-aplican vía los
@@ -221,6 +248,9 @@ function FinancePanel() {
   const [paymentsFilters, setPaymentsFilters] = useState<QueryFilters>({
     status: "PAID",
   });
+  // Filtro status del tab liquidaciones (spec academy-byo-collections):
+  // whitelist del endpoint - vacío = todas.
+  const [statementStatus, setStatementStatus] = useState<string>("");
 
   const loadPayouts = useCallback(async () => {
     const params = new URLSearchParams();
@@ -268,6 +298,19 @@ function FinancePanel() {
       setTabError(true);
     }
   }, []);
+  const loadStatements = useCallback(async () => {
+    try {
+      const qs = statementStatus ? `?status=${statementStatus}` : "";
+      const res = await apiFetch(`/admin/finance/academy-statements${qs}`);
+      if (!res.ok) return setTabError(true);
+      const body = (await res.json()) as {
+        statements: AcademyStatementRow[];
+      };
+      setStatements(body.statements);
+    } catch {
+      setTabError(true);
+    }
+  }, [statementStatus]);
 
   useEffect(() => {
     setTabError(false);
@@ -275,7 +318,8 @@ function FinancePanel() {
     if (tab === "accrual") void loadAccrual();
     if (tab === "payments") void loadPayments();
     if (tab === "saas") void loadMrr();
-  }, [tab, loadPayouts, loadAccrual, loadPayments, loadMrr]);
+    if (tab === "statements") void loadStatements();
+  }, [tab, loadPayouts, loadAccrual, loadPayments, loadMrr, loadStatements]);
 
   // ── Operación del ciclo de payout ───────────────────────────────────
 
@@ -775,6 +819,89 @@ function FinancePanel() {
               ))}
             </ul>
           </>
+        ))}
+
+      {/* ── Liquidaciones take BYO de academias (spec
+          academy-byo-collections): statements mes vencido neto + IVA
+          cobrados por PLATFORM_CHARGE; el flag de bloqueo marca a las
+          academias con liquidación vencida impaga. ── */}
+      {tab === "statements" && (
+        <div className="flex items-center gap-2">
+          <label className="flex flex-col gap-1 text-xs text-ink/50">
+            {t("finance.statementStatusFilter")}
+            <select
+              value={statementStatus}
+              onChange={(e) => setStatementStatus(e.target.value)}
+              className={`${inputCls} w-40`}
+            >
+              <option value="">{t("finance.statementStatusAll")}</option>
+              {STATEMENT_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {statusLabel(s)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
+      {tab === "statements" &&
+        (statements == null ? (
+          <SkeletonList items={3} />
+        ) : statements.length === 0 ? (
+          <p className="text-sm text-ink/50">
+            {t("finance.statementsEmpty")}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {statements.map((s) => (
+              <li key={s.id}>
+                <Card className="flex flex-col gap-2 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">
+                        {s.academy.name}
+                      </p>
+                      <p className="text-xs text-ink/50">
+                        {s.period} ·{" "}
+                        {t("finance.statementOrders", {
+                          count: s.orderCount,
+                          gross: clp.format(s.grossClp),
+                        })}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="text-sm font-semibold">
+                        {clp.format(s.totalClp)}
+                      </span>
+                      <Badge
+                        variant={s.status === "PAID" ? "neon" : "outline"}
+                      >
+                        {statusLabel(s.status)}
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="text-xs text-ink/50">
+                    {t("finance.statementSplit", {
+                      net: clp.format(s.takeNetClp),
+                      vat: clp.format(s.takeVatClp),
+                    })}
+                    {s.status === "PAID" && s.paidAt
+                      ? ` · ${t("finance.statementPaidAt", {
+                          date: dateFmt.format(new Date(s.paidAt)),
+                        })}`
+                      : ` · ${t("finance.statementDueAt", {
+                          date: dateFmt.format(new Date(s.dueAt)),
+                        })}`}
+                  </p>
+                  {s.academy.collectionsBlockedAt && (
+                    <Badge variant="live" className="self-start">
+                      {t("finance.statementBlocked")}
+                    </Badge>
+                  )}
+                </Card>
+              </li>
+            ))}
+          </ul>
         ))}
 
       <ActionNotice notice={notice} onDismiss={() => setNotice(null)} />

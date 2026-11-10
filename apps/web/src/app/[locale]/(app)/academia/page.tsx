@@ -225,6 +225,7 @@ function AcademyHub({
                 title: tt("s7.title"),
                 description: tt("s7.desc"),
                 side: "bottom",
+                align: "end",
               },
             ] satisfies TourStep[]
           }

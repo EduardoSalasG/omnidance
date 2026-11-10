@@ -110,7 +110,13 @@ importan al bailarín (tickets chicos) pero SÍ a academia/productor
 3. **Suscripción + liability de redención**; Pase Social. Riesgo:
    redención > supuesto → cap de canje por evento + piloto con 1
    productor.
-4. **Usage/cobranza**; take ~4,8% solo en tier COBROS academia.
+4. **Usage/cobranza**; take 1% neto + IVA sobre ventas de academia
+   cobradas por SU pasarela (BYO, change `academy-byo-collections`
+   2026-11): la academia trae sus credenciales, la plata nunca entra a
+   nuestra cuenta y el take se factura mes vencido
+   (`AcademyCollectionsStatement`, bloqueo BYO por impago). Reemplaza
+   al take ~4,8% por payout del tier COBROS, que subsiste solo para
+   liquidar históricos.
 
 ## 7. Experimentos de validación pendientes
 

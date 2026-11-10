@@ -52,7 +52,7 @@ type AcademyProfile = {
     description: string[];
   }[];
   myEnrollment: {
-    status: "ACTIVE" | "PAUSED" | "TRIAL" | "FROZEN" | "ONLINE";
+    status: "ACTIVE" | "INACTIVE";
     startedAt: string | null;
     endsAt: string | null;
     plan: { id: string; name: string; type: string } | null;
@@ -153,10 +153,7 @@ export default async function AcademiaDetailPage(
           {statusLabel && (
             <Badge
               variant={
-                academy.myEnrollment!.status === "ACTIVE" ||
-                academy.myEnrollment!.status === "ONLINE"
-                  ? "neon"
-                  : "muted"
+                academy.myEnrollment!.status === "ACTIVE" ? "neon" : "muted"
               }
             >
               {statusLabel}
@@ -351,8 +348,7 @@ export default async function AcademiaDetailPage(
           privateLessonPrice={academy.privateLessonPrice}
           blocked={academy.billingBlocked}
           activePlanId={
-            academy.myEnrollment?.status === "ACTIVE" ||
-            academy.myEnrollment?.status === "ONLINE"
+            academy.myEnrollment?.status === "ACTIVE"
               ? (academy.myEnrollment.plan?.id ?? null)
               : null
           }

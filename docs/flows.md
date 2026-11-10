@@ -19,7 +19,7 @@ sequenceDiagram
     M-->>U: email
     U->>A: GET /auth/verify?token=…
     A->>DB: consume token (1 uso, no expirado) + upsertByEmail<br/>+ estampa consentVersion/consentAcceptedAt
-    Note over A,DB: email sin cuenta → la Person nace acá y dispara<br/>notify OPERATIONAL user.registered a cada admin APPROVED<br/>(best-effort; cuenta existente = solo sesión, sin aviso)
+    Note over A,DB: email sin cuenta → la Person nace acá y dispara<br/>notify OPERATIONAL user.registered a cada admin APPROVED<br/>(best-effort#59; cuenta existente = solo sesión, sin aviso)
     A->>A: mint JWT (jose) - personId
     A-->>W: Set-Cookie omnidance_session (HttpOnly)
     W->>A: GET /me → {person, roles, roleStates}
@@ -82,7 +82,7 @@ sequenceDiagram
     participant DB as Postgres
 
     U->>W: POST /checkout/quote {eventId, code?}
-    W->>API: quote → {listPrice, discount, total}<br/>(total = lista − descuento; sin cargo al comprador)
+    W->>API: quote → {listPrice, discount, total}<br/>(total = lista − descuento#59; sin cargo al comprador)
     U->>API: POST /checkout {eventId, quantity?, recipientIds?, code?}
     API->>API: PricingService + valida DiscountCode<br/>(vigencia, usos, XOR %/monto)<br/>+ recipients: existen, amigos ACCEPTED, sin ACTIVE<br/>+ recipientIds.length ≤ quantity-1
     API->>DB: tx: Payment(PENDING, refId=tkt_…,<br/>quantity, recipients, eventId, discountCodeId)<br/>+ desglose fee congelado (feeMode MANAGED, rate,<br/>neto/IVA, gatewayExpected, producerNet)<br/>+ FEE_ASSESSED al ledger
@@ -185,7 +185,7 @@ sequenceDiagram
     W->>API: POST /checkins/sync {items[≤500]}
     API->>API: por ítem: verify JWT → register(inAt=scannedAt,<br/>method=OFFLINE, clientRef) → misma lógica de siempre
     API-->>W: results[] {synced | duplicate | invalid_token | error}
-    W->>IDB: synced → sale de la cola;<br/>duplicate → conflicto visible (decisión humana)
+    W->>IDB: synced → sale de la cola#59;<br/>duplicate → conflicto visible (decisión humana)
 ```
 
 El registro **manual offline** sigue el mismo camino: el staff busca por nombre sobre el manifest cacheado (sin personId crudo) y el ítem se encola con `personId` en vez de `qrToken`. Un `clientRef` existente responde `duplicate` sin insertar; el retry del dispositivo es exacto. La integridad del QR se conserva: el dispositivo solo lee el payload para mostrar el nombre; la verificación HMAC sigue siendo exclusiva del server al sincronizar (migración a firma asimétrica para verificación offline real quedó fuera de scope).
@@ -358,6 +358,7 @@ sequenceDiagram
         Note over Dom: bayes (Σv+C·m)/(n+C), ≥3 eval<br/>leader/follower + pareja mutua ≥4
         Dom->>DB: PersonBadge prime_time_crown +7d (idempotente)
         API-->>DJ: {bestLeader, bestFollower, coupleOfTheNight}
+    end
 ```
 
 ## Puntos de temporada (PointLedger)
@@ -389,7 +390,7 @@ sequenceDiagram
     participant DB as Postgres
 
     U->>API: POST /friends {personId} → PENDING + notifica al destinatario
-    Note over DB: aId=solicitante, bId=destinatario<br/>solo bId acepta; ambos pueden borrar
+    Note over DB: aId=solicitante, bId=destinatario<br/>solo bId acepta#59; ambos pueden borrar
     U->>API: GET /friends → {friends, pendingReceived, pendingSent}
 ```
 
@@ -458,17 +459,17 @@ sequenceDiagram
 
     Note over U: entrada 1: ficha /academias/:id (card de plan → Comprar)<br/>entrada 2: /clases/:id sin inscripción → "Ver planes"
     U->>API: POST /checkout/membership {planId}
-    API->>DB: plan activo + academia activa (TRIAL solo con price>0;<br/>la gratis es asignación staff → 400)
+    API->>DB: plan activo + academia activa (price<=0 → 400:<br/>los planes gratis los asigna la academia)
     API->>DB: precio del plan (exacto - feeMode ACADEMY,<br/>sin comisión: modelo SaaS)
     API->>GW: createOrder (refId mem_<planId>_<uuid>)
     API-->>U: {paymentUrl, paymentId}
     GW->>WH: POST /payments/webhook PAID
-    WH->>DB: tx: paidNow + Enrollment findFirst→update/create<br/>(ACTIVE, planId, endsAt por tipo calendario)<br/>TRIAL → create fila TRIAL nueva, nunca toca la vigente
+    WH->>DB: tx: paidNow + Enrollment findFirst→update/create<br/>(ACTIVE, planId, endsAt rodante base+duración)
     WH->>DB: notifySafe payment.membership
-    Note over WH,DB: vigencia: MONTHLY fin de mes · QUARTERLY 3er mes ·<br/>SEMIANNUAL 6º · SINGLE día+1 · PERIOD +periodDays<br/>TRIAL +periodDays si configurado, si no sin fecha<br/>renovación: base = endsAt vigente + 1d
+    Note over WH,DB: vigencia rodante: MONTHLY +1m · QUARTERLY +3m ·<br/>SEMIANNUAL +6m · SINGLE +1d · PERIOD +periodDays<br/>CLASS_PACK sin fecha · renovación: base = endsAt vigente
 ```
 
-`Enrollment.endsAt` de compras online usa mediodía Chile (~15:00 UTC) del último día válido - misma convención que el alta staff por input date. Enrollment no tiene @@unique(academyId,personId) - el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow), salvo plan TRIAL que siempre crea una fila `status: TRIAL` nueva sin tocar la inscripción vigente (la re-compra acumula filas). Los pagos MEMBERSHIP devengan a la academia en payouts (refId → plan → academyId; sin comisión - solo pasarela al costo como `GATEWAY_FEE_PASSTHROUGH`).
+`Enrollment.endsAt` de compras online es rodante: base + duración del plan (renovar extiende desde el endsAt pagado). Enrollment no tiene @@unique(academyId,personId) - el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow). Los pagos MEMBERSHIP históricos our-Flow devengan a la academia en payouts (refId → plan → academyId; sin comisión - solo pasarela al costo como `GATEWAY_FEE_PASSTHROUGH`); las órdenes nuevas van por la cuenta BYO de la academia y su take viaja en `AcademyCollectionsStatement` (spec academy-byo-collections), no en payout.
 
 ## Pago directo a la academia - comprobante → validación → vigencia (MANUAL)
 
@@ -522,7 +523,7 @@ sequenceDiagram
 
 - **Dos avisos por ciclo**: "por vencer" cuando `endsAt` cae dentro de `academy.renewal.first_notice_days` (default 5d); "en gracia" cuando `endsAt` ya venció pero dentro de `academy.renewal.grace_days` (default 5d) - el mail dice hasta qué fecha puede pagar y que después no podrá agendar clases del mes.
 - **Idempotente por ciclo**: `Enrollment.reminderExpiringFor`/`reminderExpiredFor` guardan el `endsAt` que gatilló cada aviso; un `endsAt` nuevo (renovación, extensión manual) re-arma los dos avisos. Un mail que falla loguea y no marca - reintenta el día siguiente.
-- **Elegibilidad**: solo `ACTIVE`/`ONLINE` con `endsAt` (TRIAL no recibe avisos de renovación pagada; `endsAt` null = packs/legado nunca expira). Alumno sin email igual recibe la notificación in-app y queda marcado.
+- **Elegibilidad**: solo `ACTIVE` con `endsAt` y plan por tiempo (MONTHLY/QUARTERLY/SEMIANNUAL/PERIOD; packs no reciben avisos de renovación). Alumno sin email igual recibe la notificación in-app y queda marcado.
 - **Vigencia efectiva en reservas**: `resolveQuota` exige `now <= endsAt + grace_days` para clases dentro de ese rango - una inscripción vencida habilita clases solo hasta `endsAt + grace` (mismo número del mail); pasada la gracia no resuelve cuota.
 - **Notificación al owner por pago**: `settleMembership` envía `payment.membership.received` a `academy.ownerId` dentro del bloque `paidNow` (compra online y renovaciones automáticas Flow - nunca en webhooks/reconcile duplicados). Los claims MANUAL ya notifican al owner al crearse (`payment_claim_new`); la aprobación la hace el mismo owner.
 
@@ -555,7 +556,35 @@ sequenceDiagram
 - **Auditoría de comprobantes**: cada aprobación/rechazo de `PaymentClaim` guarda `reviewedById`+`reviewedAt`; el historial de `/academia/cobros` muestra quién validó cada pago - clave cuando varios colaboradores procesan comprobantes.
 - **Mora aplica igual**: toda mutación staff pasa por `requireCapabilityWrite` → academia bloqueada por suscripción impaga = read-only también para el equipo (la lectura sigue abierta).
 
-## Migración desde otra plataforma - import CSV → alumnos y horario (academy-bulk-import)
+## Invitación de registro de academia - envío → verify → consumo (academies/student-invites)
+
+```mermaid
+sequenceDiagram
+    actor Ow as Owner/staff academia
+    actor I as Invitada
+    participant API as AcademyInvitesController
+    participant AUTH as AuthController
+    participant DB as Postgres
+    participant MAIL as Resend (MAILER)
+
+    Ow->>API: POST /academies/:id/invites (cap students)<br/>{email, name, lastName?}
+    API->>DB: AcademyInvite pendiente<br/>(dedup: re-envío reenvía correo sin duplicar)
+    API->>DB: ActivityEvent invite.sent
+    API->>MAIL: invitación con magic link 7d<br/>(next=/academias/:id)
+    opt cuenta existente
+        API->>I: push academy.invite (notifySafe)
+    end
+    I->>AUTH: GET /api/auth/verify?token<br/>(o POST /auth/otp/verify con next en la fila)
+    AUTH->>AUTH: next = path interno válido (else se ignora)
+    AUTH->>DB: upsertByEmail + sesión
+    AUTH->>DB: pending invite (academyId del next) →<br/>consumedAt+personId + Referral INVITE<br/>+ ActivityEvent invite.registered
+    AUTH-->>I: nueva → /bienvenida?next= | existente → next directo
+    I->>I: termina en la ficha pública de la academia<br/>y se inscribe sola
+```
+
+- `GET /academies/:id/invites` (cap students) alimenta la sección "Invitados" de `/academia/alumnos` - pendientes primero, estado por `consumedAt`.
+
+## Migración desde otra plataforma - import CSV → alumnos y horario (academy-bulk-import + academy-import-invites)
 
 ```mermaid
 sequenceDiagram
@@ -564,26 +593,35 @@ sequenceDiagram
     participant DB as Postgres
     participant MAIL as Resend (MAILER)
 
-    Note over Ow: /academia/importar - descarga plantilla<br/>GET /academies/:id/import/template/students|schedule
-    Ow->>API: POST /academies/:id/import/students (cap students)<br/>multipart CSV: email,nombre,telefono?,plan,pagado_hasta?
+    Note over Ow: /academia/configuracion/importar - descarga plantilla<br/>GET /academies/:id/import/template/students|schedule
+    Ow->>API: POST /academies/:id/import/students?dryRun=1 (cap students)<br/>misma tubería sin escrituras ni envíos
+    API-->>Ow: vista previa {total, invited, resent, skipped,<br/>errors[], results[], runId:null}
+    Ow->>API: POST /academies/:id/import/students (cap students)<br/>multipart .csv/.xls/.xlsx: email,nombre +<br/>rut|dni|documento?,fecha_nacimiento?,sexo?,telefono?<br/>(plan/pagado_hasta legacy se ignoran)
     loop por fila (reporte por fila - un error no aborta)
-        alt Person existe
-            API->>DB: enrollment findFirst → update (endsAt=max, planId)<br/>o create ACTIVE si no tenía
+        alt Enrollment ACTIVE en la academia
+            API->>DB: update Person (solo campos presentes) → skipped
         else correo nuevo
-            API->>DB: Person stub + Enrollment ACTIVE con endsAt importado
-            API->>MAIL: invitación magic link 7d (studentInviteEmailHtml)
+            API->>DB: Person stub + AcademyInvite pendiente
+            API->>MAIL: invitación magic link 7d next=/academias/:id<br/>(academyInviteEmailHtml)
+        else cuenta existente sin enrollment
+            API->>DB: AcademyInvite pendiente + mail + push academy.invite
+        else invite pendiente ya existe
+            API->>MAIL: reenvío sin nueva fila → resent
         end
     end
-    API-->>Ow: results[] {row,email,status: imported|updated|invited|error,detail}
+    API->>DB: AcademyImportRun (kind, fileName, counts, results)
+    API-->>Ow: {total, invited, resent, skipped, errors[], results[], runId}<br/>→ card Historial + ficha /importar/[runId]
 
-    Ow->>API: POST /academies/:id/import/schedule (cap schedule)<br/>CSV: serie,estilo?,nivel?,dia_semana,hora_inicio,hora_fin,...
-    API->>API: agrupa por serie+mes → upsert ClassSeries<br/>slot dedup por weekday+start+end → Class del mes materializadas
-    API-->>Ow: results[] {row,serie,status: ok|warn|error,detail}
+    Ow->>API: POST /academies/:id/import/schedule (cap schedule + classes)<br/>CSV: serie,estilo?,nivel?,dia_semana,hora_inicio,hora_fin,...
+    API->>API: agrupa por serie → upsert ClassSeries<br/>slot dedup por weekday+start+end → Class de la ventana materializadas
+    API-->>Ow: results[] {row,serie,status: ok|warn|error,detail} + runId
 ```
 
-- **Alumnos**: el plan se resuelve por nombre contra los planes activos de la academia (match case/acento-insensible); `pagado_hasta` (YYYY-MM-DD) → `endsAt` al mediodía UTC (el día completo cubierto en Chile). Re-importar es seguro: `endsAt = max(existente, importado)`.
-- **Horario**: `dia_semana` acepta 0-6 o nombre en español; `estilo`/`nivel` se validan contra catálogo (no se auto-crean); `instructor_email` debe ser instructor de la academia - si no existe, el slot queda sin instructor con `warn`. Los Class del mes se materializan igual que `POST /series`.
-- **Límites**: CSV ≤2MB y ≤500 filas; columnas requeridas ausentes → 400. Parser propio en `src/common/csv.ts` (comillas, `""`, \r\n, BOM) - sin dependencia nueva.
+- **Alumnos** (change academy-import-invites): el import es **canal de invitación** - nunca escribe `Enrollment` (la inscripción nace de la compra del plan o de la liquidación del staff). Requeridas solo `email,nombre`; opcionales `rut|dni|documento` → `Person.nationalId`, `fecha_nacimiento` (DD/MM/YYYY o YYYY-MM-DD) → `birthDate`, `sexo` (m/f/otro + alias) → `gender`, `telefono` → E.164 con país de la academia. Columnas legacy `plan`/`pagado_hasta` se ignoran si vienen. Status por fila: `invited` (invite nuevo o cuenta existente sin enrollment: mail + push), `resent` (invite pendiente reenviado), `skipped` (Enrollment ACTIVE vigente - Person igual se actualiza - o email duplicado en la planilla), `error` (fila inválida).
+- **`?dryRun=1`**: misma tubería sin escrituras, envíos ni materialización - la vista previa que el front exige antes de habilitar "Importar"; `runId:null` y no deja `AcademyImportRun`.
+- **Historial**: cada corrida real persiste `AcademyImportRun`; `GET /academies/:id/import/runs` (cap students) lista para la card "Historial" de `/academia/configuracion/importar` y `GET .../runs/:runId` alimenta la ficha fila a fila.
+- **Horario**: `dia_semana` acepta 0-6 o nombre en español; `estilo`/`nivel` se validan contra catálogo (no se auto-crean); `instructor_email` debe ser instructor de la academia - si no existe, el slot queda sin instructor con `warn`. Los Class de la ventana rodante se materializan igual que `POST /series`; `capacidad` alimenta el quórum de la serie.
+- **Límites**: archivo ≤2MB y ≤500 filas; columnas requeridas ausentes → 400. Formatos `.csv` (parser propio en `src/common/csv.ts`: comillas, `""`, \r\n, BOM) y `.xls`/`.xlsx` (primera hoja vía SheetJS `xlsx` raw:false; formato por extensión y/o MIME).
 
 ## Clase suelta / taller - compra → asiento pagado (WORKSHOP)
 
@@ -602,7 +640,7 @@ sequenceDiagram
     API->>GW: createOrder (refId wks_<classId>_<uuid>, orderType WORKSHOP)
     API-->>U: {paymentUrl, paymentId}
     GW->>WH: POST /payments/webhook PAID
-    WH->>DB: tx: paidNow + ClassBooking BOOKED con paymentId<br/>(upsert sobre WAITLIST/CANCELLED propio; 409 si llena)
+    WH->>DB: tx: paidNow + ClassBooking BOOKED con paymentId<br/>(upsert sobre WAITLIST/CANCELLED propio#59; 409 si llena)
     WH->>DB: notifySafe payment.class_dropin
 ```
 
@@ -680,25 +718,27 @@ sequenceDiagram
 - "La clase ya pasó" se evalúa contra el inicio real (`date + startTime`), no contra la medianoche del día - reservar el mismo día sí funciona.
 - UI: `GET /classes/:id` expone `myCredits {kind, used, limit}` + `cancelRefundMinutes`; el sheet de cancelar declara la consecuencia antes de confirmar y `/classes/mine` adjunta `credits` por card.
 
-## Suscripción de academia - alta y renovación (Flow)
+## Suscripción de academia - alta y renovación (pasarela propia: Flow o MercadoPago)
 
 ```mermaid
 sequenceDiagram
     actor U as Bailarín
     participant API as SubscriptionsService
-    participant GW as Flow
+    participant ACCT as ActorGatewayAccount
+    participant GW as Flow de la academia<br/>(MercadoPago: ver nota abajo)
     participant DB as Postgres
 
     U->>API: POST /checkout/membership-subscription<br/>{planId, acceptRecurring:true}
-    API->>DB: tx + pg_advisory_xact_lock(person):<br/>barre PENDING_CARD pendientes,<br/>crea/reusa MembershipSubscription PENDING_CARD
-    API->>GW: ensurePlan omni_<planId> (lazy)<br/>+ customer/create (lazy → Person.flowCustomerId)
+    API->>ACCT: activeForAcademy → adaptador BYO<br/>(sin cuenta/motor → academy.no_gateway#59;<br/>collectionsBlockedAt → collections_blocked#59;<br/>TRANSFER nunca consulta la cuenta)
+    API->>DB: tx + pg_advisory_xact_lock(person):<br/>barre PENDING_CARD pendientes,<br/>crea/reusa PENDING_CARD con gatewayAccountId
+    API->>GW: ensurePlan omni_<planId> (lazy → remoteRefs<br/>"FLOW:<accountId>:CLP") + customer/create<br/>(lazy → gatewayCustomerIds "FLOW:<accountId>")
     alt sin tarjeta registrada
-        API->>GW: customer/register → registerUrl
+        API->>GW: customer/register (returnUrl ?account=<id>) → registerUrl
         API-->>U: {kind:needs_card, registerUrl, subscriptionId}
-        U->>GW: disclaimer de tarjeta (Flow)
-        GW->>API: POST /payments/flow/customer-return {token}
+        U->>GW: disclaimer de tarjeta (Flow de la academia)
+        GW->>API: POST /payments/flow/customer-return?account=<id> {token}
         API->>GW: customer/getRegisterStatus → tarjeta OK
-        API->>DB: claim atómico PENDING_CARD→ACTIVATING
+        API->>DB: claim atómico PENDING_CARD→ACTIVATING<br/>(solo la sub de ESA cuenta)
     else tarjeta ya registrada
         API->>DB: claim atómico PENDING_CARD→ACTIVATING
         API-->>U: (tras create) {kind:subscribed}
@@ -711,20 +751,20 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant CRON as SubscriptionsScheduler (cron 09:00)
-    participant WH as subscription-webhook (urlCallback del plan)
+    participant WH as subscription-webhook?account=<id><br/>(urlCallback del plan espejo)
     participant GET as GET /subscriptions/:id
-    participant GW as Flow
+    participant GW as Flow de la cuenta (providerFor)
     participant API as reconcileSubscription
     participant DB as Postgres
 
-    Note over CRON,GET: tres gatillos del mismo barrido -<br/>webhook fast-path, polling del dueño, cron (red de seguridad)
-    CRON->>GW: subscription/get (por sub ACTIVE/CANCEL_PENDING)
-    WH->>API: {token} → reconcileAll fire-and-forget (200 siempre)
+    Note over CRON,GET: tres gatillos del mismo barrido -<br/>webhook fast-path (scoped a la cuenta), polling del<br/>dueño, cron (red de seguridad). providerFor(sub):<br/>gatewayAccountId → adapterFor(cuenta), null → plataforma
+    CRON->>GW: subscription/get (cada sub por SU adaptador)
+    WH->>API: {token} → reconcileAll scoped ?account= (200 siempre)
     GET->>GW: subscription/get (refresh activo del detalle)
     GW-->>API: invoices[] + status + next_invoice_date + morose
-    Note over API,GW: recuperación de mora (overdue-invoice-collect):<br/>invoice impaga sin next_attemp_date → collect() (customer/collect)<br/>sobre la tarjeta del pagador, ANTES de notificar mora.<br/>COLLECTED → Payment renewal PAID + settle (mora resuelta, sin aviso);<br/>FAILED → Payment FAILED + mora sigue su curso (dedup: 1 intento/invoice);<br/>PENDING (sin tarjeta) → collectUrl en la notificación de mora;<br/>error de API → sin Payment, reintenta en el próximo barrido
+    Note over API,GW: recuperación de mora (overdue-invoice-collect):<br/>invoice impaga sin next_attemp_date → collect() (customer/collect)<br/>sobre la tarjeta del pagador, ANTES de notificar mora.<br/>COLLECTED → Payment renewal PAID + settle (mora resuelta, sin aviso)#59;<br/>FAILED → Payment FAILED + mora sigue su curso (dedup: 1 intento/invoice)#59;<br/>PENDING (sin tarjeta) → collectUrl en la notificación de mora#59;<br/>error de API → sin Payment, reintenta en el próximo barrido
     alt invoice pagada nueva (dedup lastInvoiceId + refId único)
-        API->>DB: Payment PENDING mem_<planId>_<invoiceId><br/>+ ORDER_CREATED
+        API->>DB: Payment PENDING mem_<planId>_<invoiceId><br/>+ ORDER_CREATED<br/>BYO: +gatewayAccountId +academyTakeRate/Clp<br/>(academy_fee.net_pct - entra al statement del take)
         API->>DB: settleMembership → PAID + RENEWAL_SETTLED<br/>+ Enrollment.endsAt extendido
         API->>DB: notify payment.membership
     end
@@ -734,7 +774,7 @@ sequenceDiagram
     end
     opt morose=1 con invoice impaga (dedup por invoiceId)
         API->>DB: RENEWAL_FAILED + notify membership.renewal_failed
-        Note over API,DB: sin grace period - el enrollment expira<br/>solo en endsAt; la sub sigue viva (Flow reintenta)
+        Note over API,DB: sin grace period - el enrollment expira<br/>solo en endsAt#59; la sub sigue viva (Flow reintenta)
     end
 ```
 
@@ -753,6 +793,7 @@ stateDiagram-v2
 
 - **Cancelación `at_period_end`**: `POST /subscriptions/:id/cancel` llama `subscription/cancel` con `at_period_end=1` → `CANCEL_PENDING`; el usuario conserva el acceso hasta el fin del período ya pagado y el próximo reconcile cierra a `CANCELED` cuando Flow reporta `status=4`.
 - **Reminder el día previo**: cuando `nextInvoiceAt` queda a <24 h y la sub sigue `ACTIVE`, el reconcile notifica `membership.renewal_reminder` una sola vez por fecha (`reminderSentFor` la dedup - si Flow mueve la fecha, se vuelve a avisar).
+- **Variante MercadoPago** (spec mercadopago-subscriptions): mismo ciclo sobre `preapproval` without-plan. `registerCustomerCard` crea el preapproval `pending` con `external_reference` = subId local (dedup determinística del alta/return/sweep) y devuelve su `init_point` hosted como registerUrl; el pagador vuelve por **GET** `/payments/mp/subscription-return?account=<id>&sub=<id>` (redirect GET, no el form-POST de Flow) y el service activa solo si el status remoto real es `authorized` (`pending` queda PENDING_CARD). Los webhooks MP son app-level (`subscription_preapproval` → variante billing del verifyWebhook; la academia pega su `webhookUrl?account=` en el panel MP) y el sweep cubre su ausencia. Sin plan remoto ni `collect` (MP cobra por preapproval, no hay lookup customer→sub).
 
 ## Ciclo de vida del trial de plataforma (platform-trials)
 
@@ -776,7 +817,7 @@ sequenceDiagram
 
     participant CRON as subscriptions.reconcile (cron 09:00)
     CRON->>TLS: sweepTrialLastDay (ventana 24h,<br/>dedup *trialEndNotifiedAt)
-    TLS->>DB: PlatformPromo trial-conv-&lt;YYYYMMDD&gt;<br/>(50% 1er mes, whitelist, solo ese día)
+    TLS->>DB: PlatformPromo trial-conv-‹YYYYMMDD›<br/>(50% 1er mes, whitelist, solo ese día)
     TLS->>A: correo último día + oferta
     CRON->>TLS: sweepTrialEnded
     TLS->>DB: ActivityEvent trial.ended / access.ended
@@ -840,7 +881,7 @@ sequenceDiagram
     API->>DB: tx: Payout PENDING + PayoutLine por deducción<br/>(GATEWAY_FEE_PASSTHROUGH / PLATFORM_FEE_NET /<br/>PLATFORM_FEE_VAT / OWN_METHOD_* / MANUAL_ADJUSTMENT)<br/>+ PAYOUT_LINE_ASSIGNED por orden al ledger<br/>+ AuditLog (idempotente actor+período)
     Ad->>API: POST /admin/payouts/:id/approve → APPROVED
     Ad->>API: POST /admin/payouts/:id/pay {evidenceUrl} → PAID + paidAt
-    Pr->>API: GET /me/payouts (crm.manage) → solo los suyos<br/>(net = gross − Σ líneas; cada línea rastrea a su orden)
+    Pr->>API: GET /me/payouts (crm.manage) → solo los suyos<br/>(net = gross − Σ líneas#59; cada línea rastrea a su orden)
 ```
 
 ## CRM - score → segmento → campaña/trigger
@@ -879,7 +920,7 @@ sequenceDiagram
     NS->>WS: emitToPerson → room person:{id}
     WS-->>U: event "notification" (socket.io,<br/>auth por cookie de sesión en handshake)
     NS->>WP: sendToPerson (PushTokens de la persona)
-    WP-->>U: Web Push (VAPID; no-op seguro sin keys,<br/>404/410 limpia el token muerto)
+    WP-->>U: Web Push (VAPID#59; no-op seguro sin keys,<br/>404/410 limpia el token muerto)
     Note over NS: ambos best-effort - un fallo de WS/push<br/>nunca rompe el notify ni el dominio origen
 ```
 
@@ -894,7 +935,7 @@ sequenceDiagram
 
     Ad->>API: POST /admin/payouts/generate {actorType, actorId, período}
     API->>DB: idempotente: payout existente → devuelve sin recalcular
-    Note over API,DB: PRODUCER: tickets de sus eventos + series-pass de sus series<br/>ACADEMY/VENUE: tickets PAID de eventos con<br/>academyId|venueId=actorId AND producerId=null<br/>(entidad produjo directo - con productor, éste devenga)<br/>gross = Σ amount · net = gross − Σ PayoutLine<br/>(MANAGED: all-in% = pasarela + neto + IVA; OWN_*: comisión<br/>devengada neteada; ACADEMY: solo pasarela al costo;<br/>legacy feeMode null: regla vieja fee real + pct)
+    Note over API,DB: PRODUCER: tickets de sus eventos + series-pass de sus series<br/>ACADEMY/VENUE: tickets PAID de eventos con<br/>academyId|venueId=actorId AND producerId=null<br/>(entidad produjo directo - con productor, éste devenga)<br/>gross = Σ amount · net = gross − Σ PayoutLine<br/>(MANAGED: all-in% = pasarela + neto + IVA#59; OWN_*: comisión<br/>devengada neteada#59; ACADEMY: solo pasarela al costo#59;<br/>legacy feeMode null: regla vieja fee real + pct)
     API->>DB: create Payout PENDING + AuditLog PAYOUT_GENERATE
     Ad->>API: POST /admin/payouts/:id/approve → APPROVED
     Ad->>API: POST /admin/payouts/:id/pay {evidenceUrl} → PAID + paidAt
@@ -912,7 +953,7 @@ flowchart TD
     B -->|set| C[rate = override del evento<br/>solo admin lo fija]
     B -->|null| D{producerParams.platformFeePct?}
     D -->|set| C
-    D -->|null| E[rate = param fees.managed_allin_pct<br/>default 10 - la "oferta" es bajarlo ej. 8]
+    D -->|null| E["rate = param fees.managed_allin_pct<br/>default 10 - la #quot;oferta#quot; es bajarlo ej. 8"]
     C --> F[deduction = amount × rate<br/>= gatewayExpected card_pct<br/>+ platformFeeNet + platformFeeVat iva_pct]
     E --> F
     F --> G[Payment.amount = total lista<br/>producerNetClp = amount − deduction]
@@ -939,12 +980,12 @@ sequenceDiagram
     API-->>P: notificación academy.sale_deal.responded
     A->>C: comparte /eventos/:id?a=<academyId>
     C->>API: landing persiste ?a= en sessionStorage → POST /checkout/ticket {academyId}
-    Note over API: solo channel=PRESALE + acuerdo ACTIVE<br/>(evento o serie) + cupo no agotado atribuyen;<br/>si no, la orden sale normal
+    Note over API: solo channel=PRESALE + acuerdo ACTIVE<br/>(evento o serie) + cupo no agotado atribuyen#59;<br/>si no, la orden sale normal
     API-->>C: orden PAID con soldByAcademyId + academyCommissionClp<br/>(round(unitListPrice × pct) × quantity - congelado por orden)
-    Note over API: deuda = Σ comisión PAID del alcance − Σ settlements;<br/>producerNetClp y payout NO se tocan
+    Note over API: deuda = Σ comisión PAID del alcance − Σ settlements#59;<br/>producerNetClp y payout NO se tocan
     P->>A: paga la comisión por fuera (transferencia)
     P->>API: POST /academy-deals/:id/mark-paid {evidenceUrl?}
-    Note over API: AcademySaleSettlement materializa el monto del momento;<br/>ventas posteriores dejan remanente pendiente
+    Note over API: AcademySaleSettlement materializa el monto del momento#59;<br/>ventas posteriores dejan remanente pendiente
 ```
 
 ### Canal código (academy-presale-codes) - la academia cobra fuera
@@ -958,14 +999,14 @@ sequenceDiagram
     participant API
 
     A->>API: POST /academy-deals/:id/codes
-    Note over API: staff con capability payments; acuerdo ACTIVE;<br/>cupo = códigos emitidos + tickets PAID por link < maxTickets.<br/>Check + insert bajo advisory lock por acuerdo<br/>(pg_advisory_xact_lock dealcode:<id>) - emisiones<br/>concurrentes serializan, la segunda ve el cupo ya gastado
+    Note over API: staff con capability payments#59; acuerdo ACTIVE#59;<br/>cupo = códigos emitidos + tickets PAID por link < maxTickets.<br/>Check + insert bajo advisory lock por acuerdo<br/>(pg_advisory_xact_lock dealcode:<id>) - emisiones<br/>concurrentes serializan, la segunda ve el cupo ya gastado
     API-->>A: DiscountCode ACADEMY_PRESALE SLUG-DDMMM-XXXX<br/>(100% off, maxUses 1, scope del acuerdo)
     A->>C: cobra la preventa fuera + entrega el código
     C->>API: POST /checkout/ticket {discountCode}
     Note over API: isRedeemable (scope evento/serie) + channel PRESALE<br/>+ quantity=1 + acuerdo ACTIVE - si no, InvalidDiscount
     API-->>C: orden $0 FREE atribuida (soldByAcademyId +<br/>academyCommissionClp congelado) - settle inmediato
     Note over API: en la tx de settle el consumo es atómico<br/>(usedCount < maxUses) - doble redención revierte
-    Note over API: saldo = Σ comisión link − Σ (lista − comisión) códigos<br/>− Σ settlements; pending<0 = academia debe al productor
+    Note over API: saldo = Σ comisión link − Σ (lista − comisión) códigos<br/>− Σ settlements#59; pending<0 = academia debe al productor
     A->>P: paga por fuera (transferencia)
     P->>API: POST /academy-deals/:id/mark-paid (amountDue signed)
 ```

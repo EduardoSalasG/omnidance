@@ -48,7 +48,7 @@ La lente academia del DANCER SHALL enlazar solo a superficies de alumno (/clases
 
 ### Requirement: El alumno explora clases priorizando sus academias
 
-`GET /classes/browse` SHALL aceptar `scope=enrolled` para acotar el listado a las academias donde el autenticado tiene Enrollment en `ACTIVE | TRIAL | ONLINE` (`PAUSED`/`FROZEN` no cuentan). Sin `scope` mantiene `all` (todas las academias activas). Cada item SHALL incluir `enrolled: boolean` - vigencia de inscripción del autenticado en la academia de la clase - para resolver el CTA de reserva sin query extra.
+`GET /classes/browse` SHALL aceptar `scope=enrolled` para acotar el listado a las academias donde el autenticado tiene Enrollment `ACTIVE` (`INACTIVE` no cuenta). Sin `scope` mantiene `all` (todas las academias activas). Cada item SHALL incluir `enrolled: boolean` - vigencia de inscripción del autenticado en la academia de la clase - para resolver el CTA de reserva sin query extra.
 
 #### Scenario: Alumno inscrito en una academia
 
@@ -57,7 +57,7 @@ La lente academia del DANCER SHALL enlazar solo a superficies de alumno (/clases
 
 #### Scenario: Alumno sin inscripciones vigentes
 
-- WHEN un dancer con Enrollment PAUSED (o sin enrollments) consulta `/classes/browse?scope=enrolled`
+- WHEN un dancer con Enrollment INACTIVE (o sin enrollments) consulta `/classes/browse?scope=enrolled`
 - THEN recibe `[]`
 
 #### Scenario: Explorar todas las academias
@@ -67,7 +67,7 @@ La lente academia del DANCER SHALL enlazar solo a superficies de alumno (/clases
 
 ### Requirement: Reservar clase exige inscripción vigente
 
-`POST /classes/:id/book` SHALL verificar que el autenticado tenga Enrollment en `ACTIVE | TRIAL | ONLINE` en la academia de la clase; sin ella responde `403` sin crear ni reactivar reserva. `GET /classes/:id` SHALL incluir `enrolled: boolean` con la misma regla, para que la ficha y el CTA reflejen la elegibilidad.
+`POST /classes/:id/book` SHALL verificar que el autenticado tenga Enrollment `ACTIVE` en la academia de la clase; sin ella responde `403` sin crear ni reactivar reserva. `GET /classes/:id` SHALL incluir `enrolled: boolean` con la misma regla, para que la ficha y el CTA reflejen la elegibilidad.
 
 #### Scenario: Reserva con inscripción vigente
 
@@ -81,7 +81,7 @@ La lente academia del DANCER SHALL enlazar solo a superficies de alumno (/clases
 
 #### Scenario: Reserva con inscripción pausada
 
-- WHEN un alumno con Enrollment PAUSED en la academia hace POST /classes/:id/book
+- WHEN un alumno con Enrollment INACTIVE (ex "pausada") en la academia hace POST /classes/:id/book
 - THEN recibe 403
 
 ### Requirement: /clases separa "mis academias" de "explorar"

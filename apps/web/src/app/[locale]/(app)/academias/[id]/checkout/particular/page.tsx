@@ -20,6 +20,11 @@ export type PrivateClassQuote = {
   total: number;
   academy: { id: string; name: string };
   gateway: string;
+  /** BYO (spec academy-byo-collections): pago online solo con cuenta
+      propia activa y sin bloqueo de cobranza; sin él queda el claim
+      manual por comprobante. */
+  gatewayAvailable: boolean;
+  collectionsBlocked: boolean;
 };
 
 async function getQuote(

@@ -135,7 +135,6 @@ export type CrmCampaign = {
 /** CRM_TRIGGER_KEYS del service - enum cerrado, no libre. */
 export const CRM_TRIGGER_KEYS = [
   "WINBACK",
-  "TRIAL_EXPIRING",
   "REGULAR_NO_PRESALE",
   "ATTENDANCE_DROP",
   "SEGMENT_ENTER",
@@ -144,19 +143,17 @@ export const CRM_TRIGGER_KEYS = [
 export type CrmTriggerKey = (typeof CRM_TRIGGER_KEYS)[number];
 
 /** Alcance por actor (spec crm-trigger-actor-scope, espejo de
- *  TRIGGER_ACTOR_TYPES del service): TRIAL_EXPIRING solo academia,
- *  REGULAR_NO_PRESALE solo productor; el resto aplica a ambos. */
+ *  TRIGGER_ACTOR_TYPES del service): REGULAR_NO_PRESALE solo
+ *  productor; el resto aplica a ambos. */
 export const TRIGGER_ACTOR_TYPES: Readonly<
   Record<string, readonly ActorType[]>
 > = {
-  TRIAL_EXPIRING: ["ACADEMY"],
   REGULAR_NO_PRESALE: ["PRODUCER"],
 };
 
 /** Keys cuyo config.days el service interpreta como umbral. */
 export const TRIGGER_KEYS_WITH_DAYS: ReadonlySet<string> = new Set([
   "WINBACK",
-  "TRIAL_EXPIRING",
   "ATTENDANCE_DROP",
 ]);
 
