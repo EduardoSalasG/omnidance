@@ -123,9 +123,6 @@ function PromosModule({ academyId }: { academyId: string }) {
       {!error && items !== null && items.length === 0 && (
         <div className="flex flex-col items-center gap-3 py-6 text-center">
           <p className="text-sm text-ink/60">{t("empty")}</p>
-          <Button href="/academia/promos/nueva" size="sm" variant="secondary">
-            + {t("new")}
-          </Button>
         </div>
       )}
       {!error && items !== null && items.length > 0 && (

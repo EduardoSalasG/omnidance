@@ -9,6 +9,7 @@ import { SkeletonList } from "@/components/ui";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyTierGate } from "@/components/academy/academy-tier-gate";
+import { academyHasFeature } from "@/lib/academy-features";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { FilterBar } from "@/components/query/FilterBar";
 import {
@@ -61,20 +62,27 @@ export default function AcademiaSeriesPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-none lg:px-4">
-      <ConsoleHeader
-        backHref="/academia"
-        backLabel={t("title")}
-        actions={
-          <span data-tour="academy-series-new" className="inline-block">
-            <Button href="/academia/series/nueva" size="sm">
-              + {ts("new")}
-            </Button>
-          </span>
-        }
-      />
       <AcademyGate>
         {({ academy }) => (
-          <AcademyTierGate academy={academy} feature="classes"><SeriesModule key={academy.id} academyId={academy.id} tier={academy.tier} /></AcademyTierGate>
+          <>
+            {/* El CTA de crear respeta el tier (spec
+                academy-console-cta-gating): fuera del paywall no se
+                ofrece acción que el propio tier bloquea. */}
+            <ConsoleHeader
+              backHref="/academia"
+              backLabel={t("title")}
+              actions={
+                academyHasFeature(academy, "classes") ? (
+                  <span data-tour="academy-series-new" className="inline-block">
+                    <Button href="/academia/series/nueva" size="sm">
+                      + {ts("new")}
+                    </Button>
+                  </span>
+                ) : undefined
+              }
+            />
+            <AcademyTierGate academy={academy} feature="classes"><SeriesModule key={academy.id} academyId={academy.id} tier={academy.tier} /></AcademyTierGate>
+          </>
         )}
       </AcademyGate>
     </main>
@@ -237,14 +245,11 @@ function SeriesModule({
 
       {series.length === 0 ? (
         // Filtros en el default ({status:"active"}) = academia sin
-        // series: empty de primera vez + CTA a crear. Con filtros
-        // activos es "sin resultados para esta consulta".
+        // series: empty de primera vez. Con filtros activos es "sin
+        // resultados para esta consulta".
         Object.keys(filters).length === 1 && filters.status === "active" ? (
           <div className="flex flex-col items-start gap-3">
             <p className="text-sm text-ink/50">{t("empty")}</p>
-            <Button href="/academia/series/nueva" size="sm">
-              + {t("new")}
-            </Button>
           </div>
         ) : (
           <p className="text-sm text-ink/50">{tq("empty")}</p>
