@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { ArrowUpRightIcon, Button, Card, SkeletonList, Spinner } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
+import { safeExternalHref } from "@/lib/safe-external";
 
 import { inputCls, readError, type Academy } from "./shared";
 import { useRouter } from "@/i18n/navigation";
@@ -121,9 +122,10 @@ export function VideoForm({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {video ? t.editTitle : t.addTitle}
         </h2>
-        {video?.url && (
+        {/* spec web-edge-security: whitelist http(s) en render. */}
+        {safeExternalHref(video?.url) && (
           <a
-            href={video.url}
+            href={safeExternalHref(video?.url)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"

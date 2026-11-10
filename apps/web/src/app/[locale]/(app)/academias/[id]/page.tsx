@@ -79,12 +79,16 @@ async function getProfile(id: string): Promise<AcademyProfile | "error"> {
 // website es texto libre: puede venir sin protocolo o malformado -
 // `new URL` en render SSR lanzaría y rompería la ficha. Se prueba
 // tal cual y luego con https:// prefijado; si nada resuelve, null
-// (el ícono de sitio web no se muestra).
+// (el ícono de sitio web no se muestra). Whitelist http/https (audit
+// B1): el write path sanea pero data vieja puede traer ftp:/file:/etc.
 function resolveWebsite(raw: string): { href: string; host: string } | null {
   for (const candidate of [raw, `https://${raw}`]) {
     try {
       const u = new URL(candidate);
-      if (u.hostname) {
+      if (
+        (u.protocol === "http:" || u.protocol === "https:") &&
+        u.hostname
+      ) {
         return { href: u.href, host: u.hostname.replace(/^www\./, "") };
       }
     } catch {

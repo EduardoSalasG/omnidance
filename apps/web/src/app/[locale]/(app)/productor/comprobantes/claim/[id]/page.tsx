@@ -199,7 +199,9 @@ function ClaimDetail() {
                 {statusLabel(claim.status)}
               </Badge>
             </div>
-            <Card className="flex flex-col gap-3">
+            {/* Datos del pagador y del comprobante → masking de
+                Clarity (audit M5). */}
+            <Card data-clarity-mask="true" className="flex flex-col gap-3">
               <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="text-xs text-ink/50">

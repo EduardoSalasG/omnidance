@@ -22,6 +22,7 @@ import {
 } from "@/components/ui";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import { PendingRoleCard } from "@/components/people/pending-role-card";
+import { SessionsCard } from "@/components/profile/sessions-card";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import pkg from "../../../../../package.json";
 import { Link } from "@/i18n/navigation";
@@ -316,6 +317,17 @@ export default function PerfilPage() {
     } catch {
       // Igual redirigimos - la cookie expirará o se limpiará en el login
     }
+    // El SW cachea documentos /staff/* para puerta offline - sin
+    // limpiarlos la página cacheada sobrevive a la sesión (audit B4).
+    // Mismo nombre que sw.js (PAGES_CACHE); el estático /_next no es
+    // sensible y se conserva.
+    try {
+      if ("caches" in window) {
+        await caches.delete("omnidance-pages-v1");
+      }
+    } catch {
+      // Cache Storage rechazado: el logout igual sigue.
+    }
     window.location.href = "/";
   }
 
@@ -438,7 +450,11 @@ export default function PerfilPage() {
         data-tour="perfil-identity"
         className="block rounded-2xl transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
       >
-        <Card className="flex items-center gap-4 transition-colors hover:border-neon/40">
+        {/* Identidad (nombre + email) → masking de Clarity (audit M5). */}
+        <Card
+          data-clarity-mask="true"
+          className="flex items-center gap-4 transition-colors hover:border-neon/40"
+        >
           {me.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- URLs externas, dominios no configurados
             <img loading="lazy" decoding="async"
@@ -722,6 +738,10 @@ export default function PerfilPage() {
           </div>
         </Card>
       )}
+
+      {/* Seguridad: sesiones activas con revocación (spec
+          auth-sessions) - junto al logout, es la zona de cuenta. */}
+      <SessionsCard />
 
       <Button variant="secondary" onClick={logout} className="w-full">
         {t("logout")}

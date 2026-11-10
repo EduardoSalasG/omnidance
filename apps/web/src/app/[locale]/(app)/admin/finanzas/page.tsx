@@ -22,6 +22,7 @@ import { inputCls } from "@/components/academy/shared";
 import { FilterBar } from "@/components/query/FilterBar";
 import { entityDef, type QueryFilters } from "@omnidance/shared";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
+import { safeExternalHref } from "@/lib/safe-external";
 
 // ── Contratos (spec admin-finance-console) ────────────────────────────
 
@@ -615,9 +616,11 @@ function FinancePanel() {
                       </button>
                     </div>
                   )}
-                  {p.status === "PAID" && p.evidenceUrl && (
+                  {/* spec web-edge-security: whitelist http(s) en
+                      render - cubre data persistida pre-validación. */}
+                  {p.status === "PAID" && safeExternalHref(p.evidenceUrl) && (
                     <a
-                      href={p.evidenceUrl}
+                      href={safeExternalHref(p.evidenceUrl)}
                       target="_blank"
                       rel="noreferrer"
                       className="text-xs text-ink/60 underline underline-offset-2"

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { safeExternalHref } from "@/lib/safe-external";
 
 export type OwnMethod = {
   id: string;
@@ -27,6 +28,9 @@ const TRANSFER_FIELDS = Object.keys(
 export function OwnMethodDetails({ method }: { method: OwnMethod }) {
   const t = useTranslations("checkout");
   const [copied, setCopied] = useState<string | null>(null);
+  // Whitelist http(s) en render (spec web-edge-security): el write
+  // path ya rechaza otros esquemas, esto cubre data vieja.
+  const payHref = safeExternalHref(method.details.url);
 
   async function copy(key: string, text: string) {
     if (!navigator.clipboard) return;
@@ -40,7 +44,8 @@ export function OwnMethodDetails({ method }: { method: OwnMethod }) {
   }
 
   return (
-    <div className="mt-2">
+    // Datos bancarios del método → masking de Clarity (audit M5).
+    <div className="mt-2" data-clarity-mask="true">
       {method.type === "TRANSFER" && (
         <dl className="flex flex-col gap-1.5 text-sm">
           {TRANSFER_FIELDS.map((f) =>
@@ -64,9 +69,9 @@ export function OwnMethodDetails({ method }: { method: OwnMethod }) {
           )}
         </dl>
       )}
-      {method.type === "PAYMENT_LINK" && method.details.url && (
+      {method.type === "PAYMENT_LINK" && payHref && (
         <a
-          href={method.details.url}
+          href={payHref}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex min-h-11 items-center rounded-xl bg-neon px-4 text-sm font-semibold text-on-accent"

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { Link } from "@/i18n/navigation";
+import { safeExternalHref } from "@/lib/safe-external";
 
 import { filterQuery, type Academy } from "./shared";
 
@@ -164,7 +165,10 @@ export function Videos({ academy }: { academy: Academy }) {
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {videos.map((v) => {
-              const locked = v.locked === true || !v.url;
+              // Whitelist http(s) en render (spec web-edge-security):
+              // una url con otro esquema se trata como bloqueada.
+              const href = safeExternalHref(v.url);
+              const locked = v.locked === true || !href;
               // Anatomía ui-cards A: tag-row de clasificación,
               // headline identidad, hint de desbloqueo y acciones
               // ancladas al pie (mt-auto alinea la fila entre cards
@@ -202,10 +206,10 @@ export function Videos({ academy }: { academy: Academy }) {
                   {locked && (
                     <p className="text-xs text-ink/50">{t.lockedHint}</p>
                   )}
-                  {!canAdminister && !locked && (
+                  {!canAdminister && !locked && href && (
                     <div className="mt-auto flex flex-wrap items-center gap-2">
                       <a
-                        href={v.url ?? undefined}
+                        href={href}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={linkBtnCls}

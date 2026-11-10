@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, Spinner } from "@/components/ui";
 import { showActionNotice } from "@/components/ui/action-notice";
 import { useNumFmt } from "@/lib/intl";
+import { safeExternalHref } from "@/lib/safe-external";
 
 type PaymentMethod = {
   id: string;
@@ -289,6 +290,11 @@ export function ManualPayPanel({
   const activeMethod = claim?.methodId
     ? (methods.find((m) => m.id === claim.methodId) ?? null)
     : null;
+  // Whitelist http(s) en render (spec web-edge-security): el write
+  // path ya rechaza otros esquemas, esto cubre data vieja.
+  const payLinkHref = activeMethod
+    ? safeExternalHref(activeMethod.details.url)
+    : undefined;
 
   return (
     <>
@@ -314,9 +320,11 @@ export function ManualPayPanel({
         </div>
       )}
 
-      {/* Intento registrado: instrucciones + upload. */}
+      {/* Intento registrado: instrucciones + upload. Los datos
+          bancarios del método y el comprobante son PII → masking de
+          Clarity en el bloque completo (audit M5). */}
       {claim?.status === "AWAITING" && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4" data-clarity-mask="true">
           <p className="text-sm leading-relaxed text-ink/70">
             {t("awaitingHint", { method: claim.methodLabel })}
           </p>
@@ -353,10 +361,9 @@ export function ManualPayPanel({
             </div>
           )}
 
-          {activeMethod?.type === "PAYMENT_LINK" &&
-            activeMethod.details.url && (
+          {activeMethod?.type === "PAYMENT_LINK" && payLinkHref && (
               <a
-                href={activeMethod.details.url}
+                href={payLinkHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex min-h-11 items-center justify-center rounded-xl bg-neon px-4 text-sm font-semibold text-on-accent"

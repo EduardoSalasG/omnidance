@@ -18,6 +18,7 @@ import {
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { useFeatures } from "@/lib/features-context";
 import { planDateFmt } from "@/components/academy/shared";
+import { safeExternalHref } from "@/lib/safe-external";
 import {
   OnboardingRunner,
   type TourStep,
@@ -262,7 +263,9 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
       {videos !== null && videos.length > 0 && (
         <ul className="flex flex-col gap-1.5" aria-label={tv("title")}>
           {videos.slice(0, 3).map((v) =>
-            v.locked || !v.url ? (
+            // Whitelist http(s) (spec web-edge-security): una url con
+            // otro esquema se muestra como bloqueada, nunca navega.
+            v.locked || !safeExternalHref(v.url) ? (
               <li
                 key={v.id}
                 className="flex items-center gap-2 text-sm text-ink/40"
@@ -275,7 +278,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
             ) : (
               <li key={v.id}>
                 <a
-                  href={v.url}
+                  href={safeExternalHref(v.url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="relative z-10 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-neon underline-offset-4 hover:underline"

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -18,6 +19,7 @@ import { PrismaService } from "../../prisma.service";
 import { canManageAcademy } from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
 import { pageParams } from "./list-filters";
+import { cleanHttpUrl } from "../../common/http-url";
 import { ApiQuery } from "@nestjs/swagger";
 
 class CreateVideoDto {
@@ -106,10 +108,15 @@ export class VideosController {
       }
     }
 
+    // spec web-edge-security: la url sale en <a href> - solo http(s);
+    // el campo es requerido, un vacío no es limpiar sino rechazar.
+    const url = cleanHttpUrl(dto.url, "url");
+    if (!url) throw new BadRequestException("url inválida");
+
     return this.prisma.video.create({
       data: {
         academyId: id,
-        url: dto.url,
+        url,
         title: dto.title,
         classId: dto.classId ?? null,
         restrictedToAttended: dto.restrictedToAttended ?? true,
@@ -267,10 +274,19 @@ export class VideosController {
       }
     }
 
+    // Misma whitelist del create para la url (spec web-edge-security):
+    // vacío/null no "limpia" un campo requerido - es 400.
+    let url: string | undefined;
+    if (dto.url !== undefined) {
+      const cleaned = cleanHttpUrl(dto.url, "url");
+      if (!cleaned) throw new BadRequestException("url inválida");
+      url = cleaned;
+    }
+
     return this.prisma.video.update({
       where: { id: video.id },
       data: {
-        ...(dto.url !== undefined ? { url: dto.url } : {}),
+        ...(url !== undefined ? { url } : {}),
         ...(dto.title !== undefined ? { title: dto.title } : {}),
         ...(dto.classId !== undefined ? { classId: dto.classId } : {}),
         ...(dto.restrictedToAttended !== undefined

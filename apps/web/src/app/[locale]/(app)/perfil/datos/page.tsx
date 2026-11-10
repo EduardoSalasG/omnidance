@@ -497,8 +497,9 @@ export default function DatosPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-3 pb-6 sm:px-6 lg:max-w-3xl lg:px-8">
       <h1 className="text-2xl font-bold">{t("datos.title")}</h1>
 
-      {/* Datos personales - comunes a ambos modos (social y academia) */}
-      <Card>
+      {/* Datos personales - comunes a ambos modos (social y academia).
+          PII (nombre/teléfono/género) → masking de Clarity (audit M5). */}
+      <Card data-clarity-mask="true">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("datos.personal")}
         </h2>

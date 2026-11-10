@@ -18,6 +18,7 @@ import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { getDateFmt, useNumFmt } from "@/lib/intl";
 import { Link } from "@/i18n/navigation";
+import { safeExternalHref } from "@/lib/safe-external";
 
 const fmtDate = (iso: string | Date, locale: string) =>
   getDateFmt(locale, { dateStyle: "medium" }).format(new Date(iso));
@@ -190,13 +191,15 @@ function DetailPanel({ id }: { id: string }) {
     value: string | null | undefined,
     href?: string,
   ) =>
+    // spec web-edge-security: whitelist http(s) - un website inválido
+    // se muestra como texto plano, no como link.
     value ? (
       <div key={label} className="flex items-baseline justify-between gap-3 py-1">
         <dt className="text-xs text-ink/50">{label}</dt>
         <dd className="truncate text-sm">
-          {href ? (
+          {safeExternalHref(href) ? (
             <a
-              href={href}
+              href={safeExternalHref(href)}
               target="_blank"
               rel="noreferrer"
               className="text-neon hover:underline"
