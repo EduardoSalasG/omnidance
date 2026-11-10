@@ -143,16 +143,7 @@ export function ProducerPaymentMethodsSection() {
       {methods === null ? (
         <SkeletonList items={2} />
       ) : methods.length === 0 && !gateway ? (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-sm text-ink/50">{t("methodsEmpty")}</p>
-          <Button
-            variant="secondary"
-            size="sm"
-            href="/productor/medios-pago/nuevo"
-          >
-            + {t("addMethod")}
-          </Button>
-        </div>
+        <p className="text-sm text-ink/50">{t("methodsEmpty")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {gateway && (

@@ -127,18 +127,9 @@ export function AcademySalesSection({ eventId }: { eventId: string }) {
       )}
 
       {deals !== null && deals.length === 0 && !error && (
-        <div className="flex flex-col items-start gap-3">
-          <p role="status" className="text-sm text-ink/50">
-            {t("empty")}
-          </p>
-          <Button
-            size="sm"
-            variant="secondary"
-            href={`/productor/eventos/${eventId}/academias/nueva`}
-          >
-            {`＋ ${t("invite")}`}
-          </Button>
-        </div>
+        <p role="status" className="text-sm text-ink/50">
+          {t("empty")}
+        </p>
       )}
 
       {deals !== null && deals.length > 0 && (
