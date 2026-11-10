@@ -3638,6 +3638,14 @@
                 "payments",
                 "flow",
                 "customer-return"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "account",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             },
             "body": {
@@ -3847,6 +3855,14 @@
                 "api",
                 "payments",
                 "subscription-webhook"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "account",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             },
             "body": {

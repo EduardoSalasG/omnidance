@@ -15,7 +15,7 @@ import {
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { formatMoney, useDateFmt } from "@/lib/intl";
-import { periodLabel } from "../page";
+import { periodLabel } from "../format";
 
 type Operation = {
   id: string;

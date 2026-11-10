@@ -836,7 +836,7 @@ describe("PaymentsController - billing STRIPE", () => {
     const res = await call(ctrl);
     expect(res).toEqual({ ok: true, billing: "invoice.paid" });
     // Sin marca: prueba membresía → plataforma → fallback al pase.
-    expect(memberships.handleBillingEvent).toHaveBeenCalledWith(billing);
+    expect(memberships.handleBillingEvent).toHaveBeenCalledWith(billing, undefined);
     expect(platformSubs.handleBillingEvent).toHaveBeenCalledWith(billing);
     expect(socialPass.handleBillingEvent).toHaveBeenCalledWith(billing);
   });
@@ -882,7 +882,7 @@ describe("PaymentsController - billing STRIPE", () => {
     });
     const res = await call(ctrl);
     expect(res).toEqual({ ok: true, billing: "invoice.paid" });
-    expect(memberships.handleBillingEvent).toHaveBeenCalledWith(billing);
+    expect(memberships.handleBillingEvent).toHaveBeenCalledWith(billing, undefined);
     // Claimed → ni plataforma ni pase reciben el evento.
     expect(platformSubs.handleBillingEvent).not.toHaveBeenCalled();
     expect(socialPass.handleBillingEvent).not.toHaveBeenCalled();
@@ -901,7 +901,7 @@ describe("PaymentsController - billing STRIPE", () => {
       platformSubs,
     });
     await call(ctrl);
-    expect(memberships.handleBillingEvent).toHaveBeenCalledWith(billing);
+    expect(memberships.handleBillingEvent).toHaveBeenCalledWith(billing, undefined);
     expect(platformSubs.handleBillingEvent).toHaveBeenCalledWith(billing);
     expect(socialPass.handleBillingEvent).not.toHaveBeenCalled();
   });

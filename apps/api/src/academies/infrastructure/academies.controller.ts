@@ -1783,8 +1783,21 @@ export class AcademiesController {
       include: { academy: { select: { name: true } } },
     });
     if (!plan) throw new NotFoundException("plan no encontrado");
+    // El plan tiene cobro recurrente vivo si existe un espejo remoto:
+    // flowPlanId (plataforma) o remoteRefs (cuenta BYO de la academia -
+    // spec academy-card-subs-byo).
+    const refs = (plan.remoteRefs ?? null) as Record<
+      string,
+      unknown
+    > | null;
+    const hasRemoteMirror =
+      plan.flowPlanId != null ||
+      (refs != null &&
+        Object.values(refs).some(
+          (v) => typeof v === "string" && v !== "",
+        ));
     if (
-      plan.flowPlanId &&
+      hasRemoteMirror &&
       dto.type !== undefined &&
       dto.type !== plan.type
     ) {
@@ -1793,7 +1806,7 @@ export class AcademiesController {
       );
     }
     if (
-      plan.flowPlanId &&
+      hasRemoteMirror &&
       (dto.name !== undefined || dto.price !== undefined)
     ) {
       try {

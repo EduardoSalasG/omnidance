@@ -53,7 +53,8 @@ export type MembershipQuote = {
   gatewayAvailable: boolean;
   /** Liquidación del take vencida impaga - pagos online en pausa. */
   collectionsBlocked: boolean;
-  /** Hay motor de suscripciones para la moneda del plan (multipais-currency). */
+  /** La cuenta BYO de la academia tiene motor de suscripciones
+      (spec academy-card-subs-byo) - sin ella la vía CARD no existe. */
   supportsSubscription: boolean;
 };
 

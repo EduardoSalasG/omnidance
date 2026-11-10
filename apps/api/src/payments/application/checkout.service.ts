@@ -240,8 +240,10 @@ export class PrivateClassNotPurchasableError extends Error {
  */
 export class AcademyGatewayUnavailableError extends Error {
   readonly code = "academy.no_gateway";
-  constructor() {
-    super("esta academia cobra solo por comprobante de pago");
+  constructor(
+    message = "esta academia cobra solo por comprobante de pago",
+  ) {
+    super(message);
     this.name = "AcademyGatewayUnavailableError";
   }
 }
@@ -437,41 +439,6 @@ export class CheckoutService {
       typeof name === "string" ? name : null,
       currency,
     );
-  }
-
-  /**
-   * ¿Hay motor de suscripciones para la moneda del plan? (spec
-   * multipais-currency) - misma regla que
-   * `SubscriptionsService.subscriptionGateway`: CLP por el param
-   * `payments.subscription_gateway`, otra moneda por el primer
-   * adaptador con `createSubscription` que la soporte. La quote de
-   * membresía la expone para que el checkout solo ofrezca el modo
-   * suscripción cuando el cobro real puede darse.
-   */
-  private async subscriptionCapable(currency: string): Promise<boolean> {
-    const cur = currency.toUpperCase();
-    if (cur === "CLP") {
-      const name = await this.params.get("payments.subscription_gateway");
-      const gw = this.gateways.resolve(
-        typeof name === "string" ? name : null,
-      );
-      return (
-        typeof (gw as Partial<SubscriptionProvider>).createSubscription ===
-        "function"
-      );
-    }
-    for (const name of this.gateways.names()) {
-      const gw = this.gateways.get(name);
-      if (
-        gw &&
-        typeof (gw as Partial<SubscriptionProvider>).createSubscription ===
-          "function" &&
-        supportsCurrency(gw, cur)
-      ) {
-        return true;
-      }
-    }
-    return false;
   }
 
   /**
@@ -1711,11 +1678,11 @@ export class CheckoutService {
       gateway: own?.gateway.name ?? null,
       gatewayAvailable: own != null,
       collectionsBlocked: plan.academy.collectionsBlockedAt != null,
-      // CARD subs siguen en our-Flow mientras el engine per-account del
-      // change queda pendiente (ver SubscriptionsService.subscribe).
-      supportsSubscription: await this.subscriptionCapable(
-        plan.currency ?? "CLP",
-      ),
+      // Subs CARD (spec academy-card-subs-byo): cobran por la pasarela
+      // propia de la academia - la vía suscripción con tarjeta existe
+      // solo si la cuenta BYO tiene motor (sin ella queda TRANSFER).
+      supportsSubscription:
+        own != null && this.supportsSubs(own.gateway),
     };
   }
 

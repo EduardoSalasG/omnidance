@@ -708,25 +708,27 @@ sequenceDiagram
 - "La clase ya pasó" se evalúa contra el inicio real (`date + startTime`), no contra la medianoche del día - reservar el mismo día sí funciona.
 - UI: `GET /classes/:id` expone `myCredits {kind, used, limit}` + `cancelRefundMinutes`; el sheet de cancelar declara la consecuencia antes de confirmar y `/classes/mine` adjunta `credits` por card.
 
-## Suscripción de academia - alta y renovación (Flow)
+## Suscripción de academia - alta y renovación (Flow de la academia)
 
 ```mermaid
 sequenceDiagram
     actor U as Bailarín
     participant API as SubscriptionsService
-    participant GW as Flow
+    participant ACCT as ActorGatewayAccount
+    participant GW as Flow de la academia
     participant DB as Postgres
 
     U->>API: POST /checkout/membership-subscription<br/>{planId, acceptRecurring:true}
-    API->>DB: tx + pg_advisory_xact_lock(person):<br/>barre PENDING_CARD pendientes,<br/>crea/reusa MembershipSubscription PENDING_CARD
-    API->>GW: ensurePlan omni_<planId> (lazy)<br/>+ customer/create (lazy → Person.flowCustomerId)
+    API->>ACCT: activeForAcademy → adaptador BYO<br/>(sin cuenta/motor → academy.no_gateway;<br/>collectionsBlockedAt → collections_blocked;<br/>TRANSFER nunca consulta la cuenta)
+    API->>DB: tx + pg_advisory_xact_lock(person):<br/>barre PENDING_CARD pendientes,<br/>crea/reusa PENDING_CARD con gatewayAccountId
+    API->>GW: ensurePlan omni_<planId> (lazy → remoteRefs<br/>"FLOW:<accountId>:CLP") + customer/create<br/>(lazy → gatewayCustomerIds "FLOW:<accountId>")
     alt sin tarjeta registrada
-        API->>GW: customer/register → registerUrl
+        API->>GW: customer/register (returnUrl ?account=<id>) → registerUrl
         API-->>U: {kind:needs_card, registerUrl, subscriptionId}
-        U->>GW: disclaimer de tarjeta (Flow)
-        GW->>API: POST /payments/flow/customer-return {token}
+        U->>GW: disclaimer de tarjeta (Flow de la academia)
+        GW->>API: POST /payments/flow/customer-return?account=<id> {token}
         API->>GW: customer/getRegisterStatus → tarjeta OK
-        API->>DB: claim atómico PENDING_CARD→ACTIVATING
+        API->>DB: claim atómico PENDING_CARD→ACTIVATING<br/>(solo la sub de ESA cuenta)
     else tarjeta ya registrada
         API->>DB: claim atómico PENDING_CARD→ACTIVATING
         API-->>U: (tras create) {kind:subscribed}
@@ -739,20 +741,20 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant CRON as SubscriptionsScheduler (cron 09:00)
-    participant WH as subscription-webhook (urlCallback del plan)
+    participant WH as subscription-webhook?account=<id><br/>(urlCallback del plan espejo)
     participant GET as GET /subscriptions/:id
-    participant GW as Flow
+    participant GW as Flow de la cuenta (providerFor)
     participant API as reconcileSubscription
     participant DB as Postgres
 
-    Note over CRON,GET: tres gatillos del mismo barrido -<br/>webhook fast-path, polling del dueño, cron (red de seguridad)
-    CRON->>GW: subscription/get (por sub ACTIVE/CANCEL_PENDING)
-    WH->>API: {token} → reconcileAll fire-and-forget (200 siempre)
+    Note over CRON,GET: tres gatillos del mismo barrido -<br/>webhook fast-path (scoped a la cuenta), polling del<br/>dueño, cron (red de seguridad). providerFor(sub):<br/>gatewayAccountId → adapterFor(cuenta), null → plataforma
+    CRON->>GW: subscription/get (cada sub por SU adaptador)
+    WH->>API: {token} → reconcileAll scoped ?account= (200 siempre)
     GET->>GW: subscription/get (refresh activo del detalle)
     GW-->>API: invoices[] + status + next_invoice_date + morose
     Note over API,GW: recuperación de mora (overdue-invoice-collect):<br/>invoice impaga sin next_attemp_date → collect() (customer/collect)<br/>sobre la tarjeta del pagador, ANTES de notificar mora.<br/>COLLECTED → Payment renewal PAID + settle (mora resuelta, sin aviso);<br/>FAILED → Payment FAILED + mora sigue su curso (dedup: 1 intento/invoice);<br/>PENDING (sin tarjeta) → collectUrl en la notificación de mora;<br/>error de API → sin Payment, reintenta en el próximo barrido
     alt invoice pagada nueva (dedup lastInvoiceId + refId único)
-        API->>DB: Payment PENDING mem_<planId>_<invoiceId><br/>+ ORDER_CREATED
+        API->>DB: Payment PENDING mem_<planId>_<invoiceId><br/>+ ORDER_CREATED<br/>BYO: +gatewayAccountId +academyTakeRate/Clp<br/>(academy_fee.net_pct - entra al statement del take)
         API->>DB: settleMembership → PAID + RENEWAL_SETTLED<br/>+ Enrollment.endsAt extendido
         API->>DB: notify payment.membership
     end

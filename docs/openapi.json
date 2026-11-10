@@ -2958,7 +2958,16 @@
     "/api/payments/flow/customer-return": {
       "post": {
         "operationId": "PaymentsController_customerReturn",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "account",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -3104,7 +3113,16 @@
     "/api/payments/subscription-webhook": {
       "post": {
         "operationId": "PaymentsController_subscriptionWebhook",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "account",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {

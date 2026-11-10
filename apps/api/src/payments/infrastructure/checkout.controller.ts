@@ -514,15 +514,28 @@ export class CheckoutController {
    */
   @Post("membership-subscription")
   @UseGuards(SessionGuard)
-  membershipSubscription(
+  async membershipSubscription(
     @Req() req: Request,
     @Body() dto: CheckoutMembershipSubscriptionDto,
   ) {
-    return this.subscriptions.subscribe(
-      req.person!.id,
-      dto.planId,
-      dto.acceptRecurring,
-      { paymentMethod: dto.paymentMethod, methodId: dto.methodId },
-    );
+    try {
+      return await this.subscriptions.subscribe(
+        req.person!.id,
+        dto.planId,
+        dto.acceptRecurring,
+        { paymentMethod: dto.paymentMethod, methodId: dto.methodId },
+      );
+    } catch (e) {
+      // BYO (spec academy-card-subs-byo): mismos códigos que el
+      // checkout one-off - sin pasarela propia o cobranza bloqueada la
+      // alta CARD no existe y el front ofrece TRANSFER.
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
+      }
+      throw e;
+    }
   }
 }

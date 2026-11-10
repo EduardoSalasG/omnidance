@@ -16,6 +16,7 @@ import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { Link } from "@/i18n/navigation";
 import { formatMoney, useDateFmt } from "@/lib/intl";
+import { periodLabel } from "./format";
 
 /** Filas del GET /academies/:id/statements (spec
  *  academy-byo-collections). */
@@ -48,16 +49,6 @@ const STATUS_VARIANT: Record<string, BadgeVariant> = {
   PENDING: "outline",
   PAID: "neon",
 };
-
-/** "2026-11" → "noviembre 2026" (día 2 evita el borde de zona horaria). */
-export function periodLabel(period: string, locale: string): string {
-  const d = new Date(`${period}-02T12:00:00Z`);
-  return new Intl.DateTimeFormat(locale, {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(d);
-}
 
 /**
  * /academia/cobros/liquidaciones - liquidaciones mensuales del take BYO

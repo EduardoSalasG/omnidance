@@ -15,6 +15,10 @@ import { GatewayTransactionsService } from "../infrastructure/gateway-transactio
 import { StubGateway } from "../infrastructure/stub.gateway";
 import { SubscriptionsService } from "./subscriptions.service";
 import { AcademyPromosService } from "./academy-promos.service";
+import {
+  AcademyCollectionsBlockedError,
+  AcademyGatewayUnavailableError,
+} from "./checkout.service";
 
 // SubscriptionsService - fake SubscriptionProvider (name "FLOW" para pasar
 // el check del puerto) + fake prisma stateful (mismo patrón que
@@ -54,6 +58,7 @@ function mkSub(over: Partial<Row> = {}): MembershipSubscription {
     nextInvoiceAt: null,
     lastInvoiceId: null,
     reminderSentFor: null,
+    gatewayAccountId: null,
     createdAt: new Date(),
     canceledAt: null,
     ...over,
@@ -79,7 +84,8 @@ function matchWhere(row: Row, where: Row): boolean {
       } else if ("in" in c) {
         if (!(c.in as unknown[]).includes(v)) return false;
       } else if ("not" in c) {
-        if (c.not === null ? v === null : v === c.not) return false;
+        // IS NULL/IS NOT NULL: undefined cuenta como null (Prisma).
+        if (c.not === null ? v == null : v === c.not) return false;
       } else if ("lte" in c) {
         if (
           !(v instanceof Date) ||
@@ -95,10 +101,10 @@ function matchWhere(row: Row, where: Row): boolean {
       } else if ("startsWith" in c) {
         if (typeof v !== "string" || !v.startsWith(c.startsWith as string))
           return false;
-      } else if (v !== cond) {
+      } else if (v !== cond && !(v == null && cond === null)) {
         return false;
       }
-    } else if (v !== cond) {
+    } else if (v !== cond && !(v == null && cond === null)) {
       return false;
     }
   }
@@ -378,6 +384,12 @@ function mkPrisma() {
       ),
     },
     personRole: { findMany: vi.fn(async () => [] as Row[]) },
+    // Métodos propios de la academia (spec subscription-manual-transfer):
+    // el alta TRANSFER consulta sus TRANSFER activos para el payload.
+    academyPaymentMethod: {
+      findFirst: vi.fn(async () => null),
+      findMany: vi.fn(async () => [] as Row[]),
+    },
     // ActivityEvent (spec platform-trials): findFirst para el dedup de
     // emitActivityOnce; create apila para inspección del spec.
     activityEvent: {
@@ -548,15 +560,36 @@ function mkParams() {
   };
 }
 
+// Cuenta BYO por defecto del spec (spec academy-card-subs-byo): la
+// academia "ac1" tiene una ActorGatewayAccount ACTIVE cuyo adaptador es
+// el mismo fake `flow` - subscribe resuelve por ella y las subs nuevas
+// nacen con gatewayAccountId="acct-1" y espejos namespacetea.
+const ACCT = { id: "acct-1", provider: "FLOW" };
+
+function mkAccounts(gateway: unknown) {
+  return {
+    activeForAcademy: vi.fn(async () => ({
+      account: ACCT,
+      gateway: gateway as PaymentGateway,
+    })),
+    adapterFor: vi.fn(async (id: string) => ({
+      account: { ...ACCT, id },
+      gateway: gateway as PaymentGateway,
+    })),
+  };
+}
+
 describe("SubscriptionsService", () => {
   let fx: ReturnType<typeof mkPrisma>;
   let flow: ReturnType<typeof mkFlow>;
+  let accounts: ReturnType<typeof mkAccounts>;
   let notifications: ReturnType<typeof mkNotifications>;
   let svc: SubscriptionsService;
 
   beforeEach(() => {
     fx = mkPrisma();
     flow = mkFlow();
+    accounts = mkAccounts(flow);
     notifications = mkNotifications();
     // El dedup de mora consulta prisma.notification - el spy registra
     // cada notifySafe en sentNotifs para que findFirst lo encuentre.
@@ -586,6 +619,7 @@ describe("SubscriptionsService", () => {
       new GatewayTransactionsService(prisma),
       new AcademyPromosService(prisma),
       new GatewayRegistry([flow as unknown as PaymentGateway], "FLOW"),
+      accounts as never,
     );
   });
 
@@ -625,35 +659,50 @@ describe("SubscriptionsService", () => {
       );
     });
 
-    it("gateway sin motor de suscripciones → 400", async () => {
-      const params = mkParams();
-      const prisma = fx.prisma as unknown as PrismaService;
-      const notif = notifications as unknown as NotificationsService;
-      const stubGw = {
-        name: "STUB",
+    it("academia sin cuenta BYO → academy.no_gateway (spec academy-card-subs-byo)", async () => {
+      accounts.activeForAcademy.mockResolvedValue(null as never);
+      await expect(svc.subscribe("p1", "plan1", true)).rejects.toThrow(
+        AcademyGatewayUnavailableError,
+      );
+      expect(fx.subs).toHaveLength(0);
+      expect(flow.createSubscription).not.toHaveBeenCalled();
+    });
+
+    it("cuenta BYO sin motor de suscripciones → academy.no_gateway (variante capability)", async () => {
+      const noMotor = {
+        name: "MERCADOPAGO",
         createOrder: vi.fn(),
         verifyWebhook: vi.fn(),
       };
-      const stubSvc = new SubscriptionsService(
-        prisma,
-        params as unknown as ParamsService,
-        new PaymentSettlementService(
-          prisma,
-          params as unknown as ParamsService,
-          notif,
-          { send: vi.fn(async () => undefined) },
-        ),
-        notif,
-        new GatewayTransactionsService(prisma),
-        new AcademyPromosService(prisma),
-        new GatewayRegistry(
-          [stubGw as unknown as PaymentGateway],
-          "STUB",
-        ),
+      accounts.activeForAcademy.mockResolvedValue({
+        account: ACCT,
+        gateway: noMotor as unknown as PaymentGateway,
+      } as never);
+      await expect(svc.subscribe("p1", "plan1", true)).rejects.toThrow(
+        AcademyGatewayUnavailableError,
       );
-      await expect(stubSvc.subscribe("p1", "plan1", true)).rejects.toThrow(
-        "motor de suscripciones",
+      expect(fx.subs).toHaveLength(0);
+    });
+
+    it("collectionsBlockedAt → academy.collections_blocked", async () => {
+      fx.plans.set("plan1", {
+        ...PLAN_MONTHLY,
+        academy: { ...ACADEMY, collectionsBlockedAt: new Date() },
+      });
+      await expect(svc.subscribe("p1", "plan1", true)).rejects.toThrow(
+        AcademyCollectionsBlockedError,
       );
+      expect(fx.subs).toHaveLength(0);
+    });
+
+    it("TRANSFER nunca consulta la cuenta BYO", async () => {
+      accounts.activeForAcademy.mockResolvedValue(null as never);
+      const r = await svc.subscribe("p1", "plan1", true, {
+        paymentMethod: "TRANSFER",
+      });
+      expect(r.kind).toBe("pending_payment");
+      expect(accounts.activeForAcademy).not.toHaveBeenCalled();
+      expect(fx.subs[0]!.status).toBe("PENDING_PAYMENT");
     });
 
     it("sin tarjeta → needs_card + sub PENDING_CARD + plan/customer lazy", async () => {
@@ -681,19 +730,30 @@ describe("SubscriptionsService", () => {
         },
         { correlationId: expect.any(String) },
       );
-      expect(fx.plans.get("plan1")!.flowPlanId).toBe("omni_plan1");
+      // plan espejo lazy: remoteRefs namespacetea por cuenta
+      // "<GW>:<accountId>:<CUR>" (spec academy-card-subs-byo) -
+      // flowPlanId queda reservado al espejo de plataforma.
+      const refs = fx.plans.get("plan1")!.remoteRefs as Row;
+      expect(refs["FLOW:acct-1:CLP"]).toBe("omni_plan1");
+      expect(fx.plans.get("plan1")!.flowPlanId).toBeNull();
 
-      // customer lazy: createCustomer + flowCustomerId persistido
+      // customer lazy: createCustomer + mapeo namespacetea por cuenta;
+      // la columna legacy flowCustomerId sigue siendo solo plataforma.
       expect(flow.createCustomer).toHaveBeenCalledWith(
         { email: "fan@example.cl", name: "Fan Uno", externalId: "p1" },
         { correlationId: expect.any(String) },
       );
-      expect(fx.persons.get("p1")!.flowCustomerId).toBe("cus_p1");
+      const custMap = fx.persons.get("p1")!.gatewayCustomerIds as Row;
+      expect(custMap["FLOW:acct-1"]).toBe("cus_p1");
+      expect(fx.persons.get("p1")!.flowCustomerId).toBeNull();
 
-      // registerCustomerCard apunta al customer-return de la API
+      // registerCustomerCard apunta al customer-return de la API scoped
+      // a la cuenta BYO.
       const regCall = flow.registerCustomerCard.mock.calls[0]![0]!;
       expect(regCall.customerId).toBe("cus_p1");
-      expect(regCall.returnUrl).toContain("/api/payments/flow/customer-return");
+      expect(regCall.returnUrl).toContain(
+        "/api/payments/flow/customer-return?account=acct-1",
+      );
 
       // misma correlationId encadena todas las llamadas de la operación
       const corr = flow.ensurePlan.mock.calls[0]![1]!.correlationId;
@@ -741,7 +801,10 @@ describe("SubscriptionsService", () => {
       // y el que llega segundo ve la PENDING_CARD del primero - la
       // reutiliza en vez de crear otra (mismo subscriptionId, nuevo
       // registerUrl sobre el mismo customerId).
-      const pending = mkSub({ status: "PENDING_CARD" });
+      const pending = mkSub({
+        status: "PENDING_CARD",
+        gatewayAccountId: "acct-1",
+      });
       fx.subs.push(pending);
       const r = await svc.subscribe("p1", "plan1", true);
       expect(r).toEqual({
@@ -786,7 +849,10 @@ describe("SubscriptionsService", () => {
       // el customer tiene tarjeta, pero entre el check y el claim el
       // return del browser ya la activó → el subscribe responde éxito
       // sin llamar subscription/create (no hay doble cobro).
-      const pending = mkSub({ status: "PENDING_CARD" });
+      const pending = mkSub({
+        status: "PENDING_CARD",
+        gatewayAccountId: "acct-1",
+      });
       fx.subs.push(pending);
       flow.getCustomer.mockResolvedValue({ hasCard: true });
       const inner = fx.prisma.membershipSubscription as unknown as {
@@ -919,7 +985,10 @@ describe("SubscriptionsService", () => {
     });
 
     it("claim perdido y la sub quedó CANCELED → 409 con mensaje de cancelada (N3)", async () => {
-      const pending = mkSub({ status: "PENDING_CARD" });
+      const pending = mkSub({
+        status: "PENDING_CARD",
+        gatewayAccountId: "acct-1",
+      });
       fx.subs.push(pending);
       flow.getCustomer.mockResolvedValue({ hasCard: true });
       const inner = fx.prisma.membershipSubscription as unknown as {
@@ -1044,6 +1113,7 @@ describe("SubscriptionsService", () => {
           [flow as unknown as PaymentGateway, stripe as unknown as PaymentGateway],
           "FLOW",
         ),
+        accounts as never,
       );
       // El person lookup pasa por gatewayCustomerIds["STRIPE"] - el fake
       // no evalúa el path JSON, así que se resuelve el mock directo.
@@ -2030,6 +2100,7 @@ describe("SubscriptionsService", () => {
           [stubGw as unknown as PaymentGateway],
           "STUB",
         ),
+        accounts as never,
       );
       await stubSvc.syncMirrorPlan(
         { flowPlanId: "omni_x", academy: { name: "X" } },
@@ -2071,6 +2142,7 @@ describe("SubscriptionsService", () => {
         new GatewayTransactionsService(prisma),
         new AcademyPromosService(prisma),
         new GatewayRegistry([stub as unknown as PaymentGateway], "STUB"),
+        mkAccounts(stub) as never,
       );
     });
 
@@ -2083,15 +2155,21 @@ describe("SubscriptionsService", () => {
       expect(url.searchParams.get("token")).toMatch(/^stub_reg_/);
       const sub = fx.subs[0]!;
       expect(sub.status).toBe("PENDING_CARD");
-      expect(fx.plans.get("plan1")!.flowPlanId).toBe("omni_plan1");
+      expect(sub.gatewayAccountId).toBe("acct-1");
+      const refs = fx.plans.get("plan1")!.remoteRefs as Row;
+      expect(refs["STUB:acct-1:CLP"]).toBe("omni_plan1");
     });
 
     it("flujo completo: customer-return con token stub → ACTIVE + invoice inicial liquidado", async () => {
       const r = await stubSvc.subscribe("p1", "plan1", true);
       if (r.kind !== "needs_card") throw new Error("expected needs_card");
-      const token = new URL(r.registerUrl).searchParams.get("token")!;
+      const url = new URL(r.registerUrl);
+      const token = url.searchParams.get("token")!;
+      // El returnUrl de la cuenta BYO lleva ?account= (spec
+      // academy-card-subs-byo): el return lo resuelve por su adaptador.
+      expect(url.searchParams.get("account")).toBe("acct-1");
 
-      const back = await stubSvc.customerReturn(token);
+      const back = await stubSvc.customerReturn(token, "acct-1");
       expect(back).toEqual({ ok: true, academyId: "ac1" });
 
       const sub = fx.subs[0]!;
@@ -2135,11 +2213,14 @@ describe("SubscriptionsService", () => {
       await stub.getRegisterStatus(
         new URL(registerUrl).searchParams.get("token")!,
       );
-      fx.persons.get("p1")!.flowCustomerId = c.customerId;
+      fx.persons.get("p1")!.gatewayCustomerIds = {
+        "STUB:acct-1": c.customerId,
+      };
 
       const r = await stubSvc.subscribe("p1", "plan1", true);
       expect(r.kind).toBe("subscribed");
       expect(fx.subs[0]!.status).toBe("ACTIVE");
+      expect(fx.subs[0]!.gatewayAccountId).toBe("acct-1");
     });
 
     it("cancel → CANCEL_PENDING y el remoto queda cancelAtPeriodEnd", async () => {
@@ -2155,7 +2236,9 @@ describe("SubscriptionsService", () => {
       await stub.getRegisterStatus(
         new URL(registerUrl).searchParams.get("token")!,
       );
-      fx.persons.get("p1")!.flowCustomerId = c.customerId;
+      fx.persons.get("p1")!.gatewayCustomerIds = {
+        "STUB:acct-1": c.customerId,
+      };
       const r = await stubSvc.subscribe("p1", "plan1", true);
       if (r.kind !== "subscribed") throw new Error("expected subscribed");
 
@@ -2467,13 +2550,271 @@ describe("SubscriptionsService", () => {
       // El espejo no-CLP queda en remoteRefs "<GATEWAY>:<CUR>" - nunca
       // en flowPlanId (que sigue siendo el espejo Flow/CLP).
       const refs = fx.plans.get("plan1")!.remoteRefs as Row;
-      expect(refs["FLOW:USD"]).toBe("omni_plan1");
+      expect(refs["FLOW:acct-1:USD"]).toBe("omni_plan1");
       expect(fx.plans.get("plan1")!.flowPlanId).toBeNull();
       expect(flow.ensurePlan).toHaveBeenCalledWith(
         expect.objectContaining({ currency: "USD" }),
         { correlationId: expect.any(String) },
       );
       void r;
+    });
+  });
+
+  // ─── academy-card-subs-byo: ciclo de vida multi-cuenta ───────────
+  describe("academy-card-subs-byo", () => {
+    it("renovación BYO → Payment con gatewayAccountId + take congelado", async () => {
+      const sub = mkSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "fsub-byo",
+        gatewayAccountId: "acct-1",
+      });
+      fx.subs.push(sub);
+      const settled = await svc.reconcileSubscription(sub, {
+        subscriptionId: "fsub-byo",
+        planId: "omni_plan1",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        invoices: [
+          { id: 77, amount: 10000, paid: true },
+        ],
+      } as never);
+      expect(settled).toBe(1);
+      const pay = [...fx.payments.values()][0]!;
+      expect(pay.gatewayAccountId).toBe("acct-1");
+      expect(pay.academyTakeRate).toBe(1.0);
+      expect(pay.academyTakeClp).toBe(100); // 1% de 10000
+      expect(pay.status).toBe("PAID");
+    });
+
+    it("renovación legacy (gatewayAccountId null) → Payment sin take", async () => {
+      const sub = mkSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "fsub-legacy",
+      });
+      fx.subs.push(sub);
+      await svc.reconcileSubscription(sub, {
+        subscriptionId: "fsub-legacy",
+        planId: "omni_plan1",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        invoices: [{ id: 78, amount: 10000, paid: true }],
+      } as never);
+      const pay = [...fx.payments.values()][0]!;
+      expect(pay.gatewayAccountId ?? null).toBeNull();
+      expect(pay.academyTakeClp ?? null).toBeNull();
+    });
+
+    it("reconcileAll: sub BYO se reconcilia por el adaptador de su cuenta, legacy por plataforma", async () => {
+      const byo = mkFlow(); // adaptador distinto = la cuenta acct-1
+      accounts.adapterFor.mockImplementation(async (id: string) => ({
+        account: { ...ACCT, id },
+        gateway: byo as unknown as PaymentGateway,
+      }));
+      fx.subs.push(
+        mkSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "fsub-byo",
+          gatewayAccountId: "acct-1",
+        }),
+        mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-plat" }),
+      );
+      flow.getSubscription.mockResolvedValue({
+        subscriptionId: "fsub-plat",
+        planId: "omni_plan1",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        invoices: [],
+      });
+      byo.getSubscription.mockResolvedValue({
+        subscriptionId: "fsub-byo",
+        planId: "omni_plan1",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        invoices: [],
+      });
+      const r = await svc.reconcileAll();
+      expect(r.checked).toBe(2);
+      expect(accounts.adapterFor).toHaveBeenCalledWith("acct-1");
+      expect(byo.getSubscription).toHaveBeenCalledWith(
+        "fsub-byo",
+        expect.anything(),
+      );
+      expect(flow.getSubscription).toHaveBeenCalledWith(
+        "fsub-plat",
+        expect.anything(),
+      );
+      // El adaptador de plataforma JAMÁS consulta la sub de la cuenta.
+      expect(flow.getSubscription).not.toHaveBeenCalledWith(
+        "fsub-byo",
+        expect.anything(),
+      );
+    });
+
+    it("reconcileAll scoped por ?account= solo barre subs de esa cuenta", async () => {
+      fx.subs.push(
+        mkSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "fsub-byo",
+          gatewayAccountId: "acct-1",
+        }),
+        mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-plat" }),
+      );
+      const r = await svc.reconcileAll("reconcile", "acct-1");
+      expect(r.checked).toBe(1);
+      // Solo se consultó la sub de la cuenta - la de plataforma queda.
+      expect(flow.getSubscription).toHaveBeenCalledWith(
+        "fsub-byo",
+        expect.anything(),
+      );
+      expect(flow.getSubscription).not.toHaveBeenCalledWith(
+        "fsub-plat",
+        expect.anything(),
+      );
+    });
+
+    it("cuenta DISABLED en reconcileAll → sub saltada con log, el resto sigue", async () => {
+      accounts.adapterFor.mockRejectedValue(
+        new NotFoundException("cuenta de pasarela no disponible"),
+      );
+      fx.subs.push(
+        mkSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "fsub-byo",
+          gatewayAccountId: "acct-1",
+        }),
+        mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-plat" }),
+      );
+      flow.getSubscription.mockResolvedValue({
+        subscriptionId: "fsub-plat",
+        planId: "omni_plan1",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        invoices: [],
+      });
+      const r = await svc.reconcileAll();
+      expect(r.checked).toBe(2); // revisada aunque haya saltado
+      expect(flow.getSubscription).toHaveBeenCalledWith(
+        "fsub-plat",
+        expect.anything(),
+      );
+    });
+
+    it("cancel con cuenta apagada → CANCEL_PENDING local sin llamada remota", async () => {
+      accounts.adapterFor.mockRejectedValue(
+        new NotFoundException("cuenta de pasarela no disponible"),
+      );
+      const sub = mkSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "fsub-byo",
+        gatewayAccountId: "acct-1",
+      });
+      fx.subs.push(sub);
+      const r = await svc.cancel("p1", sub.id);
+      expect(r.status).toBe("CANCEL_PENDING");
+      expect(flow.cancelSubscription).not.toHaveBeenCalled();
+    });
+
+    it("handleBillingEvent cross-account → rechaza (la cuenta que notifica no es la dueña)", async () => {
+      fx.subs.push(
+        mkSub({
+          status: "ACTIVE",
+          flowSubscriptionId: "sub_b1",
+          gatewayAccountId: "acct-1",
+        }),
+      );
+      await expect(
+        svc.handleBillingEvent(
+          { type: "invoice.paid", subscriptionId: "sub_b1" } as never,
+          "acct-otra",
+        ),
+      ).rejects.toThrow(BadRequestException);
+      // Mismo scope → procesa normal.
+      const ok = await svc.handleBillingEvent(
+        { type: "invoice.draft", subscriptionId: "sub_b1" } as never,
+        "acct-1",
+      );
+      expect(ok).toBe(true);
+      // Un evento de plataforma para una sub BYO también se rechaza.
+      await expect(
+        svc.handleBillingEvent(
+          { type: "invoice.paid", subscriptionId: "sub_b1" } as never,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("customerReturn por cuenta activa la PENDING_CARD de ESA cuenta", async () => {
+      // El customer vive en la clave namespacetea de la cuenta.
+      fx.persons.get("p1")!.gatewayCustomerIds = {
+        "FLOW:acct-1": "cus_acct",
+      };
+      flow.getRegisterStatus.mockResolvedValue({
+        registered: true,
+        customerId: "cus_acct",
+      });
+      const pending = mkSub({
+        status: "PENDING_CARD",
+        gatewayAccountId: "acct-1",
+      });
+      fx.subs.push(pending);
+      // Y una PENDING_CARD de plataforma que NO debe tocarse.
+      const plat = mkSub({
+        status: "PENDING_CARD",
+        planId: "plan1",
+      });
+      // La findFirst ordena por createdAt desc - la de plataforma es
+      // más nueva pero su cuenta no calza.
+      plat.createdAt = new Date(Date.now() + 1000);
+      fx.subs.push(plat);
+
+      const r = await svc.customerReturn("tok-byo", "acct-1");
+      expect(r).toEqual({ ok: true, academyId: "ac1" });
+      const row = fx.subs.find((s) => s.id === pending.id)!;
+      expect(row.status).toBe("ACTIVE");
+      expect(row.flowSubscriptionId).toBe("fsub-1");
+      // La PENDING_CARD de plataforma sigue pendiente - no la reclamó.
+      expect(fx.subs.find((s) => s.id === plat.id)!.status).toBe(
+        "PENDING_CARD",
+      );
+    });
+
+    it("sweep de huérfanas por cuenta: audit con gatewayAccountId → adaptador de esa cuenta", async () => {
+      const byo = mkFlow();
+      accounts.adapterFor.mockImplementation(async (id: string) => ({
+        account: { ...ACCT, id },
+        gateway: byo as unknown as PaymentGateway,
+      }));
+      fx.gatewayTxs.push({
+        provider: "FLOW",
+        gatewayAccountId: "acct-1",
+        direction: "OUTBOUND",
+        endpoint: "subscription/create",
+        ok: true,
+        responseBody: { subscriptionId: "fsub-orphan-byo" },
+        createdAt: new Date(Date.now() - 10 * 60_000),
+      });
+      byo.getSubscription.mockResolvedValue({
+        subscriptionId: "fsub-orphan-byo",
+        planId: "omni_plan1",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        invoices: [],
+      });
+      await svc.reconcileAll();
+      expect(byo.cancelSubscription).toHaveBeenCalledWith("fsub-orphan-byo", {
+        correlationId: expect.any(String),
+        immediate: true,
+      });
+      // Plataforma no barre la huérfana de la cuenta.
+      expect(flow.cancelSubscription).not.toHaveBeenCalledWith(
+        "fsub-orphan-byo",
+        expect.anything(),
+      );
     });
   });
 });
