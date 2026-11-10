@@ -79,6 +79,20 @@ historial, i18n, docs y cierre del change OpenSpec.
   con el deploy - auditar antes enrollments ACTIVE sin plan que
   pasarían a INACTIVE.
 
+## Fix posterior: mermaid en flows.md
+
+- `506cd1ce` fix(docs): 15 de 42 bloques mermaid no renderizaban.
+  Causa dominante: `;` literal dentro de texto de mensajes/notas de
+  sequenceDiagram (el `;` es separador de statements a nivel lexer;
+  ojo que `&lt;`/`&gt;` también lo contienen → se usó `‹›`). Fix:
+  `#59;` (entidad mermaid que renderiza `;`). Además: un `alt` sin
+  `end` (EOF error) y comillas sin escapar en label de flowchart
+  (`["...#quot;..."]`).
+- Verificación: `mermaid.parse` sobre todos los bloques → flows.md
+  42/42 y architecture.md 3/3 OK. El checker quedó en
+  `%TEMP%/mermaid-check` (mermaid 11 + jsdom, fuera del repo) - si se
+  quiere permanente, conviene pasarlo a script del repo o CI.
+
 ## Pendientes generales (sin cambio)
 
 - multipais-foundation tasks 10/11/13 (slices grandes sin abrir).
