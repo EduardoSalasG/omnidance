@@ -1,6 +1,6 @@
-# Handoff: mercadopago-subscriptions + academy-import-slim-fields EN CURSO
+# Handoff: mercadopago-subscriptions + academy-import-slim-fields + gateway-in-methods-form EN CURSO
 
-Sesión 2026-11-10 (tarde-noche). Dos tracks en background con
+Sesión 2026-11-10 (tarde-noche). Tres tracks en background con
 subagentes implementadores; este handoff se escribe ANTES de su
 integración por margen de contexto.
 
@@ -56,6 +56,19 @@ importar` actualiza template+copy. NO tocar import de horario.
 
 Al terminar: revisar diff, verificar migración aplicada a dev, suite
 + typecheck verdes, archivar change, commitear.
+
+## Track 3 — gateway-in-methods-form (subagent `c50f9711`)
+
+Change creado y validado (4/4 verde). UX pedida por el owner: la alta
+de pasarela BYO va DENTRO del flujo "Agregar método" de métodos de
+pago (no sección aparte). `/nuevo` elige tipo manual vs pasarela;
+cuenta configurada aparece como card en la misma lista (badge, mask,
+webhookUrl); se elimina `AcademyGatewaySection`/
+`ProducerGatewaySection` de las páginas. Espejo en
+`/productor/medios-pago`. Sin cambios de API.
+
+Al terminar: revisar diff, typecheck/lint/tests web, archivar el
+change, commitear.
 
 ## Operativo
 

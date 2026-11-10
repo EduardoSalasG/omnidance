@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import * as XLSX from "xlsx";
 import { Test } from "@nestjs/testing";
 import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { AuthModule } from "../src/auth/auth.module";
@@ -27,19 +28,27 @@ describe("academy bulk import e2e (spec academy-bulk-import)", () => {
       headers: session ? { cookie: `omnidance_session=${session}` } : {},
     });
 
-  const postCsv = async (
+  const postFile = async (
     path: string,
-    csv: string,
+    content: string | Uint8Array,
+    filename: string,
+    mime: string,
     session?: string,
   ) => {
     const fd = new FormData();
-    fd.append("file", new Blob([csv], { type: "text/csv" }), "import.csv");
+    fd.append("file", new Blob([content], { type: mime }), filename);
     return fetch(`${baseUrl}${path}`, {
       method: "POST",
       headers: session ? { cookie: `omnidance_session=${session}` } : {},
       body: fd,
     });
   };
+
+  const postCsv = (
+    path: string,
+    csv: string,
+    session?: string,
+  ) => postFile(path, csv, "import.csv", "text/csv", session);
 
   beforeAll(async () => {
     // Los imports invitan por email - sin key el mailer solo loguea.
@@ -172,7 +181,10 @@ describe("academy bulk import e2e (spec academy-bulk-import)", () => {
     );
     expect(res.status).toBe(200);
     const text = await res.text();
-    expect(text).toContain("email,nombre,telefono,plan,pagado_hasta");
+    // Change academy-import-slim-fields: orden contractual del template.
+    expect(text).toContain(
+      "email,nombre,rut,fecha_nacimiento,telefono,sexo,plan,pagado_hasta",
+    );
   });
 
   it("staff sin capacidad students no puede importar alumnos", async () => {
@@ -242,10 +254,94 @@ describe("academy bulk import e2e (spec academy-bulk-import)", () => {
   it("import sin columnas requeridas → 400", async () => {
     const res = await postCsv(
       `/api/academies/${academyId.v}/import/students`,
-      "email,nombre\na@b.cl,A",
+      "email,plan\na@b.cl,Plan Mensual",
       ownerSession,
     );
     expect(res.status).toBe(400);
+  });
+
+  it("fila mínima email+nombre → invitada con Enrollment sin plan (academy-import-slim-fields)", async () => {
+    const res = await postCsv(
+      `/api/academies/${academyId.v}/import/students`,
+      "email,nombre\nimport-new-min@omnidance.dev,Minima",
+      ownerSession,
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.results[0].status).toBe("invited");
+    const stub = await prisma.person.findUniqueOrThrow({
+      where: { email: "import-new-min@omnidance.dev" },
+    });
+    const enr = await prisma.enrollment.findFirstOrThrow({
+      where: { academyId: academyId.v, personId: stub.id },
+    });
+    expect(enr.status).toBe("ACTIVE");
+    expect(enr.planId).toBeNull();
+    expect(enr.endsAt).toBeNull();
+  });
+
+  it("columnas opcionales rut/fecha_nacimiento/sexo persisten en la Person", async () => {
+    const res = await postCsv(
+      `/api/academies/${academyId.v}/import/students`,
+      [
+        "email,nombre,rut,fecha_nacimiento,sexo",
+        "import-new-doc@omnidance.dev,Con Doc,12.345.678-9,15/03/1990,Femenino",
+        "import-new-sexo@omnidance.dev,Sexo Malo,,,desconocido",
+      ].join("\n"),
+      ownerSession,
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    const byEmail = new Map<string, { status: string; detail: string }>(
+      body.results.map(
+        (r: { email: string; status: string; detail: string }) => [
+          r.email,
+          r,
+        ],
+      ),
+    );
+    expect(byEmail.get("import-new-doc@omnidance.dev")?.status).toBe(
+      "invited",
+    );
+    expect(byEmail.get("import-new-sexo@omnidance.dev")?.status).toBe(
+      "error",
+    );
+    const stub = await prisma.person.findUniqueOrThrow({
+      where: { email: "import-new-doc@omnidance.dev" },
+    });
+    expect(stub.nationalId).toBe("123456789");
+    expect(stub.gender).toBe("F");
+    expect(stub.birthDate?.toISOString()).toContain("1990-03-15");
+  });
+
+  it("import de alumnos vía .xlsx procesa las mismas filas que el CSV", async () => {
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([
+      ["email", "nombre", "sexo"],
+      ["import-new-xls@omnidance.dev", "Desde Excel", "f"],
+    ]);
+    XLSX.utils.book_append_sheet(wb, ws, "Alumnos");
+    const buffer = XLSX.write(wb, {
+      type: "buffer",
+      bookType: "xlsx",
+    }) as Buffer;
+    const res = await postFile(
+      `/api/academies/${academyId.v}/import/students`,
+      new Uint8Array(buffer),
+      "alumnos.xlsx",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ownerSession,
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.results[0]).toMatchObject({
+      email: "import-new-xls@omnidance.dev",
+      status: "invited",
+    });
+    const stub = await prisma.person.findUniqueOrThrow({
+      where: { email: "import-new-xls@omnidance.dev" },
+    });
+    expect(stub.gender).toBe("F");
   });
 
   it("import de horario: serie upsert + slots dedup + clases materializadas", async () => {

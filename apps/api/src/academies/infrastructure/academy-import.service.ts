@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import type { Academy } from "@prisma/client";
+import { Gender, type Academy, type Prisma } from "@prisma/client";
 import { InvalidPhoneError, normalizePhone } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
 import { AuthService } from "../../auth/domain/auth.service";
@@ -72,10 +72,13 @@ export class AcademyImportService {
   ) {}
 
   /**
-   * Alumnos: `email,nombre,telefono?,plan,pagado_hasta?`.
-   * Person inexistente → stub + invitación magic link. Enrollment:
-   * si existe se actualiza (endsAt = max, planId = declarado); si no,
-   * se crea ACTIVE con la vigencia importada.
+   * Alumnos (change academy-import-slim-fields): `email,nombre` +
+   * opcionales `rut|dni|documento, fecha_nacimiento, telefono, sexo,
+   * plan, pagado_hasta`. Person inexistente → stub + invitación magic
+   * link; existente → solo se sobreescriben los campos presentes en la
+   * fila (celda vacía conserva). Enrollment: si existe se actualiza
+   * (endsAt = max, planId = declarado o null); si no, se crea ACTIVE
+   * con la vigencia importada.
    */
   async importStudents(
     academy: Academy,
@@ -107,11 +110,24 @@ export class AcademyImportService {
       try {
         if (!EMAIL_RE.test(email)) throw new RowError("email inválido");
         if (!name) throw new RowError("nombre requerido");
-        const plan = planByName.get(normLabel(planName));
-        if (!plan) {
-          throw new RowError(`plan "${planName}" no existe en la academia`);
+        // `plan` opcional (change academy-import-slim-fields): celda
+        // vacía → Enrollment sin plan (planId null); declarado y sin
+        // match → error de fila como antes.
+        let plan: { id: string; name: string } | null = null;
+        if (planName) {
+          plan = planByName.get(normLabel(planName)) ?? null;
+          if (!plan) {
+            throw new RowError(`plan "${planName}" no existe en la academia`);
+          }
         }
         const endsAt = parsePaidThrough(r.pagado_hasta);
+        const nationalId = normNationalId(r.rut || r.dni || r.documento);
+        const birthDate = parseBirthDate(r.fecha_nacimiento);
+        const gender = parseGender(r.sexo);
+        // Spec multipais-phone: `telefono` se normaliza a E.164 con el
+        // país de la academia; fila inválida = error de fila.
+        const rawPhone = r.telefono?.trim() ?? "";
+        const phoneFields = rowPhone(rawPhone, academyCountry);
 
         let person = await this.prisma.person.findUnique({
           where: { email },
@@ -119,26 +135,17 @@ export class AcademyImportService {
         });
         const isNewPerson = !person;
         if (!person) {
-          // Spec multipais-phone: `telefono` se normaliza a E.164 con el
-          // país de la academia; fila inválida = error de fila.
-          let phone: string | null = null;
-          let phoneCountryCode: string | null = null;
-          const rawPhone = r.telefono?.trim() ?? "";
-          if (rawPhone) {
-            try {
-              const normalized = normalizePhone(rawPhone, academyCountry);
-              phone = normalized?.e164 ?? null;
-              phoneCountryCode = normalized?.countryCode ?? null;
-            } catch (e) {
-              if (e instanceof InvalidPhoneError) {
-                throw new RowError("teléfono inválido");
-              }
-              throw e;
-            }
-          }
           try {
             person = await this.prisma.person.create({
-              data: { email, name, phone, phoneCountryCode },
+              data: {
+                email,
+                name,
+                phone: phoneFields.phone,
+                phoneCountryCode: phoneFields.phoneCountryCode,
+                nationalId,
+                birthDate,
+                gender,
+              },
               select: { id: true, name: true },
             });
           } catch (e) {
@@ -146,7 +153,7 @@ export class AcademyImportService {
             // cuenta se crea el stub igual, sin teléfono.
             if (!isUniqueViolation(e)) throw e;
             person = await this.prisma.person.create({
-              data: { email, name },
+              data: { email, name, nationalId, birthDate, gender },
               select: { id: true, name: true },
             });
           }
@@ -159,8 +166,38 @@ export class AcademyImportService {
             refId: person.id,
             data: { via: "academy.import" },
           });
+        } else {
+          // Update por email: solo se setean los campos presentes en la
+          // fila - celda vacía conserva el dato previo.
+          const data: Prisma.PersonUpdateInput = {};
+          if (rawPhone) {
+            data.phone = phoneFields.phone;
+            data.phoneCountryCode = phoneFields.phoneCountryCode;
+          }
+          if (nationalId) data.nationalId = nationalId;
+          if (birthDate) data.birthDate = birthDate;
+          if (gender) data.gender = gender;
+          if (Object.keys(data).length) {
+            try {
+              await this.prisma.person.update({
+                where: { id: person.id },
+                data,
+              });
+            } catch (e) {
+              if (!isUniqueViolation(e)) throw e;
+              delete data.phone;
+              delete data.phoneCountryCode;
+              if (Object.keys(data).length) {
+                await this.prisma.person.update({
+                  where: { id: person.id },
+                  data,
+                });
+              }
+            }
+          }
         }
 
+        const planId = plan?.id ?? null;
         const existing = await this.prisma.enrollment.findFirst({
           where: { academyId: academy.id, personId: person.id },
           select: { id: true, endsAt: true },
@@ -172,14 +209,14 @@ export class AcademyImportService {
               : existing.endsAt;
           await this.prisma.enrollment.update({
             where: { id: existing.id },
-            data: { planId: plan.id, endsAt: nextEnds },
+            data: { planId, endsAt: nextEnds },
           });
         } else {
           const enr = await this.prisma.enrollment.create({
             data: {
               academyId: academy.id,
               personId: person.id,
-              planId: plan.id,
+              planId,
               status: "ACTIVE",
               endsAt,
             },
@@ -190,10 +227,11 @@ export class AcademyImportService {
             academyId: academy.id,
             refType: "Enrollment",
             refId: enr.id,
-            data: { planId: plan.id, via: "academy.import" },
+            data: { planId, via: "academy.import" },
           });
         }
 
+        const planTag = plan ? ` (plan ${plan.name})` : " (sin plan)";
         if (isNewPerson) {
           const sent = await this.sendStudentInvite(
             email,
@@ -205,7 +243,7 @@ export class AcademyImportService {
             email,
             status: "invited",
             detail: sent
-              ? `cuenta creada + invitación enviada (plan ${plan.name})`
+              ? `cuenta creada + invitación enviada${planTag}`
               : `cuenta creada; invitación NO enviada - reintentar`,
           });
         } else {
@@ -214,8 +252,8 @@ export class AcademyImportService {
             email,
             status: existing ? "updated" : "imported",
             detail: existing
-              ? `inscripción actualizada (plan ${plan.name})`
-              : `inscripción creada (plan ${plan.name})`,
+              ? `inscripción actualizada${planTag}`
+              : `inscripción creada${planTag}`,
           });
         }
       } catch (e) {
@@ -554,6 +592,92 @@ function isUniqueViolation(e: unknown): boolean {
     typeof e === "object" &&
     (e as { code?: string }).code === "P2002"
   );
+}
+
+/** `telefono` de la fila → E.164 + país; inválido = error de fila. */
+function rowPhone(
+  raw: string,
+  defaultCountry: string,
+): { phone: string | null; phoneCountryCode: string | null } {
+  if (!raw) return { phone: null, phoneCountryCode: null };
+  try {
+    const normalized = normalizePhone(raw, defaultCountry);
+    return {
+      phone: normalized?.e164 ?? null,
+      phoneCountryCode: normalized?.countryCode ?? null,
+    };
+  } catch (e) {
+    if (e instanceof InvalidPhoneError) {
+      throw new RowError("teléfono inválido");
+    }
+    throw e;
+  }
+}
+
+/**
+ * Documento del alumno → `Person.nationalId`: trim + uppercase siempre;
+ * si calza formato chileno (solo dígitos, puntos, guion, K final) se
+ * quitan los separadores. Sin validación de dígito verificador - es
+ * dato administrativo, no clave de dedup.
+ */
+function normNationalId(raw: string | undefined): string | null {
+  const s = raw?.trim();
+  if (!s) return null;
+  const upper = s.toUpperCase();
+  return /^[\d.-]+[\dK]$/.test(upper)
+    ? upper.replace(/[.-]/g, "")
+    : upper;
+}
+
+/** "dd/mm/yyyy" o "yyyy-mm-dd" → mediodía UTC (día estable en cualquier TZ). */
+function parseBirthDate(raw: string | undefined): Date | null {
+  const s = raw?.trim();
+  if (!s) return null;
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  const lat = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
+  let y: number, m: number, d: number;
+  if (iso) {
+    [y, m, d] = [+iso[1], +iso[2], +iso[3]];
+  } else if (lat) {
+    [d, m, y] = [+lat[1], +lat[2], +lat[3]];
+  } else {
+    throw new RowError(
+      `fecha_nacimiento "${s}" inválida (DD/MM/YYYY o YYYY-MM-DD)`,
+    );
+  }
+  const date = new Date(Date.UTC(y, m - 1, d, 12));
+  if (
+    date.getUTCFullYear() !== y ||
+    date.getUTCMonth() !== m - 1 ||
+    date.getUTCDate() !== d
+  ) {
+    throw new RowError(`fecha_nacimiento "${s}" inválida`);
+  }
+  return date;
+}
+
+const GENDER_ALIASES: Record<string, Gender> = {
+  m: Gender.M,
+  masculino: Gender.M,
+  male: Gender.M,
+  hombre: Gender.M,
+  f: Gender.F,
+  femenino: Gender.F,
+  female: Gender.F,
+  mujer: Gender.F,
+  otro: Gender.OTHER,
+  other: Gender.OTHER,
+  x: Gender.OTHER,
+  nb: Gender.OTHER,
+  "no binario": Gender.OTHER,
+};
+
+function parseGender(raw: string | undefined): Gender | null {
+  const s = raw?.trim();
+  if (!s) return null;
+  const gender = GENDER_ALIASES[normLabel(s)];
+  if (!gender) throw new RowError(`sexo "${s}" inválido (m/f/otro)`);
+  return gender;
 }
 
 /** "YYYY-MM-DD" → endsAt al mediodía UTC (mañana en Chile): el día completo queda cubierto. */

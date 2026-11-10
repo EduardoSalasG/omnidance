@@ -347,14 +347,20 @@ export class GatewayAccountsService {
         );
         break;
       }
-      case "MERCADOPAGO":
+      case "MERCADOPAGO": {
+        // back_url del preapproval por cuenta (spec
+        // mercadopago-subscriptions): el retorno GET del pagador
+        // resuelve el adaptador por ?account= igual que el webhook.
+        const apiUrl = process.env.API_URL ?? "http://localhost:4000";
         gateway = new MercadoPagoGateway(
           creds.accessToken!,
           process.env.MERCADOPAGO_BASE_URL ?? "https://api.mercadopago.com",
           confirmUrl,
           onTx,
+          `${apiUrl}/api/payments/mp/subscription-return?account=${account.id}`,
         );
         break;
+      }
       case "FINTOC":
         gateway = new FintocGateway(
           creds.secretKey!,

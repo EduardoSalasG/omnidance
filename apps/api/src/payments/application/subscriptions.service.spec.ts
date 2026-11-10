@@ -775,6 +775,7 @@ describe("SubscriptionsService", () => {
           customerId: "cus_p1",
           subscriptionStart: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
           currency: "CLP",
+          externalRef: expect.any(String),
         },
         { correlationId: expect.any(String) },
       );

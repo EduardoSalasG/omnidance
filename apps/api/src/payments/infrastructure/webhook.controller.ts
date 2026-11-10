@@ -268,6 +268,43 @@ export class PaymentsController {
   }
 
   /**
+   * Retorno GET del pagador desde el init_point de MercadoPago (spec
+   * mercadopago-subscriptions, D2): el back_url del preapproval es
+   * redirect GET (a diferencia del form-POST de Flow) con
+   * `?account=<id>&sub=<subId>` horneados por el adaptador. El service
+   * re-verifica el status remoto real (authorized → activa; pending →
+   * queda PENDING_CARD) - nunca se confía en el redirect. Mismo
+   * contrato que customerReturn: nunca error HTTP, el redirect es la
+   * respuesta.
+   */
+  @Get("mp/subscription-return")
+  @ApiQuery({ name: "account", required: true })
+  @ApiQuery({ name: "sub", required: true })
+  async mpSubscriptionReturn(
+    @Res() res: Response,
+    @Query("account") accountId?: string,
+    @Query("sub") subId?: string,
+  ) {
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const errorTo = `${webUrl}/checkout/return?sub=error&src=member`;
+    if (!accountId || !subId) return res.redirect(303, errorTo);
+    try {
+      const r = await this.subscriptions.mpSubscriptionReturn(
+        subId,
+        accountId,
+      );
+      return res.redirect(
+        303,
+        r.ok
+          ? `${webUrl}/checkout/return?sub=ok&src=member`
+          : errorTo,
+      );
+    } catch {
+      return res.redirect(303, errorTo);
+    }
+  }
+
+  /**
    * Retorno del disclaimer de tarjeta para suscripciones DE PLATAFORMA
    * (academia SaaS / Producer Pro - spec academy-saas-billing). Endpoint
    * propio porque el token de getRegisterStatus se consume una sola vez:

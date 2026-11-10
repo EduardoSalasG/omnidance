@@ -97,7 +97,7 @@ export function ImportCard({
         <input
           ref={fileRef}
           type="file"
-          accept=".csv,text/csv"
+          accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           className="sr-only"
           aria-label={t("chooseFile")}
           onChange={(e) =>

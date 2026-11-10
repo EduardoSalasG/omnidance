@@ -379,9 +379,9 @@ Consola admin (`admin.access`, todo auditado en `AuditLog`): `GET /admin/jobs`, 
 
 ### Carga masiva para migración (spec academy-bulk-import)
 
-`AcademyImportController`/`AcademyImportService` + parser propio `src/common/csv.ts` (comillas/`""`/\r\n/BOM, ≤2MB, ≤500 filas). Consola `/academia/importar` con plantillas descargables (`GET /academies/:id/import/template/students|schedule`) y reporte por fila.
+`AcademyImportController`/`AcademyImportService` + parser `parseImportFile` (CSV propio `src/common/csv.ts` comillas/`""`/\r\n/BOM, más `.xls`/`.xlsx` vía SheetJS `xlsx` primera hoja raw:false; formato por extensión y/o MIME; ≤2MB, ≤500 filas). Consola `/academia/importar` con plantillas descargables (`GET /academies/:id/import/template/students|schedule`) y reporte por fila.
 
-- **`POST /:id/import/students`** (cap `students`): columnas `email,nombre,telefono?,plan,pagado_hasta?`. Person inexistente → stub + invitación magic link 7d (`studentInviteEmailHtml`); enrollment upsert (`endsAt = max`, plan por nombre case/acento-insensible). Resultado `imported|updated|invited|error` por fila.
+- **`POST /:id/import/students`** (cap `students`): requeridas `email,nombre`; opcionales `rut|dni|documento` → `Person.nationalId` (normalizado, sin unique), `fecha_nacimiento` (DD/MM/YYYY o YYYY-MM-DD) → `birthDate`, `sexo` (m/f/otro + alias) → `gender`, `telefono?`, `plan?`, `pagado_hasta?`. Person inexistente → stub + invitación magic link 7d (`studentInviteEmailHtml`); existente → solo se sobreescriben los campos presentes en la fila. Enrollment upsert (`endsAt = max`, plan por nombre case/acento-insensible; fila sin plan → `planId: null`). Resultado `imported|updated|invited|error` por fila.
 - **`POST /:id/import/schedule`** (cap `schedule`): columnas `serie,estilo?,nivel?,dia_semana,hora_inicio,hora_fin,capacidad?,instructor_email?,mes?`. Agrupa por serie+mes → `ClassSeries` upsert + `ClassSlot` dedup (weekday+start+end) + `Class` del mes materializadas (misma lógica que `POST /series`). Resultado `ok|warn|error`; `instructor_email` desconocido → `warn`, no aborta.
 
 ### Gating por suscripción de plataforma (spec unified-actor-entitlements)

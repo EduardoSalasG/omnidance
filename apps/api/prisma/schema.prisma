@@ -37,6 +37,7 @@ model Person {
   instagram     String?  // handle público autodeclarado (sin @) - se muestra en el perfil de amistad
   gender        Gender?  // autodeclarado - solo alimenta analítica agregada, nunca se expone individual
   birthDate     DateTime? // autodeclarada - alimenta "cumpleaños próximos" del dashboard de academia (solo día/mes se expone)
+  nationalId    String?  // documento (RUT/DNI) declarado en importación masiva de alumnos - sin unique: el dedup es por email y los formatos se repiten entre países
   passwordHash  String?  // scrypt$N$r$p$salt$hash - null = solo magic link
   qrSecret      String   @default(cuid()) // semilla del QR rotativo (TOTP-like)
   isLightAccount Boolean @default(false) // cuenta creada en puerta (nombre+teléfono)

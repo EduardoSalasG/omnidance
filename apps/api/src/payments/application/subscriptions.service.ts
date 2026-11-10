@@ -821,7 +821,17 @@ export class SubscriptionsService {
           // (planId, currency) - Flow/Stub ignoran los campos extra.
           planId: flowPlanId,
           currency: planCurrency,
-          metadata: { personId },
+          // Bag genérico de metadata (spec mercadopago-subscriptions):
+          // MP necesita subId (external_reference del preapproval),
+          // amount+intervalCount (auto_recurring) y reason; los demás
+          // providers los ignoran.
+          metadata: {
+            personId,
+            subId: sub.id,
+            amount: String(charge.amount),
+            intervalCount: String(charge.intervalCount),
+            reason: charge.name,
+          },
         },
         { correlationId },
       );
@@ -1125,6 +1135,10 @@ export class SubscriptionsService {
           customerId: p.customerId,
           subscriptionStart: new Date().toISOString().slice(0, 10),
           currency: p.currency,
+          // Lookup determinístico en providers donde la remota ya
+          // existe (spec mercadopago-subscriptions: el preapproval lo
+          // creó registerCustomerCard con external_reference=subId).
+          externalRef: subId,
         },
         { correlationId: p.correlationId },
       );
@@ -1509,6 +1523,138 @@ export class SubscriptionsService {
       });
     }
     return { ok: true, academyId: sub.academyId };
+  }
+
+  /**
+   * Retorno GET del pagador desde el init_point de MercadoPago (spec
+   * mercadopago-subscriptions, D2): el back_url del preapproval trae
+   * `?account=<id>&sub=<subId>` horneados. A diferencia del
+   * customer-return de Flow no hay token ni resolución por customer -
+   * el subId identifica la fila local y la cuenta la amarra el query.
+   *
+   * Verificación del estado remoto REAL antes de activar (nunca a
+   * ciegas): getRegisterStatus(subId) consulta el preapproval por
+   * external_reference - `registered` solo cuando MP lo dejó
+   * `authorized`. Pending/rechazado/ausente → la sub queda
+   * PENDING_CARD y la cierra el webhook de suscripción o el retry del
+   * usuario (re-register dedup por external_reference).
+   */
+  async mpSubscriptionReturn(
+    subId: string,
+    accountId: string,
+  ): Promise<CustomerReturnResult> {
+    const correlationId = randomUUID();
+    const { gateway } = await this.accounts.adapterFor(accountId);
+    const provider = gateway as unknown as SubscriptionProvider;
+    await this.gatewayTx.record({
+      provider: gateway.name,
+      direction: "INBOUND_WEBHOOK",
+      endpoint: "mp/subscription-return",
+      correlationId,
+      requestBody: { sub: subId },
+      ok: true,
+      gatewayAccountId: accountId,
+    });
+    if (typeof provider.getRegisterStatus !== "function") {
+      return { ok: false, academyId: null };
+    }
+    const sub = await this.prisma.membershipSubscription.findUnique({
+      where: { id: subId },
+      include: {
+        plan: {
+          select: {
+            flowPlanId: true,
+            remoteRefs: true,
+            currency: true,
+            name: true,
+            type: true,
+            price: true,
+            academy: { select: { name: true } },
+          },
+        },
+      },
+    });
+    // La cuenta del retorno debe ser la dueña de la sub (misma regla
+    // cross-account del webhook): un back_url de otra cuenta jamás
+    // activa esta fila.
+    if (!sub || (sub.gatewayAccountId ?? null) !== accountId) {
+      return { ok: false, academyId: null };
+    }
+    if (sub.status === "ACTIVE" || sub.status === "CANCEL_PENDING") {
+      return { ok: true, academyId: sub.academyId };
+    }
+    if (sub.status !== "PENDING_CARD" && sub.status !== "ACTIVATING") {
+      return { ok: false, academyId: sub.academyId };
+    }
+    const reg = await provider
+      .getRegisterStatus(subId, { correlationId })
+      .catch(() => null);
+    if (!reg?.registered || !reg.subscriptionId) {
+      // MP aún procesa la autorización (o falló): la fila queda
+      // PENDING_CARD - el retry del usuario o el sweep la resuelven.
+      return { ok: false, academyId: sub.academyId };
+    }
+    // Claim PENDING_CARD→ACTIVATING (mismo patrón que customerReturn):
+    // un segundo hit del browser o un subscribe concurrente no puede
+    // duplicar la adopción. Ya ACTIVATING (retry tras crash entre el
+    // claim y el adopt) sigue - el adopt es condicional por status.
+    const claimed = await this.prisma.membershipSubscription.updateMany({
+      where: { id: sub.id, status: "PENDING_CARD" },
+      data: { status: "ACTIVATING" },
+    });
+    if (claimed.count === 0 && sub.status !== "ACTIVATING") {
+      const cur = await this.prisma.membershipSubscription.findUnique({
+        where: { id: sub.id },
+        select: { status: true },
+      });
+      return cur?.status === "ACTIVE" || cur?.status === "ACTIVATING"
+        ? { ok: cur.status === "ACTIVE", academyId: sub.academyId }
+        : { ok: false, academyId: sub.academyId };
+    }
+    const subCurrency = sub.plan.currency ?? "CLP";
+    const charge = await this.memberChargeSpec(
+      { ...sub.plan, id: sub.planId },
+      sub.academyId,
+      sub.personId,
+      gateway.name,
+      subCurrency,
+      sub.gatewayAccountId,
+    );
+    await provider.ensurePlan(
+      {
+        planId: charge.planId,
+        name: charge.name,
+        amount: charge.amount,
+        intervalCount: charge.intervalCount,
+        currency: subCurrency,
+      },
+      { correlationId },
+    );
+    const { active, fs } = await this.adoptRemoteSubscription(sub.id, {
+      remoteId: reg.subscriptionId,
+      academyPromoId: charge.promoId,
+      planChargeClp: charge.amount,
+      currency: subCurrency,
+      accountId: sub.gatewayAccountId,
+      correlationId,
+    });
+    try {
+      await this.reconcileSubscription(active, fs, "system");
+    } catch (e) {
+      this.logger.error(
+        `reconcile post-mp-return sub ${sub.id}: ${e instanceof Error ? e.message : e}`,
+      );
+    }
+    if (active.status === "ACTIVE") {
+      await this.notifications.notifySafe(sub.personId, {
+        category: "TRANSACTIONAL",
+        type: "membership.subscription_started",
+        title: "Suscripción activa",
+        body: `${sub.plan.name} · ${sub.plan.academy.name}`,
+        data: { subscriptionId: sub.id, academyId: sub.academyId },
+      });
+    }
+    return { ok: active.status === "ACTIVE", academyId: sub.academyId };
   }
 
   /**
@@ -2103,24 +2249,61 @@ export class SubscriptionsService {
         ok: true,
         createdAt: { lte: new Date(Date.now() - ORPHAN_SWEEP_GRACE_MS) },
       },
-      select: { responseBody: true },
+      select: { responseBody: true, requestBody: true },
     });
     const remoteIds = new Set<string>();
+    // MP (spec mercadopago-subscriptions): el create remoto es el
+    // preapproval pending que registerCustomerCard hace con
+    // external_reference = id local - la respuesta trae `id` (no
+    // `subscriptionId`) y la fila PENDING_CARD/ACTIVATING aún no tiene
+    // flowSubscriptionId, así que la cobertura viva se resuelve por
+    // el external_reference del request.
+    const pendingLocalByRemote = new Map<string, string>();
     for (const t of txs) {
-      const id = (
-        t.responseBody as { subscriptionId?: unknown } | null
-      )?.subscriptionId;
-      if (typeof id === "string" && id) remoteIds.add(id);
+      const rb = t.responseBody as {
+        subscriptionId?: unknown;
+        id?: unknown;
+      } | null;
+      const id = rb?.subscriptionId ?? rb?.id;
+      if (id == null || id === "") continue;
+      const remoteId = String(id);
+      remoteIds.add(remoteId);
+      const extRef = (
+        t.requestBody as { external_reference?: unknown } | null
+      )?.external_reference;
+      if (typeof extRef === "string" && extRef) {
+        pendingLocalByRemote.set(remoteId, extRef);
+      }
     }
     if (!remoteIds.size) return;
-    const [linked, linkedPlatform] = await Promise.all([
+    const pendingRefs = [...pendingLocalByRemote.values()];
+    const [linked, linkedPlatform, pendingLocal] = await Promise.all([
       this.prisma.membershipSubscription.findMany({
         where: { flowSubscriptionId: { in: [...remoteIds] } },
       }),
       this.prisma.platformSubscription.findMany({
         where: { flowSubscriptionId: { in: [...remoteIds] } },
       }),
+      pendingRefs.length
+        ? this.prisma.membershipSubscription.findMany({
+            where: {
+              id: { in: pendingRefs },
+              status: { in: ["PENDING_CARD", "ACTIVATING"] },
+            },
+          })
+        : Promise.resolve([] as MembershipSubscription[]),
     ]);
+    // Una PENDING_CARD/ACTIVATING fresca cuya remota es el preapproval
+    // del intento sigue viva: no es huérfana aunque aún no tenga
+    // flowSubscriptionId (el adopt lo escribe al volver del back_url).
+    const liveLocalIds = new Set(
+      pendingLocal
+        .filter(
+          (s) =>
+            Date.now() - s.createdAt.getTime() < PENDING_CARD_TTL_MS,
+        )
+        .map((s) => s.id),
+    );
     const byRemote = new Map(
       linked.map((s) => [s.flowSubscriptionId!, s] as const),
     );
@@ -2128,6 +2311,10 @@ export class SubscriptionsService {
       linkedPlatform.map((s) => [s.flowSubscriptionId!, s] as const),
     );
     for (const remoteId of remoteIds) {
+      const pendingRef = pendingLocalByRemote.get(remoteId);
+      if (pendingRef && liveLocalIds.has(pendingRef)) {
+        continue; // intento en vuelo - el preapproval es su remota
+      }
       const local = byRemote.get(remoteId);
       const platformLocal = platformByRemote.get(remoteId);
       if (
@@ -2545,6 +2732,28 @@ export class SubscriptionsService {
       (sub.planChargeClp != null && sub.planChargeClp !== expected.amount);
     if (!drift) return;
     const { provider } = await this.providerFor(sub);
+    // Reprice in-place (spec mercadopago-subscriptions): los motores
+    // sin plan remoto actualizan el cargo de la sub viva - el swap
+    // cancel+recreate no existe ahí (una remota cancelada jamás se
+    // reactiva). Capability por presencia; sin él, política previa.
+    if (typeof provider.repriceSubscription === "function") {
+      await provider.repriceSubscription(
+        sub.flowSubscriptionId!,
+        { amount: expected.amount, currency: cur },
+        { correlationId: randomUUID() },
+      );
+      await this.prisma.membershipSubscription.update({
+        where: { id: sub.id },
+        data: {
+          academyPromoId: expected.promoId,
+          planChargeClp: expected.amount,
+        },
+      });
+      this.logger.log(
+        `reprice in-place sub ${sub.id} (${actor}): promo ${sub.academyPromoId ?? "-"}→${expected.promoId ?? "-"}, cargo ${sub.planChargeClp ?? "?"}→${expected.amount}`,
+      );
+      return;
+    }
     await provider.cancelSubscription(sub.flowSubscriptionId!, {
       correlationId: randomUUID(),
     });
@@ -2621,6 +2830,7 @@ export class SubscriptionsService {
         customerId,
         subscriptionStart: new Date().toISOString().slice(0, 10),
         currency: cur,
+        externalRef: sub.id,
       },
       { correlationId },
     );

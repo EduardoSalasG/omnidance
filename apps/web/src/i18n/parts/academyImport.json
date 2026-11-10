@@ -1,15 +1,15 @@
 {
   "academyImport": {
     "title": "Importar datos",
-    "desc": "Carga masiva para migrar desde otra plataforma: tu nómina de alumnos y el horario semanal en CSV.",
+    "desc": "Carga masiva para migrar desde otra plataforma: tu nómina de alumnos y el horario semanal en CSV o Excel.",
     "studentsTitle": "Alumnos",
-    "studentsDesc": "Una fila por alumno: email, nombre, plan y hasta cuándo pagó. Si no tiene cuenta le enviamos una invitación por correo.",
-    "studentsCols": "Columnas: email, nombre, telefono (opcional), plan, pagado_hasta (opcional, YYYY-MM-DD)",
+    "studentsDesc": "Una fila por alumno. Solo email y nombre son obligatorios; si no tiene cuenta le enviamos una invitación por correo.",
+    "studentsCols": "Columnas: email, nombre + opcionales: rut, fecha_nacimiento (DD/MM/YYYY o YYYY-MM-DD), telefono, sexo, plan, pagado_hasta (YYYY-MM-DD)",
     "scheduleTitle": "Horario semanal",
     "scheduleDesc": "Una fila por bloque semanal. Las filas con el mismo nombre de serie se agrupan en una sola serie del mes.",
     "scheduleCols": "Columnas: serie, dia_semana, hora_inicio, hora_fin + opcionales: estilo, nivel, capacidad, instructor_email, mes",
     "downloadTemplate": "Descargar plantilla",
-    "chooseFile": "Elegir CSV…",
+    "chooseFile": "Elegir archivo…",
     "noFile": "Ningún archivo elegido",
     "upload": "Importar",
     "uploading": "Importando…",
@@ -26,7 +26,7 @@
       "ok": "Listo",
       "warn": "Con aviso"
     },
-    "error": "No se pudo importar el archivo. Revisa que sea un CSV con las columnas de la plantilla.",
+    "error": "No se pudo importar el archivo. Revisa que sea un CSV o Excel (.xls, .xlsx) con las columnas de la plantilla.",
     "forbidden": "No tienes acceso a la importación de esta academia."
   }
 }
