@@ -10,6 +10,9 @@ creados, implementados y archivados.
 - `f7d581eb` feat(web): sección de costos de landings pro como cards
   visuales - pasos del dinero en academias y fee por plan destacado en
   productores.
+- `c4372ae8` feat(web): fee por plan en dos cards por tier y
+  por-cada-10mil destacado bajo el lead (pedido del owner tras ver el
+  render).
 - `ce9733fa` feat(academies): invitar como CTA principal de alumnos,
   alta directa como inscripción manual, valores por columna en
   importar y fixtures demo de corridas e invitados.
@@ -25,10 +28,12 @@ creados, implementados y archivados.
   grilla, `sm:grid-cols-3` si ≥3 filas.
 - Academy: `steps` nuevo en catálogo (alumno paga → plataforma ordena
   → plata entra a ti) renderizado como `<ol>` de 3 pasos numerados.
-- Producer: `planFees` nuevo - banda `border-neon/40 bg-neon/5` con
-  Standard ~$736/~$417 y Pro ~$617/~$298 (gestionada vs métodos
-  propios) como contenido destacado. `note` quedó solo "El asistente
-  siempre paga el precio publicado."
+- Producer: `planFees` nuevo - UNA card por tier (`border-neon/40
+  bg-neon/5`): Standard ~$736/~$417 y Pro ~$617/~$298 (gestionada vs
+  métodos propios) con `perLabel` destacado dentro de cada card
+  (decisión del owner tras ver la primera versión: split en dos
+  cards + "por cada $10.000" arriba bajo el lead y dentro). `note`
+  quedó solo "El asistente siempre paga el precio publicado."
 - Catálogo: `colMethod`/`colCost`/`colGain` eliminados de los 4
   locales; `costNote` opcional por fila; `perLabel` nuevo.
   `CostTableMessages` tipo local en Landing.tsx (steps/planFees
