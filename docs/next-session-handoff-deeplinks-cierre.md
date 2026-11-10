@@ -113,7 +113,23 @@ Auditoría completa de emisores (~77 tipos, único camino
   sin instrumentar (el `data.channel` del invite ya alimenta la
   mitad invite de la métrica - estrategia §7 item 5).
 
-## Próximo slice sugerido
+## Próxima sesión - agenda confirmada por el owner
+
+El owner eligió explícitamente estos ítems para la próxima sesión
+(2026-11-10, cierre):
+
+1. **Decisiones owner pendientes**: modelo del import (enrollment
+   INACTIVE vs invite bulk); divergencias TierPrice dev vs spec;
+   ficha `/admin/campanas/[id]` para run/test/cancel.
+2. **CAC orgánico**: instrumentar fuente de adquisición para altas
+   sin invite (la mitad invite ya quedó con `data.channel` -
+   estrategia §7 item 5).
+3. **Smoke manual del push de dispositivo**: click real de la
+   notificación con `data.path`/`data.url` en un dispositivo
+   registrado (la lógica del SW quedó por convención, no por e2e -
+   requiere push real, no automatizable).
+
+Backlog secundario (sin confirmar):
 
 - `academy.sale_deal.responded` con scope series podría ganar ficha
   propia o `path` a una vista de acuerdos del productor (hoy cae al
@@ -121,5 +137,3 @@ Auditoría completa de emisores (~77 tipos, único camino
 - `claimUrl`/`collectUrl`/`paymentUrl` en data son URLs de API o
   externas - si se quiere CTA directo a la página de pago habría
   que emitir `path` además (decisión de producto, no bug).
-- Smoke en dispositivo real del click del push con `data.path` (el
-  fallback del SW no se puede cubrir en e2e - requiere push real).
