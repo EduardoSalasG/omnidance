@@ -468,6 +468,9 @@ export async function Landing({
               <p className="mx-auto mt-3 max-w-xl text-center text-sm text-ink/60">
                 {costTable.lead}
               </p>
+              <p className="mt-3 text-center text-sm font-semibold uppercase tracking-[0.2em] text-neon">
+                {costTable.perLabel}
+              </p>
               {costTable.steps && (
                 <ol className="mx-auto mt-10 grid max-w-3xl gap-5 sm:grid-cols-3 sm:gap-4">
                   {costTable.steps.map((step, i) => (
@@ -493,11 +496,8 @@ export async function Landing({
                   ))}
                 </ol>
               )}
-              <p className="mt-10 text-center text-[11px] font-semibold uppercase tracking-[0.15em] text-ink/40">
-                {costTable.perLabel}
-              </p>
               <ul
-                className={`mt-4 grid gap-4 ${
+                className={`mt-10 grid gap-4 ${
                   costTable.rows.length >= 3
                     ? "sm:grid-cols-3"
                     : "mx-auto max-w-3xl sm:grid-cols-2"
@@ -526,29 +526,23 @@ export async function Landing({
                 ))}
               </ul>
               {planFees && (
-                <div className="mt-4 rounded-2xl border border-neon/40 bg-neon/5 p-6">
-                  <p className="text-sm font-semibold text-neon">
+                <div className="mt-10">
+                  <p className="text-center text-sm font-semibold text-neon">
                     {planFees.label}
-                    <span className="font-normal text-ink/50">
-                      {" "}
-                      · {costTable.perLabel}
-                    </span>
                   </p>
                   <ul className="mt-4 grid gap-4 sm:grid-cols-2">
                     {planFees.tiers.map((tier) => (
                       <li
                         key={tier.name}
-                        className="flex items-baseline justify-between gap-4"
+                        className="rounded-2xl border border-neon/40 bg-neon/5 p-6"
                       >
-                        <p className="shrink-0 text-sm font-semibold">
-                          {tier.name}
-                        </p>
-                        <dl className="flex gap-6">
+                        <p className="text-sm font-semibold">{tier.name}</p>
+                        <dl className="mt-3 flex gap-8">
                           <div>
                             <dt className="text-[11px] uppercase tracking-wide text-ink/50">
                               {planFees.managedLabel}
                             </dt>
-                            <dd className="text-lg font-bold tabular-nums">
+                            <dd className="mt-0.5 text-2xl font-extrabold tabular-nums">
                               {tier.managed}
                             </dd>
                           </div>
@@ -556,11 +550,14 @@ export async function Landing({
                             <dt className="text-[11px] uppercase tracking-wide text-ink/50">
                               {planFees.ownLabel}
                             </dt>
-                            <dd className="text-lg font-bold tabular-nums">
+                            <dd className="mt-0.5 text-2xl font-extrabold tabular-nums">
                               {tier.own}
                             </dd>
                           </div>
                         </dl>
+                        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-neon">
+                          {costTable.perLabel}
+                        </p>
                       </li>
                     ))}
                   </ul>
