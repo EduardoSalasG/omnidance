@@ -43,7 +43,12 @@ Change creado y validado (openspec/changes/mercadopago-subscriptions,
 Al terminar: revisar diff, suite verde, archivar el change, commitear
 feat + docs, actualizar este apartado.
 
-## Track 2 — academy-import-slim-fields (subagent `84a9f993`)
+## Track 2 — academy-import-slim-fields CERRADO
+
+Implementado, verificado (135 archivos/2587 tests, e2e 9/9 con
+spec .xlsx real), migracion 20261128000000 aplicada a dev, ARCHIVADO
+(delta ~3 en academies/bulk-import) y commiteado (codigo en e521213f,
+archive en 4ae845b5).
 
 Change creado y validado (openspec/changes/academy-import-slim-fields).
 Scope: import de alumnos exige solo `email`+`nombre`; `plan` pasa a
