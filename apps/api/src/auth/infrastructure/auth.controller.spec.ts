@@ -632,7 +632,7 @@ describe("AuthController - aviso a admins de registro nuevo", () => {
 
 // spec invite-academy-lens: cuando el verify consume una AcademyInvite
 // pendiente, la respuesta deja la cookie de un solo uso
-// `omnidance:lens=academy` que el chrome persiste como viewMode.
+// `omnidance_lens=academy` que el chrome persiste como viewMode.
 describe("AuthController - lente academy al consumir invite", () => {
   let auth: AuthService;
   let repo: FakeRepo;
@@ -666,7 +666,7 @@ describe("AuthController - lente academy al consumir invite", () => {
     mailer = { send: vi.fn(async () => {}) };
   });
 
-  it("verify con invite pendiente setea omnidance:lens=academy", async () => {
+  it("verify con invite pendiente setea omnidance_lens=academy", async () => {
     const ctrl2 = ctrlWithPrisma(mkPrisma([{ id: "inv-1", invitedById: "p-owner" }]));
     await repo.upsertByEmail("invitado@omnidance.dev");
     const token = await auth.createMagicToken("invitado@omnidance.dev", false, "15m", {
@@ -675,7 +675,7 @@ describe("AuthController - lente academy al consumir invite", () => {
     const res = mkRes();
     await ctrl2.verify(token, res);
     expect(res.cookie).toHaveBeenCalledWith(
-      "omnidance:lens",
+      "omnidance_lens",
       "academy",
       expect.objectContaining({ httpOnly: false }),
     );
@@ -693,7 +693,7 @@ describe("AuthController - lente academy al consumir invite", () => {
     const res = mkRes();
     await ctrl2.verify(token, res);
     const lensCalls = (res.cookie as ReturnType<typeof vi.fn>).mock.calls.filter(
-      (c) => c[0] === "omnidance:lens",
+      (c) => c[0] === "omnidance_lens",
     );
     expect(lensCalls).toHaveLength(0);
   });
@@ -707,7 +707,7 @@ describe("AuthController - lente academy al consumir invite", () => {
     const res = mkRes();
     await ctrl2.otpVerify({ email: "otp-inv@omnidance.dev", code }, res);
     expect(res.cookie).toHaveBeenCalledWith(
-      "omnidance:lens",
+      "omnidance_lens",
       "academy",
       expect.objectContaining({ httpOnly: false }),
     );

@@ -115,7 +115,7 @@ manual"), nunca como acción principal.
 
 Cuando `GET /auth/verify` o `POST /auth/otp/verify` consumen al menos
 una `AcademyInvite` pendiente para el email del token, la respuesta
-SHALL setear una cookie `omnidance:lens` con valor `academy`, legible
+SHALL setear una cookie `omnidance_lens` con valor `academy`, legible
 por JavaScript (no httpOnly), `sameSite=lax` y vida corta (~5
 minutos). El chrome del cliente SHALL, al resolver la sesión, leer
 esa cookie una sola vez, persistir `viewMode=academy`
@@ -143,4 +143,4 @@ setear la cookie y el default `social` se mantiene.
 
 - **WHEN** el verify corre con un `next` que no consume ninguna
   invitación
-- **THEN** no se setea `omnidance:lens` y el `viewMode` queda intacto
+- **THEN** no se setea `omnidance_lens` y el `viewMode` queda intacto

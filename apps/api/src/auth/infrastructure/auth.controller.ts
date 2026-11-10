@@ -291,7 +291,7 @@ export class AuthController {
    * Legible por JS (no httpOnly) y de vida corta.
    */
   private setArrivalLensCookie(res: Response): void {
-    res.cookie("omnidance:lens", "academy", {
+    res.cookie("omnidance_lens", "academy", {
       httpOnly: false,
       sameSite: "lax",
       secure:

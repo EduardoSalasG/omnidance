@@ -1217,14 +1217,14 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
   // Lente de llegada por invitación de academia (spec
   // invite-academy-lens): /auth/verify|otp/verify dejan una cookie de
-  // un solo uso `omnidance:lens=academy` cuando consumen un invite;
+  // un solo uso `omnidance_lens=academy` cuando consumen un invite;
   // acá se persiste como viewMode y se expira. Una vez por llegada.
   useEffect(() => {
     if (!meChecked || !me) return;
-    if (!document.cookie.includes("omnidance:lens=academy")) return;
+    if (!document.cookie.includes("omnidance_lens=academy")) return;
     setViewMode("academy");
     document.cookie =
-      "omnidance:lens=; Max-Age=0; path=/; SameSite=Lax";
+      "omnidance_lens=; Max-Age=0; path=/; SameSite=Lax";
   }, [meChecked, me]);
 
   // data-mode en <html>: el acento sigue a la LENTE, no solo al toggle
