@@ -90,7 +90,7 @@
     "featureQrTitle": "Horarios y clases",
     "featureQrDesc": "Tu parrilla publicada para siempre.\nTus alumnos ven, reservan y entran solos.",
     "featureLearnTitle": "Planes y pagos al día",
-    "featureLearnDesc": "Registra el pago por el medio que ya usas.\nTú ves quién pagó, quién vence y a quién recordar.",
+    "featureLearnDesc": "Comprobante validado o cobro automático por tu propia cuenta Flow o MercadoPago.\nLa plata entra directo a ti; tú solo ves quién está al día.",
     "featureSceneTitle": "Tus alumnos, medidos",
     "featureSceneDesc": "Quién viene, quién falta, quién se está cayendo.\nVencimientos y cumpleaños sin tener que preguntar.",
     "ctaEvents": "Explorar academias",
@@ -112,7 +112,7 @@
       "ctaCustom": "Conversemos",
       "cycleLabel": "Período de facturación",
       "priceBefore": "antes {price}",
-      "note": "Pago semestral −8% · pago anual −15%.\nStudio incluye pago con tarjeta y transferencia vía pasarela, a costo real (hoy ~3,2%).",
+      "note": "Pago semestral −8% · pago anual −15%.\nCobras por comprobante o por tu propia pasarela (Flow o MercadoPago): la plata entra directo a tu cuenta y la cobranza por pasarela lleva un fee de 1% + IVA facturado mes vencido, más lo que cobre tu pasarela.",
       "tiers": [
         {
           "name": "Starter",
@@ -121,7 +121,7 @@
           "recommended": false,
           "ctaLabel": "Empezar con Starter",
           "features": [
-            "Cobranza por comprobante validado",
+            "Cobranza por comprobante o tu propia pasarela",
             "Alumnos al día y morosos a la vista",
             "Notificaciones push y por email sobre cobranza"
           ],
@@ -163,16 +163,40 @@
         "annual": "cobrado anual"
       }
     },
+    "costTable": {
+      "title": "Tu academia cobra sola",
+      "lead": "La diferencia no es el fee: es quién persigue los comprobantes.",
+      "colMethod": "Medio de cobro",
+      "colCost": "Por cada $10.000",
+      "colGain": "Quién hace el trabajo",
+      "rows": [
+        {
+          "method": "Comprobante (transferencia o efectivo)",
+          "cost": "$0 de fee",
+          "gain": "Aún revisas y apruebas cada pago; la app recuerda vencimientos y marca quién va al día"
+        },
+        {
+          "method": "Tu pasarela (Flow o MercadoPago)",
+          "cost": "$119 + tu pasarela",
+          "gain": "La app cobra, concilia y pausa morosos sola; la plata entra directo a tu cuenta"
+        }
+      ],
+      "note": "1% + IVA sobre lo cobrado por tu pasarela, facturado mes vencido. Las mensualidades con cargo automático corren por tu misma cuenta."
+    },
     "faq": {
       "title": "Preguntas frecuentes",
       "items": [
         {
           "q": "¿Cómo pagan mis alumnos?",
-          "a": "Se inscriben a tu plan o clase y pagan desde la app con su medio habitual. Tú ves quién está al día sin perseguir ni revisar comprobantes."
+          "a": "Se inscriben a tu plan o clase y pagan desde la app: comprobante que tú validas o cobro automático por tu propia cuenta Flow o MercadoPago. La plata entra directo a ti y tú solo ves quién está al día."
         },
         {
           "q": "¿Puedo registrar pagos en efectivo o transferencia?",
           "a": "Sí. Lo registras desde tu consola y el alumno queda al día igual; la app es tu control de pagos, no solo la pasarela."
+        },
+        {
+          "q": "¿Puedo traer a mis alumnos desde Excel?",
+          "a": "Sí. El importador pide solo email y nombre por fila; el plan, el documento, la fecha de nacimiento y el teléfono son opcionales. Acepta .csv, .xls y .xlsx."
         },
         {
           "q": "¿Qué pasa si supero los alumnos de mi plan?",
@@ -219,7 +243,7 @@
       "ctaCustom": "Conversemos",
       "cycleLabel": "Período de facturación",
       "priceBefore": "antes {price}",
-      "note": "Comisión: 5% + IVA + pasarela de pago (~9,1% todo incluido) por venta gestionada.\nSe descuenta de tu liquidación; el asistente paga el precio exacto.",
+      "note": "Comisión por venta gestionada: 9,14% todo incluido (5% + IVA + pasarela ~3,2%).\nPor tus métodos propios o tu propia pasarela: 5,95%; se descuenta de tu liquidación y el asistente paga el precio exacto.",
       "tiers": [
         {
           "name": "Vende entradas",
@@ -270,12 +294,41 @@
         "annual": "cobrado anual"
       }
     },
+    "costTable": {
+      "title": "Tu taquilla trabaja mientras produces",
+      "lead": "Cada medio de venta tiene su costo. Perseguir transferencias también cuesta: cuesta tu tiempo.",
+      "colMethod": "Medio de venta",
+      "colCost": "Por cada $10.000",
+      "colGain": "Quién hace el trabajo",
+      "rows": [
+        {
+          "method": "Venta gestionada (nuestra pasarela)",
+          "cost": "$914",
+          "gain": "Cobramos, emitimos la entrada y liquidamos con el desglose listo: cero conciliación"
+        },
+        {
+          "method": "Tus métodos propios o tu pasarela",
+          "cost": "$595",
+          "gain": "La plata va directo a ti; validas el comprobante en un toque y la entrada sale igual"
+        },
+        {
+          "method": "Efectivo en puerta (tu staff)",
+          "cost": "$0",
+          "gain": "Tu staff registra la venta y el QR de entrada se valida igual"
+        }
+      ],
+      "note": "Con plan el fee baja: Standard ~$736 gestionado y ~$417 por métodos propios; Pro ~$617 y ~$298. El asistente siempre paga el precio publicado."
+    },
     "faq": {
       "title": "Preguntas frecuentes",
       "items": [
         {
           "q": "¿Cuánto me cuesta vender entradas?",
-          "a": "Una comisión por venta gestionada: 5% + IVA + pasarela de pago (~9,1% todo incluido), descontada de tu liquidación. El asistente paga el precio exacto y la venta en puerta en efectivo no lleva comisión."
+          "a": "Una comisión por venta gestionada: 9,14% todo incluido (5% + IVA + pasarela ~3,2%), descontada de tu liquidación. Por tus métodos propios o tu propia pasarela: 5,95%. El asistente paga el precio exacto y la venta en puerta en efectivo no lleva comisión."
+        },
+        {
+          "q": "¿Puedo cobrar con mi propia pasarela?",
+          "a": "Sí. Conectas tu cuenta Flow o MercadoPago desde Medios de pago y la plata de tus ventas entra directo a ti; la comisión baja porque la pasarela ya no pasa por nosotros."
         },
         {
           "q": "¿Necesito un plan para vender?",

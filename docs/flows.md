@@ -593,7 +593,7 @@ sequenceDiagram
     participant MAIL as Resend (MAILER)
 
     Note over Ow: /academia/importar - descarga plantilla<br/>GET /academies/:id/import/template/students|schedule
-    Ow->>API: POST /academies/:id/import/students (cap students)<br/>multipart CSV: email,nombre,telefono?,plan,pagado_hasta?
+    Ow->>API: POST /academies/:id/import/students (cap students)<br/>multipart .csv/.xls/.xlsx: email,nombre +<br/>rut|dni|documento?,fecha_nacimiento?,sexo?,telefono?,plan?,pagado_hasta?
     loop por fila (reporte por fila - un error no aborta)
         alt Person existe
             API->>DB: enrollment findFirst → update (endsAt=max, planId)<br/>o create ACTIVE si no tenía
@@ -609,9 +609,9 @@ sequenceDiagram
     API-->>Ow: results[] {row,serie,status: ok|warn|error,detail}
 ```
 
-- **Alumnos**: el plan se resuelve por nombre contra los planes activos de la academia (match case/acento-insensible); `pagado_hasta` (YYYY-MM-DD) → `endsAt` al mediodía UTC (el día completo cubierto en Chile). Re-importar es seguro: `endsAt = max(existente, importado)`.
+- **Alumnos** (spec academy-import-slim-fields): requeridas solo `email,nombre`; el plan es opcional (fila sin plan → Enrollment `planId:null`). Opcionales: `rut|dni|documento` → `Person.nationalId`, `fecha_nacimiento` (DD/MM/YYYY o YYYY-MM-DD) → `birthDate`, `sexo` (m/f/otro + alias) → `gender`, `telefono`, `plan`, `pagado_hasta`. El plan se resuelve por nombre contra los planes activos de la academia (match case/acento-insensible); `pagado_hasta` (YYYY-MM-DD) → `endsAt` al mediodía UTC (el día completo cubierto en Chile). Re-importar es seguro: `endsAt = max(existente, importado)` y el update por email solo sobreescribe los campos presentes en la fila.
 - **Horario**: `dia_semana` acepta 0-6 o nombre en español; `estilo`/`nivel` se validan contra catálogo (no se auto-crean); `instructor_email` debe ser instructor de la academia - si no existe, el slot queda sin instructor con `warn`. Los Class del mes se materializan igual que `POST /series`.
-- **Límites**: CSV ≤2MB y ≤500 filas; columnas requeridas ausentes → 400. Parser propio en `src/common/csv.ts` (comillas, `""`, \r\n, BOM) - sin dependencia nueva.
+- **Límites**: archivo ≤2MB y ≤500 filas; columnas requeridas ausentes → 400. Formatos `.csv` (parser propio en `src/common/csv.ts`: comillas, `""`, \r\n, BOM) y `.xls`/`.xlsx` (primera hoja vía SheetJS `xlsx` raw:false; formato por extensión y/o MIME).
 
 ## Clase suelta / taller - compra → asiento pagado (WORKSHOP)
 
@@ -708,14 +708,14 @@ sequenceDiagram
 - "La clase ya pasó" se evalúa contra el inicio real (`date + startTime`), no contra la medianoche del día - reservar el mismo día sí funciona.
 - UI: `GET /classes/:id` expone `myCredits {kind, used, limit}` + `cancelRefundMinutes`; el sheet de cancelar declara la consecuencia antes de confirmar y `/classes/mine` adjunta `credits` por card.
 
-## Suscripción de academia - alta y renovación (Flow de la academia)
+## Suscripción de academia - alta y renovación (pasarela propia: Flow o MercadoPago)
 
 ```mermaid
 sequenceDiagram
     actor U as Bailarín
     participant API as SubscriptionsService
     participant ACCT as ActorGatewayAccount
-    participant GW as Flow de la academia
+    participant GW as Flow de la academia<br/>(MercadoPago: ver nota abajo)
     participant DB as Postgres
 
     U->>API: POST /checkout/membership-subscription<br/>{planId, acceptRecurring:true}
@@ -783,6 +783,7 @@ stateDiagram-v2
 
 - **Cancelación `at_period_end`**: `POST /subscriptions/:id/cancel` llama `subscription/cancel` con `at_period_end=1` → `CANCEL_PENDING`; el usuario conserva el acceso hasta el fin del período ya pagado y el próximo reconcile cierra a `CANCELED` cuando Flow reporta `status=4`.
 - **Reminder el día previo**: cuando `nextInvoiceAt` queda a <24 h y la sub sigue `ACTIVE`, el reconcile notifica `membership.renewal_reminder` una sola vez por fecha (`reminderSentFor` la dedup - si Flow mueve la fecha, se vuelve a avisar).
+- **Variante MercadoPago** (spec mercadopago-subscriptions): mismo ciclo sobre `preapproval` without-plan. `registerCustomerCard` crea el preapproval `pending` con `external_reference` = subId local (dedup determinística del alta/return/sweep) y devuelve su `init_point` hosted como registerUrl; el pagador vuelve por **GET** `/payments/mp/subscription-return?account=<id>&sub=<id>` (redirect GET, no el form-POST de Flow) y el service activa solo si el status remoto real es `authorized` (`pending` queda PENDING_CARD). Los webhooks MP son app-level (`subscription_preapproval` → variante billing del verifyWebhook; la academia pega su `webhookUrl?account=` en el panel MP) y el sweep cubre su ausencia. Sin plan remoto ni `collect` (MP cobra por preapproval, no hay lookup customer→sub).
 
 ## Ciclo de vida del trial de plataforma (platform-trials)
 

@@ -90,7 +90,7 @@
     "featureQrTitle": "Schedules and classes",
     "featureQrDesc": "Your timetable published forever.\nYour students see, book and enter on their own.",
     "featureLearnTitle": "Plans and payments up to date",
-    "featureLearnDesc": "Log the payment through the channel you already use.\nYou see who paid, who's due and who needs a reminder.",
+    "featureLearnDesc": "Validated receipts or automatic charges through your own Flow or MercadoPago account.\nThe money lands straight to you; you just see who's up to date.",
     "featureSceneTitle": "Your students, measured",
     "featureSceneDesc": "Who comes, who's missing, who's dropping off.\nDue dates and birthdays without having to ask.",
     "academyCount": "{count} academies already run their operation on Omnidance",
@@ -112,7 +112,7 @@
       "ctaCustom": "Talk to us",
       "cycleLabel": "Billing period",
       "priceBefore": "was {price}",
-      "note": "Semi-annual −8% · annual −15%.\nStudio includes card and bank transfer payments via gateway at real cost (today ~3.2%).",
+      "note": "Semi-annual −8% · annual −15%.\nCollect by receipt or through your own gateway (Flow or MercadoPago): the money lands straight in your account and gateway collections carry a 1% + VAT fee billed the following month, plus your gateway's rate.",
       "tiers": [
         {
           "name": "Starter",
@@ -121,7 +121,7 @@
           "recommended": false,
           "ctaLabel": "Start with Starter",
           "features": [
-            "Collections via validated receipts",
+            "Collections by receipt or your own gateway",
             "Students up to date and overdue at a glance",
             "Push and email notifications about collections"
           ],
@@ -163,16 +163,40 @@
         "annual": "billed annually"
       }
     },
+    "costTable": {
+      "title": "Your academy collects on its own",
+      "lead": "The difference is not the fee: it's who chases the receipts.",
+      "colMethod": "Collection method",
+      "colCost": "Per $10,000",
+      "colGain": "Who does the work",
+      "rows": [
+        {
+          "method": "Receipt (transfer or cash)",
+          "cost": "$0 fee",
+          "gain": "You still review and approve each payment; the app reminds due dates and marks who's up to date"
+        },
+        {
+          "method": "Your gateway (Flow or MercadoPago)",
+          "cost": "$119 + your gateway",
+          "gain": "The app charges, reconciles and pauses overdue students on its own; the money lands straight in your account"
+        }
+      ],
+      "note": "1% + VAT on what your gateway collects, billed the following month. Memberships with automatic charges run on your same account."
+    },
     "faq": {
       "title": "Frequently asked questions",
       "items": [
         {
           "q": "How do my students pay?",
-          "a": "They join your plan or class and pay in the app with their usual method. You see who's up to date without chasing or checking receipts."
+          "a": "They join your plan or class and pay in the app: a receipt you validate or automatic charges through your own Flow or MercadoPago account. The money lands straight to you and you just see who's up to date."
         },
         {
           "q": "Can I record cash or transfer payments?",
           "a": "Yes. You log it in your console and the student is marked up to date; the app is your payment control, not only the gateway."
+        },
+        {
+          "q": "Can I bring my students from Excel?",
+          "a": "Yes. The importer only needs email and name per row; plan, document, birth date and phone are optional. It accepts .csv, .xls and .xlsx."
         },
         {
           "q": "What if I exceed my plan's student cap?",
@@ -219,7 +243,7 @@
       "ctaCustom": "Talk to us",
       "cycleLabel": "Billing period",
       "priceBefore": "was {price}",
-      "note": "Commission: 5% + VAT + payment gateway (~9.1% all-in) per managed sale.\nDeducted from your settlement; attendees pay the exact price.",
+      "note": "Commission per managed sale: 9.14% all-in (5% + VAT + gateway ~3.2%).\nVia your own methods or your own gateway: 5.95%; deducted from your settlement and attendees pay the exact price.",
       "tiers": [
         {
           "name": "Sell tickets",
@@ -270,12 +294,41 @@
         "annual": "billed annually"
       }
     },
+    "costTable": {
+      "title": "Your box office works while you produce",
+      "lead": "Every sales channel has its cost. Chasing transfers costs too: it costs your time.",
+      "colMethod": "Sales channel",
+      "colCost": "Per $10,000",
+      "colGain": "Who does the work",
+      "rows": [
+        {
+          "method": "Managed sales (our gateway)",
+          "cost": "$914",
+          "gain": "We charge, issue the ticket and settle with the breakdown ready: zero reconciliation"
+        },
+        {
+          "method": "Your own methods or your gateway",
+          "cost": "$595",
+          "gain": "The money goes straight to you; you approve the receipt in one tap and the ticket goes out the same"
+        },
+        {
+          "method": "Cash at the door (your staff)",
+          "cost": "$0",
+          "gain": "Your staff logs the sale and the entry QR validates the same"
+        }
+      ],
+      "note": "A plan lowers the fee: Standard ~$736 managed and ~$417 on your own methods; Pro ~$617 and ~$298. Attendees always pay the listed price."
+    },
     "faq": {
       "title": "Frequently asked questions",
       "items": [
         {
           "q": "How much does it cost me to sell tickets?",
-          "a": "A commission per managed sale: 5% + VAT + payment gateway (~9.1% all-in), deducted from your settlement. Attendees pay the exact price; cash door sales carry no commission."
+          "a": "A commission per managed sale: 9.14% all-in (5% + VAT + gateway ~3.2%), deducted from your settlement. Via your own methods or your own gateway: 5.95%. Attendees pay the exact price; cash door sales carry no commission."
+        },
+        {
+          "q": "Can I charge through my own gateway?",
+          "a": "Yes. You connect your Flow or MercadoPago account from Payment methods and your sales money lands straight to you; the commission drops because the gateway no longer goes through us."
         },
         {
           "q": "Do I need a plan to sell?",

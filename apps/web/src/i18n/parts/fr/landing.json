@@ -90,7 +90,7 @@
     "featureQrTitle": "Horaires et cours",
     "featureQrDesc": "Ta grille publiée pour toujours.\nTes élèves voient, réservent et entrent seuls.",
     "featureLearnTitle": "Plans et paiements à jour",
-    "featureLearnDesc": "Enregistre le paiement par le canal que tu utilises déjà.\nTu vois qui a payé, qui expire et à qui rappeler.",
+    "featureLearnDesc": "Justificatif validé ou prélèvement automatique par ton propre compte Flow ou MercadoPago.\nL'argent arrive directement chez toi ; tu vois juste qui est à jour.",
     "featureSceneTitle": "Tes élèves, mesurés",
     "featureSceneDesc": "Qui vient, qui manque, qui décroche.\nÉchéances et anniversaires sans avoir à demander.",
     "academyCount": "{count} académies organisent déjà leur opération avec Omnidance",
@@ -112,7 +112,7 @@
       "ctaCustom": "Parlons-en",
       "cycleLabel": "Période de facturation",
       "priceBefore": "avant {price}",
-      "note": "Semestriel −8 % · annuel −15 %.\nStudio inclut le paiement par carte et virement via passerelle, au coût réel (~3,2 % aujourd'hui).",
+      "note": "Semestriel −8 % · annuel −15 %.\nTu encaisses par justificatif ou par ta propre passerelle (Flow ou MercadoPago) : l'argent arrive directement sur ton compte et l'encaissement par passerelle porte un fee de 1 % + TVA facturé le mois suivant, plus le tarif de ta passerelle.",
       "tiers": [
         {
           "name": "Starter",
@@ -121,7 +121,7 @@
           "recommended": false,
           "ctaLabel": "Commencer avec Starter",
           "features": [
-            "Encaissement par justificatif validé",
+            "Encaissement par justificatif ou ta propre passerelle",
             "Élèves à jour et en retard en un coup d'œil",
             "Notifications push et email sur les encaissements"
           ],
@@ -163,16 +163,40 @@
         "annual": "facturé annuel"
       }
     },
+    "costTable": {
+      "title": "Ton académie encaisse toute seule",
+      "lead": "La différence n'est pas le fee : c'est qui court après les justificatifs.",
+      "colMethod": "Moyen d'encaissement",
+      "colCost": "Pour 10 000 $",
+      "colGain": "Qui fait le travail",
+      "rows": [
+        {
+          "method": "Justificatif (virement ou espèces)",
+          "cost": "0 $ de fee",
+          "gain": "Tu vérifies et approuves encore chaque paiement ; l'app rappelle les échéances et marque qui est à jour"
+        },
+        {
+          "method": "Ta passerelle (Flow ou MercadoPago)",
+          "cost": "119 $ + ta passerelle",
+          "gain": "L'app encaisse, rapproche et bloque les mauvais payeurs toute seule ; l'argent arrive directement sur ton compte"
+        }
+      ],
+      "note": "1 % + TVA sur ce que ta passerelle encaisse, facturé le mois suivant. Les mensualités à prélèvement automatique courent sur ton même compte."
+    },
     "faq": {
       "title": "Questions fréquentes",
       "items": [
         {
           "q": "Comment mes élèves paient-ils ?",
-          "a": "Ils s'inscrivent à ton forfait ou cours et paient depuis l'app avec leur moyen habituel. Tu vois qui est à jour sans courir après ni vérifier de justificatifs."
+          "a": "Ils s'inscrivent à ton forfait ou cours et paient depuis l'app : justificatif que tu valides ou prélèvement automatique par ton propre compte Flow ou MercadoPago. L'argent arrive directement chez toi et tu vois juste qui est à jour."
         },
         {
           "q": "Puis-je enregistrer des paiements en espèces ou par virement ?",
           "a": "Oui. Tu l'enregistres depuis ta console et l'élève est à jour pareil ; l'app est ton contrôle des paiements, pas seulement la passerelle."
+        },
+        {
+          "q": "Puis-je importer mes élèves depuis Excel ?",
+          "a": "Oui. L'import n'exige que l'email et le nom par ligne ; le forfait, le document, la date de naissance et le téléphone sont optionnels. Il accepte .csv, .xls et .xlsx."
         },
         {
           "q": "Que se passe-t-il si je dépasse le plafond d'élèves ?",
@@ -219,7 +243,7 @@
       "ctaCustom": "Parlons-en",
       "cycleLabel": "Période de facturation",
       "priceBefore": "avant {price}",
-      "note": "Commission : 5 % + TVA + passerelle de paiement (~9,1 % tout compris) par vente gérée.\nDéduite de ton règlement. L'assistant paie le prix exact.",
+      "note": "Commission par vente gérée : 9,14 % tout compris (5 % + TVA + passerelle ~3,2 %).\nPar tes moyens propres ou ta propre passerelle : 5,95 % ; déduite de ton règlement et l'assistant paie le prix exact.",
       "tiers": [
         {
           "name": "Vends des billets",
@@ -270,12 +294,41 @@
         "annual": "facturé annuel"
       }
     },
+    "costTable": {
+      "title": "Ta billetterie travaille pendant que tu produis",
+      "lead": "Chaque canal de vente a son coût. Courir après les virements coûte aussi : ça coûte ton temps.",
+      "colMethod": "Canal de vente",
+      "colCost": "Pour 10 000 $",
+      "colGain": "Qui fait le travail",
+      "rows": [
+        {
+          "method": "Vente gérée (notre passerelle)",
+          "cost": "914 $",
+          "gain": "On encaisse, émet le billet et règle avec le détail prêt : zéro rapprochement"
+        },
+        {
+          "method": "Tes moyens propres ou ta passerelle",
+          "cost": "595 $",
+          "gain": "L'argent va directement chez toi ; tu valides le justificatif en un geste et le billet part pareil"
+        },
+        {
+          "method": "Espèces à la porte (ton staff)",
+          "cost": "0 $",
+          "gain": "Ton staff enregistre la vente et le QR d'entrée se valide pareil"
+        }
+      ],
+      "note": "Avec un abonnement le fee baisse : Standard ~736 $ géré et ~417 $ par moyens propres ; Pro ~617 $ et ~298 $. L'assistant paie toujours le prix affiché."
+    },
     "faq": {
       "title": "Questions fréquentes",
       "items": [
         {
           "q": "Combien coûte la vente de billets ?",
-          "a": "Une commission par vente gérée : 5 % + TVA + passerelle de paiement (~9,1 % tout compris), déduite de ton règlement. L'assistant paie le prix exact et la vente à la porte en espèces ne comporte aucune commission."
+          "a": "Une commission par vente gérée : 9,14 % tout compris (5 % + TVA + passerelle ~3,2 %), déduite de ton règlement. Par tes moyens propres ou ta propre passerelle : 5,95 %. L'assistant paie le prix exact et la vente à la porte en espèces ne comporte aucune commission."
+        },
+        {
+          "q": "Puis-je encaisser avec ma propre passerelle ?",
+          "a": "Oui. Tu connectes ton compte Flow ou MercadoPago depuis Moyens de paiement et l'argent de tes ventes arrive directement chez toi ; la commission baisse parce que la passerelle ne passe plus par nous."
         },
         {
           "q": "Ai-je besoin d'un abonnement pour vendre ?",

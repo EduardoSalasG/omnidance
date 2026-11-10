@@ -553,8 +553,8 @@ Cada peso debe rastrear a su origen, con la misma disciplina que el ledger banca
 Flow, MercadoPago y Fintoc son **adaptadores detrás de un puerto normalizado**, no dependencias del dominio - preparado para más países (incl. Europa):
 
 - **Órdenes**: `PaymentGateway.createOrder/verifyWebhook/refreshStatus` → `GatewayConfirmation` normalizado (`status/amount/feeClp/media/paidAt/raw`) - el dominio nunca parsea campos de proveedor. Webhook por proveedor `/payments/webhook/:provider`.
-- **Suscripciones**: puerto `SubscriptionProvider` con tipos normalizados (los `Flow*` salen del contrato); Flow hoy, MP preapproval/Stripe como slots.
-- **Credenciales por actor**: `ProducerGatewayAccount` cifrado (AES-256-GCM, `PRODUCER_GATEWAY_KEY`); implementado (spec producer-gateway-accounts): el productor configura su cuenta Flow/MP desde `/productor/parametros`, el checkout cobra por su adaptador (`OWN_GATEWAY`), el webhook se enruta por `?account=<id>` y la comisión se netea en su payout.
+- **Suscripciones**: puerto `SubscriptionProvider` con tipos normalizados (los `Flow*` salen del contrato); Flow y MercadoPago hoy (MP por `preapproval` con `init_point` hosted, spec `mercadopago-subscriptions`), Stripe como slot.
+- **Credenciales por actor**: `ProducerGatewayAccount` cifrado (AES-256-GCM, `PRODUCER_GATEWAY_KEY`); implementado (specs producer-gateway-accounts + gateway-in-methods-form): el actor configura su cuenta Flow/MP/Fintoc dentro del flujo "Agregar método" de sus métodos de pago (`/productor/medios-pago/nuevo`, espejo en `/academia/configuracion/metodos-de-pago/nuevo`; la cuenta queda como primer card del listado con badge, mask y `webhookUrl`, ficha `/pasarela` con rotación y zona roja), el checkout cobra por su adaptador (`OWN_GATEWAY` del productor; BYO de academia), el webhook se enruta por `?account=<id>` y la comisión se netea en su payout (productor) o se factura mes vencido como take de cobranza (academia).
 - **Moneda**: `Payment.currency` + `Event.currency` (ISO 4217, default CLP).
 
 **Política: sin reembolsos.** Los tickets son **transferibles a otro usuario** (mismo mecanismo que gift ticket). Reembolso excepcional solo manual, a pedido del productor.
@@ -646,7 +646,7 @@ El cargo por venta desaparece para la academia en los tiers de gestión: pasa a 
 
 | Tier | Precio mensual | Alumnos activos | Incluye |
 |---|---|---|---|
-| **COBROS** (señuelo) | $39.500 |  ≤60 | Cobro de membresías por nuestra pasarela + lista de alumnos al día/morosos + **reporte de cobranza** (facturación mensual, quién pagó, plan top, filtros). Sin clases, sin asistencia, sin staff, sin scores/clasificación CRM en superficies de alumnos. Take ~1,5× el fee real de pasarela (~4,8% all-in); compite con cobranza pura tipo Membrezia |
+| **COBROS** (señuelo) | $39.500 |  ≤60 | Cobro de membresías por **la pasarela propia de la academia** (Flow/MercadoPago BYO; el dinero va directo a su cuenta y omnidance factura el take `academy_fee.net_pct` = 1,0% neto + IVA mes vencido, spec `academy-byo-collections`) + lista de alumnos al día/morosos + **reporte de cobranza** (facturación mensual, quién pagó, plan top, filtros). Sin clases, sin asistencia, sin staff, sin scores/clasificación CRM en superficies de alumnos. El take viejo ~1,5× el fee de pasarela quedó solo para liquidaciones históricas; compite con cobranza pura tipo Membrezia |
 | **STUDIO** (objetivo) | $79.700 | ≤150 | + planes y membresías, clases/series, reservas, asistencia por profe, export mensual CSV, check-in, KPIs operacionales (ocupación, asistencia del día). Pasarela a costo real (sin take). Sin consultas rápidas ni analítica estratégica |
 | **PRO** (top) | $120.500 | ilimitado | + analítica completa (consultas rápidas, insights, audiencia), CRM (scores/segmentos/campañas), notificaciones de marketing segmentadas, videos, **cuenta multi-academia** |
 
@@ -770,7 +770,7 @@ Gestión integral - el benchmark es BoxMagic (reservas con aforo, membresías, c
 - Estados del alumno: **activo / inactivo** (binario; se pierde el motivo de la inactividad a propósito)
 - `classCount` = tope de clases **por ciclo pagado** en cualquier tipo (un mensual con 8 = "8 clases al mes"; al renovar el conteo parte del nuevo ciclo, no del alta)
 - Pausas como inactivación del alumno, recordatorios automáticos de membresía impaga
-- Cobro recurrente: Khipu / Webpay Oneclick
+- Cobro recurrente: suscripción CARD del alumno por la **pasarela propia de la academia** (Flow o MercadoPago `preapproval` con `init_point` hosted; specs `academy-card-subs-byo` y `mercadopago-subscriptions`); cada academia cobra directo a su cuenta y omnidance le factura el take mes vencido (`academy_fee.net_pct`, spec `academy-byo-collections`)
 - **Clase de prueba con link compartible** - herramienta de adquisición para redes sociales de la academia
 
 ### Clases y asistencia
@@ -935,6 +935,7 @@ Wireframe - Mi QR:
 | Asistentes | Lista por tipo de pase, guest lists consolidadas (incl. cumpleaños), reservas de mesa |
 | Post-evento | Evaluaciones agregadas por dimensión, resumen de la noche |
 | Liquidaciones | Qué cobró, cuándo se transfirió, desglose de comisiones |
+| Medios de pago | Lista unificada `/productor/medios-pago`: métodos propios (transferencia/link/efectivo) + la cuenta de pasarela BYO como primera fila con badge/mask/`webhookUrl`; el alta de pasarela va dentro de "Agregar método" (`/nuevo` elige manual vs FLOW/MERCADOPAGO/FINTOC) y su ficha `/pasarela` lleva rotación y zona roja (spec `gateway-in-methods-form`) |
 
 ### Productor Pro - catálogo de insights (el producto SaaS)
 
@@ -984,7 +985,7 @@ Wireframe - Mi QR:
 |---|---|
 | Selector de academia | En el hub (`/inicio` del owner, `/academia` para staff) y en la navegación del owner (drawer móvil + sidebar desktop): visible solo con >1 academia propia o tier con `multiAcademy`; persiste `localStorage["omnidance:academy-id"]` y propaga el cambio por evento sin recarga; incluye "Nueva academia" → `/academia/nueva` |
 | Dashboard | Alumnos activos/inactivos/en riesgo, asistencia de hoy, ingresos del mes, clases del día |
-| Alumnos | Lista con `academy_score` + segmento (núcleo/riesgo/nuevo), `actor_tag`; card completo clickeable → detalle con edición de estado/pagado-hasta (owner/staff con capacidad) e historial de membresías/pagos. Alta por búsqueda de persona; si no existe, "Registrar nueva persona" con email+nombre crea la ficha stub y envía invitación por magic link (7 días). **Invitación de registro** (sin enrollment): "Invitar" crea `academy_invite` por email+nombre - la invitada se registra sola, aterriza en la ficha pública de la academia (`next` del magic link) y queda Referral INVITE + seguimiento pendiente/registrado en la misma página |
+| Alumnos | Lista con `academy_score` + segmento (núcleo/riesgo/nuevo), `actor_tag`; card completo clickeable → detalle con edición de estado/pagado-hasta (owner/staff con capacidad) e historial de membresías/pagos. Alta por búsqueda de persona; si no existe, "Registrar nueva persona" con email+nombre crea la ficha stub y envía invitación por magic link (7 días). **Invitación de registro** (sin enrollment): "Invitar" crea `academy_invite` por email+nombre - la invitada se registra sola, aterriza en la ficha pública de la academia (`next` del magic link) y queda Referral INVITE + seguimiento pendiente/registrado en la misma página. **Import masivo** (spec `academy-import-slim-fields`): `.csv`/`.xls`/`.xlsx` ≤2MB desde `/academia/importar`; columnas requeridas solo `email,nombre`, opcionales `rut|dni|documento`→`nationalId`, `fecha_nacimiento`, `sexo`, `telefono`, `plan`, `pagado_hasta`; update por email solo sobreescribe campos presentes |
 | Planes | CRUD de `membership_plan` seccionado recurrentes vs. pago único con chip activo/inactivo, estados de `enrollment` (activo/inactivo), morosos con recordatorio automático |
 | Cobros | KPIs (facturado mes, por cobrar, validaciones), cola "pagos por validar" (incluye intentos `AWAITING` sin comprobante), historial unificado en lista: comprobantes manuales resueltos + pagos de pasarela; detalle con n° de transacción, canal y fecha de orden. El reporte de cobranza se exporta a CSV/PDF con marca Omnidance y los mismos filtros de la vista |
 | Clases | `class_series` (borrado lógico) con filtros nivel/modalidad/estado/q; detalle de serie → instancias del día → roster donde **el instructor marca presente** |
@@ -994,9 +995,9 @@ Wireframe - Mi QR:
 | Contenido | Links de videos por clase (YouTube/Vimeo privado), quién puede ver qué |
 | CRM | Segmentos → `campaign` (oferta de bootcamp a núcleo, win-back a riesgo), `crm_trigger` (win-back, asistencia cayó); ficha de contacto con resumen de actividad (asistencias, enrollments) y tags editables |
 | Analítica | Misma superficie `/analitica` del contrato compartido (consultas rápidas expandibles, filtros por entidad, exportes) |
-| Configuración | Multi-página: Clases (valores por defecto), Equipo, Métodos de pago (card clickeable → edición de datos, p. ej. cuenta de transferencia), Facturación, Encuestas |
+| Configuración | Multi-página: Clases (valores por defecto), Equipo, Métodos de pago (lista unificada: métodos manuales + la cuenta de pasarela BYO como primer card con badge/mask/`webhookUrl`; el alta de pasarela va dentro de "Agregar método" en `/nuevo` (selector manual vs pasarela) y su ficha `/pasarela` lleva rotación y zona roja, spec `gateway-in-methods-form`), Facturación, Encuestas |
 
-**Pago del plan con medios propios** (spec academy-checkout-manual-pay): si la academia publica `AcademyPaymentMethod`, el checkout de membresía ofrece elegir entre la pasarela y sus medios (transferencia/link/efectivo). Al confirmar un método propio se registra el `payment_claim` en `AWAITING` (intento persistido - el alumno puede salir a transferir y volver); transferencia muestra los datos bancarios copiables (nombre, RUT, banco, tipo y número de cuenta, email) con copia en bloque para pegar en la app del banco. Subir el comprobante pasa el claim a `PENDING` en la cola del owner; aprobar extiende la vigencia como un pago de pasarela. La suscripción recurrente sigue solo por pasarela (el método manual no puede cobrar sola).
+**Pago del plan con medios propios** (spec academy-checkout-manual-pay): si la academia publica `AcademyPaymentMethod`, el checkout de membresía ofrece elegir entre la pasarela y sus medios (transferencia/link/efectivo). Al confirmar un método propio se registra el `payment_claim` en `AWAITING` (intento persistido - el alumno puede salir a transferir y volver); transferencia muestra los datos bancarios copiables (nombre, RUT, banco, tipo y número de cuenta, email) con copia en bloque para pegar en la app del banco. Subir el comprobante pasa el claim a `PENDING` en la cola del owner; aprobar extiende la vigencia como un pago de pasarela. La suscripción recurrente sigue solo por pasarela (el método manual no puede cobrar sola): la tarjeta del alumno queda cargando por la **cuenta propia de la academia** (Flow `customer/register` o MercadoPago `preapproval` con `init_point` hosted; specs `academy-card-subs-byo` + `mercadopago-subscriptions`), nunca por la de plataforma; una academia sin pasarela activa ofrece la sub solo por transferencia.
 
 ### Local / Local Pro
 

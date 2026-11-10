@@ -90,7 +90,7 @@
     "featureQrTitle": "Horários e aulas",
     "featureQrDesc": "O teu horário publicado para sempre.\nOs teus alunos veem, reservam e entram sozinhos.",
     "featureLearnTitle": "Planos e pagamentos em dia",
-    "featureLearnDesc": "Regista o pagamento pelo canal que já usas.\nVês quem pagou, quem deve e quem precisa de lembrete.",
+    "featureLearnDesc": "Comprovativo validado ou cobrança automática pela tua própria conta Flow ou MercadoPago.\nO dinheiro entra direto em ti; tu só vês quem está em dia.",
     "featureSceneTitle": "Os teus alunos, medidos",
     "featureSceneDesc": "Quem vem, quem falta, quem está a desertar.\nDatas de vencimento e aniversários sem teres de perguntar.",
     "academyCount": "{count} academias já gerem a sua operação no Omnidance",
@@ -112,7 +112,7 @@
       "ctaCustom": "Vamos conversar",
       "cycleLabel": "Período de faturação",
       "priceBefore": "antes de {price}",
-      "note": "Pagamento semestral −8% · anual −15%.\nStudio inclui pagamento com cartão e transferência via gateway, a custo real (hoje ~3,2%).",
+      "note": "Pagamento semestral −8% · anual −15%.\nCobras por comprovativo ou pela tua própria gateway (Flow ou MercadoPago): o dinheiro entra direto na tua conta e a cobrança por gateway leva uma taxa de 1% + IVA faturada no mês seguinte, mais o que a tua gateway cobrar.",
       "tiers": [
         {
           "name": "Starter",
@@ -121,7 +121,7 @@
           "recommended": false,
           "ctaLabel": "Começar com Starter",
           "features": [
-            "Cobrança por comprovativo validado",
+            "Cobrança por comprovativo ou a tua própria gateway",
             "Alunos em dia e em atraso num relance",
             "Notificações push e por email sobre cobranças"
           ],
@@ -163,16 +163,40 @@
         "annual": "cobrado anual"
       }
     },
+    "costTable": {
+      "title": "A tua academia cobra sozinha",
+      "lead": "A diferença não é a taxa: é quem persegue os comprovativos.",
+      "colMethod": "Meio de cobrança",
+      "colCost": "Por cada $10.000",
+      "colGain": "Quem faz o trabalho",
+      "rows": [
+        {
+          "method": "Comprovativo (transferência ou dinheiro)",
+          "cost": "$0 de taxa",
+          "gain": "Ainda revês e aprovas cada pagamento; a app lembra vencimentos e marca quem está em dia"
+        },
+        {
+          "method": "A tua gateway (Flow ou MercadoPago)",
+          "cost": "$119 + a tua gateway",
+          "gain": "A app cobra, reconcilia e pausa devedores sozinha; o dinheiro entra direto na tua conta"
+        }
+      ],
+      "note": "1% + IVA sobre o que a tua gateway cobra, faturado no mês seguinte. As mensalidades com débito automático correm pela tua mesma conta."
+    },
     "faq": {
       "title": "Perguntas frequentes",
       "items": [
         {
           "q": "Como pagam os meus alunos?",
-          "a": "Inscrevem-se no teu plano ou aula e pagam na app com o meio habitual. Vês quem está em dia sem perseguir nem rever comprovativos."
+          "a": "Inscrevem-se no teu plano ou aula e pagam na app: comprovativo que tu validas ou débito automático pela tua própria conta Flow ou MercadoPago. O dinheiro entra direto em ti e tu só vês quem está em dia."
         },
         {
           "q": "Posso registar pagamentos em dinheiro ou transferência?",
           "a": "Sim. Registas na tua consola e o aluno fica em dia na mesma; a app é o teu controlo de pagamentos, não apenas a gateway."
+        },
+        {
+          "q": "Posso trazer os meus alunos de um Excel?",
+          "a": "Sim. O importador só pede email e nome por linha; o plano, o documento, a data de nascimento e o telefone são opcionais. Aceita .csv, .xls e .xlsx."
         },
         {
           "q": "E se eu exceder o limite de alunos do meu plano?",
@@ -219,7 +243,7 @@
       "ctaCustom": "Vamos conversar",
       "cycleLabel": "Período de faturação",
       "priceBefore": "antes de {price}",
-      "note": "Comissão: 5% + IVA + gateway de pagamento (~9,1% tudo incluído) por venda gerida.\nDeduzida da tua liquidação; o assistente paga o preço exato.",
+      "note": "Comissão por venda gerida: 9,14% tudo incluído (5% + IVA + gateway ~3,2%).\nPelos teus meios próprios ou a tua própria gateway: 5,95%; deduzida da tua liquidação e o assistente paga o preço exato.",
       "tiers": [
         {
           "name": "Vende bilhetes",
@@ -270,12 +294,41 @@
         "annual": "cobrado anual"
       }
     },
+    "costTable": {
+      "title": "A tua bilheteira trabalha enquanto produzes",
+      "lead": "Cada canal de venda tem o seu custo. Perseguir transferências também custa: custa o teu tempo.",
+      "colMethod": "Canal de venda",
+      "colCost": "Por cada $10.000",
+      "colGain": "Quem faz o trabalho",
+      "rows": [
+        {
+          "method": "Venda gerida (a nossa gateway)",
+          "cost": "$914",
+          "gain": "Cobramos, emitimos o bilhete e liquidamos com o detalhe pronto: zero reconciliação"
+        },
+        {
+          "method": "Os teus meios próprios ou a tua gateway",
+          "cost": "$595",
+          "gain": "O dinheiro vai direto para ti; aprovas o comprovativo num toque e o bilhete sai na mesma"
+        },
+        {
+          "method": "Dinheiro à porta (o teu staff)",
+          "cost": "$0",
+          "gain": "O teu staff regista a venda e o QR de entrada valida-se na mesma"
+        }
+      ],
+      "note": "Com plano a taxa baixa: Standard ~$736 gerida e ~$417 por meios próprios; Pro ~$617 e ~$298. O assistente paga sempre o preço publicado."
+    },
     "faq": {
       "title": "Perguntas frequentes",
       "items": [
         {
           "q": "Quanto custa vender bilhetes?",
-          "a": "Uma comissão por venda gerida: 5% + IVA + gateway de pagamento (~9,1% tudo incluído), deduzida da tua liquidação. O assistente paga o preço exato e a venda à porta em dinheiro não tem comissão."
+          "a": "Uma comissão por venda gerida: 9,14% tudo incluído (5% + IVA + gateway ~3,2%), deduzida da tua liquidação. Pelos teus meios próprios ou a tua própria gateway: 5,95%. O assistente paga o preço exato e a venda à porta em dinheiro não tem comissão."
+        },
+        {
+          "q": "Posso cobrar com a minha própria gateway?",
+          "a": "Sim. Ligas a tua conta Flow ou MercadoPago em Meios de pagamento e o dinheiro das tuas vendas entra direto em ti; a comissão baixa porque a gateway já não passa por nós."
         },
         {
           "q": "Preciso de um plano para vender?",

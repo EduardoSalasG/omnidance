@@ -147,6 +147,20 @@ export async function Landing({
       : variant === "producer"
         ? m.landingProducer.faq
         : null;
+  // Tabla "por cada $10.000" por medio de pago: el framing vende la
+  // automatización del trabajo manual, no el descuento. Los montos del
+  // catálogo i18n derivan de PlatformParam (academia: academy_fee.net_pct
+  // 1,0% neto + IVA = 1,19% → $119; productor: fees.managed_allin_pct
+  // 9,14% → $914 gestionado, 9,14 − 3,19 card = 5,95% → $595 por métodos
+  // propios/pasarela propia; tiers Standard ~7,36%→$736 / ~4,17%→$417 y
+  // Pro ~6,17%→$617 / ~2,98%→$298). Fuente: apps/api/prisma/seed-common.ts
+  // y apps/api/src/common/fee-breakdown.ts (ownMethodRate).
+  const costTable =
+    variant === "academy"
+      ? m.landingAcademy.costTable
+      : variant === "producer"
+        ? m.landingProducer.costTable
+        : null;
   // El secundario es exploración: cada audiencia mira el directorio que
   // le habla (academias para academias, cartelera para el resto). Anónimo
   // rebota a /login?next= - el mismo funnel del secundario dancer.
@@ -409,6 +423,69 @@ export async function Landing({
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: productLd }}
           />
+        )}
+
+        {/* ─── Solo pro: "por cada $10.000" por medio de pago. Compara
+            el costo de automatizar contra el trabajo manual que
+            reemplaza (no contra "cuánto te queda"). ─── */}
+        {costTable && (
+          <section
+            aria-labelledby="cost-table-title"
+            className="border-t border-ink/5 px-6 py-16 sm:py-20 lg:py-24"
+          >
+            <div className="mx-auto max-w-3xl">
+              <h2
+                id="cost-table-title"
+                className="text-center text-2xl font-bold tracking-tight sm:text-3xl"
+              >
+                {costTable.title}
+              </h2>
+              <p className="mx-auto mt-3 max-w-xl text-center text-sm text-ink/60">
+                {costTable.lead}
+              </p>
+              <div className="mt-10 overflow-x-auto rounded-2xl border border-ink/10 bg-surface/60">
+                <table className="w-full min-w-[36rem] text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-ink/10 text-xs uppercase tracking-[0.15em] text-ink/50">
+                      <th scope="col" className="px-6 py-4 font-semibold">
+                        {costTable.colMethod}
+                      </th>
+                      <th scope="col" className="px-6 py-4 font-semibold">
+                        {costTable.colCost}
+                      </th>
+                      <th scope="col" className="px-6 py-4 font-semibold">
+                        {costTable.colGain}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {costTable.rows.map((row) => (
+                      <tr
+                        key={row.method}
+                        className="border-b border-ink/5 last:border-0"
+                      >
+                        <th
+                          scope="row"
+                          className="px-6 py-4 align-top font-semibold text-ink"
+                        >
+                          {row.method}
+                        </th>
+                        <td className="px-6 py-4 align-top font-semibold whitespace-nowrap text-neon">
+                          {row.cost}
+                        </td>
+                        <td className="px-6 py-4 align-top leading-relaxed text-ink/60">
+                          {row.gain}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-4 text-center text-xs leading-relaxed text-ink/50">
+                {costTable.note}
+              </p>
+            </div>
+          </section>
         )}
 
         {/* ─── Solo pro: FAQ de objeciones de compra (academy/
