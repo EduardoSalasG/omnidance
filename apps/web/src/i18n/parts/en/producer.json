@@ -103,7 +103,10 @@
       "tableSeatsTotal": "People seatable at tables",
       "inheritsDefault": "Producer default",
       "tablesHint": "Seatable capacity is the real capacity of tables: different from general capacity, usually smaller. Empty inherits your Parameters default.",
-      "currency": "Currency"
+      "currency": "Currency",
+      "internalOnly": "My academy's students only",
+      "internalAcademy": "Academy for the internal social",
+      "internalOnlyHint": "Not on the public board: only active students of the chosen academy can see and buy it."
     },
     "sections": {
       "staff": "Door staff",
@@ -271,7 +274,8 @@
         "trial": "Trial period",
         "active": "Active",
         "cancelPending": "Cancels",
-        "activating": "Activating"
+        "activating": "Activating",
+        "pendingPayment": "Payment under review"
       },
       "tiers": {
         "FREE": "Free plan",
@@ -321,7 +325,16 @@
       "staffLabel": "Collaborators",
       "staffUsage": "{used} of {limit}",
       "staffUnlimited": "{used} · unlimited",
-      "featuresLabel": "Includes"
+      "featuresLabel": "Includes",
+      "payViaTitle": "Billing method",
+      "payViaCard": "Card (automatic charge)",
+      "payViaTransfer": "Transfer",
+      "payViaTransferHint": "You pay by transfer each cycle and upload the receipt; the Omnidance team validates it.",
+      "subscribeTransfer": "Subscribe by transfer · {amount}/{period}",
+      "transferLabel": "Transfer",
+      "pendingPaymentHint": "Your subscription is waiting for the approved receipt. Upload the receipt or change the billing method.",
+      "pendingPaymentCta": "Upload receipt",
+      "changePayVia": "Change billing method"
     },
     "gateway": {
       "title": "My payment gateway",
@@ -459,6 +472,8 @@
       "removeDesc": "They will no longer appear as a staff candidate for your events.",
       "quotaFull": "Your plan covers up to {limit} collaborator(s), upgrade to add more.",
       "removed": "Collaborator removed"
-    }
+    },
+    "copyPublicLink": "Copy public link",
+    "publicLinkCopied": "Public link copied."
   }
 }

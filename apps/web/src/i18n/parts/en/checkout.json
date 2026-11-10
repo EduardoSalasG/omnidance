@@ -33,6 +33,12 @@
     "claimPending": "Receipt under review by the producer…",
     "claimRejected": "Receipt rejected",
     "academyNoGateway": "This academy only accepts receipt payments.",
-    "academyCollectionsBlocked": "Online payments for this academy are paused. You can pay by receipt."
+    "academyCollectionsBlocked": "Online payments for this academy are paused. You can pay by receipt.",
+    "ownMethodPendingDescAcademy": "Pay with these details and upload the receipt. Your plan is activated when the academy validates the payment.",
+    "ownMethodPendingDescPlatform": "Pay with these details and upload the receipt. Your subscription is activated when we validate the payment.",
+    "claimNoteAcademy": "Note for the academy (optional)",
+    "claimNotePlatform": "Note (optional)",
+    "claimPendingAcademy": "Receipt under review by the academy…",
+    "claimPendingPlatform": "Receipt under review…"
   }
 }

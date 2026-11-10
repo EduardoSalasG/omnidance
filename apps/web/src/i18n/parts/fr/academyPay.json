@@ -119,16 +119,15 @@
     "activeLabel": "Moyen actif (visible pour les élèves)",
     "editMethod": "Modifier le moyen de paiement",
     "report": {
-      "link": "Rapport",
       "billed": "Facturé sur la période",
       "billedHint": "Paiements encaissés sur la période filtrée",
       "payers": "Élèves ayant payé",
       "payersHint": "Élèves distincts ayant payé",
-      "topPlan": "Plan le plus vendu",
-      "topPlanHint": "Plan avec le plus de paiements sur la période",
-      "topPlanMeta": "{count, plural, one {# encaissement} other {# encaissements}} · {amount}",
       "empty": "Aucun encaissement sur la période ou avec ces filtres.",
-      "forbidden": "Vous n'avez pas accès à cette section."
+      "forbidden": "Vous n'avez pas accès à cette section.",
+      "methodsTitle": "Moyens de paiement",
+      "methodsHint": "Encaissé par moyen sur la période filtrée",
+      "methodCount": "{count, plural, one {# encaissement} other {# encaissements}}"
     },
     "pendingTitleCash": "Paiement à valider",
     "pendingDescCash": "L'académie confirme ton paiement en espèces quand tu viens en cours. On te prévient dès qu'il est enregistré.",
@@ -178,6 +177,16 @@
       "fieldPaidAt": "Payé",
       "export": "Exporter",
       "opTake": "frais {take}"
-    }
+    },
+    "orderQueueTitle": "Inscriptions à valider",
+    "orderQueueDesc": "Justificatifs d'inscriptions payées par virement (nouvelles et renouvellements).",
+    "orderHistoryTitle": "Historique des inscriptions",
+    "orderMembership": "Inscription",
+    "orderClaimTitle": "Justificatif d'inscription",
+    "orderApprovedMsg": "Paiement approuvé : l'inscription est active.",
+    "orderApproveTitle": "Approuver ce justificatif ?",
+    "orderApproveDesc": "En approuvant, la commande est soldée et l'inscription de l'élève devient active.",
+    "fieldOrder": "Commande",
+    "fieldOrderRef": "N° de commande"
   }
 }

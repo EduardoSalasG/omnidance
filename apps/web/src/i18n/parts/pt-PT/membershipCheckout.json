@@ -27,7 +27,13 @@
     "promoOffFixed": "−{amount} em cada cobrança",
     "promoUntil": "até {date}",
     "promoCyclesLeft": "{count, plural, one {# cobrança com desconto} other {# cobranças com desconto}} restantes",
-    "titleSingle": "Confirmar aula"
+    "titleSingle": "Confirmar aula",
+    "payViaTitle": "Como queres pagar a subscrição?",
+    "payViaCard": "Cartão (débito automático)",
+    "payViaTransfer": "Transferência",
+    "payViaTransferHint": "Pagas por transferência a cada {period} e envias o comprovativo; a academia valida-o.",
+    "transferPickAccount": "Para que conta transferiste?",
+    "trustTransfer": "Pagamento validado pela academia"
   },
   "privateCheckout": {
     "title": "Confirmar aula particular",

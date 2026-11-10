@@ -119,16 +119,15 @@
     "activeLabel": "Active method (visible to students)",
     "editMethod": "Edit payment method",
     "report": {
-      "link": "Report",
       "billed": "Billed in period",
       "billedHint": "Collected payments in the filtered period",
       "payers": "Students who paid",
       "payersHint": "Distinct students who paid",
-      "topPlan": "Best-selling plan",
-      "topPlanHint": "Plan with the most payments in the period",
-      "topPlanMeta": "{count, plural, one {# charge} other {# charges}} · {amount}",
       "empty": "No charges in the period or with these filters.",
-      "forbidden": "You don't have access to this section."
+      "forbidden": "You don't have access to this section.",
+      "methodsTitle": "Payment methods",
+      "methodsHint": "Collected per method in the filtered period",
+      "methodCount": "{count, plural, one {# charge} other {# charges}}"
     },
     "pendingTitleCash": "Payment to validate",
     "pendingDescCash": "The academy confirms your cash payment when you attend class. We will let you know once it is recorded.",
@@ -178,6 +177,16 @@
       "fieldPaidAt": "Paid",
       "export": "Export",
       "opTake": "take {take}"
-    }
+    },
+    "orderQueueTitle": "Enrollments to validate",
+    "orderQueueDesc": "Receipts for enrollments paid by transfer (new and renewals).",
+    "orderHistoryTitle": "Enrollment history",
+    "orderMembership": "Enrollment",
+    "orderClaimTitle": "Enrollment receipt",
+    "orderApprovedMsg": "Payment approved: the enrollment is now active.",
+    "orderApproveTitle": "Approve this receipt?",
+    "orderApproveDesc": "On approval, the order is settled and the student's enrollment becomes active.",
+    "fieldOrder": "Order",
+    "fieldOrderRef": "Order no."
   }
 }

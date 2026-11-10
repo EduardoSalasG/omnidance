@@ -22,7 +22,19 @@
       "created": "Level added.",
       "deleted": "Level deleted.",
       "deleteConfirm": "Delete this level?",
-      "notFound": "Level not found."
+      "notFound": "Level not found.",
+      "globalHint": "Your academy uses the global levels lineup (the one socials use).",
+      "customHint": "Numbered order: filter and schedule chips show the number 1..N in this order.",
+      "personalize": "Customize levels",
+      "personalized": "Levels customized for your academy",
+      "newPlaceholder": "New level…",
+      "add": "Add",
+      "nameLabel": "Level {index} name",
+      "delete": "Delete level",
+      "error": "We couldn't save the level",
+      "backToGlobal": "Back to the global lineup",
+      "backToGlobalBody": "Your {count} own levels are deleted and the academy goes back to the global lineup (the socials' one). Levels in use by series or students block the reset.",
+      "backToGlobalDone": "You're back on the global lineup"
     },
     "planTypes": {
       "MONTHLY": "Monthly",
@@ -58,7 +70,9 @@
       "promos": "Promos",
       "promosDesc": "Scholarships and discounts on your plans",
       "gridLabel": "Modules",
-      "statements": "Statements"
+      "statements": "Statements",
+      "levels": "Levels",
+      "report": "Report"
     },
     "today": {
       "title": "Today's classes",
@@ -144,7 +158,10 @@
       "email": "Email",
       "phone": "Phone",
       "method": "Method",
-      "edit": "Edit"
+      "edit": "Edit",
+      "frequent": "Frequent classes",
+      "emptyFrequent": "No frequent classes yet.",
+      "frequentCount": "{count, plural, one {# class} other {# classes}}"
     },
     "learner": {
       "myAcademies": "My academies",
@@ -250,7 +267,8 @@
       "pctWomenHint": "% of active students with female gender",
       "vsPrevMonth": "vs last month",
       "pts": "pts",
-      "noData": "no data"
+      "noData": "no data",
+      "attendanceToday": "Bookings today"
     },
     "onboarding": {
       "title": "First steps",
@@ -279,7 +297,47 @@
       "levelCountHint": "Active students at this level",
       "lastTitle": "Last class attendance",
       "avgTitle": "Average attendance",
-      "nextTitle": "Next class bookings"
+      "nextTitle": "Next class bookings",
+      "title": "Levels and spots",
+      "styleFilterLabel": "Style",
+      "allStyles": "All",
+      "levelFilterLabel": "Level",
+      "allLevels": "All",
+      "typeFilterLabel": "Type",
+      "allTypes": "All",
+      "empty": "No schedules or levels loaded yet. Assign each student's level from their profile.",
+      "assignedOf": "{assigned}/{capacity} students",
+      "avgOfCapacity": "average {avg} of {capacity} spots",
+      "avgShort": "Avg.",
+      "lastShort": "Last",
+      "nextShort": "Next",
+      "maleShort": "M",
+      "femaleShort": "F",
+      "gotoClasses": "View classes",
+      "ofCapacity": "of {count}",
+      "spotsLeft": "{count, plural, one {# spot left} other {# spots left}}",
+      "full": "Full",
+      "overbooked": "+{count} over capacity",
+      "noLevel": "No level",
+      "noSlots": "No schedules loaded.",
+      "noSlotsForType": "No schedules of this type.",
+      "avgAttendance": "avg. {value}",
+      "lastAttendance": "last {count}",
+      "noAttendance": "no recent attendance",
+      "unassignedTitle": "No level assigned",
+      "unassignedCount": "{count} in {type}",
+      "typeTotal": "{count, plural, one {# student} other {# students}}",
+      "allTotal": "{count, plural, one {# student} other {# students}} in total · each student counts once per type",
+      "unassignedCta": "Complete",
+      "loadError": "We couldn't load the levels.",
+      "editor": {
+        "title": "Level per class type",
+        "hint": "Check every level the student takes. They can pick more than one per type.",
+        "save": "Save levels",
+        "saved": "Levels updated.",
+        "saveError": "We couldn't save the levels",
+        "loadError": "We couldn't load the levels."
+      }
     },
     "invites": {
       "cta": "Invite",
@@ -316,6 +374,22 @@
       "title": "Your free trial ended",
       "desc": "Your academy console is paused. Subscribe to get classes, students and payments back.",
       "cta": "See plans and subscribe"
+    },
+    "sections": {
+      "overview": "Overview",
+      "operation": "Day operations",
+      "students": "Students"
+    },
+    "homeMode": {
+      "claimsHint": "totalling {amount}",
+      "claimsDone": "Nothing to validate",
+      "expiringHint": "plans expiring today or this week",
+      "expiringDone": "Nothing expiring this week",
+      "todayHint": "on today's schedule",
+      "todayDone": "No classes today",
+      "lessonsHint": "requests awaiting a reply",
+      "lessonsDone": "Nothing to confirm",
+      "unassignedDone": "Everyone has a level assigned"
     }
   },
   "academySeries": {

@@ -22,7 +22,19 @@
       "created": "Niveau ajouté.",
       "deleted": "Niveau supprimé.",
       "deleteConfirm": "Supprimer ce niveau ?",
-      "notFound": "Niveau introuvable."
+      "notFound": "Niveau introuvable.",
+      "globalHint": "Ton académie utilise la ligne globale de niveaux (celle qu'utilisent les sociaux).",
+      "customHint": "Ordre numéroté : les chips des filtres et de l'agenda affichent le numéro 1..N dans cet ordre.",
+      "personalize": "Personnaliser les niveaux",
+      "personalized": "Niveaux personnalisés pour ton académie",
+      "newPlaceholder": "Nouveau niveau…",
+      "add": "Ajouter",
+      "nameLabel": "Nom du niveau {index}",
+      "delete": "Supprimer le niveau",
+      "error": "Impossible d'enregistrer le niveau",
+      "backToGlobal": "Revenir à la ligne globale",
+      "backToGlobalBody": "Tes {count} niveaux propres sont supprimés et l'académie revient à la ligne globale (celle des sociaux). Les niveaux utilisés par des séries ou des élèves bloquent la remise à zéro.",
+      "backToGlobalDone": "Tu es revenu à la ligne globale"
     },
     "planTypes": {
       "MONTHLY": "Mensuel",
@@ -58,7 +70,9 @@
       "promos": "Promos",
       "promosDesc": "Bourses et remises sur vos plans",
       "gridLabel": "Modules",
-      "statements": "Relevés"
+      "statements": "Relevés",
+      "levels": "Niveaux",
+      "report": "Rapport"
     },
     "today": {
       "title": "Cours d'aujourd'hui",
@@ -144,7 +158,10 @@
       "email": "Email",
       "phone": "Téléphone",
       "method": "Moyen",
-      "edit": "Modifier"
+      "edit": "Modifier",
+      "frequent": "Cours fréquents",
+      "emptyFrequent": "Pas encore de cours fréquents.",
+      "frequentCount": "{count, plural, one {# cours} other {# cours}}"
     },
     "learner": {
       "myAcademies": "Mes académies",
@@ -250,7 +267,8 @@
       "pctWomenHint": "% d'élèves actifs de genre féminin",
       "vsPrevMonth": "vs mois dernier",
       "pts": "pts",
-      "noData": "pas de données"
+      "noData": "pas de données",
+      "attendanceToday": "Réservations aujourd'hui"
     },
     "onboarding": {
       "title": "Premiers pas",
@@ -279,7 +297,47 @@
       "levelCountHint": "Élèves actifs à ce niveau",
       "lastTitle": "Présence au dernier cours",
       "avgTitle": "Présence moyenne",
-      "nextTitle": "Réservations du prochain cours"
+      "nextTitle": "Réservations du prochain cours",
+      "title": "Niveaux et places",
+      "styleFilterLabel": "Style",
+      "allStyles": "Tous",
+      "levelFilterLabel": "Niveau",
+      "allLevels": "Tous",
+      "typeFilterLabel": "Type",
+      "allTypes": "Tous",
+      "empty": "Pas encore d'horaires ni de niveaux chargés. Attribue le niveau de chaque élève depuis sa fiche.",
+      "assignedOf": "{assigned}/{capacity} élèves",
+      "avgOfCapacity": "moyenne de {avg} sur {capacity} places",
+      "avgShort": "Moy.",
+      "lastShort": "Dern.",
+      "nextShort": "Proch.",
+      "maleShort": "H",
+      "femaleShort": "F",
+      "gotoClasses": "Voir les cours",
+      "ofCapacity": "sur {count}",
+      "spotsLeft": "{count, plural, one {# place libre} other {# places libres}}",
+      "full": "Complet",
+      "overbooked": "+{count} en surnombre",
+      "noLevel": "Sans niveau",
+      "noSlots": "Aucun horaire chargé.",
+      "noSlotsForType": "Aucun horaire de ce type.",
+      "avgAttendance": "moy. {value}",
+      "lastAttendance": "dernière {count}",
+      "noAttendance": "pas de présence récente",
+      "unassignedTitle": "Sans niveau attribué",
+      "unassignedCount": "{count} dans {type}",
+      "typeTotal": "{count, plural, one {# élève} other {# élèves}}",
+      "allTotal": "{count, plural, one {# élève} other {# élèves}} au total · chaque élève compte une fois par type",
+      "unassignedCta": "Compléter",
+      "loadError": "Impossible de charger les niveaux.",
+      "editor": {
+        "title": "Niveau par type de cours",
+        "hint": "Coche tous les niveaux que suit l'élève. Il peut en choisir plusieurs par type.",
+        "save": "Enregistrer les niveaux",
+        "saved": "Niveaux mis à jour.",
+        "saveError": "Impossible d'enregistrer les niveaux",
+        "loadError": "Impossible de charger les niveaux."
+      }
     },
     "invites": {
       "cta": "Inviter",
@@ -316,6 +374,22 @@
       "title": "Votre essai gratuit est terminé",
       "desc": "La console de votre académie est en pause. Abonnez-vous pour retrouver cours, élèves et paiements.",
       "cta": "Voir les plans et m’abonner"
+    },
+    "sections": {
+      "overview": "Aperçu",
+      "operation": "Opérations du jour",
+      "students": "Élèves"
+    },
+    "homeMode": {
+      "claimsHint": "pour un total de {amount}",
+      "claimsDone": "Rien à valider",
+      "expiringHint": "plans qui expirent aujourd'hui ou cette semaine",
+      "expiringDone": "Rien n'expire cette semaine",
+      "todayHint": "dans l'agenda du jour",
+      "todayDone": "Pas de cours aujourd'hui",
+      "lessonsHint": "demandes en attente de réponse",
+      "lessonsDone": "Rien à confirmer",
+      "unassignedDone": "Tous ont un niveau attribué"
     }
   },
   "academySeries": {

@@ -27,6 +27,12 @@
     "failedCard": "We couldn’t register your card",
     "resumeCard": "Register card",
     "nextChargeAmount": "Next charge: {date} · {amount}",
-    "cancelOk": "Subscription cancelled. You keep access until the end of the paid period."
+    "cancelOk": "Subscription cancelled. You keep access until the end of the paid period.",
+    "returnToSubscription": "Go to my subscription",
+    "consentTransfer": "Subscription by transfer: you pay {amount} every {period} and upload the receipt. We'll notify you before each due date.",
+    "consentCheckTransfer": "I understand I'll pay by transfer every period",
+    "pendingPayment": "Your subscription is waiting for the approved receipt. If you already paid, upload it to activate.",
+    "pendingPaymentBadge": "Payment under review",
+    "pendingPaymentCta": "Complete payment"
   }
 }

@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 import { IsBoolean, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
+import { Type } from "class-transformer";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
@@ -31,8 +32,12 @@ class UpdateJobDto {
   enabled?: boolean;
 }
 
-class RunsQueryDto {
+export class RunsQueryDto {
+  // take llega como string en la query; el ValidationPipe global
+  // (transform) lo castea a número vía class-transformer, como en
+  // NearEventsQueryDto de cities.controller.
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(200)

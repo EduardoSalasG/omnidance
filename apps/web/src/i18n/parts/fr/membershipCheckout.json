@@ -27,7 +27,13 @@
     "promoOffFixed": "−{amount} sur chaque paiement",
     "promoUntil": "jusqu'au {date}",
     "promoCyclesLeft": "{count, plural, one {# paiement remisé} other {# paiements remisés}} restants",
-    "titleSingle": "Confirmer le cours"
+    "titleSingle": "Confirmer le cours",
+    "payViaTitle": "Comment veux-tu payer l'abonnement ?",
+    "payViaCard": "Carte (débit automatique)",
+    "payViaTransfer": "Virement",
+    "payViaTransferHint": "Tu paies par virement chaque {period} et tu envoies le justificatif ; l'académie le valide.",
+    "transferPickAccount": "Vers quel compte as-tu viré ?",
+    "trustTransfer": "Paiement validé par l'académie"
   },
   "privateCheckout": {
     "title": "Confirmer le cours particulier",

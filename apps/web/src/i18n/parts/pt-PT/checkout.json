@@ -33,6 +33,12 @@
     "claimPending": "Comprovativo em revisão pelo produtor…",
     "claimRejected": "Comprovativo rejeitado",
     "academyNoGateway": "Esta academia cobra apenas por comprovativo de pagamento.",
-    "academyCollectionsBlocked": "Os pagamentos online desta academia estão em pausa. Podes pagar por comprovativo."
+    "academyCollectionsBlocked": "Os pagamentos online desta academia estão em pausa. Podes pagar por comprovativo.",
+    "ownMethodPendingDescAcademy": "Paga com estes dados e envia o comprovativo. O teu plano é ativado quando a academia validar o pagamento.",
+    "ownMethodPendingDescPlatform": "Paga com estes dados e envia o comprovativo. A tua subscrição é ativada quando validarmos o pagamento.",
+    "claimNoteAcademy": "Nota para a academia (opcional)",
+    "claimNotePlatform": "Nota (opcional)",
+    "claimPendingAcademy": "Comprovativo em revisão pela academia…",
+    "claimPendingPlatform": "Comprovativo em revisão…"
   }
 }

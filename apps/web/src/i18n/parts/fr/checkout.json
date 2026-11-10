@@ -33,6 +33,12 @@
     "claimPending": "Justificatif en cours d'examen par le producteur…",
     "claimRejected": "Justificatif refusé",
     "academyNoGateway": "Cette académie n'encaisse que par justificatif de paiement.",
-    "academyCollectionsBlocked": "Les paiements en ligne de cette académie sont en pause. Vous pouvez payer par justificatif."
+    "academyCollectionsBlocked": "Les paiements en ligne de cette académie sont en pause. Vous pouvez payer par justificatif.",
+    "ownMethodPendingDescAcademy": "Paie avec ces coordonnées et envoie le justificatif. Ton plan s'active quand l'académie valide le paiement.",
+    "ownMethodPendingDescPlatform": "Paie avec ces coordonnées et envoie le justificatif. Ton abonnement s'active quand on valide le paiement.",
+    "claimNoteAcademy": "Note pour l'académie (optionnel)",
+    "claimNotePlatform": "Note (optionnel)",
+    "claimPendingAcademy": "Justificatif en cours d'examen par l'académie…",
+    "claimPendingPlatform": "Justificatif en cours d'examen…"
   }
 }

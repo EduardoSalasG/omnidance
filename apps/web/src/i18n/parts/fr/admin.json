@@ -259,7 +259,8 @@
       "cities": "Villes",
       "citiesDesc": "Guide éditorial par ville (scène, soirs, astuces)",
       "promos": "Promotions",
-      "prices": "Tarifs"
+      "prices": "Tarifs",
+      "claims": "Justificatifs"
     },
     "academies": {
       "desc": "Santé de la base d'élèves par académie : distribution des segments, score moyen et élèves remarquables ou à risque.",
@@ -412,7 +413,8 @@
           "PENDING_CARD": "Carte en attente",
           "CANCEL_PENDING": "Annulation programmée",
           "CANCELED": "Annulé",
-          "FAILED_CARD": "Carte refusée"
+          "FAILED_CARD": "Carte refusée",
+          "PENDING_PAYMENT": "Paiement en cours d'examen"
         },
         "revenue": "Revenus de l'académie",
         "noRevenue": "Aucun revenu enregistré."
@@ -703,7 +705,8 @@
         "PAST_DUE": "En retard",
         "CANCEL_PENDING": "Annule en fin de cycle",
         "CANCELED": "Annulé",
-        "FAILED_CARD": "Carte refusée"
+        "FAILED_CARD": "Carte refusée",
+        "PENDING_PAYMENT": "Paiement en cours d'examen"
       }
     },
     "cities": {
@@ -820,6 +823,36 @@
       "cycleSemiannual": "Semestriel",
       "cycleAnnual": "Annuel",
       "retry": "Réessayer"
+    },
+    "claims": {
+      "title": "Justificatifs d'abonnements",
+      "desc": "Justificatifs d'abonnements à la plateforme payés par virement (académies et Producer Pro).",
+      "queueTitle": "À valider",
+      "queueDesc": "Approuve pour activer l'abonnement ; refuse avec un motif que le payeur verra.",
+      "queueEmpty": "Aucun justificatif en attente.",
+      "queueEmptyDesc": "Quand une académie ou un producteur paie son abonnement par virement, il apparaîtra ici.",
+      "historyTitle": "Historique",
+      "orderPlatformSub": "Abonnement",
+      "reviewedByApproved": "Approuvé par {name}",
+      "reviewedByRejected": "Refusé par {name}",
+      "statusApproved": "Approuvé",
+      "statusRejected": "Refusé",
+      "detailTitle": "Justificatif",
+      "fieldPayer": "Payeur",
+      "fieldOrder": "Commande",
+      "fieldAmount": "Montant",
+      "fieldMethod": "Moyen",
+      "fieldOrderRef": "N° de commande",
+      "fieldSentAt": "Envoyé",
+      "fieldReviewedAt": "Examiné",
+      "fieldPaidAt": "Payée",
+      "fieldReviewNote": "Motif",
+      "approveTitle": "Approuver ce justificatif ?",
+      "approveDesc": "En approuvant, la commande est soldée et l'abonnement devient actif.",
+      "approvedMsg": "Paiement approuvé : l'abonnement est actif.",
+      "rejectedMsg": "Justificatif refusé.",
+      "rejectPrompt": "Motif du refus (le payeur le verra)",
+      "notFound": "Impossible de trouver ce justificatif."
     }
   }
 }

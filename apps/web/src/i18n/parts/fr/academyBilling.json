@@ -87,6 +87,16 @@
     "promoOff": "−{pct}% par prélèvement",
     "promoOffFixed": "−{amount} par prélèvement",
     "promoUntil": "jusqu'au {date}",
-    "promoCyclesLeft": "{count} prélèvements réduits restants"
+    "promoCyclesLeft": "{count} prélèvements réduits restants",
+    "payViaTitle": "Moyen de facturation",
+    "payViaCard": "Carte (débit automatique)",
+    "payViaTransfer": "Virement",
+    "payViaTransferHint": "Tu paies par virement à chaque cycle et tu envoies le justificatif ; l'équipe Omnidance le valide.",
+    "subscribeTransfer": "S'abonner par virement · {amount}/{period}",
+    "transferLabel": "Virement",
+    "statusPendingPayment": "Paiement en cours d'examen",
+    "pendingPaymentHint": "Ton abonnement attend le justificatif approuvé. Envoie le justificatif ou change de moyen de facturation.",
+    "pendingPaymentCta": "Envoyer le justificatif",
+    "changePayVia": "Changer de moyen de facturation"
   }
 }

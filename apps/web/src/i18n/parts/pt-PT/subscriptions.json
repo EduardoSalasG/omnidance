@@ -27,6 +27,12 @@
     "failedCard": "Não foi possível registar o teu cartão",
     "resumeCard": "Registar cartão",
     "nextChargeAmount": "Próxima cobrança: {date} · {amount}",
-    "cancelOk": "Subscrição cancelada. Manténs o acesso até ao fim do período pago."
+    "cancelOk": "Subscrição cancelada. Manténs o acesso até ao fim do período pago.",
+    "returnToSubscription": "Ir para a minha subscrição",
+    "consentTransfer": "Subscrição por transferência: pagas {amount} a cada {period} e envias o comprovativo. Avisamos-te antes de cada vencimento.",
+    "consentCheckTransfer": "Compreendo que pagarei por transferência em cada período",
+    "pendingPayment": "A tua subscrição está à espera do comprovativo aprovado. Se já pagaste, envia-o para a ativar.",
+    "pendingPaymentBadge": "Pagamento em revisão",
+    "pendingPaymentCta": "Completar pagamento"
   }
 }

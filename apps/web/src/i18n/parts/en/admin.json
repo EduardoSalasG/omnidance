@@ -259,7 +259,8 @@
       "cities": "Cities",
       "citiesDesc": "Editorial guide per city (scene, nights, tips)",
       "promos": "Promos",
-      "prices": "Pricing"
+      "prices": "Pricing",
+      "claims": "Receipts"
     },
     "academies": {
       "desc": "Student base health per academy: segment distribution, average score and standout or at-risk students.",
@@ -412,7 +413,8 @@
           "PENDING_CARD": "Pending card",
           "CANCEL_PENDING": "Scheduled cancellation",
           "CANCELED": "Cancelled",
-          "FAILED_CARD": "Card declined"
+          "FAILED_CARD": "Card declined",
+          "PENDING_PAYMENT": "Payment under review"
         },
         "revenue": "Academy revenue",
         "noRevenue": "No revenue recorded."
@@ -703,7 +705,8 @@
         "PAST_DUE": "Past due",
         "CANCEL_PENDING": "Cancels at cycle end",
         "CANCELED": "Cancelled",
-        "FAILED_CARD": "Card failed"
+        "FAILED_CARD": "Card failed",
+        "PENDING_PAYMENT": "Payment under review"
       }
     },
     "cities": {
@@ -820,6 +823,36 @@
       "cycleSemiannual": "Semiannual",
       "cycleAnnual": "Annual",
       "retry": "Retry"
+    },
+    "claims": {
+      "title": "Subscription receipts",
+      "desc": "Receipts for platform subscriptions paid by transfer (academies and Producer Pro).",
+      "queueTitle": "To validate",
+      "queueDesc": "Approve to activate the subscription; reject with a reason the payer will see.",
+      "queueEmpty": "No pending receipts.",
+      "queueEmptyDesc": "When an academy or producer pays their subscription by transfer, it will appear here.",
+      "historyTitle": "History",
+      "orderPlatformSub": "Subscription",
+      "reviewedByApproved": "Approved by {name}",
+      "reviewedByRejected": "Rejected by {name}",
+      "statusApproved": "Approved",
+      "statusRejected": "Rejected",
+      "detailTitle": "Receipt",
+      "fieldPayer": "Payer",
+      "fieldOrder": "Order",
+      "fieldAmount": "Amount",
+      "fieldMethod": "Method",
+      "fieldOrderRef": "Order no.",
+      "fieldSentAt": "Sent",
+      "fieldReviewedAt": "Reviewed",
+      "fieldPaidAt": "Paid",
+      "fieldReviewNote": "Reason",
+      "approveTitle": "Approve this receipt?",
+      "approveDesc": "On approval, the order is settled and the subscription becomes active.",
+      "approvedMsg": "Payment approved: the subscription is now active.",
+      "rejectedMsg": "Receipt rejected.",
+      "rejectPrompt": "Reason for rejection (the payer will see it)",
+      "notFound": "We couldn't find this receipt."
     }
   }
 }

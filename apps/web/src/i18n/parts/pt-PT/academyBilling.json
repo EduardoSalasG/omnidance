@@ -87,6 +87,16 @@
     "promoOff": "−{pct}% por cobrança",
     "promoOffFixed": "−{amount} por cobrança",
     "promoUntil": "até {date}",
-    "promoCyclesLeft": "restam {count} cobranças com desconto"
+    "promoCyclesLeft": "restam {count} cobranças com desconto",
+    "payViaTitle": "Meio de cobrança",
+    "payViaCard": "Cartão (débito automático)",
+    "payViaTransfer": "Transferência",
+    "payViaTransferHint": "Pagas por transferência em cada ciclo e envias o comprovativo; a equipa Omnidance valida-o.",
+    "subscribeTransfer": "Subscrever por transferência · {amount}/{period}",
+    "transferLabel": "Transferência",
+    "statusPendingPayment": "Pagamento em revisão",
+    "pendingPaymentHint": "A tua subscrição está à espera do comprovativo aprovado. Envia o comprovativo ou muda o meio de cobrança.",
+    "pendingPaymentCta": "Enviar comprovativo",
+    "changePayVia": "Mudar de meio de cobrança"
   }
 }
