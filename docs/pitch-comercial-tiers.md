@@ -318,16 +318,20 @@ ambos lados del loop en una venta).
 - Mora: **5 días de gracia** → bloqueo (academia) / pérdida de
   features (productor); el alumno/asistente nunca pierde su data.
 
-## 5. Divergencias detectadas al armar este doc (nov-2026)
+## 5. Divergencias detectadas al armar este doc (nov-2026, RESUELTAS)
 
-- `TierPrice` en la DB de dev fue editado por `/admin` con valores que
-  no calzan con la spec ni el seed (`COBROS` $39.990, `STUDIO`
-  $79.990, `PRO` $119.990, `PRO_STARTER` $99.990, `PRO_GROWTH`
-  $249.990). La spec y params dicen $39.500/$79.700/$120.500 y
-  $79.700/$169.500. Confirmar si los .990 fueron prueba o decisión: la
-  spec explícitamente prohíbe charm pricing (terminaciones 200/500/700
-  a propósito).
-- `academy_billing.trial_days` en dev vale 30; la spec dice 15.
+Resolución del owner (2026-11-10): la spec manda - se prohíbe charm
+pricing (terminaciones 200/500/700 a propósito) y el trial es 15d.
+Los .990 y `trial_days=30` en dev DB fueron ediciones de prueba por
+`/admin`; dev DB quedó restaurada a los valores de spec/params
+(`TierPrice` CL: COBROS 39.500/218.040/402.900, STUDIO
+79.700/439.944/812.940, PRO 120.500/665.160/1.229.100, PRO_STARTER y
+PRO_GROWTH 79.700/439.944/812.940, PRO_BIG 169.500/935.640/1.728.900;
+params `*_monthly_clp` coherentes, `academy_billing.trial_days`=15).
+Nota: `producer_tier.starter_monthly_clp` = `growth_monthly_clp` =
+79.700 **no es divergencia** - el Starter legacy (≤$2,5M) y el
+Standard (≤$8M) comparten precio mensual por spec.
+
 - La landing de productores muestra 3 cards (Free/Standard/Pro) sin el
   tier Starter de $79.700 ≤$2,5M que sigue en el price book: coherente
   con "PRO_STARTER ya no se vende" pero el código acepta subs nuevas
