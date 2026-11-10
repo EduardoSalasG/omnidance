@@ -19,7 +19,7 @@ sequenceDiagram
     M-->>U: email
     U->>A: GET /auth/verify?token=…
     A->>DB: consume token (1 uso, no expirado) + upsertByEmail<br/>+ estampa consentVersion/consentAcceptedAt
-    Note over A,DB: email sin cuenta → la Person nace acá y dispara<br/>notify OPERATIONAL user.registered a cada admin APPROVED<br/>(best-effort; cuenta existente = solo sesión, sin aviso)
+    Note over A,DB: email sin cuenta → la Person nace acá y dispara<br/>notify OPERATIONAL user.registered a cada admin APPROVED<br/>(best-effort#59; cuenta existente = solo sesión, sin aviso)
     A->>A: mint JWT (jose) - personId
     A-->>W: Set-Cookie omnidance_session (HttpOnly)
     W->>A: GET /me → {person, roles, roleStates}
@@ -82,7 +82,7 @@ sequenceDiagram
     participant DB as Postgres
 
     U->>W: POST /checkout/quote {eventId, code?}
-    W->>API: quote → {listPrice, discount, total}<br/>(total = lista − descuento; sin cargo al comprador)
+    W->>API: quote → {listPrice, discount, total}<br/>(total = lista − descuento#59; sin cargo al comprador)
     U->>API: POST /checkout {eventId, quantity?, recipientIds?, code?}
     API->>API: PricingService + valida DiscountCode<br/>(vigencia, usos, XOR %/monto)<br/>+ recipients: existen, amigos ACCEPTED, sin ACTIVE<br/>+ recipientIds.length ≤ quantity-1
     API->>DB: tx: Payment(PENDING, refId=tkt_…,<br/>quantity, recipients, eventId, discountCodeId)<br/>+ desglose fee congelado (feeMode MANAGED, rate,<br/>neto/IVA, gatewayExpected, producerNet)<br/>+ FEE_ASSESSED al ledger
@@ -185,7 +185,7 @@ sequenceDiagram
     W->>API: POST /checkins/sync {items[≤500]}
     API->>API: por ítem: verify JWT → register(inAt=scannedAt,<br/>method=OFFLINE, clientRef) → misma lógica de siempre
     API-->>W: results[] {synced | duplicate | invalid_token | error}
-    W->>IDB: synced → sale de la cola;<br/>duplicate → conflicto visible (decisión humana)
+    W->>IDB: synced → sale de la cola#59;<br/>duplicate → conflicto visible (decisión humana)
 ```
 
 El registro **manual offline** sigue el mismo camino: el staff busca por nombre sobre el manifest cacheado (sin personId crudo) y el ítem se encola con `personId` en vez de `qrToken`. Un `clientRef` existente responde `duplicate` sin insertar; el retry del dispositivo es exacto. La integridad del QR se conserva: el dispositivo solo lee el payload para mostrar el nombre; la verificación HMAC sigue siendo exclusiva del server al sincronizar (migración a firma asimétrica para verificación offline real quedó fuera de scope).
@@ -358,6 +358,7 @@ sequenceDiagram
         Note over Dom: bayes (Σv+C·m)/(n+C), ≥3 eval<br/>leader/follower + pareja mutua ≥4
         Dom->>DB: PersonBadge prime_time_crown +7d (idempotente)
         API-->>DJ: {bestLeader, bestFollower, coupleOfTheNight}
+    end
 ```
 
 ## Puntos de temporada (PointLedger)
@@ -389,7 +390,7 @@ sequenceDiagram
     participant DB as Postgres
 
     U->>API: POST /friends {personId} → PENDING + notifica al destinatario
-    Note over DB: aId=solicitante, bId=destinatario<br/>solo bId acepta; ambos pueden borrar
+    Note over DB: aId=solicitante, bId=destinatario<br/>solo bId acepta#59; ambos pueden borrar
     U->>API: GET /friends → {friends, pendingReceived, pendingSent}
 ```
 
@@ -639,7 +640,7 @@ sequenceDiagram
     API->>GW: createOrder (refId wks_<classId>_<uuid>, orderType WORKSHOP)
     API-->>U: {paymentUrl, paymentId}
     GW->>WH: POST /payments/webhook PAID
-    WH->>DB: tx: paidNow + ClassBooking BOOKED con paymentId<br/>(upsert sobre WAITLIST/CANCELLED propio; 409 si llena)
+    WH->>DB: tx: paidNow + ClassBooking BOOKED con paymentId<br/>(upsert sobre WAITLIST/CANCELLED propio#59; 409 si llena)
     WH->>DB: notifySafe payment.class_dropin
 ```
 
@@ -728,7 +729,7 @@ sequenceDiagram
     participant DB as Postgres
 
     U->>API: POST /checkout/membership-subscription<br/>{planId, acceptRecurring:true}
-    API->>ACCT: activeForAcademy → adaptador BYO<br/>(sin cuenta/motor → academy.no_gateway;<br/>collectionsBlockedAt → collections_blocked;<br/>TRANSFER nunca consulta la cuenta)
+    API->>ACCT: activeForAcademy → adaptador BYO<br/>(sin cuenta/motor → academy.no_gateway#59;<br/>collectionsBlockedAt → collections_blocked#59;<br/>TRANSFER nunca consulta la cuenta)
     API->>DB: tx + pg_advisory_xact_lock(person):<br/>barre PENDING_CARD pendientes,<br/>crea/reusa PENDING_CARD con gatewayAccountId
     API->>GW: ensurePlan omni_<planId> (lazy → remoteRefs<br/>"FLOW:<accountId>:CLP") + customer/create<br/>(lazy → gatewayCustomerIds "FLOW:<accountId>")
     alt sin tarjeta registrada
@@ -761,7 +762,7 @@ sequenceDiagram
     WH->>API: {token} → reconcileAll scoped ?account= (200 siempre)
     GET->>GW: subscription/get (refresh activo del detalle)
     GW-->>API: invoices[] + status + next_invoice_date + morose
-    Note over API,GW: recuperación de mora (overdue-invoice-collect):<br/>invoice impaga sin next_attemp_date → collect() (customer/collect)<br/>sobre la tarjeta del pagador, ANTES de notificar mora.<br/>COLLECTED → Payment renewal PAID + settle (mora resuelta, sin aviso);<br/>FAILED → Payment FAILED + mora sigue su curso (dedup: 1 intento/invoice);<br/>PENDING (sin tarjeta) → collectUrl en la notificación de mora;<br/>error de API → sin Payment, reintenta en el próximo barrido
+    Note over API,GW: recuperación de mora (overdue-invoice-collect):<br/>invoice impaga sin next_attemp_date → collect() (customer/collect)<br/>sobre la tarjeta del pagador, ANTES de notificar mora.<br/>COLLECTED → Payment renewal PAID + settle (mora resuelta, sin aviso)#59;<br/>FAILED → Payment FAILED + mora sigue su curso (dedup: 1 intento/invoice)#59;<br/>PENDING (sin tarjeta) → collectUrl en la notificación de mora#59;<br/>error de API → sin Payment, reintenta en el próximo barrido
     alt invoice pagada nueva (dedup lastInvoiceId + refId único)
         API->>DB: Payment PENDING mem_<planId>_<invoiceId><br/>+ ORDER_CREATED<br/>BYO: +gatewayAccountId +academyTakeRate/Clp<br/>(academy_fee.net_pct - entra al statement del take)
         API->>DB: settleMembership → PAID + RENEWAL_SETTLED<br/>+ Enrollment.endsAt extendido
@@ -773,7 +774,7 @@ sequenceDiagram
     end
     opt morose=1 con invoice impaga (dedup por invoiceId)
         API->>DB: RENEWAL_FAILED + notify membership.renewal_failed
-        Note over API,DB: sin grace period - el enrollment expira<br/>solo en endsAt; la sub sigue viva (Flow reintenta)
+        Note over API,DB: sin grace period - el enrollment expira<br/>solo en endsAt#59; la sub sigue viva (Flow reintenta)
     end
 ```
 
@@ -816,7 +817,7 @@ sequenceDiagram
 
     participant CRON as subscriptions.reconcile (cron 09:00)
     CRON->>TLS: sweepTrialLastDay (ventana 24h,<br/>dedup *trialEndNotifiedAt)
-    TLS->>DB: PlatformPromo trial-conv-&lt;YYYYMMDD&gt;<br/>(50% 1er mes, whitelist, solo ese día)
+    TLS->>DB: PlatformPromo trial-conv-‹YYYYMMDD›<br/>(50% 1er mes, whitelist, solo ese día)
     TLS->>A: correo último día + oferta
     CRON->>TLS: sweepTrialEnded
     TLS->>DB: ActivityEvent trial.ended / access.ended
@@ -880,7 +881,7 @@ sequenceDiagram
     API->>DB: tx: Payout PENDING + PayoutLine por deducción<br/>(GATEWAY_FEE_PASSTHROUGH / PLATFORM_FEE_NET /<br/>PLATFORM_FEE_VAT / OWN_METHOD_* / MANUAL_ADJUSTMENT)<br/>+ PAYOUT_LINE_ASSIGNED por orden al ledger<br/>+ AuditLog (idempotente actor+período)
     Ad->>API: POST /admin/payouts/:id/approve → APPROVED
     Ad->>API: POST /admin/payouts/:id/pay {evidenceUrl} → PAID + paidAt
-    Pr->>API: GET /me/payouts (crm.manage) → solo los suyos<br/>(net = gross − Σ líneas; cada línea rastrea a su orden)
+    Pr->>API: GET /me/payouts (crm.manage) → solo los suyos<br/>(net = gross − Σ líneas#59; cada línea rastrea a su orden)
 ```
 
 ## CRM - score → segmento → campaña/trigger
@@ -919,7 +920,7 @@ sequenceDiagram
     NS->>WS: emitToPerson → room person:{id}
     WS-->>U: event "notification" (socket.io,<br/>auth por cookie de sesión en handshake)
     NS->>WP: sendToPerson (PushTokens de la persona)
-    WP-->>U: Web Push (VAPID; no-op seguro sin keys,<br/>404/410 limpia el token muerto)
+    WP-->>U: Web Push (VAPID#59; no-op seguro sin keys,<br/>404/410 limpia el token muerto)
     Note over NS: ambos best-effort - un fallo de WS/push<br/>nunca rompe el notify ni el dominio origen
 ```
 
@@ -934,7 +935,7 @@ sequenceDiagram
 
     Ad->>API: POST /admin/payouts/generate {actorType, actorId, período}
     API->>DB: idempotente: payout existente → devuelve sin recalcular
-    Note over API,DB: PRODUCER: tickets de sus eventos + series-pass de sus series<br/>ACADEMY/VENUE: tickets PAID de eventos con<br/>academyId|venueId=actorId AND producerId=null<br/>(entidad produjo directo - con productor, éste devenga)<br/>gross = Σ amount · net = gross − Σ PayoutLine<br/>(MANAGED: all-in% = pasarela + neto + IVA; OWN_*: comisión<br/>devengada neteada; ACADEMY: solo pasarela al costo;<br/>legacy feeMode null: regla vieja fee real + pct)
+    Note over API,DB: PRODUCER: tickets de sus eventos + series-pass de sus series<br/>ACADEMY/VENUE: tickets PAID de eventos con<br/>academyId|venueId=actorId AND producerId=null<br/>(entidad produjo directo - con productor, éste devenga)<br/>gross = Σ amount · net = gross − Σ PayoutLine<br/>(MANAGED: all-in% = pasarela + neto + IVA#59; OWN_*: comisión<br/>devengada neteada#59; ACADEMY: solo pasarela al costo#59;<br/>legacy feeMode null: regla vieja fee real + pct)
     API->>DB: create Payout PENDING + AuditLog PAYOUT_GENERATE
     Ad->>API: POST /admin/payouts/:id/approve → APPROVED
     Ad->>API: POST /admin/payouts/:id/pay {evidenceUrl} → PAID + paidAt
@@ -952,7 +953,7 @@ flowchart TD
     B -->|set| C[rate = override del evento<br/>solo admin lo fija]
     B -->|null| D{producerParams.platformFeePct?}
     D -->|set| C
-    D -->|null| E[rate = param fees.managed_allin_pct<br/>default 10 - la "oferta" es bajarlo ej. 8]
+    D -->|null| E["rate = param fees.managed_allin_pct<br/>default 10 - la #quot;oferta#quot; es bajarlo ej. 8"]
     C --> F[deduction = amount × rate<br/>= gatewayExpected card_pct<br/>+ platformFeeNet + platformFeeVat iva_pct]
     E --> F
     F --> G[Payment.amount = total lista<br/>producerNetClp = amount − deduction]
@@ -979,12 +980,12 @@ sequenceDiagram
     API-->>P: notificación academy.sale_deal.responded
     A->>C: comparte /eventos/:id?a=<academyId>
     C->>API: landing persiste ?a= en sessionStorage → POST /checkout/ticket {academyId}
-    Note over API: solo channel=PRESALE + acuerdo ACTIVE<br/>(evento o serie) + cupo no agotado atribuyen;<br/>si no, la orden sale normal
+    Note over API: solo channel=PRESALE + acuerdo ACTIVE<br/>(evento o serie) + cupo no agotado atribuyen#59;<br/>si no, la orden sale normal
     API-->>C: orden PAID con soldByAcademyId + academyCommissionClp<br/>(round(unitListPrice × pct) × quantity - congelado por orden)
-    Note over API: deuda = Σ comisión PAID del alcance − Σ settlements;<br/>producerNetClp y payout NO se tocan
+    Note over API: deuda = Σ comisión PAID del alcance − Σ settlements#59;<br/>producerNetClp y payout NO se tocan
     P->>A: paga la comisión por fuera (transferencia)
     P->>API: POST /academy-deals/:id/mark-paid {evidenceUrl?}
-    Note over API: AcademySaleSettlement materializa el monto del momento;<br/>ventas posteriores dejan remanente pendiente
+    Note over API: AcademySaleSettlement materializa el monto del momento#59;<br/>ventas posteriores dejan remanente pendiente
 ```
 
 ### Canal código (academy-presale-codes) - la academia cobra fuera
@@ -998,14 +999,14 @@ sequenceDiagram
     participant API
 
     A->>API: POST /academy-deals/:id/codes
-    Note over API: staff con capability payments; acuerdo ACTIVE;<br/>cupo = códigos emitidos + tickets PAID por link < maxTickets.<br/>Check + insert bajo advisory lock por acuerdo<br/>(pg_advisory_xact_lock dealcode:<id>) - emisiones<br/>concurrentes serializan, la segunda ve el cupo ya gastado
+    Note over API: staff con capability payments#59; acuerdo ACTIVE#59;<br/>cupo = códigos emitidos + tickets PAID por link < maxTickets.<br/>Check + insert bajo advisory lock por acuerdo<br/>(pg_advisory_xact_lock dealcode:<id>) - emisiones<br/>concurrentes serializan, la segunda ve el cupo ya gastado
     API-->>A: DiscountCode ACADEMY_PRESALE SLUG-DDMMM-XXXX<br/>(100% off, maxUses 1, scope del acuerdo)
     A->>C: cobra la preventa fuera + entrega el código
     C->>API: POST /checkout/ticket {discountCode}
     Note over API: isRedeemable (scope evento/serie) + channel PRESALE<br/>+ quantity=1 + acuerdo ACTIVE - si no, InvalidDiscount
     API-->>C: orden $0 FREE atribuida (soldByAcademyId +<br/>academyCommissionClp congelado) - settle inmediato
     Note over API: en la tx de settle el consumo es atómico<br/>(usedCount < maxUses) - doble redención revierte
-    Note over API: saldo = Σ comisión link − Σ (lista − comisión) códigos<br/>− Σ settlements; pending<0 = academia debe al productor
+    Note over API: saldo = Σ comisión link − Σ (lista − comisión) códigos<br/>− Σ settlements#59; pending<0 = academia debe al productor
     A->>P: paga por fuera (transferencia)
     P->>API: POST /academy-deals/:id/mark-paid (amountDue signed)
 ```
