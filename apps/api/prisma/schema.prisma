@@ -102,7 +102,7 @@ model Person {
   academyPromosCreated      AcademyPromo[] @relation("AcademyPromoCreator")
   paymentClaims  PaymentClaim[]
   claimsReviewed PaymentClaim[] @relation("ClaimReviewer")
-  gatewayAccounts ProducerGatewayAccount[] @relation("ProducerGatewayAccounts")
+  gatewayAccounts ActorGatewayAccount[] @relation("ProducerGatewayAccounts")
   paymentMethods ProducerPaymentMethod[] @relation("ProducerPaymentMethods")
   ticketClaims   TicketClaim[]
   ticketClaimsAsProducer TicketClaim[] @relation("TicketClaimProducer")
@@ -976,6 +976,13 @@ model Academy {
   // non-null = academia bloqueada por mora (consola read-only, fuera de
   // explorar, sin reservas nuevas). RENEWAL_SETTLED lo limpia.
   billingBlockedAt  DateTime?
+  // Bloqueo de cobranza integrada por liquidación impaga (spec
+  // academy-byo-collections): non-null = el checkout BYO de sus alumnos
+  // rechaza órdenes por pasarela (el claim manual por comprobante
+  // sigue). Scope distinto de billingBlockedAt (mora SaaS completa):
+  // el reconcile de AcademyCollectionsStatement lo setea pasada la
+  // gracia y lo libera al pagar.
+  collectionsBlockedAt DateTime?
   createdAt DateTime @default(now())
 
   instructors  AcademyInstructor[]
@@ -994,6 +1001,8 @@ model Academy {
   segmentSnapshots AcademySegmentSnapshot[]
   activityEvents    ActivityEvent[]
   invites           AcademyInvite[]
+  gatewayAccounts   ActorGatewayAccount[]
+  collectionsStatements AcademyCollectionsStatement[]
 
   @@index([cityId])
   classLevels ClassLevel[]
@@ -1578,10 +1587,13 @@ model Payment {
   currency           String   @default("CLP") // ISO 4217 - multi-país
   gateway   String        @default("FLOW")
   gatewayRef String?
-  // Cuenta del productor que cobró la orden (spec
-  // producer-gateway-accounts): null = pasarela de la plataforma.
+  // Cuenta propia del actor que cobró la orden (specs
+  // producer-gateway-accounts + academy-byo-collections): null =
+  // pasarela de la plataforma. En academias, non-null marca orden BYO -
+  // la plata fue directo a su cuenta y el take se factura mes vencido
+  // (nunca entra a un payout).
   gatewayAccountId String?
-  gatewayAccount   ProducerGatewayAccount? @relation(fields: [gatewayAccountId], references: [id])
+  gatewayAccount   ActorGatewayAccount? @relation(fields: [gatewayAccountId], references: [id])
   // Verdad monetaria reportada por la pasarela al confirmar PAID - auditable
   // contra la tarifa esperada (~3.19% tarjeta) y contra Payment.amount.
   gatewayFeeClp         Int?
@@ -1614,6 +1626,21 @@ model Payment {
   // maxCycles por alumno.
   academyPromo   AcademyPromo? @relation(fields: [academyPromoId], references: [id], onDelete: SetNull)
   academyPromoId String?
+  // Take de cobranza BYO de academia (spec academy-byo-collections):
+  // congelado al crear la orden con el `academy_fee.net_pct` vigente -
+  // se devenga solo si la orden queda PAID por la pasarela propia y se
+  // factura a la academia mes vencido (AcademyCollectionsStatement).
+  // null en órdenes por nuestra pasarela, manuales o de productores.
+  academyTakeRate  Float?
+  academyTakeClp   Int?
+  // Cobro de una liquidación de take (orderType PLATFORM_CHARGE que
+  // salda el statement - su PAID lo marca PAID y libera el bloqueo).
+  collectionsStatementPaid AcademyCollectionsStatement?
+  // Liquidación mensual que facturó el take de esta orden (spec
+  // academy-byo-collections): non-null = ya entró a un statement - la
+  // emisión nunca cobra dos veces la misma orden.
+  academyStatement   AcademyCollectionsStatement? @relation("StatementPayments", fields: [academyStatementId], references: [id])
+  academyStatementId String?
   status    PaymentStatus @default(PENDING)
   createdAt DateTime      @default(now())
 
@@ -1708,6 +1735,47 @@ model Payout {
 
   lines       PayoutLine[]
   billingDoc  BillingDocument?
+}
+
+// Liquidación mensual del take BYO de una academia (spec
+// academy-byo-collections): documento de cobro mes vencido por la
+// cobranza automatizada - la plataforma FACTURA, nunca liquida payouts
+// de academia. Emisión idempotente por (academyId, period): el job del
+// cierre agrega las órdenes BYO gateway-PAID del período (Payment
+// .academyTakeClp congelado por orden) en neto + IVA 19% y la cobra por
+// PLATFORM_CHARGE (collect sobre el medio registrado del owner o link).
+// status: PENDING (emitida, por cobrar) | PAID (payment saldó) | VOID.
+// Impaga pasada dueAt → reconcile marca Academy.collectionsBlockedAt;
+// pagada → lo libera.
+model AcademyCollectionsStatement {
+  id          String   @id @default(cuid())
+  academy     Academy  @relation(fields: [academyId], references: [id])
+  academyId   String
+  // Período liquidado: mes calendario CL "YYYY-MM" + bordes UTC
+  // persistidos para el query de órdenes.
+  period      String
+  periodStart DateTime
+  periodEnd   DateTime
+  orderCount  Int      // operaciones BYO gateway-PAID del período
+  grossClp    Int      // Σ amount cobrado por la pasarela propia
+  takeRate    Float    // snapshot de academy_fee.net_pct al emitir
+  takeNetClp  Int      // Σ academyTakeClp devengado (neto)
+  takeVatClp  Int      // IVA sobre el take neto (tax.iva_pct)
+  totalClp    Int      // takeNetClp + takeVatClp - lo que se cobra
+  currency    String   @default("CLP")
+  status      String   @default("PENDING") // PENDING | PAID | VOID
+  // Payment que la salda (PLATFORM_CHARGE del collect - su PAID libera
+  // el bloqueo). @unique: una orden de cobro por statement.
+  payment     Payment? @relation(fields: [paymentId], references: [id])
+  paymentId   String?  @unique
+  dueAt       DateTime // fin de gracia → mora (emisión + academy_billing.grace_days)
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  payments    Payment[] @relation("StatementPayments")
+
+  @@unique([academyId, period])
+  @@index([status, dueAt])
 }
 
 // Destino de desembolso declarado por el actor (spec
@@ -2057,16 +2125,22 @@ model Lead {
 
 // ═══════════════════ PASARELA / AUDITORÍA ═══════════════════
 
-/// Credenciales de pasarela propias del productor (spec
-/// producer-gateway-accounts): la venta de sus eventos/series se cobra
-/// en SU cuenta Flow/MP, la plata va directo a él y la plataforma
-/// devenga su comisión (all-in − card%) neteada en el payout
-/// (feeMode OWN_GATEWAY). Las credenciales se guardan cifradas
+/// Credenciales de pasarela propias de un actor (specs
+/// producer-gateway-accounts + academy-byo-collections): la venta se
+/// cobra en SU cuenta Flow/MP, la plata va directo a él y la plataforma
+/// devenga su comisión por fuera (productor: all-in − card% neteado en
+/// el payout; academia: take `academy_fee.net_pct` facturado mes
+/// vencido). Dueño = exactamente uno de producerId/academyId (XOR
+/// validado en el service). Las credenciales se guardan cifradas
 /// AES-256-GCM (`PRODUCER_GATEWAY_KEY`) - nunca salen por API.
-model ProducerGatewayAccount {
+/// El modelo se llama ActorGatewayAccount pero la tabla hereda el
+/// nombre original (@@map) - no hubo rename de tabla.
+model ActorGatewayAccount {
   id             String   @id @default(cuid())
-  producerId     String   // Person.id con rol PRODUCER
-  producer       Person   @relation("ProducerGatewayAccounts", fields: [producerId], references: [id])
+  producerId     String?  // Person.id con rol PRODUCER (null cuando es de academia)
+  producer       Person?  @relation("ProducerGatewayAccounts", fields: [producerId], references: [id])
+  academyId      String?  // Academy.id dueña de la cuenta (spec academy-byo-collections)
+  academy        Academy? @relation(fields: [academyId], references: [id])
   provider       String   // FLOW | MERCADOPAGO | STUB (STUB solo no-prod)
   credentialsEnc String   // blob v1.<iv>.<tag>.<ct> base64 del JSON de credenciales
   keyMask        String   // últimos 4 del apiKey/token ("••••1234") - lo único visible
@@ -2077,8 +2151,11 @@ model ProducerGatewayAccount {
   updatedAt      DateTime @updatedAt
 
   payments Payment[]
+  membershipSubscriptions MembershipSubscription[]
 
   @@index([producerId, status])
+  @@index([academyId, status])
+  @@map("ProducerGatewayAccount")
 }
 
 // Medios de cobro propios del productor (spec producer-own-methods):
@@ -2229,12 +2306,20 @@ model MembershipSubscription {
   academyPromo       AcademyPromo?  @relation(fields: [academyPromoId], references: [id], onDelete: SetNull)
   academyPromoId     String?
   planChargeClp      Int?
+  // Cuenta BYO de la academia que procesa la suscripción (spec
+  // academy-byo-collections): non-null = el motor de cobro es el
+  // adaptador de esa cuenta (customer/plan espejo/remoto en SU
+  // proveedor); null = suscripción por la pasarela de plataforma
+  // (legacy pre-BYO o subs vigentes del cutover).
+  gatewayAccountId   String?
+  gatewayAccount     ActorGatewayAccount? @relation(fields: [gatewayAccountId], references: [id])
   createdAt          DateTime       @default(now())
   canceledAt         DateTime?
 
   @@index([personId])
   @@index([academyId])
   @@index([status, nextInvoiceAt])
+  @@index([gatewayAccountId])
 }
 
 /// Suscripción DE la plataforma (spec academy-saas-billing): la academia

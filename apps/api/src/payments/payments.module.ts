@@ -46,6 +46,8 @@ import { AcademySalesService } from "./application/academy-sales.service";
 import { AcademyPromosService } from "./application/academy-promos.service";
 import { SubscriptionsScheduler } from "./infrastructure/subscriptions.scheduler";
 import { PlatformChargesScheduler } from "./infrastructure/platform-charges.scheduler";
+import { AcademyCollectionsService } from "./application/academy-collections.service";
+import { AcademyCollectionsScheduler } from "./infrastructure/academy-collections.scheduler";
 import { TicketsScheduler } from "./infrastructure/tickets.scheduler";
 import { WalletController } from "./infrastructure/wallet.controller";
 import { WalletService } from "./application/wallet.service";
@@ -98,6 +100,8 @@ import { SocialPassController } from "./infrastructure/social-pass.controller";
     TrialLifecycleService,
     SubscriptionsScheduler,
     PlatformChargesScheduler,
+    AcademyCollectionsService,
+    AcademyCollectionsScheduler,
     TicketsScheduler,
     TicketDayOfService,
     WalletService,
@@ -138,6 +142,7 @@ import { SocialPassController } from "./infrastructure/social-pass.controller";
     PlatformChargesService,
     TrialLifecycleService,
     AcademyPromosService,
+    AcademyCollectionsService,
   ],
 })
 export class PaymentsModule {}

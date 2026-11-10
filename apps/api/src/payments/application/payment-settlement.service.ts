@@ -1575,6 +1575,46 @@ export class PaymentSettlementService {
     });
 
     if (paidNow) {
+      // Take BYO de academia (spec academy-byo-collections): un
+      // PLATFORM_CHARGE PAID puede saldar una liquidación mensual -
+      // marca el statement PAID al vuelo y libera
+      // collectionsBlockedAt si no quedan vencidas impagas. Va dentro
+      // de la misma consulta directa (sin dependencia al servicio de
+      // statements - evita el ciclo con PlatformChargesService); el
+      // reconcile diario cubre lo que este camino no alcance.
+      try {
+        const st =
+          await this.prisma.academyCollectionsStatement.findFirst({
+            where: { paymentId: payment.id, status: "PENDING" },
+            select: { id: true, academyId: true },
+          });
+        if (st) {
+          await this.prisma.academyCollectionsStatement.update({
+            where: { id: st.id },
+            data: { status: "PAID", paidAt: new Date() },
+          });
+          const overdue = await this.prisma.academyCollectionsStatement.count(
+            {
+              where: {
+                academyId: st.academyId,
+                status: "PENDING",
+                dueAt: { lte: new Date() },
+              },
+            },
+          );
+          if (overdue === 0) {
+            await this.prisma.academy.updateMany({
+              where: {
+                id: st.academyId,
+                collectionsBlockedAt: { not: null },
+              },
+              data: { collectionsBlockedAt: null },
+            });
+          }
+        }
+      } catch {
+        /* best-effort - el reconcile diario lo resuelve */
+      }
       const clp = new Intl.NumberFormat("es-CL", {
         style: "currency",
         currency: payment.currency ?? "CLP",

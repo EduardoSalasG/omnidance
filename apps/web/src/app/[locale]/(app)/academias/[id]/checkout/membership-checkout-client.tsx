@@ -99,6 +99,15 @@ export function MembershipCheckoutClient({
   const isStub =
     phase.kind === "awaiting" && phase.paymentUrl.startsWith("stub://");
 
+  // BYO (spec academy-byo-collections): el pago único por pasarela
+  // existe solo si la academia trajo su cuenta y no está en bloqueo de
+  // cobranza - sin él el checkout online es solo claim manual. Las
+  // subs CARD siguen en our-Flow interim (no dependen del BYO).
+  const gatewayAvailable = quote.gatewayAvailable !== false;
+  const gatewayNote = quote.collectionsBlocked
+    ? tco("academyCollectionsBlocked")
+    : tco("academyNoGateway");
+
   const academyHref = `/academias/${quote.academy.id}`;
   const checkoutHref = `${academyHref}/checkout?plan=${quote.plan.id}`;
 
@@ -185,7 +194,22 @@ export function MembershipCheckoutClient({
         return;
       }
       if (res.status === 400 || res.status === 404) {
-        showActionNotice({ text: t("planUnavailable"), error: true });
+        // BYO: código estable en `error` (spec academy-byo-collections)
+        // - copy honesto según si es "sin pasarela" o "cobranza en
+        // pausa"; el resto de 400/404 sigue en planUnavailable.
+        const body = (await res.json().catch(() => null)) as {
+          error?: unknown;
+        } | null;
+        const code = typeof body?.error === "string" ? body.error : "";
+        showActionNotice({
+          text:
+            code === "academy.no_gateway"
+              ? tco("academyNoGateway")
+              : code === "academy.collections_blocked"
+                ? tco("academyCollectionsBlocked")
+                : t("planUnavailable"),
+          error: true,
+        });
         setPhase({ kind: "form" });
         return;
       }
@@ -704,7 +728,8 @@ export function MembershipCheckoutClient({
           suscripción necesita la recurrencia de la pasarela. Va al
           FINAL del checkout: su CTA (continuar/enviar comprobante) es
           el botón de acción y debe quedar en la posición del pagar,
-          no a media página. */}
+          no a media página. Sin cuenta BYO la opción tarjeta no se
+          ofrece y el método propio es la única vía. */}
       {!isSub && (
         <ManualPayPanel
           academyId={quote.academy.id}
@@ -712,6 +737,8 @@ export function MembershipCheckoutClient({
           planPrice={quote.totalClp}
           onBlockingChange={setManualActive}
           returnHref={academyHref}
+          gatewayAvailable={gatewayAvailable}
+          gatewayNote={gatewayNote}
         />
       )}
 
@@ -725,7 +752,11 @@ export function MembershipCheckoutClient({
           {tc("retry")}
         </Button>
       ) : (phase.kind === "form" || phase.kind === "processing") &&
-        !manualActive ? (
+        !manualActive &&
+        // Sin pasarela BYO el pago único por tarjeta no existe: el
+        // CTA queda oculto y el panel manual es la única acción (la
+        // suscripción CARD sigue disponible - no depende del BYO).
+        (isSub || gatewayAvailable) ? (
         <div className="flex flex-col gap-2">
           <Button
             type="button"

@@ -162,6 +162,14 @@ describe("gap-closure: CRM transversal e2e", () => {
     ids.venueId = venue.id;
 
     const now = Date.now();
+    // Día 15 del mes civil anterior: siempre en el pasado y en un mes
+    // distinto del actual en cualquier TZ (mid-month evita los bordes).
+    // El score cuenta monthsContinuous por mes calendario - un offset
+    // fijo en días colapsa dos checkins al mismo mes según el día de
+    // corrida y hacía flakear el orden esperado.
+    const prevMonth15 = new Date(now);
+    prevMonth15.setUTCDate(15);
+    prevMonth15.setUTCMonth(prevMonth15.getUTCMonth() - 1);
     const mkEvent = (name: string, startsAt: Date) =>
       prisma.event.create({
         data: {
@@ -198,9 +206,12 @@ describe("gap-closure: CRM transversal e2e", () => {
       { eventId: ePast.id, personId: inactive.id, inAt: new Date(now - 50 * DAY_MS) },
       // newcomer: primera actividad hace 5d → NEW
       { eventId: eRecent.id, personId: newcomer.id, inAt: new Date(now - 5 * DAY_MS) },
-      // bringer: 40d + 10d + 2 referrals → BRINGS_PEOPLE
-      { eventId: ePast.id, personId: bringer.id, inAt: new Date(now - 40 * DAY_MS) },
-      { eventId: eRecent.id, personId: bringer.id, inAt: new Date(now - 10 * DAY_MS) },
+      // bringer: 45d (firstAt > newDays → nunca NEW) + día 15 del mes
+      // anterior + hoy (monthsContinuous ≥ 2 garantizado en cualquier
+      // fecha de corrida) + 2 referrals → BRINGS_PEOPLE
+      { eventId: ePast.id, personId: bringer.id, inAt: new Date(now - 45 * DAY_MS) },
+      { eventId: ePast.id, personId: bringer.id, inAt: prevMonth15 },
+      { eventId: eRecent.id, personId: bringer.id, inAt: new Date(now) },
     ];
     for (const c of checkins) {
       await prisma.checkin.create({ data: c });

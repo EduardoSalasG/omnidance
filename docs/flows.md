@@ -468,7 +468,7 @@ sequenceDiagram
     Note over WH,DB: vigencia rodante: MONTHLY +1m · QUARTERLY +3m ·<br/>SEMIANNUAL +6m · SINGLE +1d · PERIOD +periodDays<br/>CLASS_PACK sin fecha · renovación: base = endsAt vigente
 ```
 
-`Enrollment.endsAt` de compras online es rodante: base + duración del plan (renovar extiende desde el endsAt pagado). Enrollment no tiene @@unique(academyId,personId) - el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow). Los pagos MEMBERSHIP devengan a la academia en payouts (refId → plan → academyId; sin comisión - solo pasarela al costo como `GATEWAY_FEE_PASSTHROUGH`).
+`Enrollment.endsAt` de compras online es rodante: base + duración del plan (renovar extiende desde el endsAt pagado). Enrollment no tiene @@unique(academyId,personId) - el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow). Los pagos MEMBERSHIP históricos our-Flow devengan a la academia en payouts (refId → plan → academyId; sin comisión - solo pasarela al costo como `GATEWAY_FEE_PASSTHROUGH`); las órdenes nuevas van por la cuenta BYO de la academia y su take viaja en `AcademyCollectionsStatement` (spec academy-byo-collections), no en payout.
 
 ## Pago directo a la academia - comprobante → validación → vigencia (MANUAL)
 

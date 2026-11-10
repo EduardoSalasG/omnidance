@@ -57,7 +57,8 @@
       "configDesc": "Lotação por omissão e perfil público",
       "promos": "Promos",
       "promosDesc": "Bolsas e descontos nos teus planos",
-      "gridLabel": "Módulos"
+      "gridLabel": "Módulos",
+      "statements": "Extratos"
     },
     "today": {
       "title": "Aulas de hoje",

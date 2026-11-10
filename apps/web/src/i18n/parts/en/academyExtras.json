@@ -57,7 +57,8 @@
       "configDesc": "Default quorum and public profile",
       "promos": "Promos",
       "promosDesc": "Scholarships and discounts on your plans",
-      "gridLabel": "Modules"
+      "gridLabel": "Modules",
+      "statements": "Statements"
     },
     "today": {
       "title": "Today's classes",

@@ -14,6 +14,8 @@ import {
 } from "../domain/order-ref";
 import {
   CheckoutService,
+  AcademyCollectionsBlockedError,
+  AcademyGatewayUnavailableError,
   AcademyNotFoundError,
   AcademyUnavailableError,
   EventNotFoundError,
@@ -244,6 +246,15 @@ type PrismaMock = ReturnType<typeof mkPrisma>["prisma"];
 // siempre. Los tests OWN_GATEWAY sobreescriben activeForProducer.
 const accountsStub = {
   activeForProducer: vi.fn(async () => null),
+  // BYO de academia (spec academy-byo-collections): los describes de
+  // órdenes de academia lo sobreescriben con su `gw` - null = solo
+  // claim manual (sin pasarela online).
+  activeForAcademy: vi.fn(
+    async (): Promise<{
+      account: { id: string; provider: string };
+      gateway: PaymentGateway;
+    } | null> => null,
+  ),
   adapterFor: vi.fn(),
 };
 
@@ -1618,6 +1629,10 @@ describe("CheckoutService.membershipQuote", () => {
     fx = mkPrisma();
     pf = mkParams();
     const gw = mkGateway();
+    accountsStub.activeForAcademy.mockResolvedValue({
+      account: { id: "acct-ac1", provider: "STUB" },
+      gateway: gw.gateway,
+    });
     svc = new CheckoutService(
       fx.prisma as unknown as PrismaService,
       gw.gateway,
@@ -1748,6 +1763,7 @@ describe("CheckoutService.purchaseMembership", () => {
 
   const mkPlan = (over: Record<string, unknown> = {}) => ({
     id: "plan-1",
+    academyId: "ac-1",
     active: true,
     type: "MONTHLY",
     price: 15000,
@@ -1759,6 +1775,13 @@ describe("CheckoutService.purchaseMembership", () => {
     fx = mkPrisma();
     pf = mkParams();
     gw = mkGateway();
+    // BYO (spec academy-byo-collections): la academia cobra por SU
+    // adaptador - el mismo stub que el default para seguir asertando
+    // createOrder/paymentUrl.
+    accountsStub.activeForAcademy.mockResolvedValue({
+      account: { id: "acct-ac1", provider: "STUB" },
+      gateway: gw.gateway,
+    });
     fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
     svc = new CheckoutService(
       fx.prisma as unknown as PrismaService,
@@ -1866,6 +1889,53 @@ describe("CheckoutService.purchaseMembership", () => {
     await expect(buy()).rejects.toBeInstanceOf(PlanNotPurchasableError);
     expect(fx.payments).toHaveLength(0);
   });
+
+  // ─── BYO (spec academy-byo-collections) ───────────────────────────
+  it("academia BYO: la orden cobra por SU adaptador y congela el take", async () => {
+    const res = await buy();
+    const p = fx.payments[0]!;
+    expect(p.gatewayAccountId).toBe("acct-ac1");
+    expect(p.feeMode).toBe("ACADEMY");
+    // Take congelado: academy_fee.net_pct default 1,0 → 1% neto.
+    expect(p.academyTakeRate).toBe(1.0);
+    expect(p.academyTakeClp).toBe(150); // 1% de 15000
+    expect(accountsStub.activeForAcademy).toHaveBeenCalledWith("ac-1");
+    expect(res.paymentUrl).toContain("pay.example");
+  });
+
+  it("take editable por param academy_fee.net_pct", async () => {
+    pf.numbers.set("academy_fee.net_pct", 2.0);
+    await buy();
+    const p = fx.payments[0]!;
+    expect(p.academyTakeRate).toBe(2.0);
+    expect(p.academyTakeClp).toBe(300);
+  });
+
+  it("academia sin cuenta BYO → AcademyGatewayUnavailableError, sin orden", async () => {
+    accountsStub.activeForAcademy.mockResolvedValue(null);
+    await expect(buy()).rejects.toBeInstanceOf(
+      AcademyGatewayUnavailableError,
+    );
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("collectionsBlockedAt → AcademyCollectionsBlockedError, sin orden", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({
+        academy: {
+          active: true,
+          tier: "STUDIO",
+          collectionsBlockedAt: new Date(),
+        },
+      }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(
+      AcademyCollectionsBlockedError,
+    );
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+  });
 });
 
 describe("CheckoutService.purchaseClass / classQuote", () => {
@@ -1891,7 +1961,12 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
         dropInPrice: 9000,
         quorum: null,
       },
-      academy: { defaultQuorum: null, billingBlockedAt: null },
+      academy: {
+        id: "ac-1",
+        defaultQuorum: null,
+        billingBlockedAt: null,
+        collectionsBlockedAt: null,
+      },
     },
     ...over,
   });
@@ -1900,6 +1975,10 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
     fx = mkPrisma();
     pf = mkParams();
     gw = mkGateway();
+    accountsStub.activeForAcademy.mockResolvedValue({
+      account: { id: "acct-ac1", provider: "STUB" },
+      gateway: gw.gateway,
+    });
     fx.prisma.class.findUnique.mockResolvedValue(mkClass());
     svc = new CheckoutService(
       fx.prisma as unknown as PrismaService,
@@ -2033,6 +2112,7 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
     active: true,
     privateLessonPrice: 40000,
     billingBlockedAt: null,
+    collectionsBlockedAt: null,
     ...over,
   });
 
@@ -2040,6 +2120,10 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
     fx = mkPrisma();
     pf = mkParams();
     gw = mkGateway();
+    accountsStub.activeForAcademy.mockResolvedValue({
+      account: { id: "acct-ac1", provider: "STUB" },
+      gateway: gw.gateway,
+    });
     fx.prisma.academy.findUnique.mockResolvedValue(mkAcademy());
     svc = new CheckoutService(
       fx.prisma as unknown as PrismaService,

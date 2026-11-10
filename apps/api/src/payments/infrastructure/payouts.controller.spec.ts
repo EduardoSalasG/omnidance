@@ -83,7 +83,11 @@ function matchWhere(row: Row, where: Row): boolean {
         return false;
       continue;
     }
-    if (v !== cond) return false;
+    // null en el where = IS NULL de Prisma: el fake materializa campos
+    // ausentes como undefined (p.ej. gatewayAccountId no seteado en
+    // fixtures históricos our-Flow).
+    if (cond === null ? v !== null && v !== undefined : v !== cond)
+      return false;
   }
   return true;
 }

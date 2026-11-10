@@ -7237,6 +7237,209 @@
         ]
       }
     },
+    "/api/academies/{id}/gateway-account": {
+      "get": {
+        "operationId": "AcademyGatewayController_view",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyGateway"
+        ]
+      },
+      "put": {
+        "operationId": "AcademyGatewayController_upsert",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcademyGatewayAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyGateway"
+        ]
+      },
+      "delete": {
+        "operationId": "AcademyGatewayController_disable",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyGateway"
+        ]
+      }
+    },
+    "/api/academies/{id}/statements": {
+      "get": {
+        "operationId": "AcademyGatewayController_statements",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyGateway"
+        ]
+      }
+    },
+    "/api/academies/{id}/statements/{period}.csv": {
+      "get": {
+        "operationId": "AcademyGatewayController_statementCsv",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyGateway"
+        ]
+      }
+    },
+    "/api/academies/{id}/statements/{period}.pdf": {
+      "get": {
+        "operationId": "AcademyGatewayController_statementPdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyGateway"
+        ]
+      }
+    },
+    "/api/academies/{id}/statements/{period}": {
+      "get": {
+        "operationId": "AcademyGatewayController_statement",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AcademyGateway"
+        ]
+      }
+    },
     "/api/academies/{id}/promos": {
       "get": {
         "operationId": "AcademyPromosController_list",
@@ -9812,6 +10015,37 @@
       "get": {
         "operationId": "AdminFinanceController_accrual",
         "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminFinance"
+        ]
+      }
+    },
+    "/api/admin/finance/academy-statements": {
+      "get": {
+        "operationId": "AdminFinanceController_academyStatements",
+        "parameters": [
+          {
+            "name": "academyId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -12858,6 +13092,10 @@
         "properties": {}
       },
       "IntentClaimDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AcademyGatewayAccountDto": {
         "type": "object",
         "properties": {}
       },

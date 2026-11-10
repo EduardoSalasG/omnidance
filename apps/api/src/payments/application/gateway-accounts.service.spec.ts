@@ -73,7 +73,7 @@ function mkPrisma() {
   };
   const destinations: Row[] = [];
   const prisma = {
-    producerGatewayAccount: table,
+    actorGatewayAccount: table,
     payoutDestination: {
       findUnique: vi.fn(
         async ({ where }: { where: { actorType_actorId_rail: Row } }) => {
@@ -91,7 +91,7 @@ function mkPrisma() {
     },
     $transaction: vi.fn(
       async (fn: (tx: unknown) => Promise<unknown>) =>
-        fn({ producerGatewayAccount: table }),
+        fn({ actorGatewayAccount: table }),
     ),
   };
   return { prisma, accounts, destinations };

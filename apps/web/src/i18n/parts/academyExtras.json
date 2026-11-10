@@ -133,7 +133,8 @@
       "config": "Configuración",
       "configDesc": "Quórum por defecto y perfil público",
       "promos": "Promos",
-      "promosDesc": "Becas y descuentos sobre tus planes"
+      "promosDesc": "Becas y descuentos sobre tus planes",
+      "statements": "Liquidaciones"
     },
     "today": {
       "title": "Clases de hoy",

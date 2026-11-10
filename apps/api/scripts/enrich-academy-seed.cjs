@@ -1159,7 +1159,7 @@ async function deletePersonGraph(pid) {
       await tx.socialPass.delete({ where: { id: pass.id } });
     }
     await tx.producerPaymentMethod.deleteMany({ where: { producerId: pid } });
-    await tx.producerGatewayAccount.deleteMany({ where: { producerId: pid } });
+    await tx.actorGatewayAccount.deleteMany({ where: { producerId: pid } });
     await tx.producerParams.deleteMany({ where: { producerId: pid } });
     await tx.lead.updateMany({ where: { personId: pid }, data: { personId: null } });
     await tx.discountCode.deleteMany({ where: { createdById: pid } });

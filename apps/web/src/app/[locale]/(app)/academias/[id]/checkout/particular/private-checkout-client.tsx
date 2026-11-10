@@ -54,6 +54,14 @@ export function PrivateCheckoutClient({
 
   const busy = phase.kind === "processing" || phase.kind === "awaiting";
 
+  // BYO (spec academy-byo-collections): el pago por pasarela existe
+  // solo si la academia trajo su cuenta y no está en bloqueo de
+  // cobranza - sin él el checkout online es solo claim manual.
+  const gatewayAvailable = quote.gatewayAvailable !== false;
+  const gatewayNote = quote.collectionsBlocked
+    ? tco("academyCollectionsBlocked")
+    : tco("academyNoGateway");
+
   const academyHref = `/academias/${quote.academy.id}`;
 
   // Polling del pago (stub dev): al terminal o si se agota el tiempo,
@@ -99,7 +107,22 @@ export function PrivateCheckoutClient({
         return;
       }
       if (res.status === 400 || res.status === 404) {
-        showActionNotice({ text: t("unavailable"), error: true });
+        // BYO: código estable en `error` (spec academy-byo-collections)
+        // - copy honesto "sin pasarela" vs "cobranza en pausa"; el
+        // resto sigue en unavailable.
+        const body = (await res.json().catch(() => null)) as {
+          error?: unknown;
+        } | null;
+        const code = typeof body?.error === "string" ? body.error : "";
+        showActionNotice({
+          text:
+            code === "academy.no_gateway"
+              ? tco("academyNoGateway")
+              : code === "academy.collections_blocked"
+                ? tco("academyCollectionsBlocked")
+                : t("unavailable"),
+          error: true,
+        });
         setPhase({ kind: "form" });
         return;
       }
@@ -232,10 +255,15 @@ export function PrivateCheckoutClient({
         planPrice={quote.total}
         returnHref={academyHref}
         onBlockingChange={setManualActive}
+        gatewayAvailable={gatewayAvailable}
+        gatewayNote={gatewayNote}
       />
 
       {(phase.kind === "form" || phase.kind === "processing") &&
-        !manualActive && (
+        !manualActive &&
+        // Sin pasarela BYO el pago por tarjeta no existe: el CTA queda
+        // oculto y el panel manual es la única acción.
+        gatewayAvailable && (
           <div className="flex flex-col gap-2">
             <Button
               type="button"

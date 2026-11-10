@@ -163,6 +163,9 @@ export class SubscriptionsService {
     private readonly academyPromos: AcademyPromosService,
     @Inject(PAYMENT_GATEWAYS)
     private readonly gateways: GatewayRegistry,
+    // NOTA (academy-byo-collections): el engine per-account de subs
+    // necesitará GatewayAccountsService acá (resolver el adaptador por
+    // MembershipSubscription.gatewayAccountId) - slice pendiente.
   ) {}
 
   /**
@@ -436,6 +439,12 @@ export class SubscriptionsService {
         message: "la academia no está disponible por el momento",
       });
     }
+    // PENDIENTE (spec academy-byo-collections): las subs CARD nuevas
+    // deben correr sobre la pasarela propia de la academia. El engine
+    // per-account (customer/plan espejo/remoto + webhook ?account= +
+    // reconcile por sub.gatewayAccountId) es el siguiente slice del
+    // change - mientras tanto subs nuevas siguen por our-Flow y sus
+    // renovaciones quedan en el modelo histórico de payout.
     const intervalCount = INTERVAL_COUNT[plan.type];
     if (!intervalCount) {
       throw new BadRequestException("este plan no admite cobro recurrente");

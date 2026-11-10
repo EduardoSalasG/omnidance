@@ -2,14 +2,17 @@
 
 import { useTranslations } from "next-intl";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyGatewaySection } from "@/components/academy/gateway-account-section";
 import { PaymentMethodsAdmin } from "@/components/academy/payment-methods-admin";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
- * /academia/configuracion/metodos-de-pago - medios de cobro propios de la
- * academia (transferencia/efectivo que el alumno elige al pagar su
- * plan). Destino directo del drawer: el ConsoleHeader declara el back
- * al hub.
+ * /academia/configuracion/metodos-de-pago - cómo cobra la academia:
+ * pasarela propia (spec academy-byo-collections: sus ventas van directo
+ * a su cuenta y el take se factura mes vencido; sin cuenta la venta
+ * online queda solo por comprobante) + medios de cobro directos
+ * (transferencia/efectivo que el alumno elige al pagar). Misma
+ * composición que /productor/medios-pago.
  */
 export default function ConfigPagosPage() {
   const t = useTranslations("academy");
@@ -19,7 +22,13 @@ export default function ConfigPagosPage() {
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
-          <PaymentMethodsAdmin key={academy.id} academyId={academy.id} />
+          <>
+            <AcademyGatewaySection
+              key={`gw-${academy.id}`}
+              academyId={academy.id}
+            />
+            <PaymentMethodsAdmin key={academy.id} academyId={academy.id} />
+          </>
         )}
       </AcademyGate>
     </main>

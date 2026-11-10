@@ -31,6 +31,8 @@
     "claimSending": "A enviar…",
     "claimSent": "Comprovativo enviado. Avisamos-te quando for validado.",
     "claimPending": "Comprovativo em revisão pelo produtor…",
-    "claimRejected": "Comprovativo rejeitado"
+    "claimRejected": "Comprovativo rejeitado",
+    "academyNoGateway": "Esta academia cobra apenas por comprovativo de pagamento.",
+    "academyCollectionsBlocked": "Os pagamentos online desta academia estão em pausa. Podes pagar por comprovativo."
   }
 }

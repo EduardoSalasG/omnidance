@@ -553,7 +553,8 @@
         "payouts": "Règlements",
         "accrual": "À libérer",
         "payments": "Paiements",
-        "saas": "SaaS"
+        "saas": "SaaS",
+        "statements": "Encaissement académies"
       },
       "kpiGmv": "GMV de la période",
       "kpiGmvHint": "Social {social} · Académie {academy} · SaaS {saas}",
@@ -615,7 +616,15 @@
       },
       "approved": "Liquidation approuvée.",
       "paid": "Liquidation marquée comme payée.",
-      "actionError": "Impossible de terminer l'action."
+      "actionError": "Impossible de terminer l'action.",
+      "statementStatusFilter": "Statut",
+      "statementStatusAll": "Tous",
+      "statementsEmpty": "Aucun relevé d'académie.",
+      "statementOrders": "{count} commandes · brut {gross}",
+      "statementSplit": "net {net} + TVA {vat}",
+      "statementDueAt": "échéance {date}",
+      "statementPaidAt": "payé {date}",
+      "statementBlocked": "Encaissement bloqué"
     },
     "roles": {
       "superuser": "Superutilisateur",

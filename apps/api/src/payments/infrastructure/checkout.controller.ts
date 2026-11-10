@@ -27,6 +27,8 @@ import {
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import {
+  AcademyCollectionsBlockedError,
+  AcademyGatewayUnavailableError,
   AcademyNotFoundError,
   AcademyUnavailableError,
   CheckoutService,
@@ -203,6 +205,17 @@ export class CheckoutController {
     throw new BadRequestException({ error: e.code, message: e.message });
   }
 
+  /**
+   * Errores BYO de academia (spec academy-byo-collections): 400 con
+   * código estable - la UI distingue "solo claim manual" de un fallo
+   * genérico del checkout.
+   */
+  private static byo(
+    e: AcademyGatewayUnavailableError | AcademyCollectionsBlockedError,
+  ): never {
+    throw new BadRequestException({ error: e.code, message: e.message });
+  }
+
   @Post("ticket")
   @UseGuards(SessionGuard)
   async ticket(@Req() req: Request, @Body() dto: CheckoutTicketDto) {
@@ -316,6 +329,12 @@ export class CheckoutController {
       if (e instanceof AcademyUnavailableError) {
         CheckoutController.unavailable(e);
       }
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
+      }
       if (e instanceof PlanNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
@@ -339,6 +358,12 @@ export class CheckoutController {
       }
       if (e instanceof AcademyUnavailableError) {
         CheckoutController.unavailable(e);
+      }
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
       }
       if (e instanceof PlanNotPurchasableError) {
         throw new BadRequestException(e.message);
@@ -364,6 +389,12 @@ export class CheckoutController {
       }
       if (e instanceof AcademyUnavailableError) {
         CheckoutController.unavailable(e);
+      }
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
       }
       if (e instanceof ClassNotPurchasableError) {
         throw new BadRequestException(e.message);
@@ -395,6 +426,12 @@ export class CheckoutController {
       if (e instanceof AcademyUnavailableError) {
         CheckoutController.unavailable(e);
       }
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
+      }
       if (e instanceof ClassNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
@@ -422,6 +459,12 @@ export class CheckoutController {
       if (e instanceof AcademyUnavailableError) {
         CheckoutController.unavailable(e);
       }
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
+      }
       if (e instanceof PrivateClassNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
@@ -448,6 +491,12 @@ export class CheckoutController {
       }
       if (e instanceof AcademyUnavailableError) {
         CheckoutController.unavailable(e);
+      }
+      if (
+        e instanceof AcademyGatewayUnavailableError ||
+        e instanceof AcademyCollectionsBlockedError
+      ) {
+        CheckoutController.byo(e);
       }
       if (e instanceof PrivateClassNotPurchasableError) {
         throw new BadRequestException(e.message);

@@ -553,7 +553,8 @@
         "payouts": "Settlements",
         "accrual": "To release",
         "payments": "Payments",
-        "saas": "SaaS"
+        "saas": "SaaS",
+        "statements": "Academy collections"
       },
       "kpiGmv": "GMV of the period",
       "kpiGmvHint": "Social {social} · Academy {academy} · SaaS {saas}",
@@ -615,7 +616,15 @@
       },
       "approved": "Payout approved.",
       "paid": "Payout marked as paid.",
-      "actionError": "Could not complete the action."
+      "actionError": "Could not complete the action.",
+      "statementStatusFilter": "Status",
+      "statementStatusAll": "All",
+      "statementsEmpty": "No academy statements.",
+      "statementOrders": "{count} orders · gross {gross}",
+      "statementSplit": "net {net} + VAT {vat}",
+      "statementDueAt": "due {date}",
+      "statementPaidAt": "paid {date}",
+      "statementBlocked": "Collections blocked"
     },
     "roles": {
       "superuser": "Superuser",

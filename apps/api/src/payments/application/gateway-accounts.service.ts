@@ -1,20 +1,24 @@
-// Cuentas de pasarela propias del productor (spec
-// producer-gateway-accounts): credenciales cifradas AES-256-GCM, un
-// adaptador PaymentGateway por cuenta (cache por id+updatedAt) y la
-// selección del adaptador en checkout/webhook/polling.
+// Cuentas de pasarela propias de un actor (specs
+// producer-gateway-accounts + academy-byo-collections): credenciales
+// cifradas AES-256-GCM, un adaptador PaymentGateway por cuenta (cache
+// por id+updatedAt) y la selección del adaptador en
+// checkout/webhook/polling.
 //
 // Semántica de negocio: la venta de eventos/series de un productor con
 // cuenta ACTIVE se cobra en SU Flow/MP - la plata va directo a él y la
 // plataforma devenga su comisión (all-in − card%) neteada en el payout
-// (feeMode OWN_GATEWAY, líneas OWN_METHOD_*). Las suscripciones y las
-// órdenes de academia NUNCA pasan por cuentas propias.
+// (feeMode OWN_GATEWAY, líneas OWN_METHOD_*). Una academia con cuenta
+// ACTIVE cobra sus órdenes (MEMBERSHIP/WORKSHOP/PRIVATE y las
+// renovaciones de sus suscripciones BYO) por su adaptador - la plata
+// nunca entra a Omnidance: el take `academy_fee.net_pct` se factura
+// mes vencido (AcademyCollectionsStatement), jamás por payout.
 
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import type { ProducerGatewayAccount } from "@prisma/client";
+import type { ActorGatewayAccount } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { decryptSecret, encryptSecret, maskSecret } from "../../common/secrets";
 import type { PaymentGateway } from "../domain/ports";
@@ -56,11 +60,11 @@ export interface GatewayAccountView {
   lastError: string | null;
   verifiedAt: Date | null;
   createdAt: Date;
-  /** URL que el productor configura como urlConfirmation en su panel. */
+  /** URL que el actor configura como urlConfirmation en su panel. */
   webhookUrl: string;
 }
 
-function toView(a: ProducerGatewayAccount): GatewayAccountView {
+function toView(a: ActorGatewayAccount): GatewayAccountView {
   return {
     id: a.id,
     provider: a.provider,
@@ -71,6 +75,17 @@ function toView(a: ProducerGatewayAccount): GatewayAccountView {
     createdAt: a.createdAt,
     webhookUrl: webhookUrlFor(a.provider, a.id),
   };
+}
+
+/** Dueño de la cuenta: exactamente uno (XOR validado en upsert). */
+export type AccountScope =
+  | { producerId: string; academyId?: never }
+  | { academyId: string; producerId?: never };
+
+function scopeWhere(scope: AccountScope) {
+  return scope.producerId
+    ? { producerId: scope.producerId }
+    : { academyId: scope.academyId };
 }
 
 function webhookUrlFor(provider: string, accountId: string): string {
@@ -97,9 +112,26 @@ export class GatewayAccountsService {
   /** Cuenta ACTIVE del productor + su adaptador, o null (→ MANAGED). */
   async activeForProducer(
     producerId: string,
-  ): Promise<{ account: ProducerGatewayAccount; gateway: PaymentGateway } | null> {
-    const account = await this.prisma.producerGatewayAccount.findFirst({
-      where: { producerId, status: "ACTIVE" },
+  ): Promise<{ account: ActorGatewayAccount; gateway: PaymentGateway } | null> {
+    return this.activeFor({ producerId });
+  }
+
+  /**
+   * Cuenta ACTIVE de la academia + su adaptador, o null (spec
+   * academy-byo-collections): null → la academia solo vende por claim
+   * manual - el path our-Flow no emite órdenes nuevas de academias.
+   */
+  async activeForAcademy(
+    academyId: string,
+  ): Promise<{ account: ActorGatewayAccount; gateway: PaymentGateway } | null> {
+    return this.activeFor({ academyId });
+  }
+
+  private async activeFor(
+    scope: AccountScope,
+  ): Promise<{ account: ActorGatewayAccount; gateway: PaymentGateway } | null> {
+    const account = await this.prisma.actorGatewayAccount.findFirst({
+      where: { ...scopeWhere(scope), status: "ACTIVE" },
       orderBy: { createdAt: "desc" },
     });
     if (!account) return null;
@@ -114,8 +146,8 @@ export class GatewayAccountsService {
    */
   async adapterFor(
     accountId: string,
-  ): Promise<{ account: ProducerGatewayAccount; gateway: PaymentGateway }> {
-    const account = await this.prisma.producerGatewayAccount.findUnique({
+  ): Promise<{ account: ActorGatewayAccount; gateway: PaymentGateway }> {
+    const account = await this.prisma.actorGatewayAccount.findUnique({
       where: { id: accountId },
     });
     if (!account || account.status !== "ACTIVE") {
@@ -127,8 +159,20 @@ export class GatewayAccountsService {
   async viewForProducer(
     producerId: string,
   ): Promise<GatewayAccountView | null> {
-    const account = await this.prisma.producerGatewayAccount.findFirst({
-      where: { producerId },
+    return this.viewFor({ producerId });
+  }
+
+  async viewForAcademy(
+    academyId: string,
+  ): Promise<GatewayAccountView | null> {
+    return this.viewFor({ academyId });
+  }
+
+  private async viewFor(
+    scope: AccountScope,
+  ): Promise<GatewayAccountView | null> {
+    const account = await this.prisma.actorGatewayAccount.findFirst({
+      where: scopeWhere(scope),
       orderBy: { createdAt: "desc" },
     });
     return account ? toView(account) : null;
@@ -142,9 +186,13 @@ export class GatewayAccountsService {
    * productor.
    */
   async upsert(
-    producerId: string,
+    scopeOrProducerId: AccountScope | string,
     input: { provider: string; apiKey?: string; secret?: string },
   ): Promise<GatewayAccountView> {
+    const scope: AccountScope =
+      typeof scopeOrProducerId === "string"
+        ? { producerId: scopeOrProducerId }
+        : scopeOrProducerId;
     const provider = input.provider.toUpperCase();
     if (!SUPPORTED.has(provider)) {
       throw new BadRequestException(
@@ -157,6 +205,13 @@ export class GatewayAccountsService {
     let creds: AccountCredentials;
     let maskSource: string;
     if (provider === "STRIPE") {
+      if (!scope.producerId) {
+        // STRIPE Connect es rail de desembolso (PayoutDestination) -
+        // solo productores; las academias cobran por FLOW/MP/FINTOC.
+        throw new BadRequestException(
+          "STRIPE no está disponible para academias",
+        );
+      }
       // STRIPE es distinto (spec connect-own-gateway): no hay credencial
       // que ingresar - el "direct charge" se hace con la secret key de
       // PLATAFORMA + header Stripe-Account con la acct_ del productor.
@@ -167,7 +222,7 @@ export class GatewayAccountsService {
         where: {
           actorType_actorId_rail: {
             actorType: "PRODUCER",
-            actorId: producerId,
+            actorId: scope.producerId,
             rail: "STRIPE_CONNECT",
           },
         },
@@ -209,13 +264,13 @@ export class GatewayAccountsService {
     const blob = encryptSecret(JSON.stringify(creds));
     const keyMask = maskSecret(maskSource);
     const account = await this.prisma.$transaction(async (tx) => {
-      await tx.producerGatewayAccount.updateMany({
-        where: { producerId, status: "ACTIVE" },
+      await tx.actorGatewayAccount.updateMany({
+        where: { ...scopeWhere(scope), status: "ACTIVE" },
         data: { status: "DISABLED" },
       });
-      return tx.producerGatewayAccount.create({
+      return tx.actorGatewayAccount.create({
         data: {
-          producerId,
+          ...scopeWhere(scope),
           provider,
           credentialsEnc: blob,
           keyMask,
@@ -225,10 +280,15 @@ export class GatewayAccountsService {
     return toView(account);
   }
 
-  /** Apaga la cuenta (sus órdenes futuras vuelven a MANAGED). */
-  async disable(id: string, producerId: string): Promise<void> {
-    await this.prisma.producerGatewayAccount.updateMany({
-      where: { id, producerId },
+  /** Apaga la cuenta (sus órdenes futuras vuelven a MANAGED/manual). */
+  async disable(id: string, scope: AccountScope | string): Promise<void> {
+    await this.prisma.actorGatewayAccount.updateMany({
+      where: {
+        id,
+        ...scopeWhere(
+          typeof scope === "string" ? { producerId: scope } : scope,
+        ),
+      },
       data: { status: "DISABLED" },
     });
   }
@@ -238,7 +298,7 @@ export class GatewayAccountsService {
    * descifradas. El onTx envuelve al writer de auditoría estampando
    * `gatewayAccountId` + `lastError`/`verifiedAt` de la cuenta.
    */
-  private buildAdapter(account: ProducerGatewayAccount): PaymentGateway {
+  private buildAdapter(account: ActorGatewayAccount): PaymentGateway {
     const hit = this.cache.get(account.id);
     if (hit && hit.updatedAt.getTime() === account.updatedAt.getTime()) {
       return hit.gateway;
@@ -253,12 +313,12 @@ export class GatewayAccountsService {
       // ocurrió) - no vuelve a intentar ni rompe el camino crítico.
       try {
         if (!e.ok) {
-          await this.prisma.producerGatewayAccount.update({
+          await this.prisma.actorGatewayAccount.update({
             where: { id: account.id },
             data: { lastError: (e.error ?? "error").slice(0, 500) },
           });
         } else {
-          await this.prisma.producerGatewayAccount.updateMany({
+          await this.prisma.actorGatewayAccount.updateMany({
             where: { id: account.id, verifiedAt: null },
             data: { verifiedAt: new Date(), lastError: null },
           });
@@ -270,15 +330,23 @@ export class GatewayAccountsService {
     const confirmUrl = webhookUrlFor(account.provider, account.id);
     let gateway: PaymentGateway;
     switch (account.provider) {
-      case "FLOW":
+      case "FLOW": {
+        // Callback de suscripciones por cuenta (spec
+        // academy-byo-collections): el urlCallback del plan espejo lleva
+        // ?account=<id> para que el webhook resuelva ESTE adaptador -
+        // las subs de la academia cobran en su Flow, no en el de
+        // plataforma.
+        const apiUrl = process.env.API_URL ?? "http://localhost:4000";
         gateway = new FlowGateway(
           creds.apiKey!,
           creds.secret!,
           process.env.FLOW_BASE_URL ?? SANDBOX_BASE_URL,
           confirmUrl,
           onTx,
+          `${apiUrl}/api/payments/subscription-webhook?account=${account.id}`,
         );
         break;
+      }
       case "MERCADOPAGO":
         gateway = new MercadoPagoGateway(
           creds.accessToken!,

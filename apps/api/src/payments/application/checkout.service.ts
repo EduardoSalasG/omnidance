@@ -232,6 +232,35 @@ export class PrivateClassNotPurchasableError extends Error {
   }
 }
 
+/**
+ * La academia no tiene cuenta de pasarela propia (spec
+ * academy-byo-collections): el checkout online de sus alumnos no existe
+ * sin credenciales BYO - solo queda el claim manual por comprobante.
+ * El path our-Flow ya no emite órdenes nuevas de academias.
+ */
+export class AcademyGatewayUnavailableError extends Error {
+  readonly code = "academy.no_gateway";
+  constructor() {
+    super("esta academia cobra solo por comprobante de pago");
+    this.name = "AcademyGatewayUnavailableError";
+  }
+}
+
+/**
+ * Cobranza integrada bloqueada por liquidación impaga (spec
+ * academy-byo-collections): `Academy.collectionsBlockedAt` non-null →
+ * el checkout BYO rechaza órdenes por pasarela; el claim manual sigue.
+ */
+export class AcademyCollectionsBlockedError extends Error {
+  readonly code = "academy.collections_blocked";
+  constructor() {
+    super(
+      "los pagos online de esta academia están en pausa - puedes pagar por comprobante",
+    );
+    this.name = "AcademyCollectionsBlockedError";
+  }
+}
+
 export class PlanNotPurchasableError extends Error {
   constructor(message = "este plan no está disponible para compra online") {
     super(message);
@@ -538,6 +567,55 @@ export class CheckoutService {
   private async academyBreakdown(amount: number): Promise<FeeBreakdown> {
     const cardPct = await this.params.getNumber("gateway_fee.card_pct", 3.19);
     return academyFeeBreakdown(amount, cardPct);
+  }
+
+  /**
+   * Pasarela propia de la academia (spec academy-byo-collections): sus
+   * órdenes (MEMBERSHIP/WORKSHOP/PRIVATE) cobran por SU adaptador - la
+   * plata va directo a su cuenta y el take se factura mes vencido.
+   * Sin cuenta ACTIVE → AcademyGatewayUnavailableError (solo claim
+   * manual). collectionsBlockedAt non-null → rechaza gateway-orders
+   * (liquidación impaga; claim manual sigue habilitado).
+   */
+  private async academyOrderGateway(
+    academyId: string,
+    collectionsBlockedAt: Date | null,
+  ): Promise<{ gateway: PaymentGateway; gatewayAccountId: string }> {
+    if (collectionsBlockedAt != null) {
+      throw new AcademyCollectionsBlockedError();
+    }
+    const own = await this.accounts.activeForAcademy(academyId);
+    if (!own) throw new AcademyGatewayUnavailableError();
+    return { gateway: own.gateway, gatewayAccountId: own.account.id };
+  }
+
+  /**
+   * Take de cobranza BYO congelado por orden (spec
+   * academy-byo-collections): `amount × academy_fee.net_pct` (default
+   * 1,0 = 1%). Solo órdenes de academia cobradas por su cuenta propia -
+   * se devenga si quedan PAID y viaja en el statement del mes.
+   */
+  private async academyTake(
+    amount: number,
+  ): Promise<{ academyTakeRate: number; academyTakeClp: number }> {
+    const rate = await this.params.getNumber("academy_fee.net_pct", 1.0);
+    return {
+      academyTakeRate: rate,
+      academyTakeClp: Math.round((amount * rate) / 100),
+    };
+  }
+
+  /**
+   * ¿El adaptador BYO tiene motor de suscripciones? (spec
+   * academy-byo-collections): capability check por presencia de métodos
+   * - FLOW/STUB sí, MERCADOPAGO/FINTOC no. Academia sin motor propio
+   * vende recurrente solo por claim manual (TRANSFER).
+   */
+  private supportsSubs(gateway: PaymentGateway): boolean {
+    return (
+      typeof (gateway as Partial<SubscriptionProvider>)
+        .createSubscription === "function"
+    );
   }
 
   /** Tasa todo incluido + costos esperados para órdenes del productor. */
@@ -1411,6 +1489,7 @@ export class CheckoutService {
           select: {
             active: true,
             billingBlockedAt: true,
+            collectionsBlockedAt: true,
             tier: true,
             trialEndsAt: true,
           },
@@ -1467,8 +1546,14 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    // Moneda de la orden = la del plan (spec multipais-currency).
-    const gateway = await this.resolveGateway(planCurrency);
+    // Moneda de la orden = la del plan (spec multipais-currency). BYO
+    // (spec academy-byo-collections): la academia cobra por SU pasarela
+    // - sin cuenta solo queda el claim manual; el path our-Flow ya no
+    // emite órdenes de academias. El take queda congelado en la orden.
+    const { gateway, gatewayAccountId } = await this.academyOrderGateway(
+      plan.academyId,
+      plan.academy.collectionsBlockedAt,
+    );
     const payment = await this.createAssessedPayment(
       {
         orderType: "MEMBERSHIP",
@@ -1479,9 +1564,11 @@ export class CheckoutService {
         academyPromoId: promo?.id ?? null,
         currency: planCurrency,
         amount: quote.total,
-        fee: 0, // costo pasarela: desconocido hasta la liquidación
+        fee: 0, // costo pasarela: lo absorbe la academia en su cuenta
         net: quote.total,
         gateway: gateway.name,
+        gatewayAccountId,
+        ...(await this.academyTake(quote.total)),
       },
       await this.academyBreakdown(quote.total),
     );
@@ -1530,7 +1617,13 @@ export class CheckoutService {
         periodDays: true,
         description: true,
         academy: {
-          select: { id: true, name: true, active: true, billingBlockedAt: true },
+          select: {
+            id: true,
+            name: true,
+            active: true,
+            billingBlockedAt: true,
+            collectionsBlockedAt: true,
+          },
         },
       },
     });
@@ -1587,6 +1680,11 @@ export class CheckoutService {
       membershipBase(new Date(), enrollment?.endsAt ?? null),
     );
 
+    const own =
+      plan.academy.collectionsBlockedAt == null
+        ? await this.accounts.activeForAcademy(plan.academy.id)
+        : null;
+
     return {
       plan: {
         id: plan.id,
@@ -1607,7 +1705,14 @@ export class CheckoutService {
       // compra extiende ("vence el X - la nueva vigencia parte después").
       currentEndsAt: enrollment?.endsAt?.toISOString() ?? null,
       subscription: subscription ?? null,
-      gateway: (await this.resolveGateway(plan.currency ?? "CLP")).name,
+      // BYO (spec academy-byo-collections): el pago online existe solo
+      // si la academia tiene cuenta propia y no está en bloqueo de
+      // cobranza - sin ellas el checkout cae al claim manual.
+      gateway: own?.gateway.name ?? null,
+      gatewayAvailable: own != null,
+      collectionsBlocked: plan.academy.collectionsBlockedAt != null,
+      // CARD subs siguen en our-Flow mientras el engine per-account del
+      // change queda pendiente (ver SubscriptionsService.subscribe).
       supportsSubscription: await this.subscriptionCapable(
         plan.currency ?? "CLP",
       ),
@@ -1647,6 +1752,7 @@ export class CheckoutService {
                 name: true,
                 defaultQuorum: true,
                 billingBlockedAt: true,
+                collectionsBlockedAt: true,
                 city: {
                   select: { country: { select: { currency: true } } },
                 },
@@ -1703,6 +1809,10 @@ export class CheckoutService {
     // Precio exacto (modelo SaaS): la clase suelta cobra solo el
     // dropInPrice de la serie.
     const quote = this.pricing.quote({ listPrice, discount: null });
+    const own =
+      cls.slot.academy.collectionsBlockedAt == null
+        ? await this.accounts.activeForAcademy(cls.slot.academy.id)
+        : null;
     return {
       ...quote,
       spotsLeft: Math.max(capacity - booked, 0),
@@ -1716,11 +1826,11 @@ export class CheckoutService {
       series: { id: cls.slot.series.id, name: cls.slot.series.name },
       academy: { id: cls.slot.academy.id, name: cls.slot.academy.name },
       currency: cls.slot.academy.city?.country?.currency ?? "CLP",
-      gateway: (
-        await this.resolveGateway(
-          cls.slot.academy.city?.country?.currency ?? "CLP",
-        )
-      ).name,
+      // BYO (spec academy-byo-collections): misma regla que membership -
+      // pago online solo con cuenta propia y sin bloqueo de cobranza.
+      gateway: own?.gateway.name ?? null,
+      gatewayAvailable: own != null,
+      collectionsBlocked: cls.slot.academy.collectionsBlockedAt != null,
     };
   }
 
@@ -1773,10 +1883,15 @@ export class CheckoutService {
     });
 
     // Moneda de la orden (spec multipais-currency): la del pais de la
-    // academia duena de la clase (fallback CLP).
+    // academia duena de la clase (fallback CLP). BYO (spec
+    // academy-byo-collections): cobro por la pasarela propia de la
+    // academia + take congelado; sin cuenta solo queda claim manual.
     const orderCurrency =
       cls.slot.academy.city?.country?.currency ?? "CLP";
-    const gateway = await this.resolveGateway(orderCurrency);
+    const { gateway, gatewayAccountId } = await this.academyOrderGateway(
+      cls.slot.academy.id,
+      cls.slot.academy.collectionsBlockedAt,
+    );
     const payment = await this.createAssessedPayment(
       {
         orderType: "WORKSHOP",
@@ -1786,12 +1901,14 @@ export class CheckoutService {
         discountCodeId: null,
         currency: orderCurrency,
         amount: quote.total,
-        fee: 0, // costo pasarela: desconocido hasta la liquidación
+        fee: 0, // costo pasarela: lo absorbe la academia en su cuenta
         net: quote.total,
         quantity: 1,
         unitListPrice: quote.listPrice,
         unitServiceFee: 0,
         gateway: gateway.name,
+        gatewayAccountId,
+        ...(await this.academyTake(quote.total)),
       },
       await this.academyBreakdown(quote.total),
     );
@@ -1828,6 +1945,7 @@ export class CheckoutService {
         active: true,
         privateLessonPrice: true,
         billingBlockedAt: true,
+        collectionsBlockedAt: true,
       },
     });
     if (!academy) throw new AcademyNotFoundError();
@@ -1853,10 +1971,16 @@ export class CheckoutService {
     // Precio exacto (modelo SaaS): la particular cobra solo el
     // privateLessonPrice de la academia.
     const quote = this.pricing.quote({ listPrice, discount: null });
+    const own =
+      academy.collectionsBlockedAt == null
+        ? await this.accounts.activeForAcademy(academy.id)
+        : null;
     return {
       ...quote,
       academy: { id: academy.id, name: academy.name },
-      gateway: (await this.resolveGateway("CLP")).name,
+      gateway: own?.gateway.name ?? null,
+      gatewayAvailable: own != null,
+      collectionsBlocked: academy.collectionsBlockedAt != null,
     };
   }
 
@@ -1885,7 +2009,12 @@ export class CheckoutService {
     });
 
     // Sin moneda declarada en la entidad - la orden es CLP (default).
-    const gateway = await this.resolveGateway("CLP");
+    // BYO (spec academy-byo-collections): cobro por la pasarela propia +
+    // take congelado; sin cuenta solo queda claim manual.
+    const { gateway, gatewayAccountId } = await this.academyOrderGateway(
+      academy.id,
+      academy.collectionsBlockedAt,
+    );
     const payment = await this.createAssessedPayment(
       {
         orderType: "PRIVATE",
@@ -1894,12 +2023,14 @@ export class CheckoutService {
         eventId: null,
         discountCodeId: null,
         amount: quote.total,
-        fee: 0, // costo pasarela: desconocido hasta la liquidación
+        fee: 0, // costo pasarela: lo absorbe la academia en su cuenta
         net: quote.total,
         quantity: 1,
         unitListPrice: quote.listPrice,
         unitServiceFee: 0,
         gateway: gateway.name,
+        gatewayAccountId,
+        ...(await this.academyTake(quote.total)),
       },
       await this.academyBreakdown(quote.total),
     );

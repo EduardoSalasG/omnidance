@@ -57,7 +57,8 @@
       "configDesc": "Jauge par défaut et profil public",
       "promos": "Promos",
       "promosDesc": "Bourses et remises sur vos plans",
-      "gridLabel": "Modules"
+      "gridLabel": "Modules",
+      "statements": "Relevés"
     },
     "today": {
       "title": "Cours d'aujourd'hui",

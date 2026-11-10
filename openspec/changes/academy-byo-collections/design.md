@@ -54,6 +54,15 @@ fin de mes → factura a la academia: SaaS + Σ take neto + IVA
   `academy_tier.*_monthly_clp` vigentes se reinterpretan como neto
   (encarece ~19% el sticker) o se mantienen como final y solo el take
   va neto+IVA — documentar lo que decida el owner.
+  **PENDING OWNER (implementado 2026-11-27)**: el design es ambiguo y
+  no asienta la opción neta; por instrucción explícita del usuario se
+  mantuvieron los `academy_tier.*_monthly_clp` como **precio final**
+  (sin cambio de sticker ni de `platform-tiers.ts`). Lo que SÍ va
+  neto + IVA es el take BYO: `Payment.academyTakeClp` se calcula neto
+  y el `AcademyCollectionsStatement` agrega IVA 19% (`tax.iva_pct`)
+  sobre ese neto al total cobrado. Si el owner confirma precios netos
+  para el SaaS, el cambio es solo de interpretación de params +
+  desglose visual en la factura de la sub - no requiere migración.
 
 ## Proyecciones (1% neto, supuestos del change doc)
 

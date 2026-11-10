@@ -9,6 +9,7 @@ import { StorageModule } from "../storage/storage.module";
 import { AcademyAccessModule } from "./academy-access.module";
 import { AcademyBillingController } from "./infrastructure/academy-billing.controller";
 import { AcademyClaimsController } from "./infrastructure/academy-claims.controller";
+import { AcademyGatewayController } from "./infrastructure/academy-gateway.controller";
 import { AcademyClaimsService } from "./infrastructure/academy-claims.service";
 import { AcademyPromosController } from "./infrastructure/academy-promos.controller";
 import { AcademyImportController } from "./infrastructure/academy-import.controller";
@@ -46,6 +47,7 @@ import { VideosController } from "./infrastructure/videos.controller";
     AcademiesController,
     AcademyBillingController,
     AcademyClaimsController,
+    AcademyGatewayController,
     AcademyPromosController,
     AcademyImportController,
     AcademyInvitesController,

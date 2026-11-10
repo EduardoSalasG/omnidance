@@ -555,7 +555,8 @@
         "payouts": "Liquidaciones",
         "accrual": "Por liberar",
         "payments": "Pagos",
-        "saas": "SaaS"
+        "saas": "SaaS",
+        "statements": "Cobranza academias"
       },
       "kpiGmv": "GMV del período",
       "kpiGmvHint": "Social {social} · Academia {academy} · SaaS {saas}",
@@ -617,7 +618,15 @@
       },
       "approved": "Liquidación aprobada.",
       "paid": "Liquidación marcada como pagada.",
-      "actionError": "No se pudo completar la acción."
+      "actionError": "No se pudo completar la acción.",
+      "statementStatusFilter": "Estado",
+      "statementStatusAll": "Todos",
+      "statementsEmpty": "Sin liquidaciones de academias.",
+      "statementOrders": "{count} órdenes · bruto {gross}",
+      "statementSplit": "neto {net} + IVA {vat}",
+      "statementDueAt": "vence {date}",
+      "statementPaidAt": "pagada {date}",
+      "statementBlocked": "Cobranza bloqueada"
     },
     "roles": {
       "superuser": "Superusuario",
