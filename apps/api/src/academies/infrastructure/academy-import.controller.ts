@@ -2,8 +2,10 @@ import {
   BadRequestException,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Post,
+  Query,
   Req,
   Res,
   UploadedFile,
@@ -16,15 +18,17 @@ import * as XLSX from "xlsx";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { AcademyAccess } from "./academy-access.service";
 import { AcademyImportService } from "./academy-import.service";
+import { PrismaService } from "../../prisma.service";
 import { CSV_MAX_ROWS, csvRowsToObjects, parseCsv } from "../../common/csv";
 
 /** Archivo de migración acotado - 2MB sobra para 500 filas de nómina/horario. */
 const CSV_MAX_BYTES = 2 * 1024 * 1024;
 
-// Change academy-import-slim-fields: solo email+nombre exigidos; el
-// resto de las columnas del template son opcionales.
-const STUDENT_TEMPLATE = `email,nombre,rut,fecha_nacimiento,telefono,sexo,plan,pagado_hasta
-juan.perez@correo.cl,Juan Pérez,12.345.678-9,15/03/1990,+56912345678,m,Mensual,2026-11-30
+// Change academy-import-invites: el import de alumnos es canal de
+// invitación - ya no hay columnas plan/pagado_hasta (la vigencia nace
+// de la compra del alumno, no de la planilla).
+const STUDENT_TEMPLATE = `email,nombre,rut,fecha_nacimiento,telefono,sexo
+juan.perez@correo.cl,Juan Pérez,12.345.678-9,15/03/1990,+56912345678,m
 `;
 
 const SCHEDULE_TEMPLATE = `serie,estilo,nivel,dia_semana,hora_inicio,hora_fin,capacidad,instructor_email,mes
@@ -44,6 +48,7 @@ export class AcademyImportController {
   constructor(
     private readonly access: AcademyAccess,
     private readonly imports: AcademyImportService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get(":id/import/template/students")
@@ -76,6 +81,11 @@ export class AcademyImportController {
       .send(SCHEDULE_TEMPLATE);
   }
 
+  /**
+   * `?dryRun=1` corre la misma tubería sin escrituras ni envíos: la
+   * vista previa que el front exige antes de habilitar "Importar"
+   * (spec academies/bulk-import §Validación previa).
+   */
   @Post(":id/import/students")
   @UseInterceptors(
     FileInterceptor("file", { limits: { fileSize: CSV_MAX_BYTES } }),
@@ -83,6 +93,7 @@ export class AcademyImportController {
   async importStudents(
     @Param("id") id: string,
     @UploadedFile() file: Express.Multer.File | undefined,
+    @Query("dryRun") dryRun: string | undefined,
     @Req() req: Request,
   ) {
     const { academy } = await this.access.requireCapabilityWrite(
@@ -91,7 +102,11 @@ export class AcademyImportController {
       "students",
     );
     const objects = parseImportFile(file, ["email", "nombre"]);
-    return { results: await this.imports.importStudents(academy, objects) };
+    return this.imports.importStudents(academy, objects, {
+      dryRun: isDryRun(dryRun),
+      createdById: req.person!.id,
+      fileName: file?.originalname,
+    });
   }
 
   @Post(":id/import/schedule")
@@ -101,6 +116,7 @@ export class AcademyImportController {
   async importSchedule(
     @Param("id") id: string,
     @UploadedFile() file: Express.Multer.File | undefined,
+    @Query("dryRun") dryRun: string | undefined,
     @Req() req: Request,
   ) {
     const { academy } = await this.access.requireCapabilityWrite(
@@ -115,8 +131,59 @@ export class AcademyImportController {
       "hora_inicio",
       "hora_fin",
     ]);
-    return { results: await this.imports.importSchedule(academy, objects) };
+    return this.imports.importSchedule(academy, objects, {
+      dryRun: isDryRun(dryRun),
+      createdById: req.person!.id,
+      fileName: file?.originalname,
+    });
   }
+
+  /**
+   * Historial de corridas (spec academies/bulk-import): más nuevas
+   * primero. Las corridas de horario las ve quien tiene cap de
+   * schedule/classes además de students.
+   */
+  @Get(":id/import/runs")
+  async importRuns(
+    @Param("id") id: string,
+    @Query("take") take: string | undefined,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "students");
+    const items = await this.prisma.academyImportRun.findMany({
+      where: { academyId: id },
+      orderBy: { createdAt: "desc" },
+      take: Math.min(Number(take) || 50, 200),
+      select: {
+        id: true,
+        kind: true,
+        fileName: true,
+        total: true,
+        counts: true,
+        createdAt: true,
+      },
+    });
+    return { items };
+  }
+
+  /** Detalle fila a fila de una corrida del historial. */
+  @Get(":id/import/runs/:runId")
+  async importRun(
+    @Param("id") id: string,
+    @Param("runId") runId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "students");
+    const run = await this.prisma.academyImportRun.findFirst({
+      where: { id: runId, academyId: id },
+    });
+    if (!run) throw new NotFoundException("corrida no encontrada");
+    return { run };
+  }
+}
+
+function isDryRun(v: string | undefined): boolean {
+  return v === "1" || v === "true";
 }
 
 const XLS_MIMES = new Set([

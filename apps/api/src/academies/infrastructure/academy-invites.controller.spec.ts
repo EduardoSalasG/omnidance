@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 // classes.controller.spec.ts).
 import "../../auth/infrastructure/auth.controller";
 import { AcademyInvitesController } from "./academy-invites.controller";
+import { AcademyInvitesService } from "./academy-invites.service";
 
 // spec academies/student-invites: invitación de registro de la academia
 // a personas SIN enrollment (cap `students`) - magic link con next a la
@@ -43,12 +44,16 @@ function makeDeps() {
   };
   const mailer = { send: vi.fn(async () => {}) };
   const notifications = { notifySafe: vi.fn(async () => {}) };
-  const ctrl = new AcademyInvitesController(
+  const invites = new AcademyInvitesService(
     prisma as never,
-    access as never,
     auth as never,
     mailer as never,
     notifications as never,
+  );
+  const ctrl = new AcademyInvitesController(
+    prisma as never,
+    access as never,
+    invites,
   );
   return { ctrl, prisma, access, auth, mailer, notifications };
 }
@@ -86,7 +91,7 @@ describe("AcademyInvitesController.invite", () => {
       "Estudio X te invitó a Omnidance",
       expect.stringContaining("/api/auth/verify?token=tok"),
     );
-    expect(res.invite.id).toBe("inv-1");
+    expect(res.invite?.id).toBe("inv-1");
     expect(res.resent).toBe(false);
   });
 

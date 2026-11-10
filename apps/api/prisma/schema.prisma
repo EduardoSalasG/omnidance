@@ -1002,6 +1002,7 @@ model Academy {
   segmentSnapshots AcademySegmentSnapshot[]
   activityEvents    ActivityEvent[]
   invites           AcademyInvite[]
+  importRuns        AcademyImportRun[]
   gatewayAccounts   ActorGatewayAccount[]
   collectionsStatements AcademyCollectionsStatement[]
 
@@ -1164,6 +1165,24 @@ model AcademyInvite {
   createdAt   DateTime  @default(now())
 
   @@index([academyId, email])
+}
+
+// Corrida de importación masiva (spec academies/bulk-import): cada
+// import real (no dry-run) deja su resumen persistido - historial con
+// detalle fila a fila para la consola.
+model AcademyImportRun {
+  id          String   @id @default(cuid())
+  academy     Academy  @relation(fields: [academyId], references: [id])
+  academyId   String
+  kind        String   // "students" | "schedule"
+  fileName    String?
+  total       Int
+  counts      Json     // {invited,resent,skipped,error} | {ok,warn,skipped,error}
+  results     Json     // [{row,email?,serie?,status,detail}] - máx 500 filas
+  createdById String   // staff/owner que corrió el import
+  createdAt   DateTime @default(now())
+
+  @@index([academyId, createdAt])
 }
 
 // Medios de pago propios de la academia (spec academy-payment-claims):
