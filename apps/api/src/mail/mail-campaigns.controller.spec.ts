@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
+import { ValidationPipe } from "@nestjs/common";
 import "../auth/infrastructure/auth.controller"; // rompe el ciclo session.guard ⇄ auth.controller
-import { MailCampaignsController } from "./mail-campaigns.controller";
+import {
+  CampaignDto,
+  CampaignPatchDto,
+  MailCampaignsController,
+} from "./mail-campaigns.controller";
 import type { MailCampaignsService } from "./mail-campaigns.service";
 
 // MailCampaignsController (spec admin-jobs-mail-campaigns): wiring de
@@ -86,5 +91,29 @@ describe("MailCampaignsController", () => {
       timezone: undefined,
       status: undefined,
     });
+  });
+
+  // Regresión (bug encontrado en QA manual 2026-11-10): el pipe global
+  // de main.ts (whitelist:true, transform:true) recortaba `audience`
+  // por falta de decoradores → POST 500 en toSpec y PATCH ignorando la
+  // audiencia en silencio. El spec corre el DTO por el mismo pipe.
+  const pipe = new ValidationPipe({ whitelist: true, transform: true });
+
+  it("la whitelist del pipe conserva audience en create", async () => {
+    const out = await pipe.transform(
+      { ...baseDto, audience: { kind: "ROLE", roleKey: "PRODUCER" } },
+      { type: "body", metatype: CampaignDto },
+    );
+    expect((out as CampaignDto).audience?.kind).toBe("ROLE");
+    expect((out as CampaignDto).audience?.roleKey).toBe("PRODUCER");
+  });
+
+  it("la whitelist del pipe conserva audience en patch", async () => {
+    const out = await pipe.transform(
+      { audience: { kind: "EVENT", eventId: "ev1" } },
+      { type: "body", metatype: CampaignPatchDto },
+    );
+    expect((out as CampaignPatchDto).audience?.kind).toBe("EVENT");
+    expect((out as CampaignPatchDto).audience?.eventId).toBe("ev1");
   });
 });

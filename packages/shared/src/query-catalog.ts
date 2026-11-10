@@ -109,6 +109,20 @@ const GATEWAY_DIRECTIONS = ["OUTBOUND", "INBOUND_WEBHOOK"];
 const GATEWAY_OK = ["true", "false"];
 const PAYOUT_STATUS = PAYOUT_STATUSES;
 const ACTOR_TYPES = ["PRODUCER", "ACADEMY", "VENUE"];
+// Prefijos de canal de adquisición (spec analytics/query-console
+// entidad acquisition): utm/ref/landing agrupan `prefijo:*`, direct es
+// el canal literal, invite/gift_ticket/link son fuentes Referral y
+// none agrupa altas sin dato (pre-capture o capture ausente).
+const ACQUISITION_KINDS = [
+  "utm",
+  "ref",
+  "landing",
+  "direct",
+  "invite",
+  "gift_ticket",
+  "link",
+  "none",
+] as const;
 
 // Atajos de composición de filtros.
 const scopeEvent: FilterDef = {
@@ -365,6 +379,15 @@ export const QUERY_CATALOG: Record<QueryRole, readonly EntityDef[]> = {
       entity: "people",
       filters: [q, { key: "role", type: "fk", source: "roles" }],
       columns: ["nombre", "email", "roles", "registro"],
+    },
+    {
+      entity: "acquisition",
+      filters: [
+        from,
+        to,
+        { key: "kind", type: "enum", options: ACQUISITION_KINDS, multi: true },
+      ],
+      columns: ["canal", "altas", "pct"],
     },
     {
       entity: "leads",

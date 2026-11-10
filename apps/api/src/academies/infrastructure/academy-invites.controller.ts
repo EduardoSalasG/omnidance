@@ -2,14 +2,22 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Post,
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsEmail, IsOptional, IsString, MaxLength } from "class-validator";
+import {
+  IsEmail,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { consumeAcademyInvites } from "../../common/consume-academy-invites";
 import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
 import { AcademyInvitesService } from "./academy-invites.service";
@@ -18,6 +26,13 @@ class CreateInviteDto {
   @IsEmail() email!: string;
   @IsString() @MaxLength(80) name!: string;
   @IsOptional() @IsString() @MaxLength(80) lastName?: string;
+}
+
+/** Canal de llegada del consumo (spec academies/student-invites):
+    "push" = tap in-app centro/toast (default), "device" = push de
+    dispositivo vía la ruta bridge /i/:inviteId. */
+class ConsumeInviteDto {
+  @IsOptional() @IsIn(["push", "device"]) channel?: "push" | "device";
 }
 
 /**
@@ -62,6 +77,48 @@ export class AcademyInvitesController {
       invitedById: req.person!.id,
     });
     return { invite, resent };
+  }
+
+  /**
+   * POST /academies/invites/:inviteId/consume (sesión): camino push
+   * `academy.invite` de la cuenta existente - consume la invitación
+   * pendiente del propio usuario sin pasar por el magic link. Mismo
+   * efecto que el verify (Referral INVITE + invite.registered) vía el
+   * helper compartido. 404 si la invite no existe o es de otro email
+   * (no filtra invitaciones ajenas); idempotente sobre consumida.
+   */
+  @Post("invites/:inviteId/consume")
+  async consume(
+    @Param("inviteId") inviteId: string,
+    @Req() req: Request,
+    @Body() dto?: ConsumeInviteDto,
+  ) {
+    const [invite, person] = await Promise.all([
+      this.prisma.academyInvite.findUnique({ where: { id: inviteId } }),
+      this.prisma.person.findUnique({
+        where: { id: req.person!.id },
+        select: { email: true },
+      }),
+    ]);
+    if (
+      !invite ||
+      !person?.email ||
+      invite.email !== person.email.toLowerCase()
+    ) {
+      throw new NotFoundException();
+    }
+    // academyId siempre en la respuesta: la bridge /i/:inviteId lo
+    // necesita para navegar aunque la invite ya estaba consumida.
+    if (invite.consumedAt) {
+      return { consumed: false, academyId: invite.academyId };
+    }
+    const consumed = await consumeAcademyInvites(this.prisma, {
+      email: invite.email,
+      personId: req.person!.id,
+      academyId: invite.academyId,
+      channel: dto?.channel ?? "push",
+    });
+    return { consumed, academyId: invite.academyId };
   }
 
   /**

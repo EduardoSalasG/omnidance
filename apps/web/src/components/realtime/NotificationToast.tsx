@@ -3,9 +3,14 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { apiFetch } from "@/lib/api";
 import type { RealtimeNotification } from "@/lib/realtime";
 import { useRealtime } from "./RealtimeProvider";
-import { Link } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
+import {
+  notificationHref,
+  notificationTapEffects,
+} from "@/lib/notification-nav";
 
 const VISIBLE_MS = 5000;
 const EXIT_MS = 200;
@@ -19,7 +24,9 @@ const EXIT_MS = 200;
  * - role="status" + aria-live="polite": los lectores de pantalla anuncian el
  *   contenido sin robar foco. El botón cerrar es focuseable con teclado.
  * - Fixed top con padding de safe-area (notch iOS) y z sobre el contenido.
- * - Tap en el cuerpo navega a /notificaciones; la X solo descarta el toast.
+ * - Tap en el cuerpo navega al deep link del tipo (fuente compartida
+ *   notification-nav, spec notifications/deep-links); tipos sin destino
+ *   caen a /notificaciones. La X solo descarta el toast.
  */
 
 type CategoryMeta = { color: string; paths: string[] };
@@ -70,6 +77,7 @@ const FALLBACK_META: CategoryMeta = {
 
 export function NotificationToast() {
   const t = useTranslations("realtime.toast");
+  const router = useRouter();
   const { latestNotification } = useRealtime();
   const [shown, setShown] = useState<RealtimeNotification | null>(null);
   const [entered, setEntered] = useState(false);
@@ -136,11 +144,20 @@ export function NotificationToast() {
           </svg>
         </span>
 
-        <Link
-          href="/notificaciones"
-          onClick={dismiss}
+        <button
+          type="button"
+          onClick={() => {
+            dismiss();
+            // Marcar leída (fire-and-forget): sin esto la notificación
+            // seguía como pendiente al volver al centro.
+            apiFetch(`/notifications/${shown.id}/read`, {
+              method: "POST",
+            }).catch(() => {});
+            notificationTapEffects(shown);
+            router.push(notificationHref(shown) ?? "/notificaciones");
+          }}
           aria-label={t("open")}
-          className="min-w-0 flex-1 rounded-lg"
+          className="min-w-0 flex-1 rounded-lg text-left"
         >
           <span className="block truncate text-sm font-semibold text-ink">
             {shown.title}
@@ -150,7 +167,7 @@ export function NotificationToast() {
               {shown.body}
             </span>
           ) : null}
-        </Link>
+        </button>
 
         <button
           type="button"

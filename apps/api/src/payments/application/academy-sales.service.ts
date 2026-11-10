@@ -568,7 +568,15 @@ export class AcademySalesService {
                 ? `${agreement.academy.name} aceptó vender tu preventa`
                 : `${agreement.academy.name} rechazó la preventa`,
             body: scopeName,
-            data: { agreementId, status },
+            data: {
+              agreementId,
+              status,
+              ...(agreement.eventId
+                ? {
+                    path: `/productor/eventos/${agreement.eventId}/academias/${agreementId}`,
+                  }
+                : {}),
+            },
           })
           .catch(() => undefined);
       }

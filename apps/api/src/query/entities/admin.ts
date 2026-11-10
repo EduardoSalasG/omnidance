@@ -1062,6 +1062,87 @@ const payouts: EntityHandler = {
   },
 };
 
+// ─── acquisition: altas por canal (from,to,kind multi) ───────────────
+// Reporte CAC por canal (spec analytics/query-console): una fila por
+// canal con las altas del período. Canal = referral más antigua como
+// referida > Person.acquisitionSource > sin_dato - los altas por invite
+// nunca escriben el campo orgánico, su atribución es el Referral
+// (spec auth/acquisition-source).
+
+const ACQ_KIND_VALUES = [
+  "utm",
+  "ref",
+  "landing",
+  "direct",
+  "invite",
+  "gift_ticket",
+  "link",
+  "none",
+] as const;
+
+/** Prefijo de canal para el filtro kind (utm:*, ref:*, landing:* → utm…). */
+const acqKind = (channel: string): string => {
+  if (channel === "sin_dato") return "none";
+  for (const prefix of ["utm:", "ref:", "landing:"]) {
+    if (channel.startsWith(prefix)) return prefix.slice(0, -1);
+  }
+  return channel; // direct | invite | gift_ticket | link
+};
+
+const acquisition: EntityHandler = {
+  async execute(prisma, _scope, f, opts) {
+    const range = dateRange(f.from, f.to);
+    const kinds = (f.kind ?? "").split(",").filter(Boolean);
+    // Mismo whitelist que los enums simples (los handlers también sirven
+    // fuera de validateEntityFilters).
+    for (const k of kinds) whitelist(k, ACQ_KIND_VALUES, "kind");
+
+    const people = await prisma.person.findMany({
+      where: range ? { createdAt: range } : {},
+      select: { id: true, acquisitionSource: true },
+    });
+    const referrals = people.length
+      ? await prisma.referral.findMany({
+          where: { referredId: { in: people.map((p) => p.id) } },
+          orderBy: { createdAt: "asc" },
+          select: { referredId: true, source: true },
+        })
+      : [];
+    const firstReferralOf = new Map<string, string>();
+    for (const r of referrals) {
+      if (!firstReferralOf.has(r.referredId)) {
+        firstReferralOf.set(r.referredId, r.source.toLowerCase());
+      }
+    }
+
+    const counts = new Map<string, number>();
+    let altas = 0;
+    for (const p of people) {
+      const channel =
+        firstReferralOf.get(p.id) ?? p.acquisitionSource ?? "sin_dato";
+      if (kinds.length && !kinds.includes(acqKind(channel))) continue;
+      altas++;
+      counts.set(channel, (counts.get(channel) ?? 0) + 1);
+    }
+
+    const all = [...counts.entries()].sort(
+      (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+    );
+    const skip = opts?.skip ?? 0;
+    const page =
+      opts?.take != null ? all.slice(skip, skip + opts.take) : all.slice(skip);
+    return {
+      rows: page.map(([canal, n]) => [
+        canal,
+        n,
+        altas ? Math.round((n / altas) * 100) : 0,
+      ]),
+      total: all.length,
+      summary: [`${altas} altas en ${all.length} canales`],
+    };
+  },
+};
+
 export const ADMIN_ENTITIES: Record<string, EntityHandler> = {
   events,
   classes,
@@ -1072,6 +1153,7 @@ export const ADMIN_ENTITIES: Record<string, EntityHandler> = {
   rentals,
   people,
   leads,
+  acquisition,
   "payment-events": paymentEvents,
   "gateway-transactions": gatewayTransactions,
   "membership-subscriptions": membershipSubscriptions,

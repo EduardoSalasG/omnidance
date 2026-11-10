@@ -47,14 +47,40 @@ página en modo edición en vez de expandir un formulario inline.
 
 ### Requirement: Estado vacío con CTA
 
-El estado vacío de un listado gestionable SHALL ofrecer el CTA de creación
-como acción principal, en lugar de un mensaje sin salida.
+En un listado gestionable SHALL existir exactamente un CTA de crear:
+el del header de la pantalla o de la sección que lista la entidad. El
+estado vacío SHALL mostrar solo el mensaje (sin repetir el botón de
+crear en ninguna variante), salvo cuando la superficie no tiene CTA
+de crear propio (ej. el dashboard del productor sin actividad, donde
+el CTA de primer evento es la acción del estado vacío).
 
 #### Scenario: Lista vacía
 
-- **WHEN** el listado no tiene entidades
-- **THEN** el empty state muestra el mensaje y el botón de crear como acción
-  principal
+- **WHEN** el listado no tiene entidades y el header de la pantalla o
+  de la sección ya muestra el botón de crear
+- **THEN** el empty state muestra el mensaje y NO repite el botón de
+  crear
+
+#### Scenario: preventa por academias vacía en la ficha del evento
+
+- **GIVEN** un evento del productor sin acuerdos de preventa
+- **WHEN** el productor abre su ficha
+- **THEN** la sección "Preventa por academias" muestra el mensaje
+  vacío y el único CTA `＋ Invitar` es el del header de la sección
+
+#### Scenario: medios de cobro vacíos
+
+- **GIVEN** un productor sin métodos propios ni pasarela
+- **WHEN** abre `/productor/medios-pago`
+- **THEN** el empty state muestra el mensaje y el único CTA "Agregar
+  método" es el del header de la card
+
+#### Scenario: dashboard sin actividad
+
+- **GIVEN** un productor aprobado sin eventos
+- **WHEN** abre `/inicio` en su lente
+- **THEN** el dashboard muestra el CTA de crear su primer evento (la
+  superficie no tiene CTA de crear propio)
 
 ### Requirement: Excepciones inline permitidas
 
@@ -133,3 +159,74 @@ como paso previo.
   guardar
 - **WHEN** el usuario muta
 - **THEN** el resultado sale por `ActionNotice` con auto-dismiss
+
+### Requirement: campañas admin con crear/editar en páginas dedicadas
+
+El listado `/admin/campanas` SHALL ofrecer la creación de campañas
+solo vía un CTA que navega a `/admin/campanas/nueva`, y la edición
+vía la misma página con `?edit=<id>` (precarga por
+`GET /admin/mail-campaigns/:id`). MUST NOT existir un formulario de
+creación o edición renderizado dentro del listado (ni permanente ni
+tras toggle). Cada card del listado SHALL navegar a la ficha
+`/admin/campanas/[id]` y MUST NOT contener acciones inline: las
+mutaciones de operación (probar envío, correr ahora, cancelar) viven
+solo en la ficha.
+
+#### Scenario: crear campaña desde el listado
+
+- **WHEN** el admin presiona "Nueva campaña" en `/admin/campanas`
+- **THEN** navega a `/admin/campanas/nueva` con el formulario vacío y
+  el back vuelve al listado
+
+#### Scenario: abrir la ficha desde una card
+
+- **WHEN** el admin presiona una card del listado
+- **THEN** navega a `/admin/campanas/<id>` con el detalle de la
+  campaña
+
+#### Scenario: editar campaña desde una card
+
+- **WHEN** el admin presiona una card del listado y luego la
+  identidad de la campaña en su ficha (DRAFT/SCHEDULED)
+- **THEN** navega a `/admin/campanas/nueva?edit=<id>` con el
+  formulario precargado por `GET /admin/mail-campaigns/:id`, y al
+  guardar vuelve al listado con aviso de éxito
+
+### Requirement: ficha de campaña admin con historial y acciones
+
+`/admin/campanas/[id]` SHALL mostrar la identidad de la campaña
+(nombre y estado), sus datos (asunto, audiencia, programación,
+próxima/última corrida, contadores acumulados), el `htmlBody` en un
+preview aislado (iframe sandbox), el historial de corridas
+(`GET /admin/mail-campaigns/:id/runs`, más nuevas primero, con
+trigger, estado, fechas, destinatarios y enviados/fallidos) y las
+acciones de operación: probar envío (`POST :id/test`), enviar ahora
+(`POST :id/run` con confirmación) y cancelar (`POST :id/cancel` con
+confirmación, visible solo si el estado lo permite). Toda acción
+MUST emitir `ActionNotice` con su resultado y refrescar la ficha. La
+edición solo se ofrece cuando la campaña es DRAFT o SCHEDULED. Una
+campaña inexistente o sin permiso MUST renderizar un estado
+explícito ("no encontrada" / "sin acceso"), nunca una página en
+blanco.
+
+#### Scenario: historial de corridas
+
+- **WHEN** el admin abre la ficha de una campaña con corridas
+- **THEN** ve la lista de runs más nuevos primero con trigger
+  (CRON/MANUAL), estado (RUNNING/OK/ERROR/CANCELLED), fecha de
+  inicio, destinatarios y contadores sent/fail; una campaña sin
+  corridas muestra estado vacío
+
+#### Scenario: acciones de operación con confirmación
+
+- **WHEN** el admin presiona "Enviar ahora" o "Cancelar" en la ficha
+- **THEN** un `ConfirmSheet` pide confirmación antes de disparar el
+  POST, y el resultado se comunica por `ActionNotice` (el botón
+  "Prueba" no requiere confirmación)
+
+#### Scenario: campaña inexistente
+
+- **WHEN** el admin abre `/admin/campanas/<id>` de una campaña que no
+  existe
+- **THEN** ve un estado "no encontrada" con salida al listado, sin
+  error de red visible

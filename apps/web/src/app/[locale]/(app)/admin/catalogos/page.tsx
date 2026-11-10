@@ -137,7 +137,13 @@ function CatalogSection({
 
       {items === null && !loadError && <SkeletonList />}
 
-      {items !== null && (
+      {items !== null && items.length === 0 && !loadError && (
+        <p role="status" className="text-sm text-ink/50">
+          {t("empty")}
+        </p>
+      )}
+
+      {items !== null && items.length > 0 && (
         <Card className="divide-y divide-line p-0">
           {items.map((item) => (
             /* Fila navegable → página de editar (editar/eliminar viven

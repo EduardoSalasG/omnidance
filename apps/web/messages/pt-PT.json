@@ -1070,7 +1070,8 @@
     "editTitle": "Editar valor · {catalog}",
     "valueNotFound": "Valor não encontrado",
     "deleteHint": "Elimina o valor do catálogo; não é reversível.",
-    "deleted": "Valor eliminado"
+    "deleted": "Valor eliminado",
+    "empty": "Sem valores neste catálogo."
   },
   "producerParams": {
     "title": "Valores por omissão",

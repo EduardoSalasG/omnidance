@@ -128,8 +128,17 @@ importan al bailarín (tickets chicos) pero SÍ a academia/productor
    ver quién paga al expirar.
 4. Tarifa de reembolso de crédito: negociarla con 2 productores reales
    antes de fijar el precio del pase.
-5. CAC por actor: no hay instrumentación; mínimo viable: registrar
-   fuente de adquisición en el alta.
+5. CAC por actor: parcialmente cubierto - el canal de invitación de
+   academias ya está instrumentado (`Referral` INVITE: el alta cuenta
+   el consume por magic link y, desde 2026-11-10, también el tap del
+   push `academy.invite` en centro o toast → la conversión
+   invite→registrada es medible por academia). Las altas orgánicas
+   también quedaron instrumentadas (spec auth/acquisition-source):
+   `Person.acquisitionSource` (`utm:<source>` | `ref:<host>` |
+   `landing:<path>` | `direct`) + `acquisitionDetail` crudo se
+   escriben en el alta (register/magic-link/OTP) desde la captura
+   first-touch de la landing - null = invite/untracked. Falta la
+   consulta de reporte CAC por canal.
 
 ## 8. Debilidades del modelo → plan de ataque
 

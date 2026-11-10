@@ -248,10 +248,22 @@ export class ProducerClaimsService {
         select: { personId: true },
       });
       for (const admin of admins) {
-        await this.notifications.notifySafe(admin.personId, notice);
+        await this.notifications.notifySafe(admin.personId, {
+          ...notice,
+          data: {
+            ...notice.data,
+            path: `/admin/facturacion/comprobantes/${claim.id}`,
+          },
+        });
       }
     } else {
-      await this.notifications.notifySafe(target.reviewerId, notice);
+      await this.notifications.notifySafe(target.reviewerId, {
+        ...notice,
+        data: {
+          ...notice.data,
+          path: `/productor/comprobantes/claim/${claim.id}`,
+        },
+      });
     }
 
     return claim;
@@ -512,7 +524,11 @@ export class ProducerClaimsService {
       type: "payment_claim_approved",
       title: "Pago validado",
       body: "Tu comprobante fue aprobado y tu pago quedó confirmado.",
-      data: { claimId: claim.id, paymentId: claim.paymentId },
+      data: {
+        claimId: claim.id,
+        paymentId: claim.paymentId,
+        path: "/perfil/pagos",
+      },
     });
     return { claim: { ...claim, status: "APPROVED" }, settled };
   }
@@ -544,7 +560,11 @@ export class ProducerClaimsService {
       type: "payment_claim_rejected",
       title: "Comprobante rechazado",
       body: note.trim(),
-      data: { claimId: claim.id, paymentId: claim.paymentId },
+      data: {
+        claimId: claim.id,
+        paymentId: claim.paymentId,
+        path: "/perfil/pagos",
+      },
     });
     return { claim: updated };
   }

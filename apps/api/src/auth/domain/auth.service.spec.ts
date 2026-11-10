@@ -89,6 +89,7 @@ class FakeOtpRepo {
       ...data,
       role: data.role ?? null,
       next: data.next ?? null,
+      acquisition: null,
       attempts: 0,
       consumedAt: null,
       createdAt: new Date(),

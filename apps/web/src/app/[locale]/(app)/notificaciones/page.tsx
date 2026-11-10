@@ -8,7 +8,10 @@ import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { notificationLens } from "@/lib/notification-lens";
-import { safeInternalPath } from "@/lib/safe-next";
+import {
+  notificationHref,
+  notificationTapEffects,
+} from "@/lib/notification-nav";
 import { Badge, Button, Card, ChevronRightIcon } from "@/components/ui";
 import { RefreshIcon, SkeletonList } from "@/components/ui";
 import { useRouter } from "@/i18n/navigation";
@@ -50,47 +53,9 @@ const rtf = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
 // Meta de los cards con evento: "sáb 15 jun · 21:00".
 ;
 
-/** Deep link por tipo - el tap marca leída y navega al contexto. */
-function hrefFor(n: NotificationItem): string | null {
-  const eventId =
-    typeof n.data?.eventId === "string" ? n.data.eventId : null;
-  const classId =
-    typeof n.data?.classId === "string" ? n.data.classId : null;
-  switch (n.type) {
-    case "payment.paid":
-      return "/eventos?view=mios";
-    case "ticket.gifted":
-    case "ticket.claimed":
-    case "waitlist.promoted":
-      return eventId ? `/eventos/${eventId}` : "/eventos";
-    case "payment.failed":
-      return eventId ? `/eventos/${eventId}` : null;
-    case "event.survey":
-      return eventId ? `/eventos/${eventId}/evaluar` : null;
-    case "session.invite":
-    case "session.confirmed":
-    case "session.declined":
-      return "/bailes";
-    case "friend.request":
-      return "/amigos";
-    // Particular del alumno (asignada, cancelada pagada, comprada) -
-    // vive dentro de reservadas de /clases (sin bandeja separada).
-    case "academy.private_lesson.assigned":
-    case "academy.private_lesson.cancelled_paid":
-    case "academy.private_lesson.purchased":
-      return "/clases?scope=reservadas";
-    case "class.waitlist.promoted":
-      return classId ? `/clases/${classId}` : "/clases";
-    case "class.series.resumed":
-      return "/clases";
-    default: {
-      // Fallback genérico: la API puede mandar el destino resuelto en
-      // data.path (p.ej. account.complete_profile → /perfil/completar).
-      const path = typeof n.data?.path === "string" ? n.data.path : null;
-      return safeInternalPath(path);
-    }
-  }
-}
+/** Deep link por tipo: fuente única `notification-nav` (spec
+    notifications/deep-links) compartida con el toast en tiempo real. */
+const hrefFor = notificationHref;
 
 function relativeTime(iso: string, dateFmt: Intl.DateTimeFormat): string {
   const then = new Date(iso).getTime();
@@ -190,6 +155,9 @@ export default function NotificacionesPage() {
         // Si falla, el próximo load() restaura el estado real
       }
     }
+    // Efectos del tap por tipo (academy.invite: consume + lente) -
+    // compartidos con el toast vía notification-nav.
+    notificationTapEffects(n);
     const href = hrefFor(n);
     if (href) router.push(href);
   }

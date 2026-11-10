@@ -1,6 +1,7 @@
 import { NextIntlClientProvider } from "next-intl";
 import { marketingMessages } from "@/i18n/messages";
 import { routing, type Locale } from "@/i18n/routing";
+import { AcquisitionCapture } from "@/components/acquisition-capture";
 
 // Grupo (marketing): superficies públicas sin chrome de app.
 // Sin BottomNav, sin RealtimeProvider, sin padding de tab bar -
@@ -28,6 +29,7 @@ export default async function MarketingLayout({
   return (
     <NextIntlClientProvider locale={loc} messages={marketingMessages(loc)}>
       <div className="force-dark min-h-dvh">{children}</div>
+      <AcquisitionCapture />
     </NextIntlClientProvider>
   );
 }

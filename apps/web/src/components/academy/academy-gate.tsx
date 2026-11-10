@@ -203,7 +203,7 @@ export function AcademyGate({
           {/* El wrapper vive dentro de la condición: un div vacío sigue
               siendo un item flex del padre y duplicaba el gap-6 del
               contenedor de página (doble espacio bajo el back). */}
-          {selector && (academies.length > 1 || canCreate) && (
+          {selector && (academies.length > 1 || canAddAcademy) && (
             <div className="flex flex-wrap items-center gap-2">
               <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-xs">
                 <span className="sr-only">{t("title")}</span>

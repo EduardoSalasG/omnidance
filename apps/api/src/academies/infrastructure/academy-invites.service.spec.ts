@@ -110,6 +110,26 @@ describe("AcademyInvitesService.sendInvite", () => {
     );
   });
 
+  it("el push lleva data.url a la ruta bridge /i/<inviteId>", async () => {
+    prisma.persons = [{ id: "per-1", deletedAt: null }];
+    await svc.sendInvite(academy, {
+      email: "cuenta@correo.cl",
+      name: "Cuenta",
+      invitedById: "staff-1",
+    });
+    expect(notifications.notifySafe).toHaveBeenCalledWith(
+      "per-1",
+      expect.objectContaining({
+        type: "academy.invite",
+        data: expect.objectContaining({
+          academyId: "ac-1",
+          inviteId: "inv-1",
+          url: "/i/inv-1",
+        }),
+      }),
+    );
+  });
+
   it("sin cuenta → personExists false, sin push", async () => {
     const res = await svc.sendInvite(academy, {
       email: "nuevo@correo.cl",

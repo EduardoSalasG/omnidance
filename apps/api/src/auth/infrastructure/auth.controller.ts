@@ -25,13 +25,17 @@ import {
   throttleTtlMs,
 } from "../../common/throttle.config";
 import { AuthService } from "../domain/auth.service";
+import {
+  resolveAcquisition,
+  type AcquisitionInput,
+} from "../domain/acquisition";
 import { ConsentService } from "../../legal/consent.service";
 import { resolveJurisdiction } from "../../legal/jurisdiction";
 import type { Mailer, AuthRepo } from "../domain/ports";
 import { MAILER, AUTH_REPO } from "../domain/ports";
 import { SessionGuard } from "./session.guard";
 import { PrismaService } from "../../prisma.service";
-import { emitActivity } from "../../common/activity-log";
+import { consumeAcademyInvites } from "../../common/consume-academy-invites";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import {
   magicLinkEmailHtml,
@@ -60,6 +64,20 @@ export function setSessionCookie(res: Response, token: string): void {
   });
 }
 
+// Capture de adquisición orgánica (spec auth/acquisition-source): la
+// landing lo declara en register/magic-link; en magic viaja como claim
+// del token y en la fila del OTP (mismo patrón role/consent/next).
+// Todo opcional - el servidor normaliza el canal.
+class AcquisitionDto {
+  @IsOptional() @IsString() utmSource?: string;
+  @IsOptional() @IsString() utmMedium?: string;
+  @IsOptional() @IsString() utmCampaign?: string;
+  @IsOptional() @IsString() utmContent?: string;
+  @IsOptional() @IsString() utmTerm?: string;
+  @IsOptional() @IsString() referrer?: string;
+  @IsOptional() @IsString() landingPath?: string;
+}
+
 // `consent?: boolean` (spec legal-consent): el front lo manda true cuando
 // la persona marcó el checkbox de Términos+Privacidad. No es obligatorio
 // a nivel API - cuentas legadas pasan por el aviso in-app (POST
@@ -75,6 +93,11 @@ class ConsentField {
   @IsOptional()
   @IsString()
   role?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AcquisitionDto)
+  acquisition?: AcquisitionDto;
 }
 
 // Roles registrables por landing - cualquier otro valor de ?role= se
@@ -235,50 +258,32 @@ export class AuthController {
     email: string,
     personId: string,
     next: string | null,
-  ) {
+  ): Promise<boolean> {
     const academyId = next?.match(/^\/academias\/([^/?#]+)/)?.[1];
-    if (!academyId || !this.prisma) return;
-    try {
-      const pending = await this.prisma.academyInvite.findMany({
-        where: { academyId, email, consumedAt: null },
-      });
-      for (const invite of pending) {
-        await this.prisma.academyInvite.update({
-          where: { id: invite.id },
-          data: { consumedAt: new Date(), personId },
-        });
-        // Referral INVITE (CRM): dedup por referrer+referred+source -
-        // la tabla no tiene @@unique (mismo patrón que GIFT_TICKET).
-        const dup = await this.prisma.referral.findFirst({
-          where: {
-            referrerId: invite.invitedById,
-            referredId: personId,
-            source: "INVITE",
-          },
-          select: { id: true },
-        });
-        if (!dup) {
-          await this.prisma.referral.create({
-            data: {
-              referrerId: invite.invitedById,
-              referredId: personId,
-              source: "INVITE",
-            },
-          });
-        }
-        await emitActivity(this.prisma, {
-          type: "invite.registered",
-          personId,
-          academyId,
-          refType: "AcademyInvite",
-          refId: invite.id,
-        });
-      }
-    } catch (err) {
-      this.logger.warn(
-        `consumo de invitación de ${email} falló: ${(err as Error).message}`,
-      );
-    }
+    if (!academyId || !this.prisma) return false;
+    return consumeAcademyInvites(
+      this.prisma,
+      { email, personId, academyId, channel: "magic_link" },
+      this.logger,
+    );
+  }
+
+  /**
+   * Lente consumer de llegada (spec invite-academy-lens): si el verify
+   * consumió una invitación de academia, la respuesta deja una cookie
+   * de un solo uso que el chrome lee para persistir viewMode=academy.
+   * Legible por JS (no httpOnly) y de vida corta.
+   */
+  private setArrivalLensCookie(res: Response): void {
+    res.cookie("omnidance_lens", "academy", {
+      httpOnly: false,
+      sameSite: "lax",
+      secure:
+        process.env.SESSION_SECURE === "true" ||
+        process.env.NODE_ENV === "production",
+      maxAge: 5 * 60 * 1000,
+      path: "/",
+    });
   }
 
   /** Bienvenida best-effort: el alta nunca falla por el correo. */
@@ -336,13 +341,19 @@ export class AuthController {
     consent: boolean,
     role?: string,
     purpose: "access" | "verify" = "access",
+    acquisition?: AcquisitionInput,
   ) {
     // Consentimiento y rol pedido viajan como claims del token y en la
     // fila del OTP: ambos caminos los estampan al crear la sesión.
+    const resolved = resolveAcquisition(acquisition);
     const token = await this.auth.createMagicToken(email, consent, "15m", {
       role,
+      acquisition: resolved?.detail,
     });
-    const code = await this.auth.createOtp(email, consent, { role });
+    const code = await this.auth.createOtp(email, consent, {
+      role,
+      acquisition: resolved,
+    });
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const link = `${webUrl}/api/auth/verify?token=${token}`;
     // "verify" es el correo post-registro con password: no es un acceso
@@ -378,6 +389,8 @@ export class AuthController {
       email,
       dto.consent === true,
       landingRole(dto.role),
+      "access",
+      dto.acquisition,
     );
     return { sent: true };
   }
@@ -469,7 +482,13 @@ export class AuthController {
       // Best-effort: el 409 no cambia si el correo falla - la persona
       // puede reintentar con "acceder por email" desde login.
       try {
-        await this.sendMagicLink(email, dto.consent === true, landingRole(dto.role));
+        await this.sendMagicLink(
+          email,
+          dto.consent === true,
+          landingRole(dto.role),
+          "access",
+          dto.acquisition,
+        );
       } catch (err) {
         this.logger.warn(
           `claim link a ${email} falló: ${(err as Error).message}`,
@@ -486,6 +505,9 @@ export class AuthController {
       passwordHash,
       // Jurisdicción legal del país declarado (CL si no declara).
       resolveJurisdiction(dto.country),
+      // Fuente orgánica capturada por la landing (spec
+      // auth/acquisition-source) - solo se escribe en el alta.
+      resolveAcquisition(dto.acquisition),
     );
     const role = landingRole(dto.role);
     if (role) await this.repo.ensurePendingRole(person.id, role);
@@ -568,20 +590,27 @@ export class AuthController {
   @Throttle(AUTH_THROTTLE)
   async verify(@Query("token") token: string, @Res() res: Response) {
     try {
-      const { email, consent, role, next } =
+      const { email, consent, role, next, acquisition } =
         await this.auth.verifyMagicToken(token);
       // Un `next` que no es path interno se ignora (spec
       // academies/student-invites): nunca open redirect.
       const safeNext = internalNext(next);
       // Si el correo no existía, el upsert crea la cuenta → bienvenida.
       const existed = await this.repo.findByEmail(email);
-      const person = await this.repo.upsertByEmail(email);
+      const person = await this.repo.upsertByEmail(
+        email,
+        resolveAcquisition(acquisition),
+      );
       // Checkbox marcado al pedir el link → se estampa al crear sesión.
       if (consent) await this.consentService.recordAcceptance(person.id);
       // Rol pedido desde la landing (?role= viaja en el token).
       if (role) await this.repo.ensurePendingRole(person.id, role);
       // Invitación de academia pendiente → consumo + Referral (INVITE).
-      await this.consumeAcademyInvites(email, person.id, safeNext);
+      const invited = await this.consumeAcademyInvites(
+        email,
+        person.id,
+        safeNext,
+      );
       if (!existed) {
         await this.sendWelcome(email, person.name);
         await this.notifyAdminsNewUser(person, role);
@@ -589,6 +618,7 @@ export class AuthController {
       const session = await this.auth.issueSession(person.id);
       const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
       this.setSessionCookie(res, session);
+      if (invited) this.setArrivalLensCookie(res);
       // Cuenta recién creada por el verify → paso de perfil
       // post-registro (/bienvenida) y al cerrar continúa a `next`.
       // Cuenta existente: ya completó ese paso → aterriza directo en
@@ -617,22 +647,30 @@ export class AuthController {
   ) {
     try {
       const email = dto.email.toLowerCase();
-      const { consent, role, next } = await this.auth.verifyOtp(
+      const { consent, role, next, acquisition } = await this.auth.verifyOtp(
         email,
         dto.code,
       );
       const safeNext = internalNext(next);
       const existed = await this.repo.findByEmail(email);
-      const person = await this.repo.upsertByEmail(email);
+      const person = await this.repo.upsertByEmail(
+        email,
+        resolveAcquisition(acquisition),
+      );
       if (consent) await this.consentService.recordAcceptance(person.id);
       if (role) await this.repo.ensurePendingRole(person.id, role);
-      await this.consumeAcademyInvites(email, person.id, safeNext);
+      const invited = await this.consumeAcademyInvites(
+        email,
+        person.id,
+        safeNext,
+      );
       if (!existed) {
         await this.sendWelcome(email, person.name);
         await this.notifyAdminsNewUser(person, role);
       }
       const session = await this.auth.issueSession(person.id);
       this.setSessionCookie(res, session);
+      if (invited) this.setArrivalLensCookie(res);
       // `next` viaja al front para continuar el onboarding estándar
       // hacia el destino (misma regla que GET /verify).
       return { ok: true, isNew: !existed, next: safeNext ?? undefined };

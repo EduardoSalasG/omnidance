@@ -10,7 +10,8 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { Request } from "express";
-import { IsDateString, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsDateString, IsDefined, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
 import { RolesGuard } from "../common/rbac/roles.guard";
 import { RequirePermissions } from "../common/rbac/roles.decorator";
@@ -20,7 +21,7 @@ import {
 } from "./mail-campaigns.service";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
-class AudienceDto {
+export class AudienceDto {
   @IsIn([
     "ALL",
     "ROLE",
@@ -69,7 +70,7 @@ class AudienceDto {
   days?: number;
 }
 
-class CampaignDto {
+export class CampaignDto {
   @IsString()
   @IsNotEmpty()
   name!: string;
@@ -82,6 +83,12 @@ class CampaignDto {
   @IsNotEmpty()
   htmlBody!: string;
 
+  // Sin decoradores el pipe global (whitelist:true) recorta la propiedad
+  // entera → toSpec(undefined) 500. ValidateNested+Type la preservan y
+  // validan el nested; IsDefined cubre el body sin audience (400, no 500).
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => AudienceDto)
   audience!: AudienceDto;
 
   @IsIn(["ONCE", "CRON"])
@@ -104,7 +111,7 @@ class CampaignDto {
   status?: "DRAFT" | "SCHEDULED";
 }
 
-class CampaignPatchDto {
+export class CampaignPatchDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()

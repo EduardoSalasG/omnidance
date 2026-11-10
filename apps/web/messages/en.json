@@ -1070,7 +1070,8 @@
     "editTitle": "Edit value · {catalog}",
     "valueNotFound": "Value not found",
     "deleteHint": "Deletes the catalog value; cannot be undone.",
-    "deleted": "Value deleted"
+    "deleted": "Value deleted",
+    "empty": "No values in this catalog."
   },
   "producerParams": {
     "title": "Default values",

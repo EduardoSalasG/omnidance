@@ -16,11 +16,14 @@ type Person = { id: string; roles: string[] };
 const reqAs = (p: Person) => ({ person: p }) as never;
 
 const OWNER = { id: "owner-1", roles: ["ACADEMY_OWNER"] };
+const DANCER = { id: "p-1", roles: ["DANCER"] };
 
 function makeDeps() {
   const prisma = {
     academyInvite: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(async () => ({})),
       create: vi.fn(async ({ data }: { data: object }) => ({
         id: "inv-1",
         consumedAt: null,
@@ -30,6 +33,10 @@ function makeDeps() {
       findMany: vi.fn().mockResolvedValue([]),
     },
     person: { findUnique: vi.fn().mockResolvedValue(null) },
+    referral: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      create: vi.fn(async () => ({})),
+    },
     activityEvent: { create: vi.fn() },
   };
   const access = {
@@ -132,6 +139,111 @@ describe("AcademyInvitesController.invite", () => {
     await ctrl.invite("acad-1", reqAs(OWNER), DTO as never);
 
     expect(notifications.notifySafe).not.toHaveBeenCalled();
+  });
+});
+
+// spec academies/student-invites (consumo por push): la cuenta
+// existente consume su invitación pendiente desde la notificación,
+// mismo efecto que el verify del magic link - consumedAt + personId,
+// Referral INVITE (dedup) e invite.registered. Idempotente y 404 si
+// el email no calza (no filtra invites ajenas).
+describe("AcademyInvitesController.consume", () => {
+  const PENDING = {
+    id: "inv-1",
+    academyId: "acad-1",
+    email: "inv@x.cl",
+    invitedById: "owner-1",
+    consumedAt: null,
+  };
+
+  it("consume la invitación propia: consumedAt + personId, Referral y evento", async () => {
+    const { ctrl, prisma } = makeDeps();
+    prisma.academyInvite.findUnique.mockResolvedValue(PENDING);
+    prisma.person.findUnique.mockResolvedValue({ email: "inv@x.cl" });
+    prisma.academyInvite.findMany.mockResolvedValue([PENDING]);
+
+    const res = await ctrl.consume("inv-1", reqAs(DANCER));
+
+    expect(res).toEqual({ consumed: true, academyId: "acad-1" });
+    expect(prisma.academyInvite.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "inv-1" },
+        data: expect.objectContaining({ personId: "p-1" }),
+      }),
+    );
+    expect(prisma.referral.create).toHaveBeenCalledWith({
+      data: {
+        referrerId: "owner-1",
+        referredId: "p-1",
+        source: "INVITE",
+      },
+    });
+    // Canal default del endpoint: tap in-app (centro/toast) = "push".
+    expect(prisma.activityEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: "invite.registered",
+          data: { channel: "push" },
+        }),
+      }),
+    );
+  });
+
+  it("channel device del bridge se propaga al evento invite.registered", async () => {
+    const { ctrl, prisma } = makeDeps();
+    prisma.academyInvite.findUnique.mockResolvedValue(PENDING);
+    prisma.person.findUnique.mockResolvedValue({ email: "inv@x.cl" });
+    prisma.academyInvite.findMany.mockResolvedValue([PENDING]);
+
+    await ctrl.consume("inv-1", reqAs(DANCER), { channel: "device" });
+
+    expect(prisma.activityEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: "invite.registered",
+          data: { channel: "device" },
+        }),
+      }),
+    );
+  });
+
+  it("ya consumida → consumed:false sin re-escribir ni duplicar referral", async () => {
+    const { ctrl, prisma } = makeDeps();
+    prisma.academyInvite.findUnique.mockResolvedValue({
+      ...PENDING,
+      consumedAt: new Date("2026-11-09"),
+      personId: "p-1",
+    });
+    prisma.person.findUnique.mockResolvedValue({ email: "inv@x.cl" });
+
+    const res = await ctrl.consume("inv-1", reqAs(DANCER));
+
+    // academyId también en el early-return: la bridge lo necesita
+    // para navegar aunque la invite ya estaba consumida.
+    expect(res).toEqual({ consumed: false, academyId: "acad-1" });
+    expect(prisma.academyInvite.update).not.toHaveBeenCalled();
+    expect(prisma.referral.create).not.toHaveBeenCalled();
+  });
+
+  it("invite de otro email → 404 y no consume", async () => {
+    const { ctrl, prisma } = makeDeps();
+    prisma.academyInvite.findUnique.mockResolvedValue(PENDING);
+    prisma.person.findUnique.mockResolvedValue({ email: "otra@x.cl" });
+
+    await expect(ctrl.consume("inv-1", reqAs(DANCER))).rejects.toThrow(
+      /404|Not Found/i,
+    );
+    expect(prisma.academyInvite.update).not.toHaveBeenCalled();
+  });
+
+  it("invite inexistente → 404", async () => {
+    const { ctrl, prisma } = makeDeps();
+    prisma.academyInvite.findUnique.mockResolvedValue(null);
+    prisma.person.findUnique.mockResolvedValue({ email: "inv@x.cl" });
+
+    await expect(ctrl.consume("inv-x", reqAs(DANCER))).rejects.toThrow(
+      /404|Not Found/i,
+    );
   });
 });
 

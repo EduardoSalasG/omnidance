@@ -572,14 +572,24 @@ sequenceDiagram
     API->>DB: ActivityEvent invite.sent
     API->>MAIL: invitación con magic link 7d<br/>(next=/academias/:id)
     opt cuenta existente
-        API->>I: push academy.invite (notifySafe)
+        API->>I: push academy.invite (notifySafe)<br/>data {academyId, inviteId, url=/i/:inviteId}
     end
     I->>AUTH: GET /api/auth/verify?token<br/>(o POST /auth/otp/verify con next en la fila)
     AUTH->>AUTH: next = path interno válido (else se ignora)
     AUTH->>DB: upsertByEmail + sesión
-    AUTH->>DB: pending invite (academyId del next) →<br/>consumedAt+personId + Referral INVITE<br/>+ ActivityEvent invite.registered
-    AUTH-->>I: nueva → /bienvenida?next= | existente → next directo
+    AUTH->>DB: pending invite (academyId del next) →<br/>consumedAt+personId + Referral INVITE<br/>+ ActivityEvent invite.registered (channel=magic_link)
+    AUTH-->>I: nueva → /bienvenida?next= | existente → next directo<br/>(cookie one-shot omnidance_lens=academy si consumió)
     I->>I: termina en la ficha pública de la academia<br/>y se inscribe sola
+    opt cuenta existente - camino push in-app (sin verify)
+        I->>API: tap en academy.invite (centro o toast) →<br/>POST /academies/invites/:inviteId/consume (sesión)
+        API->>DB: mismo consumo por helper compartido<br/>(idempotente · 404 si el email no calza · channel=push)
+        API-->>I: {consumed, academyId} → setViewMode a academy<br/>+ navega a /academias/:id
+    end
+    opt cuenta existente - push de dispositivo
+        I->>I: click del SW abre data.url → /i/:inviteId
+        I->>API: bridge consume con channel=device<br/>(mismo POST consume)
+        API-->>I: {consumed, academyId} → setViewMode +<br/>replace a /academias/:id (404/401 → /notificaciones)
+    end
 ```
 
 - `GET /academies/:id/invites` (cap students) alimenta la sección "Invitados" de `/academia/alumnos` - pendientes primero, estado por `consumedAt`.

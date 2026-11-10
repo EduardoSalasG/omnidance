@@ -2,13 +2,17 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { Prisma, type Person } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { emitActivity } from "../../common/activity-log";
+import type { ResolvedAcquisition } from "../domain/acquisition";
 import type { AuthRepo } from "../domain/ports";
 
 @Injectable()
 export class PrismaAuthRepo implements AuthRepo {
   constructor(private readonly prisma: PrismaService) {}
 
-  async upsertByEmail(email: string): Promise<Person> {
+  async upsertByEmail(
+    email: string,
+    acquisition?: ResolvedAcquisition,
+  ): Promise<Person> {
     const existing = await this.prisma.person.findUnique({ where: { email } });
     // Cuenta con baja lógica: el link/OTP no la resucita ni le da
     // sesión - el admin la reactiva si corresponde (spec
@@ -32,6 +36,7 @@ export class PrismaAuthRepo implements AuthRepo {
       email,
       name: email.split("@")[0],
       via: "auth.magic-link",
+      acquisition,
     });
   }
 
@@ -48,13 +53,23 @@ export class PrismaAuthRepo implements AuthRepo {
     isLightAccount?: boolean;
     jurisdiction?: string;
     via: string;
+    acquisition?: ResolvedAcquisition;
   }): Promise<Person> {
-    const { via, ...fields } = data;
+    const { via, acquisition, ...fields } = data;
     const person = await this.prisma.person.create({
       data: {
         ...fields,
         verifiedAt: fields.verifiedAt ?? new Date(),
         roles: { create: { role: "DANCER", status: "APPROVED" } },
+        // Fuente orgánica (spec auth/acquisition-source): solo se
+        // escribe en el alta; ausente → null (invite/untracked).
+        ...(acquisition
+          ? {
+              acquisitionSource: acquisition.source,
+              acquisitionDetail:
+                acquisition.detail as Prisma.InputJsonValue,
+            }
+          : {}),
       },
       include: { roles: { select: { id: true, role: true } } },
     });
@@ -63,7 +78,10 @@ export class PrismaAuthRepo implements AuthRepo {
       personId: person.id,
       refType: "Person",
       refId: person.id,
-      data: { via },
+      data: {
+        via,
+        ...(acquisition ? { acquisitionSource: acquisition.source } : {}),
+      },
     });
     for (const r of person.roles) {
       await emitActivity(this.prisma, {
@@ -86,6 +104,7 @@ export class PrismaAuthRepo implements AuthRepo {
     name: string,
     passwordHash: string,
     jurisdiction?: string,
+    acquisition?: ResolvedAcquisition,
   ) {
     return this.registerPerson({
       email,
@@ -93,6 +112,7 @@ export class PrismaAuthRepo implements AuthRepo {
       passwordHash,
       ...(jurisdiction ? { jurisdiction } : {}),
       via: "auth.register",
+      acquisition,
     });
   }
 
@@ -124,9 +144,23 @@ export class PrismaAuthRepo implements AuthRepo {
     codeHash: string;
     consent: boolean;
     role?: string;
+    next?: string;
+    acquisition?: ResolvedAcquisition;
     expiresAt: Date;
   }) {
-    return this.prisma.authOtp.create({ data }).then(() => {});
+    const { acquisition, ...rest } = data;
+    return this.prisma.authOtp
+      .create({
+        data: {
+          ...rest,
+          // Capture crudo en la fila (spec auth/acquisition-source) -
+          // el verify lo resuelve de nuevo junto al claim del token.
+          ...(acquisition
+            ? { acquisition: acquisition.detail as Prisma.InputJsonValue }
+            : {}),
+        },
+      })
+      .then(() => {});
   }
 
   // Admins APPROVED - destinatarios del aviso user.registered (spec

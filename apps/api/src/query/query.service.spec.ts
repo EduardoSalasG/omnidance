@@ -20,6 +20,14 @@ interface FakePerson {
   proTier?: string;
   proTrialEndsAt?: Date | null;
   roles?: { status: string }[];
+  createdAt?: Date;
+  acquisitionSource?: string | null;
+}
+
+interface FakeReferral {
+  referredId: string;
+  source: string;
+  createdAt: Date;
 }
 
 interface FakeEvent {
@@ -116,6 +124,7 @@ class FakePrisma {
   payments: FakePayment[] = [];
   enrollments: FakeEnrollment[] = [];
   guestLists: FakeGuestList[] = [];
+  referrals: FakeReferral[] = [];
   plans: { id: string; academyId: string; name: string }[] = [];
   reports: FakeReport[] = [];
   reportSeq = 0;
@@ -139,10 +148,33 @@ class FakePrisma {
       const p = this.people.get(where.id) ?? null;
       return p ? { ...p, roles: p.roles ?? [{ status: "APPROVED" }] } : null;
     },
-    findMany: async ({ where }: { where: { id?: { in: string[] } } }) =>
+    findMany: async ({
+      where,
+    }: {
+      where: {
+        id?: { in: string[] };
+        createdAt?: { gte?: Date; lte?: Date };
+      };
+    }) =>
       [...this.people.values()].filter(
-        (p) => !where.id || where.id.in.includes(p.id),
+        (p) =>
+          (!where.id || where.id.in.includes(p.id)) &&
+          (!where.createdAt?.gte ||
+            (p.createdAt ?? new Date(0)) >= where.createdAt.gte) &&
+          (!where.createdAt?.lte ||
+            (p.createdAt ?? new Date(0)) <= where.createdAt.lte),
       ),
+  };
+
+  referral = {
+    findMany: async ({
+      where,
+    }: {
+      where: { referredId: { in: string[] } };
+    }) =>
+      this.referrals
+        .filter((r) => where.referredId.in.includes(r.referredId))
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
   };
 
   private matchEvent(e: FakeEvent, w: EventWhere): boolean {
@@ -716,6 +748,120 @@ describe("QueryService - lentes y scope", () => {
       "ac-ajena",
     );
     expect(foreign.options).toEqual([]);
+  });
+});
+
+describe("QueryService - acquisition (lente ADMIN)", () => {
+  let prisma: FakePrisma;
+  let svc: QueryService;
+
+  const alta = (id: string, over: Partial<FakePerson> = {}): FakePerson => ({
+    id,
+    name: id,
+    createdAt: new Date("2026-11-05T12:00:00Z"),
+    ...over,
+  });
+  const run = (filters: Record<string, string> = {}) =>
+    svc.run("admin-1", { role: "ADMIN", entity: "acquisition", filters });
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    svc = new QueryService(prisma as unknown as PrismaService);
+    approve(prisma, "admin-1", "ADMIN");
+  });
+
+  it("agrega altas por canal: orden por conteo + canal, pct del total", async () => {
+    prisma.people.set("u1", alta("u1", { acquisitionSource: "utm:instagram" }));
+    prisma.people.set("u2", alta("u2", { acquisitionSource: "utm:instagram" }));
+    prisma.people.set("u3", alta("u3", { acquisitionSource: "utm:tiktok" }));
+    prisma.people.set("u4", alta("u4", { acquisitionSource: "direct" }));
+    prisma.people.set("u5", alta("u5", { acquisitionSource: "direct" }));
+    prisma.people.set("u6", alta("u6", { acquisitionSource: "ref:google.com" }));
+    // Invite: el alta por token no escribe acquisitionSource - su canal
+    // es el Referral.
+    prisma.people.set("u7", alta("u7"));
+    prisma.referrals.push({
+      referredId: "u7",
+      source: "INVITE",
+      createdAt: new Date("2026-11-05T12:00:00Z"),
+    });
+    // Sin capture ni referral → sin_dato (cuentas pre-capture).
+    prisma.people.set("u8", alta("u8"));
+
+    const res = await run();
+    expect(res.headers).toEqual(["canal", "altas", "pct"]);
+    // 8 altas, 6 canales; empates ordenados por canal.
+    expect(res.total).toBe(6);
+    expect(res.rows).toEqual([
+      ["direct", 2, 25],
+      ["utm:instagram", 2, 25],
+      ["invite", 1, 13],
+      ["ref:google.com", 1, 13],
+      ["sin_dato", 1, 13],
+      ["utm:tiktok", 1, 13],
+    ]);
+    // Filas agregadas: sin celda suplementaria personId.
+    expect(res.rows[0]).toHaveLength(res.headers.length);
+    expect(res.summary[0]).toContain("8");
+  });
+
+  it("referral gana aunque haya acquisitionSource (relación sobre click)", async () => {
+    prisma.people.set("u1", alta("u1", { acquisitionSource: "utm:instagram" }));
+    prisma.referrals.push(
+      {
+        referredId: "u1",
+        source: "GIFT_TICKET",
+        createdAt: new Date("2026-11-04T00:00:00Z"),
+      },
+      // La referral más antigua define el canal si hubiera más de una.
+      {
+        referredId: "u1",
+        source: "INVITE",
+        createdAt: new Date("2026-11-06T00:00:00Z"),
+      },
+    );
+    const res = await run();
+    expect(res.rows).toEqual([["gift_ticket", 1, 100]]);
+  });
+
+  it("kind filtra por prefijo de canal y viaja CSV (multi)", async () => {
+    prisma.people.set("u1", alta("u1", { acquisitionSource: "utm:instagram" }));
+    prisma.people.set("u2", alta("u2", { acquisitionSource: "ref:google.com" }));
+    prisma.people.set("u3", alta("u3", { acquisitionSource: "direct" }));
+    prisma.people.set("u4", alta("u4"));
+
+    const paid = await run({ kind: "utm" });
+    expect(paid.rows.map((r) => r[0])).toEqual(["utm:instagram"]);
+
+    const multi = await run({ kind: "utm,ref" });
+    expect(multi.rows.map((r) => r[0])).toEqual([
+      "ref:google.com",
+      "utm:instagram",
+    ]);
+
+    const none = await run({ kind: "none" });
+    expect(none.rows).toEqual([["sin_dato", 1, 100]]);
+
+    await expect(run({ kind: "foo" })).rejects.toMatchObject({
+      status: 400,
+    });
+    await expect(run({ kind: "utm,foo" })).rejects.toMatchObject({
+      status: 400,
+    });
+  });
+
+  it("from/to acotan por Person.createdAt", async () => {
+    prisma.people.set(
+      "old",
+      alta("old", {
+        acquisitionSource: "direct",
+        createdAt: new Date("2026-10-01T12:00:00Z"),
+      }),
+    );
+    prisma.people.set("new", alta("new", { acquisitionSource: "direct" }));
+    const res = await run({ from: "2026-11-01", to: "2026-11-30" });
+    expect(res.rows).toEqual([["direct", 1, 100]]);
+    expect(res.total).toBe(1);
   });
 });
 

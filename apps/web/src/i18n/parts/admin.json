@@ -536,7 +536,29 @@
       "testSent": "Prueba enviada, revisa tu correo.",
       "saved": "Campaña guardada",
       "runStarted": "Envío iniciado",
-      "cancelled": "Campaña cancelada"
+      "cancelled": "Campaña cancelada",
+      "detail": {
+        "notFound": "Campaña no encontrada",
+        "backToList": "Volver a campañas",
+        "nextRun": "Próxima corrida",
+        "lastRun": "Última corrida",
+        "created": "Creada"
+      },
+      "runs": {
+        "title": "Corridas",
+        "empty": "Sin corridas todavía",
+        "recipients": "{n, plural, one {# destinatario} other {# destinatarios}}",
+        "trigger": {
+          "CRON": "Cron",
+          "MANUAL": "Manual"
+        },
+        "status": {
+          "RUNNING": "En curso",
+          "OK": "OK",
+          "ERROR": "Error",
+          "CANCELLED": "Cancelada"
+        }
+      }
     },
     "billing": {
       "title": "Facturación",

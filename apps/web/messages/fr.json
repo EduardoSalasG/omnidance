@@ -1070,7 +1070,8 @@
     "editTitle": "Modifier la valeur · {catalog}",
     "valueNotFound": "Valeur introuvable",
     "deleteHint": "Supprime la valeur du catalogue ; irréversible.",
-    "deleted": "Valeur supprimée"
+    "deleted": "Valeur supprimée",
+    "empty": "Aucune valeur dans ce catalogue."
   },
   "producerParams": {
     "title": "Valeurs par défaut",

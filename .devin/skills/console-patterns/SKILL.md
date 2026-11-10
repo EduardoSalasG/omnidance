@@ -15,9 +15,12 @@ de la consola del dueño de academia y su portado 1:1 a la del productor
 ### 1. Crear = CTA → página dedicada
 
 Nunca un form inline en el listado ni un modal de alta. El listado
-muestra `＋ Nuevo X` en `ConsoleHeader.actions` (y en el empty state) y
-navega a `/modulo/nuevo`. La página de crear tiene `ConsoleHeader` con
-back al listado y vuelve al listado tras el aviso breve de éxito.
+muestra `＋ Nuevo X` en `ConsoleHeader.actions` y navega a
+`/modulo/nuevo`. **Un solo CTA de crear por pantalla**: el empty state
+del listado lleva solo mensaje, nunca repite el botón del header (ni
+en variant primary ni secondary). La página de crear tiene
+`ConsoleHeader` con back al listado y vuelve al listado tras el aviso
+breve de éxito.
 
 ### 2. Card completo clickeable → ficha
 
@@ -110,8 +113,9 @@ respeta el design system.
 - Error con `role="alert"` + botón retry que re-dispara el fetch.
 - Éxito/progreso con `role="status"` (o `aria-live="polite"` en zonas
   de avisos). **Nunca `role="status"` para errores.**
-- Empty state: mensaje + CTA cuando aplica; con filtros activos,
-  `query.empty` y se conserva el FilterBar para limpiar.
+- Empty state: mensaje solo (el CTA de crear ya vive en el header);
+  con filtros activos, `query.empty` y se conserva el FilterBar para
+  limpiar.
 - Forbidden: un deep link sin permiso muestra el estado "sin acceso"
   con CTA de salida — nunca página en blanco.
 - Touch targets ≥ `min-h-11`; inputs con `aria-label` o `label`

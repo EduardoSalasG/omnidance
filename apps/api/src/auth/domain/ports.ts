@@ -1,4 +1,5 @@
 import type { Person } from "@prisma/client";
+import type { ResolvedAcquisition } from "./acquisition";
 
 export const MAILER = "MAILER";
 export const AUTH_REPO = "AUTH_REPO";
@@ -17,6 +18,9 @@ export interface AuthOtpRecord {
   // Destino interno post-onboarding (spec academies/student-invites) -
   // viaja como `role`/`consent`: de la fila al verify.
   next: string | null;
+  // Capture de adquisición orgánica (spec auth/acquisition-source):
+  // viaja como `role`/`consent`/`next` - de la fila al verify.
+  acquisition: unknown;
   expiresAt: Date;
   attempts: number;
   consumedAt: Date | null;
@@ -24,7 +28,13 @@ export interface AuthOtpRecord {
 }
 
 export interface AuthRepo {
-  upsertByEmail(email: string): Promise<Person>;
+  // `acquisition` (spec auth/acquisition-source): fuente orgánica ya
+  // normalizada - se aplica SOLO al crear la Person; una existente
+  // conserva su fuente original.
+  upsertByEmail(
+    email: string,
+    acquisition?: ResolvedAcquisition,
+  ): Promise<Person>;
   findByEmail(email: string): Promise<Person | null>;
   createWithPassword(
     email: string,
@@ -33,6 +43,7 @@ export interface AuthRepo {
     // Jurisdicción resuelta del país declarado (spec
     // consent-por-jurisdiccion) - undefined deja null → CL por default.
     jurisdiction?: string,
+    acquisition?: ResolvedAcquisition,
   ): Promise<Person>;
   setPassword(personId: string, passwordHash: string): Promise<void>;
   // Admins APPROVED que reciben el aviso de registro nuevo (spec
@@ -53,6 +64,7 @@ export interface AuthRepo {
     consent: boolean;
     role?: string;
     next?: string;
+    acquisition?: ResolvedAcquisition;
     expiresAt: Date;
   }): Promise<void>;
   // Registro por landing (spec role-registration-pipeline): garantiza

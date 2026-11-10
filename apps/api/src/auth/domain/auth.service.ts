@@ -9,6 +9,10 @@ import {
 } from "node:crypto";
 import { promisify } from "node:util";
 import { SignJWT, jwtVerify } from "jose";
+import type {
+  AcquisitionInput,
+  ResolvedAcquisition,
+} from "./acquisition";
 import type { AuthRepo } from "./ports";
 
 // El overload con `options` existe en runtime pero @types/node no lo
@@ -60,7 +64,7 @@ export class AuthService {
     email: string,
     consent = false,
     ttl: string | number = "15m",
-    opts?: { role?: string; next?: string },
+    opts?: { role?: string; next?: string; acquisition?: AcquisitionInput },
   ): Promise<string> {
     return new SignJWT({
       purpose: "magic",
@@ -68,6 +72,7 @@ export class AuthService {
       ...(consent ? { consent: true } : {}),
       ...(opts?.role ? { role: opts.role } : {}),
       ...(opts?.next ? { next: opts.next } : {}),
+      ...(opts?.acquisition ? { acquisition: opts.acquisition } : {}),
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
@@ -77,7 +82,13 @@ export class AuthService {
 
   async verifyMagicToken(
     token: string,
-  ): Promise<{ email: string; consent: boolean; role?: string; next?: string }> {
+  ): Promise<{
+    email: string;
+    consent: boolean;
+    role?: string;
+    next?: string;
+    acquisition?: AcquisitionInput;
+  }> {
     const { payload } = await jwtVerify(token, this.key);
     if (payload.purpose !== "magic" || typeof payload.email !== "string") {
       throw new Error("invalid magic token");
@@ -87,6 +98,10 @@ export class AuthService {
       consent: payload.consent === true,
       role: typeof payload.role === "string" ? payload.role : undefined,
       next: typeof payload.next === "string" ? payload.next : undefined,
+      acquisition:
+        payload.acquisition && typeof payload.acquisition === "object"
+          ? (payload.acquisition as AcquisitionInput)
+          : undefined,
     };
   }
 
@@ -144,7 +159,11 @@ export class AuthService {
   async createOtp(
     email: string,
     consent = false,
-    opts?: { role?: string; next?: string },
+    opts?: {
+      role?: string;
+      next?: string;
+      acquisition?: ResolvedAcquisition;
+    },
   ): Promise<string> {
     const repo = this.otpRepo();
     await repo.consumeActives(email);
@@ -155,6 +174,7 @@ export class AuthService {
       consent,
       role: opts?.role,
       next: opts?.next,
+      acquisition: opts?.acquisition,
       expiresAt: new Date(Date.now() + OTP_TTL_MS),
     });
     return code;
@@ -168,7 +188,13 @@ export class AuthService {
   async verifyOtp(
     email: string,
     code: string,
-  ): Promise<{ email: string; consent: boolean; role?: string; next?: string }> {
+  ): Promise<{
+    email: string;
+    consent: boolean;
+    role?: string;
+    next?: string;
+    acquisition?: AcquisitionInput;
+  }> {
     const repo = this.otpRepo();
     const otp = await repo.findActiveOtp(email);
     const invalid = () => new Error("invalid otp");
@@ -200,6 +226,10 @@ export class AuthService {
       consent: otp.consent,
       role: otp.role ?? undefined,
       next: otp.next ?? undefined,
+      acquisition:
+        otp.acquisition && typeof otp.acquisition === "object"
+          ? (otp.acquisition as AcquisitionInput)
+          : undefined,
     };
   }
 }

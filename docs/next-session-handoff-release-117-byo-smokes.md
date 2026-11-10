@@ -10,9 +10,11 @@ dev→main en curso al cierre de este doc.
   con verify/cleanup y flow card-register por cuenta propia.
 - `5e43cfdd` release: 1.17.0 (+ tag `v1.17.0`).
 
-PR #3 dev→main creado; merge pendiente de checks (auto-merge no
-habilitado en el repo - mergear manual cuando `gh pr checks 3`
-esté verde).
+PR #3 dev→main mergeado (merge commit). Deploy workflow
+`42872477541` success (~7min). Post-deploy verificado:
+`GET /api/health` prod → 200; `POST /api/admin/subscriptions/migrate-legacy`
+→ 401 unauth (endpoint desplegado). Falta solo correr el dry-run
+con sesión admin (ver §Pendiente tras el merge).
 
 ## Smoke MercadoPago BYO - VERIFICADO
 

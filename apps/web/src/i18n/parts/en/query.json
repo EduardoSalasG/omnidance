@@ -52,7 +52,8 @@
       "actorType": "Actor type",
       "commission": "Commission",
       "levelId": "Level",
-      "typeId": "Modality"
+      "typeId": "Modality",
+      "kind": "Channel type"
     },
     "optionLabels": {
       "SCAN": "Scan",
@@ -125,7 +126,16 @@
       "VOID": "Voided",
       "AWAITING": "No receipt",
       "active": "Active",
-      "inactive": "Inactive"
+      "inactive": "Inactive",
+      "utm": "utm",
+      "ref": "Referrer",
+      "landing": "Landing",
+      "direct": "Direct",
+      "invite": "Invite",
+      "gift_ticket": "Gift ticket",
+      "link": "Link",
+      "none": "No data",
+      "sin_dato": "No data"
     },
     "entities": {
       "sales": "Sales",
@@ -152,7 +162,8 @@
       "payment-events": "Payment events",
       "gateway-transactions": "Gateway transactions",
       "membership-subscriptions": "Subscriptions",
-      "payouts": "Payouts"
+      "payouts": "Payouts",
+      "acquisition": "Signups by channel"
     },
     "system": {
       "sales": "Sales",
@@ -358,6 +369,11 @@
         "neto": "Net",
         "estado": "Status",
         "pagada": "Paid"
+      },
+      "acquisition": {
+        "canal": "Channel",
+        "altas": "Signups",
+        "pct": "%"
       }
     }
   }

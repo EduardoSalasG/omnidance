@@ -536,7 +536,29 @@
       "testSent": "Test sent, check your inbox.",
       "saved": "Campaign saved",
       "runStarted": "Send started",
-      "cancelled": "Campaign cancelled"
+      "cancelled": "Campaign cancelled",
+      "detail": {
+        "notFound": "Campaign not found",
+        "backToList": "Back to campaigns",
+        "nextRun": "Next run",
+        "lastRun": "Last run",
+        "created": "Created"
+      },
+      "runs": {
+        "title": "Runs",
+        "empty": "No runs yet",
+        "recipients": "{n, plural, one {# recipient} other {# recipients}}",
+        "trigger": {
+          "CRON": "Cron",
+          "MANUAL": "Manual"
+        },
+        "status": {
+          "RUNNING": "Running",
+          "OK": "OK",
+          "ERROR": "Error",
+          "CANCELLED": "Cancelled"
+        }
+      }
     },
     "billing": {
       "title": "Billing",

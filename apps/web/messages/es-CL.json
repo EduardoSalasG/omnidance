@@ -1070,7 +1070,8 @@
     "editTitle": "Editar valor · {catalog}",
     "valueNotFound": "Valor no encontrado",
     "deleteHint": "Elimina el valor del catálogo; no se puede deshacer.",
-    "deleted": "Valor eliminado"
+    "deleted": "Valor eliminado",
+    "empty": "Sin valores en este catálogo."
   },
   "producerParams": {
     "title": "Valores por defecto",

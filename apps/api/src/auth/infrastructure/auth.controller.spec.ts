@@ -24,6 +24,8 @@ interface FakePerson {
   consentAcceptedAt: Date | null;
   verifiedAt: Date | null;
   jurisdiction: string | null;
+  acquisitionSource: string | null;
+  acquisitionDetail: unknown;
 }
 
 // No `implements AuthRepo`: los métodos devuelven FakePerson (shape
@@ -41,7 +43,10 @@ class FakeRepo {
     return this.adminIds;
   }
 
-  async upsertByEmail(email: string): Promise<FakePerson> {
+  async upsertByEmail(
+    email: string,
+    acquisition?: { source: string; detail: unknown },
+  ): Promise<FakePerson> {
     const existing = this.people.get(email);
     if (existing) {
       // El link/OTP prueba posesión del correo (spec auth-email-verification).
@@ -57,6 +62,8 @@ class FakeRepo {
       consentAcceptedAt: null,
       verifiedAt: new Date(),
       jurisdiction: null,
+      acquisitionSource: acquisition?.source ?? null,
+      acquisitionDetail: acquisition?.detail ?? null,
     };
     this.people.set(email, person);
     return person;
@@ -71,6 +78,7 @@ class FakeRepo {
     name: string,
     passwordHash: string,
     jurisdiction?: string,
+    acquisition?: { source: string; detail: unknown },
   ) {
     const person: FakePerson = {
       id: `p-${++this.seq}`,
@@ -82,6 +90,8 @@ class FakeRepo {
       consentVersion: null,
       consentAcceptedAt: null,
       jurisdiction: jurisdiction ?? null,
+      acquisitionSource: acquisition?.source ?? null,
+      acquisitionDetail: acquisition?.detail ?? null,
     };
     this.people.set(email, person);
     return person;
@@ -109,6 +119,7 @@ class FakeRepo {
     consent: boolean;
     role?: string;
     next?: string;
+    acquisition?: { source: string; detail: unknown };
     expiresAt: Date;
   }) {
     this.otps.push({
@@ -116,6 +127,9 @@ class FakeRepo {
       ...data,
       role: data.role ?? null,
       next: data.next ?? null,
+      // Guarda el capture crudo como la fila real (spec
+      // auth/acquisition-source); el verify lo re-normaliza.
+      acquisition: data.acquisition?.detail ?? null,
       attempts: 0,
       consumedAt: null,
       createdAt: new Date(),
@@ -627,5 +641,248 @@ describe("AuthController - aviso a admins de registro nuevo", () => {
     );
     expect(out.isNew).toBe(false);
     expect(notifications.notifySafe).not.toHaveBeenCalled();
+  });
+});
+
+// spec invite-academy-lens: cuando el verify consume una AcademyInvite
+// pendiente, la respuesta deja la cookie de un solo uso
+// `omnidance_lens=academy` que el chrome persiste como viewMode.
+describe("AuthController - lente academy al consumir invite", () => {
+  let auth: AuthService;
+  let repo: FakeRepo;
+  let mailer: { send: ReturnType<typeof vi.fn> };
+
+  const mkPrisma = (pending: { id: string; invitedById: string }[]) => ({
+    academyInvite: {
+      findMany: vi.fn(async () => pending),
+      update: vi.fn(async () => ({})),
+    },
+    referral: {
+      findFirst: vi.fn(async () => null),
+      create: vi.fn(async () => ({})),
+    },
+    activityEvent: { create: vi.fn(async () => ({})) },
+  });
+
+  const ctrlWithPrisma = (prisma: unknown) =>
+    new AuthController(
+      auth,
+      mailer as unknown as Mailer,
+      repo as unknown as AuthRepo,
+      new FakeConsent(repo) as unknown as ConsentService,
+      undefined,
+      prisma as never,
+    );
+
+  beforeEach(() => {
+    repo = new FakeRepo();
+    auth = new AuthService(SECRET, repo as unknown as AuthRepo);
+    mailer = { send: vi.fn(async () => {}) };
+  });
+
+  it("verify con invite pendiente setea omnidance_lens=academy", async () => {
+    const ctrl2 = ctrlWithPrisma(mkPrisma([{ id: "inv-1", invitedById: "p-owner" }]));
+    await repo.upsertByEmail("invitado@omnidance.dev");
+    const token = await auth.createMagicToken("invitado@omnidance.dev", false, "15m", {
+      next: "/academias/acad-1",
+    });
+    const res = mkRes();
+    await ctrl2.verify(token, res);
+    expect(res.cookie).toHaveBeenCalledWith(
+      "omnidance_lens",
+      "academy",
+      expect.objectContaining({ httpOnly: false }),
+    );
+    expect(res.redirect).toHaveBeenCalledWith(
+      expect.stringContaining("/academias/acad-1"),
+    );
+  });
+
+  it("verify emite invite.registered con channel magic_link", async () => {
+    const prisma = mkPrisma([{ id: "inv-1", invitedById: "p-owner" }]);
+    const ctrl2 = ctrlWithPrisma(prisma);
+    await repo.upsertByEmail("invitado@omnidance.dev");
+    const token = await auth.createMagicToken("invitado@omnidance.dev", false, "15m", {
+      next: "/academias/acad-1",
+    });
+    await ctrl2.verify(token, mkRes());
+    expect(prisma.activityEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: "invite.registered",
+          data: { channel: "magic_link" },
+        }),
+      }),
+    );
+  });
+
+  it("verify sin invite consumido no setea la cookie de lente", async () => {
+    const ctrl2 = ctrlWithPrisma(mkPrisma([]));
+    await repo.upsertByEmail("normal@omnidance.dev");
+    const token = await auth.createMagicToken("normal@omnidance.dev", false, "15m", {
+      next: "/academias/acad-1",
+    });
+    const res = mkRes();
+    await ctrl2.verify(token, res);
+    const lensCalls = (res.cookie as ReturnType<typeof vi.fn>).mock.calls.filter(
+      (c) => c[0] === "omnidance_lens",
+    );
+    expect(lensCalls).toHaveLength(0);
+  });
+
+  it("otp/verify con invite pendiente también setea la cookie", async () => {
+    const ctrl2 = ctrlWithPrisma(mkPrisma([{ id: "inv-2", invitedById: "p-owner" }]));
+    await repo.upsertByEmail("otp-inv@omnidance.dev");
+    const code = await auth.createOtp("otp-inv@omnidance.dev", false, {
+      next: "/academias/acad-1",
+    });
+    const res = mkRes();
+    await ctrl2.otpVerify({ email: "otp-inv@omnidance.dev", code }, res);
+    expect(res.cookie).toHaveBeenCalledWith(
+      "omnidance_lens",
+      "academy",
+      expect.objectContaining({ httpOnly: false }),
+    );
+  });
+});
+
+// spec auth/acquisition-source (organic-acquisition-source): el alta
+// orgánica registra la fuente capturada por la landing; la
+// normalización la hace el servidor y solo se escribe en el alta.
+describe("AuthController - fuente de adquisición orgánica", () => {
+  let auth: AuthService;
+  let repo: FakeRepo;
+  let mailer: { send: ReturnType<typeof vi.fn> };
+  let ctrl: AuthController;
+
+  beforeEach(() => {
+    repo = new FakeRepo();
+    auth = new AuthService(SECRET, repo as unknown as AuthRepo);
+    mailer = { send: vi.fn(async () => {}) };
+    ctrl = new AuthController(
+      auth,
+      mailer as unknown as Mailer,
+      repo as unknown as AuthRepo,
+      new FakeConsent(repo) as unknown as ConsentService,
+    );
+  });
+
+  const extractCode = (html: string) =>
+    /letter-spacing:0\.4em;[^<]*>(\d{6})</.exec(html)![1];
+
+  it("register con utm_source → acquisitionSource utm:<source> + detail", async () => {
+    await ctrl.register(
+      {
+        email: "nueva@omnidance.dev",
+        name: "Nueva",
+        password: "clave-secreta-123",
+        acquisition: {
+          utmSource: "instagram",
+          utmMedium: "social",
+          landingPath: "/para-academias",
+        },
+      },
+      mkRes(),
+    );
+    const person = repo.people.get("nueva@omnidance.dev")!;
+    expect(person.acquisitionSource).toBe("utm:instagram");
+    expect(person.acquisitionDetail).toMatchObject({
+      utmSource: "instagram",
+      utmMedium: "social",
+      landingPath: "/para-academias",
+    });
+  });
+
+  it("register con referrer externo (sin utm) → ref:<host>", async () => {
+    await ctrl.register(
+      {
+        email: "ref@omnidance.dev",
+        name: "Ref",
+        password: "clave-secreta-123",
+        acquisition: { referrer: "https://facebook.com/post/123" },
+      },
+      mkRes(),
+    );
+    expect(repo.people.get("ref@omnidance.dev")!.acquisitionSource).toBe(
+      "ref:facebook.com",
+    );
+  });
+
+  it("register con acquisition vacío → direct; sin campo → null", async () => {
+    await ctrl.register(
+      {
+        email: "vacia@omnidance.dev",
+        name: "Vacia",
+        password: "clave-secreta-123",
+        acquisition: {},
+      },
+      mkRes(),
+    );
+    expect(repo.people.get("vacia@omnidance.dev")!.acquisitionSource).toBe(
+      "direct",
+    );
+    await ctrl.register(
+      {
+        email: "sin@omnidance.dev",
+        name: "Sin",
+        password: "clave-secreta-123",
+      },
+      mkRes(),
+    );
+    expect(repo.people.get("sin@omnidance.dev")!.acquisitionSource).toBeNull();
+  });
+
+  it("magic-link + verify de cuenta nueva → acquisition viaja en el claim", async () => {
+    await ctrl.magicLink({
+      email: "ml@omnidance.dev",
+      consent: true,
+      acquisition: { utmSource: "tiktok" },
+    });
+    const html: string = mailer.send.mock.calls[0][2];
+    const token = /token=([^"'\s]+)/.exec(html)![1];
+    await ctrl.verify(token, mkRes());
+    const person = repo.people.get("ml@omnidance.dev")!;
+    expect(person.acquisitionSource).toBe("utm:tiktok");
+  });
+
+  it("otp/verify de cuenta nueva → acquisition viaja en la fila del OTP", async () => {
+    await ctrl.magicLink({
+      email: "otp@omnidance.dev",
+      consent: true,
+      acquisition: { utmSource: "google", landingPath: "/" },
+    });
+    const code = extractCode(mailer.send.mock.calls[0][2]);
+    const out = await ctrl.otpVerify(
+      { email: "otp@omnidance.dev", code },
+      mkRes(),
+    );
+    expect(out.isNew).toBe(true);
+    expect(repo.people.get("otp@omnidance.dev")!.acquisitionSource).toBe(
+      "utm:google",
+    );
+  });
+
+  it("cuenta existente no pisa la fuente original", async () => {
+    await ctrl.register(
+      {
+        email: "vieja@omnidance.dev",
+        name: "Vieja",
+        password: "clave-secreta-123",
+        acquisition: { utmSource: "instagram" },
+      },
+      mkRes(),
+    );
+    // Segundo alta por magic link con otra fuente: no pisa.
+    await ctrl.magicLink({
+      email: "vieja@omnidance.dev",
+      acquisition: { utmSource: "tiktok" },
+    });
+    // calls: welcome + verify del register + el magic link (último).
+    const html: string = mailer.send.mock.calls.at(-1)![2];
+    const token = /token=([^"'\s]+)/.exec(html)![1];
+    await ctrl.verify(token, mkRes());
+    expect(repo.people.get("vieja@omnidance.dev")!.acquisitionSource).toBe(
+      "utm:instagram",
+    );
   });
 });
