@@ -85,3 +85,20 @@ multipais-foundation).
   aplicar: verificar `pnpm db:migrate`/`migrate deploy` contra docker.
 - El commit-msg hook rechaza trailers de agente; pre-push corre suite
   API completa (~60-70s por push).
+
+## UPDATE post-implementación (cierre de sesión)
+
+Los 5 subagentes terminaron (incl. auth-sessions core 432a62c9).
+`openspec validate --changes`: 5/5.
+
+**BLOQUEO: regresión en SessionGuard.** La suite consolidada
+`pnpm test` falla: 27 archivos / 548 tests, todos e2e autenticados
+con `expected 401 to be 200`. Causa: `session.guard` hace
+`assertSessionLive` (requiere fila AuthSession cuando el JWT trae
+`jti`) y los helpers de test firman tokens sin pasar por
+`issueSession` → sin fila → 401 en todo endpoint autenticado.
+NO es limitación de entorno (los mismos specs pasaban antes).
+Fix sugerido: `jti` sin fila → permitir como token legacy (la
+revocación sigue activa cuando la fila existe), o helpers por
+`issueSession`. Aplicar fix → re-correr suite → commits por change
+→ archive → regen openapi + push. NO commitear hasta suite verde.
