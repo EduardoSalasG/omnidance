@@ -361,7 +361,11 @@ export class AcademyClaimsService {
         type: "payment_claim_new",
         title: `Pago por validar: ${person?.name ?? "un alumno"}`,
         body: `${academy.name} · ${claimMoney(claim.amount, claim.currency)}`,
-        data: { academyId, claimId: claim.id },
+        data: {
+          academyId,
+          claimId: claim.id,
+          path: `/academia/cobros/claim/${claim.id}`,
+        },
       });
     }
   }
@@ -419,7 +423,11 @@ export class AcademyClaimsService {
         type: "payment_claim_new",
         title: `Comprobante por validar: ${person?.name ?? "un alumno"}`,
         body: `${academy.name} · ${claimMoney(claim.amount, claim.currency)}`,
-        data: { academyId, claimId: claim.id },
+        data: {
+          academyId,
+          claimId: claim.id,
+          path: `/academia/cobros/claim/${claim.id}`,
+        },
       });
     }
     return updated;
@@ -533,7 +541,11 @@ export class AcademyClaimsService {
       type: "payment_claim_new",
       title: `Comprobante por validar: ${person?.name ?? "un alumno"}`,
       body: `${academy.name} · ${claimMoney(dto.amount, claim.currency)}`,
-      data: { academyId, claimId: claim.id },
+      data: {
+        academyId,
+        claimId: claim.id,
+        path: `/academia/cobros/claim/${claim.id}`,
+      },
     });
 
     return claim;
@@ -1082,7 +1094,11 @@ export class AcademyClaimsService {
         : claim.plan
           ? "Tu comprobante fue aprobado y tu plan quedó al día."
           : "Tu comprobante fue aprobado.",
-      data: { academyId, claimId: claim.id },
+      data: {
+        academyId,
+        claimId: claim.id,
+        path: `/academias/${academyId}`,
+      },
     });
 
     return result;
@@ -1118,7 +1134,11 @@ export class AcademyClaimsService {
       type: "payment_claim_rejected",
       title: "Comprobante rechazado",
       body: note.trim(),
-      data: { academyId, claimId: claim.id },
+      data: {
+        academyId,
+        claimId: claim.id,
+        path: `/academias/${academyId}`,
+      },
     });
     return { claim: updated };
   }

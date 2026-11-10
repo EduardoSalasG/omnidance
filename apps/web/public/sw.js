@@ -92,7 +92,15 @@ self.addEventListener("push", (event) => {
       : "Omnidance";
   const data =
     payload.data && typeof payload.data === "object" ? payload.data : {};
-  const url = typeof data.url === "string" ? data.url : "/notificaciones";
+  // Un solo destino por notificación sirve a los dos canales: `url`
+  // (push) o `path` (tap in-app) - el SW acepta ambos (spec
+  // notifications/deep-links).
+  const url =
+    typeof data.url === "string"
+      ? data.url
+      : typeof data.path === "string"
+        ? data.path
+        : "/notificaciones";
 
   event.waitUntil(
     self.registration.showNotification(title, {
