@@ -629,3 +629,87 @@ describe("AuthController - aviso a admins de registro nuevo", () => {
     expect(notifications.notifySafe).not.toHaveBeenCalled();
   });
 });
+
+// spec invite-academy-lens: cuando el verify consume una AcademyInvite
+// pendiente, la respuesta deja la cookie de un solo uso
+// `omnidance:lens=academy` que el chrome persiste como viewMode.
+describe("AuthController - lente academy al consumir invite", () => {
+  let auth: AuthService;
+  let repo: FakeRepo;
+  let mailer: { send: ReturnType<typeof vi.fn> };
+
+  const mkPrisma = (pending: { id: string; invitedById: string }[]) => ({
+    academyInvite: {
+      findMany: vi.fn(async () => pending),
+      update: vi.fn(async () => ({})),
+    },
+    referral: {
+      findFirst: vi.fn(async () => null),
+      create: vi.fn(async () => ({})),
+    },
+    activityEvent: { create: vi.fn(async () => ({})) },
+  });
+
+  const ctrlWithPrisma = (prisma: unknown) =>
+    new AuthController(
+      auth,
+      mailer as unknown as Mailer,
+      repo as unknown as AuthRepo,
+      new FakeConsent(repo) as unknown as ConsentService,
+      undefined,
+      prisma as never,
+    );
+
+  beforeEach(() => {
+    repo = new FakeRepo();
+    auth = new AuthService(SECRET, repo as unknown as AuthRepo);
+    mailer = { send: vi.fn(async () => {}) };
+  });
+
+  it("verify con invite pendiente setea omnidance:lens=academy", async () => {
+    const ctrl2 = ctrlWithPrisma(mkPrisma([{ id: "inv-1", invitedById: "p-owner" }]));
+    await repo.upsertByEmail("invitado@omnidance.dev");
+    const token = await auth.createMagicToken("invitado@omnidance.dev", false, "15m", {
+      next: "/academias/acad-1",
+    });
+    const res = mkRes();
+    await ctrl2.verify(token, res);
+    expect(res.cookie).toHaveBeenCalledWith(
+      "omnidance:lens",
+      "academy",
+      expect.objectContaining({ httpOnly: false }),
+    );
+    expect(res.redirect).toHaveBeenCalledWith(
+      expect.stringContaining("/academias/acad-1"),
+    );
+  });
+
+  it("verify sin invite consumido no setea la cookie de lente", async () => {
+    const ctrl2 = ctrlWithPrisma(mkPrisma([]));
+    await repo.upsertByEmail("normal@omnidance.dev");
+    const token = await auth.createMagicToken("normal@omnidance.dev", false, "15m", {
+      next: "/academias/acad-1",
+    });
+    const res = mkRes();
+    await ctrl2.verify(token, res);
+    const lensCalls = (res.cookie as ReturnType<typeof vi.fn>).mock.calls.filter(
+      (c) => c[0] === "omnidance:lens",
+    );
+    expect(lensCalls).toHaveLength(0);
+  });
+
+  it("otp/verify con invite pendiente también setea la cookie", async () => {
+    const ctrl2 = ctrlWithPrisma(mkPrisma([{ id: "inv-2", invitedById: "p-owner" }]));
+    await repo.upsertByEmail("otp-inv@omnidance.dev");
+    const code = await auth.createOtp("otp-inv@omnidance.dev", false, {
+      next: "/academias/acad-1",
+    });
+    const res = mkRes();
+    await ctrl2.otpVerify({ email: "otp-inv@omnidance.dev", code }, res);
+    expect(res.cookie).toHaveBeenCalledWith(
+      "omnidance:lens",
+      "academy",
+      expect.objectContaining({ httpOnly: false }),
+    );
+  });
+});

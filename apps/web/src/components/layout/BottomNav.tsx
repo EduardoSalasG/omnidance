@@ -10,7 +10,7 @@ import { useFeatures } from "@/lib/features-context";
 import { useActorEntitlements } from "@/lib/entitlements-context";
 import { notificationLens } from "@/lib/notification-lens";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
-import { useViewMode } from "@/lib/view-mode";
+import { setViewMode, useViewMode } from "@/lib/view-mode";
 import { SideDrawer, type DrawerGroup } from "./SideDrawer";
 import { AppSidebar } from "./AppSidebar";
 import { useSidebarState, setSidebarState } from "@/lib/sidebar-state";
@@ -1214,6 +1214,18 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // /me viene del MeProvider del layout - sin fetch propio (antes cada
   // consumidor duplicaba la llamada; ahora chrome y páginas resuelven
   // juntos).
+
+  // Lente de llegada por invitación de academia (spec
+  // invite-academy-lens): /auth/verify|otp/verify dejan una cookie de
+  // un solo uso `omnidance:lens=academy` cuando consumen un invite;
+  // acá se persiste como viewMode y se expira. Una vez por llegada.
+  useEffect(() => {
+    if (!meChecked || !me) return;
+    if (!document.cookie.includes("omnidance:lens=academy")) return;
+    setViewMode("academy");
+    document.cookie =
+      "omnidance:lens=; Max-Age=0; path=/; SameSite=Lax";
+  }, [meChecked, me]);
 
   // data-mode en <html>: el acento sigue a la LENTE, no solo al toggle
   // consumer - academy verde solo en lente academia, resto morado.

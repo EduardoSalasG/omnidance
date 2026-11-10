@@ -235,9 +235,10 @@ export class AuthController {
     email: string,
     personId: string,
     next: string | null,
-  ) {
+  ): Promise<boolean> {
     const academyId = next?.match(/^\/academias\/([^/?#]+)/)?.[1];
-    if (!academyId || !this.prisma) return;
+    if (!academyId || !this.prisma) return false;
+    let consumed = false;
     try {
       const pending = await this.prisma.academyInvite.findMany({
         where: { academyId, email, consumedAt: null },
@@ -273,12 +274,32 @@ export class AuthController {
           refType: "AcademyInvite",
           refId: invite.id,
         });
+        consumed = true;
       }
     } catch (err) {
       this.logger.warn(
         `consumo de invitación de ${email} falló: ${(err as Error).message}`,
       );
     }
+    return consumed;
+  }
+
+  /**
+   * Lente consumer de llegada (spec invite-academy-lens): si el verify
+   * consumió una invitación de academia, la respuesta deja una cookie
+   * de un solo uso que el chrome lee para persistir viewMode=academy.
+   * Legible por JS (no httpOnly) y de vida corta.
+   */
+  private setArrivalLensCookie(res: Response): void {
+    res.cookie("omnidance:lens", "academy", {
+      httpOnly: false,
+      sameSite: "lax",
+      secure:
+        process.env.SESSION_SECURE === "true" ||
+        process.env.NODE_ENV === "production",
+      maxAge: 5 * 60 * 1000,
+      path: "/",
+    });
   }
 
   /** Bienvenida best-effort: el alta nunca falla por el correo. */
@@ -581,7 +602,11 @@ export class AuthController {
       // Rol pedido desde la landing (?role= viaja en el token).
       if (role) await this.repo.ensurePendingRole(person.id, role);
       // Invitación de academia pendiente → consumo + Referral (INVITE).
-      await this.consumeAcademyInvites(email, person.id, safeNext);
+      const invited = await this.consumeAcademyInvites(
+        email,
+        person.id,
+        safeNext,
+      );
       if (!existed) {
         await this.sendWelcome(email, person.name);
         await this.notifyAdminsNewUser(person, role);
@@ -589,6 +614,7 @@ export class AuthController {
       const session = await this.auth.issueSession(person.id);
       const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
       this.setSessionCookie(res, session);
+      if (invited) this.setArrivalLensCookie(res);
       // Cuenta recién creada por el verify → paso de perfil
       // post-registro (/bienvenida) y al cerrar continúa a `next`.
       // Cuenta existente: ya completó ese paso → aterriza directo en
@@ -626,13 +652,18 @@ export class AuthController {
       const person = await this.repo.upsertByEmail(email);
       if (consent) await this.consentService.recordAcceptance(person.id);
       if (role) await this.repo.ensurePendingRole(person.id, role);
-      await this.consumeAcademyInvites(email, person.id, safeNext);
+      const invited = await this.consumeAcademyInvites(
+        email,
+        person.id,
+        safeNext,
+      );
       if (!existed) {
         await this.sendWelcome(email, person.name);
         await this.notifyAdminsNewUser(person, role);
       }
       const session = await this.auth.issueSession(person.id);
       this.setSessionCookie(res, session);
+      if (invited) this.setArrivalLensCookie(res);
       // `next` viaja al front para continuar el onboarding estándar
       // hacia el destino (misma regla que GET /verify).
       return { ok: true, isNew: !existed, next: safeNext ?? undefined };
