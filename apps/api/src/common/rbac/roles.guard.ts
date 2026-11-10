@@ -84,6 +84,28 @@ export async function roleKeysHavePermission(
 }
 
 /**
+ * Permiso por personId: resuelve roles APPROVED de la persona y delega en
+ * roleKeysHavePermission (catálogo cacheado + isSuperuser). Exportado para
+ * checks de servicio/repo fuera del pipeline de guards - misma fuente que
+ * el guard HTTP.
+ */
+export async function personIdHasPermission(
+  prisma: PrismaService,
+  personId: string,
+  requiredPerms: string[],
+): Promise<boolean> {
+  const roles = await prisma.personRole.findMany({
+    where: { personId, status: "APPROVED" },
+    select: { role: true },
+  });
+  return roleKeysHavePermission(
+    prisma,
+    roles.map((r) => r.role),
+    requiredPerms,
+  );
+}
+
+/**
  * RBAC global, todo DB-driven. Uso:
  *   `@UseGuards(SessionGuard, RolesGuard)` +
  *   `@RequirePermissions("checkins.write")` (OR lógico) - preferido;

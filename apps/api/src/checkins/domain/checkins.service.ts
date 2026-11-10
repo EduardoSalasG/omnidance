@@ -174,6 +174,10 @@ export class CheckinsService {
   async register(input: RegisterCheckinInput): Promise<CheckinResult> {
     const event = await this.repo.findEventById(input.eventId);
     if (!event) throw new EventNotFoundError(input.eventId);
+    // Spec event-access-scope: checkins.write global no basta - el staff
+    // que opera (staffId) debe estar vinculado al evento. Va antes del
+    // check de estado: al ajeno siempre le toca 403.
+    await this.requireEventActor(event, { id: input.staffId });
     this.assertEventOpen(event);
 
     const person = await this.repo.findPersonById(input.personId);
@@ -232,9 +236,13 @@ export class CheckinsService {
     };
   }
 
-  async listByEvent(eventId: string): Promise<ListedCheckin[]> {
+  async listByEvent(
+    eventId: string,
+    actor: ActorRef,
+  ): Promise<ListedCheckin[]> {
     const event = await this.repo.findEventById(eventId);
     if (!event) throw new EventNotFoundError(eventId);
+    await this.requireEventActor(event, actor);
     return this.repo.listEventCheckins(eventId);
   }
 
@@ -242,11 +250,13 @@ export class CheckinsService {
    * Manifiesto de puerta (spec staff-offline-checkin): una sola llamada
    * que el staff guarda en IndexedDB al entrar al evento. La
    * autorización es la del guard del controller (checkins.write, igual
-   * que listByEvent). SeriesPass solo si el evento pertenece a serie.
+   * que listByEvent) + el scoping de actor del evento (spec
+   * event-access-scope). SeriesPass solo si el evento pertenece a serie.
    */
-  async doorManifest(eventId: string): Promise<DoorManifest> {
+  async doorManifest(eventId: string, actor: ActorRef): Promise<DoorManifest> {
     const event = await this.repo.findEventById(eventId);
     if (!event) throw new EventNotFoundError(eventId);
+    await this.requireEventActor(event, actor);
 
     const [tickets, entryPasses, seriesPasses, checkins] =
       await Promise.all([
@@ -309,20 +319,29 @@ export class CheckinsService {
   }
 
   /**
-   * Check-out ("me fui"): el dueño del check-in o cualquier staff con
-   * checkins.write. Idempotente - ya cerrado o anulado devuelve sin tocar.
+   * Check-out ("me fui"): el dueño del check-in o un actor del evento
+   * (spec event-access-scope: admin, productor o staff asignado con
+   * checkins.write - el permiso global solo ya no alcanza). Idempotente -
+   * ya cerrado o anulado devuelve sin tocar.
    */
   async closeCheckin(checkinId: string, actor: ActorRef): Promise<Checkin> {
     const checkin = await this.repo.findCheckinById(checkinId);
     if (!checkin) throw new CheckinNotFoundError(checkinId);
 
-    const allowed =
-      checkin.personId === actor.id ||
-      (await this.repo.personHasPermission(actor.id, CHECKINS_WRITE));
-    if (!allowed) {
-      throw new CheckinForbiddenError(
-        "solo el dueño del check-in o staff puede cerrarlo",
-      );
+    if (checkin.personId !== actor.id) {
+      const [event, admin, hasWrite, assigned] = await Promise.all([
+        this.repo.findEventById(checkin.eventId),
+        this.repo.personHasPermission(actor.id, "admin.access"),
+        this.repo.personHasPermission(actor.id, CHECKINS_WRITE),
+        this.repo.isStaffAssigned(checkin.eventId, actor.id),
+      ]);
+      const allowed =
+        admin || event?.producerId === actor.id || (hasWrite && assigned);
+      if (!allowed) {
+        throw new CheckinForbiddenError(
+          "solo el dueño del check-in o staff del evento puede cerrarlo",
+        );
+      }
     }
 
     if (checkin.outAt || checkin.voidedAt) return checkin;
@@ -424,6 +443,28 @@ export class CheckinsService {
     });
 
     return { person, ticket, checkin };
+  }
+
+  /**
+   * Scoping de actor por evento (spec event-access-scope): pasa con
+   * superuser/`admin.access` (isSuperuser ya cubre admin.access via
+   * personHasPermission), `event.producerId === actor` o StaffAssignment -
+   * misma fuente que voidCheckin/doorSale. 403 genérico.
+   */
+  private async requireEventActor(
+    event: EventDoorInfo,
+    actor: ActorRef,
+  ): Promise<void> {
+    if (event.producerId === actor.id) return;
+    const [admin, assigned] = await Promise.all([
+      this.repo.personHasPermission(actor.id, "admin.access"),
+      this.repo.isStaffAssigned(event.id, actor.id),
+    ]);
+    if (!admin && !assigned) {
+      throw new CheckinForbiddenError(
+        "requiere staff asignado al evento, productor o admin",
+      );
+    }
   }
 
   private assertEventOpen(event: { id: string; status: EventStatus }): void {

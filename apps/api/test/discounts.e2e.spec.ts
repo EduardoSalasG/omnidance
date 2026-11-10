@@ -23,6 +23,7 @@ describe("discounts e2e", () => {
   const ids = {
     venueId: "",
     eventId: "",
+    otherEventId: "",
     producerId: "",
     dancerId: "",
     redeemerId: "",
@@ -96,6 +97,7 @@ describe("discounts e2e", () => {
     const event = await prisma.event.create({
       data: {
         venueId: venue.id,
+        producerId: producer.id,
         name: "Evento Discounts Test",
         status: "PUBLISHED",
         startsAt: new Date(),
@@ -103,6 +105,20 @@ describe("discounts e2e", () => {
       },
     });
     ids.eventId = event.id;
+
+    // Evento de OTRO dueño para el negativo de scoping (spec
+    // event-access-scope): el producer del test no es su producerId.
+    const other = await prisma.event.create({
+      data: {
+        venueId: venue.id,
+        producerId: admin.id,
+        name: "Evento Discounts Ajeno",
+        status: "PUBLISHED",
+        startsAt: new Date(),
+        endsAt: new Date(Date.now() + 4 * 3600 * 1000),
+      },
+    });
+    ids.otherEventId = other.id;
   });
 
   afterAll(async () => {
@@ -112,7 +128,9 @@ describe("discounts e2e", () => {
     await prisma.discountCode.deleteMany({
       where: { id: { in: ids.codeIds } },
     });
-    await prisma.event.delete({ where: { id: ids.eventId } });
+    await prisma.event.deleteMany({
+      where: { id: { in: [ids.eventId, ids.otherEventId] } },
+    });
     await prisma.venue.delete({ where: { id: ids.venueId } });
     await prisma.personRole.deleteMany({
       where: { personId: { in: [ids.producerId, ids.dancerId] } },
@@ -226,6 +244,42 @@ describe("discounts e2e", () => {
       const body = await res.json();
       expect(body.error).toBe("DUPLICATE_DISCOUNT_CODE");
     });
+
+    it("PRODUCER scoped a su evento → 201 (spec event-access-scope)", async () => {
+      const res = await post(
+        "/api/discount-codes",
+        {
+          code: "PROD-EVT",
+          type: "CAMPAIGN",
+          percentOff: 10,
+          eventId: ids.eventId,
+        },
+        producerSession,
+      );
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      ids.codeIds.push(body.id);
+      expect(body.eventId).toBe(ids.eventId);
+      expect(body.createdById).toBe(ids.producerId);
+    });
+
+    it("PRODUCER scoped a evento ajeno → 403 y no persiste", async () => {
+      const res = await post(
+        "/api/discount-codes",
+        {
+          code: "PROD-AJENO",
+          type: "CAMPAIGN",
+          percentOff: 10,
+          eventId: ids.otherEventId,
+        },
+        producerSession,
+      );
+      expect(res.status).toBe(403);
+      const saved = await prisma.discountCode.findUnique({
+        where: { code: "PROD-AJENO" },
+      });
+      expect(saved).toBeNull();
+    });
   });
 
   describe("GET /api/discount-codes", () => {
@@ -238,21 +292,22 @@ describe("discounts e2e", () => {
       const ours = list.filter((c: { id: string }) =>
         ids.codeIds.includes(c.id),
       );
-      expect(ours.length).toBe(2);
-      // CUMPLE-E2E se creó primero → PROD-TEST (más nuevo) va antes
-      expect(ours[0].code).toBe("PROD-TEST");
-      expect(ours[0]).toMatchObject({
+      expect(ours.length).toBe(3);
+      // CUMPLE-E2E se creó primero → PROD-EVT (más nuevo) va antes
+      expect(ours[0].code).toBe("PROD-EVT");
+      expect(ours[1].code).toBe("PROD-TEST");
+      expect(ours[1]).toMatchObject({
         type: "CASO_BORDE_PUERTA",
         usedCount: 0,
         maxUses: null,
       });
-      expect(ours[1]).toMatchObject({
+      expect(ours[2]).toMatchObject({
         code: "CUMPLE-E2E",
         type: "CUMPLEANOS",
         usedCount: 0,
         maxUses: 10,
       });
-      expect(ours[1].expiresAt).toBeTruthy();
+      expect(ours[2].expiresAt).toBeTruthy();
     });
 
     it("filtra por eventId", async () => {
@@ -265,8 +320,11 @@ describe("discounts e2e", () => {
       const ours = list.filter((c: { id: string }) =>
         ids.codeIds.includes(c.id),
       );
-      expect(ours).toHaveLength(1);
-      expect(ours[0].code).toBe("CUMPLE-E2E");
+      // Los dos códigos scoped a este evento: CUMPLE-E2E (admin) y PROD-EVT.
+      expect(ours.map((c: { code: string }) => c.code).sort()).toEqual([
+        "CUMPLE-E2E",
+        "PROD-EVT",
+      ]);
     });
 
     it("filtro por seriesId sin matches → lista vacía", async () => {
@@ -286,6 +344,38 @@ describe("discounts e2e", () => {
     it("sin rol PRODUCER/ADMIN → 403", async () => {
       const res = await get("/api/discount-codes", dancerSession);
       expect(res.status).toBe(403);
+    });
+
+    it("PRODUCER no ve códigos de otros actores (spec event-access-scope)", async () => {
+      const res = await get("/api/discount-codes", producerSession);
+      expect(res.status).toBe(200);
+      const { items } = await res.json();
+      // Solo los suyos (PROD-TEST, PROD-EVT) - nunca CUMPLE-E2E del admin.
+      expect(
+        items.every(
+          (c: { code: string }) => !["CUMPLE-E2E"].includes(c.code),
+        ),
+      ).toBe(true);
+      const ours = items.filter((c: { id: string }) =>
+        ids.codeIds.includes(c.id),
+      );
+      expect(ours.map((c: { code: string }) => c.code).sort()).toEqual([
+        "PROD-EVT",
+        "PROD-TEST",
+      ]);
+    });
+
+    it("PRODUCER no ve detail ni redemptions de código ajeno → 404", async () => {
+      const res = await get(
+        `/api/discount-codes/${ids.codeIds[0]}`,
+        producerSession,
+      );
+      expect(res.status).toBe(404);
+      const red = await get(
+        `/api/discount-codes/${ids.codeIds[0]}/redemptions`,
+        producerSession,
+      );
+      expect(red.status).toBe(404);
     });
   });
 

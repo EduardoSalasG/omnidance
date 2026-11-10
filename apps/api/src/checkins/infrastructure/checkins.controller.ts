@@ -258,7 +258,12 @@ export class CheckinsController {
         }
         results.push(r);
       } catch (e) {
-        if (e instanceof EventNotFoundError) mapDomainError(e);
+        // EventNotFound rompe el batch (404); el scoping de actor también
+        // propaga (403) - el staff no vinculado no sincroniza nada del
+        // evento ajeno (spec event-access-scope).
+        if (e instanceof EventNotFoundError || e instanceof CheckinForbiddenError) {
+          mapDomainError(e);
+        }
         results.push({
           clientRef: item.clientRef,
           result: "error",
@@ -381,9 +386,11 @@ export class EventCheckinsController {
   @Get(":eventId/checkins")
   @UseGuards(SessionGuard, RolesGuard)
   @RequirePermissions("checkins.write")
-  async list(@Param("eventId") eventId: string) {
+  async list(@Param("eventId") eventId: string, @Req() req: Request) {
     try {
-      return await this.checkins.listByEvent(eventId);
+      return await this.checkins.listByEvent(eventId, {
+        id: req.person!.id,
+      });
     } catch (e) {
       mapDomainError(e);
     }
@@ -397,9 +404,11 @@ export class EventCheckinsController {
   @Get(":eventId/door-manifest")
   @UseGuards(SessionGuard, RolesGuard)
   @RequirePermissions("checkins.write")
-  async doorManifest(@Param("eventId") eventId: string) {
+  async doorManifest(@Param("eventId") eventId: string, @Req() req: Request) {
     try {
-      return await this.checkins.doorManifest(eventId);
+      return await this.checkins.doorManifest(eventId, {
+        id: req.person!.id,
+      });
     } catch (e) {
       mapDomainError(e);
     }

@@ -2,7 +2,6 @@ import {
   Body,
   ConflictException,
   Controller,
-  ForbiddenException,
   Get,
   NotFoundException,
   Param,
@@ -24,11 +23,9 @@ import type { Request, Response } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { pageParams } from "../../academies/infrastructure/list-filters";
-import {
-  RolesGuard,
-  roleKeysHavePermission,
-} from "../../common/rbac/roles.guard";
+import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
+import { requireEventActor } from "../../common/event-access";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 
 class CreateGuestListDto {
@@ -79,7 +76,8 @@ class ListGuestListsDto {
   pageSize?: string;
 }
 
-/** Listas de invitados por evento - solo productor/staff/admin. */
+/** Listas de invitados por evento - solo actor vinculado al evento
+ * (productor dueño, staff asignado o admin - spec event-access-scope). */
 @Controller("events")
 export class EventGuestListsController {
   constructor(private readonly prisma: PrismaService) {}
@@ -90,12 +88,9 @@ export class EventGuestListsController {
   async create(
     @Param("eventId") eventId: string,
     @Body() dto: CreateGuestListDto,
+    @Req() req: Request,
   ) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
-      select: { id: true },
-    });
-    if (!event) throw new NotFoundException("evento no encontrado");
+    await requireEventActor(this.prisma, eventId, req.person!);
 
     const owner = await this.prisma.person.findUnique({
       where: { id: dto.ownerId, deletedAt: null },
@@ -117,12 +112,12 @@ export class EventGuestListsController {
   @Get(":eventId/guest-lists")
   @UseGuards(SessionGuard, RolesGuard)
   @RequirePermissions("social.manage")
-  async list(@Param("eventId") eventId: string, @Query() dto: ListGuestListsDto) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
-      select: { id: true },
-    });
-    if (!event) throw new NotFoundException("evento no encontrado");
+  async list(
+    @Param("eventId") eventId: string,
+    @Query() dto: ListGuestListsDto,
+    @Req() req: Request,
+  ) {
+    await requireEventActor(this.prisma, eventId, req.person!);
 
     const lists = await this.prisma.guestList.findMany({
       where: { eventId },
@@ -191,16 +186,17 @@ export class EventGuestListsController {
 export class GuestListsController {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Ficha de una lista (detalle del productor/staff/admin). */
+  /** Ficha de una lista (detalle del actor vinculado al evento dueño). */
   @Get(":id")
   @UseGuards(SessionGuard, RolesGuard)
   @RequirePermissions("social.manage")
-  async detail(@Param("id") id: string) {
+  async detail(@Param("id") id: string, @Req() req: Request) {
     const list = await this.prisma.guestList.findUnique({
       where: { id },
       include: { entries: true },
     });
     if (!list) throw new NotFoundException("guest list no encontrada");
+    await requireEventActor(this.prisma, list.eventId, req.person!);
 
     const event = await this.prisma.event.findUnique({
       where: { id: list.eventId },
@@ -231,9 +227,14 @@ export class GuestListsController {
   @Post(":id/entries")
   @UseGuards(SessionGuard, RolesGuard)
   @RequirePermissions("social.manage")
-  async addEntry(@Param("id") id: string, @Body() dto: AddEntryDto) {
+  async addEntry(
+    @Param("id") id: string,
+    @Body() dto: AddEntryDto,
+    @Req() req: Request,
+  ) {
     const list = await this.prisma.guestList.findUnique({ where: { id } });
     if (!list) throw new NotFoundException("guest list no encontrada");
+    await requireEventActor(this.prisma, list.eventId, req.person!);
 
     const person = await this.prisma.person.findUnique({
       where: { id: dto.personId, deletedAt: null },
@@ -258,10 +259,12 @@ export class GuestListsController {
 
   /**
    * Emite el EntryPass LIST de una entrada de la lista. Autorización mixta
-   * (sin @RequirePermissions): dueño de la lista, productor del evento o
-   * staff con `social.manage`. Idempotente - un EntryPass ACTIVE tipo LIST
-   * por (eventId, personId): 201 al crear, 200 si ya existía. Emitir el pase
-   * NO marca la entrada como ARRIVED.
+   * (sin @RequirePermissions): dueño de la lista o actor vinculado al
+   * evento dueño (productor, staff asignado o admin - spec
+   * event-access-scope; `social.manage` global solo ya no basta).
+   * Idempotente - un EntryPass ACTIVE tipo LIST por (eventId, personId):
+   * 201 al crear, 200 si ya existía. Emitir el pase NO marca la entrada
+   * como ARRIVED.
    */
   @Post(":listId/entries/:entryId/pass")
   @UseGuards(SessionGuard)
@@ -283,22 +286,8 @@ export class GuestListsController {
       throw new NotFoundException("entrada no encontrada en esta lista");
     }
 
-    const me = req.person!;
-    const [event, hasManagePerm] = await Promise.all([
-      this.prisma.event.findUnique({
-        where: { id: list.eventId },
-        select: { producerId: true },
-      }),
-      roleKeysHavePermission(this.prisma, me.roles, ["social.manage"]),
-    ]);
-    const allowed =
-      list.ownerId === me.id ||
-      event?.producerId === me.id ||
-      hasManagePerm;
-    if (!allowed) {
-      throw new ForbiddenException(
-        "requiere dueño de la lista, productor del evento o staff",
-      );
+    if (list.ownerId !== req.person!.id) {
+      await requireEventActor(this.prisma, list.eventId, req.person!);
     }
 
     const existing = await this.prisma.entryPass.findFirst({

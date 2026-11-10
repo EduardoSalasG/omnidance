@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import { emitActivity } from "../../common/activity-log";
-import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
+import { personIdHasPermission } from "../../common/rbac/roles.guard";
 import type {
   CheckinsRepo,
   CreateCheckinData,
@@ -189,25 +189,15 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
     return this.prisma.checkin.findUnique({ where: { clientRef } });
   }
 
-  /** Roles APPROVED del actor (keys) - la resolución a permisos usa el
-   * catálogo cacheado de roles.guard (misma fuente que el guard HTTP). */
-  private async actorRoleKeys(personId: string) {
-    const personRoles = await this.prisma.personRole.findMany({
-      where: { personId, status: "APPROVED" },
-      select: { role: true },
-    });
-    return personRoles.map((r) => r.role);
+  /** Permiso RBAC del actor - personIdHasPermission resuelve roles
+   * APPROVED contra el catálogo cacheado (misma fuente que el guard). */
+  personHasPermission(personId: string, permissionKey: string) {
+    return personIdHasPermission(this.prisma, personId, [permissionKey]);
   }
 
-  async personHasPermission(personId: string, permissionKey: string) {
-    const roleKeys = await this.actorRoleKeys(personId);
-    return roleKeysHavePermission(this.prisma, roleKeys, [permissionKey]);
-  }
-
-  async isSuperuser(personId: string) {
+  isSuperuser(personId: string) {
     // isSuperuser pasa cualquier check de permiso - reusa el mismo resolver.
-    const roleKeys = await this.actorRoleKeys(personId);
-    return roleKeysHavePermission(this.prisma, roleKeys, [
+    return personIdHasPermission(this.prisma, personId, [
       "__superuser_probe__",
     ]);
   }

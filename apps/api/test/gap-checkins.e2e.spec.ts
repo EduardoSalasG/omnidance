@@ -36,6 +36,7 @@ describe("gap-checkins e2e (out / void / door-sale)", () => {
     eventId: "",
     capEventId: "",
     attendeeId: "",
+    attendee2Id: "",
     staffPersonId: "",
     assignedPersonId: "",
     dancerId: "",
@@ -126,6 +127,11 @@ describe("gap-checkins e2e (out / void / door-sale)", () => {
     ids.attendeeId = attendee.id;
     attendeeSession = await auth.issueSession(attendee.id);
 
+    const attendee2 = await prisma.person.create({
+      data: { name: "Asistente Gap Dos" },
+    });
+    ids.attendee2Id = attendee2.id;
+
     // ─── eventos ───
     const venue = await prisma.venue.create({ data: { name: "Venue Gap Test" } });
     ids.venueId = venue.id;
@@ -191,6 +197,7 @@ describe("gap-checkins e2e (out / void / door-sale)", () => {
     });
     await deletePeople(prisma, [
             ids.attendeeId,
+            ids.attendee2Id,
             ids.staffPersonId,
             ids.assignedPersonId,
             ids.dancerId,
@@ -238,7 +245,7 @@ describe("gap-checkins e2e (out / void / door-sale)", () => {
       expect(body.outAt).toBeTruthy();
     });
 
-    it("staff con checkins.write sin asignación también puede (permiso global)", async () => {
+    it("staff con checkins.write sin asignación → 403 (spec event-access-scope)", async () => {
       const checkin = await mkCheckin({
         eventId: ids.eventId,
         personId: ids.attendeeId,
@@ -246,6 +253,21 @@ describe("gap-checkins e2e (out / void / door-sale)", () => {
       ids.checkinIds.push(checkin.id);
 
       const res = await post(`/api/checkins/${checkin.id}/out`, {}, staffSession);
+      expect(res.status).toBe(403);
+    });
+
+    it("staff asignado cierra check-in ajeno → 200", async () => {
+      const checkin = await mkCheckin({
+        eventId: ids.eventId,
+        personId: ids.attendeeId,
+      });
+      ids.checkinIds.push(checkin.id);
+
+      const res = await post(
+        `/api/checkins/${checkin.id}/out`,
+        {},
+        assignedSession,
+      );
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.outAt).toBeTruthy();
@@ -561,6 +583,85 @@ describe("gap-checkins e2e (out / void / door-sale)", () => {
         phone: phone(),
       });
       expect(res.status).toBe(401);
+    });
+  });
+
+  // ═══ Scoping de actor por evento (spec event-access-scope): el
+  // permiso global checkins.write ya no basta sobre un evento ajeno.
+  describe("scoping por evento (register / list / manifest / sync)", () => {
+    it("staff sin asignación → 403 en POST /checkins, /manual y /sync", async () => {
+      const { token } = await qr.mint(ids.attendee2Id);
+      const scan = await post(
+        "/api/checkins",
+        { qrToken: token, eventId: ids.eventId },
+        staffSession,
+      );
+      expect(scan.status).toBe(403);
+
+      const manual = await post(
+        "/api/checkins/manual",
+        { eventId: ids.eventId, personId: ids.attendee2Id },
+        staffSession,
+      );
+      expect(manual.status).toBe(403);
+
+      const sync = await post(
+        "/api/checkins/sync",
+        {
+          items: [
+            {
+              eventId: ids.eventId,
+              personId: ids.attendee2Id,
+              clientRef: `e2e-${Date.now()}`,
+              scannedAt: new Date().toISOString(),
+            },
+          ],
+        },
+        staffSession,
+      );
+      expect(sync.status).toBe(403);
+
+      const open = await prisma.checkin.findFirst({
+        where: { eventId: ids.eventId, personId: ids.attendee2Id },
+      });
+      expect(open).toBeNull();
+    });
+
+    it("staff sin asignación → 403 en GET /checkins y /door-manifest", async () => {
+      const list = await fetch(`${baseUrl}/api/events/${ids.eventId}/checkins`, {
+        headers: { cookie: `omnidance_session=${staffSession}` },
+      });
+      expect(list.status).toBe(403);
+
+      const manifest = await fetch(
+        `${baseUrl}/api/events/${ids.eventId}/door-manifest`,
+        { headers: { cookie: `omnidance_session=${staffSession}` } },
+      );
+      expect(manifest.status).toBe(403);
+    });
+
+    it("staff asignado opera igual que antes → 201/200", async () => {
+      const { token } = await qr.mint(ids.attendee2Id);
+      const scan = await post(
+        "/api/checkins",
+        { qrToken: token, eventId: ids.eventId },
+        assignedSession,
+      );
+      expect(scan.status).toBe(201);
+      const body = await scan.json();
+      ids.checkinIds.push(body.checkin.id);
+      expect(body.checkin.staffId).toBe(assignedStaffId);
+
+      const list = await fetch(`${baseUrl}/api/events/${ids.eventId}/checkins`, {
+        headers: { cookie: `omnidance_session=${assignedSession}` },
+      });
+      expect(list.status).toBe(200);
+
+      const manifest = await fetch(
+        `${baseUrl}/api/events/${ids.eventId}/door-manifest`,
+        { headers: { cookie: `omnidance_session=${assignedSession}` } },
+      );
+      expect(manifest.status).toBe(200);
     });
   });
 });

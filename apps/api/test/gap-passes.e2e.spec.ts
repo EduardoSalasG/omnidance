@@ -299,12 +299,22 @@ describe("gap-passes e2e (list pass / event passes)", () => {
       expect(pass.id).toBe(saved.id);
     });
 
-    it("staff con social.manage emite pase para otra entry → 201", async () => {
+    it("staff con social.manage sin asignación → 403 (spec event-access-scope)", async () => {
       const res = await req(
         "POST",
         `/api/guest-lists/${ids.listId}/entries/${ids.entryGuest2Id}/pass`,
         {},
         staffSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("staff asignado al evento emite pase para otra entry → 201", async () => {
+      const res = await req(
+        "POST",
+        `/api/guest-lists/${ids.listId}/entries/${ids.entryGuest2Id}/pass`,
+        {},
+        assignedSession,
       );
       expect(res.status).toBe(201);
       const pass = await res.json();
@@ -346,6 +356,16 @@ describe("gap-passes e2e (list pass / event passes)", () => {
         `/api/events/${ids.eventId}/passes`,
         undefined,
         randomSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("staff con grant global sin asignación → 403 (spec event-access-scope)", async () => {
+      const res = await req(
+        "GET",
+        `/api/events/${ids.eventId}/passes`,
+        undefined,
+        staffSession,
       );
       expect(res.status).toBe(403);
     });

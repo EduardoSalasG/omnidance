@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
+import { personIdHasPermission } from "../../common/rbac/roles.guard";
 import type {
   CreateDiscountCodeData,
   DiscountCodeFilter,
@@ -42,6 +43,9 @@ export class PrismaDiscountsRepo implements DiscountsRepo {
     const where = {
       ...(filter.eventId !== undefined ? { eventId: filter.eventId } : {}),
       ...(filter.seriesId !== undefined ? { seriesId: filter.seriesId } : {}),
+      ...(filter.createdById !== undefined
+        ? { createdById: filter.createdById }
+        : {}),
       ...(q ? { code: { contains: q, mode: "insensitive" as const } } : {}),
       // EXPIRED: expiresAt <= ahora; ACTIVE: vigente o sin expiración.
       ...(filter.status === "EXPIRED"
@@ -92,5 +96,23 @@ export class PrismaDiscountsRepo implements DiscountsRepo {
       ...r,
       person: { personId: r.personId, name: byId.get(r.personId)?.name ?? "?" },
     }));
+  }
+
+  findEventById(id: string) {
+    return this.prisma.event.findUnique({
+      where: { id },
+      select: { id: true, producerId: true },
+    });
+  }
+
+  findSeriesById(id: string) {
+    return this.prisma.eventSeries.findUnique({
+      where: { id },
+      select: { id: true, producerId: true },
+    });
+  }
+
+  personHasPermission(personId: string, permissionKey: string) {
+    return personIdHasPermission(this.prisma, personId, [permissionKey]);
   }
 }

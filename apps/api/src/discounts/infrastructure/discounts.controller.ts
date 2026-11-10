@@ -3,6 +3,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   NotFoundException,
   Param,
@@ -29,6 +30,8 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import {
   DISCOUNT_CODE_TYPES,
   DiscountCodeNotFoundError,
+  DiscountForbiddenError,
+  DiscountScopeNotFoundError,
   DiscountsService,
   DuplicateDiscountCodeError,
   InvalidDiscountCodeError,
@@ -138,8 +141,14 @@ function mapDomainError(e: unknown): never {
       message: e.message,
     });
   }
-  if (e instanceof DiscountCodeNotFoundError) {
+  if (
+    e instanceof DiscountCodeNotFoundError ||
+    e instanceof DiscountScopeNotFoundError
+  ) {
     throw new NotFoundException(e.message);
+  }
+  if (e instanceof DiscountForbiddenError) {
+    throw new ForbiddenException(e.message);
   }
   throw e;
 }
@@ -172,34 +181,45 @@ export class DiscountsController {
   }
 
   @Get()
-  async list(@Query() dto: ListDiscountCodesQueryDto) {
+  async list(@Query() dto: ListDiscountCodesQueryDto, @Req() req: Request) {
     const pg = pageParams(dto.page, dto.pageSize);
-    const { items, total } = await this.discounts.list({
-      eventId: dto.eventId,
-      seriesId: dto.seriesId,
-      q: dto.q,
-      status: dto.status,
-      from: dto.from ? new Date(dto.from) : undefined,
-      to: dto.to ? new Date(dto.to) : undefined,
-      skip: pg.skip,
-      take: pg.take,
-    });
+    const { items, total } = await this.discounts.list(
+      {
+        eventId: dto.eventId,
+        seriesId: dto.seriesId,
+        q: dto.q,
+        status: dto.status,
+        from: dto.from ? new Date(dto.from) : undefined,
+        to: dto.to ? new Date(dto.to) : undefined,
+        skip: pg.skip,
+        take: pg.take,
+      },
+      { id: req.person!.id },
+    );
     return { items, total, page: pg.page, pageSize: pg.pageSize };
   }
 
   @Get(":id")
-  async detail(@Param("id") id: string): Promise<DiscountCode> {
+  async detail(
+    @Param("id") id: string,
+    @Req() req: Request,
+  ): Promise<DiscountCode> {
     try {
-      return await this.discounts.detail(id);
+      return await this.discounts.detail(id, { id: req.person!.id });
     } catch (e) {
       mapDomainError(e);
     }
   }
 
   @Get(":id/redemptions")
-  async redemptions(@Param("id") id: string): Promise<ListedRedemption[]> {
+  async redemptions(
+    @Param("id") id: string,
+    @Req() req: Request,
+  ): Promise<ListedRedemption[]> {
     try {
-      return await this.discounts.listRedemptions(id);
+      return await this.discounts.listRedemptions(id, {
+        id: req.person!.id,
+      });
     } catch (e) {
       mapDomainError(e);
     }

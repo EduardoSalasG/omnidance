@@ -17,6 +17,7 @@ describe("social e2e", () => {
   );
 
   let producerSession: string;
+  let producerAjenoSession: string;
   let dancerSession: string;
   let dancer2Session: string;
   let dancer3Session: string;
@@ -25,6 +26,7 @@ describe("social e2e", () => {
     venueId: "",
     eventId: "",
     producerId: "",
+    producerAjenoId: "",
     dancerId: "",
     dancer2Id: "",
     dancer3Id: "",
@@ -76,6 +78,12 @@ describe("social e2e", () => {
     ids.producerId = producer.id;
     producerSession = await auth.issueSession(producer.id);
 
+    // Productor sin vínculo al evento: social.manage global no basta
+    // (spec event-access-scope).
+    const producerAjeno = await mkPerson("Productor Ajeno", "PRODUCER");
+    ids.producerAjenoId = producerAjeno.id;
+    producerAjenoSession = await auth.issueSession(producerAjeno.id);
+
     const dancer = await mkPerson("Bailarín Social Uno", "DANCER");
     ids.dancerId = dancer.id;
     dancerSession = await auth.issueSession(dancer.id);
@@ -96,6 +104,7 @@ describe("social e2e", () => {
     const event = await prisma.event.create({
       data: {
         venueId: venue.id,
+        producerId: producer.id,
         name: "Evento Social Test",
         status: "PUBLISHED",
         startsAt: new Date(Date.now() + 24 * 3600 * 1000),
@@ -118,6 +127,7 @@ describe("social e2e", () => {
     ].filter(Boolean);
     const peopleIds = [
       ids.producerId,
+      ids.producerAjenoId,
       ids.dancerId,
       ids.dancer2Id,
       ids.dancer3Id,
@@ -184,6 +194,16 @@ describe("social e2e", () => {
       expect(res.status).toBe(404);
     });
 
+    it("productor no vinculado al evento → 403 (spec event-access-scope)", async () => {
+      const res = await req(
+        "POST",
+        `/api/events/${ids.eventId}/guest-lists`,
+        { ownerId: ids.dancerId },
+        producerAjenoSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
     it("como producer → 201 con la lista creada", async () => {
       const res = await req(
         "POST",
@@ -234,6 +254,16 @@ describe("social e2e", () => {
       expect(res.status).toBe(404);
     });
 
+    it("actor no vinculado al evento → 403 (spec event-access-scope)", async () => {
+      const res = await req(
+        "POST",
+        `/api/guest-lists/${ids.guestListId}/entries`,
+        { personId: ids.dancer3Id },
+        producerAjenoSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
     it("persona inexistente → 404", async () => {
       const res = await req(
         "POST",
@@ -275,6 +305,14 @@ describe("social e2e", () => {
       const res = await fetch(
         `${baseUrl}/api/events/${ids.eventId}/guest-lists`,
         { headers: { cookie: `omnidance_session=${dancerSession}` } },
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("actor no vinculado al evento → 403 (spec event-access-scope)", async () => {
+      const res = await fetch(
+        `${baseUrl}/api/events/${ids.eventId}/guest-lists`,
+        { headers: { cookie: `omnidance_session=${producerAjenoSession}` } },
       );
       expect(res.status).toBe(403);
     });
