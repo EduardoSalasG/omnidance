@@ -89,9 +89,13 @@ historial, i18n, docs y cierre del change OpenSpec.
   `end` (EOF error) y comillas sin escapar en label de flowchart
   (`["...#quot;..."]`).
 - Verificación: `mermaid.parse` sobre todos los bloques → flows.md
-  42/42 y architecture.md 3/3 OK. El checker quedó en
-  `%TEMP%/mermaid-check` (mermaid 11 + jsdom, fuera del repo) - si se
-  quiere permanente, conviene pasarlo a script del repo o CI.
+  42/42 y architecture.md 3/3 OK.
+- `7cdedef8` docs(skill): skill `mermaid-diagrams` creado (pedido del
+  owner) - gotchas verificados + checker auto-instalable:
+  `node .devin/skills/mermaid-diagrams/scripts/check-mermaid.mjs <md>`
+  (mermaid 11 + jsdom en %TEMP%/omnidance-mermaid-check, fuera del
+  repo). Verificado: 45/45 OK en docs + detecta `;` en archivo
+  ad-hoc. Candidato natural a paso de CI.
 
 ## Pendientes generales (sin cambio)
 
