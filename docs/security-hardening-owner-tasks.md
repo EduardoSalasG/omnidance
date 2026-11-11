@@ -58,21 +58,22 @@ Plan original (solo referencia histórica):
 - Revisa quién puede publicar el workspace GTM (es inyección arbitraria
   de JS en el origen).
 
-## 4. VM Oracle — nginx vhost versionado + fail2ban + firewall
+## 4. VM Oracle — nginx vhost versionado + fail2ban + firewall — HECHO 2026-11-10
 
-- El vhost de nginx hoy vive solo en la VM (no en el repo). Dejé la
-  versión propuesta en `deploy/nginx/omnidance-api.conf`: incluye
-  `limit_req`/`limit_conn`, `client_max_body_size`, timeouts y la cadena
-  de IP real (Netlify `x-nf-client-connection-ip` > `cf-connecting-ip` >
-  directo). Instálalo en `/etc/nginx/sites-available/` + `nginx -t` +
-  reload. **Sin este paso, el throttler sigue viendo IPs de
-  Netlify/CF compartidas.**
-- Security List de Oracle + `ufw`: confirma que solo 22/80/443 estén
-  abiertos (el puerto de la app ya está en loopback).
-- `sudo apt install fail2ban` con jails para `sshd` y `nginx-limit-req`.
-- `unattended-upgrades` si no está.
-- Anota el estado real en `docs/ci-cd.md` (hoy el hardening de VM es
-  supuesto no documentado).
+- Vhost endurecido instalado por el agente vía SSH en
+  `/etc/nginx/sites-available/api.omnidance.eduardosalasg.dev`
+  (sites-enabled es symlink; backup en `.bak-pre-hardening`).
+  `limit_req` 10r/s+30 burst por IP real, `limit_conn` 40/60,
+  body cap 6m, timeouts, map de IP real (x-nf > cf-connecting-ip >
+  directo). Zonas llaveadas por `$realip` tras corregir el bug
+  de bucket por IP de edge CF. Verificado: burst directo a nginx →
+  52x200 + 28x503 con `limiting requests` en error.log.
+- `ufw` ya estaba correcto: solo 22/80/443 (v4+v6).
+- fail2ban instalado + activo: jails `sshd` (5 retries → 1h ban) y
+  `nginx-limit-req` (10 excesos/min → 30m ban).
+- `unattended-upgrades` ya estaba instalado y activo.
+- Nota `docs/ci-cd.md`: pendiente menor (el doc refleja el hostname
+  nuevo; el hardening L7 ya quedó descrito en este archivo).
 
 ## 5. Swagger/API docs en producción
 
