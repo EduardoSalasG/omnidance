@@ -111,10 +111,30 @@ self.addEventListener("push", (event) => {
   );
 });
 
+// Destino del click: solo paths internos - misma regla que
+// safeInternalPath (src/lib/safe-next.ts): empieza `/`, no `//host`
+// (protocol-relative), no `/\host` ni variantes `%5c` que se
+// normalizan a `\` al navegar. El payload push viaja por un canal
+// confiable, pero un emisor futuro con entrada de usuario podría
+// abrir un origen externo con branding real (audit M4).
+function safeClickPath(raw) {
+  if (typeof raw !== "string" || !raw) return null;
+  const decoded = raw.replace(/%5c/gi, "\\");
+  if (
+    decoded.startsWith("/") &&
+    !decoded.startsWith("//") &&
+    !decoded.startsWith("/\\")
+  ) {
+    return decoded;
+  }
+  return null;
+}
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url =
-    (event.notification.data && event.notification.data.url) || "/inicio";
+    safeClickPath(event.notification.data && event.notification.data.url) ??
+    "/notificaciones";
 
   event.waitUntil(
     self.clients

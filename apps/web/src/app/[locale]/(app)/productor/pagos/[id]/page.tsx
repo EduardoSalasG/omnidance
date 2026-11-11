@@ -17,6 +17,7 @@ import {
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import { PAYOUT_STATUS_VARIANT } from "@/components/producer/shared";
+import { safeExternalHref } from "@/lib/safe-external";
 
 type PayoutLineDetail = {
   id: string;
@@ -147,9 +148,12 @@ function PayoutDetail() {
                   </div>
                 )}
               </dl>
-              {payout.evidenceUrl && (
+              {/* spec web-edge-security: whitelist http(s) en render -
+                  cubre evidenceUrl persistida antes de la validación
+                  de write. */}
+              {safeExternalHref(payout.evidenceUrl) && (
                 <a
-                  href={payout.evidenceUrl}
+                  href={safeExternalHref(payout.evidenceUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex min-h-11 items-center gap-1 self-start rounded-lg border border-line px-4 text-sm text-neon hover:bg-neon/10"

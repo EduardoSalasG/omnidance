@@ -23,6 +23,7 @@ import {
 } from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { cleanHttpUrl } from "../../common/http-url";
 import {
   AcademyNotApprovedError,
   AcademySalesService,
@@ -185,7 +186,13 @@ export class AcademySalesController {
     @Body() dto?: MarkPaidDto,
   ) {
     try {
-      return await this.sales.markPaid(id, req.person!, dto?.evidenceUrl);
+      // spec web-edge-security: la evidencia puede salir como link en
+      // la ficha del acuerdo - whitelist http(s) en write.
+      return await this.sales.markPaid(
+        id,
+        req.person!,
+        cleanHttpUrl(dto?.evidenceUrl, "evidenceUrl") ?? undefined,
+      );
     } catch (e) {
       this.mapError(e);
     }

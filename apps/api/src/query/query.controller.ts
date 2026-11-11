@@ -24,7 +24,9 @@ import {
   Min,
 } from "class-validator";
 import { Type } from "class-transformer";
+import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
+import { EXPORT_THROTTLE } from "../common/throttle.config";
 import {
   QUERY_ROLES,
   type QueryFilters,
@@ -146,9 +148,11 @@ export class QueryController {
 
   /**
    * GET /query/export.csv?role=&entity=&<filtros>; resultado completo
-   * (sin cap), BOM UTF-8 + CRLF, attachment.
+   * (sin cap), BOM UTF-8 + CRLF, attachment. @Throttle estricto (spec
+   * api-hardening) - el export recorre el dataset completo.
    */
   @Get("export.csv")
+  @Throttle(EXPORT_THROTTLE)
   async exportCsv(
     @Req() req: Request,
     @Query() q: Record<string, unknown>,
@@ -173,8 +177,10 @@ export class QueryController {
   /**
    * GET /query/export.pdf?role=&entity=&<filtros>; reporte A4 con
    * título es-CL, resumen, header repetido y «Página X de Y».
+   * @Throttle estricto (spec api-hardening).
    */
   @Get("export.pdf")
+  @Throttle(EXPORT_THROTTLE)
   async exportPdf(
     @Req() req: Request,
     @Query() q: Record<string, unknown>,

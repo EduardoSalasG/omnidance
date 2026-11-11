@@ -30,6 +30,12 @@ interface FakeReferral {
   createdAt: Date;
 }
 
+interface FakeAnalyticsEvent {
+  type: string;
+  payload?: Record<string, unknown> | null;
+  createdAt?: Date;
+}
+
 interface FakeEvent {
   id: string;
   producerId: string;
@@ -125,6 +131,7 @@ class FakePrisma {
   enrollments: FakeEnrollment[] = [];
   guestLists: FakeGuestList[] = [];
   referrals: FakeReferral[] = [];
+  analyticsEvents: FakeAnalyticsEvent[] = [];
   plans: { id: string; academyId: string; name: string }[] = [];
   reports: FakeReport[] = [];
   reportSeq = 0;
@@ -175,6 +182,22 @@ class FakePrisma {
       this.referrals
         .filter((r) => where.referredId.in.includes(r.referredId))
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
+  };
+
+  analyticsEvent = {
+    findMany: async ({
+      where,
+    }: {
+      where: { type: string; createdAt?: { gte?: Date; lte?: Date } };
+    }) =>
+      this.analyticsEvents.filter(
+        (e) =>
+          e.type === where.type &&
+          (!where.createdAt?.gte ||
+            (e.createdAt ?? new Date(0)) >= where.createdAt.gte) &&
+          (!where.createdAt?.lte ||
+            (e.createdAt ?? new Date(0)) <= where.createdAt.lte),
+      ),
   };
 
   private matchEvent(e: FakeEvent, w: EventWhere): boolean {
@@ -861,6 +884,105 @@ describe("QueryService - acquisition (lente ADMIN)", () => {
     prisma.people.set("new", alta("new", { acquisitionSource: "direct" }));
     const res = await run({ from: "2026-11-01", to: "2026-11-30" });
     expect(res.rows).toEqual([["direct", 1, 100]]);
+    expect(res.total).toBe(1);
+  });
+});
+
+describe("QueryService - dispositivos (lente ADMIN)", () => {
+  let prisma: FakePrisma;
+  let svc: QueryService;
+
+  const launch = (
+    displayMode: string | null,
+    platform: string | null,
+    createdAt = new Date("2026-11-05T12:00:00Z"),
+  ) =>
+    prisma.analyticsEvents.push({
+      type: "app.launch",
+      payload: { displayMode, platform, ua: "UA" },
+      createdAt,
+    });
+  const run = (filters: Record<string, string> = {}) =>
+    svc.run("admin-1", { role: "ADMIN", entity: "dispositivos", filters });
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    svc = new QueryService(prisma as unknown as PrismaService);
+    approve(prisma, "admin-1", "ADMIN");
+  });
+
+  it("agrega por modo × plataforma: orden por conteo, pct del total", async () => {
+    launch("standalone", "Android");
+    launch("standalone", "Android");
+    launch("standalone", "iOS");
+    launch("browser", "Windows");
+    launch("browser", "Android");
+    // Otros tipos de evento no cuentan; payload ausente → sin_dato.
+    prisma.analyticsEvents.push({
+      type: "page_view",
+      payload: { displayMode: "browser", platform: "Android" },
+      createdAt: new Date("2026-11-05T12:00:00Z"),
+    });
+    launch(null, null);
+
+    const res = await run();
+    expect(res.headers).toEqual(["modo", "plataforma", "altas", "pct"]);
+    // 6 launches en 5 combinaciones; empates ordenados por modo+plataforma.
+    expect(res.total).toBe(5);
+    expect(res.rows).toEqual([
+      ["standalone", "android", 2, 33],
+      ["browser", "android", 1, 17],
+      ["browser", "windows", 1, 17],
+      ["sin_dato", "sin_dato", 1, 17],
+      ["standalone", "ios", 1, 17],
+    ]);
+    // Filas agregadas: sin celda suplementaria personId.
+    expect(res.rows[0]).toHaveLength(res.headers.length);
+    expect(res.summary[0]).toContain("6");
+  });
+
+  it("normaliza plataforma al vocabulario canónico", async () => {
+    launch("browser", "macOS");
+    launch("browser", "iPhone");
+    launch("browser", "Chrome OS");
+    launch("browser", "FreeBSD");
+    const res = await run();
+    expect(res.rows.map((r) => [r[1], r[2]])).toEqual([
+      ["chromeos", 1],
+      ["ios", 1],
+      ["macos", 1],
+      ["other", 1],
+    ]);
+  });
+
+  it("platform filtra CSV multi; `none` agrupa sin_dato; inválido → 400", async () => {
+    launch("standalone", "Android");
+    launch("browser", "iOS");
+    launch("browser", "Windows");
+    launch("browser", null);
+
+    const only = await run({ platform: "android" });
+    expect(only.rows).toEqual([["standalone", "android", 1, 100]]);
+
+    const multi = await run({ platform: "ios,windows" });
+    expect(multi.rows.map((r) => r[1])).toEqual(["ios", "windows"]);
+
+    const none = await run({ platform: "none" });
+    expect(none.rows).toEqual([["browser", "sin_dato", 1, 100]]);
+
+    await expect(run({ platform: "foo" })).rejects.toMatchObject({
+      status: 400,
+    });
+    await expect(run({ platform: "ios,foo" })).rejects.toMatchObject({
+      status: 400,
+    });
+  });
+
+  it("from/to acotan por AnalyticsEvent.createdAt", async () => {
+    launch("browser", "Android", new Date("2026-10-01T12:00:00Z"));
+    launch("standalone", "Android", new Date("2026-11-05T12:00:00Z"));
+    const res = await run({ from: "2026-11-01", to: "2026-11-30" });
+    expect(res.rows).toEqual([["standalone", "android", 1, 100]]);
     expect(res.total).toBe(1);
   });
 });

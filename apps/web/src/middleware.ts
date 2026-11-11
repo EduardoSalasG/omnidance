@@ -77,6 +77,19 @@ const isDev = process.env.NODE_ENV !== "production";
 const isLocalHost = (host: string) =>
   /^(localhost|127\.|::1|\[::1\])/.test(host);
 
+// Origen extra de connect-src para el modo cross-site
+// (NEXT_PUBLIC_API_URL seteada: el browser pega directo al API sin el
+// proxy /api/*). En los despliegues proxy la env va vacía → null.
+const crossSiteApiOrigin = (() => {
+  const raw = process.env.NEXT_PUBLIC_API_URL;
+  if (!raw) return null;
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return null;
+  }
+})();
+
 function cspHeader(hostname: string): string {
   return [
     "default-src 'self'",
@@ -84,7 +97,12 @@ function cspHeader(hostname: string): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    "connect-src 'self' https: wss:",
+    // connect-src acotado (audit M3): 'self' cubre apiFetch (/api/*),
+    // el fetch SSR y socket.io por el proxy same-origin (queda en
+    // polling - el upgrade ws no pasa el proxy → wss: no hace falta).
+    // Terceros: solo los beacons que sí cargamos (GTM/GA4, Clarity);
+    // sin https: genérico la exfil a host arbitrario queda cortada.
+    `connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://analytics.google.com https://*.clarity.ms${crossSiteApiOrigin ? ` ${crossSiteApiOrigin}` : ""}`,
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
     "object-src 'none'",

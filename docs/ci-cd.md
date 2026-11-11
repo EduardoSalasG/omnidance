@@ -6,9 +6,10 @@ runtime). DB = **Neon** (Postgres gestionado, fuera de la VM).
 
 Dominios:
 
-- API: `https://api.omnidance.eduardosalasg.dev` (nginx de la VM →
-  contenedor en `127.0.0.1:3002` - el contenedor escucha 4000 interno,
-  el host publica 3002)
+- API: `https://api.omnidance.tech` (Cloudflare proxied → nginx de la
+  VM → contenedor en `127.0.0.1:3002` - el contenedor escucha 4000
+  interno, el host publica 3002). `api.omnidance.eduardosalasg.dev`
+  queda como alias legado (mismo vhost, cert compartido).
 - Web: `https://omnidance.tech` (dominio primario; `omnidance.netlify.app`
   sigue sirviendo como subdominio de Netlify pero canonical/og/sitemap
   declaran .tech; spec `seo-positioning-domain`. En Netlify: Domain
@@ -26,8 +27,9 @@ Dominios:
 3. **VM**: `/opt/apps/omnidance/.env` completo (bloque de abajo - ojo:
    `PAYMENT_GATEWAY=flow` + `FLOW_*` son **fail-close obligatorios**,
    sin ellos el API no levanta).
-4. **Nginx**: vhost `api.omnidance.eduardosalasg.dev` → `127.0.0.1:3002`
-   + TLS (certbot).
+4. **Nginx**: vhost (server_name `api.omnidance.tech` +
+   `api.omnidance.eduardosalasg.dev` alias) → `127.0.0.1:3002`
+   + TLS (certbot, cert con ambos SAN).
 5. **Netlify**: sitio conectado al repo + env vars (`API_PROXY_TARGET`,
    `NEXT_PUBLIC_*`); `NEXT_PUBLIC_API_URL` **vacía**.
 6. **Push a `main`** → el workflow hace el resto: tests → imagen GHCR →
@@ -63,7 +65,7 @@ Push a `main` → test + build → imagen `ghcr.io/EduardoSalasG/omnidance-api:<
 + `:latest` → SSH al host → `prisma migrate deploy` → `seed.ts` con
 `SEED_ENV=prod` (piloto: dataset demo; el baseline real es `SEED_ENV=baseline`) → `docker compose up -d api` → health gate
 (`/api/health` 200 + `/api/me` 401 anónimo) → reload nginx + sonda HTTPS
-a `api.omnidance.eduardosalasg.dev`.
+a `api.omnidance.tech` (health gate del workflow usa `PUBLIC_API_HOST`).
 
 ### Secrets de GitHub (repo → Settings → Secrets)
 
@@ -98,7 +100,7 @@ QR_SECRET="<aleatorio>"
 # Orígenes
 WEB_URL="https://omnidance.tech"
 CORS_ORIGINS="https://omnidance.tech"
-API_URL="https://api.omnidance.eduardosalasg.dev"   # callbacks de Flow
+API_URL="https://api.omnidance.tech"              # callbacks/webhooks de Flow/Fintoc
 
 # Pagos - obligatorio en prod (fail-close: sin esto el API no levanta)
 PAYMENT_GATEWAY="flow"
@@ -179,7 +181,8 @@ contenedor - el host expone **3002**), `LOG_LEVEL`, `SERVICE_FEE_CLP`,
 
 ### VM - otros pasos
 
-1. Nginx vhost `api.omnidance.eduardosalasg.dev` → `127.0.0.1:3002`
+1. Nginx vhost `api.omnidance.tech` (+ alias legado
+   `api.omnidance.eduardosalasg.dev`) → `127.0.0.1:3002`
    (`proxy_pass` + headers de upgrade para `/socket.io/`).
 2. Usuario de deploy con docker (grupo `docker`). El reload de nginx
    usa `sudo -n` no-fatal - si hay NOPASSWD para `systemctl reload
@@ -232,7 +235,7 @@ por branch/PR gratis.
 
 | Var | Valor |
 |---|---|
-| `API_PROXY_TARGET` | `https://api.omnidance.eduardosalasg.dev` (ya en `netlify.toml`) |
+| `API_PROXY_TARGET` | `https://api.omnidance.tech` (ya en `netlify.toml`) |
 | `NEXT_PUBLIC_CARTO_BASEMAP_KEY` | key pública del basemap |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | misma VAPID pública del API |
 | `NEXT_PUBLIC_WEB_URL` | `https://omnidance.tech` (ya en `netlify.toml`) |

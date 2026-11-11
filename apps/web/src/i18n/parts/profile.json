@@ -108,6 +108,19 @@
     "cx": {
       "title": "Customer Experience",
       "desc": "Tu contacto directo para dudas de cuenta o suscripción."
+    },
+    "sessions": {
+      "title": "Mis dispositivos",
+      "current": "Este dispositivo",
+      "lastSeen": "Última actividad {date}",
+      "revoke": "Cerrar sesión",
+      "revokeOthers": "Cerrar otras sesiones",
+      "revokeOthersConfirm": "¿Cerrar las demás sesiones en todos tus dispositivos?",
+      "revokeOthersCta": "Cerrar otras",
+      "revoked": "Sesión cerrada",
+      "revokedOthers": "Otras sesiones cerradas",
+      "empty": "Sin sesiones activas",
+      "error": "No se pudieron cargar tus dispositivos"
     }
   }
 }

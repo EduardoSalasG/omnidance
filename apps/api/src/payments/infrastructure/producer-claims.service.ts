@@ -16,6 +16,7 @@ import {
 } from "../../storage/storage.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { PaymentSettlementService } from "../application/payment-settlement.service";
+import { sanitizeMethodDetails } from "../../common/http-url";
 import {
   decodeMembershipRef,
   decodePlatformSubRef,
@@ -92,7 +93,12 @@ export class ProducerClaimsService {
         producerId,
         type: dto.type,
         label: dto.label,
-        details: dto.details as object,
+        // spec web-edge-security: details.url de PAYMENT_LINK sale en
+        // <a href> del checkout - solo http(s) entra a la base.
+        details: sanitizeMethodDetails(
+          dto.type,
+          dto.details as Record<string, unknown>,
+        ) as object,
         order: dto.order ?? 0,
       },
     });
@@ -116,7 +122,15 @@ export class ProducerClaimsService {
       where: { id: methodId },
       data: {
         ...(dto.label !== undefined ? { label: dto.label } : {}),
-        ...(dto.details !== undefined ? { details: dto.details as object } : {}),
+        ...(dto.details !== undefined
+          ? {
+              // El type sale de la fila (no está en el DTO del PATCH).
+              details: sanitizeMethodDetails(
+                method.type,
+                dto.details as Record<string, unknown>,
+              ) as object,
+            }
+          : {}),
         ...(dto.order !== undefined ? { order: dto.order } : {}),
         ...(dto.active !== undefined ? { active: dto.active } : {}),
       },

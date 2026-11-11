@@ -2201,6 +2201,46 @@ describe("SubscriptionsService", () => {
       await new Promise((r) => setTimeout(r, 10));
       expect(flow.getSubscription).not.toHaveBeenCalled();
     });
+
+    // spec api-hardening: ráfaga de callbacks no amplifica - lock en
+    // vuelo + cooldown ~60s sobre el fire-and-forget.
+    it("ráfaga de callbacks → un solo reconcileAll (cooldown ~60s)", async () => {
+      const spy = vi
+        .spyOn(svc, "reconcileAll")
+        .mockResolvedValue({ checked: 0, settled: 0 });
+      await svc.subscriptionWebhook("t1");
+      await svc.subscriptionWebhook("t2");
+      await svc.subscriptionWebhook("t3");
+      expect(spy).toHaveBeenCalledTimes(1);
+      // Los 3 INBOUND se registran igual - solo el sweep se frena.
+      expect(fx.gatewayTxs).toHaveLength(3);
+    });
+
+    it("sweep en vuelo impide solapamiento", async () => {
+      let release!: () => void;
+      const pending = new Promise<{ checked: number; settled: number }>(
+        (r) => (release = () => r({ checked: 0, settled: 0 })),
+      );
+      const spy = vi.spyOn(svc, "reconcileAll").mockReturnValue(pending);
+      await svc.subscriptionWebhook("t1");
+      await svc.subscriptionWebhook("t2");
+      expect(spy).toHaveBeenCalledTimes(1);
+      release();
+      await pending;
+    });
+
+    it("pasada la ventana de cooldown vuelve a disparar el sweep", async () => {
+      const spy = vi
+        .spyOn(svc, "reconcileAll")
+        .mockResolvedValue({ checked: 0, settled: 0 });
+      await svc.subscriptionWebhook("t1");
+      await new Promise((r) => setTimeout(r, 0)); // libera el finally
+      (
+        svc as unknown as { reconcileLastFiredAt: number }
+      ).reconcileLastFiredAt = Date.now() - 61_000;
+      await svc.subscriptionWebhook("t2");
+      expect(spy).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("syncMirrorPlan", () => {

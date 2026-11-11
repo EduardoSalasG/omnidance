@@ -32,7 +32,9 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
+import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
+import { EXPORT_THROTTLE } from "../../common/throttle.config";
 import type {
   EventStatus,
   EventType,
@@ -652,6 +654,7 @@ export class EventsController {
    */
   @Get(":id/export.csv")
   @UseGuards(SessionGuard)
+  @Throttle(EXPORT_THROTTLE)
   async exportCsv(
     @Param("id") id: string,
     @Query() dto: EventExportDto,
@@ -680,6 +683,7 @@ export class EventsController {
    */
   @Get(":id/export.pdf")
   @UseGuards(SessionGuard)
+  @Throttle(EXPORT_THROTTLE)
   async exportPdf(
     @Param("id") id: string,
     @Query() dto: EventExportDto,
@@ -716,6 +720,7 @@ export class EventsController {
    */
   @Get("series/:seriesId/export.csv")
   @UseGuards(SessionGuard)
+  @Throttle(EXPORT_THROTTLE)
   async exportSeriesCsv(
     @Param("seriesId") seriesId: string,
     @Query() dto: EventExportDto,
@@ -745,6 +750,7 @@ export class EventsController {
    */
   @Get("series/:seriesId/export.pdf")
   @UseGuards(SessionGuard)
+  @Throttle(EXPORT_THROTTLE)
   async exportSeriesPdf(
     @Param("seriesId") seriesId: string,
     @Query() dto: EventExportDto,

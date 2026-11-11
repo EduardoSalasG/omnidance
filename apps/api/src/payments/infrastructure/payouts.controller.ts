@@ -31,6 +31,7 @@ import { PayoutSettlementService } from "../application/payout-settlement.servic
 import { PayoutDestinationService } from "../application/payout-destination.service";
 import { PayoutRequiresManualError } from "../domain/payout-rail";
 import { emitPaymentEvent } from "../domain/payment-ledger";
+import { cleanHttpUrl } from "../../common/http-url";
 import { pageParams } from "../../academies/infrastructure/list-filters";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 const ACTOR_TYPES = ["PRODUCER", "ACADEMY", "VENUE"] as const;
@@ -308,7 +309,12 @@ export class AdminPayoutsController {
       data: {
         status: "PAID",
         paidAt: new Date(),
-        evidenceUrl: dto.evidenceUrl ?? payout.evidenceUrl,
+        // spec web-edge-security: el productor la abre como <a href> -
+        // solo http(s) (inválida → 400, no se marca pagado).
+        evidenceUrl:
+          dto.evidenceUrl !== undefined
+            ? cleanHttpUrl(dto.evidenceUrl, "evidenceUrl")
+            : payout.evidenceUrl,
       },
     });
     await this.audit(req, "PAYOUT_PAY", id, {

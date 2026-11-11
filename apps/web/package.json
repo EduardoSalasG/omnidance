@@ -1,6 +1,6 @@
 {
   "name": "@omnidance/web",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
@@ -12,6 +12,11 @@
     "analyze": "ANALYZE=true next build",
     "content:sync": "node scripts/sync-marketing-content.mjs"
   },
+  "browserslist": [
+    ">0.3%",
+    "last 2 versions",
+    "not dead"
+  ],
   "dependencies": {
     "@omnidance/shared": "workspace:*",
     "@yudiel/react-qr-scanner": "^2.6.0",

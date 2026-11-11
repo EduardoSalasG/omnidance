@@ -13,7 +13,7 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsIn, IsNotEmpty, IsOptional, IsString, ValidateNested } from "class-validator";
+import { IsIn, IsNotEmpty, IsOptional, IsString, MaxLength, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 import type { Request } from "express";
 import {
@@ -51,6 +51,18 @@ class RegisterPushTokenDto {
   @ValidateNested()
   @Type(() => PushKeysDto)
   keys?: PushKeysDto;
+
+  /**
+   * Plataforma OS del dispositivo (spec auth-sessions): el front envía
+   * navigator.userAgentData?.platform o el derivado del UA - se
+   * persiste en PushToken.platform para telemetría. Distinto de
+   * `platform` (canal de push WEB|IOS|ANDROID). El userAgent se toma
+   * del header, nunca del body.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  devicePlatform?: string;
 }
 
 function mapDomainError(e: unknown): never {
@@ -130,11 +142,16 @@ export class PushTokensController {
   @Post()
   async register(@Req() req: Request, @Body() dto: RegisterPushTokenDto) {
     try {
+      const ua = req.headers["user-agent"];
       return await this.notifications.registerPushToken(
         req.person!.id,
         dto.token,
         dto.platform,
         dto.keys,
+        {
+          userAgent: typeof ua === "string" ? ua.slice(0, 300) : undefined,
+          platform: dto.devicePlatform,
+        },
       );
     } catch (e) {
       mapDomainError(e);

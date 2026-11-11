@@ -3,6 +3,75 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [1.19.0] - 2026-11-10
+
+Release de hardening post-auditoría: cierra los hallazgos de seguridad
+de la revisión del 2026-11-10 (reportes en `docs/security-audit-2026-11-10-*.md`)
+y agrega sesiones revocables con telemetría de dispositivos. El API se
+movió a `api.omnidance.tech` detrás de Cloudflare.
+
+### Added
+
+- **Sesiones persistidas y revocables** (change `auth-sessions`):
+  modelo `AuthSession` con `jti` por emisión; `SessionGuard`
+  valida el jti contra la fila (cache 60s, `lastSeenAt` muestreado
+  1/min). Self: `GET/DELETE /me/sessions` + revoke-others; admin:
+  listar/revocar sesiones de cualquier persona. UI: card Mis
+  dispositivos en /perfil y sección sesiones en ficha admin de
+  usuario. Tokens legados sin jti siguen válidos hasta expirar.
+- **Telemetría de dispositivos** (mismo change): `POST
+  /analytics/track` público (solo `app.launch`), `PushToken` con
+  userAgent/platform, y entidad `dispositivos` en /analitica
+  (standalone vs browser, plataformas, filtros por fecha).
+- **Vhost nginx versionado** en `deploy/nginx/omnidance-api.conf`:
+  limit_req/limit_conn por IP real (x-nf > cf-connecting-ip), body cap
+  6m, timeouts anti-slowloris, passthrough socket.io. Instalado en la
+  VM (zonas llaveadas por $realip para no bucketizar usuarios bajo
+  el edge de CF).
+- **Migración a Cloudflare**: zona `omnidance.tech` en CF con
+  `api` proxied (WAF/DDoS free); cert SAN expandido a ambos
+  hostnames; `API_URL` de producción, `API_PROXY_TARGET` y
+  `PUBLIC_API_HOST` apuntan al host nuevo; el viejo queda como
+  alias legado.
+
+### Changed
+
+- **Edge del API endurecido** (change `api-edge-hardening`):
+  `/api/health` sin DB (check de DB movido a `/api/health/db`),
+  cooldown 60s + lock en sweeps de reconcile por webhook, throttles
+  dedicados en webhooks (30/min) y exports (10/min), cap por email
+  5/h en magic-link/register/resend, Swagger solo con
+  `API_DOCS_ENABLED` o fuera de producción, magic tokens
+  consumibles con grace para prefetchers (`MagicTokenUse`), settle
+  conservador: gatewayReported < orden → `PENDING_REVIEW` con
+  AMOUNT_MISMATCH, `internalNext` rechaza `/%` además de `//`
+  y `/\`, import de planillas con exceljs (CVEs de xlsx) y .xls
+  → 400.
+- **Edge del web endurecido** (change `web-edge-hardening`):
+  `cleanHttpUrl` valida http(s) en payment links, videos y
+  evidenceUrl; `safeExternalHref` en sinks href; click de
+  notificación del SW con whitelist de paths internos; CSP
+  `connect-src` acotada (sin `https:` genérico); logout limpia
+  cache de páginas staff del SW; fallback de Host en serverApiUrl
+  solo loopback; `data-clarity-mask` en comprobantes y PII de
+  admin; browserslist moderno + expireTime 3600.
+
+### Fixed
+
+- **Scoping por evento en operaciones de staff** (change
+  `security-event-scope`): cierra el BOLA cross-tenant de la
+  auditoría. Permiso global ya no basta para check-ins, guest-lists,
+  entry-passes ni discounts de eventos ajenos; `requireEventActor`
+  pasa con admin, productor dueño o staff asignado. Discounts
+  filtrados por creador para no-admin.
+
+### Infraestructura (operado fuera del repo, detalle en `docs/security-hardening-owner-tasks.md`)
+
+- BetterStack monitoreando `api.omnidance.tech/api/health` +
+  `omnidance.tech`; GTM deduplicado (Clarity solo nativa);
+  Clarity masking en Strict; fail2ban con jails sshd +
+  nginx-limit-req; UFW 22/80/443 y unattended-upgrades verificados.
+
 ## [1.18.0] - 2026-11-10
 
 ### Added

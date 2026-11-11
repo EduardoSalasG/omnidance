@@ -21,6 +21,7 @@ import {
 import { AcademyPromosService } from "../../payments/application/academy-promos.service";
 import { promoChargeClp } from "../../payments/domain/academy-promos";
 import { emitActivity } from "../../common/activity-log";
+import { sanitizeMethodDetails } from "../../common/http-url";
 
 const CLAIM_FOLDER = "claims";
 export const CLAIM_MAX_BYTES = 5 * 1024 * 1024; // 5MB
@@ -93,7 +94,12 @@ export class AcademyClaimsService {
         academyId,
         type: dto.type,
         label: dto.label,
-        details: dto.details as object,
+        // spec web-edge-security: details.url de PAYMENT_LINK sale en
+        // <a href> del checkout - solo http(s) entra a la base.
+        details: sanitizeMethodDetails(
+          dto.type,
+          dto.details as Record<string, unknown>,
+        ) as object,
         order: dto.order ?? 0,
       },
     });
@@ -117,7 +123,15 @@ export class AcademyClaimsService {
       where: { id: methodId },
       data: {
         ...(dto.label !== undefined ? { label: dto.label } : {}),
-        ...(dto.details !== undefined ? { details: dto.details as object } : {}),
+        ...(dto.details !== undefined
+          ? {
+              // El type sale de la fila (no está en el DTO del PATCH).
+              details: sanitizeMethodDetails(
+                method.type,
+                dto.details as Record<string, unknown>,
+              ) as object,
+            }
+          : {}),
         ...(dto.order !== undefined ? { order: dto.order } : {}),
         ...(dto.active !== undefined ? { active: dto.active } : {}),
       },

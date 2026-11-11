@@ -28,6 +28,9 @@ export interface CreateDiscountCodeData {
 export interface DiscountCodeFilter {
   eventId?: string;
   seriesId?: string;
+  /** Scoping del actor (spec event-access-scope): no-admin ve solo sus
+   * códigos - el servicio lo inyecta, no viene del query string. */
+  createdById?: string;
   q?: string;
   status?: "ACTIVE" | "EXPIRED";
   from?: Date;
@@ -71,4 +74,19 @@ export interface DiscountsRepo {
   list(filter: DiscountCodeFilter): Promise<PagedList<ListedDiscountCode>>;
   /** Ordenado por redeemedAt desc. */
   listRedemptions(codeId: string): Promise<ListedRedemption[]>;
+
+  /** Evento del scope de un código (spec event-access-scope) - solo lo
+   * necesario para validar ownership (`producerId`). */
+  findEventById(
+    id: string,
+  ): Promise<{ id: string; producerId: string | null } | null>;
+  /** Serie del scope de un código - `EventSeries.producerId` es el dueño. */
+  findSeriesById(
+    id: string,
+  ): Promise<{ id: string; producerId: string } | null>;
+  /** Permiso RBAC DB-driven: rol APPROVED con grant o isSuperuser. */
+  personHasPermission(
+    personId: string,
+    permissionKey: string,
+  ): Promise<boolean>;
 }

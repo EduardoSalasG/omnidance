@@ -38,6 +38,22 @@ export class DiscountCodeNotFoundError extends Error {
   }
 }
 
+/** El evento/serie del scope no existe (create scoped). */
+export class DiscountScopeNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DiscountScopeNotFoundError";
+  }
+}
+
+/** El recurso scoped pertenece a otro actor (spec event-access-scope). */
+export class DiscountForbiddenError extends Error {
+  constructor() {
+    super("requiere ser dueño del evento/serie o admin");
+    this.name = "DiscountForbiddenError";
+  }
+}
+
 interface CreateDiscountCodeInput {
   code: string;
   /** Validado contra DISCOUNT_CODE_TYPES - string para no acoplar al enum. */
@@ -169,6 +185,12 @@ export function isRedeemable(
  * - Tracking completo: quién lo creó (createdById), usos (usedCount),
  *   máximo (maxUses), evento/serie asociado y redemptions auditables.
  */
+
+/** Actor autenticado (SessionGuard) - el id basta: roles se leen en DB. */
+interface ActorRef {
+  id: string;
+}
+
 export class DiscountsService {
   constructor(private readonly repo: DiscountsRepo) {}
 
@@ -177,27 +199,86 @@ export class DiscountsService {
     createdById: string,
   ): Promise<DiscountCode> {
     const validated = validateCreateCode(input);
+    // Spec event-access-scope: un código scoped a evento/serie solo lo
+    // crea el dueño del recurso (producerId) o un admin; sin scope basta
+    // discounts.manage (código global del actor).
+    if (validated.eventId !== null || validated.seriesId !== null) {
+      await this.assertScopeOwnership(validated, createdById);
+    }
     const existing = await this.repo.findByCode(validated.code);
     if (existing) throw new DuplicateDiscountCodeError(validated.code);
     return this.repo.create({ ...validated, createdById });
   }
 
-  list(
+  /**
+   * Spec event-access-scope: cada actor ve solo sus códigos; admin ve
+   * todos. El filtro createdById lo inyecta el servicio, no el query.
+   */
+  async list(
     filter: DiscountCodeFilter,
+    actor: ActorRef,
   ): Promise<PagedList<ListedDiscountCode>> {
-    return this.repo.list(filter);
+    const admin = await this.repo.personHasPermission(
+      actor.id,
+      "admin.access",
+    );
+    return this.repo.list(
+      admin ? filter : { ...filter, createdById: actor.id },
+    );
   }
 
-  /** Ficha del código (detalle del productor/admin). */
-  async detail(codeId: string): Promise<DiscountCode> {
+  /** Ficha del código - solo visible para su creador o admin. */
+  async detail(codeId: string, actor: ActorRef): Promise<DiscountCode> {
     const code = await this.repo.findById(codeId);
-    if (!code) throw new DiscountCodeNotFoundError(codeId);
+    if (!code || !(await this.isOwnerOrAdmin(code.createdById, actor.id))) {
+      throw new DiscountCodeNotFoundError(codeId);
+    }
     return code;
   }
 
-  async listRedemptions(codeId: string): Promise<ListedRedemption[]> {
+  async listRedemptions(
+    codeId: string,
+    actor: ActorRef,
+  ): Promise<ListedRedemption[]> {
     const code = await this.repo.findById(codeId);
-    if (!code) throw new DiscountCodeNotFoundError(codeId);
+    if (!code || !(await this.isOwnerOrAdmin(code.createdById, actor.id))) {
+      throw new DiscountCodeNotFoundError(codeId);
+    }
     return this.repo.listRedemptions(codeId);
+  }
+
+  /** Ownership del scope del código: event.producerId /
+   * EventSeries.producerId === actor, o admin (admin.access/superuser). */
+  private async assertScopeOwnership(
+    scope: { eventId: string | null; seriesId: string | null },
+    actorId: string,
+  ): Promise<void> {
+    if (await this.repo.personHasPermission(actorId, "admin.access")) return;
+    if (scope.eventId !== null) {
+      const event = await this.repo.findEventById(scope.eventId);
+      if (!event) {
+        throw new DiscountScopeNotFoundError(
+          `evento no encontrado: ${scope.eventId}`,
+        );
+      }
+      if (event.producerId !== actorId) throw new DiscountForbiddenError();
+    }
+    if (scope.seriesId !== null) {
+      const series = await this.repo.findSeriesById(scope.seriesId);
+      if (!series) {
+        throw new DiscountScopeNotFoundError(
+          `serie no encontrada: ${scope.seriesId}`,
+        );
+      }
+      if (series.producerId !== actorId) throw new DiscountForbiddenError();
+    }
+  }
+
+  private async isOwnerOrAdmin(
+    createdById: string,
+    actorId: string,
+  ): Promise<boolean> {
+    if (createdById === actorId) return true;
+    return this.repo.personHasPermission(actorId, "admin.access");
   }
 }

@@ -41,8 +41,34 @@ export class AuthService {
     this.key = new TextEncoder().encode(secret);
   }
 
-  issueSession(personId: string): Promise<string> {
-    return new SignJWT({ purpose: "session" })
+  /**
+   * Emite el JWT de sesión (spec auth-sessions): lleva claim `jti`
+   * único y la fila AuthSession se persiste ANTES de firmar - el guard
+   * rechaza jti sin fila viva, así que una firma sin persistencia
+   * previa dejaría un token muerto al primer request. `meta` trae
+   * userAgent/ip de la request que originó la emisión.
+   *
+   * Sin repo (o sin el método - specs legados de JWT puro) solo se
+   * firma: el token sale sin claim jti y el guard salta el check.
+   */
+  async issueSession(
+    personId: string,
+    meta?: { userAgent?: string; ip?: string },
+  ): Promise<string> {
+    // El claim jti solo viaja si la fila se persiste: un AuthService sin
+    // repo (specs que lo construyen directo) firma JWT puro legado y el
+    // guard salta el check - un jti sin fila en producción sigue 401.
+    const store = this.repo?.createAuthSession?.bind(this.repo);
+    const jti = store ? randomBytes(16).toString("hex") : undefined;
+    if (jti) {
+      await store!({
+        jti,
+        personId,
+        userAgent: meta?.userAgent?.slice(0, 300),
+        ip: meta?.ip,
+      });
+    }
+    return new SignJWT({ purpose: "session", ...(jti ? { jti } : {}) })
       .setSubject(personId)
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
@@ -80,20 +106,39 @@ export class AuthService {
       .sign(this.key);
   }
 
+  // sha256(token + secreto JWT como pepper) - la marca de uso persiste
+  // el hash, nunca el JWT en claro (mismo patrón que hashOtpCode).
+  private hashMagicToken(token: string): string {
+    return createHash("sha256").update(token).update(this.key).digest("hex");
+  }
+
+  /**
+   * Verifica el magic link y lo CONSUME (spec api-hardening/auth): la
+   * marca persistida en MagicTokenUse lo vuelve single-use - sin repo
+   * inyectado queda comportamiento JWT puro (specs legados/unit).
+   *
+   * Reuso: un token ya consumido solo pasa si `reuseForPersonId` (sesión
+   * vigente de la request) resuelve una Person con el MISMO email del
+   * token - grace de relogin/prefetch. En ese caso devuelve los claims
+   * con `reused: true` (el controller no re-emite efectos ni sesión).
+   * En cualquier otro caso el reuso lanza como token inválido.
+   */
   async verifyMagicToken(
     token: string,
+    opts?: { reuseForPersonId?: string },
   ): Promise<{
     email: string;
     consent: boolean;
     role?: string;
     next?: string;
     acquisition?: AcquisitionInput;
+    reused: boolean;
   }> {
     const { payload } = await jwtVerify(token, this.key);
     if (payload.purpose !== "magic" || typeof payload.email !== "string") {
       throw new Error("invalid magic token");
     }
-    return {
+    const claims = {
       email: payload.email,
       consent: payload.consent === true,
       role: typeof payload.role === "string" ? payload.role : undefined,
@@ -103,14 +148,40 @@ export class AuthService {
           ? (payload.acquisition as AcquisitionInput)
           : undefined,
     };
+    const consume = this.repo?.consumeMagicToken?.bind(this.repo);
+    if (consume) {
+      const firstUse = await consume({
+        tokenHash: this.hashMagicToken(token),
+        email: payload.email,
+      });
+      if (!firstUse) {
+        const person = opts?.reuseForPersonId
+          ? await this.repo!.findById(opts.reuseForPersonId)
+          : null;
+        if (person?.email !== payload.email) {
+          throw new Error("magic token already used");
+        }
+        return { ...claims, reused: true };
+      }
+    }
+    return { ...claims, reused: false };
   }
 
-  async verifySession(token: string): Promise<{ personId: string }> {
+  // `jti` (spec auth-sessions): claim del JWT emitido post-change - el
+  // guard lo usa para el check de revocación. Tokens pre-change no lo
+  // traen → quedan fuera de revocación hasta expirar (decisión de
+  // diseño, documentada en openspec/changes/auth-sessions/design.md).
+  async verifySession(
+    token: string,
+  ): Promise<{ personId: string; jti?: string }> {
     const { payload } = await jwtVerify(token, this.key);
     if (payload.purpose !== "session" || !payload.sub) {
       throw new Error("invalid session token");
     }
-    return { personId: payload.sub };
+    return {
+      personId: payload.sub,
+      jti: typeof payload.jti === "string" ? payload.jti : undefined,
+    };
   }
 
   async hashPassword(password: string): Promise<string> {

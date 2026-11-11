@@ -1658,6 +1658,40 @@ export class SubscriptionsService {
   }
 
   /**
+   * Lock en vuelo + cooldown del barrido disparado por webhook (spec
+   * api-hardening): un reconcileAll ejecuta N llamadas firmadas a la
+   * pasarela - una ráfaga de callbacks no puede convertir el endpoint
+   * público en amplificación. In-memory como loginAttempts: suficiente
+   * a escala monolito; en multi-instancia se reemplaza por Redis.
+   * El INBOUND auditado se registra igual - solo se frena el sweep.
+   */
+  private reconcileInFlight = false;
+  private reconcileLastFiredAt = 0;
+  private static readonly RECONCILE_COOLDOWN_MS = 60_000;
+
+  private fireReconcileSweep(accountId?: string): void {
+    const now = Date.now();
+    if (
+      this.reconcileInFlight ||
+      now - this.reconcileLastFiredAt <
+        SubscriptionsService.RECONCILE_COOLDOWN_MS
+    ) {
+      return;
+    }
+    this.reconcileInFlight = true;
+    this.reconcileLastFiredAt = now;
+    void this.reconcileAll("reconcile", accountId)
+      .catch((e) =>
+        this.logger.error(
+          `reconcileAll post-webhook falló: ${e instanceof Error ? e.message : e}`,
+        ),
+      )
+      .finally(() => {
+        this.reconcileInFlight = false;
+      });
+  }
+
+  /**
    * urlCallback de los Flow-plans (plans/create lo registró): Flow avisa
    * eventos de suscripción (cobro, mora, cancelación). Registramos el
    * inbound y disparamos reconcileAll fire-and-forget - el endpoint
@@ -1694,11 +1728,7 @@ export class SubscriptionsService {
       ...(accountId ? { gatewayAccountId: accountId } : {}),
     });
     if (typeof token !== "string" || token.trim() === "") return;
-    void this.reconcileAll("reconcile", accountId).catch((e) =>
-      this.logger.error(
-        `reconcileAll post-webhook falló: ${e instanceof Error ? e.message : e}`,
-      ),
-    );
+    this.fireReconcileSweep(accountId);
   }
 
   /**

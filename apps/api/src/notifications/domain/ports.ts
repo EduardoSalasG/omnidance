@@ -41,11 +41,16 @@ export interface NotificationsRepo {
   markRead(id: string, readAt: Date): Promise<Notification>;
   /** Marca todas las no leídas del usuario; retorna cuántas se actualizaron. */
   markAllRead(personId: string, readAt: Date): Promise<number>;
-  /** Upsert por token único; payload guarda { platform } (schema v1 no tiene columna platform). */
+  /**
+   * Upsert por token único; payload guarda { platform, keys } (canal
+   * push). `device` (spec auth-sessions) → columnas userAgent/platform
+   * de la fila (telemetría del dispositivo).
+   */
   upsertPushToken(
     personId: string,
     token: string,
     payload: Prisma.InputJsonValue,
+    device?: { userAgent?: string; platform?: string },
   ): Promise<PushToken>;
   findPushTokenByToken(token: string): Promise<PushToken | null>;
   deletePushToken(id: string): Promise<void>;

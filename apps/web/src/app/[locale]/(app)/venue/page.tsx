@@ -24,6 +24,7 @@ import {
 } from "@/components/onboarding/OnboardingRunner";
 import { EVENT_STATUS_VARIANT, readError } from "@/components/producer/shared";
 import { useDateFmt, useNumFmt } from "@/lib/intl";
+import { safeExternalHref } from "@/lib/safe-external";
 
 /**
  * /venue - consola del VENUE_MANAGER. Boot: GET /venues/mine resuelve los
@@ -720,20 +721,35 @@ export default function VenuePage() {
                   <p className="text-sm text-ink/50">{t("emptyMenus")}</p>
                 ) : (
                   <ul className="flex flex-col gap-2">
-                    {dash.menus.map((m) => (
-                      <li key={m.id}>
-                        <a
-                          href={m.pdfUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-sm font-medium transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon"
-                        >
-                          <span>{t("menus.item", { version: m.version })}</span>
-                          <ArrowUpRightIcon className="h-4 w-4 shrink-0 text-ink/50" />
-                          <span className="sr-only">{tc("newTab")}</span>
-                        </a>
-                      </li>
-                    ))}
+                    {dash.menus.map((m) => {
+                      // spec web-edge-security: whitelist http(s) -
+                      // una pdfUrl con otro esquema queda no-navegable.
+                      const pdfHref = safeExternalHref(m.pdfUrl);
+                      const itemCls =
+                        "flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-sm font-medium";
+                      return (
+                        <li key={m.id}>
+                          {pdfHref ? (
+                            <a
+                              href={pdfHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`${itemCls} transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon`}
+                            >
+                              <span>
+                                {t("menus.item", { version: m.version })}
+                              </span>
+                              <ArrowUpRightIcon className="h-4 w-4 shrink-0 text-ink/50" />
+                              <span className="sr-only">{tc("newTab")}</span>
+                            </a>
+                          ) : (
+                            <span className={`${itemCls} text-ink/40`}>
+                              {t("menus.item", { version: m.version })}
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </section>

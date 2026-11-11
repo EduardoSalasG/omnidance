@@ -13,12 +13,29 @@ import { headers } from "next/headers";
  * 2. API_PROXY_TARGET    - mismo destino del rewrite /api/* de
  *                          next.config.mjs (directo al API).
  * 3. NEXT_PUBLIC_WEB_URL - la propia web: /api/* pasa por el rewrite.
- * 4. Origin del request  - headers host/x-forwarded-*. En Netlify las
- *                          env de [build.environment] no llegan al
- *                          runtime del serverless: sin esto caía a
- *                          localhost y todo fetch SSR fallaba.
- * 5. localhost:4000      - dev local.
+ * 4. Host del request    - SOLO hosts locales (localhost/127/::1):
+ *                          cubre `next start` de QA/e2e sin envs. Un
+ *                          Host ajeno con envs faltantes no se usa
+ *                          (audit B5): derivar la base del header
+ *                          mandaría los fetch SSR con cookies del
+ *                          usuario a un origen arbitrario.
+ * 5. localhost:4000      - dev local. En producción sin envs válidas
+ *                          falla explícito - nunca silencioso.
  */
+// Solo loopback: el header es cliente-supeable si no hay proxy - con
+// prefijo bastaría `127.0.0.1.evil.com` para bypassear. Se compara el
+// hostname pelado (sin puerto, sin corchetes IPv6) con exactitud.
+function isLocalHost(host: string): boolean {
+  const name = host
+    .replace(/:\d+$/, "")
+    .replace(/^\[|\]$/g, "");
+  return (
+    name === "localhost" ||
+    name === "::1" ||
+    /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(name)
+  );
+}
+
 export async function serverApiUrl(): Promise<string> {
   if (process.env.API_URL) return process.env.API_URL;
   if (process.env.API_PROXY_TARGET) return process.env.API_PROXY_TARGET;
@@ -26,13 +43,18 @@ export async function serverApiUrl(): Promise<string> {
   try {
     const h = await headers();
     const host = h.get("x-forwarded-host") ?? h.get("host");
-    if (host) {
-      const local = host.startsWith("localhost") || host.startsWith("127.");
-      const proto = h.get("x-forwarded-proto") ?? (local ? "http" : "https");
+    if (host && isLocalHost(host)) {
+      const proto = h.get("x-forwarded-proto") ?? "http";
       return `${proto}://${host}`;
     }
   } catch {
-    // Fuera de contexto de request (build, workers) - cae al fallback.
+    // Fuera de contexto de request (build, workers) - cae al resultado.
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "serverApiUrl: sin API_URL/API_PROXY_TARGET/NEXT_PUBLIC_WEB_URL - " +
+        "configurar una env antes de servir SSR",
+    );
   }
   return "http://localhost:4000";
 }

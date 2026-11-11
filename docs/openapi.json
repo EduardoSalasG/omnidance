@@ -15,6 +15,20 @@
         ]
       }
     },
+    "/api/health/db": {
+      "get": {
+        "operationId": "HealthController_checkDb",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
     "/api/auth/magic-link": {
       "post": {
         "operationId": "AuthController_magicLink",
@@ -183,6 +197,57 @@
         },
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/api/me/sessions": {
+      "get": {
+        "operationId": "MeSessionsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MeSessions"
+        ]
+      }
+    },
+    "/api/me/sessions/{id}": {
+      "delete": {
+        "operationId": "MeSessionsController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MeSessions"
+        ]
+      }
+    },
+    "/api/me/sessions/revoke-others": {
+      "post": {
+        "operationId": "MeSessionsController_revokeOthers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MeSessions"
         ]
       }
     },
@@ -7857,6 +7922,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsumeInviteDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -11456,6 +11531,75 @@
         ]
       }
     },
+    "/api/admin/users/{personId}/sessions": {
+      "get": {
+        "operationId": "AdminUserSessionsController_list",
+        "parameters": [
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminUserSessions"
+        ]
+      }
+    },
+    "/api/admin/sessions/{id}": {
+      "delete": {
+        "operationId": "AdminUserSessionsController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminUserSessions"
+        ]
+      }
+    },
+    "/api/admin/users/{personId}/sessions/revoke-all": {
+      "post": {
+        "operationId": "AdminUserSessionsController_revokeAll",
+        "parameters": [
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AdminUserSessions"
+        ]
+      }
+    },
     "/api/crm/people": {
       "get": {
         "operationId": "CrmController_listPeople",
@@ -12453,6 +12597,30 @@
         ]
       }
     },
+    "/api/analytics/track": {
+      "post": {
+        "operationId": "AnalyticsTrackController_track",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AnalyticsTrack"
+        ]
+      }
+    },
     "/api/query/catalog": {
       "get": {
         "operationId": "QueryController_catalog",
@@ -13284,6 +13452,10 @@
         "type": "object",
         "properties": {}
       },
+      "ConsumeInviteDto": {
+        "type": "object",
+        "properties": {}
+      },
       "AddInstructorDto": {
         "type": "object",
         "properties": {}
@@ -13458,6 +13630,30 @@
       "PatchTriggerDto": {
         "type": "object",
         "properties": {}
+      },
+      "TrackEventDto": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": [
+              "app.launch"
+            ]
+          },
+          "displayMode": {
+            "type": "string",
+            "enum": [
+              "standalone",
+              "browser"
+            ]
+          },
+          "platform": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "event"
+        ]
       },
       "QueryRunDto": {
         "type": "object",

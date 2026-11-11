@@ -14,6 +14,7 @@ import {
 import { readError } from "@/components/academy/shared";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { TrialDateEditor } from "@/components/admin/trial-date-editor";
+import { UserSessionsSection } from "@/components/admin/user-sessions-section";
 import type { RoleRow } from "@/components/admin/types";
 import { useRouter } from "@/i18n/navigation";
 import { getDateFmt, useNumFmt } from "@/lib/intl";
@@ -567,7 +568,9 @@ function UserDetailPanel({ personId }: { personId: string }) {
               </div>
             </div>
           </div>
-          <dl className="flex flex-col gap-1.5 text-sm">
+          {/* PII de la persona (email/teléfono) → masking de Clarity
+              (audit M5). */}
+          <dl data-clarity-mask="true" className="flex flex-col gap-1.5 text-sm">
             {person.email && (
               <div className="flex gap-2">
                 <dt className="shrink-0 text-ink/50">
@@ -882,6 +885,10 @@ function UserDetailPanel({ personId }: { personId: string }) {
           </Card>
         )}
       </section>
+
+      {/* Sesiones persistidas (spec auth-sessions): el admin ve y mata
+          las sesiones activas de la persona. */}
+      <UserSessionsSection personId={personId} />
 
       <Button
         href={`/analitica/usuarios/${personId}`}

@@ -123,6 +123,20 @@ const ACQUISITION_KINDS = [
   "link",
   "none",
 ] as const;
+// Plataformas canónicas de la entidad `dispositivos` (spec auth-sessions):
+// el handler normaliza payload.platform de AnalyticsEvent a estos
+// buckets (android/ios/windows/macos/linux/chromeos; resto → other;
+// ausente → sin_dato, filtrable como `none` - espejo de acquisition).
+const DEVICE_PLATFORMS = [
+  "android",
+  "ios",
+  "windows",
+  "macos",
+  "linux",
+  "chromeos",
+  "other",
+  "none",
+] as const;
 
 // Atajos de composición de filtros.
 const scopeEvent: FilterDef = {
@@ -388,6 +402,20 @@ export const QUERY_CATALOG: Record<QueryRole, readonly EntityDef[]> = {
         { key: "kind", type: "enum", options: ACQUISITION_KINDS, multi: true },
       ],
       columns: ["canal", "altas", "pct"],
+    },
+    {
+      entity: "dispositivos",
+      filters: [
+        from,
+        to,
+        {
+          key: "platform",
+          type: "enum",
+          options: DEVICE_PLATFORMS,
+          multi: true,
+        },
+      ],
+      columns: ["modo", "plataforma", "altas", "pct"],
     },
     {
       entity: "leads",

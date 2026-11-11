@@ -347,6 +347,9 @@ describe("CheckinsService.register", () => {
       name: "Bailarín Uno",
       photoUrl: "https://x/y.jpg",
     });
+    // Spec event-access-scope: el staff que opera debe estar vinculado.
+    repo.staffAssignments.add("evt-1:staff-1");
+    repo.staffAssignments.add("evt-1:s");
     svc = new CheckinsService(repo);
   });
 
@@ -518,6 +521,7 @@ describe("CheckinsService.listByEvent", () => {
       name: "Bailarín Uno",
       photoUrl: null,
     });
+    repo.staffAssignments.add("evt-1:s");
     svc = new CheckinsService(repo);
   });
 
@@ -528,16 +532,23 @@ describe("CheckinsService.listByEvent", () => {
       staffId: "s",
       method: "SCAN",
     });
-    const list = await svc.listByEvent("evt-1");
+    const list = await svc.listByEvent("evt-1", { id: "s" });
     expect(list).toHaveLength(1);
     expect(list[0].person.name).toBe("Bailarín Uno");
     expect(list[0].method).toBe("SCAN");
   });
 
   it("evento inexistente → EventNotFoundError", async () => {
-    await expect(svc.listByEvent("no-hay")).rejects.toBeInstanceOf(
-      EventNotFoundError,
-    );
+    await expect(
+      svc.listByEvent("no-hay", { id: "s" }),
+    ).rejects.toBeInstanceOf(EventNotFoundError);
+  });
+
+  it("staff no vinculado al evento → CheckinForbiddenError", async () => {
+    repo.permissions.set("staff-x", new Set(["checkins.write"]));
+    await expect(
+      svc.listByEvent("evt-1", { id: "staff-x" }),
+    ).rejects.toBeInstanceOf(CheckinForbiddenError);
   });
 });
 
@@ -554,6 +565,7 @@ describe("CheckinsService.closeCheckin", () => {
       photoUrl: null,
     });
     repo.people.set("per-2", { id: "per-2", name: "Otra", photoUrl: null });
+    repo.staffAssignments.add("evt-1:staff-1");
     svc = new CheckinsService(repo);
     await svc.register({
       eventId: "evt-1",
@@ -568,9 +580,24 @@ describe("CheckinsService.closeCheckin", () => {
     expect(res.outAt).not.toBeNull();
   });
 
-  it("staff con checkins.write cierra check-in ajeno", async () => {
+  it("staff asignado con checkins.write cierra check-in ajeno", async () => {
     repo.permissions.set("staff-2", new Set(["checkins.write"]));
+    repo.staffAssignments.add("evt-1:staff-2");
     const res = await svc.closeCheckin(repo.checkins[0].id, { id: "staff-2" });
+    expect(res.outAt).not.toBeNull();
+  });
+
+  it("staff con checkins.write sin asignación → CheckinForbiddenError (spec event-access-scope)", async () => {
+    repo.permissions.set("staff-2", new Set(["checkins.write"]));
+    await expect(
+      svc.closeCheckin(repo.checkins[0].id, { id: "staff-2" }),
+    ).rejects.toBeInstanceOf(CheckinForbiddenError);
+    expect(repo.checkins[0].outAt).toBeNull();
+  });
+
+  it("productor dueño del evento cierra check-in ajeno sin permiso", async () => {
+    repo.addEvent("evt-1", { producerId: "prod-1" });
+    const res = await svc.closeCheckin(repo.checkins[0].id, { id: "prod-1" });
     expect(res.outAt).not.toBeNull();
   });
 
@@ -607,6 +634,7 @@ describe("CheckinsService.voidCheckin", () => {
       photoUrl: null,
     });
     repo.tickets.push(mkTicket({ id: "tkt-1" }));
+    repo.staffAssignments.add("evt-1:staff-1");
     svc = new CheckinsService(repo);
     await svc.register({
       eventId: "evt-1",
@@ -853,6 +881,8 @@ describe("CheckinsService.doorManifest", () => {
     repo.addEvent("evt-1", { seriesId: "ser-1" });
     repo.people.set("per-1", { id: "per-1", name: "Ana", photoUrl: null });
     repo.people.set("per-2", { id: "per-2", name: "Beto", photoUrl: "u.jpg" });
+    repo.staffAssignments.add("evt-1:staff-1");
+    repo.staffAssignments.add("evt-2:staff-1");
     svc = new CheckinsService(repo);
   });
 
@@ -894,7 +924,7 @@ describe("CheckinsService.doorManifest", () => {
       note: null,
     });
 
-    const m = await svc.doorManifest("evt-1");
+    const m = await svc.doorManifest("evt-1", { id: "staff-1" });
     expect(m.event.id).toBe("evt-1");
     expect(m.tickets).toEqual([
       { personId: "per-1", name: "Ana", photoUrl: null },
@@ -910,14 +940,21 @@ describe("CheckinsService.doorManifest", () => {
 
   it("evento sin serie → seriesPasses vacío", async () => {
     repo.addEvent("evt-2", { seriesId: null });
-    const m = await svc.doorManifest("evt-2");
+    const m = await svc.doorManifest("evt-2", { id: "staff-1" });
     expect(m.seriesPasses).toEqual([]);
   });
 
   it("evento inexistente → EventNotFoundError", async () => {
-    await expect(svc.doorManifest("no")).rejects.toBeInstanceOf(
-      EventNotFoundError,
-    );
+    await expect(
+      svc.doorManifest("no", { id: "staff-1" }),
+    ).rejects.toBeInstanceOf(EventNotFoundError);
+  });
+
+  it("staff no vinculado al evento → CheckinForbiddenError (spec event-access-scope)", async () => {
+    repo.permissions.set("staff-x", new Set(["checkins.write"]));
+    await expect(
+      svc.doorManifest("evt-1", { id: "staff-x" }),
+    ).rejects.toBeInstanceOf(CheckinForbiddenError);
   });
 });
 
@@ -930,6 +967,7 @@ describe("CheckinsService.syncCheckin", () => {
     repo = new FakeCheckinsRepo();
     repo.addEvent("evt-1");
     repo.people.set("per-1", { id: "per-1", name: "Ana", photoUrl: null });
+    repo.staffAssignments.add("evt-1:staff-1");
     svc = new CheckinsService(repo);
   });
 
@@ -995,5 +1033,77 @@ describe("CheckinsService.doorSale - moneda (spec multipais-currency)", () => {
     );
     expect(res.ticket.currency).toBe("USD");
     expect(res.ticket.listPrice).toBe(2500);
+  });
+});
+
+describe("CheckinsService - scoping de actor por evento (spec event-access-scope)", () => {
+  let repo: FakeCheckinsRepo;
+  let svc: CheckinsService;
+
+  beforeEach(() => {
+    repo = new FakeCheckinsRepo();
+    repo.addEvent("evt-1");
+    repo.people.set("per-1", { id: "per-1", name: "Ana", photoUrl: null });
+    svc = new CheckinsService(repo);
+  });
+
+  it("register: staff con checkins.write sin asignación → CheckinForbiddenError, no crea", async () => {
+    repo.permissions.set("staff-x", new Set(["checkins.write"]));
+    await expect(
+      svc.register({
+        eventId: "evt-1",
+        personId: "per-1",
+        staffId: "staff-x",
+        method: "SCAN",
+      }),
+    ).rejects.toBeInstanceOf(CheckinForbiddenError);
+    expect(repo.checkins).toHaveLength(0);
+  });
+
+  it("register: staff asignado → OK; productor dueño → OK; admin → OK", async () => {
+    repo.staffAssignments.add("evt-1:staff-1");
+    await expect(
+      svc.register({
+        eventId: "evt-1",
+        personId: "per-1",
+        staffId: "staff-1",
+        method: "SCAN",
+      }),
+    ).resolves.toBeTruthy();
+
+    repo.addEvent("evt-prod", { producerId: "prod-1" });
+    repo.people.set("per-2", { id: "per-2", name: "Beto", photoUrl: null });
+    const res = await svc.register({
+      eventId: "evt-prod",
+      personId: "per-2",
+      staffId: "prod-1",
+      method: "MANUAL",
+    });
+    expect(res.checkin.eventId).toBe("evt-prod");
+
+    repo.superusers.add("admin-1");
+    repo.people.set("per-3", { id: "per-3", name: "Cata", photoUrl: null });
+    await expect(
+      svc.register({
+        eventId: "evt-1",
+        personId: "per-3",
+        staffId: "admin-1",
+        method: "MANUAL",
+      }),
+    ).resolves.toBeTruthy();
+  });
+
+  it("syncCheckin: staff sin asignación propaga CheckinForbiddenError", async () => {
+    repo.permissions.set("staff-x", new Set(["checkins.write"]));
+    await expect(
+      svc.syncCheckin({
+        eventId: "evt-1",
+        personId: "per-1",
+        staffId: "staff-x",
+        clientRef: "uuid-x",
+        scannedAt: new Date(),
+      }),
+    ).rejects.toBeInstanceOf(CheckinForbiddenError);
+    expect(repo.checkins).toHaveLength(0);
   });
 });

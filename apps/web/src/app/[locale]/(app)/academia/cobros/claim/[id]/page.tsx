@@ -232,7 +232,9 @@ function ClaimDetail({
           <h2 className="text-lg font-semibold">{t("claimTitle")}</h2>
           <Badge variant={variant}>{statusLabel[claim.status]}</Badge>
         </div>
-        <Card className="flex flex-col gap-3 p-4">
+        {/* Datos del pagador y del comprobante → masking de Clarity
+            (audit M5). */}
+        <Card data-clarity-mask="true" className="flex flex-col gap-3 p-4">
           <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs text-ink/50">{t("fieldStudent")}</dt>

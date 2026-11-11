@@ -11,7 +11,7 @@
   PNPM_VERSION = "10.12.1"
   # Rewrite same-origin: /api/* y /socket.io/* se proxean al API
   # (cookies Lax sin cross-site; socket.io queda en polling).
-  API_PROXY_TARGET = "https://api.omnidance.eduardosalasg.dev"
+  API_PROXY_TARGET = "https://api.omnidance.tech"
   # NEXT_PUBLIC_* se inlinea en el bundle durante `next build` - sí llega
   # desde build.environment (a diferencia del runtime serverless). Es la
   # base de canonical/og:url/sitemap/robots/JSON-LD y del dominio que
@@ -31,7 +31,7 @@
 # cliente quedaba en loop de polling. El proxy preserva el path tal cual.
 [[redirects]]
   from = "/socket.io/*"
-  to = "https://api.omnidance.eduardosalasg.dev/socket.io/:splat"
+  to = "https://api.omnidance.tech/socket.io/:splat"
   status = 200
   force = true
 

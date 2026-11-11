@@ -119,10 +119,15 @@ function mkPrisma() {
       ),
     },
     paymentEvent: {
-      findFirst: vi.fn(async ({ where }: { where: { paymentId: string } }) =>
-        events
-          .filter((e) => e.paymentId === where.paymentId)
-          .sort((a, b) => (b.seq as number) - (a.seq as number))[0] ?? null,
+      findFirst: vi.fn(
+        async ({ where }: { where: { paymentId: string; type?: string } }) =>
+          events
+            .filter(
+              (e) =>
+                e.paymentId === where.paymentId &&
+                (!where.type || e.type === where.type),
+            )
+            .sort((a, b) => (b.seq as number) - (a.seq as number))[0] ?? null,
       ),
       create: vi.fn(async ({ data }: { data: Row }) => {
         // Round-trip JSON como jsonb real (ver payment-ledger.spec).
@@ -543,12 +548,12 @@ describe("PaymentSettlementService", () => {
   });
 
   describe("AMOUNT_MISMATCH", () => {
-    it("monto reportado ≠ Payment.amount → evento + notify a admins", async () => {
+    it("monto reportado MAYOR que Payment.amount → liquida con evento + notify a admins", async () => {
       fx.admins.push({ personId: "admin1" }, { personId: "admin2" });
       const payment = seed(mkPayment());
       await svc.settle(payment, "PAID", {
         actor: "webhook",
-        gatewayData: { ...GATEWAY_DATA, amount: 9999 },
+        gatewayData: { ...GATEWAY_DATA, amount: 11000 },
       });
 
       expect(eventTypes()).toEqual([
@@ -559,7 +564,7 @@ describe("PaymentSettlementService", () => {
       const mismatch = fx.events.find((e) => e.type === "AMOUNT_MISMATCH")!;
       expect(mismatch.payload).toEqual({
         expected: 10500,
-        reported: 9999,
+        reported: 11000,
         reportedCurrency: null,
       });
 
@@ -593,6 +598,73 @@ describe("PaymentSettlementService", () => {
         expectedCurrency: "CLP",
         reportedCurrency: "USD",
       });
+    });
+  });
+
+  // spec api-hardening: confirmación PAID con monto menor al de la orden
+  // o moneda distinta → NO se emite efecto ni PAID; queda marcado para
+  // revisión admin vía AMOUNT_MISMATCH + aviso existente.
+  describe("settle conservador (monto menor reportado)", () => {
+    it("reported < expected → PENDING_REVIEW sin PAID ni efecto, AMOUNT_MISMATCH + aviso admin", async () => {
+      fx.admins.push({ personId: "admin1" });
+      const payment = seed(mkPayment());
+      const out = await svc.settle(payment, "PAID", {
+        actor: "webhook",
+        gatewayData: { ...GATEWAY_DATA, amount: 9999 },
+      });
+
+      expect(out).toEqual({ ok: true, status: "PENDING_REVIEW" });
+      expect(fx.payments.get("pay1")!.status).toBe("PENDING");
+      // Sin SETTLED ni efecto (enrollment) - solo la marca de revisión.
+      expect(eventTypes()).toEqual(["STATUS_CONFIRMED", "AMOUNT_MISMATCH"]);
+      expect(fx.enrollments).toHaveLength(0);
+      // La evidencia gateway* se persiste igual sobre la fila.
+      expect(fx.payments.get("pay1")!.gatewayReportedAmount).toBe(9999);
+      const adminCalls = notifications.notifySafe.mock.calls.filter(
+        ([, input]) => input.type === "payment.amount_mismatch",
+      );
+      expect(adminCalls.map(([p]) => p)).toEqual(["admin1"]);
+    });
+
+    it("re-notificación con la misma discrepancia → no duplica eventos ni aviso", async () => {
+      fx.admins.push({ personId: "admin1" });
+      const payment = seed(mkPayment());
+      const gw = { ...GATEWAY_DATA, amount: 9999 };
+      await svc.settle(payment, "PAID", { actor: "webhook", gatewayData: gw });
+      await svc.settle(payment, "PAID", { actor: "webhook", gatewayData: gw });
+      expect(eventTypes()).toEqual(["STATUS_CONFIRMED", "AMOUNT_MISMATCH"]);
+      expect(
+        notifications.notifySafe.mock.calls.filter(
+          ([, i]) => i.type === "payment.amount_mismatch",
+        ),
+      ).toHaveLength(1);
+    });
+
+    it("reporte posterior >= expected → liquida normal tras la revisión", async () => {
+      const payment = seed(mkPayment());
+      await svc.settle(payment, "PAID", {
+        actor: "webhook",
+        gatewayData: { ...GATEWAY_DATA, amount: 9999 },
+      });
+      const fresh = fx.payments.get("pay1")! as unknown as Payment;
+      const out = await svc.settle(fresh, "PAID", {
+        actor: "webhook",
+        gatewayData: GATEWAY_DATA,
+      });
+      expect(out).toEqual({ ok: true, status: "PAID" });
+      expect(fx.payments.get("pay1")!.status).toBe("PAID");
+      expect(eventTypes()).toContain("SETTLED");
+    });
+
+    it("moneda distinta también queda en revisión (no liquida)", async () => {
+      const payment = seed(mkPayment({ currency: "CLP" } as Partial<Row>));
+      const out = await svc.settle(payment, "PAID", {
+        actor: "webhook",
+        gatewayData: { ...GATEWAY_DATA, currency: "USD" },
+      });
+      expect(out.status).toBe("PENDING_REVIEW");
+      expect(fx.payments.get("pay1")!.status).toBe("PENDING");
+      expect(eventTypes()).not.toContain("SETTLED");
     });
   });
 

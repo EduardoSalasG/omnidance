@@ -14,7 +14,8 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { Request, Response } from "express";
-import * as XLSX from "xlsx";
+import { Readable } from "node:stream";
+import ExcelJS from "exceljs";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { AcademyAccess } from "./academy-access.service";
 import { AcademyImportService } from "./academy-import.service";
@@ -101,7 +102,7 @@ export class AcademyImportController {
       req.person!,
       "students",
     );
-    const objects = parseImportFile(file, ["email", "nombre"]);
+    const objects = await parseImportFile(file, ["email", "nombre"]);
     return this.imports.importStudents(academy, objects, {
       dryRun: isDryRun(dryRun),
       createdById: req.person!.id,
@@ -125,7 +126,7 @@ export class AcademyImportController {
       "schedule",
       "classes",
     );
-    const objects = parseImportFile(file, [
+    const objects = await parseImportFile(file, [
       "serie",
       "dia_semana",
       "hora_inicio",
@@ -202,32 +203,46 @@ function isSpreadsheet(file: Express.Multer.File): boolean {
   return XLS_MIMES.has(file.mimetype);
 }
 
-function sheetRows(buffer: Buffer): string[][] {
-  const wb = XLSX.read(buffer, { type: "buffer" });
-  const ws = wb.Sheets[wb.SheetNames[0]];
+// Parse de la planilla con exceljs (spec api-hardening: reemplaza a
+// xlsx@0.18.5 por sus CVEs). ExcelJS solo lee OOXML (.xlsx): el BIFF
+// binario .xls (Excel 97-2003) queda fuera - el 400 guía a re-guardar.
+// `cell.text` equivale al `raw:false` previo (texto formateado de la
+// celda); las filas vacías se descartan igual que `blankrows:false`.
+async function sheetRows(buffer: Buffer): Promise<string[][]> {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.read(Readable.from(buffer));
+  const ws = wb.worksheets[0];
   if (!ws) return [];
-  const rows = XLSX.utils.sheet_to_json(ws, {
-    header: 1,
-    raw: false,
-    defval: "",
-    blankrows: false,
-  }) as unknown[][];
-  return rows
-    .map((row) => row.map((c) => String(c)))
-    .filter((row) => row.some((c) => c.trim() !== ""));
+  const rows: string[][] = [];
+  ws.eachRow({ includeEmpty: false }, (row) => {
+    // row.values es 1-indexed (índice 0 vacío) u objeto consecutivo -
+    // la matriz CSV-equivalente solo toma el arreglo.
+    const values = Array.isArray(row.values) ? row.values : [];
+    const cells: string[] = [];
+    for (let i = 1; i < values.length; i++) {
+      cells.push(String(row.getCell(i).text ?? ""));
+    }
+    if (cells.some((c) => c.trim() !== "")) rows.push(cells);
+  });
+  return rows;
 }
 
-function parseImportFile(
+async function parseImportFile(
   file: Express.Multer.File | undefined,
   required: string[],
-): Record<string, string>[] {
+): Promise<Record<string, string>[]> {
   if (!file?.buffer?.length) {
     throw new BadRequestException(
-      "archivo requerido (campo `file`: .csv, .xls o .xlsx)",
+      "archivo requerido (campo `file`: .csv o .xlsx)",
+    );
+  }
+  if (file.originalname.toLowerCase().endsWith(".xls")) {
+    throw new BadRequestException(
+      "el formato .xls (Excel 97-2003) no se soporta - guarda como .xlsx o .csv",
     );
   }
   const rows = isSpreadsheet(file)
-    ? sheetRows(file.buffer)
+    ? await sheetRows(file.buffer)
     : parseCsv(file.buffer.toString("utf8"));
   if (rows.length < 2) {
     throw new BadRequestException("el archivo no tiene filas de datos");

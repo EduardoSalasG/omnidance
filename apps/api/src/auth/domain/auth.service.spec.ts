@@ -6,17 +6,61 @@ import type { AuthOtpRecord, AuthRepo } from "./ports";
 const SECRET = "test-secret-at-least-32-chars-long!!";
 
 describe("AuthService", () => {
-  const svc = new AuthService(SECRET);
+  // Repo stub con soporte de AuthSession: sin él issueSession firma JWT
+  // legado sin jti (spec auth-sessions - el claim solo viaja si hay fila).
+  const svc = new AuthService(SECRET, {
+    createAuthSession: async () => {},
+  } as unknown as AuthRepo);
   const secretKey = new TextEncoder().encode(SECRET);
 
-  it("issueSession retorna JWT verificable con sub=personId, exp ~30d", async () => {
+  it("issueSession retorna JWT verificable con sub=personId, exp ~30d y jti", async () => {
     const token = await svc.issueSession("person-123");
     const { payload } = await jwtVerify(token, secretKey);
     expect(payload.sub).toBe("person-123");
     expect(payload.purpose).toBe("session");
+    // jti (spec auth-sessions): identifica la fila AuthSession.
+    expect(payload.jti).toMatch(/^[0-9a-f]{32}$/);
     const days = (payload.exp! - payload.iat!) / 86400;
     expect(days).toBeGreaterThan(29);
     expect(days).toBeLessThan(31);
+  });
+
+  it("cada issueSession genera un jti distinto", async () => {
+    const [a, b] = await Promise.all([
+      svc.issueSession("p"),
+      svc.issueSession("p"),
+    ]);
+    expect((await svc.verifySession(a)).jti).not.toBe(
+      (await svc.verifySession(b)).jti,
+    );
+  });
+
+  it("verifySession devuelve personId + jti del token", async () => {
+    const token = await svc.issueSession("person-9");
+    const out = await svc.verifySession(token);
+    expect(out.personId).toBe("person-9");
+    expect(out.jti).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it("issueSession persiste la AuthSession antes de firmar (spec auth-sessions)", async () => {
+    const created: { jti: string; personId: string; userAgent?: string; ip?: string }[] = [];
+    const repo = {
+      createAuthSession: async (data: (typeof created)[number]) => {
+        created.push(data);
+      },
+    };
+    const withRepo = new AuthService(SECRET, repo as unknown as AuthRepo);
+    const token = await withRepo.issueSession("p-meta", {
+      userAgent: "spec-agent",
+      ip: "1.2.3.4",
+    });
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      personId: "p-meta",
+      userAgent: "spec-agent",
+      ip: "1.2.3.4",
+    });
+    expect(created[0].jti).toBe((await withRepo.verifySession(token)).jti);
   });
 
   it("createMagicToken produce token con purpose=magic y exp ~15min", async () => {
@@ -39,6 +83,7 @@ describe("AuthService", () => {
     expect(await svc.verifyMagicToken(token)).toEqual({
       email: "inv@b.cl",
       consent: false,
+      reused: false,
     });
   });
 

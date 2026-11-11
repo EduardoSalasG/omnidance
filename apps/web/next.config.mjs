@@ -21,6 +21,13 @@ const API_PROXY_TARGET =
 const nextConfig = {
   transpilePackages: ["@omnidance/shared"],
   poweredByHeader: false,
+  // SWR del HTML prerenderizado a nivel CDN (perf-lighthouse #6): las
+  // landings solo cambian con content:sync+deploy, así que el edge
+  // puede servir stale mientras revalida. El browser sigue recibiendo
+  // max-age=0 + must-revalidate (el prerender depende de sesión vía
+  // middleware → redirect /inicio); el stale-while-revalidate lo
+  // consume la CDN de Netlify, no el cliente.
+  expireTime: 3600,
   // Streaming metadata: con generateMetadata async (getMessages por
   // locale) Next emite <title>/<meta> al <body> para usuarios; los UAs
   // de htmlLimitedBots (Googlebot, Lighthouse, Twitterbot, WhatsApp…)

@@ -45,7 +45,14 @@ async function bootstrap() {
   // OpenAPI: UI en /api/docs, documento JSON en /api/docs-json.
   // El script scripts/export-api-docs.cjs lo consume para generar
   // docs/openapi.json + la colección Postman.
-  const config = new DocumentBuilder()
+  // Gate (spec api-hardening): en producción la spec del API queda
+  // cerrada salvo que el owner la abra con API_DOCS_ENABLED=true -
+  // dev/test la montan siempre. Sin mount → /api/docs* responde 404.
+  const apiDocsEnabled =
+    process.env.API_DOCS_ENABLED === "true" ||
+    process.env.NODE_ENV !== "production";
+  if (apiDocsEnabled) {
+    const config = new DocumentBuilder()
     .setTitle("omni-dance API")
     .setDescription(
       "API de la plataforma omni-dance (SBK Santiago): eventos, QR, sesiones, " +
@@ -54,10 +61,11 @@ async function bootstrap() {
     .setVersion("0.1.0")
     .addCookieAuth("omnidance_session")
     .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api/docs", app, document, {
-    jsonDocumentUrl: "api/docs-json",
-  });
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup("api/docs", app, document, {
+      jsonDocumentUrl: "api/docs-json",
+    });
+  }
 
   await app.listen(process.env.PORT ?? 4000);
 }

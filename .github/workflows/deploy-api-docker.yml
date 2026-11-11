@@ -21,7 +21,7 @@ env:
   # Mismo patrón que video-repo: /opt/apps/<app> con el deploy user ya
   # dueño del directorio (sin sudo en el pipeline).
   CONTAINER_DIR: /opt/apps/omnidance
-  PUBLIC_API_HOST: api.omnidance.eduardosalasg.dev
+  PUBLIC_API_HOST: api.omnidance.tech
 
 jobs:
   deploy:

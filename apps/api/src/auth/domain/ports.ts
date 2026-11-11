@@ -1,4 +1,4 @@
-import type { Person } from "@prisma/client";
+import type { AuthSession, Person } from "@prisma/client";
 import type { ResolvedAcquisition } from "./acquisition";
 
 export const MAILER = "MAILER";
@@ -79,4 +79,53 @@ export interface AuthRepo {
   findActiveOtp(email: string): Promise<AuthOtpRecord | null>;
   bumpAttempts(id: string): Promise<void>;
   consumeOtp(id: string): Promise<void>;
+
+  // Magic token consumible (spec api-hardening/auth): el magic link es
+  // JWT stateless - esta marca persistida lo vuelve single-use. Inserta
+  // la fila MagicTokenUse(tokenHash) de forma atómica: `true` = este
+  // llamado consumió el token; `false` = ya estaba consumido (unique).
+  consumeMagicToken(data: {
+    tokenHash: string;
+    email: string;
+  }): Promise<boolean>;
+
+  // ─── Sesiones persistidas (spec auth-sessions) ───
+  // Una fila AuthSession por JWT de sesión emitido (claim `jti`). Los
+  // métodos se llaman con optional-chaining donde el repo puede ser un
+  // fake legado sin ellos (mismo criterio que consumeMagicToken): sin
+  // persistencia queda comportamiento JWT puro.
+
+  /** Fila al emitir la sesión - va ANTES de firmar el JWT. */
+  createAuthSession(data: {
+    jti: string;
+    personId: string;
+    userAgent?: string;
+    ip?: string;
+  }): Promise<void>;
+
+  /** Lookup del guard: sesión viva = fila existe y revokedAt es null. */
+  findAuthSessionByJti(
+    jti: string,
+  ): Promise<Pick<AuthSession, "id" | "revokedAt" | "lastSeenAt"> | null>;
+
+  /** Muestreo de actividad (máx 1 write/min por jti - lo regula el guard). */
+  touchAuthSession(jti: string): Promise<void>;
+
+  /** Sesiones de la persona (activas y revocadas), recientes primero. */
+  listAuthSessions(personId: string): Promise<AuthSession[]>;
+
+  /**
+   * Revoca por id devolviendo filas afectadas (updateMany). `personId`
+   * presente = check de ownership para el self-service.
+   */
+  revokeAuthSession(id: string, personId?: string): Promise<number>;
+
+  /** "Cerrar otras sesiones": todas las activas menos la del jti actual. */
+  revokeOtherAuthSessions(
+    personId: string,
+    exceptJti?: string,
+  ): Promise<number>;
+
+  /** Admin: mata TODAS las sesiones de la persona (incluye la vigente). */
+  revokeAllAuthSessions(personId: string): Promise<number>;
 }

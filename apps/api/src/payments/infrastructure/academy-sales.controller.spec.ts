@@ -99,12 +99,12 @@ describe("AcademySalesController", () => {
 
   it("POST /academy-deals/:id/mark-paid → markPaid con evidenceUrl opcional", async () => {
     await ctrl.markPaid("agr-1", req(), {
-      evidenceUrl: "https://drive/x.pdf",
+      evidenceUrl: "https://drive.example/x.pdf",
     });
     expect(sales.markPaid).toHaveBeenCalledWith(
       "agr-1",
       expect.objectContaining({ id: "prod-1" }),
-      "https://drive/x.pdf",
+      "https://drive.example/x.pdf",
     );
     // Sin body no explota - evidenceUrl undefined.
     await ctrl.markPaid("agr-1", req(), undefined);

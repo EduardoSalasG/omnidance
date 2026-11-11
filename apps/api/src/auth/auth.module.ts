@@ -3,6 +3,7 @@ import { PrismaModule } from "../prisma.module";
 import { LegalModule } from "../legal/legal.module";
 import { AuthService } from "./domain/auth.service";
 import { AuthController } from "./infrastructure/auth.controller";
+import { MeSessionsController } from "./infrastructure/me-sessions.controller";
 import { PrismaAuthRepo } from "./infrastructure/prisma-auth.repo";
 import { ResendMailer } from "./infrastructure/resend-mailer";
 
@@ -12,7 +13,7 @@ import { secretOrDevFallback } from "../common/env";
 
 @Module({
   imports: [PrismaModule, LegalModule],
-  controllers: [AuthController],
+  controllers: [AuthController, MeSessionsController],
   providers: [
     {
       provide: AuthService,

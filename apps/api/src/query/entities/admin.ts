@@ -1143,6 +1143,104 @@ const acquisition: EntityHandler = {
   },
 };
 
+// ─── dispositivos: lanzamientos app por modo/plataforma ──────────────
+// Telemetría de instalación (spec auth-sessions): una fila por
+// combinación displayMode × plataforma sobre los AnalyticsEvent
+// `app.launch` del período - instalada (standalone) vs browser. El
+// payload es libre (Json del beacon público): plataforma se normaliza
+// al vocabulario del filtro `platform` y displayMode ausente/ajeno →
+// `sin_dato`, mismo convenio que `acquisition`.
+
+const DEVICE_PLATFORM_VALUES = [
+  "android",
+  "ios",
+  "windows",
+  "macos",
+  "linux",
+  "chromeos",
+  "other",
+  "none",
+] as const;
+
+/** Bucket canónico de plataforma para agregar y filtrar. */
+const devicePlatform = (raw: unknown): string => {
+  const p = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  if (!p) return "sin_dato";
+  if (p.includes("android")) return "android";
+  if (p === "ios" || p.includes("iphone") || p.includes("ipad")) return "ios";
+  if (p.includes("win")) return "windows";
+  if (p.includes("cros") || p.includes("chrome os")) return "chromeos";
+  if (p.includes("mac")) return "macos";
+  if (p.includes("linux")) return "linux";
+  return "other";
+};
+
+const dispositivos: EntityHandler = {
+  async execute(prisma, _scope, f, opts) {
+    const range = dateRange(f.from, f.to);
+    const platforms = (f.platform ?? "").split(",").filter(Boolean);
+    // Mismo whitelist que los enums simples (los handlers también sirven
+    // fuera de validateEntityFilters).
+    for (const p of platforms) whitelist(p, DEVICE_PLATFORM_VALUES, "platform");
+
+    const events = await prisma.analyticsEvent.findMany({
+      where: {
+        type: "app.launch",
+        ...(range ? { createdAt: range } : {}),
+      },
+      select: { payload: true },
+    });
+
+    const counts = new Map<string, number>();
+    let launches = 0;
+    for (const e of events) {
+      const payload =
+        e.payload && typeof e.payload === "object" && !Array.isArray(e.payload)
+          ? (e.payload as Record<string, unknown>)
+          : {};
+      const modo =
+        payload.displayMode === "standalone" || payload.displayMode === "browser"
+          ? payload.displayMode
+          : "sin_dato";
+      const plataforma = devicePlatform(payload.platform);
+      // `none` del filtro agrupa la plataforma sin dato (espejo del
+      // `none` de acquisition sobre `sin_dato`).
+      const kind = plataforma === "sin_dato" ? "none" : plataforma;
+      if (platforms.length && !platforms.includes(kind)) continue;
+      launches++;
+      const key = `${modo}|${plataforma}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+
+    const all = [...counts.entries()]
+      .map(([key, n]) => {
+        const [modo, plataforma] = key.split("|");
+        return { modo, plataforma, n };
+      })
+      .sort(
+        (a, b) =>
+          b.n - a.n ||
+          a.modo.localeCompare(b.modo) ||
+          a.plataforma.localeCompare(b.plataforma),
+      );
+    const skip = opts?.skip ?? 0;
+    const page =
+      opts?.take != null ? all.slice(skip, skip + opts.take) : all.slice(skip);
+    return {
+      rows: page.map(({ modo, plataforma, n }) => [
+        modo,
+        plataforma,
+        n,
+        launches ? Math.round((n / launches) * 100) : 0,
+      ]),
+      total: all.length,
+      summary: [
+        `${launches} lanzamientos en ${all.length} combinaciones modo/plataforma`,
+      ],
+    };
+  },
+};
+
 export const ADMIN_ENTITIES: Record<string, EntityHandler> = {
   events,
   classes,
@@ -1154,6 +1252,7 @@ export const ADMIN_ENTITIES: Record<string, EntityHandler> = {
   people,
   leads,
   acquisition,
+  dispositivos,
   "payment-events": paymentEvents,
   "gateway-transactions": gatewayTransactions,
   "membership-subscriptions": membershipSubscriptions,

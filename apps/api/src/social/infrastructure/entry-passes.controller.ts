@@ -1,8 +1,6 @@
 import {
   Controller,
-  ForbiddenException,
   Get,
-  NotFoundException,
   Param,
   Req,
   UseGuards,
@@ -10,14 +8,15 @@ import {
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
-import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
+import { requireEventActor } from "../../common/event-access";
 
 /**
  * EntryPass del evento (spec pases/listas). Autorización mixta - sin
  * @RequirePermissions porque el productor y el staff asignado no
- * necesariamente tienen el grant global: productor del evento, staff con
- * StaffAssignment en el evento, o cualquier rol con `social.manage` /
- * `checkins.write` (mismo catálogo cacheado que RolesGuard).
+ * necesariamente tienen un grant global: exige el scoping de actor del
+ * evento (productor dueño, staff asignado o admin - spec
+ * event-access-scope; `social.manage`/`checkins.write` global solo ya
+ * no basta - expone teléfonos de asistentes).
  */
 @Controller("events")
 export class EventEntryPassesController {
@@ -30,29 +29,7 @@ export class EventEntryPassesController {
   @Get(":id/passes")
   @UseGuards(SessionGuard)
   async list(@Param("id") eventId: string, @Req() req: Request) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
-      select: { id: true, producerId: true },
-    });
-    if (!event) throw new NotFoundException("evento no encontrado");
-
-    const me = req.person!;
-    const [assigned, hasPerm] = await Promise.all([
-      this.prisma.staffAssignment.findUnique({
-        where: { eventId_personId: { eventId, personId: me.id } },
-        select: { id: true },
-      }),
-      roleKeysHavePermission(this.prisma, me.roles, [
-        "social.manage",
-        "checkins.write",
-      ]),
-    ]);
-    const allowed = event.producerId === me.id || assigned !== null || hasPerm;
-    if (!allowed) {
-      throw new ForbiddenException(
-        "requiere productor del evento, staff asignado o permiso de gestión",
-      );
-    }
+    await requireEventActor(this.prisma, eventId, req.person!);
 
     const passes = await this.prisma.entryPass.findMany({
       where: { eventId },
