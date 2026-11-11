@@ -4,18 +4,33 @@ Lo que solo tú puedes configurar (dashboards, DNS, VM, secretos). El código
 que depende de estos cambios ya quedó preparado para tolerar ambos estados
 (antes/después de Cloudflare) — ver "dependencia de código" en cada item.
 
-## 1. Monitoreo de uptime (15 min, hoy)
+## 1. Monitoreo de uptime (15 min, hoy) — HECHO 2026-11-10
 
-- Crear cuenta free en UptimeRobot o BetterStack.
-- Monitor HTTP(S) cada 5 min a:
-  - `https://api.omnidance.eduardosalasg.dev/api/health` (debe responder 200
-    rápido; ya NO toca la DB, es barato de sondear)
-  - `https://omnidance.tech` (Netlify)
-- Alerta a tu correo. Sin esto, una caída/DDoS se detecta por reclamo.
+- Cuenta BetterStack creada con 2 monitores.
+- PENDIENTE menor: apuntar el monitor del API a
+  `https://api.omnidance.tech/api/health` (el hostname nuevo tras la
+  migración a Cloudflare; el viejo sigue respondiendo pero conviene
+  medir el path real del proxy).
 
-## 2. Cloudflare delante del API (la respuesta anti-DDoS)
+## 2. Cloudflare delante del API (la respuesta anti-DDoS) — HECHO 2026-11-10
 
-Hoy `api.omnidance.eduardosalasg.dev` es A record directo a la VM. Plan:
+Implementación final (distinta a la original: en vez de mover la zona
+`eduardosalasg.dev` con sus 23 records, se migró la zona chica
+`omnidance.tech` a CF y el API cambió de hostname):
+
+- Zona `omnidance.tech` en CF (nameservers erin/guss), registros de
+  correo Zoho + Resend preservados DNS-only, web Netlify DNS-only.
+- `api` A → VM proxied; `api.omnidance.tech` ya responde por CF
+  (Full strict, cert origen expandido con ambos SAN).
+- `API_URL` en `/opt/apps/omnidance/.env` actualizado al host nuevo
+  (webhooks Flow/Fintoc nuevos registran la URL proxied); contenedor
+  recreado. Alias viejo sigue sirviendo para webhooks ya registrados.
+- Repo: `API_PROXY_TARGET`, rewrite socket.io y `PUBLIC_API_HOST`
+  apuntan al host nuevo (`bac02704`).
+- Pendiente voluntario: rate limiting rule de CF (Security → Rate
+  limiting) sobre `api.omnidance.tech` si quieres una capa extra.
+
+Plan original (solo referencia histórica):
 
 - Crear cuenta Cloudflare free y agregar la zona `eduardosalasg.dev`
   (plan free exige mover los nameservers del dominio completo a CF —
